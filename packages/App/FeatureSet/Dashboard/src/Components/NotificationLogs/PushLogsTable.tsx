@@ -23,6 +23,7 @@ import NotificationLogStatusPill from "./NotificationLogStatusPill";
 import {
   getNotificationLogStatusFilterOptions,
   NotificationLogKind,
+  NOTIFICATION_LOGS_DOCUMENTATION,
 } from "./NotificationLogStatus";
 
 export interface PushLogsTableProps {
@@ -163,6 +164,7 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
             : "No Push logs."
         }
         showRefreshButton={true}
+        documentationLink={NOTIFICATION_LOGS_DOCUMENTATION}
         columns={defaultColumns}
         filters={defaultFilters}
         actionButtons={[

@@ -24,6 +24,7 @@ import NotificationLogStatusPill from "./NotificationLogStatusPill";
 import {
   getNotificationLogStatusFilterOptions,
   NotificationLogKind,
+  NOTIFICATION_LOGS_DOCUMENTATION,
 } from "./NotificationLogStatus";
 
 /*
@@ -170,6 +171,7 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
             : "No email logs."
         }
         showRefreshButton={true}
+        documentationLink={NOTIFICATION_LOGS_DOCUMENTATION}
         columns={defaultColumns}
         filters={defaultFilters}
         actionButtons={[

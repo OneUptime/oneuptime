@@ -22,6 +22,7 @@ import NotificationLogStatusPill from "./NotificationLogStatusPill";
 import {
   getNotificationLogStatusFilterOptions,
   NotificationLogKind,
+  NOTIFICATION_LOGS_DOCUMENTATION,
 } from "./NotificationLogStatus";
 
 export interface SmsLogsTableProps {
@@ -164,6 +165,7 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
             : "No SMS logs."
         }
         showRefreshButton={true}
+        documentationLink={NOTIFICATION_LOGS_DOCUMENTATION}
         columns={defaultColumns}
         filters={defaultFilters}
         actionButtons={[

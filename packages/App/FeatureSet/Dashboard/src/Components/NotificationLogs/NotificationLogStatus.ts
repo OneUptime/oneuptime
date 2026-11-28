@@ -1,3 +1,4 @@
+import Route from "Common/Types/API/Route";
 import CallStatus from "Common/Types/Call/CallStatus";
 import { isSentToCallAndSmsGatewayMessage } from "Common/Types/CallAndSMS/CallAndSmsGatewayLine";
 import MailStatus from "Common/Types/Mail/MailStatus";
@@ -739,3 +740,11 @@ export function getNotificationLogStatusFilterOptions(
 ): Array<DropdownOption> {
   return NOTIFICATION_LOG_STATUS_FILTER_OPTIONS[kind];
 }
+
+/*
+ * The docs page that says what each status of each log means, opened by the
+ * View Documentation button on every log's card.
+ */
+export const NOTIFICATION_LOGS_DOCUMENTATION: Route = Route.fromString(
+  "/docs/notifications/notification-logs",
+);

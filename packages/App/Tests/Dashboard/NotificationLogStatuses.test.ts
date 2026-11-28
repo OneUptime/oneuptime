@@ -3,6 +3,7 @@ import {
   getNotificationLogStatusWords,
   NOTIFICATION_LOG_FILTER_STATUSES,
   NOTIFICATION_LOG_STATUS_TONES,
+  NOTIFICATION_LOGS_DOCUMENTATION,
   NotificationLogKind,
   NotificationLogStatusMeaning,
   NotificationLogStatusWords,
@@ -835,4 +836,168 @@ describe("in every language the Dashboard ships", () => {
       expect(locale["Read (message status)"]).not.toContain("(");
     },
   );
+});
+
+/*
+ * THE DOCS PAGE THAT EXPLAINS THEM (/docs/notifications/notification-logs).
+ *
+ * Every log's card opens it with View Documentation, and it says what the
+ * pills say: its SMS and call tables list the statuses the filters offer,
+ * in the filters' order and the pills' words, and its colour table names
+ * each status in the colour its pill is drawn in.
+ */
+describe("the docs page that explains them", () => {
+  const DOCS_CONTENT: string = path.join(
+    __dirname,
+    "../../FeatureSet/Docs/Content",
+  );
+  const PAGE: string = "notifications/notification-logs.md";
+  const TABLES_DIRECTORY: string = path.join(
+    __dirname,
+    "../../FeatureSet/Dashboard/src/Components/NotificationLogs",
+  );
+  const ENGLISH_PAGE: Array<string> = fs
+    .readFileSync(path.join(DOCS_CONTENT, "en", PAGE), "utf8")
+    .split("\n");
+
+  // The lines of the English page's section under `heading`, up to the next one.
+  function sectionOf(heading: string): Array<string> {
+    const start: number = ENGLISH_PAGE.indexOf(`## ${heading}`);
+
+    expect(start).toBeGreaterThan(-1);
+
+    const end: number = ENGLISH_PAGE.findIndex(
+      (line: string, index: number): boolean => {
+        return index > start && line.startsWith("## ");
+      },
+    );
+
+    return ENGLISH_PAGE.slice(start + 1, end === -1 ? undefined : end);
+  }
+
+  // The bold status each row of a section's status table starts with.
+  function tableStatuses(heading: string): Array<string> {
+    const statuses: Array<string> = [];
+
+    for (const line of sectionOf(heading)) {
+      const status: string | undefined = line.match(
+        /^\| \*\*([^*]+)\*\* \|/,
+      )?.[1];
+
+      if (status) {
+        statuses.push(status);
+      }
+    }
+
+    return statuses;
+  }
+
+  test("every log's card opens it, and every language the docs have has it", () => {
+    expect(NOTIFICATION_LOGS_DOCUMENTATION.toString()).toBe(
+      "/docs/notifications/notification-logs",
+    );
+
+    const tables: Array<string> = fs
+      .readdirSync(TABLES_DIRECTORY)
+      .filter((name: string): boolean => {
+        return name.endsWith("LogsTable.tsx");
+      });
+
+    expect(tables).toHaveLength(KINDS.length);
+
+    for (const table of tables) {
+      expect({
+        table,
+        opensTheDocs: fs
+          .readFileSync(path.join(TABLES_DIRECTORY, table), "utf8")
+          .includes("documentationLink={NOTIFICATION_LOGS_DOCUMENTATION}"),
+      }).toEqual({ table, opensTheDocs: true });
+    }
+
+    const languages: Array<string> = fs.readdirSync(DOCS_CONTENT);
+
+    expect(languages).toHaveLength(17);
+
+    for (const language of languages) {
+      expect({
+        language,
+        hasThePage: fs.existsSync(path.join(DOCS_CONTENT, language, PAGE)),
+      }).toEqual({ language, hasThePage: true });
+    }
+  });
+
+  test("its SMS table lists every status the SMS filter offers, in its order and the pills' words", () => {
+    expect(tableStatuses("SMS")).toEqual(
+      NOTIFICATION_LOG_FILTER_STATUSES[NotificationLogKind.SMS].map(
+        (status: string): string => {
+          return wordsOf(NotificationLogKind.SMS, status).text;
+        },
+      ),
+    );
+  });
+
+  test("its call table lists every status the call filter offers, in its order and the pills' words", () => {
+    expect(tableStatuses("Calls")).toEqual(
+      NOTIFICATION_LOG_FILTER_STATUSES[NotificationLogKind.Call].map(
+        (status: string): string => {
+          return wordsOf(NotificationLogKind.Call, status).text;
+        },
+      ),
+    );
+  });
+
+  test("its colour table names each status in the colour its pill is drawn in", () => {
+    const TONE_OF_COLOUR: Readonly<Record<string, PillTone>> = {
+      Grey: PillTone.Neutral,
+      Blue: PillTone.Info,
+      Green: PillTone.Success,
+      Yellow: PillTone.Warning,
+      Red: PillTone.Danger,
+    };
+
+    // The log and status each word the table names is read from.
+    const STATUS_OF_WORD: Readonly<
+      Record<string, [NotificationLogKind, string]>
+    > = {
+      Sending: [NotificationLogKind.SMS, SmsStatus.Sending],
+      Sent: [NotificationLogKind.SMS, SmsStatus.Sent],
+      Calling: [NotificationLogKind.Call, CallStatus.Calling],
+      Delivered: [NotificationLogKind.SMS, SmsStatus.Delivered],
+      "Missed call": [NotificationLogKind.Call, CallStatus.MissedCall],
+      Undelivered: [NotificationLogKind.SMS, SmsStatus.Undelivered],
+      Failed: [NotificationLogKind.SMS, SmsStatus.Failed],
+      Error: [NotificationLogKind.SMS, SmsStatus.Error],
+      "Low Balance": [NotificationLogKind.SMS, SmsStatus.LowBalance],
+    };
+
+    const named: Array<{ word: string; tone: PillTone }> = [];
+
+    for (const line of sectionOf("How to read a status")) {
+      const colour: string | undefined = line.match(/^\| (\w+) \|/)?.[1];
+
+      if (!colour || !TONE_OF_COLOUR[colour]) {
+        continue;
+      }
+
+      for (const match of line.matchAll(/\*\*([^*]+)\*\*/g)) {
+        named.push({ word: match[1]!, tone: TONE_OF_COLOUR[colour]! });
+      }
+    }
+
+    expect(
+      named.map((name: { word: string }): string => {
+        return name.word;
+      }),
+    ).toEqual(Object.keys(STATUS_OF_WORD));
+
+    for (const { word, tone } of named) {
+      const [kind, status] = STATUS_OF_WORD[word]!;
+
+      expect({ word, text: wordsOf(kind, status).text }).toEqual({
+        word,
+        text: word,
+      });
+      expect({ word, tone: toneOf(kind, status) }).toEqual({ word, tone });
+    }
+  });
 });
