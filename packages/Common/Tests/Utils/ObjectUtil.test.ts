@@ -27,4 +27,12 @@ describe("ObjectUtil.isEmpty", () => {
   test("should treat an empty array as empty", () => {
     expect(ObjectUtil.isEmpty([] as unknown as GlobalObject)).toBe(true);
   });
+
+  test("should treat null as empty", () => {
+    expect(ObjectUtil.isEmpty(null as unknown as GlobalObject)).toBe(true);
+  });
+
+  test("should treat undefined as empty", () => {
+    expect(ObjectUtil.isEmpty(undefined as unknown as GlobalObject)).toBe(true);
+  });
 });
