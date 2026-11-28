@@ -62,6 +62,9 @@ const readPage: (page: string, language?: string) => string = (
 
 const english: string = readPage(PAGE);
 
+// A heading that ends a section of the page: a title, or another section.
+const SECTION_HEADING: RegExp = /^#{1,2} /;
+
 // A section's text: from its heading to the next heading of its level or above.
 const sectionOf: (title: string) => string = (title: string): string => {
   const lines: Array<string> = english.split("\n");
@@ -70,7 +73,7 @@ const sectionOf: (title: string) => string = (title: string): string => {
   expect({ title, found: start >= 0 }).toEqual({ title, found: true });
 
   const end: number = lines.findIndex((line: string, index: number) => {
-    return index > start && /^#{1,2} /.test(line);
+    return index > start && SECTION_HEADING.test(line);
   });
 
   return lines.slice(start, end < 0 ? undefined : end).join("\n");
