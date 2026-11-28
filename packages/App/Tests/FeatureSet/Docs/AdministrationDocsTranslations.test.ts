@@ -28,6 +28,7 @@ import {
 } from "./DocsContentSupport";
 import {
   drawnActionLabel,
+  drawnLabelOnPage,
   isActionLabel,
   isDashboardLabel,
 } from "./DocsDashboardLabels";
@@ -225,8 +226,16 @@ function englishBoldDrawings(
   page: string,
 ): Array<[string, string]> {
   return [
+    /*
+     * A label whose screen looks up a key of its own - the Notification
+     * Logs' Call tab, a phone call and never the shared "Call" (#11418) -
+     * is drawn by that key (LABELS_DRAWN_BY_OWN_KEY).
+     */
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
+      return [
+        `**${label}**`,
+        `**${drawnLabelOnPage(language, page, label, drawnActionLabel)}**`,
+      ];
     }),
     ...dashboardPaths(page).map((segments: Array<string>): [string, string] => {
       return [drawnPath("en", segments), drawnPath(language, segments)];
