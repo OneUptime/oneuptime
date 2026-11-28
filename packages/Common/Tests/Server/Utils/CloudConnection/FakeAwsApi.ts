@@ -112,6 +112,15 @@ export interface FakeRegion {
   classicLoadBalancers?: Array<JSONObject> | undefined;
   classicLoadBalancerError?: FakeResponse | undefined;
   /*
+   * Elastic Load Balancing's 2015-12-01 DescribeTargetGroupAttributes
+   * (#11389): a target group's ARN (any case) -> its attributes, or the
+   * error it is answered with. One not given is answered as AWS answers a
+   * target group it does not have: TargetGroupNotFound.
+   */
+  targetGroupAttributes?:
+    | Record<string, Array<{ Key: string; Value: string }> | FakeResponse>
+    | undefined;
+  /*
    * EKS: each cluster as DescribeCluster answers it (`cluster`), listed by
    * ListClusters in pages of maxResults, or the error both answer with
    * instead. None when absent.
@@ -429,6 +438,8 @@ export interface FakeAws extends FakeProviderApi {
     region: string;
     params: Record<string, string>;
   }>;
+  // DescribeTargetGroupAttributes calls (#11389), by Region and target group ARN.
+  targetGroupAttributeCalls: Array<{ region: string; targetGroupArn: string }>;
   eksCalls: Array<{ region: string; path: string }>;
   beanstalkCalls: Array<{
     region: string;
@@ -1511,6 +1522,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const cloudControlCalls: FakeAws["cloudControlCalls"] = [];
   const beanstalkCalls: FakeAws["beanstalkCalls"] = [];
   const classicLoadBalancerCalls: FakeAws["classicLoadBalancerCalls"] = [];
+  const targetGroupAttributeCalls: FakeAws["targetGroupAttributeCalls"] = [];
   const eksCalls: FakeAws["eksCalls"] = [];
   const assumedRoles: Array<string> = [];
   const assumeRoleAnswers: Array<FakeResponse> = [
@@ -1969,6 +1981,54 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
         }
 
         return json({ Endpoints: fakeRegion.sageMakerEndpoints || [] });
+      }
+
+      // A target group's attributes, over the Query protocol (version 2015-12-01, #11389).
+      if (
+        service === "elasticloadbalancing" &&
+        new URLSearchParams(String(request.body || "")).get("Action") ===
+          "DescribeTargetGroupAttributes"
+      ) {
+        const form: URLSearchParams = new URLSearchParams(
+          String(request.body || ""),
+        );
+        const arn: string = form.get("TargetGroupArn") || "";
+
+        targetGroupAttributeCalls.push({ region, targetGroupArn: arn });
+
+        const answers: Record<
+          string,
+          Array<{ Key: string; Value: string }> | FakeResponse
+        > = fakeRegion.targetGroupAttributes || {};
+        const key: string | undefined = Object.keys(answers).find(
+          (candidate: string): boolean => {
+            return candidate.toLowerCase() === arn.toLowerCase();
+          },
+        );
+        const answer: Array<{ Key: string; Value: string }> | FakeResponse | undefined =
+          key === undefined ? undefined : answers[key];
+
+        if (answer === undefined) {
+          return {
+            status: 400,
+            body: `<ErrorResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/"><Error><Type>Sender</Type><Code>TargetGroupNotFound</Code><Message>Target groups '${arn}' not found</Message></Error></ErrorResponse>`,
+          };
+        }
+
+        if (!Array.isArray(answer)) {
+          return answer;
+        }
+
+        return {
+          status: 200,
+          body: `<DescribeTargetGroupAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/"><DescribeTargetGroupAttributesResult><Attributes>${answer
+            .map((attribute: { Key: string; Value: string }): string => {
+              return `<member><Value>${attribute.Value}</Value><Key>${attribute.Key}</Key></member>`;
+            })
+            .join(
+              "",
+            )}</Attributes></DescribeTargetGroupAttributesResult><ResponseMetadata><RequestId>a1b2c3d4</RequestId></ResponseMetadata></DescribeTargetGroupAttributesResponse>`,
+        };
       }
 
       // Classic load balancers, over the Query protocol (version 2012-06-01).
@@ -2687,6 +2747,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
     cloudControlCalls,
     beanstalkCalls,
     classicLoadBalancerCalls,
+    targetGroupAttributeCalls,
     eksCalls,
     organizationsCalls,
     assumedRoles,

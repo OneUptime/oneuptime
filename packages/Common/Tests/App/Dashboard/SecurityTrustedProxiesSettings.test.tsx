@@ -35,13 +35,13 @@ import {
   ACCESS_LOGS_ON,
   ACCESS_LOGS_SWITCH_TITLE,
   ACCESS_LOGS_TITLE,
-  ALWAYS_TRUSTED_DESCRIPTION,
-  ALWAYS_TRUSTED_TITLE,
   CONNECTIONS_MORE_SETTINGS_DESCRIPTION,
   GOOGLE_FRONT_ENDS_FOR,
   GOOGLE_FRONT_ENDS_TITLE,
   GOOGLE_FRONT_ENDS_UNREAD,
   GOOGLE_FRONT_ENDS_WITHHELD,
+  LISTED_GOOGLE_FRONT_ENDS_WARNING,
+  LISTED_PASS_ON_WARNING,
   NEVER_TRUSTED_DESCRIPTION,
   NEVER_TRUSTED_TITLE,
   OWN_LOAD_BALANCERS_MORE,
@@ -51,13 +51,34 @@ import {
   OWN_LOAD_BALANCERS_ON,
   OWN_LOAD_BALANCERS_TITLE,
   OWN_LOAD_BALANCERS_UNREAD,
+  PASS_ON_CLIENT_IP_NOT_PRESERVED,
+  PASS_ON_CLIENT_IP_UNKNOWN,
+  PASS_ON_DESCRIPTION,
+  PASS_ON_DUALSTACK,
+  PASS_ON_GOOGLE_FRONT_ENDS,
+  PASS_ON_PROXY_ONLY_SUBNET,
+  PASS_ON_RANGES_UNREAD,
+  PASS_ON_TCP_LISTENER,
+  PASS_ON_TITLE,
+  PRIVATE_ADDRESSES_CHIP,
+  PRIVATE_ADDRESSES_OFF,
+  PRIVATE_ADDRESSES_ON,
+  PRIVATE_ADDRESSES_TITLE,
+  PRIVATE_ADDRESSES_WARNING,
   TRUSTED_AUTOMATICALLY_DESCRIPTION,
   TRUSTED_AUTOMATICALLY_TITLE,
   TRUSTED_PROXIES_DESCRIPTION,
+  TRUSTED_PROXIES_FIELD_DESCRIPTION,
   TRUSTED_PROXIES_TEST_IDS,
   TRUSTED_PROXIES_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityTrustedProxiesCopy";
+import {
+  PASS_ON_LOAD_BALANCER_PRODUCT_NAMES,
+  PassOnLoadBalancerKind,
+  PassOnReason,
+} from "../../../Utils/SecurityEvent/PassOnLoadBalancers";
 import { TRUSTED_AUTOMATICALLY_CARD_KEY } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/TrustedProxies/SecurityTrustedAutomaticallyCard";
+import { forgetAutomaticTrustedProxies } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/TrustedProxies/AutomaticTrustedProxiesApi";
 import {
   getProjectColumnsPermissionMessage,
   getProjectColumnsUpdatePermissions,
@@ -220,9 +241,14 @@ let stored: string | null = null;
 let storedFormat: string | null = null;
 let updates: Array<JSONObject> = [];
 
-// The two switches as the server holds them: undefined for never set.
+// The switches as the server holds them: undefined for never set.
 let trustsOwnLoadBalancers: boolean | undefined = undefined;
 let readsAccessLogForwardedFor: boolean | undefined = undefined;
+/*
+ * Private Addresses (#11389): false where a new project starts, as the
+ * column's default is; true for a project from before the switch.
+ */
+let trustsPrivateAddresses: boolean = false;
 let switchSaves: Array<JSONObject> = [];
 
 // What the server answers when asked what it trusts automatically.
@@ -243,8 +269,40 @@ const FOUND: AutomaticTrustedProxies = {
     },
   ],
   googleFrontEnds: null,
+  passOnLoadBalancers: [],
   areLoadBalancersRead: true,
   areLoadBalancersComplete: true,
+};
+
+/*
+ * #11389: the project's load balancers that pass on the X-Forwarded-For a
+ * client wrote - an AWS Network Load Balancer whose target group does not
+ * keep the client's address, a Google Cloud proxy Network Load Balancer on
+ * its region's proxy-only subnet.
+ */
+const TCP_INGRESS: AutomaticTrustedProxies["passOnLoadBalancers"][0] = {
+  kind: PassOnLoadBalancerKind.AwsNetworkLoadBalancer,
+  name: "tcp-ingress",
+  where: "Production AWS",
+  reasons: [PassOnReason.ClientIpNotPreserved],
+  targetGroups: ["ingress-ip"],
+  ranges: ["10.0.1.0/24", "10.0.2.0/24"],
+  areRangesIncomplete: false,
+};
+
+const DB_PROXY: AutomaticTrustedProxies["passOnLoadBalancers"][0] = {
+  kind: PassOnLoadBalancerKind.GoogleCloudProxyNetworkLoadBalancer,
+  name: "db-proxy",
+  where: "Google Cloud shop",
+  reasons: [PassOnReason.ProxyOnlySubnet],
+  targetGroups: [],
+  ranges: ["10.129.0.0/23"],
+  areRangesIncomplete: false,
+};
+
+const PASSING_ON: AutomaticTrustedProxies = {
+  ...FOUND,
+  passOnLoadBalancers: [TCP_INGRESS, DB_PROXY],
 };
 
 let automaticAnswer: JSONObject | HTTPErrorResponse =
@@ -286,6 +344,8 @@ function projectOf(): Project {
     project.securityReadAccessLogForwardedFor = readsAccessLogForwardedFor;
   }
 
+  project.securityTrustPrivateAddresses = trustsPrivateAddresses;
+
   if (storedFormat) {
     project.securityAccessLogFormat = storedFormat;
   }
@@ -297,12 +357,15 @@ beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   PermissionGate.clearPermissionPropsCache();
+  // Each test's answer of its own: the page's cards share one read (#11389).
+  forgetAutomaticTrustedProxies();
   grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
   stored = null;
   storedFormat = null;
   updates = [];
   trustsOwnLoadBalancers = undefined;
   readsAccessLogForwardedFor = undefined;
+  trustsPrivateAddresses = false;
   switchSaves = [];
   automaticAnswer = automaticTrustedProxiesToJSON(FOUND);
   automaticAsks = 0;
@@ -356,6 +419,10 @@ beforeEach(() => {
     if (typeof args.data["securityReadAccessLogForwardedFor"] === "boolean") {
       readsAccessLogForwardedFor =
         args.data["securityReadAccessLogForwardedFor"];
+    }
+
+    if (typeof args.data["securityTrustPrivateAddresses"] === "boolean") {
+      trustsPrivateAddresses = args.data["securityTrustPrivateAddresses"];
     }
 
     return {} as never;
@@ -497,6 +564,22 @@ async function ownLoadBalancersSwitch(): Promise<HTMLElement> {
   return await screen.findByTestId(
     TRUSTED_PROXIES_TEST_IDS.ownLoadBalancersSwitch,
   );
+}
+
+// Private Addresses (#11389), under the load balancers once the project is read.
+async function privateAddressesSwitch(): Promise<HTMLElement> {
+  return await screen.findByTestId(
+    TRUSTED_PROXIES_TEST_IDS.privateAddressesSwitch,
+  );
+}
+
+function privateAddressRanges(): HTMLElement {
+  return screen.getByTestId(TRUSTED_PROXIES_TEST_IDS.privateAddressRanges);
+}
+
+// The row of a switch, holding its title, what it comes to and any warning.
+function switchRow(control: HTMLElement): HTMLElement {
+  return control.closest("li") as HTMLElement;
 }
 
 // Access Logs' card, and its switch once the project is read.
@@ -916,18 +999,18 @@ describe("Trusted Automatically", () => {
     });
   });
 
-  test("says what every project trusts, each edge you connected, and what is never trusted", async () => {
+  test("says whether private addresses are trusted, each edge you connected, and what is never trusted", async () => {
     await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
     await loadBalancerRows();
 
-    const always: HTMLElement = screen.getByTestId(
-      TRUSTED_PROXIES_TEST_IDS.alwaysTrusted,
-    );
+    const control: HTMLElement = await privateAddressesSwitch();
+    const ranges: HTMLElement = privateAddressRanges();
 
-    expect(always).toHaveTextContent(ALWAYS_TRUSTED_TITLE);
-    expect(always).toHaveTextContent(ALWAYS_TRUSTED_DESCRIPTION);
+    expect(
+      screen.getByRole("switch", { name: PRIVATE_ADDRESSES_TITLE }),
+    ).toBe(control);
     for (const range of PRIVATE_PROXY_RANGES) {
-      expect(within(always).getByText(range)).toBeInTheDocument();
+      expect(within(ranges).getByText(range)).toBeInTheDocument();
     }
 
     const edges: Array<HTMLElement> = screen.getAllByTestId(
@@ -947,10 +1030,12 @@ describe("Trusted Automatically", () => {
     expect(never).toHaveTextContent(NEVER_TRUSTED_TITLE);
     expect(never).toHaveTextContent(NEVER_TRUSTED_DESCRIPTION);
 
-    // In that order: the switch's own list first, what is never trusted last.
-    expect(isBefore(ownLoadBalancers(), always)).toBe(true);
-    expect(isBefore(always, edges[0]!)).toBe(true);
+    // In that order: the load balancers first, then private addresses, what is never trusted last.
+    expect(isBefore(ownLoadBalancers(), control)).toBe(true);
+    expect(isBefore(ranges, edges[0]!)).toBe(true);
     expect(isBefore(edges[0]!, never)).toBe(true);
+    // With nothing that passes on what a client wrote, no such line.
+    expect(screen.queryByTestId(TRUSTED_PROXIES_TEST_IDS.passOn)).toBeNull();
   });
 
   test("an edge that publishes one range says so in the singular", async () => {
@@ -1087,7 +1172,7 @@ describe("Trusted Automatically", () => {
     ).toEqual([]);
     expect(ownLoadBalancers()).not.toHaveTextContent(OWN_LOAD_BALANCERS_NONE);
     expect(
-      screen.getByTestId(TRUSTED_PROXIES_TEST_IDS.alwaysTrusted),
+      screen.getByTestId(TRUSTED_PROXIES_TEST_IDS.privateAddressRanges),
     ).toBeInTheDocument();
     expect(
       screen.getByTestId(TRUSTED_PROXIES_TEST_IDS.edges),
@@ -1138,16 +1223,491 @@ describe("Trusted Automatically", () => {
       );
     });
     expect(
-      screen.getByTestId(TRUSTED_PROXIES_TEST_IDS.alwaysTrusted),
+      screen.getByTestId(TRUSTED_PROXIES_TEST_IDS.privateAddressRanges),
     ).toBeInTheDocument();
     expect(
       screen.getByTestId(TRUSTED_PROXIES_TEST_IDS.neverTrusted),
     ).toBeInTheDocument();
-    // The switch still works: it is the project's setting, not the list's.
+    // The switches still work: they are the project's settings, not the list's.
     expect(await ownLoadBalancersSwitch()).not.toHaveAttribute(
       "aria-disabled",
       "true",
     );
+    expect(await privateAddressesSwitch()).not.toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    // And the page read the answer once, for both cards that show it.
+    expect(automaticAsks).toBe(1);
+  });
+});
+
+/*
+ * #11389: PRIVATE ADDRESSES - whether an address that is nobody's on the
+ * internet is trusted as a proxy unlisted. Off where a new project starts;
+ * on for a project from before the switch, which is told what that risks.
+ * It saves when flipped, and the fold names it while it is on.
+ */
+describe("Trusted Automatically: Private Addresses", () => {
+  test("a new project starts with it off: its ranges said not trusted, and no warning", async () => {
+    const fold: HTMLElement = await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+    const control: HTMLElement = await privateAddressesSwitch();
+
+    expect(control).toHaveAttribute("aria-checked", "false");
+    expect(switchRow(control)).toHaveTextContent(PRIVATE_ADDRESSES_OFF);
+    expect(switchRow(control)).not.toHaveTextContent(PRIVATE_ADDRESSES_ON);
+    expect(switchRow(control)).not.toHaveTextContent(PRIVATE_ADDRESSES_WARNING);
+    expect(privateAddressRanges()).toHaveAttribute("data-trusted", "false");
+
+    // Where a project starts: the fold names nothing.
+    closeFold(fold);
+    expect(setChips(fold)).toEqual([]);
+  });
+
+  test("a project from before it trusts them: on, with what it risks, and the fold says so", async () => {
+    trustsPrivateAddresses = true;
+
+    const fold: HTMLElement = await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+    const control: HTMLElement = await privateAddressesSwitch();
+
+    await waitFor(() => {
+      expect(control).toHaveAttribute("aria-checked", "true");
+    });
+    expect(switchRow(control)).toHaveTextContent(PRIVATE_ADDRESSES_ON);
+    expect(switchRow(control)).toHaveTextContent(PRIVATE_ADDRESSES_WARNING);
+    expect(privateAddressRanges()).toHaveAttribute("data-trusted", "true");
+
+    closeFold(fold);
+    await waitFor(() => {
+      expect(setChips(fold)).toEqual([
+        `${TRUSTED_AUTOMATICALLY_TITLE}: ${PRIVATE_ADDRESSES_CHIP}`,
+      ]);
+    });
+  });
+
+  test("a Project Owner turns it off: saved at once, the warning gone, and the fold names nothing", async () => {
+    trustsPrivateAddresses = true;
+
+    const fold: HTMLElement = await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+    const control: HTMLElement = await privateAddressesSwitch();
+
+    await loadBalancerRows();
+    fireEvent.click(control);
+
+    await waitFor(() => {
+      expect(switchSaves).toEqual([{ securityTrustPrivateAddresses: false }]);
+    });
+    await waitFor(() => {
+      expect(control).toHaveAttribute("aria-checked", "false");
+    });
+    expect(switchRow(control)).toHaveTextContent(PRIVATE_ADDRESSES_OFF);
+    expect(switchRow(control)).not.toHaveTextContent(PRIVATE_ADDRESSES_WARNING);
+    expect(privateAddressRanges()).toHaveAttribute("data-trusted", "false");
+
+    closeFold(fold);
+    expect(setChips(fold)).toEqual([]);
+
+    // Only that column is saved, and nothing is read again.
+    expect(updates).toEqual([]);
+    expect(automaticAsks).toBe(1);
+  });
+
+  test("a Project Owner turns it back on: saved, warned, and named on the fold", async () => {
+    const fold: HTMLElement = await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+    const control: HTMLElement = await privateAddressesSwitch();
+
+    fireEvent.click(control);
+
+    await waitFor(() => {
+      expect(switchSaves).toEqual([{ securityTrustPrivateAddresses: true }]);
+    });
+    await waitFor(() => {
+      expect(switchRow(control)).toHaveTextContent(PRIVATE_ADDRESSES_WARNING);
+    });
+
+    closeFold(fold);
+    expect(setChips(fold)).toEqual([
+      `${TRUSTED_AUTOMATICALLY_TITLE}: ${PRIVATE_ADDRESSES_CHIP}`,
+    ]);
+  });
+
+  test("with both away from where a project starts, the fold names private addresses: the one that risks a client's words", async () => {
+    trustsPrivateAddresses = true;
+    trustsOwnLoadBalancers = false;
+
+    const fold: HTMLElement = await renderPage();
+
+    await waitFor(() => {
+      expect(setChips(fold)).toEqual([
+        `${TRUSTED_AUTOMATICALLY_TITLE}: ${PRIVATE_ADDRESSES_CHIP}`,
+      ]);
+    });
+  });
+
+  test("a Security Admin may turn it as well", async () => {
+    grant([...BASE_PERMISSIONS, Permission.SecurityAdmin]);
+
+    await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+    const control: HTMLElement = await privateAddressesSwitch();
+
+    expect(control).not.toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(control);
+
+    await waitFor(() => {
+      expect(switchSaves).toEqual([{ securityTrustPrivateAddresses: true }]);
+    });
+  });
+
+  test.each([
+    Permission.ProjectMember,
+    Permission.SecurityMember,
+    Permission.SecurityViewer,
+  ])("%s sees it locked, and what it is set to", async (permission: Permission) => {
+    grant([...BASE_PERMISSIONS, permission]);
+    trustsPrivateAddresses = true;
+
+    await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+    const control: HTMLElement = await privateAddressesSwitch();
+
+    expect(control).toHaveAttribute("aria-disabled", "true");
+    await waitFor(() => {
+      expect(control).toHaveAttribute("aria-checked", "true");
+    });
+
+    fireEvent.click(control);
+    await settle();
+
+    expect(switchSaves).toEqual([]);
+    expect(
+      getProjectColumnsUpdatePermissions(["securityTrustPrivateAddresses"]),
+    ).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ]);
+  });
+
+  test("flipping one switch leaves the other as it is", async () => {
+    await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+    const own: HTMLElement = await ownLoadBalancersSwitch();
+    const privateAddresses: HTMLElement = await privateAddressesSwitch();
+
+    fireEvent.click(privateAddresses);
+
+    await waitFor(() => {
+      expect(switchSaves).toEqual([{ securityTrustPrivateAddresses: true }]);
+    });
+    expect(own).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(own);
+
+    await waitFor(() => {
+      expect(switchSaves).toEqual([
+        { securityTrustPrivateAddresses: true },
+        { securityTrustOwnLoadBalancers: false },
+      ]);
+    });
+    expect(privateAddresses).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("its words are short enough to read at a glance, and say what to do", () => {
+    expect(PRIVATE_ADDRESSES_ON.length).toBeLessThanOrEqual(150);
+    expect(PRIVATE_ADDRESSES_OFF.length).toBeLessThanOrEqual(150);
+    expect(PRIVATE_ADDRESSES_WARNING.length).toBeLessThanOrEqual(150);
+    expect(PRIVATE_ADDRESSES_WARNING).toContain("List your proxies");
+    // The list's own hint no longer says private addresses are always trusted.
+    expect(TRUSTED_PROXIES_FIELD_DESCRIPTION).not.toContain("always trusted");
+    expect(TRUSTED_PROXIES_FIELD_DESCRIPTION).toContain("10.0.0.0/24");
+  });
+});
+
+/*
+ * #11389: what is never trusted, even listed - where the project's load
+ * balancers that pass on what a client wrote connect from, each with why.
+ */
+describe("Trusted Automatically: not trusted, even if listed", () => {
+  async function passOnRows(): Promise<Array<HTMLElement>> {
+    return await screen.findAllByTestId(`${TRUSTED_PROXIES_TEST_IDS.passOn}-row`);
+  }
+
+  test("each with the ranges it connects from, its name, kind, cloud account and why", async () => {
+    automaticAnswer = automaticTrustedProxiesToJSON(PASSING_ON);
+
+    await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+    const section: HTMLElement = await screen.findByTestId(
+      TRUSTED_PROXIES_TEST_IDS.passOn,
+    );
+    const rows: Array<HTMLElement> = await passOnRows();
+
+    expect(section).toHaveTextContent(PASS_ON_TITLE);
+    expect(section).toHaveTextContent(PASS_ON_DESCRIPTION);
+    expect(rows).toHaveLength(2);
+
+    expect(rows[0]).toHaveTextContent("10.0.1.0/24, 10.0.2.0/24");
+    expect(rows[0]).toHaveTextContent("tcp-ingress");
+    expect(rows[0]).toHaveTextContent(
+      PASS_ON_LOAD_BALANCER_PRODUCT_NAMES[
+        PassOnLoadBalancerKind.AwsNetworkLoadBalancer
+      ],
+    );
+    expect(rows[0]).toHaveTextContent("Production AWS");
+    expect(rows[0]).toHaveTextContent(
+      "Client IP preservation is off for target group ingress-ip",
+    );
+
+    expect(rows[1]).toHaveTextContent("10.129.0.0/23");
+    expect(rows[1]).toHaveTextContent("db-proxy");
+    expect(rows[1]).toHaveTextContent(
+      PASS_ON_LOAD_BALANCER_PRODUCT_NAMES[
+        PassOnLoadBalancerKind.GoogleCloudProxyNetworkLoadBalancer
+      ],
+    );
+    expect(rows[1]).toHaveTextContent(PASS_ON_PROXY_ONLY_SUBNET);
+
+    // After the private addresses, before the edges.
+    expect(isBefore(privateAddressRanges(), section)).toBe(true);
+    expect(
+      isBefore(section, screen.getByTestId(TRUSTED_PROXIES_TEST_IDS.edges)),
+    ).toBe(true);
+  });
+
+  test("whatever Your Load Balancers says: they are never trusted, on or off", async () => {
+    automaticAnswer = automaticTrustedProxiesToJSON(PASSING_ON);
+    trustsOwnLoadBalancers = false;
+
+    await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+    expect(await passOnRows()).toHaveLength(2);
+  });
+
+  test.each([
+    [
+      "several target groups, in the plural",
+      {
+        ...TCP_INGRESS,
+        targetGroups: ["ingress-ip", "metrics-ip"],
+      },
+      "Client IP preservation is off for target groups ingress-ip, metrics-ip",
+    ],
+    [
+      "a dualstack one",
+      { ...TCP_INGRESS, reasons: [PassOnReason.Dualstack], targetGroups: [] },
+      PASS_ON_DUALSTACK,
+    ],
+    [
+      "one whose target groups could not be read",
+      {
+        ...TCP_INGRESS,
+        reasons: [PassOnReason.ClientIpUnknown],
+        targetGroups: [],
+      },
+      PASS_ON_CLIENT_IP_UNKNOWN,
+    ],
+    [
+      "an AWS Classic Load Balancer with a TCP listener",
+      {
+        ...TCP_INGRESS,
+        kind: PassOnLoadBalancerKind.AwsClassicLoadBalancer,
+        reasons: [PassOnReason.TcpListener],
+        targetGroups: [],
+      },
+      PASS_ON_TCP_LISTENER,
+    ],
+    [
+      "a global Google Cloud proxy Network Load Balancer, on Google's front ends",
+      {
+        ...DB_PROXY,
+        reasons: [PassOnReason.GoogleFrontEnds],
+        ranges: ["35.191.0.0/16", "130.211.0.0/22"],
+      },
+      PASS_ON_GOOGLE_FRONT_ENDS,
+    ],
+  ])(
+    "%s says why",
+    async (
+      _what: string,
+      loadBalancer: AutomaticTrustedProxies["passOnLoadBalancers"][0],
+      why: string,
+    ) => {
+      automaticAnswer = automaticTrustedProxiesToJSON({
+        ...FOUND,
+        passOnLoadBalancers: [loadBalancer],
+      });
+
+      await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+      const rows: Array<HTMLElement> = await passOnRows();
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveTextContent(why);
+    },
+  );
+
+  test("one whose subnets could not be read says so, with no range to show", async () => {
+    automaticAnswer = automaticTrustedProxiesToJSON({
+      ...FOUND,
+      passOnLoadBalancers: [
+        { ...TCP_INGRESS, ranges: [], areRangesIncomplete: true },
+      ],
+    });
+
+    await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+    const rows: Array<HTMLElement> = await passOnRows();
+
+    expect(rows[0]).toHaveTextContent(PASS_ON_RANGES_UNREAD);
+    expect(rows[0]).not.toHaveTextContent("10.0.1.0/24");
+  });
+
+  test("words each of its sentences once, for every language to word", () => {
+    expect(PASS_ON_CLIENT_IP_NOT_PRESERVED.one).toContain("{{targetGroups}}");
+    expect(PASS_ON_CLIENT_IP_NOT_PRESERVED.other).toContain("{{targetGroups}}");
+    expect(PASS_ON_DESCRIPTION.length).toBeLessThanOrEqual(150);
+  });
+});
+
+/*
+ * #11388, #11389: under Trusted Proxies, each listed range OneUptime does
+ * not trust all of - Google's front ends, which the old docs said to list,
+ * while a TCP or SSL proxy load balancer connects from them, or a subnet a
+ * load balancer that passes on what a client wrote connects from.
+ */
+describe("Trusted Proxies: a listed range a load balancer that passes on connects from", () => {
+  const GOOGLE_TCP_PROXY: AutomaticTrustedProxies["passOnLoadBalancers"][0] = {
+    kind: PassOnLoadBalancerKind.GoogleCloudProxyNetworkLoadBalancer,
+    name: "db-tcp",
+    where: "Google Cloud shop",
+    reasons: [PassOnReason.GoogleFrontEnds],
+    targetGroups: [],
+    ranges: ["35.191.0.0/16", "130.211.0.0/22", "2600:2d00:1:1::/64"],
+    areRangesIncomplete: false,
+  };
+
+  function warnings(): HTMLElement {
+    return within(card()).getByTestId(
+      TRUSTED_PROXIES_TEST_IDS.listedPassOnWarning,
+    );
+  }
+
+  test("the old docs' Google front ends, with a TCP proxy load balancer: each said, and why", async () => {
+    stored = "35.191.0.0/16\n130.211.0.0/22\n203.0.113.0/24";
+    automaticAnswer = automaticTrustedProxiesToJSON({
+      ...FOUND,
+      passOnLoadBalancers: [GOOGLE_TCP_PROXY],
+    });
+
+    const fold: HTMLElement = await renderPage(TRUSTED_PROXIES_CARD_KEY);
+
+    expect(header(fold)).toHaveAttribute("aria-expanded", "true");
+    await waitFor(() => {
+      expect(warnings()).toBeInTheDocument();
+    });
+
+    const lines: Array<HTMLElement> = within(warnings()).getAllByRole(
+      "listitem",
+    );
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toHaveTextContent(
+      LISTED_GOOGLE_FRONT_ENDS_WARNING.replace(
+        "{{range}}",
+        "35.191.0.0/16",
+      ).replace("{{loadBalancer}}", "db-tcp"),
+    );
+    expect(lines[1]).toHaveTextContent(
+      LISTED_GOOGLE_FRONT_ENDS_WARNING.replace(
+        "{{range}}",
+        "130.211.0.0/22",
+      ).replace("{{loadBalancer}}", "db-tcp"),
+    );
+    // Said, not refused: the list stays as it was saved.
+    expect(updates).toEqual([]);
+  });
+
+  test("a range holding a Network Load Balancer's subnet is said with its load balancer", async () => {
+    stored = "10.0.0.0/8";
+    automaticAnswer = automaticTrustedProxiesToJSON(PASSING_ON);
+
+    await renderPage(TRUSTED_PROXIES_CARD_KEY);
+
+    await waitFor(() => {
+      expect(warnings()).toBeInTheDocument();
+    });
+
+    const lines: Array<HTMLElement> = within(warnings()).getAllByRole(
+      "listitem",
+    );
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toHaveTextContent(
+      LISTED_PASS_ON_WARNING.replace("{{range}}", "10.0.0.0/8").replace(
+        "{{loadBalancer}}",
+        "tcp-ingress",
+      ),
+    );
+    expect(lines[1]).toHaveTextContent(
+      LISTED_PASS_ON_WARNING.replace("{{range}}", "10.0.0.0/8").replace(
+        "{{loadBalancer}}",
+        "db-proxy",
+      ),
+    );
+  });
+
+  test("a list that holds none of them, or an answer that could not be read, says nothing", async () => {
+    stored = "203.0.113.0/24\n198.51.100.7";
+    automaticAnswer = automaticTrustedProxiesToJSON(PASSING_ON);
+
+    await renderPage(TRUSTED_PROXIES_CARD_KEY);
+    await within(card()).findByText("Edit");
+    await settle();
+
+    expect(
+      within(card()).queryByTestId(TRUSTED_PROXIES_TEST_IDS.listedPassOnWarning),
+    ).toBeNull();
+
+    cleanup();
+    forgetAutomaticTrustedProxies();
+    stored = "10.0.0.0/8";
+    automaticAnswer = new HTTPErrorResponse(
+      500,
+      { message: "The cloud resources could not be read." },
+      {},
+    );
+
+    await renderPage(TRUSTED_PROXIES_CARD_KEY);
+    await within(card()).findByText("Edit");
+    await settle();
+
+    expect(
+      within(card()).queryByTestId(TRUSTED_PROXIES_TEST_IDS.listedPassOnWarning),
+    ).toBeNull();
+  });
+
+  test("an empty list says nothing", async () => {
+    automaticAnswer = automaticTrustedProxiesToJSON(PASSING_ON);
+
+    await renderPage(TRUSTED_PROXIES_CARD_KEY);
+    await within(card()).findByText("Edit");
+    await settle();
+
+    expect(
+      within(card()).queryByTestId(TRUSTED_PROXIES_TEST_IDS.listedPassOnWarning),
+    ).toBeNull();
+  });
+
+  test("its words name the range and the load balancer, short enough to read at a glance", () => {
+    for (const warning of [
+      LISTED_PASS_ON_WARNING,
+      LISTED_GOOGLE_FRONT_ENDS_WARNING,
+    ]) {
+      expect(warning).toContain("{{range}}");
+      expect(warning).toContain("{{loadBalancer}}");
+      expect(warning.length).toBeLessThanOrEqual(210);
+    }
   });
 });
 

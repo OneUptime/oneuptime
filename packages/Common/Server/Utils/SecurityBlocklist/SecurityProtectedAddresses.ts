@@ -770,8 +770,9 @@ export default class SecurityProtectedAddresses {
    * One of the project's Google Cloud load balancers that Google's front
    * ends or health checks reach, read as `props` reads, by its forwarding
    * rule's name and the cloud account it is in: '' for a project with none
-   * the reader can read. A global external passthrough Network Load
-   * Balancer is no such one: its health checks come from other ranges.
+   * the reader can read. Every load balancer's rule has a load balancing
+   * scheme, and its health checks come from these ranges; a rule with none
+   * is a Private Service Connect endpoint, which no health check reaches.
    */
   public static async readGoogleLoadBalancerName(
     projectId: ObjectID,
@@ -787,7 +788,6 @@ export default class SecurityProtectedAddresses {
         select: {
           _id: true,
           name: true,
-          providerResourceId: true,
           cloudProperties: true,
           cloudConnection: { name: true },
         },
@@ -801,13 +801,10 @@ export default class SecurityProtectedAddresses {
           (rule.cloudProperties as Record<string, unknown> | undefined)?.[
             "loadBalancingScheme"
           ] || "",
-        ).toUpperCase();
-        const isGlobal: boolean = (rule.providerResourceId || "")
-          .toLowerCase()
-          .includes("/global/forwardingrules/");
+        ).trim();
         const name: string = (rule.name || "").trim();
 
-        if (name && !(scheme === "EXTERNAL_PASSTHROUGH" && isGlobal)) {
+        if (name && scheme) {
           return { name, where: rule.cloudConnection?.name || "" };
         }
       }

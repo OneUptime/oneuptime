@@ -478,9 +478,9 @@ function routesOn(record: OwnLoadBalancerRecord): boolean {
  * Only an external one does: the scheme EXTERNAL (a classic load balancer,
  * global in the Premium Tier and regional in the Standard) or a global
  * EXTERNAL_MANAGED (a global external load balancer). A regional
- * EXTERNAL_MANAGED one connects from its region's proxy-only subnet, an
- * internal one from inside the network - private addresses, trusted
- * anyway - and a passthrough one passes the client's own connection on.
+ * EXTERNAL_MANAGED one and an internal one connect from a proxy-only
+ * subnet (PassOnLoadBalancers, #11389), and a passthrough one passes the
+ * client's own connection on.
  *
  * Of those, one that routes to a URL map, through an HTTP or HTTPS proxy,
  * forwards; one that routes through a TCP or SSL proxy passes on. A global

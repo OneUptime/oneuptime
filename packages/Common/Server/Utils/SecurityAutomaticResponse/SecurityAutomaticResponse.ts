@@ -89,8 +89,10 @@ import SecurityEventsSwitch from "../SecurityCase/SecurityEventsSwitch";
 import SecurityTrustedProxies from "../SecurityEvent/SecurityTrustedProxies";
 import ThreatIntelIndicatorService from "../../Services/ThreatIntelIndicatorService";
 import {
+  ClientAddressTrust,
   TrustedProxies,
   UnvouchedForwarding,
+  readClientAddressTrust,
   readUnvouchedForwarding,
 } from "../../../Utils/SecurityEvent/ClientAddressTrust";
 import logger from "../Logger";
@@ -565,18 +567,31 @@ export default class SecurityAutomaticResponse {
    * came through a proxy the project does not vouch for (#11389), read with
    * its trusted proxies as they are now: the first one it finds, or null.
    * Events that name the address as their connection, or in their own
-   * words, are no such event.
+   * words, are no such event. A detection that kept no events cannot say
+   * how its address was read, and is answered as one whose proxies
+   * OneUptime cannot name: never acted on.
    */
-  private static async findUnvouchedForwarding(data: {
+  public static async findUnvouchedForwarding(data: {
     projectId: ObjectID;
     address: string;
     matched: SecurityDetectionMatchedEvents | null;
   }): Promise<UnvouchedForwarding | null> {
-    const events: Array<SecurityDetectionMatchedEvent> = (
-      data.matched?.events || []
-    ).filter((event: SecurityDetectionMatchedEvent): boolean => {
-      return readSecurityBlockValue(event.principalIp)?.value === data.address;
-    });
+    const kept: Array<SecurityDetectionMatchedEvent> =
+      data.matched?.events || [];
+
+    if (kept.length === 0) {
+      return { hop: "" };
+    }
+
+    // Only an address a trusted proxy forwarded came through one: the rest need no reading.
+    const events: Array<SecurityDetectionMatchedEvent> = kept.filter(
+      (event: SecurityDetectionMatchedEvent): boolean => {
+        return (
+          readSecurityBlockValue(event.principalIp)?.value === data.address &&
+          readClientAddressTrust(event) === ClientAddressTrust.TrustedProxy
+        );
+      },
+    );
 
     if (events.length === 0) {
       return null;

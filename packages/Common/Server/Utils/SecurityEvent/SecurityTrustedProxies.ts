@@ -125,9 +125,9 @@ export default class SecurityTrustedProxies {
 
   /*
    * Each source of the project's trusted proxies, read now; null when the
-   * project itself cannot be read, which leaves only the private addresses
-   * trusted. A source that fails is left out, toward trusting less, and the
-   * read says it is not complete.
+   * project itself cannot be read, which trusts no proxy at all. A source
+   * that fails is left out, and private addresses with it (#11389), toward
+   * trusting less, and the read says it is not complete.
    */
   public static async readSources(
     projectId: ObjectID,
@@ -149,7 +149,7 @@ export default class SecurityTrustedProxies {
       });
     } catch (error) {
       logger.warn(
-        `SecurityTrustedProxies: could not read the trusted proxies of project ${key}; its scans trust only private addresses until they can.`,
+        `SecurityTrustedProxies: could not read the trusted proxies of project ${key}; its scans trust no proxy until they can.`,
       );
       logger.warn(error);
       return null;
@@ -182,12 +182,19 @@ export default class SecurityTrustedProxies {
       edges = await SecurityTrustedProxies.readEdges(projectId);
     } catch (error) {
       logger.warn(
-        `SecurityTrustedProxies: could not read the edges project ${key} sits behind; its scans trust its Trusted Proxies and private addresses until they can.`,
+        `SecurityTrustedProxies: could not read the edges project ${key} sits behind; its scans trust its Trusted Proxies alone until they can.`,
       );
       logger.warn(error);
 
-      // Not kept: the next scan reads the edges again.
-      return { sources: listed, isComplete: false };
+      /*
+       * Not kept: the next scan reads the edges again. Nor are private
+       * addresses trusted meanwhile (#11389): what of them a load balancer
+       * that passes on what a client wrote connects from was not read.
+       */
+      return {
+        sources: { ...listed, trustsPrivateAddresses: false },
+        isComplete: false,
+      };
     }
 
     const withEdges: TrustedProxySources = { ...listed, edges };
@@ -216,12 +223,20 @@ export default class SecurityTrustedProxies {
       };
     } catch (error) {
       logger.warn(
-        `SecurityTrustedProxies: could not read the load balancers of project ${key}; its scans trust its Trusted Proxies, its edges and private addresses until they can.`,
+        `SecurityTrustedProxies: could not read the load balancers of project ${key}; its scans trust its Trusted Proxies and its edges until they can.`,
       );
       logger.warn(error);
 
-      // Not kept: the next scan reads the load balancers again.
-      return { sources: withEdges, isComplete: false };
+      /*
+       * Not kept: the next scan reads the load balancers again. Nor are
+       * private addresses trusted meanwhile (#11389): where its load
+       * balancers that pass on what a client wrote connect from is what
+       * could not be read, and trusting less is what a failed read does.
+       */
+      return {
+        sources: { ...withEdges, trustsPrivateAddresses: false },
+        isComplete: false,
+      };
     }
   }
 
