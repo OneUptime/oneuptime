@@ -94,12 +94,16 @@ function readIfExists(file) {
  * `docker` records every call with the directory it ran in, fails
  * `compose up` when $STUB_DIR/up.fail exists, and otherwise keeps the native
  * config as `compose up` found it in $STUB_DIR/config-at-up.yaml. It is also
- * the engine's names, in $STUB_DIR/containers (one line per container:
- * name, the directory whose compose project runs it, id): `compose up`
- * gives the agent the name Compose would - the docker-compose.yml's
- * container_name, a ${VAR:-default} read from the environment, else .env -
- * and refuses, as Docker does, a name another directory's container holds;
- * `compose down` removes the directory's container; `compose ps -a -q` and
+ * the engine's containers, in $STUB_DIR/containers (one line per container:
+ * name, the directory whose compose project runs it, id). A directory's
+ * project is its name, as Compose writes it (lower case, a-z 0-9 _ -, no
+ * leading _ or -), so two directories of one name are one project, as they
+ * are to Compose. `compose up` gives the agent the name Compose would - the
+ * docker-compose.yml's container_name, a ${VAR:-default} read from the
+ * environment, else .env - and refuses, as Docker does, a name another
+ * project's container holds; `compose up` and `compose down` remove the
+ * project's containers first; `compose ps -a -q`, `ps -a --filter
+ * label=com.docker.compose.project=...` (the working directories) and
  * `inspect -f {{.Name}}` answer from it. Every directory of $STUB_DIR shares
  * it: one machine. `curl` serves the agent's files the way the OneUptime at
  * ONEUPTIME_URL does, at <ONEUPTIME_URL>/install/storage-array-agent/<file>,
@@ -116,8 +120,11 @@ printf '%s | %s\\n' "$PWD" "$*" >> "$STUB_DIR/docker.log"
 REGISTRY="$STUB_DIR/containers"
 touch "$REGISTRY"
 id_of() { printf '%s' "$1" | sha256sum | cut -c1-12; }
-without_this_directory() {
-  awk -F '\\t' -v dir="$PWD" '$2 != dir' "$REGISTRY" > "$REGISTRY.new"
+# A directory's Compose project: its name, as Compose writes it.
+PROJECT_OF='function project(dir,  base) { base = dir; sub(/.*\\//, "", base); base = tolower(base); gsub(/[^a-z0-9_-]/, "", base); sub(/^[-_]+/, "", base); return base }'
+# Every container but this directory's project's.
+without_this_project() {
+  awk -F '\\t' -v here="$PWD" "$PROJECT_OF"' project($2) != project(here)' "$REGISTRY" > "$REGISTRY.new"
   mv "$REGISTRY.new" "$REGISTRY"
 }
 # The agent's container name as Compose reads ./docker-compose.yml: written
@@ -148,19 +155,23 @@ case "$*" in
     [ -f "$STUB_DIR/up.fail" ] && exit 1
     cp otel-collector-config.yaml "$STUB_DIR/config-at-up.yaml" 2>/dev/null || true
     name="$(agent_container_name)"
-    holder="$(awk -F '\\t' -v name="$name" '$1 == name { print $2 }' "$REGISTRY")"
-    if [ -n "$holder" ] && [ "$holder" != "$PWD" ]; then
+    holder="$(awk -F '\\t' -v name="$name" -v here="$PWD" "$PROJECT_OF"' $1 == name && project($2) != project(here) { print $2 }' "$REGISTRY")"
+    if [ -n "$holder" ]; then
       echo "Error response from daemon: Conflict. The container name \\"/$name\\" is already in use by container \\"$(id_of "$name|$holder")\\". You have to remove (or rename) that container to be able to reuse that name." >&2
       exit 1
     fi
-    without_this_directory
+    without_this_project
     printf '%s\\t%s\\t%s\\n' "$name" "$PWD" "$(id_of "$name|$PWD")" >> "$REGISTRY"
     ;;
   "compose "*"down"*)
-    without_this_directory
+    without_this_project
     ;;
   "compose ps -a -q oneuptime-storage-array-agent")
-    awk -F '\\t' -v dir="$PWD" '$2 == dir { print $3 }' "$REGISTRY"
+    awk -F '\\t' -v here="$PWD" "$PROJECT_OF"' project($2) == project(here) { print $3 }' "$REGISTRY"
+    ;;
+  "ps -a --filter label=com.docker.compose.project="*)
+    want="\${4#label=com.docker.compose.project=}"
+    awk -F '\\t' -v want="$want" "$PROJECT_OF"' project($2) == want { print $2 }' "$REGISTRY"
     ;;
   "inspect -f {{.Name}} "*)
     id="\${!#}"
@@ -1248,10 +1259,11 @@ describe("agents/StorageArrayAgent/install.sh: each agent on a machine keeps its
   test.each([
     ["fa02", `${DEFAULT_CONTAINER}-fa02`],
     ["FA02", `${DEFAULT_CONTAINER}-fa02`],
-    ["Pure FA (02)", `${DEFAULT_CONTAINER}-pure-fa-02`],
+    // After the directory's Compose project: a-z 0-9 _ - only.
+    ["Pure FA (02)", `${DEFAULT_CONTAINER}-purefa02`],
     [`${DEFAULT_CONTAINER}-fb`, `${DEFAULT_CONTAINER}-fb`],
     [`${DEFAULT_CONTAINER}2`, `${DEFAULT_CONTAINER}2`],
-    ["arrays.lab_2", `${DEFAULT_CONTAINER}-arrays.lab_2`],
+    ["arrays.lab_2", `${DEFAULT_CONTAINER}-arrayslab_2`],
   ])(
     "a directory named %j names the container %s",
     (installDirName, expected) => {
@@ -1744,13 +1756,176 @@ describe("agents/StorageArrayAgent/install.sh: an agent set up before .env held 
   });
 });
 
+/*
+ * Compose names a directory's project after the directory, whatever its
+ * parents: two agents in directories of one name are one project to it, and
+ * the second install's `down` and `up` would remove the first agent and run
+ * in its place, without a word. Such an install stops before it changes
+ * anything.
+ */
+describe("agents/StorageArrayAgent/install.sh: a directory named like another one's on the machine", () => {
+  // The registry's containers as Compose's project names group them.
+  function project(dir) {
+    return path
+      .basename(dir)
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, "")
+      .replace(/^[-_]+/, "");
+  }
+
+  test("a second agent in a directory of the first one's name stops before it changes anything", () => {
+    const dir = scratch();
+    const first = install(dir, {
+      env: arrayEnv(),
+      installDirName: "fa01/agent",
+    });
+    expect(first.status).toBe(0);
+    const running = containersOn(dir);
+    fs.writeFileSync(path.join(dir, "docker.log"), "");
+
+    const second = install(dir, {
+      env: arrayEnv("fa-prod-02"),
+      installDirName: "fa02/agent",
+    });
+
+    expect(project(first.installDir)).toBe(project(second.installDir));
+    expect(second.status).toBe(1);
+    expect(second.output).toContain(
+      `Error: ${first.installDir} already runs containers in the Docker Compose project\n"agent": Compose names a project after its directory, and gives ${second.installDir}\nthat name too. Installing here would stop them and run this agent in their place. Install it\ninto a directory of another name instead, e.g. INSTALL_DIR=${second.installDir}-2 bash install.sh`,
+    );
+    // Nothing written, nothing stopped, nothing started.
+    expect(fs.existsSync(second.installDir)).toBe(false);
+    expect(second.docker).not.toContain("| compose up");
+    expect(second.docker).not.toContain("down");
+    expect(containersOn(dir)).toEqual(running);
+
+    // Doing what it says installs it beside the first.
+    const renamed = install(dir, {
+      env: arrayEnv("fa-prod-02"),
+      installDirName: "fa02/agent-2",
+    });
+    expect(renamed.status).toBe(0);
+    expect(containersOn(dir)).toEqual({
+      ...running,
+      [`${DEFAULT_CONTAINER}-agent-2`]: renamed.installDir,
+    });
+  });
+
+  test("the agent's own upgrade, from its own directory, is no other directory's", () => {
+    const dir = scratch();
+    const first = install(dir, {
+      env: arrayEnv(),
+      installDirName: "fa01/agent",
+    });
+    expect(first.status).toBe(0);
+
+    const again = install(dir, { installDirName: "fa01/agent" });
+
+    expect(again.status).toBe(0);
+    expect(again.output).not.toContain("already runs containers");
+    expect(containersOn(dir)).toEqual({
+      [`${DEFAULT_CONTAINER}-agent`]: first.installDir,
+    });
+  });
+
+  test("its own directory, reached through a symlink or with a trailing /, is its own", () => {
+    const dir = scratch();
+    const first = install(dir, {
+      env: arrayEnv(),
+      installDirName: "fa01/agent",
+    });
+    expect(first.status).toBe(0);
+    fs.mkdirSync(path.join(dir, "alias"));
+    fs.symlinkSync(first.installDir, path.join(dir, "alias", "agent"));
+
+    const throughLink = install(dir, { installDirName: "alias/agent" });
+    expect(throughLink.status).toBe(0);
+    expect(throughLink.output).not.toContain("already runs containers");
+
+    const withSlash = install(dir, { installDirName: "fa01/agent/" });
+    expect(withSlash.status).toBe(0);
+    expect(withSlash.output).not.toContain("already runs containers");
+  });
+
+  test("anyone else's Compose project of that name stops it too", () => {
+    const dir = scratch();
+    installStubs(dir);
+    // An app of someone's, in a directory named like the agent's.
+    const app = path.join(dir, "apps", "agent");
+    fs.mkdirSync(app, { recursive: true });
+    runContainerAs(dir, app, "agent-web-1");
+
+    const run = install(dir, { env: arrayEnv(), installDirName: "fa01/agent" });
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain(
+      `Error: ${app} already runs containers in the Docker Compose project\n"agent"`,
+    );
+    expect(containersOn(dir)).toEqual({ "agent-web-1": app });
+  });
+
+  test("containers whose directory is gone - an agent moved elsewhere - are this one's to replace", () => {
+    const dir = scratch();
+    installStubs(dir);
+    runContainerAs(
+      dir,
+      path.join(dir, "moved-from", "agent"),
+      `${DEFAULT_CONTAINER}-agent`,
+    );
+
+    const run = install(dir, { env: arrayEnv(), installDirName: "fa01/agent" });
+
+    expect(run.status).toBe(0);
+    expect(containersOn(dir)).toEqual({
+      [`${DEFAULT_CONTAINER}-agent`]: run.installDir,
+    });
+  });
+
+  test("an exported COMPOSE_PROJECT_NAME is the project's name, as it is to Compose", () => {
+    const dir = scratch();
+    const first = install(dir, {
+      env: arrayEnv(),
+      installDirName: "fa01/agent",
+    });
+    expect(first.status).toBe(0);
+
+    const second = install(dir, {
+      env: { ...arrayEnv("fa-prod-02"), COMPOSE_PROJECT_NAME: "fa02" },
+      installDirName: "fa02/agent",
+    });
+
+    // Not the first agent's project: nothing to stop.
+    expect(second.output).not.toContain("already runs containers");
+    expect(second.docker).toContain(`${second.installDir} | compose up`);
+  });
+});
+/*
+ * The real Docker Compose, which renders a project (`config`, no container is
+ * started) for the tests below that hold the script to it. The Ops workflow's
+ * runner has Compose and must run them; elsewhere they are skipped with the
+ * reason logged.
+ */
+const COMPOSE_PROBE = spawnSync("docker", ["compose", "version"], {
+  encoding: "utf8",
+});
+const HAS_COMPOSE = !COMPOSE_PROBE.error && COMPOSE_PROBE.status === 0;
+if (!HAS_COMPOSE && !process.env["CI"]) {
+  // eslint-disable-next-line no-console
+  console.log(
+    "The Docker Compose rendering is skipped: `docker compose` is not available here.",
+  );
+}
+
 /* ---------------------------------- install.sh's container name, its helpers */
 
 describe("agents/StorageArrayAgent/install.sh: the container name helpers", () => {
   const script = fs.readFileSync(path.join(AGENT_DIR, "install.sh"), "utf8");
   const helpers = [
+    "dotenv_get",
     "is_container_name",
     "compose_container_name",
+    "absolute_install_dir",
+    "compose_project_name",
     "directory_container_name",
     "file_sha256",
     "only_container_name_edited",
@@ -1814,8 +1989,9 @@ describe("agents/StorageArrayAgent/install.sh: the container name helpers", () =
     ["/opt/oneuptime-storage-array-agent-fa02", `${DEFAULT_CONTAINER}-fa02`],
     ["/opt/fa02", `${DEFAULT_CONTAINER}-fa02`],
     ["/opt/FA02", `${DEFAULT_CONTAINER}-fa02`],
-    ["/opt/My Array (2)", `${DEFAULT_CONTAINER}-my-array-2`],
-    ["/opt/--x--", `${DEFAULT_CONTAINER}-x`],
+    ["/opt/My Array (2)", `${DEFAULT_CONTAINER}-myarray2`],
+    ["/opt/--x--", `${DEFAULT_CONTAINER}-x--`],
+    ["/opt/a.b_c", `${DEFAULT_CONTAINER}-ab_c`],
     ["/opt/über", `${DEFAULT_CONTAINER}-ber`],
     ["relative/fa02", `${DEFAULT_CONTAINER}-fa02`],
     ["/", DEFAULT_CONTAINER],
@@ -1827,6 +2003,70 @@ describe("agents/StorageArrayAgent/install.sh: the container name helpers", () =
     expect(run).toEqual({ status: 0, out: expected });
     expect(shell('is_container_name "$1"', [run.out]).status).toBe(0);
   });
+
+  test("directory_container_name follows an exported COMPOSE_PROJECT_NAME, and one in .env", () => {
+    expect(
+      shell("directory_container_name", [], {
+        INSTALL_DIR: "/opt/agent",
+        COMPOSE_PROJECT_NAME: "fa02",
+      }),
+    ).toEqual({ status: 0, out: `${DEFAULT_CONTAINER}-fa02` });
+
+    const envFile = path.join(scratch(), ".env");
+    fs.writeFileSync(envFile, "COMPOSE_PROJECT_NAME='fb-lab'\n");
+    expect(
+      shell("directory_container_name", [], {
+        INSTALL_DIR: "/opt/agent",
+        ENV_FILE: envFile,
+      }),
+    ).toEqual({ status: 0, out: `${DEFAULT_CONTAINER}-fb-lab` });
+  });
+
+  /*
+   * compose_project_name against the real Docker Compose: the name it gives
+   * each directory's project (rendered with `config`, nothing started).
+   */
+  (HAS_COMPOSE || process.env["CI"] ? test : test.skip)(
+    "compose_project_name is the name the real Docker Compose gives the directory's project",
+    () => {
+      const parent = scratch();
+      for (const name of [
+        "fa02",
+        "FA02",
+        "My Array (2)",
+        "_x-y",
+        "a.b_c",
+        "-lead",
+        "9lives",
+        "x y",
+        DEFAULT_CONTAINER,
+      ]) {
+        const projectDir = path.join(parent, name);
+        fs.mkdirSync(projectDir);
+        fs.writeFileSync(
+          path.join(projectDir, "docker-compose.yml"),
+          "services:\n  s:\n    image: busybox\n",
+        );
+        const rendered = spawnSync(
+          "docker",
+          ["compose", "config", "--format", "json"],
+          {
+            cwd: projectDir,
+            env: { PATH: process.env.PATH, HOME: projectDir },
+            encoding: "utf8",
+            timeout: 60000,
+          },
+        );
+        expect(rendered.status).toBe(0);
+        expect({
+          name,
+          project: shell("compose_project_name", [], {
+            INSTALL_DIR: projectDir,
+          }).out,
+        }).toEqual({ name, project: JSON.parse(rendered.stdout).name });
+      }
+    },
+  );
 
   function composeWith(text) {
     const file = path.join(scratch(), "docker-compose.yml");
@@ -1952,20 +2192,8 @@ describe("agents/StorageArrayAgent/install.sh: the container name helpers", () =
 
 /*
  * The real Docker Compose, rendering what install.sh wrote (no container is
- * started): the container_name it reads from .env. The Ops workflow's runner
- * has Compose and must run this; elsewhere it is skipped with the reason
- * logged.
+ * started): the container_name it reads from .env.
  */
-const COMPOSE_PROBE = spawnSync("docker", ["compose", "version"], {
-  encoding: "utf8",
-});
-const HAS_COMPOSE = !COMPOSE_PROBE.error && COMPOSE_PROBE.status === 0;
-if (!HAS_COMPOSE && !process.env["CI"]) {
-  // eslint-disable-next-line no-console
-  console.log(
-    "The Docker Compose rendering is skipped: `docker compose` is not available here.",
-  );
-}
 
 describe("agents/StorageArrayAgent: the real Docker Compose reads the name from .env", () => {
   function renderedName(installDir) {
