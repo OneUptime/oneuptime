@@ -734,9 +734,11 @@ describe("Calls in Other Languages", () => {
 
   it("lists exactly the languages OneUptime writes in but English, by the codes a call carries", () => {
     const listed: Array<string> = Array.from(
-      (calls.split("\n").find((line: string): boolean => {
-        return line.startsWith("The language's code is a BCP 47 tag");
-      }) || "").matchAll(/`([a-zA-Z-]+)`/g),
+      (
+        calls.split("\n").find((line: string): boolean => {
+          return line.startsWith("The language's code is a BCP 47 tag");
+        }) || ""
+      ).matchAll(/`([a-zA-Z-]+)`/g),
     ).map((match: RegExpMatchArray): string => {
       return match[1] as string;
     });

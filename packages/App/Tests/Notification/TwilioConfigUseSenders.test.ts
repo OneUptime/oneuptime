@@ -819,7 +819,9 @@ describe("Send Test SMS and Send Test Call", () => {
    * voice's kind in that language.
    */
   test("the test call is said in the language of the member who sends it, by the config's voice's kind", async () => {
-    const config: ProjectCallSMSConfig = storedConfig(TwilioConfigUse.CallsOnly);
+    const config: ProjectCallSMSConfig = storedConfig(
+      TwilioConfigUse.CallsOnly,
+    );
     const member: ObjectID = new ObjectID(
       "4e000000-0000-4000-8000-000000011461",
     );
@@ -869,9 +871,9 @@ describe("Send Test SMS and Send Test Call", () => {
     });
 
     // No voice chosen: the account's default voice, English only.
-    expect(String((createCall.mock.calls[0]![0] as JSONObject)["twiml"])).toContain(
-      "<Say>This is a test call from One Uptime.</Say>",
-    );
+    expect(
+      String((createCall.mock.calls[0]![0] as JSONObject)["twiml"]),
+    ).toContain("<Say>This is a test call from One Uptime.</Say>");
   });
 
   test("a config used for calls and SMS without a number is still refused for a missing number", async () => {

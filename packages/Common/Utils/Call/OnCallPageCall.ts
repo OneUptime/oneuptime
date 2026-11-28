@@ -447,10 +447,10 @@ export const ANY_SENTENCE_END: RegExp = /[.!?…。！？।؟]$/u;
  * sentences with it (Notification CallService): a Japanese sentence was
  * given a "." after its "。" there.
  */
-export const asSentenceInLanguage: (text: string, language: string) => string = (
+export const asSentenceInLanguage: (
   text: string,
   language: string,
-): string => {
+) => string = (text: string, language: string): string => {
   if (!text || ANY_SENTENCE_END.test(text)) {
     return text;
   }

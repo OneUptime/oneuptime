@@ -429,9 +429,8 @@ describe.each(
   test("the words around the code are the language's own sentence, the code where the language puts it", async () => {
     const { callRequest } = await verificationCall(language);
     const { twiml } = await place(callRequest, { isSensitive: true });
-    const sentence: string = SERVER_LOCALES[language]![
-      VERIFICATION_CALL_CODE_SENTENCE
-    ]!;
+    const sentence: string =
+      SERVER_LOCALES[language]![VERIFICATION_CALL_CODE_SENTENCE]!;
     const [before, after] = sentence.split("{{code}}") as [string, string];
 
     for (const said of saidIn(twiml).slice(1, 4)) {
@@ -502,8 +501,7 @@ describe("the verification call, more ways", () => {
 
     expect(callRequest.inLanguage).toBeUndefined();
 
-    const now: string = (await place(callRequest, { isSensitive: true }))
-      .twiml;
+    const now: string = (await place(callRequest, { isSensitive: true })).twiml;
     const before: string = await legacyTwiml(
       {
         to: TO,
@@ -669,37 +667,40 @@ describe.each(
   SPOKEN_LANGUAGES.map((language: string): [string] => {
     return [language];
   }),
-)("a project's Send Test Call for a member who reads %s", (language: string) => {
-  test("is said in the language, by a voice of the project's own account's kind", async () => {
-    const callRequest: CallRequest = {
-      to: TO,
-      data: getProjectTestCallData(),
-    };
-    callRequest.inLanguage = getCallInLanguage(
-      language,
-      (translator: Translator): CallRequest["data"] => {
-        return getProjectTestCallData(translator);
-      },
-    );
+)(
+  "a project's Send Test Call for a member who reads %s",
+  (language: string) => {
+    test("is said in the language, by a voice of the project's own account's kind", async () => {
+      const callRequest: CallRequest = {
+        to: TO,
+        data: getProjectTestCallData(),
+      };
+      callRequest.inLanguage = getCallInLanguage(
+        language,
+        (translator: Translator): CallRequest["data"] => {
+          return getProjectTestCallData(translator);
+        },
+      );
 
-    const { twiml } = await place(callRequest, {
-      customTwilioConfig: accountWith("Polly.Matthew-Neural"),
+      const { twiml } = await place(callRequest, {
+        customTwilioConfig: accountWith("Polly.Matthew-Neural"),
+      });
+      const voice: SpokenCallVoice = getCallVoiceForLanguage(
+        CALL_VOICES.find((candidate: CallVoice): boolean => {
+          return candidate.value === "Polly.Matthew-Neural";
+        })!,
+        language,
+      )!;
+
+      expectEverySayIn(twiml, voice);
+      expect(saidIn(twiml)).toEqual([
+        wordsOf(language, PROJECT_TEST_CALL_SENTENCE, {
+          product: "One Uptime",
+        }),
+      ]);
+      expect((callRequest.data[0] as Say).sayMessage).toBe(
+        "This is a test call from OneUptime.",
+      );
     });
-    const voice: SpokenCallVoice = getCallVoiceForLanguage(
-      CALL_VOICES.find((candidate: CallVoice): boolean => {
-        return candidate.value === "Polly.Matthew-Neural";
-      })!,
-      language,
-    )!;
-
-    expectEverySayIn(twiml, voice);
-    expect(saidIn(twiml)).toEqual([
-      wordsOf(language, PROJECT_TEST_CALL_SENTENCE, {
-        product: "One Uptime",
-      }),
-    ]);
-    expect((callRequest.data[0] as Say).sayMessage).toBe(
-      "This is a test call from OneUptime.",
-    );
-  });
-});
+  },
+);

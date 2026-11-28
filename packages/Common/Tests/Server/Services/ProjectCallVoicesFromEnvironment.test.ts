@@ -285,9 +285,9 @@ describe("whether projects choose (GlobalConfigService.canProjectsChooseCallVoic
   test("a row that cannot be read is said to the caller, who decides what it means", async () => {
     globalConfigReads.mockRejectedValue(new Error("connection terminated"));
 
-    await expect(GlobalConfigService.canProjectsChooseCallVoice()).rejects.toThrow(
-      "connection terminated",
-    );
+    await expect(
+      GlobalConfigService.canProjectsChooseCallVoice(),
+    ).rejects.toThrow("connection terminated");
 
     // The variable needs no row.
     setVariable("true");
@@ -360,9 +360,7 @@ describe("a write to the saved switch while the variable sets it", () => {
         letProjectsChooseCallVoice: written,
       });
 
-      await expect(
-        globalHooks.onBeforeUpdate(updateBy),
-      ).resolves.toBeDefined();
+      await expect(globalHooks.onBeforeUpdate(updateBy)).resolves.toBeDefined();
       expect(updateBy.data.letProjectsChooseCallVoice).toBe(written);
     }
   });

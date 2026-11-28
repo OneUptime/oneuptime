@@ -305,10 +305,15 @@ describe("a call in the person's language (#11459)", () => {
       }),
     );
 
-    const { inLanguage: _ignoredNow, ...readNow } = now;
-    const { inLanguage: _ignoredBefore, ...readBefore } = before;
+    // What a gateway that reads no inLanguage reads of each.
+    const readNow: JSONObject = { ...now };
+    const readBefore: JSONObject = { ...before };
+
+    delete readNow["inLanguage"];
+    delete readBefore["inLanguage"];
 
     expect(readNow).toEqual(readBefore);
+    expect(Object.keys(readNow)).toHaveLength(9);
   });
 
   test("an SMS carries none: its message is in the person's language already", () => {
@@ -372,7 +377,9 @@ describe("a call in the person's language (#11459)", () => {
 
     expect(sent.length).toBe(MAX_CALL_AND_SMS_GATEWAY_MESSAGE_LENGTH);
     expect(sent.endsWith(TRUNCATED_TEXT_NOTE_PLAIN)).toBe(true);
-    expect(message.startsWith(sent.slice(0, -TRUNCATED_TEXT_NOTE_PLAIN.length))).toBe(true);
+    expect(
+      message.startsWith(sent.slice(0, -TRUNCATED_TEXT_NOTE_PLAIN.length)),
+    ).toBe(true);
   });
 
   test("words of exactly the limit are carried whole", () => {

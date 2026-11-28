@@ -61,7 +61,11 @@ export const getVerificationCallData: (
       sayMessage: `This is a call from ${ONEUPTIME_PRODUCT_NAME}.`,
     });
 
-    for (let index: number = 0; index < VERIFICATION_CALL_CODE_REPEATS; index++) {
+    for (
+      let index: number = 0;
+      index < VERIFICATION_CALL_CODE_REPEATS;
+      index++
+    ) {
       sentences.push({
         sayMessage: "Your verification code is " + writtenCode,
       });
@@ -80,9 +84,12 @@ export const getVerificationCallData: (
 
   for (let index: number = 0; index < VERIFICATION_CALL_CODE_REPEATS; index++) {
     sentences.push({
-      sayMessage: translator.translateTemplate(VERIFICATION_CALL_CODE_SENTENCE, {
-        code: writtenCode,
-      }),
+      sayMessage: translator.translateTemplate(
+        VERIFICATION_CALL_CODE_SENTENCE,
+        {
+          code: writtenCode,
+        },
+      ),
       // Said a digit at a time, with a pause between each, in any language.
       code: writtenCode,
     });

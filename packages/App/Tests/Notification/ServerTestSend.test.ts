@@ -100,7 +100,6 @@ import ServerTestSendAPI, {
 } from "../../FeatureSet/Notification/API/ServerTestSend";
 import UserLanguage from "Common/Server/Utils/Notification/UserLanguage";
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
-import { ExpressRequest } from "Common/Server/Utils/Express";
 import CallService from "../../FeatureSet/Notification/Services/CallService";
 import MailService from "../../FeatureSet/Notification/Services/MailService";
 import ServerTestSendService, {
@@ -156,6 +155,7 @@ import {
   createExpressApp,
   ExpressApplication,
   ExpressJson,
+  ExpressRequest,
 } from "Common/Server/Utils/Express";
 import http from "http";
 import { AddressInfo } from "net";
@@ -716,7 +716,9 @@ describe("over HTTP", () => {
 
     expect(result.status).toBe(200);
     expect(makeCall).toHaveBeenCalledTimes(1);
-    expect((makeCall.mock.calls[0] as [CallRequest])[0].inLanguage).toBeUndefined();
+    expect(
+      (makeCall.mock.calls[0] as [CallRequest])[0].inLanguage,
+    ).toBeUndefined();
   });
 
   test("a number that is not one is refused before the admin's language is read", async () => {
@@ -1194,24 +1196,30 @@ describe("the language of who is signed in (readSignedInUserLanguage)", () => {
 
   test.each([
     ["no session", { kind: "none" }],
-    ["a session that does not verify", { kind: "invalid", error: new Error("x") }],
-    ["a blocked user's", { kind: "blocked", session: { userId: ObjectID.generate() } }],
+    [
+      "a session that does not verify",
+      { kind: "invalid", error: new Error("x") },
+    ],
+    [
+      "a blocked user's",
+      { kind: "blocked", session: { userId: ObjectID.generate() } },
+    ],
     ["a user's with no id", { kind: "user", session: {} }],
-  ])("%s: English, with nobody's language read", async (
-    _label: string,
-    session: unknown,
-  ) => {
-    jest
-      .spyOn(UserMiddleware, "readRequestSession")
-      .mockResolvedValue(session as RequestSession);
-    const language: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      UserLanguage,
-      "getLanguage",
-    );
+  ])(
+    "%s: English, with nobody's language read",
+    async (_label: string, session: unknown) => {
+      jest
+        .spyOn(UserMiddleware, "readRequestSession")
+        .mockResolvedValue(session as RequestSession);
+      const language: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        UserLanguage,
+        "getLanguage",
+      );
 
-    expect(await readSignedInUserLanguage(request)).toBe("en");
-    expect(language).not.toHaveBeenCalled();
-  });
+      expect(await readSignedInUserLanguage(request)).toBe("en");
+      expect(language).not.toHaveBeenCalled();
+    },
+  );
 
   test("a session or a language that cannot be read: English, never an error", async () => {
     jest

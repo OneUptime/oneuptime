@@ -228,7 +228,9 @@ async function renderPage(language: string = "en"): Promise<void> {
 }
 
 // The switch, once the card past its loader draws one.
-async function theSwitch(name: string = PROJECT_CALL_VOICES_COPY.switchTitle): Promise<HTMLElement> {
+async function theSwitch(
+  name: string = PROJECT_CALL_VOICES_COPY.switchTitle,
+): Promise<HTMLElement> {
   await waitFor(
     () => {
       expect(screen.getByRole("switch", { name: name })).toBeVisible();
@@ -291,7 +293,9 @@ describe("set to true", () => {
     ).toBeVisible();
     expect(card).toHaveTextContent(VARIABLE);
     expect(card).toHaveTextContent("twilio.letProjectsChooseCallVoice");
-    expect(card).not.toHaveTextContent(PROJECT_CALL_VOICES_COPY.cardDescription);
+    expect(card).not.toHaveTextContent(
+      PROJECT_CALL_VOICES_COPY.cardDescription,
+    );
   });
 
   test("the switch is on - though the saved one is off - and locked, saying why to a screen reader", async () => {
@@ -561,9 +565,10 @@ describe("in the reader's language", () => {
       const wordOf: (key: string) => string = (key: string): string => {
         const word: unknown = locale[key];
 
-        expect({ key, worded: typeof word === "string" && word !== key }).toEqual(
-          { key, worded: true },
-        );
+        expect({
+          key,
+          worded: typeof word === "string" && word !== key,
+        }).toEqual({ key, worded: true });
 
         return word as string;
       };

@@ -86,9 +86,7 @@ const ENDS_A_SENTENCE: RegExp = /[.。।]$/u;
 
 describe("the verification call in English", () => {
   test("is word for word the call every release made", () => {
-    expect(getVerificationCallData(CODE)).toEqual(
-      legacyVerificationCall(CODE),
-    );
+    expect(getVerificationCallData(CODE)).toEqual(legacyVerificationCall(CODE));
     expect(getVerificationCallData("123456")).toEqual(
       legacyVerificationCall("123456"),
     );

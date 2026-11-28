@@ -35,7 +35,10 @@ import { approveEveryWebhookAddress } from "Common/Tests/Server/TestingUtils/Web
 import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import CallRequest, { CallRequestMessage, Say } from "Common/Types/Call/CallRequest";
+import CallRequest, {
+  CallRequestMessage,
+  Say,
+} from "Common/Types/Call/CallRequest";
 import { CallAndSmsGateway } from "Common/Types/CallAndSMS/CallAndSmsProvider";
 import { CustomChannelActionLinks } from "Common/Types/CustomNotificationChannel/CustomNotificationChannelPayload";
 import { JSONObject } from "Common/Types/JSON";
@@ -196,7 +199,10 @@ function overTheWire(callRequest: CallRequest): CallRequest {
 }
 
 // What the gateway was posted, as it got it.
-function posted(): Array<{ data: JSONObject; headers: Record<string, string> }> {
+function posted(): Array<{
+  data: JSONObject;
+  headers: Record<string, string>;
+}> {
   return post.mock.calls.map((call: Array<unknown>) => {
     const request: Record<string, unknown> = call[0] as Record<string, unknown>;
 
@@ -318,7 +324,9 @@ describe.each([
       ),
     });
     expect(payload["message"]).toBe(getCallGatewayMessage(callRequest));
-    expect(payload["message"]).toContain("This is a call from Acme Production.");
+    expect(payload["message"]).toContain(
+      "This is a call from Acme Production.",
+    );
   });
 
   test("the words in the language are the call's spoken sentences, as the English ones are: no keypad prompt, no answers to a key", async () => {
@@ -400,8 +408,9 @@ describe("a gateway that ignores the language", () => {
   test("the call log keeps what the English call says: OneUptime does not know which the gateway spoke", async () => {
     await pageThroughGateway("ja");
 
-    expect(String((callLogs[0]!.callData as unknown as JSONObject)["message"]))
-      .toContain("This is a call from Acme Production.");
+    expect(
+      String((callLogs[0]!.callData as unknown as JSONObject)["message"]),
+    ).toContain("This is a call from Acme Production.");
   });
 });
 
@@ -420,7 +429,9 @@ describe("Persian, which no Twilio voice speaks", () => {
     expect((inLanguageOf(payload) as JSONObject)["message"]).toContain(
       "این تماسی از طرف Acme Production است.",
     );
-    expect(payload["message"]).toContain("This is a call from Acme Production.");
+    expect(payload["message"]).toContain(
+      "This is a call from Acme Production.",
+    );
   });
 });
 
@@ -552,14 +563,17 @@ describe("getCallGatewayMessageInLanguage", () => {
     ["a language that is not text", { language: 7, data: [] }],
     ["words that are not a list", { language: "de", data: "Hallo." }],
     ["no words", { language: "de", data: [] }],
-    ["words that say nothing", { language: "de", data: [{ sayMessage: "  " }] }],
+    [
+      "words that say nothing",
+      { language: "de", data: [{ sayMessage: "  " }] },
+    ],
     ["not an object", "de"],
-  ])("%s: undefined, and the gateway has the English alone", (
-    _label: string,
-    inLanguage: unknown,
-  ) => {
-    expect(getCallGatewayMessageInLanguage(call(inLanguage))).toBeUndefined();
-  });
+  ])(
+    "%s: undefined, and the gateway has the English alone",
+    (_label: string, inLanguage: unknown) => {
+      expect(getCallGatewayMessageInLanguage(call(inLanguage))).toBeUndefined();
+    },
+  );
 });
 
 /*

@@ -906,7 +906,10 @@ describe("SMS and calls", () => {
           ServerSetupCheckId.SmsAndCalls,
         );
         const withProblem: ServerSetupCheckResult = check(
-          freshFacts({ ...overrides, projectCallVoicesProblem: SWITCH_PROBLEM }),
+          freshFacts({
+            ...overrides,
+            projectCallVoicesProblem: SWITCH_PROBLEM,
+          }),
           ServerSetupCheckId.SmsAndCalls,
         );
 
