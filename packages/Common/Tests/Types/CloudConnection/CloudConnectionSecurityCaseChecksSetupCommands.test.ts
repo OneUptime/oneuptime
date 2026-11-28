@@ -35,21 +35,22 @@ import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * SECURITY CASE CHECKS (#10900, #11038): what a security case may read of
- * the IAM users and roles an attack changed, granted on a setting of its
- * own.
+ * SECURITY CASE CHECKS (#10900, #11038, #11377): what a security case may
+ * read of the IAM users and roles an attack changed, granted on a setting
+ * of its own.
  *
  * Off - every connection until someone turns it on - the commands are the
  * ones connections had before it, byte for byte. On, they add one policy,
- * OneUptimeSecurityCaseChecks: the ten reads the step "Undo what changed
+ * OneUptimeSecurityCaseChecks: the twelve reads the step "Undo what changed
  * on the account" makes of a user or a role (held to the calls it makes by
  * CloudConnectionCommandNeeds.test.ts), each a Get or a List, none that
- * reads a secret or a policy's document, none that writes. A role takes
- * it as a fifth inline policy, every member account's role through the
- * organization's StackSet, and the access key's user - whose own inline
- * policies are full - through a group of the same name. Every inline
- * policy a role may hold still fits what IAM allows, with every setting
- * on, Savings actions' included.
+ * reads a secret or a managed policy's versions, none that writes - an
+ * inline policy's document only (#11377), to tell the attack's from the
+ * one a person put back. A role takes it as a fifth inline policy, every
+ * member account's role through the organization's StackSet, and the
+ * access key's user - whose own inline policies are full - through a
+ * group of the same name. Every inline policy a role may hold still fits
+ * what IAM allows, with every setting on, Savings actions' included.
  */
 
 const PROJECT: string = "11111111-1111-4111-8111-111111111111";
@@ -90,7 +91,7 @@ function linesOf(command: string): Array<string> {
 }
 
 describe("the policy", () => {
-  test("is the ten reads a security case makes of a user or a role, on every one, and nothing else", () => {
+  test("is the twelve reads a security case makes of a user or a role, on every one, and nothing else", () => {
     expect(AWS_SECURITY_CASE_CHECKS_POLICY_NAME).toBe(
       "OneUptimeSecurityCaseChecks",
     );
@@ -100,12 +101,15 @@ describe("the policy", () => {
       "iam:GetLoginProfile",
       "iam:ListAttachedUserPolicies",
       "iam:ListUserPolicies",
+      // An inline policy's document (#11377), beside the list of their names.
+      "iam:GetUserPolicy",
       "iam:ListGroupsForUser",
       "iam:ListMFADevices",
       // A role's (#11038): the role and whom it trusts, its managed and its inline policies.
       "iam:GetRole",
       "iam:ListAttachedRolePolicies",
       "iam:ListRolePolicies",
+      "iam:GetRolePolicy",
     ]);
     expect(getAwsSecurityCaseChecksPolicy("on")).toEqual({
       Version: "2012-10-17",
@@ -149,14 +153,15 @@ describe("the policy", () => {
       "iam:ListSSHPublicKeys",
       "iam:ListSigningCertificates",
       "iam:ListServiceSpecificCredentials",
-      "iam:GetUserPolicy",
+      // A managed policy's versions are never read: only what the attack wrote inline is (#11377).
       "iam:GetPolicyVersion",
+      "iam:ListPolicyVersions",
       "iam:GenerateCredentialReport",
       "iam:GetCredentialReport",
       "iam:GetAccountAuthorizationDetails",
-      // A role's inline policy is read by its name alone, never its document (#11038).
-      "iam:GetRolePolicy",
       "iam:ListRoles",
+      "iam:ListUsers",
+      "iam:GetGroupPolicy",
     ]) {
       expect({ secret, granted: actions.includes(secret) }).toEqual({
         secret,
@@ -165,7 +170,7 @@ describe("the policy", () => {
     }
   });
 
-  test("never writes to a role: OneUptime deletes and edits nothing, the undoing is a person's (#11038)", () => {
+  test("never writes to a role or a user: OneUptime deletes and edits nothing, the undoing is a person's (#11038, #11377)", () => {
     for (const write of [
       "iam:DeleteRole",
       "iam:UpdateAssumeRolePolicy",
@@ -175,6 +180,9 @@ describe("the policy", () => {
       "iam:UpdateRole",
       "iam:TagRole",
       "iam:PassRole",
+      // The inline policies it reads, it never writes back (#11377).
+      "iam:PutUserPolicy",
+      "iam:DeleteUserPolicy",
     ]) {
       expect({
         write,
@@ -222,8 +230,8 @@ describe("the policy", () => {
     // A role's inline policies may total 10,240 characters: with every setting on, about half of it.
     expect(total).toBeLessThan(10240);
     expect(total).toBeLessThan(6000);
-    // The role reads (#11038) add 68 characters to this policy, which stays small.
-    expect(iamLength(getAwsSecurityCaseChecksPolicyDocument("on"))).toBe(307);
+    // The role reads (#11038) added 68 characters to this policy, the documents' two (#11377) 40 more: it stays small.
+    expect(iamLength(getAwsSecurityCaseChecksPolicyDocument("on"))).toBe(347);
     // A group's may total 5,120: the access key's user takes this policy through its own group.
     expect(
       iamLength(getAwsSecurityCaseChecksPolicyDocument("on")),

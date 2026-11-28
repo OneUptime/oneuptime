@@ -17,6 +17,7 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ConditionValueType } from "../../../Types/Workflow/Components/Condition";
 import { getMarkdownFilesRecordTypes } from "../../../Types/File/MarkdownRecords";
+import { getAttachmentRecordTypes } from "../../../Types/File/RecordAttachments";
 import {
   CONDITION_COMPARISONS,
   CONDITION_VALUE_TYPE_LABELS,
@@ -98,6 +99,39 @@ export const getMarkdownRecordTypeOptions: GetMarkdownRecordTypeOptionsFunction 
     }
 
     return markdownRecordTypeOptions.map(
+      (option: DropdownOption): DropdownOption => {
+        return { ...option };
+      },
+    );
+  };
+
+let attachmentRecordTypeOptions: Array<DropdownOption> | null = null;
+
+export type GetAttachmentRecordTypeOptionsFunction =
+  () => Array<DropdownOption>;
+
+/*
+ * Get Attachments From Record's record types as a dropdown lists them (#11477):
+ * each by its name, which the dropdown words in the reader's language,
+ * stored as its table name. Worked out once: the models do not change while
+ * a page is open.
+ */
+export const getAttachmentRecordTypeOptions: GetAttachmentRecordTypeOptionsFunction =
+  (): Array<DropdownOption> => {
+    if (!attachmentRecordTypeOptions) {
+      attachmentRecordTypeOptions = getAttachmentRecordTypes(
+        Entities.map((modelType: { new (): BaseModel }): BaseModel => {
+          return new modelType();
+        }),
+      ).map((model: BaseModel): DropdownOption => {
+        return {
+          label: model.singularName || model.tableName || "",
+          value: model.tableName || "",
+        };
+      });
+    }
+
+    return attachmentRecordTypeOptions.map(
       (option: DropdownOption): DropdownOption => {
         return { ...option };
       },
@@ -405,6 +439,18 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
       return {
         fieldType: FormFieldSchemaType.Dropdown,
         dropdownOptions: getMarkdownRecordTypeOptions(),
+      };
+    }
+
+    /*
+     * The kinds of record that hold files, by name - the common ones first -
+     * for Get Attachments From Record's Record Type: the step's own list
+     * (Types/File/RecordAttachments), exactly the record types it reads.
+     */
+    if (componentInputType === ComponentInputType.AttachmentRecordType) {
+      return {
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: getAttachmentRecordTypeOptions(),
       };
     }
 

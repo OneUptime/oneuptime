@@ -523,6 +523,95 @@ export class Service extends DatabaseService<File> {
   }
 
   /**
+   * The files of one project these ids name, keyed by id in lower case: what
+   * deciding whether to hand one out reads of it (its name, type, size,
+   * owners, whether it is public, and its first bytes), never all of its
+   * bytes - the files a record holds, for Get Attachments From Record
+   * (#11477, RecordAttachments). An id that is not one, a file of another
+   * project or of none, and a deleted file are all simply absent, so a
+   * caller cannot tell one from another.
+   */
+  @CaptureSpan()
+  public async getProjectFilesById(data: {
+    fileIds: Array<ObjectID | string>;
+    projectId: ObjectID;
+  }): Promise<Map<string, ProjectImageFacts>> {
+    const files: Map<string, ProjectImageFacts> = new Map();
+
+    const ids: Array<string> = Array.from(
+      new Set(
+        data.fileIds
+          .map((fileId: ObjectID | string): string => {
+            return normalizeFileId(fileId);
+          })
+          .filter((fileId: string): boolean => {
+            return ObjectID.isValidUUID(fileId);
+          }),
+      ),
+    );
+
+    if (ids.length === 0 || !ObjectID.isValidUUID(data.projectId.toString())) {
+      return files;
+    }
+
+    const rows: Array<{
+      _id?: unknown;
+      name?: unknown;
+      fileType?: unknown;
+      projectId?: unknown;
+      createdByUserId?: unknown;
+      isPublic?: unknown;
+      size?: unknown;
+      head?: unknown;
+    }> = await this.getRepository()
+      .createQueryBuilder("file")
+      .select('"file"."_id"', "_id")
+      .addSelect('"file"."name"', "name")
+      .addSelect('"file"."fileType"', "fileType")
+      .addSelect('"file"."projectId"', "projectId")
+      .addSelect('"file"."createdByUserId"', "createdByUserId")
+      .addSelect('"file"."isPublic"', "isPublic")
+      .addSelect('octet_length("file"."file")', "size")
+      .addSelect(
+        `substring("file"."file" from 1 for ${MARKDOWN_FILE_HEAD_LENGTH})`,
+        "head",
+      )
+      .where('"file"."_id" IN (:...ids)', { ids: ids })
+      .andWhere('"file"."projectId" = :projectId', {
+        projectId: data.projectId.toString(),
+      })
+      .andWhere('"file"."deletedAt" IS NULL')
+      .getRawMany();
+
+    for (const row of rows) {
+      const fileId: ObjectID | null = readStoredId(row._id);
+
+      if (!fileId) {
+        continue;
+      }
+
+      files.set(normalizeFileId(fileId), {
+        fileId: fileId,
+        name: typeof row.name === "string" ? row.name : "",
+        fileType: typeof row.fileType === "string" ? row.fileType : "",
+        sizeInBytes: Number(row.size) || 0,
+        head: ArrayBuffer.isView(row.head)
+          ? new Uint8Array(
+              row.head.buffer,
+              row.head.byteOffset,
+              row.head.byteLength,
+            )
+          : new Uint8Array(0),
+        projectId: readStoredId(row.projectId),
+        createdByUserId: readStoredId(row.createdByUserId),
+        isPublic: row.isPublic === true,
+      });
+    }
+
+    return files;
+  }
+
+  /**
    * The bytes of these files of one project, keyed by id in lower case: the
    * files getProjectImagesByToken found fit to hand out, read in one query.
    * A file of another project, or deleted since, is absent.

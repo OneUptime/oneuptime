@@ -31,6 +31,7 @@ import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import UserService from "../../../Server/Services/UserService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import PublishedImages from "../../../Server/Utils/File/PublishedImages";
+import ShownImageAccess from "../../../Server/Utils/File/ShownImageAccess";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import File from "../../../Models/DatabaseModels/File";
@@ -82,8 +83,11 @@ if (
  *
  *   - a public image: anyone;
  *   - a private image of a project: the people who can open the project now
- *     (an accepted membership, the project's SSO rule met), and server
- *     admins;
+ *     (an accepted membership, the project's SSO rule met) and uploaded it
+ *     or may read a record of it that shows it (#11478 - whether a record
+ *     shows it is ShownImageAccess's, stubbed here to every member unless
+ *     a test says otherwise, and held to Postgres by
+ *     FileImageRecordAccessPostgres), and server admins;
  *   - a private image with no project: the person who uploaded it, and
  *     server admins;
  *   - by id: public files only, whoever asks.
@@ -247,6 +251,7 @@ function fileOf(
 
   file.fileType = MimeType.png;
   file.name = "image.png";
+  file.imageAccessToken = fixture.token;
   (file as unknown as { isPublic: unknown }).isPublic = fixture.isPublic;
 
   if (fixture.projectId) {
@@ -380,6 +385,13 @@ describe("the image routes serve a file only to the people who may see it", () =
   let announcementShownFrom: Date = new Date(Date.now() + 60 * 60 * 1000);
   // Each question the route asked of whether a record shows a file now.
   let shownAsks: Array<string> = [];
+  /*
+   * The people a record of its project shows each image to, by the image's
+   * id; an image not named here is shown to every member of its project.
+   */
+  let shownTo: Dictionary<Array<string>> = {};
+  // Each question the route asked of whether a record shows a person an image.
+  let recordAsks: Array<string> = [];
   // Every read of a file: how it asked, and whether it came back with bytes.
   let reads: Array<{ query: Dictionary<unknown>; gotBytes: boolean }> = [];
 
@@ -465,6 +477,22 @@ describe("the image routes serve a file only to the people who may see it", () =
       return true;
     }) as never);
 
+    // Whether a record of the image's project shows it to the person.
+    jest.spyOn(ShownImageAccess, "isShownTo").mockImplementation((async (data: {
+      userId: ObjectID;
+      projectId: ObjectID;
+      file: { fileId: string; token: string };
+    }): Promise<boolean> => {
+      recordAsks.push(`${data.file.fileId}:${data.userId.toString()}`);
+
+      const people: Array<string> =
+        shownTo[data.file.fileId] ||
+        MEMBERSHIPS[data.projectId.toString()] ||
+        [];
+
+      return people.includes(data.userId.toString());
+    }) as never);
+
     // An accepted membership is a permission set; anyone else gets none.
     jest
       .spyOn(AccessTokenService, "getUserTenantAccessPermission")
@@ -540,6 +568,8 @@ describe("the image routes serve a file only to the people who may see it", () =
     ANNOUNCEMENT_IMAGE.isPublic = false;
     announcementShownFrom = new Date(Date.now() + 60 * 60 * 1000);
     shownAsks = [];
+    shownTo = {};
+    recordAsks = [];
   });
 
   afterAll(async () => {
@@ -715,6 +745,62 @@ describe("the image routes serve a file only to the people who may see it", () =
           port,
           path: tokenPath(PRIVATE_IMAGE),
           cookies: asSession(OUTSIDER_ID),
+        }),
+        PRIVATE_IMAGE,
+      );
+    });
+
+    it("is answered like a missing file to a member no record shows it to (#11478)", async () => {
+      // Shown by no record the other member may read; its uploader is MEMBER_ID.
+      shownTo[PRIVATE_IMAGE.id] = [];
+      blocked.clear();
+
+      await expectRefusedLikeMissing(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          cookies: asSession(BLOCKED_ID),
+        }),
+        PRIVATE_IMAGE,
+      );
+      expect(recordAsks).toEqual([
+        `${PRIVATE_IMAGE.id}:${BLOCKED_ID.toString()}`,
+      ]);
+      // Its bytes never read for them.
+      expect(readAnyBytes()).toBe(false);
+    });
+
+    it("is served to the member who uploaded it, without asking the records", async () => {
+      shownTo[PRIVATE_IMAGE.id] = [];
+
+      expectServed(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          cookies: asSession(MEMBER_ID),
+        }),
+        PRIVATE_IMAGE,
+      );
+      expect(recordAsks).toEqual([]);
+    });
+
+    it("is served to a member a record shows it to, by bearer token as by cookie", async () => {
+      blocked.clear();
+      shownTo[PRIVATE_IMAGE.id] = [BLOCKED_ID.toString()];
+
+      expectServed(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          cookies: asSession(BLOCKED_ID),
+        }),
+        PRIVATE_IMAGE,
+      );
+      expectServed(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          bearer: sessionToken(BLOCKED_ID),
         }),
         PRIVATE_IMAGE,
       );

@@ -105,11 +105,16 @@ import {
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
   CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
+  CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
+  CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_STILL_THERE,
   CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
   CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
   CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
   CHECK_ACCOUNT_CHANGE_POLICY_STILL,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_ANY_ORGANIZATION,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_HELD,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_SAML,
   CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
   CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE,
   CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNT,
@@ -818,5 +823,265 @@ describe("an IAM role's changes (#11038)", () => {
       "",
       "Anyone in AWS may assume the role backdoor: its trust policy trusts every AWS account.",
     ]);
+  });
+});
+
+describe("the Google Workspace line links to its connection under Security Events > Connections (#11376)", () => {
+  const GOOGLE_CONNECTION_ID: string = "9a7e6c5d-0000-4000-8000-0000000060a1";
+  const SECURITY_CONNECTIONS_PAGE: string = `/dashboard/${PROJECT_ID}/security-events/connections`;
+  const GOOGLE_LINE: string = `To read Google Workspace groups back, add the scope ${SCOPE} to the domain-wide delegation of the Google Workspace connection under Security Events → Connections, for an administrator who may read groups.`;
+  const WITH_GOOGLE_LINK: SecurityCaseStepCheckEvidence = {
+    sentence: {
+      template: CHECK_ACCOUNT_CHANGES_CANNOT_READ,
+      values: {},
+      count: 2,
+    },
+    facts: [
+      {
+        template: CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
+        values: {
+          account: "alice@acme.com",
+          object: "finance@acme.com",
+          provider: "Google Workspace",
+        },
+        mark: StepCheckFactMark.Confirm,
+      },
+      {
+        template: CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
+        values: { scope: SCOPE },
+        mark: StepCheckFactMark.HowToCheck,
+        link: {
+          kind: ResponseLinkKind.OpenSecurityEventConnection,
+          connectionId: GOOGLE_CONNECTION_ID,
+        },
+      },
+      {
+        template: CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
+        values: { provider: "Okta" },
+        mark: StepCheckFactMark.HowToCheck,
+        link: { kind: ResponseLinkKind.OpenSecurityEventConnection },
+      },
+    ],
+    links: [],
+    docsPath: "/telemetry/security-cases#how-oneuptime-checks-a-step",
+    data: { changes: 2, stillThere: 0, undone: 0, toConfirm: 2 },
+  };
+
+  test("a reader who may change the connection - a Security Admin: its form, and the page to connect Okta", async () => {
+    readAs([Permission.SecurityAdmin]);
+    stepChecks = [
+      check(SecurityCaseStepCheckState.CannotTell, WITH_GOOGLE_LINK),
+    ];
+
+    const step: HTMLElement = await drawn();
+
+    expect(factLinks(step)).toEqual([
+      [
+        "Edit Connection",
+        `${SECURITY_CONNECTIONS_PAGE}?connection=${GOOGLE_CONNECTION_ID}`,
+      ],
+      ["Open Security Event Connections", SECURITY_CONNECTIONS_PAGE],
+    ]);
+    // After the words of its own line, which say where the connection is.
+    expect(lines(step)[1]).toEqual([
+      StepCheckFactMark.HowToCheck,
+      `${GOOGLE_LINE} Edit Connection`,
+    ]);
+  });
+
+  test("a reader who may see connections but not change them - a Security Member: the page, where Edit says what it takes", async () => {
+    stepChecks = [
+      check(SecurityCaseStepCheckState.CannotTell, WITH_GOOGLE_LINK),
+    ];
+
+    const step: HTMLElement = await drawn();
+
+    expect(factLinks(step)).toEqual([
+      ["Open Security Event Connections", SECURITY_CONNECTIONS_PAGE],
+      ["Open Security Event Connections", SECURITY_CONNECTIONS_PAGE],
+    ]);
+  });
+
+  test("a reader who may not see Security Events > Connections gets no link: the words say where, for someone who may", async () => {
+    jest.spyOn(PermissionUtil, "getAllPermissions").mockImplementation(() => {
+      return [Permission.ProjectMember];
+    });
+    PermissionGate.clearPermissionPropsCache();
+    stepChecks = [
+      check(SecurityCaseStepCheckState.CannotTell, WITH_GOOGLE_LINK),
+    ];
+
+    const step: HTMLElement = await drawn();
+
+    expect(factLinks(step)).toEqual([]);
+    expect(lines(step)[1]).toEqual([StepCheckFactMark.HowToCheck, GOOGLE_LINE]);
+  });
+
+  test("a Project Admin may change both kinds: each line links to its own page", async () => {
+    readAs([Permission.ProjectAdmin]);
+    stepChecks = [
+      check(SecurityCaseStepCheckState.CannotTell, {
+        ...WITH_GOOGLE_LINK,
+        facts: [
+          ...WITH_GOOGLE_LINK.facts.slice(0, 2),
+          {
+            template: CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+            values: { cloudAccount: "123456789012" },
+            mark: StepCheckFactMark.HowToCheck,
+            link: {
+              kind: ResponseLinkKind.OpenCloudConnection,
+              connectionId: CONNECTION_ID,
+            },
+          },
+        ],
+      }),
+    ];
+
+    const step: HTMLElement = await drawn();
+
+    expect(factLinks(step)).toEqual([
+      [
+        "Edit Connection",
+        `${SECURITY_CONNECTIONS_PAGE}?connection=${GOOGLE_CONNECTION_ID}`,
+      ],
+      ["Edit Connection", `${CONNECT_PAGE}?connection=${CONNECTION_ID}`],
+    ]);
+  });
+});
+
+describe("a way in open to anyone, under its role (#11378)", () => {
+  const OPEN_ROLE: SecurityCaseStepCheckEvidence = {
+    sentence: {
+      template: CHECK_ACCOUNT_CHANGES_STILL_THERE,
+      values: {},
+      count: 1,
+    },
+    facts: [
+      {
+        template: CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
+        values: { account: "backdoor", object: "", provider: "AWS" },
+        mark: StepCheckFactMark.NotDone,
+      },
+      {
+        template: CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT,
+        values: { account: "backdoor" },
+        mark: StepCheckFactMark.Exposed,
+      },
+      {
+        template: CHECK_ACCOUNT_CHANGE_PROVIDER_ANY_ORGANIZATION,
+        values: {
+          account: "backdoor",
+          provider: "token.actions.githubusercontent.com",
+          claim: "sub",
+        },
+        mark: StepCheckFactMark.Exposed,
+      },
+      {
+        template: CHECK_ACCOUNT_CHANGE_PROVIDER_HELD,
+        values: {
+          account: "backdoor",
+          provider: "accounts.google.com",
+          claim: "aud",
+          value: "666777888999000",
+        },
+      },
+      {
+        template: CHECK_ACCOUNT_CHANGE_PROVIDER_SAML,
+        values: { account: "backdoor", provider: "Okta" },
+      },
+    ],
+    links: [],
+    data: { changes: 1, stillThere: 1, undone: 0, toConfirm: 0 },
+  };
+
+  test("each line under the role says plainly whom it lets in; the open ones are marked", async () => {
+    stepChecks = [check(SecurityCaseStepCheckState.NotDone, OPEN_ROLE)];
+
+    const step: HTMLElement = await drawn();
+
+    expect(lines(step)).toEqual([
+      [
+        StepCheckFactMark.NotDone,
+        "The role backdoor the attack made is still in AWS.",
+      ],
+      [
+        StepCheckFactMark.Exposed,
+        "Anyone in AWS may assume the role backdoor: its trust policy trusts every AWS account.",
+      ],
+      [
+        StepCheckFactMark.Exposed,
+        "Anyone with a token from token.actions.githubusercontent.com, in any organization, may assume the role backdoor: its trust policy does not limit the token's sub.",
+      ],
+      [
+        "",
+        "Tokens from accounts.google.com may assume the role backdoor when their aud matches 666777888999000.",
+      ],
+      [
+        "",
+        "The SAML provider Okta may sign people in to AWS as the role backdoor.",
+      ],
+    ]);
+  });
+
+  test("an open one starts where the role's words do, its own mark there, so it reads as part of the role", async () => {
+    stepChecks = [check(SecurityCaseStepCheckState.NotDone, OPEN_ROLE)];
+
+    const step: HTMLElement = await drawn();
+    const drawnLines: Array<HTMLElement> = within(step).getAllByTestId(
+      SECURITY_CASE_RESPONSE_TEST_IDS.checkFact,
+    );
+    const role: HTMLElement = drawnLines[0]!;
+    const open: HTMLElement = drawnLines[1]!;
+    const held: HTMLElement = drawnLines[3]!;
+
+    // The role's line: its mark first, then its words.
+    expect(role.children).toHaveLength(2);
+    expect(role.children[0]!.querySelector("svg")).not.toBeNull();
+    // The open line: the room of the role's mark, then its own, then its words.
+    expect(open.children).toHaveLength(3);
+    expect(open.children[0]!.tagName.toLowerCase()).toBe("span");
+    expect(open.children[0]!.getAttribute("aria-hidden")).toBe("true");
+    expect(open.children[0]!.querySelector("svg")).toBeNull();
+    expect(
+      open.children[1]!.querySelector("svg")?.getAttribute("class"),
+    ).toContain("text-orange-600");
+    expect(open.children[2]!.getAttribute("class")).toContain("text-gray-700");
+    // A held one is a plain line under the role: no mark of its own.
+    expect(held.querySelector("svg")).toBeNull();
+    expect(held.children[0]!.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  test("its mark is its own: an icon and a colour no other mark has", async () => {
+    stepChecks = [
+      check(SecurityCaseStepCheckState.NotDone, {
+        ...OPEN_ROLE,
+        facts: [...OPEN_ROLE.facts.slice(0, 2), ...LOOKS_DONE_TO_CONFIRM.facts],
+      }),
+    ];
+
+    const step: HTMLElement = await drawn();
+    const byMark: Map<string, string> = new Map();
+
+    for (const line of within(step).getAllByTestId(
+      SECURITY_CASE_RESPONSE_TEST_IDS.checkFact,
+    )) {
+      const mark: string = line.getAttribute("data-fact-mark") || "";
+      const icon: Element | null = line.querySelector("svg");
+
+      if (mark && icon) {
+        byMark.set(mark, `${icon.getAttribute("class")} ${icon.innerHTML}`);
+      }
+    }
+
+    expect([...byMark.keys()].sort()).toEqual(
+      [
+        StepCheckFactMark.Confirm,
+        StepCheckFactMark.Done,
+        StepCheckFactMark.Exposed,
+        StepCheckFactMark.HowToCheck,
+        StepCheckFactMark.NotDone,
+      ].sort(),
+    );
+    expect(new Set(byMark.values()).size).toBe(byMark.size);
   });
 });

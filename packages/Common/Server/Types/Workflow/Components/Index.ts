@@ -47,6 +47,7 @@ import JavaScriptCode from "./JavaScript";
 import JavaScriptCheck from "./JavaScriptCheck";
 import Log from "./Log";
 import GetFilesFromMarkdown from "./MarkdownFiles/GetFilesFromMarkdown";
+import GetAttachmentsFromRecord from "./RecordAttachments/GetAttachmentsFromRecord";
 import ProposeOpenStackFix from "./OpenStack/ProposeFix";
 import MattermostSendMessageToChannel from "./Mattermost/SendMessageToChannel";
 import ManualTrigger from "./Manual";
@@ -109,6 +110,10 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.Sleep]: new Sleep(),
   // Reads the record as the workflow: only the record types a workflow reads.
   [ComponentID.GetFilesFromMarkdown]: new GetFilesFromMarkdown(Services),
+  // The same: the record read as the workflow, its files as it holds them.
+  [ComponentID.GetAttachmentsFromRecord]: new GetAttachmentsFromRecord(
+    Services,
+  ),
   // One runtime for both, told which records it works with.
   [ComponentID.IncidentFromAnotherTool]: new RecordFromAnotherTool({
     kind: INCIDENT_FROM_ANOTHER_TOOL,

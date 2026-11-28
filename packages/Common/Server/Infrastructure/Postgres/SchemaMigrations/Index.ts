@@ -1231,6 +1231,8 @@ import { AddProjectCallVoice1809187801300 } from "./1809187801300-AddProjectCall
 import { AddVMwareHealthSettingsAndSwapRates1809187811157 } from "./1809187811157-AddVMwareHealthSettingsAndSwapRates";
 import { AddProjectSecurityTrustPrivateAddresses1809187811240 } from "./1809187811240-AddProjectSecurityTrustPrivateAddresses";
 import { SwapMonitorProbeClaimIndexForClaimOrder1809187821386 } from "./1809187821386-SwapMonitorProbeClaimIndexForClaimOrder";
+import { AddShownImages1809187821478 } from "./1809187821478-AddShownImages";
+import { BackfillShownImages1809187821479 } from "./1809187821479-BackfillShownImages";
 import { AddMonitorTemplateChangePolicyAndRule1809187821500 } from "./1809187821500-AddMonitorTemplateChangePolicyAndRule";
 import { AddFormFollowUps1809188000000 } from "./1809188000000-AddFormFollowUps";
 
@@ -2468,6 +2470,8 @@ export default [
   AddVMwareHealthSettingsAndSwapRates1809187811157,
   AddProjectSecurityTrustPrivateAddresses1809187811240,
   SwapMonitorProbeClaimIndexForClaimOrder1809187821386,
+  AddShownImages1809187821478,
+  BackfillShownImages1809187821479,
   AddMonitorTemplateChangePolicyAndRule1809187821500,
   AddFormFollowUps1809188000000,
 ];

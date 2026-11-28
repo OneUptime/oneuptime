@@ -23,9 +23,10 @@ export default class FileAPI extends BaseAPI<File, FileServiceType> {
      * Token-based image route. Used for inline images embedded in
      * markdown (post-mortems, internal notes, etc.) where we don't want
      * the file's ObjectID to be enumerable. A public image is served to
-     * anyone; a private one only to the people who may see it - the members
-     * of the project it was uploaded in (FileViewerAccess) - and anyone else
-     * is answered as for an image that does not exist.
+     * anyone; a private one only to the people who may see it - its
+     * uploader, and members of its project who may read a record that shows
+     * it (FileViewerAccess, #11478) - and anyone else is answered as for an
+     * image that does not exist.
      *
      * Registered before the id-based route so the longer path matches
      * first.

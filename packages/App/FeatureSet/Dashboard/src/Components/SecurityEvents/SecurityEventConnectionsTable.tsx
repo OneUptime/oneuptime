@@ -3,6 +3,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
@@ -25,11 +26,14 @@ import ProviderLogoImage, {
   ProviderLogoSize,
 } from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Select from "Common/Types/BaseDatabase/Select";
 import ConnectionTestModal, {
   runConnectionTestRequest,
 } from "./ConnectionTestModal";
@@ -47,6 +51,10 @@ import {
   connectorScopeSummary,
 } from "./SecurityEventConnectionDiagnosticsUtil";
 import SecurityEventConnectionFormModal from "./SecurityEventConnectionFormModal";
+import {
+  SECURITY_EVENT_CONNECTION_QUERY_PARAM,
+  isSecurityEventConnectionIdInLink,
+} from "./SecurityEventConnectionsRoutes";
 import SecurityEventConnectionsEmptyState from "./SecurityEventConnectionsEmptyState";
 import RelativeTimeCell from "./RelativeTimeCell";
 import SecurityListNameCell, {
@@ -71,7 +79,6 @@ import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTab
 import CloudflareBlockingModal from "./CloudflareBlocking/CloudflareBlockingModal";
 import CrowdSecSendAlertsModal from "./CrowdSec/CrowdSecSendAlertsModal";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
-import Navigation from "Common/UI/Utils/Navigation";
 import {
   BLOCKING_ATTENTION_DETAIL,
   BLOCKING_ON_DETAIL,
@@ -234,6 +241,46 @@ export function getConnectionBlockingDetail(
 }
 
 /*
+ * What a connection's form edits - its name, its product's settings, how
+ * it polls and from which severity its alerts open cases - and never its
+ * credentials, which the API never returns. The rows read the same: read
+ * without caseMinimumSeverity, Edit showed a connection that opens cases
+ * from High alerts as "Never - import as events only", and saving it
+ * turned its cases off (#11376, found along the way).
+ */
+export const SECURITY_EVENT_CONNECTION_FORM_SELECT: Select<SecurityEventConnection> =
+  {
+    _id: true,
+    projectId: true,
+    name: true,
+    description: true,
+    provider: true,
+    config: true,
+    isEnabled: true,
+    pollIntervalInMinutes: true,
+    alertingOnly: true,
+    caseMinimumSeverity: true,
+  };
+
+/*
+ * The connection a link names, as its form edits it, or null: gone, of
+ * another project, or not readable.
+ */
+export async function readLinkedSecurityEventConnection(
+  connectionId: string,
+): Promise<SecurityEventConnection | null> {
+  try {
+    return await ModelAPI.getItem<SecurityEventConnection>({
+      modelType: SecurityEventConnection,
+      id: new ObjectID(connectionId),
+      select: SECURITY_EVENT_CONNECTION_FORM_SELECT,
+    });
+  } catch {
+    return null;
+  }
+}
+
+/*
  * The table for the managed Security Event Connections framework: every
  * provider, Google SecOps included, in one list.
  *
@@ -288,6 +335,53 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
   );
 
   /*
+   * A link naming a connection opens its form to edit it, once it is read
+   * (#11376) - for someone who may change it: a security case's step links
+   * here to give a Google Workspace connection's delegation the scope it
+   * lacks, as Cloud > Connect opens an AWS connection's (#11039). Anyone
+   * else sees the list, whose Edit says what it takes; a connection gone
+   * since opens nothing.
+   */
+  useEffect(() => {
+    const linked: string | null = Navigation.getQueryStringByName(
+      SECURITY_EVENT_CONNECTION_QUERY_PARAM,
+    );
+
+    if (!updateGate.isAllowed || !isSecurityEventConnectionIdInLink(linked)) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    void readLinkedSecurityEventConnection(linked).then(
+      (connection: SecurityEventConnection | null) => {
+        if (isCurrent && connection?.id) {
+          setFormModal((current: FormModalState | null) => {
+            return current || { connection, credentialsOnly: false };
+          });
+        }
+      },
+    );
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [updateGate.isAllowed]);
+
+  // A form opened from a link is not opened again by a refresh.
+  const closeForm: VoidFunction = (): void => {
+    setFormModal(null);
+
+    if (
+      Navigation.getQueryStringByName(SECURITY_EVENT_CONNECTION_QUERY_PARAM)
+    ) {
+      Navigation.setQueryString({
+        [SECURITY_EVENT_CONNECTION_QUERY_PARAM]: "",
+      });
+    }
+  };
+
+  /*
    * The card's Add connection button and the empty state's open the same
    * form. A provider tile in the empty state passes its provider, which
    * starts the form with that provider selected.
@@ -320,6 +414,8 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           isEnabled: true,
           pollIntervalInMinutes: true,
           alertingOnly: true,
+          // What Edit shows and saves: never "Never" for a connection that opens cases.
+          caseMinimumSeverity: true,
           lastPolledAt: true,
           lastError: true,
           lastPollResult: true,
@@ -780,11 +876,9 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           connection={formModal.connection || undefined}
           credentialsOnly={formModal.credentialsOnly}
           initialProvider={formModal.initialProvider}
-          onClose={(): void => {
-            setFormModal(null);
-          }}
+          onClose={closeForm}
           onSaved={(created?: SecurityEventConnection | undefined): void => {
-            setFormModal(null);
+            closeForm();
             refresh();
 
             // What comes next for a CrowdSec connection: pointing CrowdSec at it.

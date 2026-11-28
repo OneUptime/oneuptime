@@ -87,9 +87,13 @@ O ID abaixo do título de cada passo é exatamente o que vai em uma referência 
 
 Os valores mostrados são o que o bloco recebeu, depois de as variáveis serem preenchidas e antes de o bloco fazer qualquer coisa com eles, com duas exceções: segredos e campos que o bloco marca como sensíveis são ocultados, e um valor com mais de 4.000 caracteres é encurtado com "… (truncated)". Uma execução guarda os últimos 100 passos; uma execução longa ou retomada muitas vezes mostra uma nota âmbar onde os mais antigos foram descartados. Execuções registradas antes de os nomes das saídas serem guardados mostram a saída pelo ID, sem aonde ela levou.
 
+Um valor que um bloco marca como sensível, como as imagens que **Obter arquivos do Markdown** devolve, continua ocultado em todos os blocos depois dele, também depois de uma **Pausa**. Um bloco posterior que o recebe o mostra ocultado no que recebeu e no que devolveu, e o texto dele é ocultado onde quer que apareça no que a execução registra: uma mensagem que o inclui ou um erro que o cita. Partes curtas dele que dizem o que foi passado adiante, como o nome ou o tipo de um arquivo, são mantidas. Os próprios blocos continuam recebendo o valor real.
+
 ### A aba Full Log
 
 O log bruto, linha a linha, que o executor escreveu, incluindo tudo o que os próprios blocos registraram, como o valor de um bloco **Registro** ou o `console.log` de um script. Use-o quando a aba Etapas não explicar a falha.
+
+Cada valor que o log escreve, seja o que um bloco recebeu, o que devolveu ou o que registrou, é cortado nos seus primeiros 65.536 caracteres e termina com quantos ficaram de fora, como `… (10,420,113 more characters left out)`. Os valores recebidos e os valores devolvidos de um bloco são cortados cada um por si, para que um valor longo não esconda os outros. Segredos e valores sensíveis são ocultados antes de um valor ser cortado, de modo que um que o corte dividiria continua ocultado por inteiro.
 
 ## Copiar e baixar uma execução
 

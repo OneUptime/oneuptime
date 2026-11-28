@@ -84,9 +84,9 @@ import {
   isRouteFixStep,
 } from "./SecurityCaseFixPullRequestsModel";
 import {
-  CloudConnectionsAccess,
   STEP_CHECK_FACT_MARK_STYLES,
   StepCheckFactMarkStyle,
+  StepCheckLinkAccess,
   StepCheckLinkTarget,
   canConfirmStep,
   getStepCheckDocsUrl,
@@ -96,6 +96,7 @@ import {
   isCheckExplainedInline,
   isDoneAnyway,
   isDoneByCheckOnly,
+  isMarkedFactUnderLine,
   readCheckSentence,
 } from "./SecurityCaseResponseChecks";
 import {
@@ -129,6 +130,7 @@ import {
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import { isSecurityCaseTaken } from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanInputs";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
@@ -413,15 +415,28 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     BLOCK_ADMIN_PERMISSIONS,
   );
   /*
-   * Whether the reader may see Cloud > Connect, and change a connection
-   * there (#11039): a step's line links to it only then, and words the link
-   * by what the reader may do on it.
+   * Whether the reader may see Cloud > Connect (#11039) and Security
+   * Events > Connections (#11376), and change a connection there: a step's
+   * line links to one only then, and words the link by what the reader may
+   * do on it.
    */
-  const cloudConnectionsAccess: CloudConnectionsAccess = {
-    mayRead: PermissionGate.check(new CloudConnection(), ModelAction.Read)
-      .isAllowed,
-    mayUpdate: PermissionGate.check(new CloudConnection(), ModelAction.Update)
-      .isAllowed,
+  const linkAccess: StepCheckLinkAccess = {
+    cloudConnections: {
+      mayRead: PermissionGate.check(new CloudConnection(), ModelAction.Read)
+        .isAllowed,
+      mayUpdate: PermissionGate.check(new CloudConnection(), ModelAction.Update)
+        .isAllowed,
+    },
+    securityEventConnections: {
+      mayRead: PermissionGate.check(
+        new SecurityEventConnection(),
+        ModelAction.Read,
+      ).isAllowed,
+      mayUpdate: PermissionGate.check(
+        new SecurityEventConnection(),
+        ModelAction.Update,
+      ).isAllowed,
+    },
   };
 
   /*
@@ -1139,7 +1154,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const target: StepCheckLinkTarget | null = getStepCheckLinkTarget(
       link,
-      cloudConnectionsAccess,
+      linkAccess,
     );
 
     if (!target) {
@@ -1161,7 +1176,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     fact: SecurityCaseStepCheckSentence,
   ) => ReactElement = (fact: SecurityCaseStepCheckSentence): ReactElement => {
     const target: StepCheckLinkTarget | null = fact.link
-      ? getStepCheckLinkTarget(fact.link, cloudConnectionsAccess)
+      ? getStepCheckLinkTarget(fact.link, linkAccess)
       : null;
 
     if (!target) {
@@ -1232,6 +1247,12 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               const mark: StepCheckFactMarkStyle | null = fact.mark
                 ? STEP_CHECK_FACT_MARK_STYLES[fact.mark]
                 : null;
+              /*
+               * A marked line under a change's - a way in open to anyone
+               * (#11378) - starts where the change's words do, its mark
+               * there, so it reads as part of the change above.
+               */
+              const isMarkedUnderLine: boolean = isMarkedFactUnderLine(fact);
 
               return (
                 <li
@@ -1240,6 +1261,11 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
                   data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkFact}
                   data-fact-mark={fact.mark || ""}
                 >
+                  {isMarkedUnderLine ? (
+                    <span className="h-4 w-4 flex-none" aria-hidden="true" />
+                  ) : (
+                    <></>
+                  )}
                   {mark ? (
                     <Icon
                       icon={mark.icon}
@@ -1250,7 +1276,8 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
                   )}
                   <span
                     className={`min-w-0 break-words ${
-                      fact.mark === StepCheckFactMark.HowToCheck
+                      fact.mark === StepCheckFactMark.HowToCheck ||
+                      fact.mark === StepCheckFactMark.Exposed
                         ? "text-gray-700"
                         : ""
                     }`}

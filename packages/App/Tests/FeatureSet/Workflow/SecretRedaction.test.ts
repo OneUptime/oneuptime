@@ -8,6 +8,7 @@
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import { WorkflowVariableType } from "Common/Types/Workflow/WorkflowVariableOAuth";
 import {
+  LONG_REDACTED_VALUE_LENGTH,
   WORKFLOW_LOG_REDACTED_VALUE,
   getSecretValuesForRedaction,
   getSecretWorkflowVariableValues,
@@ -151,6 +152,88 @@ describe("redactSecretsFromString", () => {
 
   test("handles an empty value", () => {
     expect(redactSecretsFromString("", ["secret"])).toBe("");
+  });
+});
+
+/*
+ * Long values - a sensitive step's images, handed on as base64 (#11476) -
+ * are taken out by their text rather than in one pattern of megabytes.
+ */
+describe("redactSecretsFromString with long values", () => {
+  const LONG: string = "QUJD".repeat(LONG_REDACTED_VALUE_LENGTH);
+  const OTHER_LONG: string = "WFla".repeat(LONG_REDACTED_VALUE_LENGTH);
+
+  test("a value over LONG_REDACTED_VALUE_LENGTH is long", () => {
+    expect(LONG.length).toBeGreaterThan(LONG_REDACTED_VALUE_LENGTH);
+  });
+
+  test("replaces every occurrence of a long value", () => {
+    expect(redactSecretsFromString(`a ${LONG} b ${LONG} c`, [LONG])).toBe(
+      `a ${WORKFLOW_LOG_REDACTED_VALUE} b ${WORKFLOW_LOG_REDACTED_VALUE} c`,
+    );
+  });
+
+  test("a long value and short secrets in one line are all taken out", () => {
+    expect(
+      redactSecretsFromString(`token=hunter2 data=${LONG} again hunter2`, [
+        LONG,
+        "hunter2",
+      ]),
+    ).toBe(
+      `token=${WORKFLOW_LOG_REDACTED_VALUE} data=${WORKFLOW_LOG_REDACTED_VALUE} again ${WORKFLOW_LOG_REDACTED_VALUE}`,
+    );
+  });
+
+  test("a short secret is never looked for inside the marker a long value left", () => {
+    expect(
+      redactSecretsFromString(`[${LONG}]`, [LONG, "REDACTED", "ACT"]),
+    ).toBe(`[${WORKFLOW_LOG_REDACTED_VALUE}]`);
+  });
+
+  test("a short secret inside a long value goes with it, a short one outside it is taken out", () => {
+    const secrets: Array<string> = getSecretValuesForRedaction(["QUJD", LONG]);
+
+    expect(redactSecretsFromString(`${LONG} QUJD`, secrets)).toBe(
+      `${WORKFLOW_LOG_REDACTED_VALUE} ${WORKFLOW_LOG_REDACTED_VALUE}`,
+    );
+  });
+
+  test("of two overlapping long values, the longer goes first and leaves no tail", () => {
+    const longer: string = `${LONG}-and-more`;
+    const secrets: Array<string> = getSecretValuesForRedaction([LONG, longer]);
+
+    expect(redactSecretsFromString(`x ${longer} y`, secrets)).toBe(
+      `x ${WORKFLOW_LOG_REDACTED_VALUE} y`,
+    );
+  });
+
+  test("two different long values, side by side", () => {
+    expect(
+      redactSecretsFromString(`${LONG}${OTHER_LONG}`, [LONG, OTHER_LONG]),
+    ).toBe(`${WORKFLOW_LOG_REDACTED_VALUE}${WORKFLOW_LOG_REDACTED_VALUE}`);
+  });
+
+  test("a text with no long value in it is left as the short secrets leave it", () => {
+    expect(
+      redactSecretsFromString("only hunter2 here", [LONG, "hunter2"]),
+    ).toBe(`only ${WORKFLOW_LOG_REDACTED_VALUE} here`);
+  });
+
+  test("a value of megabytes is taken out of a text of megabytes", () => {
+    const megabytes: string = "AbCd".repeat(1024 * 1024);
+    const text: string = `before ${megabytes} after`;
+
+    expect(redactSecretsFromString(text, [megabytes])).toBe(
+      `before ${WORKFLOW_LOG_REDACTED_VALUE} after`,
+    );
+  });
+
+  test("the same short secrets asked again give the same answer", () => {
+    for (let index: number = 0; index < 3; index++) {
+      expect(redactSecretsFromString("a b a", ["a"])).toBe(
+        `${WORKFLOW_LOG_REDACTED_VALUE} b ${WORKFLOW_LOG_REDACTED_VALUE}`,
+      );
+    }
   });
 });
 

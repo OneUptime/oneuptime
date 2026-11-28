@@ -16,6 +16,7 @@ import {
 import AccountChangeReadBack, {
   AWS_LOGIN_PROFILE_LEEWAY_MS,
   AccountChangeFacts,
+  AccountChangePolicyDocument,
   AccountChangeState,
   AccountChangeUnknownReason,
 } from "../../../../Server/Utils/SecurityPlaybook/AccountChangeReadBack";
@@ -45,7 +46,8 @@ interface FakeUser {
   // When its console password was set up: none when it has none.
   loginProfileCreatedAt?: string | undefined;
   attachedPolicies?: Array<string> | undefined;
-  inlinePolicies?: Array<string> | undefined;
+  // Its inline policies, by name: each one's document (#11377).
+  inlinePolicies?: Record<string, string> | undefined;
   groups?: Array<string> | undefined;
   mfaDevices?: Array<string> | undefined;
 }
@@ -204,7 +206,7 @@ function fakeIam(
       }
       case "ListUserPolicies": {
         const listed: { items: Array<string>; tail: string } = page(
-          user.inlinePolicies || [],
+          Object.keys(user.inlinePolicies || {}),
           form,
           size,
         );
@@ -213,6 +215,22 @@ function fakeIam(
           action,
           `<PolicyNames>${members(listed.items)}</PolicyNames>${listed.tail}`,
         );
+      }
+      // One inline policy's document, URL-encoded as GetUserPolicy writes it (#11377).
+      case "GetUserPolicy": {
+        const policyName: string = form.get("PolicyName") || "";
+        const document: string | undefined = user.inlinePolicies?.[policyName];
+
+        return document === undefined
+          ? iamError(
+              404,
+              "NoSuchEntity",
+              `The user policy with name ${policyName} cannot be found.`,
+            )
+          : xml(
+              action,
+              `<UserName>${name}</UserName><PolicyName>${policyName}</PolicyName><PolicyDocument>${encodeURIComponent(document)}</PolicyDocument>`,
+            );
       }
       case "ListGroupsForUser": {
         const listed: { items: Array<string>; tail: string } = page(
@@ -289,7 +307,7 @@ function change(data: Partial<AccountChange>): AccountChange {
     ownerType: "",
     cloudAccountId: "123456789012",
     cloudConnectionId: "",
-    trustPolicies: [],
+    policyDocuments: [],
     eventName: "",
     eventUid: "cloudtrail:1",
     time: CHANGED_AT,
@@ -476,10 +494,14 @@ describe("a policy put on the user (AttachUserPolicy, PutUserPolicy)", () => {
     objectId: "arn:aws:iam::aws:policy/AdministratorAccess",
     objectName: "AdministratorAccess",
   };
+  // The document the attack's PutUserPolicy set, as CloudTrail recorded it (#11377).
+  const backdoor: string =
+    '{"Version":"2012-10-17","Statement":{"Effect":"Allow","Action":"*","Resource":"*"}}';
   const inline: Partial<AccountChange> = {
     kind: AccountChangeKind.Policy,
     eventName: "PutUserPolicy",
     objectName: "backdoor",
+    policyDocuments: [backdoor],
   };
 
   test("a managed policy: still there while it is attached, by its ARN; undone once detached", async () => {
@@ -519,18 +541,41 @@ describe("a policy put on the user (AttachUserPolicy, PutUserPolicy)", () => {
     ).toBe(AccountChangeState.Undone);
   });
 
-  test("an inline policy: still there while the user has one of its name, case aside; undone once deleted", async () => {
+  test("an inline policy: still there while the user has one of its name, case aside, with the document the attack wrote; undone once deleted, or once its document is another (#11377)", async () => {
     expect(
-      (
-        await read(
-          { users: { [USER]: { inlinePolicies: ["BackDoor"] } } },
-          inline,
-        )
-      ).state,
-    ).toBe(AccountChangeState.StillThere);
+      await read(
+        { users: { [USER]: { inlinePolicies: { BackDoor: backdoor } } } },
+        inline,
+      ),
+    ).toEqual({
+      provider: "AWS",
+      state: AccountChangeState.StillThere,
+      url: USER_PAGE,
+      policyDocument: AccountChangePolicyDocument.Attack,
+    });
     expect(
-      (await read({ users: { [USER]: { inlinePolicies: [] } } }, inline)).state,
+      (await read({ users: { [USER]: { inlinePolicies: {} } } }, inline)).state,
     ).toBe(AccountChangeState.Undone);
+    expect(
+      await read(
+        {
+          users: {
+            [USER]: {
+              inlinePolicies: {
+                backdoor:
+                  '{"Version":"2012-10-17","Statement":{"Effect":"Deny","Action":"*","Resource":"*"}}',
+              },
+            },
+          },
+        },
+        inline,
+      ),
+    ).toEqual({
+      provider: "AWS",
+      state: AccountChangeState.Undone,
+      url: USER_PAGE,
+      policyDocument: AccountChangePolicyDocument.Changed,
+    });
   });
 
   test("an event that names no policy is not looked for", async () => {

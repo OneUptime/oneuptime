@@ -105,6 +105,8 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
         "ApiKeyPermission",
         "Label",
         "File",
+        // Which records show each inline image: the files', for every product (#11478).
+        "ShownImage",
         "Domain",
         "TableView",
         "ShortLink",
