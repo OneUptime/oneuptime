@@ -12,6 +12,7 @@ import MonitorIncidentPause, {
   MonitorIncidentPauseState,
 } from "../../../../Server/Utils/Monitor/MonitorIncidentPause";
 import URL from "../../../../Types/API/URL";
+import MonitorPausedBy from "../../../../Types/Monitor/MonitorPausedBy";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   BACK_IN_STATUS_OF_INCIDENT,
@@ -506,6 +507,7 @@ describe("markUptime for a monitor scheduled maintenance pauses", () => {
   test("nothing is written when the latest status event says so already", async () => {
     monitorRead = monitorWith({ isPausedForMaintenance: true });
     latest!.isMonitoringOff = true;
+    latest!.pausedBy = MonitorPausedBy.ScheduledMaintenance;
 
     await MonitorIncidentPause.syncMonitors({
       projectId: PROJECT_ID,
@@ -514,6 +516,56 @@ describe("markUptime for a monitor scheduled maintenance pauses", () => {
 
     expect(switches).not.toHaveBeenCalled();
   });
+
+  /*
+   * What pauses the monitor changed while its time stays left out: marked
+   * again, so the day bars say why (#11433) - an incident with no status
+   * joins the event, or the event's incident is resolved while it runs.
+   */
+  test.each([
+    [
+      "an incident joins the event",
+      MonitorPausedBy.ScheduledMaintenance,
+      true,
+      MonitorPausedBy.IncidentAndScheduledMaintenance,
+    ],
+    [
+      "the incident is resolved while the event runs",
+      MonitorPausedBy.IncidentAndScheduledMaintenance,
+      false,
+      MonitorPausedBy.ScheduledMaintenance,
+    ],
+  ] as Array<[string, MonitorPausedBy, boolean, MonitorPausedBy]>)(
+    "%s: the time left out is marked again with what pauses it now",
+    async (
+      _label: string,
+      marked: MonitorPausedBy,
+      isPausedByIncident: boolean,
+      expected: MonitorPausedBy,
+    ) => {
+      monitorRead = monitorWith({
+        isPausedForMaintenance: true,
+        isPausedByIncident: isPausedByIncident,
+      });
+      incidentsFound = isPausedByIncident
+        ? [incidentWith({ id: INCIDENT_ONE, prefixed: "INC-9" })]
+        : [];
+      eventsHolding = [eventWith({ id: EVENT_ONE, prefixed: "SM-3" })];
+      latest!.isMonitoringOff = true;
+      latest!.pausedBy = marked;
+
+      await MonitorIncidentPause.syncMonitors({
+        projectId: PROJECT_ID,
+        monitorIds: [MONITOR_ID],
+      });
+
+      expect(switches).toHaveBeenCalledTimes(1);
+      expect(switches.mock.calls[0]![0]).toMatchObject({
+        isMonitoringOff: true,
+        pausedBy: expected,
+      });
+    },
+  );
 
   test("an archived monitor is worked out as any other: archiving marks nothing on its timeline", async () => {
     monitorRead = monitorWith({

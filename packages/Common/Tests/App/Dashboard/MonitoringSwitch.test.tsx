@@ -413,17 +413,23 @@ describe("the banner on a turned-off monitor's pages", () => {
     [
       "a maintenance event",
       { disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true },
-      "We are not monitoring this monitor since it is disabled because of an ongoing maintenance event. To enable active monitoring, please end the maintenance event.",
+      /*
+       * What the pause does and how to have it checked again (#11433):
+       * with no status event read, both ways uptime can take the time.
+       */
+      "A maintenance event in progress paused this monitor's checks until it ends. Uptime, status pages and SLOs count this time as the status the event sets, or leave it out when the event sets none. What reaches it meanwhile is listed in Monitoring Logs, not evaluated. To check it again now, end the event or take this monitor off it.",
     ],
   ])(
-    "a monitor paused by %s keeps its wording, and has no button",
+    "a monitor paused by %s says it is paused and what that does, and has no button",
     async (_reason: string, pause: Partial<Monitor>, sentence: string) => {
       Object.assign(stored, pause);
 
       await renderBanner();
 
       const shown: HTMLElement = banner()!;
-      expect(shown).toHaveTextContent("This monitor is disabled");
+      // Paused, not "disabled": the Monitors table's word for turned off (#11433).
+      expect(shown).toHaveTextContent("This monitor is paused");
+      expect(shown).not.toHaveTextContent("disabled");
       expect(shown).toHaveTextContent(sentence);
       expect(
         screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID),

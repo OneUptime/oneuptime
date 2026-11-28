@@ -37,6 +37,9 @@ import {
 } from "../../../Types/StatusPage/UptimeDailyAggregate";
 import SloUtil, { TimeSliResult } from "../../../Utils/Slo/SloUtil";
 import { readStatusChangeNote } from "../../../Utils/Monitor/StatusChangeNotes";
+import MonitorPausedBy from "../../../Types/Monitor/MonitorPausedBy";
+import { MonitorGroupUptimeDailyAggregate } from "../../../Types/StatusPage/UptimeDailyAggregate";
+import { RECORD_WHAT_PAUSED_SQL } from "../../../../App/FeatureSet/Workers/DataMigrations/RecordWhatPausedMonitorsOnStatusTimelines";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubReadableParents } from "../TestingUtils/ReadableParents";
@@ -135,6 +138,14 @@ interface TimelineRow {
   startsAt: Date;
   endsAt: Date | null;
   isMonitoringOff: boolean;
+  rootCause: string | null;
+}
+
+// A status event, with what paused the monitor (#11433).
+interface PausedRow {
+  monitorStatusId: string;
+  isMonitoringOff: boolean;
+  pausedBy: string | null;
   rootCause: string | null;
 }
 
@@ -1384,10 +1395,18 @@ describePostgres(
         const eventId: ObjectID = await seedEvent({ monitorIds: [monitorId] });
         await moveEventInto(eventId, ongoingStateId);
 
-        // Left out since the incident paused it; nothing new to mark.
+        /*
+         * Left out since the incident paused it, and marked again now that
+         * maintenance pauses it too, so the bars say both (#11433).
+         */
         let rows: Array<TimelineRow> = await timeline(monitorId);
-        expect(rows).toHaveLength(2);
+        expect(rows).toHaveLength(3);
         expect(rows[1]!.isMonitoringOff).toBe(true);
+        expect(rows[2]!.isMonitoringOff).toBe(true);
+        expect(rows[2]!.monitorStatusId).toBe(rows[1]!.monitorStatusId);
+        expect(rows[2]!.rootCause).toBe(
+          `Monitoring is paused by [INC-31](https://oneuptime.example/incidents/${incidentId.toString()}), declared by hand, and by scheduled maintenance ([SM-1](https://oneuptime.example/scheduled-maintenance/${eventId.toString()})), with no status set for this monitor. Nothing checks the monitor until both are over, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.`,
+        );
 
         expect(
           await MonitorIncidentPause.getUptimeRootCause(
@@ -1828,6 +1847,410 @@ describePostgres(
           [offlineStatusId.toString(), false],
           [underMaintenanceStatusId.toString(), false],
         ]);
+      });
+    });
+
+    /*
+     * WHAT PAUSED THE TIME, SO IT SAYS SO (issue #11433). Each status event
+     * that leaves a monitor's time out because of a pause says what paused it
+     * (MonitorStatusTimeline.pausedBy): an incident declared by hand,
+     * scheduled maintenance, or both - and is marked again when that changes
+     * while the time stays left out. Time with monitoring turned off says
+     * none. The day statements count the paused time apart, inside the time
+     * off every reader already counts, and the data migration fills it in on
+     * the marks written before the column.
+     */
+    describe("what paused the time, for the words it is said in", () => {
+      async function pausedRows(monitorId: ObjectID): Promise<Array<PausedRow>> {
+        return database.query(
+          `SELECT "monitorStatusId"::text AS "monitorStatusId", "isMonitoringOff", "pausedBy", "rootCause"
+             FROM "MonitorStatusTimeline" WHERE "monitorId" = $1
+            ORDER BY "startsAt" ASC, "endsAt" ASC NULLS LAST`,
+          [monitorId.toString()],
+        );
+      }
+
+      async function dayBucket(
+        monitorId: ObjectID,
+        hours: number,
+      ): Promise<UptimeDayBucket> {
+        const aggregate: UptimeDailyAggregate =
+          await MonitorStatusTimelineService.getDailyUptimeAggregate({
+            monitorIds: [monitorId],
+            startDate: new Date(Date.now() - hours * HOUR_MS),
+            endDate: new Date(),
+          });
+
+        // The window fits one UTC day here, or the newest one holds the pause.
+        const buckets: Array<UptimeDayBucket> = aggregate.monitors[0]!.buckets;
+
+        return buckets.reduce(
+          (sum: UptimeDayBucket, bucket: UptimeDayBucket): UptimeDayBucket => {
+            return {
+              ...sum,
+              monitoringOffSeconds:
+                (sum.monitoringOffSeconds || 0) +
+                (bucket.monitoringOffSeconds || 0),
+              pausedSeconds:
+                (sum.pausedSeconds || 0) + (bucket.pausedSeconds || 0),
+              pausedBy: bucket.pausedBy || sum.pausedBy,
+              coveredSeconds: sum.coveredSeconds + bucket.coveredSeconds,
+            };
+          },
+          {
+            ...buckets[0]!,
+            coveredSeconds: 0,
+            monitoringOffSeconds: 0,
+            pausedSeconds: 0,
+            pausedBy: undefined,
+          },
+        );
+      }
+
+      test("an event that sets no status marks its pause as maintenance's, and the day counts it paused", async () => {
+        const monitorId: ObjectID = await seedMonitor();
+        const eventId: ObjectID = await seedEvent({ monitorIds: [monitorId] });
+
+        await moveEventInto(eventId, ongoingStateId);
+
+        const rows: Array<PausedRow> = await pausedRows(monitorId);
+        expect(rows[1]).toMatchObject({
+          isMonitoringOff: true,
+          pausedBy: MonitorPausedBy.ScheduledMaintenance,
+        });
+        // The first row, counted, says no pause.
+        expect(rows[0]!.pausedBy).toBeNull();
+
+        await backdate(monitorId, [2 * HOUR_MS, 3 * HOUR_MS]);
+
+        const bucket: UptimeDayBucket = await dayBucket(monitorId, 3);
+        expectAbout(bucket.monitoringOffSeconds!, 2 * HOUR_SECONDS);
+        expectAbout(bucket.pausedSeconds!, 2 * HOUR_SECONDS);
+        expect(bucket.pausedBy).toBe(MonitorPausedBy.ScheduledMaintenance);
+
+        // The event ends: counted again, and its mark says no pause.
+        await moveEventInto(eventId, endedStateId);
+        const after: Array<PausedRow> = await pausedRows(monitorId);
+        expect(after[after.length - 1]).toMatchObject({
+          isMonitoringOff: false,
+          pausedBy: null,
+        });
+      });
+
+      test("an incident with no status marks its pause as an incident's", async () => {
+        const monitorId: ObjectID = await seedMonitor();
+
+        await declareIncident({ monitorIds: [monitorId], incidentNumber: 51 });
+
+        const rows: Array<PausedRow> = await pausedRows(monitorId);
+        expect(rows[rows.length - 1]).toMatchObject({
+          isMonitoringOff: true,
+          pausedBy: MonitorPausedBy.Incident,
+        });
+      });
+
+      test("what pauses it changes while the time stays left out: marked again each time, naming what pauses it now", async () => {
+        const monitorId: ObjectID = await seedMonitor();
+
+        const incidentId: ObjectID = await declareIncident({
+          monitorIds: [monitorId],
+          incidentNumber: 52,
+        });
+        const eventId: ObjectID = await seedEvent({ monitorIds: [monitorId] });
+        await moveEventInto(eventId, ongoingStateId);
+
+        let rows: Array<PausedRow> = await pausedRows(monitorId);
+        expect(
+          rows.map((row: PausedRow): string | null => {
+            return row.pausedBy;
+          }),
+        ).toEqual([
+          null,
+          MonitorPausedBy.Incident,
+          MonitorPausedBy.IncidentAndScheduledMaintenance,
+        ]);
+        // The new mark's note names both.
+        expect(rows[2]!.rootCause).toContain(", declared by hand, and by scheduled maintenance (");
+        // Same status throughout: it only says the time is paused by more.
+        expect(rows[2]!.monitorStatusId).toBe(rows[1]!.monitorStatusId);
+
+        await resolveIncident(incidentId, [monitorId]);
+
+        rows = await pausedRows(monitorId);
+        expect(rows[rows.length - 1]).toMatchObject({
+          isMonitoringOff: true,
+          pausedBy: MonitorPausedBy.ScheduledMaintenance,
+        });
+
+        // Working it out again writes nothing more.
+        const count: number = rows.length;
+        await MonitorIncidentPause.syncMonitors({
+          projectId: projectId,
+          monitorIds: [monitorId],
+          putInHeldStatus: true,
+        });
+        expect(await pausedRows(monitorId)).toHaveLength(count);
+      });
+
+      async function turnMonitoringOff(monitorId: ObjectID): Promise<void> {
+        await database.query(
+          `UPDATE "Monitor" SET "disableActiveMonitoring" = true WHERE "_id" = $1`,
+          [monitorId.toString()],
+        );
+      }
+
+      test("monitoring turned off by its switch says no pause: it stays monitoring off", async () => {
+        const monitorId: ObjectID = await seedMonitor();
+
+        await turnMonitoringOff(monitorId);
+        await MonitorStatusTimelineService.recordMonitoringSwitch({
+          monitorId: monitorId,
+          isMonitoringOff: true,
+        });
+
+        const rows: Array<PausedRow> = await pausedRows(monitorId);
+        expect(rows[rows.length - 1]).toMatchObject({
+          isMonitoringOff: true,
+          pausedBy: null,
+        });
+
+        await backdate(monitorId, [2 * HOUR_MS, 3 * HOUR_MS]);
+        const bucket: UptimeDayBucket = await dayBucket(monitorId, 3);
+        expectAbout(bucket.monitoringOffSeconds!, 2 * HOUR_SECONDS);
+        expect(bucket.pausedSeconds || 0).toBe(0);
+      });
+
+      test("a monitor group's day counts the time its monitors were paused while none was checked, and what paused them", async () => {
+        const first: ObjectID = await seedMonitor();
+        const second: ObjectID = await seedMonitor();
+        const eventId: ObjectID = await seedEvent({
+          monitorIds: [first, second],
+        });
+
+        await moveEventInto(eventId, ongoingStateId);
+        await backdate(first, [2 * HOUR_MS, 3 * HOUR_MS]);
+        await backdate(second, [2 * HOUR_MS, 3 * HOUR_MS]);
+
+        const aggregate: MonitorGroupUptimeDailyAggregate =
+          await MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate(
+            {
+              monitorGroups: [
+                {
+                  monitorGroupId: ObjectID.generate(),
+                  monitorIds: [first, second],
+                },
+              ],
+              rankedMonitorStatusIds: [
+                operationalStatusId,
+                underMaintenanceStatusId,
+                offlineStatusId,
+              ],
+              startDate: new Date(Date.now() - 3 * HOUR_MS),
+              endDate: new Date(),
+            },
+          );
+
+        const buckets: Array<UptimeDayBucket> =
+          aggregate.monitorGroups[0]!.buckets;
+        const paused: number = buckets.reduce(
+          (sum: number, bucket: UptimeDayBucket): number => {
+            return sum + (bucket.pausedSeconds || 0);
+          },
+          0,
+        );
+        const off: number = buckets.reduce(
+          (sum: number, bucket: UptimeDayBucket): number => {
+            return sum + (bucket.monitoringOffSeconds || 0);
+          },
+          0,
+        );
+
+        expectAbout(off, 2 * HOUR_SECONDS);
+        expectAbout(paused, 2 * HOUR_SECONDS);
+        expect(
+          buckets.find((bucket: UptimeDayBucket): boolean => {
+            return Boolean(bucket.pausedBy);
+          })?.pausedBy,
+        ).toBe(MonitorPausedBy.ScheduledMaintenance);
+      });
+
+      test("a group with one monitor paused and one turned off: the paused part apart from the time off", async () => {
+        const paused: ObjectID = await seedMonitor();
+        const turnedOff: ObjectID = await seedMonitor();
+        const eventId: ObjectID = await seedEvent({ monitorIds: [paused] });
+
+        await moveEventInto(eventId, ongoingStateId);
+        await turnMonitoringOff(turnedOff);
+        await MonitorStatusTimelineService.recordMonitoringSwitch({
+          monitorId: turnedOff,
+          isMonitoringOff: true,
+        });
+        // Paused for the last two hours, turned off for the last hour only.
+        await backdate(paused, [2 * HOUR_MS, 3 * HOUR_MS]);
+        await backdate(turnedOff, [HOUR_MS, 3 * HOUR_MS]);
+
+        const aggregate: MonitorGroupUptimeDailyAggregate =
+          await MonitorStatusTimelineService.getMonitorGroupDailyUptimeAggregate(
+            {
+              monitorGroups: [
+                {
+                  monitorGroupId: ObjectID.generate(),
+                  monitorIds: [paused, turnedOff],
+                },
+              ],
+              rankedMonitorStatusIds: [
+                operationalStatusId,
+                underMaintenanceStatusId,
+                offlineStatusId,
+              ],
+              startDate: new Date(Date.now() - 3 * HOUR_MS),
+              endDate: new Date(),
+            },
+          );
+
+        const buckets: Array<UptimeDayBucket> =
+          aggregate.monitorGroups[0]!.buckets;
+        const sum: (pick: (bucket: UptimeDayBucket) => number) => number = (
+          pick: (bucket: UptimeDayBucket) => number,
+        ): number => {
+          return buckets.reduce((total: number, bucket: UptimeDayBucket) => {
+            return total + pick(bucket);
+          }, 0);
+        };
+
+        // Nothing checked either for the last hour: off, and paused (one was).
+        expectAbout(
+          sum((bucket: UptimeDayBucket): number => {
+            return bucket.monitoringOffSeconds || 0;
+          }),
+          HOUR_SECONDS,
+        );
+        expectAbout(
+          sum((bucket: UptimeDayBucket): number => {
+            return bucket.pausedSeconds || 0;
+          }),
+          HOUR_SECONDS,
+        );
+      });
+
+      test("the data migration fills in what paused the marks written before the column, from their notes, and nothing else", async () => {
+        const monitorId: ObjectID = await seedMonitor();
+        const otherMonitorId: ObjectID = await seedMonitor();
+
+        const incidentLink: string = `[INC-61](https://oneuptime.example/incidents/${ObjectID.generate().toString()})`;
+        const eventLink: string = `[SM-7](https://oneuptime.example/scheduled-maintenance/${ObjectID.generate().toString()})`;
+
+        const notes: Array<[string, boolean, string | null]> = [
+          [
+            `Monitoring is paused by ${incidentLink}, declared by hand without a status for this monitor. Nothing checks the monitor until the incident is resolved, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.`,
+            true,
+            MonitorPausedBy.Incident,
+          ],
+          [
+            `Monitoring is paused by scheduled maintenance (${eventLink}), with no status set for this monitor. Nothing checks the monitor until the maintenance ends, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.`,
+            true,
+            MonitorPausedBy.ScheduledMaintenance,
+          ],
+          [
+            `Monitoring is paused by ${incidentLink}, declared by hand, and by scheduled maintenance (${eventLink}), with no status set for this monitor. Nothing checks the monitor until both are over, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.`,
+            true,
+            MonitorPausedBy.IncidentAndScheduledMaintenance,
+          ],
+          // Monitoring turned off: no pause.
+          [
+            "Monitoring is off. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+            true,
+            null,
+          ],
+          // A counted row whose note names a pause: it counts, so no pause.
+          [
+            `Monitoring is paused by ${incidentLink}, declared by hand without a status for this monitor. Nothing checks the monitor until the incident is resolved, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.`,
+            false,
+            null,
+          ],
+        ];
+
+        let startsAt: number = Date.now() - 10 * HOUR_MS;
+
+        for (const [note, isMonitoringOff] of notes) {
+          startsAt += HOUR_MS;
+          await database.query(
+            `INSERT INTO "MonitorStatusTimeline"
+             ("_id", "projectId", "monitorId", "monitorStatusId", "startsAt", "isMonitoringOff", "isOwnerNotified", "rootCause", "version")
+             VALUES ($1, $2, $3, $4, $5, $6, true, $7, 1)`,
+            [
+              ObjectID.generate().toString(),
+              projectId.toString(),
+              monitorId.toString(),
+              offlineStatusId.toString(),
+              new Date(startsAt),
+              isMonitoringOff,
+              note,
+            ],
+          );
+        }
+
+        // Another monitor's mark, already filled in, is not written over.
+        await database.query(
+          `INSERT INTO "MonitorStatusTimeline"
+           ("_id", "projectId", "monitorId", "monitorStatusId", "startsAt", "isMonitoringOff", "isOwnerNotified", "rootCause", "pausedBy", "version")
+           VALUES ($1, $2, $3, $4, $5, true, true, $6, $7, 1)`,
+          [
+            ObjectID.generate().toString(),
+            projectId.toString(),
+            otherMonitorId.toString(),
+            offlineStatusId.toString(),
+            new Date(),
+            notes[0]![0],
+            MonitorPausedBy.ScheduledMaintenance,
+          ],
+        );
+
+        const run: () => Promise<void> = async (): Promise<void> => {
+          await database.query(RECORD_WHAT_PAUSED_SQL, [
+            [monitorId.toString(), otherMonitorId.toString()],
+          ]);
+        };
+
+        await run();
+
+        const rows: Array<PausedRow> = (await pausedRows(monitorId)).filter(
+          (row: PausedRow): boolean => {
+            return row.rootCause !== null;
+          },
+        );
+        expect(
+          rows.map((row: PausedRow): string | null => {
+            return row.pausedBy;
+          }),
+        ).toEqual(
+          notes.map(
+            (note: [string, boolean, string | null]): string | null => {
+              return note[2];
+            },
+          ),
+        );
+        expect((await pausedRows(otherMonitorId)).pop()!.pausedBy).toBe(
+          MonitorPausedBy.ScheduledMaintenance,
+        );
+
+        // Run again, it changes nothing.
+        await run();
+        expect(
+          (await pausedRows(monitorId))
+            .filter((row: PausedRow): boolean => {
+              return row.rootCause !== null;
+            })
+            .map((row: PausedRow): string | null => {
+              return row.pausedBy;
+            }),
+        ).toEqual(
+          notes.map(
+            (note: [string, boolean, string | null]): string | null => {
+              return note[2];
+            },
+          ),
+        );
       });
     });
   },

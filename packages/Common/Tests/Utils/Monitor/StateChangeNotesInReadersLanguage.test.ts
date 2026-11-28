@@ -904,6 +904,11 @@ const MONITOR_STATUS_TEMPLATES: ReadonlyArray<string> = [
   "Monitoring resumed. Uptime, status pages and SLOs count the monitor's time again from here.",
   "Scheduled maintenance is over, and {{incident}} is still open, so the monitor is back in the status the incident puts it in.",
   "Scheduled maintenance ({{event}}) is still in progress, so the monitor is back in the status it puts it in.",
+  // The most severe status of what still pauses the monitor (#11432).
+  "Scheduled maintenance ({{event}}) is still in progress, so the monitor is in the status it puts it in.",
+  "Of what still pauses this monitor, scheduled maintenance ({{event}}) puts it in the most severe status, so the monitor is in that status.",
+  "{{incident}} is still open, so the monitor is in the status it puts it in.",
+  "Of what still pauses this monitor, {{incident}} puts it in the most severe status, so the monitor is in that status.",
   "Something this project uses has an incident.",
   "What this project uses is back.",
 ];
