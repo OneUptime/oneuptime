@@ -309,7 +309,13 @@ Vissa fält innehåller ett JSON-värde med en egen form, till exempel `rotation
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-En nyckel som byter namn läses fortfarande under sitt gamla namn: ett lagers begränsningstyp skrivs under `restrictionType`, eller under den äldre stavningen `restictionType`, och ett svar har båda.
+En nyckel som byter namn läses fortfarande under sitt gamla namn: ett lagers begränsningstyp skrivs under `restrictionType`, eller under den äldre stavningen `restictionType`, och ett svar har båda. Den äldre stavningen är inaktuell i svar: de har den fram till den första huvudversionen som släpps den 1 juni 2027 eller senare. Skrivningar läser den alltid.
+
+Ett värde tas också på orden. Ett lagers veckofönster har jour de dagar det nämner, så dess `startTime` och `endTime` måste infalla på dess `startDay` och `endDay` i schemats tidszon. Ett fönster som är daterat på andra dagar avvisas med en `400` som nämner fönstret och ger en tid på den nämnda dagen att skicka i stället:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Var ett projekt köptes
 

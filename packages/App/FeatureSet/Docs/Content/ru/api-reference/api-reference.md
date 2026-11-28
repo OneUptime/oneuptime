@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Переименованный ключ по-прежнему читается и под старым именем: тип ограничения слоя записывается в `restrictionType` или в прежнем написании `restictionType`, а ответ содержит оба.
+Переименованный ключ по-прежнему читается и под старым именем: тип ограничения слоя записывается в `restrictionType` или в прежнем написании `restictionType`, а ответ содержит оба. Старое написание в ответах устарело: они содержат его до первой основной версии, выпущенной 1 июня 2027 года или позже. При записи оно читается всегда.
+
+Значение также проверяется на соответствие тому, что оно говорит. Еженедельный интервал слоя задаёт дежурство в те дни, которые называет, поэтому его `startTime` и `endTime` должны приходиться на его `startDay` и `endDay` в часовом поясе расписания. Интервал, датированный другими днями, отклоняется с ответом `400`, где назван интервал и указано время в названный день, которое можно отправить вместо него:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Где был куплен проект
 
