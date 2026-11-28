@@ -122,6 +122,45 @@ export interface ModelPartLock {
 export interface PartGateModel extends LabelledGateModel, RecordPartModel {}
 
 /*
+ * The ids of the labels a record was read with, or null when it was read
+ * without them: a select that did not name them, or a reader the server
+ * leaves them out for - nothing can then be said of its labels, and
+ * nothing is locked by them. Read with nothing but the record, so a page's
+ * pure helpers can weigh its labels (Utils/RecordLabelLock re-exports it).
+ */
+export function getRecordLabelIds(
+  record: unknown,
+  labelsColumn: string,
+): Array<string> | null {
+  if (!record || typeof record !== "object") {
+    return null;
+  }
+
+  const labels: unknown = (record as Record<string, unknown>)[labelsColumn];
+
+  if (!Array.isArray(labels)) {
+    return null;
+  }
+
+  const ids: Array<string> = [];
+
+  for (const label of labels) {
+    const id: string = LabelAccess.readId(
+      label && typeof label === "object"
+        ? (label as { _id?: unknown; id?: unknown })._id ||
+            (label as { _id?: unknown; id?: unknown }).id
+        : label,
+    );
+
+    if (id && !ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+
+  return ids;
+}
+
+/*
  * WHAT A RECORD'S OWN LABELS LET THE READER DO TO IT, for one model
  * (RecordLocks.getLabelLock, #11259): the reach of the reader's read,
  * update and delete by labels, as the server weighs them
