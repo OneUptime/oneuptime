@@ -1252,7 +1252,8 @@ export default class PublicDashboardResourceListPolicy {
   private static buildHostPolicy(
     argumentsObject: Record<string, unknown>,
   ): PolicyDraft {
-    const query: Record<string, unknown> = {};
+    // Archived hosts are not listed, as on Infrastructure → Hosts (#11257).
+    const query: Record<string, unknown> = { isArchived: false };
     PublicDashboardResourceListPolicy.addCollectorStatusFilter(
       query,
       argumentsObject,
@@ -1354,7 +1355,8 @@ export default class PublicDashboardResourceListPolicy {
     argumentsObject: Record<string, unknown>;
     resourceType: string;
   }): PolicyDraft {
-    const query: Record<string, unknown> = {};
+    // Archived hosts are not listed, as on their own lists (#11257).
+    const query: Record<string, unknown> = { isArchived: false };
     PublicDashboardResourceListPolicy.addCollectorStatusFilter(
       query,
       data.argumentsObject,

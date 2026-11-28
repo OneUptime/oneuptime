@@ -355,7 +355,6 @@ const HostOverview: FunctionComponent<
           lastSeenAt: true,
           dockerHostId: true,
           kubernetesClusterId: true,
-          containerRuntime: true,
           cpuCores: true,
           totalMemoryBytes: true,
           processCount: true,
@@ -1408,12 +1407,6 @@ const HostOverview: FunctionComponent<
       specChips.push({
         icon: IconProp.SquareStack,
         label: formatMemoryBytes(Number(host.totalMemoryBytes)),
-      });
-    }
-    if (host.containerRuntime) {
-      specChips.push({
-        icon: IconProp.ServerStack,
-        label: String(host.containerRuntime),
       });
     }
     /*
@@ -2484,13 +2477,6 @@ const HostOverview: FunctionComponent<
                   <bdi>{formatMemoryBytes(Number(item.totalMemoryBytes))}</bdi>
                 );
               },
-            },
-            {
-              field: {
-                containerRuntime: true,
-              },
-              title: "Container Runtime",
-              fieldType: FieldType.Text,
             },
             /*
              * When it last started, from the uptime its collector reports:

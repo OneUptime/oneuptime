@@ -104,8 +104,13 @@ const DashboardPodmanHostListComponentElement: FunctionComponent<
     }
 
     try {
+      /*
+       * Archived Podman hosts are left out, as Infrastructure → Podman leaves them out: archiving
+       * one there takes it off this list too (issue #11257).
+       */
       const baseQuery: Record<string, unknown> = {
         projectId: projectId,
+        isArchived: false,
       };
 
       if (statusFilter === "connected") {
