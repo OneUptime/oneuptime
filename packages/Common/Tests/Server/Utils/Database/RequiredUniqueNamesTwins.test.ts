@@ -14,6 +14,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import ObjectID from "../../../../Types/ObjectID";
 import { getJestSpyOn } from "../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * THE RECORDS OF A KIND REQUIRE UNIQUE NAMES HOLDS THAT SHARE A NAME, FOR
@@ -366,7 +367,7 @@ describe("when there is nothing to mark", () => {
   });
 
   test("a kind the setting does not hold has none, and nothing is read", async () => {
-    const query: jest.Mock = jest.fn();
+    const query: Mock<() => Promise<Array<unknown>>> = jest.fn();
     getJestSpyOn(IncidentService, "getRepository").mockReturnValue({
       metadata: { tableName: "Incident" },
       query: query,

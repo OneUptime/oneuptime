@@ -138,6 +138,7 @@ import PermissionGate from "../../../UI/Utils/PermissionGate";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import { clearLabelNames } from "../../../UI/Utils/RecordLabelLock";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -386,6 +387,14 @@ beforeEach(() => {
   getListCalls.length = 0;
   deletedIds = [];
   updatedIds = [];
+  /*
+   * Monitors are a kind Require Unique Names can hold, so the list asks
+   * which of its records share a name, to mark them (#11021): none do here.
+   */
+  jest.spyOn(UniqueNamesApi, "readSharedNames").mockResolvedValue({
+    groups: [],
+    createdAt: {},
+  });
 });
 
 afterEach(() => {
