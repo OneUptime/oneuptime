@@ -145,7 +145,11 @@ tests:
       ebpf.contextPropagation: true
       ebpf.contextPropagationMode: ip
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/contextPropagationMode': value must be one of 'headers', 'tcp', 'all'
 
   # Current OBI refuses to start on a metrics feature it does not know, and
   # `stats` there also turns on stats_tcp_io, a probe on every TCP send and

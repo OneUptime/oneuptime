@@ -53,6 +53,7 @@ import {
   ProjectBalanceType,
 } from "../../../Utils/Project/ProjectBalance";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
 
 jest.mock("react-i18next", () => {
   return {
@@ -243,6 +244,8 @@ beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   PermissionGate.clearPermissionPropsCache();
+  // GET /global-config/vars, which says whether projects choose a call voice (#11065).
+  standInForGlobalConfig();
   // Whether the project has a payment method: not counted yet (#11053).
   ProjectPaymentMethods.reset();
 

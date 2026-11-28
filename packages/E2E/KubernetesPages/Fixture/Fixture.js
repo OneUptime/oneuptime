@@ -112,6 +112,7 @@ import {
   getOpenStackPlacement,
   getOpenStackPlacementScenario,
 } from "../../SuiteHelpers/OpenStackPlacement";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 
 /*
  * ---------------------------------------------------------------------------
@@ -1666,6 +1667,20 @@ async function handleApi(method, options) {
       openCases: null,
       risk: null,
     });
+  }
+
+  /*
+   * Which recommended monitors the cluster and its parts have already, from
+   * the project's monitors: the alerts cards and Recommendations ask the server.
+   */
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

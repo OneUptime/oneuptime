@@ -41,6 +41,9 @@ import { formatSloPolicyTierThreshold } from "../../../Utils/Slo/SloErrorBudgetP
 import CloudBudgetEvaluator from "../../../Server/Utils/CloudConnection/CloudBudgetEvaluator";
 import PerSeriesResolutionRootCause from "../../../Server/Utils/Monitor/PerSeriesResolutionRootCause";
 import MonitorTurnedOff from "../../../Server/Utils/Monitor/MonitorTurnedOff";
+import MonitorCriteriaReplaced, {
+  CriteriaReplacedBecause,
+} from "../../../Server/Utils/Monitor/MonitorCriteriaReplaced";
 import DeviceManagementConnectionAlerts from "../../../Server/Utils/DeviceManagement/DeviceManagementConnectionAlerts";
 import { LOG_GROUP_RESOLVED_ROOT_CAUSE } from "../../../Server/Utils/Monitor/LogGroupCriteriaFanOut";
 import { getRestoredStatusEventRootCause } from "../../../Server/Utils/Monitor/MonitorStatusTimelineReconciler";
@@ -347,6 +350,33 @@ const WRITTEN: ReadonlyArray<Written> = [
             turnedOffBy: FeedMarkdown.asMarkdown(USER_LINK),
           }),
           keeps: ["Checkout API", "Jane Doe"],
+        },
+      ];
+    },
+  ),
+  // A template's criteria taken off a monitor (#11260, #11266).
+  ...(["incident", "alert"] as const).flatMap(
+    (kind: "incident" | "alert"): Array<Written> => {
+      return [
+        {
+          writer: `MonitorCriteriaReplaced (${kind}, linked to a template)`,
+          stored: MonitorCriteriaReplaced.getRootCause({
+            kind: kind,
+            because: CriteriaReplacedBecause.LinkedToTemplate,
+            monitorName: "WB1500KSK02",
+            templateName: "WB Ping Monitor Template v2",
+          }),
+          keeps: ["WB1500KSK02", "WB Ping Monitor Template v2"],
+        },
+        {
+          writer: `MonitorCriteriaReplaced (${kind}, cleared on unlink)`,
+          stored: MonitorCriteriaReplaced.getRootCause({
+            kind: kind,
+            because: CriteriaReplacedBecause.ClearedOnUnlink,
+            monitorName: "WB1500KSK02",
+            templateName: "WB Ping Monitor Template - No Alert",
+          }),
+          keeps: ["WB1500KSK02", "WB Ping Monitor Template - No Alert"],
         },
       ];
     },

@@ -8,8 +8,10 @@ import MetricPipelineRuleFilterCondition, {
 } from "../../../Types/Metrics/MetricPipelineRuleFilterCondition";
 import MetricPipelineRuleType from "../../../Types/Metrics/MetricPipelineRuleType";
 import {
+  CUSTOM_PATTERN_READINGS,
   mayReadOtherwise,
   ScrubRegExp,
+  scrubRegExpUnderKey,
 } from "../../../Types/Telemetry/ScrubRule";
 import {
   ReadingNeeds,
@@ -131,27 +133,26 @@ const HIDING_RULE_TYPES: ReadonlySet<MetricPipelineRuleType> = new Set([
   MetricPipelineRuleType.RemoveAttribute,
 ]);
 
-// The readings a hiding rule's pattern also tries a value in.
-const PATTERN_READINGS: ReadingNeeds = {
-  readsPercentEncoded: true,
-  readsDigitsOfEveryScript: true,
-  readsPlusAsSpace: true,
-  readsFullwidthForms: true,
-};
+/*
+ * The readings a hiding rule's pattern also tries a value in: a Custom
+ * Regex log or trace rule's (ScrubRule's CUSTOM_PATTERN_READINGS).
+ */
+const PATTERN_READINGS: ReadingNeeds = CUSTOM_PATTERN_READINGS;
 
 /*
  * Whether a pattern matches a value in a reading beside the value as
  * written - its percent-escapes read, a "+" read as the space a URL's
  * query string writes it for, every script's digits read by their values,
  * a number's fullwidth signs and separators read as ASCII
- * (Utils/DataSecurity/TextReadings, #11031, #11033, #11199, #11115) - as a
- * Custom Regex log or trace rule reads one. Asked only of a rule that
- * hides, for Matches Regex: so the metric rule "Scrub it" makes from a
- * data type's patterns (a token, an IBAN) hides a value Data Security
- * finds encoded, with "+"s between its groups, in another script's digits
- * or typed in fullwidth, and no rule ever hides less than it did - Does
- * Not Match Regex, and a Filter, Sample or Rename rule, read the value as
- * written alone, as before.
+ * (Utils/DataSecurity/TextReadings, #11031, #11033, #11199, #11115), the
+ * other dashes between its digits as hyphens and the fullwidth ASCII block
+ * as ASCII (#11385) - as a Custom Regex log or trace rule reads one.
+ * Asked only of a rule that hides, for Matches Regex: so the metric rule
+ * "Scrub it" makes from a data type's patterns (a token, an IBAN) hides a
+ * value Data Security finds encoded, with "+"s between its groups, in
+ * another script's digits or typed in fullwidth, and no rule ever hides
+ * less than it did - Does Not Match Regex, and a Filter, Sample or Rename
+ * rule, read the value as written alone, as before.
  */
 function matchesInOtherReadings(re: LinearRegExp, value: string): boolean {
   if (!mayReadOtherwise(value)) {
@@ -451,17 +452,23 @@ export default class MetricPipelineEngine {
         filter.conditionType,
         filter.value,
         rule,
+        key,
       );
     }
 
     return false;
   }
 
+  /*
+   * `key`: the attribute the value is of, when it is one - a Matches
+   * Pattern Type filter reads the value as that key says (#11383).
+   */
   private static compareStringValue(
     actual: string,
     conditionType: MetricPipelineRuleFilterConditionType,
     expected: string | undefined,
     rule: MetricPipelineRule,
+    key?: string | undefined,
   ): boolean {
     const expectedValue: string = expected ?? "";
 
@@ -527,7 +534,11 @@ export default class MetricPipelineEngine {
           : !matched;
       }
       case MetricPipelineRuleFilterConditionType.MatchesPatternType:
-        return MetricPipelineEngine.holdsPatternType(actual, expectedValue);
+        return MetricPipelineEngine.holdsPatternType(
+          actual,
+          expectedValue,
+          key,
+        );
       default:
         return false;
     }
@@ -541,13 +552,16 @@ export default class MetricPipelineEngine {
    * Social Security number, found by its own detectors in every reading
    * they read (#10934, #10935, #10936, #10960, #11112) - a national number
    * or nine digits beside the word that names them in the value (#11114),
-   * a number typed in fullwidth (#11115). A value that names no pattern
-   * type matches nothing, as an invalid regex does. OneUptime's own
-   * patterns, each bounded: no work allowance is asked.
+   * or under an attribute whose key names them, as a log or trace rule
+   * reads one (`key`, ScrubRegExp.underKey, #11383): 02012345678 under
+   * `user.phone` - and a number typed in fullwidth (#11115). A value that
+   * names no pattern type matches nothing, as an invalid regex does.
+   * OneUptime's own patterns, each bounded: no work allowance is asked.
    */
   private static holdsPatternType(
     actual: string,
     patternType: string,
+    key?: string | undefined,
   ): boolean {
     if (!actual || !isMetricFilterPatternType(patternType)) {
       return false;
@@ -561,7 +575,9 @@ export default class MetricPipelineEngine {
       compiledPatternTypes.set(patternType, pattern);
     }
 
-    return pattern !== null && pattern.test(actual);
+    return (
+      pattern !== null && scrubRegExpUnderKey(pattern, key, actual).test(actual)
+    );
   }
 
   public static getAttributes(row: MutableMetricRow): JSONObject {

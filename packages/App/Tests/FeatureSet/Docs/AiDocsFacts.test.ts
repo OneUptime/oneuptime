@@ -1033,7 +1033,7 @@ describe("Code", () => {
       "ToolResultSerializer.redactAndOmitEmbeddedData(text).text",
     );
     expect(flat(ask)).toContain(
-      "Tokens, keys, passwords and email addresses in what OneUptime reads are redacted before AI sees them",
+      "Tokens, keys, passwords, email addresses, phone numbers and Social Security numbers in what OneUptime reads are redacted before AI sees them",
     );
   });
 

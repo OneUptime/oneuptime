@@ -91,4 +91,7 @@ tests:
       probes.one.monitorRetryLimit: -1
     asserts:
       - failedTemplate:
-          errorPattern: "probes.one.monitorRetryLimit: Must be greater than or equal to 0"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/probes/one/monitorRetryLimit': minimum: got -1, want 0

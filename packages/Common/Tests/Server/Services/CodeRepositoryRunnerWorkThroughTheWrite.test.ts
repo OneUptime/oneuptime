@@ -353,7 +353,7 @@ describe("a create that picks a repository's Runner", () => {
   });
 
   test("a member picking one of the project's own Runners is refused before the Runner is read as OneUptime", async () => {
-    const find: jest.Mock = getJestSpyOn(RunnerService, "findOneById");
+    const find: jest.SpyInstance = getJestSpyOn(RunnerService, "findOneById");
 
     const error: unknown = await refusalOf(
       create(
@@ -379,7 +379,7 @@ describe("a create that picks a repository's Runner", () => {
         'This Code Repository references records that are not in this project: Runner "1f5f0000-0000-4000-8000-0000000000ff".',
       );
 
-    const check: jest.Mock = getJestSpyOn(
+    const check: jest.SpyInstance = getJestSpyOn(
       ProjectReferenceCheck,
       "validateCreate",
     ).mockRejectedValue(refusal as never);

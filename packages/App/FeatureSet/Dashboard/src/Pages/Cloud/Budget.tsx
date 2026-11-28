@@ -83,6 +83,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -451,7 +452,7 @@ const CloudBudgetPage: FunctionComponent<
               translator,
               labels: CLOUD_BUDGET_PERIOD_LABELS,
             })}
-            {" · "}
+            <InlineSeparator />
             {money(Number(budget.monthlyAmount) || 0)}
           </div>
         </div>

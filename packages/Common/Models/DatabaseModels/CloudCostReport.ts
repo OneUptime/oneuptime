@@ -238,6 +238,7 @@ export default class CloudCostReport extends BaseModel {
       "What the report covers: AllAccounts, Account (its cloudAccountId), CostGroup (its cloudCostGroupId) or CostView (its cloudCostViewId, with all its groups).",
     defaultValue: CloudCostReportScope.AllAccounts,
     isDefaultValueColumn: true,
+    allowedValues: Object.values(CloudCostReportScope),
     example: CloudCostReportScope.CostView,
   })
   @Column({
@@ -402,6 +403,7 @@ export default class CloudCostReport extends BaseModel {
       "The days each report covers: LastWeek (Monday to Sunday), LastMonth, or MonthToDate.",
     defaultValue: CloudCostReportPeriod.LastWeek,
     isDefaultValueColumn: true,
+    allowedValues: Object.values(CloudCostReportPeriod),
     example: CloudCostReportPeriod.LastMonth,
   })
   @Column({
@@ -423,6 +425,7 @@ export default class CloudCostReport extends BaseModel {
     title: "Cost Basis",
     description:
       "The cost basis the report's figures are on: billed, amortized or net. Empty: the project's cost basis.",
+    allowedValues: Object.values(CloudCostBasis),
     example: "amortized",
   })
   @Column({

@@ -6,6 +6,11 @@ import ProjectNotificationChannelsCard from "../../Components/NotificationMethod
 import DefaultPagingLadderCard from "../../Components/NotificationRule/PagingLadder/DefaultPagingLadderCard";
 import PhoneForOnCallCard from "../../Components/NotificationRule/PagingLadder/PhoneForOnCallCard";
 import VoicemailDetectionCard from "../../Components/NotificationMethods/VoicemailDetectionCard";
+import ProjectCallVoiceCard from "../../Components/NotificationMethods/ProjectCallVoiceCard";
+import { getProjectCallVoiceFoldedItem } from "../../Components/NotificationMethods/ProjectCallVoiceWords";
+import GlobalConfigUtil, {
+  GlobalConfigVars,
+} from "Common/UI/Utils/GlobalConfig";
 import { getVoicemailDetectionFoldedItem } from "../../Components/NotificationMethods/VoicemailDetectionWords";
 import { getProjectPagingDefaultsFoldedItems } from "../../Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import {
@@ -59,6 +64,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 
@@ -128,6 +134,31 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // Whether on-call calls tell voicemail apart, once read: on, as projects start.
   const [isDetectingVoicemail, setIsDetectingVoicemail] =
     useState<boolean>(true);
+  /*
+   * Whether the server lets projects choose their call voice (#11065):
+   * never on OneUptime Cloud. Not offered until the server says so.
+   */
+  const [canChooseCallVoice, setCanChooseCallVoice] = useState<boolean>(false);
+  // The voice the project chose, once read: none, the server's.
+  const [projectCallVoice, setProjectCallVoice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+
+    GlobalConfigUtil.fetchVars()
+      .then((vars: GlobalConfigVars) => {
+        if (isMounted) {
+          setCanChooseCallVoice(vars.canProjectsChooseCallVoice === true);
+        }
+      })
+      .catch(() => {
+        // Not offered: the server refuses a voice it does not offer anyway.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /*
    * Read on every render rather than remembered: the permission snapshot
@@ -332,6 +363,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             isPhoneAsked: isPhoneAsked,
           }),
           getVoicemailDetectionFoldedItem(isDetectingVoicemail),
+          ...(canChooseCallVoice
+            ? [getProjectCallVoiceFoldedItem(projectCallVoice)]
+            : []),
           ...getOwnSendersFoldedItems({
             smtpConfigCount: smtpConfigCount,
             twilioConfigCount: twilioConfigCount,
@@ -357,6 +391,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             setIsDetectingVoicemail(isOn);
           }}
         />
+        {canChooseCallVoice ? (
+          <ProjectCallVoiceCard
+            projectId={ProjectUtil.getCurrentProjectId()!}
+            onChange={(voice: string | null) => {
+              setProjectCallVoice(voice);
+            }}
+          />
+        ) : (
+          <></>
+        )}
         <CustomSMTPTable
           onCountChange={(count: number) => {
             setSmtpConfigCount(count);

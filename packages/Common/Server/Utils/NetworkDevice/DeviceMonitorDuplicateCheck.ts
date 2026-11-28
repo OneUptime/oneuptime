@@ -83,18 +83,24 @@ export const DEVICE_MONITOR_BUSY_REASON: string =
  */
 export const WATCHING_MONITORS_READ_CHUNK_SIZE: number = 500;
 
-// What a device's monitor is read with: enough to tell whether it is a duplicate.
+/*
+ * What a device's monitor is read with: enough to tell whether it is a
+ * duplicate - the template it is linked to, and the one it was created from
+ * when a person has moved it off that one since (issues #11260, #11266).
+ */
 export const DEVICE_MONITOR_FACTS_SELECT: {
   _id: true;
   name: true;
   monitorType: true;
   monitorTemplateId: true;
+  createdFromMonitorTemplateId: true;
   monitorSteps: true;
 } = {
   _id: true,
   name: true,
   monitorType: true,
   monitorTemplateId: true,
+  createdFromMonitorTemplateId: true,
   monitorSteps: true,
 };
 

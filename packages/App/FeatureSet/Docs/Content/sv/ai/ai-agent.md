@@ -53,7 +53,7 @@ Klicka på **Starta uppgift**, eller tryck på Enter. Uppgiftens sida öppnas, o
 | **Loggar** | De senaste 20 loggraderna som innehåller din sökning, från den senaste timmen, dagen eller veckan. |
 | **Prestandaprofil** | Vart en funktions tid går i dess tjänsts profiler: vem som anropar den, vad den anropar och dess hetaste rader. |
 
-En begäran bär högst 10 kontextdelar. Token, nycklar, lösenord och e-postadresser i det som OneUptime läser maskeras innan AI ser dem, som överallt där OneUptime AI läser dina data.
+En begäran bär högst 10 kontextdelar. Token, nycklar, lösenord, e-postadresser, telefonnummer och socialförsäkringsnummer i det som OneUptime läser maskeras innan AI ser dem, som överallt där OneUptime AI läser dina data.
 
 ## En uppgifts konversation
 
@@ -151,7 +151,7 @@ Vad agenten får läsa avgörs av OneUptime-servern, utifrån själva uppgiften:
 
 - **Endast läsning.** Frågorna körs på OneUptime-servern, aldrig på Runnern, som inte har några inloggningsuppgifter som kan läsa telemetri. Inget de gör kan ändra ditt projekt.
 - **Det här projektet, och bara de tjänster som hör till det här repositoriet.** Du kopplar inte ihop dem själv: det är de tjänster som OneUptime hittar det här repositoriet för, på samma sätt som den hittar repositoriet för en åtgärd - deras undantags stack traces går genom dess filer, de heter som det, eller så är det projektets enda repository. En annan tjänsts telemetri kan inte läsas.
-- **Inga privata incidenter**, och token, nycklar, lösenord och e-postadresser maskeras innan agenten ser ett resultat, som överallt där OneUptime AI läser dina data.
+- **Inga privata incidenter**, och token, nycklar, lösenord, e-postadresser, telefonnummer och socialförsäkringsnummer maskeras innan agenten ser ett resultat, som överallt där OneUptime AI läser dina data.
 - **Det som alla får läsa.** Det agenten hittar hamnar i en pull request, som personer utanför dina OneUptime-roller kan läsa. Där ett team, en anpassad roll eller en API-nyckel bara läser tjänster eller incidenter utifrån ägare eller etikett utelämnar agenten dem som en ägare eller en etikett skiljer av, om inte dess uppgift gäller dem.
 - **Begränsat.** Av körningens tidsgräns, och av **Verktygsanrop per körning** när projektet anger den: varje fråga är ett verktygsanrop.
 

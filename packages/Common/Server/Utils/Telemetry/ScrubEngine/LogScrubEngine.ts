@@ -2,6 +2,10 @@ import { JSONObject } from "../../../../Types/JSON";
 import LogScrubAction from "../../../../Types/Log/LogScrubAction";
 import LogScrubPatternType from "../../../../Types/Log/LogScrubPatternType";
 import { writeOwnValue } from "../../../../Utils/LookupTable";
+import {
+  ScrubRegExp,
+  scrubRegExpUnderKey,
+} from "../../../../Types/Telemetry/ScrubRule";
 import { getScrubRulesOfRecord } from "../../../../Types/Telemetry/ScrubRuleScope";
 import { correlationIdAttributeKeys } from "../../../../Utils/Telemetry/CorrelationIdAttributes";
 import ScrubJsonKeysUtil, {
@@ -12,6 +16,7 @@ import ScrubJsonTextUtil, {
 } from "../../../../Utils/Telemetry/ScrubJsonText";
 import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
+  ScrubNumberOf,
 } from "../../../../Utils/Telemetry/ScrubNestedValues";
 import PatternWorkScope from "../../PatternWorkScope";
 import ScrubAction, {
@@ -45,6 +50,12 @@ import { countScrubbedValues, ScrubValueTally } from "./ScrubValueTally";
  *    names, by key or dotted prefix, and nothing under any other key;
  *  - a pattern rule that names attributes looks for its matches in their
  *    values alone - the body still as its fields say.
+ *
+ * And a pattern rule reads an attribute's value as the key it is held
+ * under says (ScrubRegExp.underKey, #11383): a Phone Number or SSN rule
+ * hides 02012345678 under `user.phone` and 536221234 under `customer.ssn`,
+ * as Data Security finds them there, and reads a list or a map as the JSON
+ * text the table stores it as. A body has no key, and is read as it is.
  *
  * Every value a rule changes is counted, by rule, with the record's
  * service and version (ScrubValueTally), unless the caller counts nothing
@@ -120,6 +131,8 @@ export default class LogScrubEngine {
    * the record's, so each such text is parsed once however many rules read
    * it. `recorder`: told each address an IP Address Hash rule hides, when
    * Security Events reads the batch's logs (ScrubAction.applyAndRecord).
+   * `regex`: the rule's pattern as it reads the value the text is of - the
+   * key it is held under, for an attribute (ScrubRegExp.underKey, #11383).
    */
   private static scrubString(
     value: string,
@@ -127,6 +140,7 @@ export default class LogScrubEngine {
     jsonTexts: ScrubJsonTexts,
     tally: ScrubValueTally,
     recorder?: ScrubHashedAddressRecorder | null | undefined,
+    regex: ScrubRegExp = compiled.regex,
   ): string {
     const rule: ScrubEngineRule = compiled.rule;
     const patternType: string = rule.patternType || "";
@@ -141,7 +155,7 @@ export default class LogScrubEngine {
     return ScrubJsonTextUtil.scrubText({
       text: value,
       findMatches: (text: string): Array<[number, number]> => {
-        return compiled.regex.matchRanges(text);
+        return regex.matchRanges(text);
       },
       replaceMatch: (match: string): string => {
         tally.add(compiled);
@@ -153,7 +167,7 @@ export default class LogScrubEngine {
           projectId: rule.projectId,
           recorder: recorder,
           // How a match the pattern found in a reading reads, for Mask and Hash.
-          pattern: compiled.regex,
+          pattern: regex,
         });
       },
       // A person may have written a custom pattern against stored escapes.
@@ -265,40 +279,100 @@ export default class LogScrubEngine {
         data.tally,
       );
 
-      // The whole value of each attribute it names - the record's own session id aside (#8924).
+      /*
+       * The whole value of each attribute it names - the record's own
+       * session id aside (#8924) - a number too: whatever it holds, as its
+       * coverage says (#11383).
+       */
       for (const key of Object.keys(attributes)) {
         if (data.correlationIdKeys.has(key) || !compiled.keys?.matches(key)) {
           continue;
         }
 
         const value: unknown = attributes[key];
+        const hidden: unknown = ScrubNestedValuesUtil.scrubValueUnderKey(
+          key,
+          value,
+          (): ((text: string) => string) => {
+            return hideText;
+          },
+          (): ((text: string) => string) => {
+            return hideText;
+          },
+        );
 
-        if (
-          typeof value === "string" ||
-          ScrubNestedValuesUtil.isNested(value)
-        ) {
-          attributes[key] = ScrubNestedValuesUtil.scrubTexts(
-            value,
-            hideText,
-          ) as JSONObject[string];
+        if (hidden !== value) {
+          attributes[key] = hidden as JSONObject[string];
         }
       }
 
       return;
     }
 
-    const scrubText: (text: string) => string = (text: string): string => {
-      return this.scrubString(
-        text,
-        compiled,
-        data.jsonTexts,
-        data.tally,
-        data.recorder,
+    /*
+     * Each value's texts, read as the key it is held under says: a Phone
+     * Number or SSN rule reads 02012345678 under `user.phone` as a phone
+     * number, and a list or a map as its JSON text too (#11383).
+     */
+    const scrubTextOf: (
+      key: string,
+      value: unknown,
+    ) => (text: string) => string = (
+      key: string,
+      value: unknown,
+    ): ((text: string) => string) => {
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        key,
+        value,
       );
+
+      return (text: string): string => {
+        return this.scrubString(
+          text,
+          compiled,
+          data.jsonTexts,
+          data.tally,
+          data.recorder,
+          regex,
+        );
+      };
+    };
+
+    /*
+     * A number, only under a key that changes what the rule finds:
+     * 536221234 sent as a number under `customer.ssn` (#11383).
+     */
+    const scrubNumberOf: ScrubNumberOf = (
+      key: string,
+      value: number,
+    ): ((text: string) => string) | null => {
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        key,
+        value,
+      );
+
+      return regex === compiled.regex
+        ? null
+        : (text: string): string => {
+            return this.scrubString(
+              text,
+              compiled,
+              data.jsonTexts,
+              data.tally,
+              data.recorder,
+              regex,
+            );
+          };
     };
 
     if (!compiled.keys) {
-      ScrubNestedValuesUtil.scrubAttributeTexts(attributes, scrubText);
+      ScrubNestedValuesUtil.scrubAttributeTextsUnderKeys(
+        attributes,
+        scrubTextOf,
+        scrubNumberOf,
+      );
       return;
     }
 
@@ -309,12 +383,15 @@ export default class LogScrubEngine {
       }
 
       const value: unknown = attributes[key];
+      const scrubbed: unknown = ScrubNestedValuesUtil.scrubValueUnderKey(
+        key,
+        value,
+        scrubTextOf,
+        scrubNumberOf,
+      );
 
-      if (typeof value === "string" || ScrubNestedValuesUtil.isNested(value)) {
-        attributes[key] = ScrubNestedValuesUtil.scrubTexts(
-          value,
-          scrubText,
-        ) as JSONObject[string];
+      if (scrubbed !== value) {
+        attributes[key] = scrubbed as JSONObject[string];
       }
     }
   }

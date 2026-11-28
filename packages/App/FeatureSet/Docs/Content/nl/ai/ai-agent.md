@@ -53,7 +53,7 @@ Klik op **Taak starten** of druk op Enter. De pagina van de taak opent, en het w
 | **Logboeken** | De nieuwste 20 logregels die je zoekterm bevatten, uit het afgelopen uur, de afgelopen dag of de afgelopen week. |
 | **Prestatieprofiel** | Waar de tijd van een functie heen gaat in de profielen van haar service: wie haar aanroept, wat ze aanroept en haar heetste regels. |
 
-Een verzoek bevat hooguit 10 stukken context. Tokens, sleutels, wachtwoorden en e-mailadressen in wat OneUptime leest, worden afgeschermd voordat AI ze ziet, zoals overal waar OneUptime AI je gegevens leest.
+Een verzoek bevat hooguit 10 stukken context. Tokens, sleutels, wachtwoorden, e-mailadressen, telefoonnummers en socialezekerheidsnummers in wat OneUptime leest, worden afgeschermd voordat AI ze ziet, zoals overal waar OneUptime AI je gegevens leest.
 
 ## Het gesprek van een taak
 
@@ -151,7 +151,7 @@ Wat de agent kan lezen, bepaalt de OneUptime-server op basis van de taak zelf:
 
 - **Alleen lezen.** De query's draaien op de OneUptime-server, nooit op de Runner, die geen inloggegevens heeft waarmee telemetrie te lezen is. Niets wat ze doen, kan je project veranderen.
 - **Dit project, en alleen de services die bij deze repository horen.** Je koppelt ze niet zelf: het zijn de services waarvoor OneUptime deze repository vindt, zoals het ook de repository van een herstel vindt - de stack traces van hun uitzonderingen lopen door de bestanden ervan, ze heten zoals de repository, of het is de enige repository van het project. De telemetrie van een andere service kan niet worden gelezen.
-- **Geen privé-incidenten**, en tokens, sleutels, wachtwoorden en e-mailadressen worden afgeschermd voordat de agent een resultaat ziet, zoals overal waar OneUptime AI je gegevens leest.
+- **Geen privé-incidenten**, en tokens, sleutels, wachtwoorden, e-mailadressen, telefoonnummers en socialezekerheidsnummers worden afgeschermd voordat de agent een resultaat ziet, zoals overal waar OneUptime AI je gegevens leest.
 - **Wat iedereen mag lezen.** Wat de agent vindt, belandt in een pull request, die mensen buiten je OneUptime-rollen kunnen lezen. Waar een team, aangepaste rol of API-sleutel services of incidenten alleen op eigenaar of label leest, laat de agent de services en incidenten weg die een eigenaar of een label afschermt, tenzij zijn taak erover gaat.
 - **Begrensd.** Door de tijdslimiet van de run, en door **Toolaanroepen per uitvoering** als het project die instelt: elke query is één tool-aanroep.
 

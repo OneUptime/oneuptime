@@ -1,7 +1,10 @@
 import { SecurityCaseMatchesJson } from "../../Types/SecurityCase/SecurityCaseMatches";
 import {
   ClaimedClientAddress,
+  TrustedProxies,
+  UnvouchedForwarding,
   readClaimedClientAddress,
+  readUnvouchedForwarding,
 } from "../SecurityEvent/ClientAddressTrust";
 import { canonicalAddress } from "./SecurityConnectionMatch";
 
@@ -88,4 +91,40 @@ export function getCaseClaimedOnlyAddresses(
   }
 
   return claimed;
+}
+
+/*
+ * Every address a case's events name as a client that came through a proxy
+ * the project does not vouch for (#11389) - one trusted only because it is
+ * private, which may be a TCP proxy that passed on the X-Forwarded-For the
+ * client wrote - canonical, each with the first such proxy: a block of one
+ * is never made with nobody's approval. Read with the project's trusted
+ * proxies as they are now (ClientAddressTrust.readUnvouchedForwarding).
+ */
+export function getCaseUnvouchedAddresses(data: {
+  matches: SecurityCaseMatchesJson | null;
+  proxies: TrustedProxies | undefined;
+}): Map<string, UnvouchedForwarding> {
+  const unvouched: Map<string, UnvouchedForwarding> = new Map();
+
+  for (const detection of data.matches?.detections || []) {
+    for (const event of detection.events) {
+      const principal: string | null = canonicalAddress(event.principalIp);
+
+      if (!principal || unvouched.has(principal)) {
+        continue;
+      }
+
+      const forwarding: UnvouchedForwarding | null = readUnvouchedForwarding(
+        event,
+        data.proxies,
+      );
+
+      if (forwarding) {
+        unvouched.set(principal, forwarding);
+      }
+    }
+  }
+
+  return unvouched;
 }

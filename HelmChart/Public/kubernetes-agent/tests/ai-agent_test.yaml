@@ -54,8 +54,9 @@
 # and its bindings, the node-operations ClusterRole and its binding, and the
 # Deployment last. Each documentIndex below is paired with an isKind and a
 # name so a reordering fails loudly instead of asserting the wrong document.
-# (helm-unittest v0.5.1, which CI pins, has no documentSelector.matchMany, so
-# "no ClusterRoleBinding points at X" is spelled out per index.)
+# (Written while CI pinned helm-unittest 0.5.1, which has no
+# documentSelector.matchMany, so "no ClusterRoleBinding points at X" is
+# spelled out per index.)
 suite: kubernetes ai agent
 release:
   name: oneuptime-agent
@@ -865,7 +866,11 @@ tests:
         - ""
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.remediation.namespaces.0: String length must be greater than or equal to 1"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/remediation/namespaces/0': minLength: got 0, want 1
+            - at '/aiAgent/remediation/namespaces/0': '' does not match pattern '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
 
   - it: renders one RoleBinding per namespace even when the list repeats one
     set:
@@ -927,7 +932,7 @@ tests:
       # could only let a compromised agent patch the Kubernetes agent or
       # itself.
       - failedTemplate:
-          errorPattern: "aiAgent.remediation.namespaces lists oneuptime, the namespace this chart is installed in. The Kubernetes AI agent never changes its own namespace"
+          errorMessage: 'aiAgent.remediation.namespaces lists oneuptime, the namespace this chart is installed in. The Kubernetes AI agent never changes its own namespace (a fix there could scale the agent, or the AI agent itself, away), so write access there would only widen what a compromised agent could do. Remove it from the list, or install the chart into a namespace of its own.'
 
   - it: refuses the release's own namespace whatever namespace the chart is installed in
     release:
@@ -941,7 +946,7 @@ tests:
         - monitoring
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.remediation.namespaces lists monitoring, the namespace this chart is installed in"
+          errorMessage: 'aiAgent.remediation.namespaces lists monitoring, the namespace this chart is installed in. The Kubernetes AI agent never changes its own namespace (a fix there could scale the agent, or the AI agent itself, away), so write access there would only widen what a compromised agent could do. Remove it from the list, or install the chart into a namespace of its own.'
 
   - it: ignores remediation.namespaces while remediation is off, even one naming the release's namespace
     set:
@@ -1002,7 +1007,10 @@ tests:
         - "*"
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.remediation.namespaces.0"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/remediation/namespaces/0': '*' does not match pattern '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
 
   - it: leaves node operations out entirely with nodeOperations=false
     set:
@@ -1504,7 +1512,10 @@ tests:
       aiAgent.image.pullPolicy: Sometimes
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.image.pullPolicy"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/image/pullPolicy': value must be one of '', 'Always', 'IfNotPresent', 'Never'
 
   - it: sets no image pull secrets by default
     set:
@@ -1545,7 +1556,11 @@ tests:
         - secret: mirror-login
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.imagePullSecrets.0"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/imagePullSecrets/0': missing property 'name'
+            - at '/aiAgent/imagePullSecrets/0': additional properties 'secret' not allowed
 
   # ---- Resources -------------------------------------------------------------
 
@@ -1724,7 +1739,7 @@ tests:
           value: ""
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set ONEUPTIME_KUBECTL_WRITE_NAMESPACES: the chart sets it from aiAgent.remediation.namespaces"
+          errorMessage: 'aiAgent.extraEnv must not set ONEUPTIME_KUBECTL_WRITE_NAMESPACES: the chart sets it from aiAgent.remediation.namespaces so it always matches the RoleBindings it renders; change that value instead. Remove it from aiAgent.extraEnv.'
 
   - it: refuses an extraEnv that would turn the agent's node operations back on
     set:
@@ -1740,7 +1755,7 @@ tests:
       # With no node role rendered, "true" would have the agent run node
       # operations that can only fail Forbidden.
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: the chart sets it from aiAgent.remediation.nodeOperations"
+          errorMessage: 'aiAgent.extraEnv must not set ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: the chart sets it from aiAgent.remediation.nodeOperations (false whenever aiAgent.remediation.enabled is off) so it always matches the node role it renders; change those values instead. Remove it from aiAgent.extraEnv.'
 
   - it: refuses an extraEnv that would override the agent's own namespace
     set:
@@ -1752,7 +1767,7 @@ tests:
           value: somewhere-else
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set ONEUPTIME_AI_AGENT_POD_NAMESPACE: the chart sets it to the agent pod's own namespace"
+          errorMessage: 'aiAgent.extraEnv must not set ONEUPTIME_AI_AGENT_POD_NAMESPACE: the chart sets it to the agent pod''s own namespace through the downward API. Remove it from aiAgent.extraEnv.'
 
   - it: refuses an extraEnv that would override the cluster name
     set:
@@ -1764,7 +1779,7 @@ tests:
           value: other-cluster
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set ONEUPTIME_KUBERNETES_CLUSTER_NAME: the chart sets it from clusterName"
+          errorMessage: 'aiAgent.extraEnv must not set ONEUPTIME_KUBERNETES_CLUSTER_NAME: the chart sets it from clusterName. Remove it from aiAgent.extraEnv.'
 
   - it: refuses an extraEnv that would override the API key
     set:
@@ -1776,7 +1791,7 @@ tests:
           value: another-key
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set ONEUPTIME_API_KEY: the chart sets it from oneuptime.apiKey"
+          errorMessage: 'aiAgent.extraEnv must not set ONEUPTIME_API_KEY: the chart sets it from oneuptime.apiKey, or from the Secret oneuptime.existingSecretName names. Remove it from aiAgent.extraEnv.'
 
   - it: refuses an extraEnv that would override the OneUptime URL
     set:
@@ -1788,7 +1803,7 @@ tests:
           value: https://elsewhere.example.com
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set ONEUPTIME_URL: the chart sets it from oneuptime.url"
+          errorMessage: 'aiAgent.extraEnv must not set ONEUPTIME_URL: the chart sets it from oneuptime.url. Remove it from aiAgent.extraEnv.'
 
   - it: refuses an extraEnv that would override the chart version the agent reports
     set:
@@ -1800,7 +1815,7 @@ tests:
           value: "99.0.0"
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION: the chart sets it to its own version"
+          errorMessage: 'aiAgent.extraEnv must not set ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION: the chart sets it to its own version. Remove it from aiAgent.extraEnv.'
 
   - it: refuses an extraEnv that would move the health port
     set:
@@ -1812,7 +1827,7 @@ tests:
           value: "8080"
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set PORT: the chart sets it to the port the health probes use"
+          errorMessage: 'aiAgent.extraEnv must not set PORT: the chart sets it to the port the health probes use. Remove it from aiAgent.extraEnv.'
 
   - it: refuses an extraEnv that would move kubectl's writable HOME
     set:
@@ -1824,7 +1839,7 @@ tests:
           value: /home/agent
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set HOME: the chart points it at the writable scratch volume"
+          errorMessage: 'aiAgent.extraEnv must not set HOME: the chart points it at the writable scratch volume kubectl needs on a read-only root filesystem. Remove it from aiAgent.extraEnv.'
 
   - it: refuses an extraEnv that would move kubectl's discovery cache
     set:
@@ -1836,7 +1851,7 @@ tests:
           value: /var/cache/kube
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set KUBECACHEDIR: the chart points it at the writable scratch volume"
+          errorMessage: 'aiAgent.extraEnv must not set KUBECACHEDIR: the chart points it at the writable scratch volume kubectl needs on a read-only root filesystem. Remove it from aiAgent.extraEnv.'
 
   - it: refuses an extraEnv entry with no name
     set:
@@ -1847,7 +1862,12 @@ tests:
         - nme: HTTPS_PROXY
           value: http://egress.internal:3128
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/extraEnv/0': missing property 'name'
+            - at '/aiAgent/extraEnv/0': additional properties 'nme' not allowed
 
   - it: refuses a non-string extraEnv value instead of rendering one the API server rejects
     set:
@@ -1859,7 +1879,10 @@ tests:
           value: true
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv.0.value"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/extraEnv/0/value': got boolean, want string
 
   # ---- values.schema.json ----------------------------------------------------
 
@@ -1872,7 +1895,10 @@ tests:
     asserts:
       # Rendered as-is, "false" would be a truthy string.
       - failedTemplate:
-          errorPattern: "aiAgent.enabled"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/enabled': got string, want boolean
 
   - it: refuses a string where the remediation switch expects a boolean
     set:
@@ -1882,7 +1908,10 @@ tests:
       aiAgent.remediation.enabled: "true"
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.remediation.enabled"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/remediation/enabled': got string, want boolean
 
   - it: refuses aiAgent values the chart does not support
     set:
@@ -1893,7 +1922,10 @@ tests:
         a: b
     asserts:
       - failedTemplate:
-          errorPattern: "nodeSelector"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent': additional properties 'nodeSelector' not allowed
 
   - it: refuses aiAgent.remediation values the chart does not support
     set:
@@ -1903,7 +1935,10 @@ tests:
       aiAgent.remediation.mode: automatic
     asserts:
       - failedTemplate:
-          errorPattern: "mode"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/remediation': additional properties 'mode' not allowed
 
   # ---- Upgrading a release from an older chart --------------------------------
   #
@@ -2459,7 +2494,7 @@ tests:
       # The value to change is the stored one; aiAgent.remediation.namespaces
       # would replace it.
       - failedTemplate:
-          errorPattern: "aiAccess.remediation.namespaces lists web, the namespace this chart is installed in"
+          errorMessage: 'aiAccess.remediation.namespaces lists web, the namespace this chart is installed in. The Kubernetes AI agent never changes its own namespace (a fix there could scale the agent, or the AI agent itself, away), so write access there would only widen what a compromised agent could do. Remove it from the list, or install the chart into a namespace of its own.'
 
   - it: renders nothing on aiAgent.enabled=false even when a carried-over list holds the release's own namespace
     release:
@@ -2487,7 +2522,7 @@ tests:
           value: another-key
     asserts:
       - failedTemplate:
-          errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_API_KEY: the chart sets it from oneuptime.apiKey. Remove it from aiAccess.extraEnv."
+          errorMessage: 'aiAccess.extraEnv must not set ONEUPTIME_API_KEY: the chart sets it from oneuptime.apiKey, or from the Secret oneuptime.existingSecretName names. Remove it from aiAccess.extraEnv.'
 
   - it: still accepts the deprecated aiAccess block's values in the schema
     set:
@@ -2770,7 +2805,11 @@ tests:
       oneuptime.apiKey: key-123
       aiAgent.fixes: always
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/fixes': value must be one of '', 'off', 'ask-for-approval', 'automatic', 'bypass-approval', false
 
   - it: refuses fixes true, which names no level
     values:
@@ -2780,7 +2819,11 @@ tests:
       oneuptime.url: https://oneuptime.example.com
       oneuptime.apiKey: key-123
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/fixes': value must be one of '', 'off', 'ask-for-approval', 'automatic', 'bypass-approval', false
 
   - it: refuses a string where investigation expects a boolean
     set:
@@ -2789,7 +2832,11 @@ tests:
       oneuptime.apiKey: key-123
       aiAgent.investigation: "yes"
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/aiAgent/investigation': got string, want boolean
 
   - it: refuses an extraEnv that would set the investigation switch behind the chart's back
     set:

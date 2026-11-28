@@ -2,6 +2,10 @@ import { describe, expect, test } from "@jest/globals";
 import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import VMwareCollectionStatus from "Common/Types/VMware/VMwareCollectionStatus";
+import {
+  DEFAULT_VMWARE_HEALTH_RULES,
+  VMwareHealthRules,
+} from "Common/Types/VMware/VMwareHealthRules";
 import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   ResourceTopologyGraph,
@@ -84,6 +88,9 @@ function estate(): Array<VMwareResource> {
       isPoweredOn: true,
       metricsUpdatedAt: FRESH,
       memorySwappedBytes: 512 * 1024 * 1024,
+      // Its host swaps it out now: real memory pressure (#11157).
+      memorySwapOutBytesPerSecond: 1024 * 1024,
+      memorySwapInBytesPerSecond: 0,
     }),
     row({
       kind: VMwareResourceKind.VirtualMachine,
@@ -437,9 +444,54 @@ describe("health, for the reasons the vCenter's pages give", () => {
 
   test("swapping is critical, CPU ready needs attention, off and templates are off", () => {
     expect(node(graph, "vmware.vm:vm/web-1").health).toBe("critical");
+    expect(node(graph, "vmware.vm:vm/web-1").reasons).toEqual([
+      {
+        text: "Host swapping memory out at {{rate}}",
+        values: { rate: "1.0\u00A0MiB/s" },
+      },
+    ]);
     expect(node(graph, "vmware.vm:vm/web-2").health).toBe("warning");
     expect(node(graph, "vmware.vm:vm/old").health).toBe("off");
     expect(node(graph, "vmware.vm:vm/golden").health).toBe("off");
+  });
+
+  test("memory swapped earlier is no finding until there is more than the rule's amount (#11157)", () => {
+    const resting: Array<VMwareResource> = estateWith("vm/web-1", {
+      memorySwapOutBytesPerSecond: 0,
+      memorySwapInBytesPerSecond: 0,
+    });
+
+    // 512 MiB left in the swap file, nothing moving: healthy by default.
+    expect(node(build(resting), "vmware.vm:vm/web-1").health).toBe("healthy");
+
+    // A project that wants to hear about 256 MiB of it hears it as earlier.
+    const strict: VMwareHealthRules = {
+      ...DEFAULT_VMWARE_HEALTH_RULES,
+      vmSwappedWarningMebibytes: 256,
+    };
+    const flagged: ResourceTopologyNode = node(
+      build(resting, [], { rules: strict }),
+      "vmware.vm:vm/web-1",
+    );
+    expect(flagged.health).toBe("warning");
+    expect(flagged.reasons).toEqual([
+      {
+        text: "{{amount}} swapped earlier, none swapping now",
+        values: { amount: "512\u00A0MiB" },
+      },
+    ]);
+  });
+
+  test("a project that turned the swapping rule off sees no swapping VM (#11157)", () => {
+    const off: VMwareHealthRules = {
+      ...DEFAULT_VMWARE_HEALTH_RULES,
+      vmSwapOutCriticalKibPerSecond: null,
+    };
+    const quiet: ResourceTopologyGraph = build(estate(), [], { rules: off });
+
+    expect(node(quiet, "vmware.vm:vm/web-1").health).toBe("healthy");
+    // The full datastore is still critical: only the one rule is off.
+    expect(node(quiet, "vmware.datastore:ds/full").health).toBe("critical");
   });
 
   test("a datastore more than 90% full is critical, 80% needs attention", () => {

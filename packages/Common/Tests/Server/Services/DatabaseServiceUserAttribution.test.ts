@@ -538,6 +538,11 @@ function isRefusal(outcome: unknown): boolean {
       "PaymentRequiredException",
       // A workflow's step writes no record that decides who may do what.
       "WorkflowAccessChangeRefusedException",
+      /*
+       * Nor, run with the default permissions, one that holds the project's
+       * secrets (WorkflowPrincipal.SECRET_TABLES): refused before any hook.
+       */
+      "WorkflowSecretChangeRefusedException",
     ].includes(outcome.constructor.name)
   );
 }

@@ -17,6 +17,7 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * The (i) tooltips on the Ceph cluster pages: the overview, the OSD and
@@ -781,6 +782,13 @@ beforeEach(() => {
     mock.mockReset();
   }
   arrange();
+  /*
+   * An OSD's and a pool's alerts card asks the server which of its
+   * recommended alerts a monitor covers (#11074): none does yet.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
 });
 
 afterEach(() => {

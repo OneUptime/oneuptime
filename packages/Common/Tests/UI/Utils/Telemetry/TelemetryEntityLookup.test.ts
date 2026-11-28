@@ -19,6 +19,7 @@ import TelemetryEntityNameResolver, {
   withTelemetryEntityChipMarks,
 } from "../../../../UI/Utils/Telemetry/TelemetryEntityNames";
 import ModelAPI, { ListResult } from "../../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import {
   afterEach,
   beforeEach,
@@ -38,8 +39,10 @@ import {
  * raw id. The resolver says which ids it settled as naming nothing: every
  * table it asked about them answered, and none had them. An id a table
  * failed to answer for is never among them: it may be there. And it says
- * which records it found are archived. ModelAPI answers from a project
- * faked whole (CappedListServer), its services past the first 10,000.
+ * which records it found are archived, to a reader who may read their
+ * archive switch - the server refuses a whole read that selects a column
+ * its reader may not. ModelAPI answers from a project faked whole
+ * (CappedListServer), its services past the first 10,000.
  */
 
 const PROJECT_ID: string = "9e1b6b0e-0000-4000-8000-000000000213";
@@ -102,8 +105,23 @@ beforeEach(() => {
       throw new Error("You may not read these.");
     }
 
+    // As the server answers: a read that selects a column its reader may not read is refused whole.
+    const model: BaseModel = new options.modelType();
+
+    for (const column of Object.keys(options.select || {})) {
+      if (!PermissionGate.canReadColumn(model, column)) {
+        throw new Error(`You may not read ${column} of these.`);
+      }
+    }
+
     return server.list(options);
   }) as never);
+  /*
+   * A member who reads the project's services and hosts reads their
+   * archive switch too (its read permissions are the tables'); one test
+   * takes it away.
+   */
+  jest.spyOn(PermissionGate, "canReadColumn").mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -285,6 +303,30 @@ describe("TelemetryEntityNameResolver.lookup - archived records", () => {
       name: true,
       isArchived: true,
     });
+  });
+
+  test("a reader who may not read a table's archive switch is never asked for it: its records are still named, unmarked", async () => {
+    jest.mocked(PermissionGate.canReadColumn).mockImplementation(((
+      model: unknown,
+      column: string,
+    ): boolean => {
+      return !(model instanceof Service && column === "isArchived");
+    }) as never);
+
+    const result: TelemetryEntityLookupResult = await lookup({
+      ids: [ARCHIVED_SERVICE_ID, LATE_SERVICE_ID],
+    });
+
+    expect(result.names[ARCHIVED_SERVICE_ID]?.name).toBe("wbkiosk-legacy");
+    expect(result.names[ARCHIVED_SERVICE_ID]?.isArchived).toBeUndefined();
+    expect(result.names[LATE_SERVICE_ID]?.name).toBe("wbkiosk-payments");
+    expect(result.notFound).toEqual([]);
+
+    expect(server.callsFor(Service).length).toBeGreaterThan(0);
+
+    for (const call of server.callsFor(Service)) {
+      expect(call.select["isArchived"]).toBeUndefined();
+    }
   });
 });
 

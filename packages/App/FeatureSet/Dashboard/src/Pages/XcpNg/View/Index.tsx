@@ -853,7 +853,7 @@ const XcpNgPoolOverview: FunctionComponent<
               ? `${translator.formatNumber(vmSummary.running)}/${translator.formatNumber(vmSummary.total)}`
               : undefined
           }
-          sublabel={tx("running")}
+          sublabel="running"
           percent={vmsPercent}
           /*
            * A VM halted on purpose is no problem: the bar turns amber only

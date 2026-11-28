@@ -285,6 +285,14 @@ describe("RULE_CRITERIA_MODELS_REQUIRING_A_CONDITION", () => {
       .map((file: string): string => {
         return file.replace(/Service\.ts$/, "");
       })
+      /*
+       * Only the rule kinds' services: another service may say "at least
+       * one condition" of something that is no rule's criteria - a cloud
+       * budget's cost filter (#11221).
+       */
+      .filter((modelName: string): boolean => {
+        return MODEL_NAMES.includes(modelName);
+      })
       .sort();
 
     expect(refusing.length).toBeGreaterThan(0);

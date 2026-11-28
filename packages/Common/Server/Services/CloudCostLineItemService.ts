@@ -252,7 +252,9 @@ export class Service extends ProjectReferencesService<Model> {
         const accountId: unknown = sendsAccount
           ? sentAccountId
           : item.cloudAccountId;
-        const groupId: unknown = sendsGroup ? sentGroupId : item.cloudCostGroupId;
+        const groupId: unknown = sendsGroup
+          ? sentGroupId
+          : item.cloudCostGroupId;
 
         if (Boolean(accountId) === Boolean(groupId)) {
           throw new BadDataException(CLOUD_COST_LINE_ITEM_TARGET_ERROR);

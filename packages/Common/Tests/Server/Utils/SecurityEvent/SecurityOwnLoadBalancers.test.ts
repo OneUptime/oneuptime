@@ -11,6 +11,7 @@ import SecurityEdgeRanges, {
 import SecurityOwnLoadBalancers, {
   OWN_LOAD_BALANCER_NAMES_RESOLVED,
   OWN_LOAD_BALANCER_ROWS_READ,
+  OWN_PROXY_ONLY_SUBNET_ROWS_READ,
   SecurityOwnLoadBalancersRead,
 } from "../../../../Server/Utils/SecurityEvent/SecurityOwnLoadBalancers";
 import SecurityTrustedProxies from "../../../../Server/Utils/SecurityEvent/SecurityTrustedProxies";
@@ -85,6 +86,8 @@ const CLIENT: string = "203.0.113.7";
 const ALB_DNS: string = "web-1234567890.us-east-1.elb.amazonaws.com";
 const ALB_ADDRESS: string = "52.1.2.3";
 const ALB_IPV6_ADDRESS: string = "2600:1f18:4000::7";
+// What its name resolves to inside the VPC as well.
+const ALB_PRIVATE_ADDRESS: string = "10.0.1.20";
 const CLASSIC_DNS: string = "legacy-1.us-east-1.elb.amazonaws.com";
 const CLASSIC_ADDRESS: string = "52.1.9.9";
 const GOOGLE_LB_ADDRESS: string = "34.120.1.2";
@@ -303,7 +306,7 @@ beforeEach(() => {
 
   useInventory(inventory());
   useDns({
-    [ALB_DNS]: [ALB_ADDRESS, ALB_IPV6_ADDRESS, "10.0.1.20"],
+    [ALB_DNS]: [ALB_ADDRESS, ALB_IPV6_ADDRESS, ALB_PRIVATE_ADDRESS],
     [CLASSIC_DNS]: [CLASSIC_ADDRESS],
     [NLB_DNS]: [NLB_ADDRESS],
   });
@@ -319,14 +322,21 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * The queries one read makes: the load balancers of the four types, and
+ * the project's Google Cloud proxy-only subnets, by the two purposes that
+ * name one (#11389).
+ */
+const QUERIES_A_READ: number = 3;
+
 describe("reading the project's own load balancers", () => {
-  test("one bounded query of the four types, as the reader reads", async () => {
+  test("one bounded query of the four types, and two of the proxy-only subnets, as the reader reads", async () => {
     await SecurityOwnLoadBalancers.read({
       projectId: PROJECT_ID,
       props: { isRoot: true },
     });
 
-    expect(findResources).toHaveBeenCalledTimes(1);
+    expect(findResources).toHaveBeenCalledTimes(QUERIES_A_READ);
 
     const asked: {
       query: Record<string, unknown>;
@@ -334,6 +344,36 @@ describe("reading the project's own load balancers", () => {
       props: unknown;
       select: Record<string, unknown>;
     } = findResources.mock.calls[0]![0] as never;
+
+    // The proxy-only subnets: of Google Cloud's subnet type, bounded, as the reader reads.
+    for (const call of findResources.mock.calls.slice(1)) {
+      const subnets: {
+        query: Record<string, unknown>;
+        limit: number;
+        props: unknown;
+      } = call[0] as never;
+
+      expect(subnets.query["projectId"]).toEqual(PROJECT_ID);
+      expect(subnets.query["isArchived"]).toBe(false);
+      expect(subnets.query["cloudResourceType"]).toBe(
+        "compute.googleapis.com/Subnetwork",
+      );
+      expect(subnets.limit).toBe(OWN_PROXY_ONLY_SUBNET_ROWS_READ + 1);
+      expect(subnets.props).toEqual({ isRoot: true });
+    }
+
+    expect(
+      findResources.mock.calls.slice(1).map((call: Array<unknown>): string => {
+        return JSON.stringify(
+          (call[0] as { query: Record<string, unknown> }).query[
+            "cloudProperties"
+          ],
+        );
+      }),
+    ).toEqual([
+      expect.stringContaining("managed\\\\_proxy"),
+      expect.stringContaining("internal\\\\_https\\\\_load\\\\_balancer"),
+    ]);
 
     expect(asked.query["projectId"]).toEqual(PROJECT_ID);
     expect(asked.query["isArchived"]).toBe(false);
@@ -359,7 +399,8 @@ describe("reading the project's own load balancers", () => {
     );
   });
 
-  test("each that forwards clients, with its public addresses, its kind and its cloud account", async () => {
+  // #11389: its private addresses too, which a project that stops trusting private addresses still trusts.
+  test("each that forwards clients, with its addresses, its kind and its cloud account", async () => {
     const read: SecurityOwnLoadBalancersRead =
       await SecurityOwnLoadBalancers.read({
         projectId: PROJECT_ID,
@@ -383,7 +424,7 @@ describe("reading the project's own load balancers", () => {
         kind: OwnLoadBalancerKind.AwsApplicationLoadBalancer,
         name: "web",
         where: "AWS production",
-        addresses: [ALB_ADDRESS, ALB_IPV6_ADDRESS],
+        addresses: [ALB_ADDRESS, ALB_IPV6_ADDRESS, ALB_PRIVATE_ADDRESS],
       },
       {
         kind: OwnLoadBalancerKind.AwsClassicLoadBalancer,
@@ -505,7 +546,7 @@ describe("reading the project's own load balancers", () => {
 });
 
 describe("what the scans trust", () => {
-  test("the load balancers' public addresses, read as OneUptime, kept for five minutes", async () => {
+  test("the load balancers' addresses, read as OneUptime, kept for five minutes", async () => {
     const blocks: Array<NetworkAddressBlock> =
       await SecurityOwnLoadBalancers.getTrustedBlocks(PROJECT_ID);
 
@@ -516,6 +557,7 @@ describe("what the scans trust", () => {
     ).toEqual([
       `${ALB_ADDRESS}`,
       ALB_IPV6_ADDRESS,
+      ALB_PRIVATE_ADDRESS,
       `${CLASSIC_ADDRESS}`,
       `${GOOGLE_LB_ADDRESS}`,
       `${GATEWAY_ADDRESS}`,
@@ -523,10 +565,10 @@ describe("what the scans trust", () => {
 
     await SecurityOwnLoadBalancers.getTrustedBlocks(PROJECT_ID);
 
-    expect(findResources).toHaveBeenCalledTimes(1);
-    expect(
-      (findResources.mock.calls[0]![0] as { props: unknown }).props,
-    ).toEqual({ isRoot: true });
+    expect(findResources).toHaveBeenCalledTimes(QUERIES_A_READ);
+    for (const call of findResources.mock.calls) {
+      expect((call[0] as { props: unknown }).props).toEqual({ isRoot: true });
+    }
   });
 
   test("a read that fails throws, and keeps nothing: the next scan reads again", async () => {
@@ -538,8 +580,19 @@ describe("what the scans trust", () => {
 
     expect(
       (await SecurityOwnLoadBalancers.getTrustedBlocks(PROJECT_ID)).length,
-    ).toBe(5);
-    expect(findResources).toHaveBeenCalledTimes(2);
+    ).toBe(6);
+    // The failed read stopped at its first query; the next read made all of its own.
+    expect(findResources).toHaveBeenCalledTimes(1 + QUERIES_A_READ);
+  });
+
+  test("a proxy-only subnet search that fails throws as well: what passes on a client's words is never guessed at", async () => {
+    findResources
+      .mockResolvedValueOnce(inventory() as never)
+      .mockRejectedValueOnce(new Error("connection refused") as never);
+
+    await expect(
+      SecurityOwnLoadBalancers.getTrusted(PROJECT_ID),
+    ).rejects.toThrow("connection refused");
   });
 
   test("on for a project that never said, beside its Trusted Proxies and edges", async () => {
@@ -554,21 +607,28 @@ describe("what the scans trust", () => {
       "104.16.0.0/13",
       `${ALB_ADDRESS}`,
       ALB_IPV6_ADDRESS,
+      ALB_PRIVATE_ADDRESS,
       `${CLASSIC_ADDRESS}`,
       `${GOOGLE_LB_ADDRESS}`,
       `${GATEWAY_ADDRESS}`,
     ]);
   });
 
-  test("turned off, none of them is trusted, and the inventory is not read", async () => {
+  /*
+   * #11389: the inventory is still read, for where a load balancer of the
+   * project's that passes on what a client wrote connects from - which is
+   * never trusted, whether or not its own load balancers are.
+   */
+  test("turned off, none of them is trusted, and the inventory is read only for what is never trusted", async () => {
     useProject({ securityTrustOwnLoadBalancers: false });
 
     const proxies: TrustedProxies =
       await SecurityTrustedProxies.getForProject(PROJECT_ID);
 
     expect(proxies.blocks).toEqual([]);
-    expect(findResources).not.toHaveBeenCalled();
+    expect(findResources).toHaveBeenCalledTimes(QUERIES_A_READ);
     expect(isTrustedProxy(GATEWAY_ADDRESS, proxies)).toBe(false);
+    expect(isTrustedProxy(ALB_ADDRESS, proxies)).toBe(false);
   });
 
   test("a load balancer read that fails trusts the rest, and is read again on the next scan", async () => {
@@ -584,7 +644,7 @@ describe("what the scans trust", () => {
       await SecurityTrustedProxies.getForProject(PROJECT_ID);
 
     expect(blockTexts(second)).toContain(`${GATEWAY_ADDRESS}`);
-    expect(findResources).toHaveBeenCalledTimes(2);
+    expect(findResources).toHaveBeenCalledTimes(1 + QUERIES_A_READ);
   });
 
   test("the project's hosts, nodes and probes are never read for it", async () => {
@@ -617,7 +677,12 @@ describe("what the scans trust", () => {
     ).toBe(true);
   });
 
-  test("a project read that fails trusts only private addresses, as before", async () => {
+  /*
+   * #11389: not even a private address, which the project may have turned
+   * off. A read that fails trusts less, never more: every address a proxy
+   * forwarded is claimed until the next scan reads the project again.
+   */
+  test("a project read that fails trusts nothing, not even a private address", async () => {
     getJestSpyOn(ProjectService, "findOneById").mockRejectedValue(
       new Error("connection refused") as never,
     );
@@ -626,6 +691,8 @@ describe("what the scans trust", () => {
       await SecurityTrustedProxies.getForProject(PROJECT_ID);
 
     expect(proxies.blocks).toEqual([]);
+    expect(proxies.trustsPrivateAddresses).toBe(false);
+    expect(isTrustedProxy("10.0.0.5", proxies)).toBe(false);
     expect(proxies.readsAccessLogForwardedFor).toBeFalsy();
     expect(findResources).not.toHaveBeenCalled();
   });

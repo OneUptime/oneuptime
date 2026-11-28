@@ -229,6 +229,7 @@ export default class CloudCostLineItem extends BaseModel {
       "Charge (adds to the spend) or Credit (takes off it, such as a discount).",
     defaultValue: CloudCostLineItemKind.Charge,
     isDefaultValueColumn: true,
+    allowedValues: Object.values(CloudCostLineItemKind),
     example: "Charge",
   })
   @Column({
@@ -297,6 +298,7 @@ export default class CloudCostLineItem extends BaseModel {
       "Once (on the start date) or Monthly (every month from the start date's month, spread over each month's days).",
     defaultValue: CloudCostLineItemRecurrence.Monthly,
     isDefaultValueColumn: true,
+    allowedValues: Object.values(CloudCostLineItemRecurrence),
     example: "Monthly",
   })
   @Column({

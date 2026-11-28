@@ -746,7 +746,7 @@ export default class CloudSavingsActions {
     return new NotAuthorizedException(
       CloudSavingsOwners.hasOwners(owners)
         ? "Only an owner of the resource can approve or undo this change."
-        : "Nobody owns this resource, so only a project owner or admin can approve or undo this change.",
+        : "Nobody owns this resource, so only a Project Owner or Project Admin can approve or undo this change.",
     );
   }
 

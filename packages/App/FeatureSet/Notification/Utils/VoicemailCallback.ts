@@ -5,7 +5,7 @@ import {
   VOICEMAIL_VOICE_CALL_DATA_KEY,
 } from "./AnsweredBy";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
-import { toCallVoiceValue } from "Common/Types/Call/CallVoice";
+import { toSpokenCallVoiceValue } from "Common/Types/Call/CallVoice";
 import ObjectID from "Common/Types/ObjectID";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import logger from "Common/Server/Utils/Logger";
@@ -51,7 +51,7 @@ export function getVoicemailMessageOfCall(callData: unknown): string {
  * one, or before voices could be chosen.
  */
 export function getVoicemailVoiceOfCall(callData: unknown): string | undefined {
-  return toCallVoiceValue(
+  return toSpokenCallVoiceValue(
     callData && typeof callData === "object"
       ? (callData as Record<string, unknown>)[VOICEMAIL_VOICE_CALL_DATA_KEY]
       : undefined,

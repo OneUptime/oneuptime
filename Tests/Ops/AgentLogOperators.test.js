@@ -389,7 +389,9 @@ describe("the Kubernetes agent's logs.extraOperators", () => {
     expect(rendered.set["logs.extraOperators"]).toEqual(DOCUMENTED_EXAMPLE);
   });
 
-  test("the chart's suite reads every refusal of the check's at its template, by its whole message, as helm-unittest 0.5.1 has no errorPattern", () => {
+  // HelmUnittestAssertions.test.js holds every chart suite's refusals to a
+  // whole errorMessage; this holds where this suite reads them.
+  test("the chart's suite reads every refusal of the check's at its template, by its whole message", () => {
     const suite = yaml.load(read("tests/extra-log-operators_test.yaml"));
     const refusals = suite.tests.flatMap((test) => {
       return test.asserts.filter((assert) => {
@@ -400,9 +402,11 @@ describe("the Kubernetes agent's logs.extraOperators", () => {
     expect(refusals.length).toBeGreaterThan(50);
     for (const assert of refusals) {
       expect(assert.template).toBe("templates/extra-log-operators-check.yaml");
-      expect(Object.keys(assert.failedTemplate || {})).not.toContain(
-        "errorPattern",
-      );
+      expect(Object.keys(assert.failedTemplate || {})).toEqual([
+        "errorMessage",
+      ]);
+      expect(typeof assert.failedTemplate.errorMessage).toBe("string");
+      expect(assert.failedTemplate.errorMessage.length).toBeGreaterThan(0);
     }
   });
 });

@@ -20,6 +20,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * An ESXi host's page inside its vCenter (Pages/VMware/View/HostDetail),
@@ -542,6 +543,19 @@ beforeEach(() => {
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
+  /*
+   * The host alerts card asks the server which of its recommended alerts a
+   * monitor covers (#11074): none does yet. The server refuses a role that
+   * may not read monitors, as MonitorAPI does.
+   */
+  serveCoverageFrom(() => {
+    if (mockDeniedModels.includes("Monitor")) {
+      throw new Error(
+        "You do not have permission to read this project's monitors.",
+      );
+    }
+    return [];
+  });
   openHostPage();
 });
 

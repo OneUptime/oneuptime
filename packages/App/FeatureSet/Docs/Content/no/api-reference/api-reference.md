@@ -309,7 +309,13 @@ Noen felt inneholder en JSON-verdi med sin egen form, for eksempel `rotation` og
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-En nøkkel som får nytt navn, leses fortsatt under det gamle navnet: begrensningstypen til et lag skrives under `restrictionType`, eller under den eldre stavemåten `restictionType`, og et svar har begge.
+En nøkkel som får nytt navn, leses fortsatt under det gamle navnet: begrensningstypen til et lag skrives under `restrictionType`, eller under den eldre stavemåten `restictionType`, og et svar har begge. Den eldre stavemåten er foreldet i svar: de har den til den første hovedversjonen som utgis 1. juni 2027 eller senere. Skrivinger leser den alltid.
+
+En verdi blir også tatt på ordet. Det ukentlige tidsrommet til et lag har vakt de dagene det nevner, så `startTime` og `endTime` må falle på `startDay` og `endDay` i vaktplanens tidssone. Et tidsrom datert på andre dager avvises med en `400` som nevner tidsrommet og gir et tidspunkt på den nevnte dagen som kan sendes i stedet:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Hvor et prosjekt ble kjøpt
 
@@ -422,6 +428,44 @@ Incident not found.
 ```
 
 Tidligere svarte den `200` med en tom body. En liste (`get-list`) og en telling svarer fortsatt `200` med postene du får lese, ingen når det ikke finnes noen. Terraform-leverandøren leser en `404` ved oppdatering som en ressurs som er borte, og fjerner den fra state, så neste plan oppretter den på nytt: gi API-nøkkelen den bruker tillatelsene, og etikettene, til å lese hver ressurs den styrer. MCP-verktøyene svarer på en `404` med en feil som peker på det tilsvarende listeverktøyet, og CLI-en avslutter med koden `3`.
+
+### Bilder i en posts Markdown
+
+Et bilde som er limt inn i Markdown, som et skjermbilde i beskrivelsen av en hendelse, et egendefinert Markdown-felt eller et notat, er en privat fil. Adressen (`/file/image/access-token/...`) åpner det bare for en person som er logget inn i prosjektet, så en API-nøkkel leser det i stedet gjennom posten som viser det:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Posten leses som nøkkelen, slik `get-item` leser den: Nøkkelen trenger tillatelse til å lese den og etikettene dens. Svaret inneholder hvert bilde postens Markdown viser, i den rekkefølgen den viser dem: `name`, `mimeType`, `sizeInBytes`, dataene i `base64`, en `contentId` for et innebygd e-postvedlegg, `urls` Markdown viser det med og `fields` det står i. Under `leftOut` står filene Markdown viser som ikke gis ut, hver med en `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+Bare bilder som er lastet opp til postens eget prosjekt, gis ut, opptil 20 og 10 MB totalt, og aldri en SVG. Hver slags post med Markdown har den samme forespørselen, som `/api/incident-public-note/<id>/markdown-files` eller `/api/alert/<id>/markdown-files`. En post som ikke finnes, eller som nøkkelen ikke har lov til å lese, svarer `404` slik `get-item` gjør, og `422` når nøkkelen ikke har lov til å lese den slags post i det hele tatt. En arbeidsflyt leser de samme bildene med [Hent filer fra Markdown](/docs/workflows/components#get-files-from-markdown).
 
 ## Den fullstendige endepunktreferansen
 

@@ -1,3 +1,4 @@
+import { NotificationLogStatusReading } from "../Notification/NotificationLogStatus";
 import NotificationRuleType from "../NotificationRule/NotificationRuleType";
 import UserNotificationEventType from "../UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../UserNotification/UserNotificationStatus";
@@ -702,6 +703,16 @@ export interface OnCallTestPageDelivery {
   // Where to: the method's address or name, when the person may see it.
   address?: string | undefined;
   status: OnCallTestPageDeliveryStatus;
+  /*
+   * What its own notification log says of it, where that is known (#11416):
+   * the log of an SMS, a call or a WhatsApp message, or, for a channel whose
+   * provider says nothing after it takes a message, the status its log
+   * holds. The result draws it as the log does - a call still ringing is
+   * Calling and an answered one Success, an SMS waiting for its carrier's
+   * receipt a blue Sent and one the gateway took a green one
+   * (NotificationLogStatus) - where `status` would say Sent of them all.
+   */
+  logStatus?: NotificationLogStatusReading | undefined;
   // What its log says: why it did not go out, the provider's id, and so on.
   statusMessage: string;
   // What `statusMessage` says, as a code, when it is a line the result knows.

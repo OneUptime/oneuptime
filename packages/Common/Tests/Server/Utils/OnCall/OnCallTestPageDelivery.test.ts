@@ -828,6 +828,99 @@ describe("call", () => {
 
     expect(sendOptions["projectId"]).toBe(PROJECT_ID);
     expect(createdRows[0]!.statusMessage).toBe("Making a call to +15550100.");
+    // English only: no words in another language to carry.
+    expect(callRequest.inLanguage).toBeUndefined();
+  });
+
+  /*
+   * #11066: a test page's call is said as a real page's call is - in the
+   * person's language, by a voice of it, where the account has one - so it
+   * tests the call they will get. It carries its English beside it.
+   */
+  test("to a person who reads German, carries its German beside its English", async () => {
+    await deliver(
+      {
+        userCall: {
+          id: METHOD_ID,
+          phone: new Phone("+15550100"),
+          isVerified: true,
+        },
+      },
+      {},
+      "de",
+    );
+
+    const [callRequest] = (CallService.makeCall as jest.Mock).mock.calls[0] as [
+      CallRequest,
+      JSONObject,
+    ];
+
+    const sentencesOf: (data: CallRequest["data"]) => Array<string> = (
+      data: CallRequest["data"],
+    ): Array<string> => {
+      return data
+        .filter((item: unknown): boolean => {
+          return Boolean((item as { sayMessage?: string }).sayMessage);
+        })
+        .map((item: unknown): string => {
+          return (item as { sayMessage: string }).sayMessage;
+        });
+    };
+
+    // The English, as every test's call said it: the severity as written.
+    expect(sentencesOf(callRequest.data)).toEqual([
+      "This is a call from Acme.",
+      "This is a test page. Nothing is wrong.",
+      "This tests how Acme pages you for an incident of severity Critical.",
+    ]);
+
+    expect(callRequest.inLanguage?.language).toBe("de");
+    expect(sentencesOf(callRequest.inLanguage!.data)).toEqual([
+      "Dies ist ein Anruf von Acme.",
+      "Dies ist eine Test-Alarmierung. Alles in Ordnung.",
+      "Damit wird getestet, wie Acme Sie bei einem Vorfall mit dem Schweregrad Critical alarmiert.",
+    ]);
+
+    const gather: GatherInput = callRequest.inLanguage!.data.find(
+      (item: unknown) => {
+        return Boolean((item as GatherInput).onInputCallRequest);
+      },
+    ) as GatherInput;
+
+    expect(gather.introMessage).toBe(
+      "Um diese Test-Alarmierung zu bestätigen, drücken Sie 1.",
+    );
+    expect(gather.noInputMessage).toBe(
+      "Sie haben keine Taste gedrückt, daher ist diese Test-Alarmierung nicht bestätigt. Auf Wiederhören.",
+    );
+    expect(gather.onInputCallRequest["1"]?.sayMessage).toBe(
+      "Sie haben diese Test-Alarmierung bestätigt. Es funktioniert. Auf Wiederhören",
+    );
+    // The same keys, listening, and address as the English call's.
+    expect(gather.numDigits).toBe(1);
+    expect(gather.timeoutInSeconds).toBe(10);
+    expect(gather.responseUrl.toString()).toBe(CALL_RESPONSE_URL);
+  });
+
+  test("to a person who reads Persian, is English only: no voice speaks Persian", async () => {
+    await deliver(
+      {
+        userCall: {
+          id: METHOD_ID,
+          phone: new Phone("+15550100"),
+          isVerified: true,
+        },
+      },
+      {},
+      "fa",
+    );
+
+    const [callRequest] = (CallService.makeCall as jest.Mock).mock.calls[0] as [
+      CallRequest,
+      JSONObject,
+    ];
+
+    expect(callRequest.inLanguage).toBeUndefined();
   });
 });
 
@@ -1236,6 +1329,8 @@ describe("what every message says (readContext)", () => {
     expect(await readContext()).toEqual({
       recordKind: OnCallTestPageRecordKind.Incident,
       severityName: "Critical",
+      // As the project wrote it, for the English call (#11066).
+      severityNameAsWritten: "Critical",
       projectName: "Acme",
       isSentBySelf: true,
       senderName: "Ana Lopez",
@@ -1282,6 +1377,7 @@ describe("what every message says (readContext)", () => {
     expect(await readContext()).toEqual({
       recordKind: OnCallTestPageRecordKind.Alert,
       severityName: "High",
+      severityNameAsWritten: "High",
       projectName: "Acme",
       isSentBySelf: false,
       senderName: "Ana Lopez",
@@ -1303,6 +1399,12 @@ describe("what every message says (readContext)", () => {
       });
 
     expect(context.severityName.length).toBeGreaterThan(0);
+    /*
+     * The English call says it as the project wrote it, never in the
+     * person's language: a German severity in an English sentence was what
+     * a test's English call said before its words could be German (#11066).
+     */
+    expect(context.severityNameAsWritten).toBe("Critical");
   });
 
   test("a read that fails leaves the sentences plainer, and the test still goes out", async () => {
@@ -1447,7 +1549,6 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
       const result: OnCallTestPageResultDelivery = toDelivery({
         delivery: row,
-        isDelivered: false,
       });
 
       expect(result.channel).toBe(channel);
@@ -1472,9 +1573,7 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
     row.id = new ObjectID("abababab-abab-4bab-8bab-abababababab");
 
-    expect(
-      toDelivery({ delivery: row, isDelivered: false }).statusMessageCode,
-    ).toEqual({
+    expect(toDelivery({ delivery: row }).statusMessageCode).toEqual({
       code: OnCallTestPageLineCode.MethodNotVerified,
       channel: OnCallPageChannel.CustomChannel,
     });
@@ -1495,7 +1594,6 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
     const result: OnCallTestPageResultDelivery = toDelivery({
       delivery: row,
-      isDelivered: false,
     });
 
     expect(result.statusMessage).toBe(row.statusMessage);
@@ -1549,7 +1647,6 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
       const result: OnCallTestPageResultDelivery = toDelivery({
         delivery: row,
-        isDelivered: false,
       });
 
       // The English stays, for every other reader of the API.

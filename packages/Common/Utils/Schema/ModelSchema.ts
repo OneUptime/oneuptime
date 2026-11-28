@@ -2,6 +2,7 @@ import z, { ZodSchema } from "./Zod";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import ServerOwned from "../../Types/Database/ServerOwned";
 import {
+  getTableColumn,
   getTableColumns,
   TableColumnMetadata,
 } from "../../Types/Database/TableColumn";
@@ -40,6 +41,7 @@ import { getApiSingularName } from "../ModelApiName";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import { isAccountDateColumn } from "../../Types/Database/AccessControl/AccountDateColumns";
+import RelationReadersUtil from "../../Types/Database/RelationReadersUtil";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 import {
   CREATED_BY_ACTOR_ID_COLUMN,
@@ -228,6 +230,32 @@ export const RECORD_ACTOR_SCHEMA_NAMES: Readonly<Record<string, string>> = {
 
 // Each built once, by its name in RECORD_ACTOR_SCHEMA_NAMES.
 const RECORD_ACTOR_SCHEMAS: Map<string, ZodTypes.ZodTypeAny> = new Map();
+
+/*
+ * THE COLUMNS EVERY RECORD HAS, DESCRIBED ONCE.
+ *
+ * A record's ID, when it was created, updated and deleted, and its version
+ * are the base model's own columns (DatabaseBaseModel): the same type and
+ * words on every resource, read only, as only OneUptime writes them.
+ * Written out on each resource's model, read and delete schemas, they were
+ * the same five fields 5,321 times, 0.6 MB of a spec held to a budget
+ * (OpenAPISpecBudget). So each is a schema of its own, published once by
+ * these names, and a resource refers to it as it does to what created the
+ * record (RECORD_ACTOR_SCHEMA_NAMES): `"createdAt": {"$ref":
+ * "#/components/schemas/RecordCreatedAt"}`. No create or update schema has
+ * one. A model that declares one of these columns its own way keeps its
+ * own, written out (getBaseColumnSchema).
+ */
+export const BASE_COLUMN_SCHEMA_NAMES: Readonly<Record<string, string>> = {
+  _id: "RecordId",
+  createdAt: "RecordCreatedAt",
+  updatedAt: "RecordUpdatedAt",
+  deletedAt: "RecordDeletedAt",
+  version: "RecordVersion",
+};
+
+// Each built once, by its name in BASE_COLUMN_SCHEMA_NAMES.
+const BASE_COLUMN_SCHEMAS: Map<string, ZodTypes.ZodTypeAny> = new Map();
 
 const EXAMPLE_ID: string = "123e4567-e89b-12d3-a456-426614174000";
 
@@ -454,6 +482,41 @@ export class ModelSchema extends BaseSchema {
   }
 
   /*
+   * The shared schema of a column every record has (BASE_COLUMN_SCHEMA_NAMES),
+   * or null for any other column: the column's type and its own words, read
+   * only, under the name the spec publishes it by. Null too for one a model
+   * declares its own way rather than taking the base model's, which is
+   * described where it is, as any column is. Built the first time it is
+   * asked for, so every resource refers to the same one.
+   */
+  public static getBaseColumnSchema(data: {
+    key: string;
+    column: TableColumnMetadata;
+  }): ZodTypes.ZodTypeAny | null {
+    const name: string | undefined = BASE_COLUMN_SCHEMA_NAMES[data.key];
+
+    if (
+      !name ||
+      data.column !== getTableColumn(new DatabaseBaseModel(), data.key)
+    ) {
+      return null;
+    }
+
+    let schema: ZodTypes.ZodTypeAny | undefined = BASE_COLUMN_SCHEMAS.get(name);
+
+    if (!schema) {
+      schema = this.annotateColumn({
+        zodType: this.getZodTypeForColumn(data.column, "read"),
+        description: data.column.description || data.column.title || "",
+      }).openapi(name);
+
+      BASE_COLUMN_SCHEMAS.set(name, schema);
+    }
+
+    return schema;
+  }
+
+  /*
    * A column's description in a record's schema: its own words, then who
    * may create, read and update it - unless only OneUptime writes it. A
    * read-only field says so (readOnly), and "Create: [No access], Update:
@@ -528,6 +591,15 @@ export class ModelSchema extends BaseSchema {
 
       if (recordActorSchema) {
         shape[key] = recordActorSchema.optional();
+        continue;
+      }
+
+      // Described once, for every resource (getBaseColumnSchema).
+      const baseColumnSchema: ZodTypes.ZodTypeAny | null =
+        this.getBaseColumnSchema({ key: key, column: column });
+
+      if (baseColumnSchema) {
+        shape[key] = baseColumnSchema.optional();
         continue;
       }
 
@@ -1442,7 +1514,10 @@ export class ModelSchema extends BaseSchema {
    * may read, and the ids and times), of a type that orders. Not a secret,
    * whose stored value orders nothing a person reads, nor a column kept to
    * its owner (OwnerOnlyColumn), which a relation read refuses most callers,
-   * nor a person's account dates (AccountDateColumns), which SortValidator
+   * nor one held to its own read through a relation (RelationReaders
+   * .ColumnReaders: an on-call policy's incident role, #11234), which only
+   * its own readers may sort by, not every reader of the relation, nor a
+   * person's account dates (AccountDateColumns), which SortValidator
    * refuses as an order through a relation to all but OneUptime and a
    * master admin (#9823). The fields SortValidator's refusals offer through
    * a relation are of these.
@@ -1472,6 +1547,7 @@ export class ModelSchema extends BaseSchema {
         !column.hashed &&
         !column.encrypted &&
         !isOwnerOnlyColumn(model, key) &&
+        !RelationReadersUtil.isHeldToItsOwnRead(column) &&
         !isAccountDateColumn(model.tableName, key)
       );
     });
@@ -1883,6 +1959,21 @@ export class ModelSchema extends BaseSchema {
 
         if (recordActorSchema) {
           shape[key] = recordActorSchema.optional();
+          continue;
+        }
+      }
+
+      // Described once, for every resource (getBaseColumnSchema).
+      if (
+        (data.schemaType === "read" || data.schemaType === "delete") &&
+        !data.disableOpenApiSchema &&
+        !isShownOnceHere
+      ) {
+        const baseColumnSchema: ZodTypes.ZodTypeAny | null =
+          this.getBaseColumnSchema({ key: key, column: column });
+
+        if (baseColumnSchema) {
+          shape[key] = baseColumnSchema.optional();
           continue;
         }
       }

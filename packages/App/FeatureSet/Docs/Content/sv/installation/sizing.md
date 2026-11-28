@@ -147,6 +147,7 @@ app:
 | `queueDepth` | Sondförfrågningar som väntar på en plats just nu, på alla app-poddar. Över 0 i flera minuter: lägg till app-poddar. |
 | `slotWaitP95Ms` | Hur länge förfrågningar väntade på en plats, på den mest upptagna app-podden. |
 | `refusalsPerMinute` | Sondförfrågningar som fick svar om att servern var upptagen. |
+| `reconnectsAskedPerMinute` | Svar som bad en sonds anslutning att ansluta igen, så att dess nästa förfrågan kan gå till en annan app-podd: några få i sekunden medan en app-podd ligger efter. Över 0 i flera minuter: lägg till app-poddar. |
 | `dispatchLagP95Seconds` | Hur sent monitorer delades ut efter den tidpunkt då deras intervall gjorde dem redo att kontrolleras. Nära ditt kortaste intervall medan ingen förfrågan väntar: lägg till sondrepliker. |
 | `monitorsLateByAnIntervalPerMinute` | Monitorer som delades ut ett helt intervall för sent: kontroller som hoppades över. |
 | `monitorTestWaitP95Seconds` | Hur länge Test Monitor-körningar väntade på en sond. |

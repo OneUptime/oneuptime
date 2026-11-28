@@ -18,6 +18,7 @@ import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import ComplianceNotificationChannel from "../../../Types/Team/ComplianceNotificationChannel";
 import ComplianceRule, {
   COMPLIANCE_CHANNEL_DEFINITIONS,
@@ -104,7 +105,11 @@ interface MethodChannelExpectation extends ChannelLabelExpectation {
 const METHOD_CHANNELS: Array<MethodChannelExpectation> = [
   {
     channel: ComplianceNotificationChannel.Call,
-    label: "Call",
+    /*
+     * A phone call, by a key that names its meaning (#11418): English reads
+     * "Call", and no language reads a function call.
+     */
+    label: "Call (phone call)",
     methodNoun: "phone number for calls",
     hasVerification: true,
     methodRuleType: ComplianceRuleType.HasNotificationCallMethod,
@@ -215,7 +220,11 @@ const CHANNEL_LABELS: Array<ChannelLabelExpectation> = [
   ...METHOD_CHANNELS,
   CUSTOM_CHANNEL,
 ].map((expected: ChannelLabelExpectation): ChannelLabelExpectation => {
-  return { channel: expected.channel, label: expected.label };
+  // As English reads it: a key that names its meaning reads as its word.
+  return {
+    channel: expected.channel,
+    label: withMeaningKeyAsItsWord(expected.label),
+  };
 });
 
 interface OnCallExpectation {
@@ -1643,8 +1652,9 @@ describe("ComplianceRule.describe", () => {
            * word. (No label is the start of another.)
            */
           for (const channel of known) {
-            const label: string =
-              ComplianceRule.getChannelDefinition(channel)!.label;
+            const label: string = withMeaningKeyAsItsWord(
+              ComplianceRule.getChannelDefinition(channel)!.label,
+            );
 
             const times: number = sentence
               .split(`by ${label}`)

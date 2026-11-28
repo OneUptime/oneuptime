@@ -27,6 +27,8 @@ import { describe, expect, it } from "@jest/globals";
 const SWITCHES: Array<string> = [
   "securityTrustOwnLoadBalancers",
   "securityReadAccessLogForwardedFor",
+  // #11389: whether private addresses are trusted unlisted.
+  "securityTrustPrivateAddresses",
 ];
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -140,13 +142,14 @@ describe("a Security Admin reaches nothing else of the project through them", ()
 });
 
 describe("a Security Admin sets Trusted Proxies as a whole (#11049)", () => {
-  it("the list and both switches in one save", () => {
+  it("the list and every switch in one save", () => {
     expect(
       mayWrite(
         {
           securityTrustedProxies: "203.0.113.0/24",
           securityTrustOwnLoadBalancers: false,
           securityReadAccessLogForwardedFor: true,
+          securityTrustPrivateAddresses: false,
         },
         Permission.SecurityAdmin,
       ),
@@ -177,5 +180,17 @@ describe("where a project starts", () => {
       project.getTableColumnMetadata("securityReadAccessLogForwardedFor")
         .defaultValue,
     ).toBe(false);
+  });
+
+  /*
+   * #11389: private addresses trusted by the column, for every project
+   * from before; a new one is turned off as it is created
+   * (ProjectServiceNewProjectSecurityDefaults).
+   */
+  it("private addresses trusted by its column, as every project did", () => {
+    expect(
+      new Project().getTableColumnMetadata("securityTrustPrivateAddresses")
+        .defaultValue,
+    ).toBe(true);
   });
 });

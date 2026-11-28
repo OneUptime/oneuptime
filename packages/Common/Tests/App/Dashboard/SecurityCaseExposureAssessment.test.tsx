@@ -162,6 +162,7 @@ import {
   BreachLawId,
   BreachPlace,
   COVERED_US_STATES,
+  getBreachLawRule,
   UNCOVERED_US_STATES,
   US_JURISDICTION_PLACES,
 } from "../../../Types/DataSecurity/BreachLaws";
@@ -170,11 +171,16 @@ import { DataSecurityExposureAssessmentResponse } from "../../../Types/DataSecur
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { getBuiltInDataType } from "../../../Types/DataSecurity/DataTypeCatalog";
 import {
+  applyBreachLaws,
+  BreachObligation,
+  BreachObligationStatus,
+  BreachReasonKind,
   buildExposureAssessmentView,
   ExposureAssessmentStarter,
   ExposureAssessmentView,
   ExposureDraftPart,
   ExposureIssueEvent,
+  ExposureReadsLogged,
   ExposureWindow,
   getExposureReads,
   getExposureWindow,
@@ -182,6 +188,11 @@ import {
   startExposureAssessment,
   StoredExposureAssessment,
 } from "../../../Types/DataSecurity/ExposureAssessment";
+import {
+  describeDeadline,
+  describeWhyNot,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentModel";
+import { createTranslator, Translator } from "../../../Types/Translator";
 import {
   ExposureChecklistAnswer,
   ExposureChecklistItem,
@@ -1463,7 +1474,7 @@ describe("every US state is a place a person can name (#10952)", () => {
     ).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        "Pick each state where some of them live, the District of Columbia and Puerto Rico among them: each has a breach law of its own.",
+        "Pick each state some of them live in, the District of Columbia, Puerto Rico, Guam and the US Virgin Islands too: each has its own breach law.",
       ),
     ).toBeInTheDocument();
 
@@ -1488,7 +1499,7 @@ describe("every US state is a place a person can name (#10952)", () => {
     });
   });
 
-  test("the states are listed in alphabetical order, the District of Columbia and Puerto Rico among them", async () => {
+  test("the states are listed in alphabetical order, the District of Columbia, Puerto Rico, Guam and the US Virgin Islands among them", async () => {
     reads.mockResolvedValue(answerOf({ view: viewOf({ countries: [] }) }));
 
     await renderCards();
@@ -1513,6 +1524,20 @@ describe("every US state is a place a person can name (#10952)", () => {
         return name.startsWith("Puerto Rico");
       }),
     ).toBe(true);
+    // Guam and the US Virgin Islands, whose laws the table holds (#11426).
+    for (const territory of ["Guam", "US Virgin Islands"]) {
+      const option: string | undefined = names.find((name: string): boolean => {
+        return name.startsWith(territory);
+      });
+
+      expect({ territory, listed: Boolean(option) }).toEqual({
+        territory,
+        listed: true,
+      });
+      expect(option).not.toContain(
+        "Its breach law is not in OneUptime's table",
+      );
+    }
     expect(
       names.some((name: string): boolean => {
         return name.startsWith("Georgia (US state)");
@@ -1699,7 +1724,7 @@ describe("the US states' laws, while nobody said which states (#10952)", () => {
     );
   });
 
-  test("what the table does not cover names the territories and every state it leaves out, and never the agencies' notices, which are rows", async () => {
+  test("what the table does not cover names every state it leaves out - no territory, as their laws are rows now - asks whose data it is, and never names the agencies' notices, which are rows", async () => {
     reads.mockResolvedValue(ssnAnswer([BreachPlace.UnitedStates]));
 
     await renderCards();
@@ -1708,10 +1733,15 @@ describe("the US states' laws, while nobody said which states (#10952)", () => {
       "security-case-exposure-uncovered",
     );
 
-    expect(uncovered).toHaveTextContent(
-      "Guam and the US Virgin Islands have breach laws of their own, which it does not cover.",
-    );
+    // Puerto Rico's, Guam's and the US Virgin Islands' laws are in the table (#11424, #11426).
+    expect(uncovered).not.toHaveTextContent("Guam");
+    expect(uncovered).not.toHaveTextContent("Virgin Islands");
+    expect(uncovered).not.toHaveTextContent("Puerto Rico");
     expect(uncovered).not.toHaveTextContent("consumer reporting agencies");
+    // Nobody said whose data it is: the notices to its owner wait on the answer (#11427).
+    expect(uncovered).toHaveTextContent(
+      "If your organization holds this data for another, the law may ask you to tell the data's owner. Say whose data it is on the Was It a Breach? card to see those notices.",
+    );
 
     if (UNCOVERED_US_STATES.length > 0) {
       expect(uncovered).toHaveTextContent(
@@ -1721,11 +1751,462 @@ describe("the US states' laws, while nobody said which states (#10952)", () => {
         "whose statutes could not be read from an official source: check them yourself.",
       );
       expect(uncovered).toHaveTextContent("West Virginia");
-      expect(uncovered).toHaveTextContent("Puerto Rico");
     } else {
       expect(uncovered).not.toHaveTextContent(
         "It does not cover the breach laws of",
       );
     }
+  });
+});
+
+/*
+ * WHOSE DATA IT IS (#11427): ONE SWITCH, KEPT WITH WHO SAID IT. No scan can
+ * tell whose data a store holds for whom, so a person says: on, the notices
+ * the law asks a holder to send the data's owner are drawn - Texas's
+ * immediately, due before anything else; off, the data is the
+ * organization's own. While nobody has said, the table says those notices
+ * wait on the answer.
+ */
+function texasAnswer(
+  heldFor?: boolean,
+  data: Partial<DataSecurityExposureAssessmentResponse> = {},
+): DataSecurityExposureAssessmentResponse {
+  return exposureAnswerOf({
+    view: exposureViewOf({
+      dataTypeIds: ["us-ssn", "person-name"],
+      countries: ["US"],
+      places: [BreachPlace.Texas],
+      holdsForAnother: heldFor,
+    }),
+    assessment: exposureAssessmentOf({
+      peopleLiveIn: {
+        places: [BreachPlace.Texas],
+        saidAt: EXPOSURE_NOW.toISOString(),
+        saidByUserId: USER_ID,
+      },
+      ...(heldFor === undefined
+        ? {}
+        : {
+            dataHeldFor: {
+              forAnother: heldFor,
+              saidAt: EXPOSURE_NOW.toISOString(),
+              saidByUserId: USER_ID,
+            },
+          }),
+    }),
+    editors: { [USER_ID]: "Alice Example" },
+    ...data,
+  });
+}
+
+function dataOwnerSwitch(): HTMLElement {
+  return screen.getByTestId("security-case-exposure-data-holder-toggle");
+}
+
+async function pressDataOwnerSwitch(): Promise<void> {
+  await act(async () => {
+    fireEvent.click(dataOwnerSwitch());
+  });
+  await flush();
+}
+
+const HELD_FOR_ANOTHER_LINE: string =
+  "If your organization holds this data for another, the law may ask you to tell the data's owner. Say whose data it is on the Was It a Breach? card to see those notices.";
+
+describe("whose data it is: one switch, kept with who said it (#11427)", () => {
+  test("nobody said: the switch is off, nothing says who said, and what the table does not cover says the owner's notices wait on it", async () => {
+    reads.mockResolvedValue(texasAnswer());
+
+    await renderCards();
+
+    const section: HTMLElement = screen.getByTestId(
+      "security-case-exposure-data-holder",
+    );
+
+    expect(section).toHaveTextContent("The Data's Owner");
+    expect(section).toHaveTextContent(
+      "We hold this data for another organization",
+    );
+    expect(dataOwnerSwitch()).toHaveAttribute("role", "switch");
+    expect(dataOwnerSwitch()).toHaveAttribute("aria-checked", "false");
+    expect(dataOwnerSwitch()).not.toHaveAttribute("aria-disabled");
+    // The switch is named by its title and described by what it does.
+    expect(dataOwnerSwitch()).toHaveAccessibleName(
+      "We hold this data for another organization",
+    );
+    expect(dataOwnerSwitch()).toHaveAccessibleDescription(
+      "On, the notices the law asks a vendor or service provider to send the data's owner are added.",
+    );
+    expect(
+      screen.queryByTestId("security-case-exposure-data-holder-said"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("security-case-exposure-uncovered"),
+    ).toHaveTextContent(HELD_FOR_ANOTHER_LINE);
+    // Texas's attorney general's 30 days are due first; no notice to an owner is drawn.
+    expect(
+      screen.getByTestId("security-case-exposure-headline"),
+    ).toHaveAttribute("data-rule", BreachLawId.TexasAttorneyGeneral);
+    expect(
+      screen.queryByTestId(
+        `security-case-exposure-law-${BreachLawId.TexasDataOwner}`,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("switching it on saves the answer: Texas's notice to the owner is due first, immediately, and the card says who said so", async () => {
+    reads.mockResolvedValue(texasAnswer());
+    const saved: SpyInstance<typeof DataSecurityApi.setExposureDataHeldFor> =
+      jest
+        .spyOn(DataSecurityApi, "setExposureDataHeldFor")
+        .mockResolvedValue(texasAnswer(true));
+    const toasts: Array<string> = [];
+
+    jest.spyOn(Toast, "success").mockImplementation(((
+      message: string,
+    ): void => {
+      toasts.push(message);
+    }) as never);
+
+    await renderCards();
+    await pressDataOwnerSwitch();
+
+    expect(saved).toHaveBeenCalledTimes(1);
+    expect(saved).toHaveBeenCalledWith({
+      securityCaseId: CASE_ID,
+      forAnother: true,
+    });
+    expect(toasts).toEqual(["Answer saved."]);
+    expect(dataOwnerSwitch()).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByTestId("security-case-exposure-data-holder-said"),
+    ).toHaveTextContent(
+      "Alice Example said your organization holds this data for another organization.",
+    );
+
+    const headline: HTMLElement = screen.getByTestId(
+      "security-case-exposure-headline",
+    );
+
+    // "Immediately after discovering the breach": before the attorney general's 30 days, with no moment of its own.
+    expect(headline).toHaveAttribute("data-rule", BreachLawId.TexasDataOwner);
+    expect(headline).toHaveTextContent("Tell the data's owner");
+    expect(headline).toHaveTextContent(
+      "Texas Business and Commerce Code 521.053(c)",
+    );
+    expect(headline).toHaveTextContent("Immediately");
+    expect(headline).toHaveTextContent(
+      "Counted from when Data Security found it",
+    );
+    // No due date of its own: "Due first" heads it, and no "Due <date>" line follows.
+    expect(headline).not.toHaveTextContent(/Due [A-Z][a-z]+ \d/);
+    expect(headline).toHaveTextContent("May apply");
+    expect(
+      within(headline).queryByTestId("security-case-exposure-due-state"),
+    ).not.toBeInTheDocument();
+    // The attorney general's notice is still listed after it; the table no longer says the answer is missing.
+    expect(
+      screen.getByTestId(
+        `security-case-exposure-law-${BreachLawId.TexasAttorneyGeneral}`,
+      ),
+    ).toHaveAttribute("data-status", "MayApply");
+    expect(
+      screen.getByTestId("security-case-exposure-uncovered"),
+    ).not.toHaveTextContent(HELD_FOR_ANOTHER_LINE);
+  });
+
+  test("switching it off says the data is the organization's own: the owner's notices go, and the attorney general's 30 days are due first again", async () => {
+    reads.mockResolvedValue(texasAnswer(true));
+    const saved: SpyInstance<typeof DataSecurityApi.setExposureDataHeldFor> =
+      jest
+        .spyOn(DataSecurityApi, "setExposureDataHeldFor")
+        .mockResolvedValue(texasAnswer(false));
+
+    jest.spyOn(Toast, "success").mockImplementation((() => {}) as never);
+
+    await renderCards();
+
+    expect(dataOwnerSwitch()).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByTestId("security-case-exposure-headline"),
+    ).toHaveAttribute("data-rule", BreachLawId.TexasDataOwner);
+
+    await pressDataOwnerSwitch();
+
+    expect(saved).toHaveBeenCalledWith({
+      securityCaseId: CASE_ID,
+      forAnother: false,
+    });
+    expect(dataOwnerSwitch()).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByTestId("security-case-exposure-data-holder-said"),
+    ).toHaveTextContent(
+      "Alice Example said this data is your organization's own.",
+    );
+    expect(
+      screen.getByTestId("security-case-exposure-headline"),
+    ).toHaveAttribute("data-rule", BreachLawId.TexasAttorneyGeneral);
+    expect(
+      screen.queryByTestId(
+        `security-case-exposure-law-${BreachLawId.TexasDataOwner}`,
+      ),
+    ).not.toBeInTheDocument();
+    // Answered: the table no longer asks.
+    expect(
+      screen.getByTestId("security-case-exposure-uncovered"),
+    ).not.toHaveTextContent(HELD_FOR_ANOTHER_LINE);
+  });
+
+  test("an answer that is not saved says why, and the switch goes back to the answer that is", async () => {
+    reads.mockResolvedValue(texasAnswer());
+    const saved: SpyInstance<typeof DataSecurityApi.setExposureDataHeldFor> =
+      jest
+        .spyOn(DataSecurityApi, "setExposureDataHeldFor")
+        .mockRejectedValue(
+          new DataSecurityApiError("The server is restarting.", 503),
+        );
+    const success: SpyInstance<typeof Toast.success> = jest
+      .spyOn(Toast, "success")
+      .mockImplementation((() => {}) as never);
+
+    await renderCards();
+    await pressDataOwnerSwitch();
+
+    expect(saved).toHaveBeenCalledTimes(1);
+    expect(success).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId("security-case-exposure-data-holder"),
+    ).toHaveTextContent("The server is restarting.");
+    expect(dataOwnerSwitch()).toHaveAttribute("aria-checked", "false");
+    expect(dataOwnerSwitch()).not.toHaveAttribute("aria-disabled");
+    expect(
+      screen.queryByTestId("security-case-exposure-data-holder-said"),
+    ).not.toBeInTheDocument();
+
+    // Pressed again, it is saved: the error goes.
+    saved.mockResolvedValueOnce(texasAnswer(true));
+    await pressDataOwnerSwitch();
+
+    expect(saved).toHaveBeenCalledTimes(2);
+    expect(dataOwnerSwitch()).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByTestId("security-case-exposure-data-holder"),
+    ).not.toHaveTextContent("The server is restarting.");
+  });
+
+  test("a reader who may not change the case sees the answer and who gave it, on a switch that says why it is locked", async () => {
+    reads.mockResolvedValue(texasAnswer(true, { canChange: false }));
+    const saved: SpyInstance<typeof DataSecurityApi.setExposureDataHeldFor> =
+      jest.spyOn(DataSecurityApi, "setExposureDataHeldFor");
+
+    await renderCards();
+
+    expect(dataOwnerSwitch()).toHaveAttribute("aria-checked", "true");
+    expect(dataOwnerSwitch()).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByTestId("security-case-exposure-data-holder"),
+    ).toHaveTextContent("Someone who can edit this case can change this.");
+    expect(
+      screen.getByTestId("security-case-exposure-data-holder-said"),
+    ).toHaveTextContent(
+      "Alice Example said your organization holds this data for another organization.",
+    );
+
+    await pressDataOwnerSwitch();
+
+    expect(saved).not.toHaveBeenCalled();
+    expect(dataOwnerSwitch()).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("an answer from someone the project no longer names says someone gave it", async () => {
+    reads.mockResolvedValue(texasAnswer(true, { editors: {} }));
+
+    await renderCards();
+
+    expect(
+      screen.getByTestId("security-case-exposure-data-holder-said"),
+    ).toHaveTextContent(
+      "Someone said your organization holds this data for another organization.",
+    );
+
+    cleanup();
+    reads.mockResolvedValue(texasAnswer(false, { editors: {} }));
+    await renderCards();
+
+    expect(
+      screen.getByTestId("security-case-exposure-data-holder-said"),
+    ).toHaveTextContent("Someone said this data is your organization's own.");
+  });
+
+  test("a store with nothing a breach law lists is not asked whose data it is, unless someone already said", async () => {
+    const nothingListed: DataSecurityExposureAssessmentResponse =
+      exposureAnswerOf({
+        view: exposureViewOf({ dataTypeIds: [] }),
+      });
+
+    reads.mockResolvedValue(nothingListed);
+    await renderCards();
+
+    expect(
+      screen.queryByTestId("security-case-exposure-data-holder"),
+    ).not.toBeInTheDocument();
+
+    // An answer someone gave stays to be taken back.
+    cleanup();
+    reads.mockResolvedValue(
+      exposureAnswerOf({
+        view: exposureViewOf({ dataTypeIds: [], holdsForAnother: true }),
+        assessment: exposureAssessmentOf({
+          dataHeldFor: {
+            forAnother: true,
+            saidAt: EXPOSURE_NOW.toISOString(),
+            saidByUserId: USER_ID,
+          },
+        }),
+        editors: { [USER_ID]: "Alice Example" },
+      }),
+    );
+    await renderCards();
+
+    expect(dataOwnerSwitch()).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("EU emails held for a client: GDPR's notice from a processor to its controller is listed, without undue delay", async () => {
+    reads.mockResolvedValue(
+      exposureAnswerOf({
+        view: exposureViewOf({ holdsForAnother: true }),
+        assessment: exposureAssessmentOf({
+          dataHeldFor: {
+            forAnother: true,
+            saidAt: EXPOSURE_NOW.toISOString(),
+            saidByUserId: USER_ID,
+          },
+        }),
+        editors: { [USER_ID]: "Alice Example" },
+      }),
+    );
+
+    await renderCards();
+
+    const processor: HTMLElement = screen.getByTestId(
+      `security-case-exposure-law-${BreachLawId.GdprProcessor}`,
+    );
+
+    expect(processor).toHaveAttribute("data-status", "MayApply");
+    expect(processor).toHaveTextContent("Without undue delay");
+    // The controller's 72 hours are still due first.
+    expect(
+      screen.getByTestId("security-case-exposure-headline"),
+    ).toHaveAttribute("data-rule", BreachLawId.GdprAuthority);
+  });
+});
+
+describe("the card's words for the rows of #11425 and #11427", () => {
+  const ENGLISH: Translator = createTranslator((): undefined => {
+    return undefined;
+  }, "en");
+
+  test("a notice to the data's owner reads Immediately, As soon as practicable, or its hours", () => {
+    expect(
+      describeDeadline(getBreachLawRule(BreachLawId.TexasDataOwner), ENGLISH),
+    ).toBe("Immediately");
+    expect(
+      describeDeadline(
+        getBreachLawRule(BreachLawId.MassachusettsDataOwner),
+        ENGLISH,
+      ),
+    ).toBe("As soon as practicable");
+    // Georgia's: within 24 hours of discovering the breach.
+    expect(
+      describeDeadline(getBreachLawRule(BreachLawId.GeorgiaDataOwner), ENGLISH),
+    ).toBe("Within 24 hours of finding it");
+    // GDPR's processor: without undue delay.
+    expect(
+      describeDeadline(getBreachLawRule(BreachLawId.GdprProcessor), ENGLISH),
+    ).toBe("Without undue delay");
+  });
+
+  test("Vermont's text from 2027, for an exposure found before it: it took effect after, and the text in force when it was found applies (#11425)", () => {
+    const obligations: Array<BreachObligation> = applyBreachLaws({
+      whose: getWhoseData({
+        dataTypes: ["us-ssn", "person-name"].map((id: string) => {
+          return {
+            id,
+            name: getBuiltInDataType(id)?.name || id,
+            category: getBuiltInDataType(id)?.category || "",
+          };
+        }),
+        subjectCountries: ["US"],
+        placesNamed: [BreachPlace.Vermont],
+      }),
+      reads: {
+        logged: ExposureReadsLogged.NotLogged,
+        isPublic: true,
+        outsideAccounts: 0,
+        outsideAccountsUsedInWindow: 0,
+        isTreatedAsRead: true,
+      },
+      foundAt: new Date("2026-12-20T09:00:00.000Z"),
+      now: new Date("2027-01-05T09:00:00.000Z"),
+    });
+    const newer: BreachObligation = obligations.find(
+      (obligation: BreachObligation): boolean => {
+        return obligation.ruleId === BreachLawId.VermontResidentsFrom2027;
+      },
+    )!;
+    const older: BreachObligation = obligations.find(
+      (obligation: BreachObligation): boolean => {
+        return obligation.ruleId === BreachLawId.VermontResidents;
+      },
+    )!;
+
+    expect(newer.status).toBe(BreachObligationStatus.NotTriggered);
+    expect(newer.reasons).toContainEqual({
+      kind: BreachReasonKind.InForceAfterFound,
+      date: "2027-01-01",
+    });
+    expect(describeWhyNot(newer, ENGLISH)).toEqual([
+      expect.stringMatching(
+        /^It took effect on Jan(uary)? 1, 2027, after the exposure was found: the text in force when it was found applies\.$/,
+      ),
+    ]);
+    // The text in force when it was found may apply, and says nothing against it.
+    expect(older.status).toBe(BreachObligationStatus.MayApply);
+    expect(describeWhyNot(older, ENGLISH)).toEqual([]);
+  });
+
+  test("Vermont's text from 2027, before it takes effect: in force from its day (#11425)", () => {
+    const obligations: Array<BreachObligation> = applyBreachLaws({
+      whose: getWhoseData({
+        dataTypes: ["us-ssn", "person-name"].map((id: string) => {
+          return {
+            id,
+            name: getBuiltInDataType(id)?.name || id,
+            category: getBuiltInDataType(id)?.category || "",
+          };
+        }),
+        subjectCountries: ["US"],
+        placesNamed: [BreachPlace.Vermont],
+      }),
+      reads: {
+        logged: ExposureReadsLogged.NotLogged,
+        isPublic: true,
+        outsideAccounts: 0,
+        outsideAccountsUsedInWindow: 0,
+        isTreatedAsRead: true,
+      },
+      foundAt: new Date("2026-12-20T09:00:00.000Z"),
+      now: new Date("2026-12-21T09:00:00.000Z"),
+    });
+    const newer: BreachObligation = obligations.find(
+      (obligation: BreachObligation): boolean => {
+        return obligation.ruleId === BreachLawId.VermontResidentsFrom2027;
+      },
+    )!;
+
+    expect(newer.status).toBe(BreachObligationStatus.NotYetInForce);
+    expect(describeWhyNot(newer, ENGLISH)).toEqual([
+      expect.stringMatching(/^In force from Jan(uary)? 1, 2027\.$/),
+    ]);
   });
 });
