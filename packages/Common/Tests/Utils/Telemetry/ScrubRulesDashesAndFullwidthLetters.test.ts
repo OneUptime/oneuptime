@@ -72,7 +72,8 @@ interface Written {
 
 const WRITTEN: ReadonlyArray<Written> = [
   {
-    label: "a phone number set apart by the prolonged sound mark, typed in fullwidth",
+    label:
+      "a phone number set apart by the prolonged sound mark, typed in fullwidth",
     dataTypeId: "phone-number",
     patternType: LogScrubPatternType.PhoneNumber,
     text: "電話 ＋８１ ３ー１２３４ー５６７８ まで",
@@ -144,7 +145,8 @@ const WRITTEN: ReadonlyArray<Written> = [
     mask: "***-**-8731",
   },
   {
-    label: "a Social Security number typed in fullwidth, set apart by the prolonged sound mark",
+    label:
+      "a Social Security number typed in fullwidth, set apart by the prolonged sound mark",
     dataTypeId: "us-ssn",
     patternType: LogScrubPatternType.SSN,
     text: "SSN：５３６ー２２ー８７３１",
@@ -204,21 +206,47 @@ const KEPT: ReadonlyArray<[string, string, string]> = [
   ["phone-number", LogScrubPatternType.PhoneNumber, "サーバー3台 データ2ー3件"],
   ["phone-number", LogScrubPatternType.PhoneNumber, "pages 10–20 of 2020–2026"],
   ["phone-number", LogScrubPatternType.PhoneNumber, "気温 −5 度"],
-  ["phone-number", LogScrubPatternType.PhoneNumber, "at UTC +1 2026−11−24 10:15:00"],
-  ["phone-number", LogScrubPatternType.PhoneNumber, "ＩＤ　０３１２３４５６７８"],
-  ["phone-number", LogScrubPatternType.PhoneNumber, "ｐｈｏｎｅ＝ｅ＋７７７６９８３２６２８８５８"],
+  [
+    "phone-number",
+    LogScrubPatternType.PhoneNumber,
+    "at UTC +1 2026−11−24 10:15:00",
+  ],
+  [
+    "phone-number",
+    LogScrubPatternType.PhoneNumber,
+    "ＩＤ　０３１２３４５６７８",
+  ],
+  [
+    "phone-number",
+    LogScrubPatternType.PhoneNumber,
+    "ｐｈｏｎｅ＝ｅ＋７７７６９８３２６２８８５８",
+  ],
   ["us-ssn", LogScrubPatternType.SSN, "SSN 666–22–8731"],
   ["us-ssn", LogScrubPatternType.SSN, "ref 536–22–8731–01"],
   ["us-ssn", LogScrubPatternType.SSN, "ＲＥＦ　５３６２２１２３４"],
-  ["credit-card-number", LogScrubPatternType.CreditCard, "card 4532–0151–1283–0367"],
-  ["email-address", LogScrubPatternType.Email, "ＩＴ部門＠本社 へ連絡してください"],
-  ["email-address", LogScrubPatternType.Email, "設定を確認してください。（注）以上です！"],
+  [
+    "credit-card-number",
+    LogScrubPatternType.CreditCard,
+    "card 4532–0151–1283–0367",
+  ],
+  [
+    "email-address",
+    LogScrubPatternType.Email,
+    "ＩＴ部門＠本社 へ連絡してください",
+  ],
+  [
+    "email-address",
+    LogScrubPatternType.Email,
+    "設定を確認してください。（注）以上です！",
+  ],
 ];
 
 function rangesOf(regex: ScrubRegExp, text: string): Array<string> {
-  return regex.matchRanges(text).map(([start, end]: [number, number]): string => {
-    return text.slice(start, end);
-  });
+  return regex
+    .matchRanges(text)
+    .map(([start, end]: [number, number]): string => {
+      return text.slice(start, end);
+    });
 }
 
 function findingsOf(text: string, dataTypeId: string): Array<string> {
@@ -232,17 +260,18 @@ function findingsOf(text: string, dataTypeId: string): Array<string> {
 }
 
 describe("Data Security finds each, on its written characters, and the rule of its type hides exactly that", () => {
-  test.each(WRITTEN.map((written: Written): [string, Written] => [written.label, written]))(
-    "%s",
-    (_label: string, written: Written) => {
-      const regex: ScrubRegExp = compileBuiltInScrubPattern(written.patternType)!;
+  test.each(
+    WRITTEN.map((written: Written): [string, Written] => {
+      return [written.label, written];
+    }),
+  )("%s", (_label: string, written: Written) => {
+    const regex: ScrubRegExp = compileBuiltInScrubPattern(written.patternType)!;
 
-      expect(findingsOf(written.text, written.dataTypeId)).toEqual([
-        written.written,
-      ]);
-      expect(rangesOf(regex, written.text)).toEqual([written.written]);
-    },
-  );
+    expect(findingsOf(written.text, written.dataTypeId)).toEqual([
+      written.written,
+    ]);
+    expect(rangesOf(regex, written.text)).toEqual([written.written]);
+  });
 
   /*
    * What is no value written so is none to Data Security; and a rule hides
@@ -251,24 +280,26 @@ describe("Data Security finds each, on its written characters, and the rule of i
    * digits for a Phone Number rule, any 3-2-4 grouping for an SSN rule) -
    * since it reads the dashes and the fullwidth letters as those.
    */
-  test.each(KEPT)("a %s rule finds none of what is none: %s", (
-    dataTypeId: string,
-    patternType: string,
-    text: string,
-  ) => {
-    const regex: ScrubRegExp = compileBuiltInScrubPattern(patternType)!;
-    const plain: string = foldFullwidthLetters(text);
+  test.each(KEPT)(
+    "a %s rule finds none of what is none: %s",
+    (dataTypeId: string, patternType: string, text: string) => {
+      const regex: ScrubRegExp = compileBuiltInScrubPattern(patternType)!;
+      const plain: string = foldFullwidthLetters(text);
 
-    expect(findingsOf(text, dataTypeId)).toEqual([]);
-    expect(findingsOf(plain, dataTypeId)).toEqual([]);
-    expect(regex.matchRanges(text)).toEqual(regex.matchRanges(plain));
-  });
+      expect(findingsOf(text, dataTypeId)).toEqual([]);
+      expect(findingsOf(plain, dataTypeId)).toEqual([]);
+      expect(regex.matchRanges(text)).toEqual(regex.matchRanges(plain));
+    },
+  );
 
   test.each([
     [LogScrubPatternType.PhoneNumber, "サーバー3台 データ2ー3件"],
     [LogScrubPatternType.PhoneNumber, "pages 10–20 of 2020–2026"],
     [LogScrubPatternType.PhoneNumber, "気温 −5 度"],
-    [LogScrubPatternType.PhoneNumber, "ｐｈｏｎｅ＝ｅ＋７７７６９８３２６２８８５８"],
+    [
+      LogScrubPatternType.PhoneNumber,
+      "ｐｈｏｎｅ＝ｅ＋７７７６９８３２６２８８５８",
+    ],
     [LogScrubPatternType.SSN, "ＲＥＦ　５３６２２１２３４"],
     [LogScrubPatternType.Email, "ＩＴ部門＠本社 へ連絡してください"],
     [LogScrubPatternType.Email, "設定を確認してください。（注）以上です！"],
@@ -280,38 +311,41 @@ describe("Data Security finds each, on its written characters, and the rule of i
 });
 
 describe("Mask and Hash read each as the value written plainly", () => {
-  test.each(WRITTEN.map((written: Written): [string, Written] => [written.label, written]))(
-    "%s",
-    (_label: string, written: Written) => {
-      const regex: ScrubRegExp = compileBuiltInScrubPattern(written.patternType)!;
-      const apply: (action: string) => string = (action: string): string => {
-        return ScrubAction.apply({
-          match: written.written,
-          action,
-          patternType: written.patternType,
-          projectId: PROJECT_ID,
-          pattern: regex,
-        });
-      };
+  test.each(
+    WRITTEN.map((written: Written): [string, Written] => {
+      return [written.label, written];
+    }),
+  )("%s", (_label: string, written: Written) => {
+    const regex: ScrubRegExp = compileBuiltInScrubPattern(written.patternType)!;
+    const apply: (action: string) => string = (action: string): string => {
+      return ScrubAction.apply({
+        match: written.written,
+        action,
+        patternType: written.patternType,
+        projectId: PROJECT_ID,
+        pattern: regex,
+      });
+    };
 
-      expect(apply(LogScrubAction.Redact)).toBe("[REDACTED]");
-      expect(apply(LogScrubAction.Mask)).toBe(written.mask);
-      expect(apply(LogScrubAction.Hash)).toBe(tokenOf(written.reads));
-      // The plain value's own token: one token however it is written.
-      expect(
-        ScrubAction.apply({
-          match: written.reads,
-          action: LogScrubAction.Hash,
-          patternType: written.patternType,
-          projectId: PROJECT_ID,
-          pattern: regex,
-        }),
-      ).toBe(tokenOf(written.reads));
-    },
-  );
+    expect(apply(LogScrubAction.Redact)).toBe("[REDACTED]");
+    expect(apply(LogScrubAction.Mask)).toBe(written.mask);
+    expect(apply(LogScrubAction.Hash)).toBe(tokenOf(written.reads));
+    // The plain value's own token: one token however it is written.
+    expect(
+      ScrubAction.apply({
+        match: written.reads,
+        action: LogScrubAction.Hash,
+        patternType: written.patternType,
+        projectId: PROJECT_ID,
+        pattern: regex,
+      }),
+    ).toBe(tokenOf(written.reads));
+  });
 
   test("a finding's masked email sample reads an address typed in fullwidth as the address", () => {
-    expect(maskEmail("ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ")).toBe(maskEmail("jane@example.com"));
+    expect(maskEmail("ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ")).toBe(
+      maskEmail("jane@example.com"),
+    );
     expect(maskEmail("jane＠example.com")).toBe("j***@e******.com");
   });
 });
@@ -334,35 +368,35 @@ const CUSTOM: ReadonlyArray<[string, string, string, string]> = [
 ];
 
 describe("a Custom Regex rule Scrub It makes reads the dashes and the fullwidth letters too", () => {
-  test.each(CUSTOM)("%s: %s", (
-    dataTypeId: string,
-    text: string,
-    written: string,
-    reads: string,
-  ) => {
-    const regex: ScrubRegExp = compileScrubRuleCustomRegex(
-      buildScrubPatternForDataType(dataTypeId),
-    )!;
+  test.each(CUSTOM)(
+    "%s: %s",
+    (dataTypeId: string, text: string, written: string, reads: string) => {
+      const regex: ScrubRegExp = compileScrubRuleCustomRegex(
+        buildScrubPatternForDataType(dataTypeId),
+      )!;
 
-    expect(findingsOf(text, dataTypeId)).toEqual([written]);
-    expect(rangesOf(regex, text)).toEqual([written]);
-    expect(
-      ScrubAction.apply({
-        match: written,
-        action: LogScrubAction.Hash,
-        patternType: LogScrubPatternType.Custom,
-        projectId: PROJECT_ID,
-        pattern: regex,
-      }),
-    ).toBe(tokenOf(reads));
-  });
+      expect(findingsOf(text, dataTypeId)).toEqual([written]);
+      expect(rangesOf(regex, text)).toEqual([written]);
+      expect(
+        ScrubAction.apply({
+          match: written,
+          action: LogScrubAction.Hash,
+          patternType: LogScrubPatternType.Custom,
+          projectId: PROJECT_ID,
+          pattern: regex,
+        }),
+      ).toBe(tokenOf(reads));
+    },
+  );
 
   test("CJK prose with fullwidth letters and digits holds no value for it", () => {
     const regex: ScrubRegExp = compileScrubRuleCustomRegex(
       buildScrubPatternForDataType("iban"),
     )!;
 
-    expect(rangesOf(regex, "ＯＫです。ＩＴ部門の１２３件、ＤＥ８９は不明")).toEqual([]);
+    expect(
+      rangesOf(regex, "ＯＫです。ＩＴ部門の１２３件、ＤＥ８９は不明"),
+    ).toEqual([]);
   });
 });
 
@@ -400,7 +434,9 @@ function metricRule(
 describe("a metric rule that hides reads them too", () => {
   test("a Redact Attribute rule's Matches Regex filter of Scrub It's IBAN pattern hides one typed in fullwidth letters", () => {
     const row: MutableMetricRow | null = MetricPipelineEngine.applyRules(
-      metricRow({ "account.iban": "ＤＥ４７３７０４００４４０５３２０１３０７７" }),
+      metricRow({
+        "account.iban": "ＤＥ４７３７０４００４４０５３２０１３０７７",
+      }),
       [
         metricRule(
           MetricPipelineRuleType.RedactAttribute,
@@ -417,7 +453,9 @@ describe("a metric rule that hides reads them too", () => {
 
   test("a Filter rule's Matches Regex filter reads the value as written, as before", () => {
     const row: MutableMetricRow | null = MetricPipelineEngine.applyRules(
-      metricRow({ "account.iban": "ＤＥ４７３７０４００４４０５３２０１３０７７" }),
+      metricRow({
+        "account.iban": "ＤＥ４７３７０４００４４０５３２０１３０７７",
+      }),
       [
         metricRule(
           MetricPipelineRuleType.Filter,
@@ -438,36 +476,44 @@ describe("a metric rule that hides reads them too", () => {
     ["ssn", "applicant", "536–22–8731"],
     ["creditCard", "card", "4532–0151–1283–0366"],
     ["email", "user", "ｊａｎｅ＠ａｃｍｅｃｏｒｐ．ｉｏ"],
-  ])("a Redact Attribute rule's Matches Pattern Type filter of %s hides %s=%s", (
-    patternType: string,
-    key: string,
-    value: string,
-  ) => {
-    const row: MutableMetricRow | null = MetricPipelineEngine.applyRules(
-      metricRow({ [key]: value }),
-      [
-        metricRule(
-          MetricPipelineRuleType.RedactAttribute,
-          key,
-          MetricPipelineRuleFilterConditionType.MatchesPatternType,
-          patternType,
-        ),
-      ],
-      [],
-    );
+  ])(
+    "a Redact Attribute rule's Matches Pattern Type filter of %s hides %s=%s",
+    (patternType: string, key: string, value: string) => {
+      const row: MutableMetricRow | null = MetricPipelineEngine.applyRules(
+        metricRow({ [key]: value }),
+        [
+          metricRule(
+            MetricPipelineRuleType.RedactAttribute,
+            key,
+            MetricPipelineRuleFilterConditionType.MatchesPatternType,
+            patternType,
+          ),
+        ],
+        [],
+      );
 
-    expect(row!.attributes).toEqual({ [key]: "[REDACTED]" });
-  });
+      expect(row!.attributes).toEqual({ [key]: "[REDACTED]" });
+    },
+  );
 });
 
 describe("the AI toolbox hides them before a model reads them", () => {
   test.each([
     ["電話 ＋８１ ３ー１２３４ー５６７８ まで", "電話 [redacted-phone] まで"],
     ["call +44 20 7123‑4567 now", "call [redacted-phone] now"],
-    ["applicant ssn 536–22–8731 verified", "applicant ssn [redacted-ssn] verified"],
+    [
+      "applicant ssn 536–22–8731 verified",
+      "applicant ssn [redacted-ssn] verified",
+    ],
     ["card 4532–0151–1283–0366 charged", "card [redacted-card] charged"],
-    ["カード番号：４５３２ー０１５１ー１２８３ー０３６６", "カード番号：[redacted-card]"],
-    ["メール ｊａｎｅ．ｄｏｅ＠ａｃｍｅｃｏｒｐ．ｉｏ に送信", "メール [redacted-email] に送信"],
+    [
+      "カード番号：４５３２ー０１５１ー１２８３ー０３６６",
+      "カード番号：[redacted-card]",
+    ],
+    [
+      "メール ｊａｎｅ．ｄｏｅ＠ａｃｍｅｃｏｒｐ．ｉｏ に送信",
+      "メール [redacted-email] に送信",
+    ],
     ["連絡先：jane.doe＠acmecorp.io", "連絡先：[redacted-email]"],
     ["ＴＥＬ　０３１２３４５６７８", "ＴＥＬ　[redacted-phone]"],
   ])("%s", (text: string, redacted: string) => {
@@ -475,7 +521,11 @@ describe("the AI toolbox hides them before a model reads them", () => {
   });
 
   // As it hides the same text written with hyphens and in ASCII: what it always hid, and no more.
-  test.each(KEPT.map((kept: [string, string, string]): [string] => [kept[2]]))(
+  test.each(
+    KEPT.map((kept: [string, string, string]): [string] => {
+      return [kept[2]];
+    }),
+  )(
     "hides of what is none what it hides of it written plainly: %s",
     (text: string) => {
       expect(ToolResultSerializer.redact(text).count).toBe(
@@ -523,7 +573,10 @@ describe("the detectors that read them", () => {
   test("every detector that reads a number typed in fullwidth reads its letters and its words too", () => {
     const lacking: Array<string> = BUILT_IN_DETECTORS.filter(
       (detector: DataTypeDetector): boolean => {
-        return Boolean(detector.readsFullwidthForms) && !detector.readsFullwidthLetters;
+        return (
+          Boolean(detector.readsFullwidthForms) &&
+          !detector.readsFullwidthLetters
+        );
       },
     ).map((detector: DataTypeDetector): string => {
       return detector.dataTypeId;
@@ -539,17 +592,20 @@ describe("the detectors that read them", () => {
   });
 
   test("a database search for each type takes a record holding it written so", () => {
-    for (const written of [...WRITTEN, ...CUSTOM.map((custom: [string, string, string, string]): Written => {
-      return {
-        label: custom[0],
-        dataTypeId: custom[0],
-        patternType: LogScrubPatternType.Custom,
-        text: custom[1],
-        written: custom[2],
-        reads: custom[3],
-        mask: "",
-      };
-    })]) {
+    for (const written of [
+      ...WRITTEN,
+      ...CUSTOM.map((custom: [string, string, string, string]): Written => {
+        return {
+          label: custom[0],
+          dataTypeId: custom[0],
+          patternType: LogScrubPatternType.Custom,
+          text: custom[1],
+          written: custom[2],
+          reads: custom[3],
+          mask: "",
+        };
+      }),
+    ]) {
       const expression: string | null = getDataTypePrefilter({
         dataTypeId: written.dataTypeId,
       });
@@ -557,7 +613,9 @@ describe("the detectors that read them", () => {
       expect(expression).not.toBeNull();
       expect([
         written.label,
-        new RegExp(expression!.split("\\x{").join("\\u{"), "u").test(written.text),
+        new RegExp(expression!.split("\\x{").join("\\u{"), "u").test(
+          written.text,
+        ),
       ]).toEqual([written.label, true]);
       expect(
         findSensitiveValues(written.text, {

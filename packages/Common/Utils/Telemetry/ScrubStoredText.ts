@@ -1,5 +1,7 @@
 import { TextRange } from "../DataSecurity/TextReadings";
-import ScrubNestedValuesUtil, { SCRUB_MAX_VALUE_DEPTH } from "./ScrubNestedValues";
+import ScrubNestedValuesUtil, {
+  SCRUB_MAX_VALUE_DEPTH,
+} from "./ScrubNestedValues";
 
 /*
  * A LIST OR A MAP AS THE TABLE STORES IT, AND WHERE EACH OF ITS TEXTS IS IN
@@ -169,7 +171,9 @@ export function readStoredText(value: unknown): StoredText | null {
 
 const QUOTE: number = 0x22;
 const BACKSLASH: number = 0x5c;
-const SHORT_ESCAPES: ReadonlySet<number> = new Set([0x08, 0x09, 0x0a, 0x0c, 0x0d]);
+const SHORT_ESCAPES: ReadonlySet<number> = new Set([
+  0x08, 0x09, 0x0a, 0x0c, 0x0d,
+]);
 
 function isHighSurrogate(code: number): boolean {
   return code >= 0xd800 && code <= 0xdbff;

@@ -689,7 +689,10 @@ describe("a number typed wholly in fullwidth, as the number it reads as (#11115)
       ScrubAction.asItReads("（８１）", LogScrubPatternType.SensitiveKeys),
     ).toBe("（８１）");
     expect(
-      ScrubAction.asItReads("２００１：ｄｂ８：：１", LogScrubPatternType.IPAddress),
+      ScrubAction.asItReads(
+        "２００１：ｄｂ８：：１",
+        LogScrubPatternType.IPAddress,
+      ),
     ).toBe("２００１：ｄｂ８：：１");
   });
 

@@ -134,7 +134,9 @@ function traceRules(
   rule.scrubAction = action;
   rule.fieldsToScrub = fields;
 
-  return [{ rule, regex: regexOf(TraceScrubRuleService, patternType) }] as never;
+  return [
+    { rule, regex: regexOf(TraceScrubRuleService, patternType) },
+  ] as never;
 }
 
 function tokenOf(value: string): string {
@@ -329,7 +331,11 @@ describe("under a key that names it (#11383): the trace engine", () => {
 });
 
 describe("under a key that names it (#11383): a session replay, which the log rules scrub", () => {
-  test.each(ACTIONS.map((action: string): [string] => [action]))(
+  test.each(
+    ACTIONS.map((action: string): [string] => {
+      return [action];
+    }),
+  )(
     "hides a number under a DOM attribute named for it, under %s, and keeps one under any other",
     async (action: string) => {
       const events: Array<JSONValue> = [
@@ -390,7 +396,11 @@ describe("under a key that names it (#11383): Data Security's coverage is true",
       expect(
         isFindingScrubbed(
           { rules: [rule] },
-          { kind: DataStoreKind.TelemetryLogs, dataTypeId: keyed.dataTypeId, location },
+          {
+            kind: DataStoreKind.TelemetryLogs,
+            dataTypeId: keyed.dataTypeId,
+            location,
+          },
         ),
       ).toBe(true);
 
@@ -433,7 +443,8 @@ interface Written {
 
 const WRITTEN: Array<Written> = [
   {
-    label: "a phone number set apart by the prolonged sound mark, typed in fullwidth",
+    label:
+      "a phone number set apart by the prolonged sound mark, typed in fullwidth",
     patternType: LogScrubPatternType.PhoneNumber,
     dataTypeId: "phone-number",
     before: "電話 ",
@@ -537,7 +548,10 @@ const KEPT: Array<[string, string]> = [
   [LogScrubPatternType.PhoneNumber, "サーバー3台 データ2ー3件"],
   [LogScrubPatternType.PhoneNumber, "pages 10–20 of 2020–2026"],
   [LogScrubPatternType.PhoneNumber, "気温 −5 度"],
-  [LogScrubPatternType.PhoneNumber, "ｐｈｏｎｅ＝ｅ＋７７７６９８３２６２８８５８"],
+  [
+    LogScrubPatternType.PhoneNumber,
+    "ｐｈｏｎｅ＝ｅ＋７７７６９８３２６２８８５８",
+  ],
   [LogScrubPatternType.Email, "ＩＴ部門＠本社 へ連絡してください"],
   [LogScrubPatternType.Email, "設定を確認してください。（注）以上です！"],
 ];
@@ -595,20 +609,20 @@ describe("set apart by another dash, or typed in fullwidth letters (#11385): the
     },
   );
 
-  test.each(KEPT)("a %s rule keeps %s, under every action", (
-    patternType: string,
-    kept: string,
-  ) => {
-    for (const action of ACTIONS) {
-      const record: () => JSONObject = (): JSONObject => {
-        return { body: kept, attributes: { "event.detail": kept } };
-      };
+  test.each(KEPT)(
+    "a %s rule keeps %s, under every action",
+    (patternType: string, kept: string) => {
+      for (const action of ACTIONS) {
+        const record: () => JSONObject = (): JSONObject => {
+          return { body: kept, attributes: { "event.detail": kept } };
+        };
 
-      expect(
-        LogScrubRuleService.scrubLog(record(), logRules(patternType, action)),
-      ).toEqual(record());
-    }
-  });
+        expect(
+          LogScrubRuleService.scrubLog(record(), logRules(patternType, action)),
+        ).toEqual(record());
+      }
+    },
+  );
 });
 
 describe("set apart by another dash, or typed in fullwidth letters (#11385): the trace engine", () => {
@@ -666,24 +680,26 @@ describe("set apart by another dash, or typed in fullwidth letters (#11385): the
 });
 
 describe("set apart by another dash, or typed in fullwidth letters (#11385): a session replay", () => {
-  test.each(CASES)("hides %s under %s", async (
-    _label: string,
-    action: string,
-    written: Written,
-  ) => {
-    const events: Array<JSONValue> = [
-      { text: `visit ${written.before}${written.written}` },
-    ];
+  test.each(CASES)(
+    "hides %s under %s",
+    async (_label: string, action: string, written: Written) => {
+      const events: Array<JSONValue> = [
+        { text: `visit ${written.before}${written.written}` },
+      ];
 
-    await SessionReplayScrubService.scrubEvents(
-      events,
-      logRules(written.patternType, action) as unknown as Array<CompiledScrubRule>,
-    );
+      await SessionReplayScrubService.scrubEvents(
+        events,
+        logRules(
+          written.patternType,
+          action,
+        ) as unknown as Array<CompiledScrubRule>,
+      );
 
-    expect((events[0] as JSONObject)["text"]).toBe(
-      `visit ${hiddenOf(written, action)}`,
-    );
-  });
+      expect((events[0] as JSONObject)["text"]).toBe(
+        `visit ${hiddenOf(written, action)}`,
+      );
+    },
+  );
 });
 
 describe("set apart by another dash, or typed in fullwidth letters (#11385): Data Security's coverage is true", () => {
@@ -978,8 +994,8 @@ describe("through log and trace ingest", () => {
     expect(stored).not.toContain("536–22–8731");
     // The order id under a key that names nothing is kept.
     expect(stored).toContain("02012345678");
-    expect(
-      (spanRows[0]!["attributes"] as JSONObject)["user.phone"],
-    ).toBe("[REDACTED]");
+    expect((spanRows[0]!["attributes"] as JSONObject)["user.phone"]).toBe(
+      "[REDACTED]",
+    );
   });
 });

@@ -115,7 +115,8 @@ export const FULLWIDTH_FORM_PREFILTER: string = `${FULLWIDTH_FORM_CLASS}${ANY_DI
  * either width - since only such a text is read so (FullwidthForms'
  * holdsFullwidthLettersOfAValue). More is fine, never less.
  */
-const FULLWIDTH_LETTER_CLASS: string = "[\\x{FF21}-\\x{FF3A}\\x{FF41}-\\x{FF5A}]";
+const FULLWIDTH_LETTER_CLASS: string =
+  "[\\x{FF21}-\\x{FF3A}\\x{FF41}-\\x{FF5A}]";
 const FULLWIDTH_DIGIT_OR_AT_CLASS: string = "[\\x{FF10}-\\x{FF19}\\x{FF20}]";
 const LETTER_OR_DIGIT_OF_EITHER_WIDTH_CLASS: string =
   "[0-9A-Za-z\\x{FF10}-\\x{FF19}]";

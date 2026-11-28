@@ -391,8 +391,9 @@ function readsUnderKey(data: {
       undefined,
       { hintedDataTypeIds: hinted },
     );
-    const placed: Map<string, Array<TextRange>> =
-      found.length > 0 ? placeRangesOnStrings(stored, found) : new Map();
+    const placed: Map<string, Array<TextRange>> = found.length > 0
+      ? placeRangesOnStrings(stored, found)
+      : new Map();
 
     if (placed.size === 0) {
       return null;

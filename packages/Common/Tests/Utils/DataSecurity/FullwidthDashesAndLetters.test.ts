@@ -41,6 +41,9 @@ const DASHES: Array<string> = NUMBER_DASHES.map((dash: number): string => {
   return String.fromCharCode(dash);
 });
 
+// One letter of the Latin alphabet, as ASCII writes it.
+const ASCII_LETTER: RegExp = /^[A-Za-z]$/;
+
 // One digit of each script the digit readings read.
 const DIGIT_OF_EVERY_SCRIPT: Array<string> = DIGIT_ZEROS.map(
   (zero: number): string => {
@@ -70,7 +73,11 @@ describe("the dashes read between two digits", () => {
     }
   });
 
-  test.each(DASHES.map((dash: string): [string] => [dash]))(
+  test.each(
+    DASHES.map((dash: string): [string] => {
+      return [dash];
+    }),
+  )(
     "%s between two digits is read as a hyphen, one unit for one",
     (dash: string) => {
       const text: string = `03${dash}1234${dash}5678`;
@@ -82,24 +89,26 @@ describe("the dashes read between two digits", () => {
     },
   );
 
-  test.each(DASHES.map((dash: string): [string] => [dash]))(
-    "%s between digits of every script is read so too",
-    (dash: string) => {
-      for (const left of DIGIT_OF_EVERY_SCRIPT) {
-        for (const right of [DIGIT_OF_EVERY_SCRIPT[0]!, "５", "٥"]) {
-          const text: string = `${left}${dash}${right}`;
+  test.each(
+    DASHES.map((dash: string): [string] => {
+      return [dash];
+    }),
+  )("%s between digits of every script is read so too", (dash: string) => {
+    for (const left of DIGIT_OF_EVERY_SCRIPT) {
+      for (const right of [DIGIT_OF_EVERY_SCRIPT[0]!, "５", "٥"]) {
+        const text: string = `${left}${dash}${right}`;
 
-          expect([text, holdsFullwidthFormOfANumber(text)]).toEqual([
-            text,
-            true,
-          ]);
-          expect(foldFullwidthForms(text)).toBe(`${left}-${right}`);
-        }
+        expect([text, holdsFullwidthFormOfANumber(text)]).toEqual([text, true]);
+        expect(foldFullwidthForms(text)).toBe(`${left}-${right}`);
       }
-    },
-  );
+    }
+  });
 
-  test.each(DASHES.map((dash: string): [string] => [dash]))(
+  test.each(
+    DASHES.map((dash: string): [string] => {
+      return [dash];
+    }),
+  )(
     "%s beside no digit, or beside one alone, is left as it is",
     (dash: string) => {
       for (const text of [
@@ -132,7 +141,9 @@ describe("the dashes read between two digits", () => {
   });
 
   test("a fullwidth form beside a digit is read as before, a dash elsewhere in the text left", () => {
-    expect(readFullwidthForms("＋８１ ー ３－１２３４")).toBe("+８１ ー ３-１２３４");
+    expect(readFullwidthForms("＋８１ ー ３－１２３４")).toBe(
+      "+８１ ー ３-１２３４",
+    );
   });
 });
 
@@ -194,7 +205,8 @@ describe("the fullwidth letters' reading", () => {
   });
 
   test("is one unit for one: as long as the text, every character where it was", () => {
-    const text: string = "メール：ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ　ＩＢＡＮ　ＤＥ８９";
+    const text: string =
+      "メール：ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ　ＩＢＡＮ　ＤＥ８９";
     const folded: string = foldFullwidthLetters(text);
 
     expect(folded).toBe("メール:jane@example.com IBAN DE89");
@@ -215,18 +227,21 @@ describe("the fullwidth letters' reading", () => {
     ["a fullwidth at sign in an ASCII address", "jane＠example.com"],
     ["a fullwidth at sign before fullwidth digits", "＠１２３"],
     ["a fullwidth letter after a fullwidth digit", "１Ａ"],
-  ])("is read for a text with some of a value typed in fullwidth: %s", (
-    _label: string,
-    text: string,
-  ) => {
-    expect(holdsFullwidthLettersOfAValue(text)).toBe(true);
-    expect(readFullwidthLetters(text)).toBe(foldFullwidthLetters(text));
-  });
+  ])(
+    "is read for a text with some of a value typed in fullwidth: %s",
+    (_label: string, text: string) => {
+      expect(holdsFullwidthLettersOfAValue(text)).toBe(true);
+      expect(readFullwidthLetters(text)).toBe(foldFullwidthLetters(text));
+    },
+  );
 
   test.each([
     ["CJK prose", "設定を確認してください。（注）以上です！"],
     ["prose with fullwidth digits", "合計１２３件、残り４５件"],
-    ["prose with a number typed in fullwidth", "電話：＋８１　３－１２３４－５６７８"],
+    [
+      "prose with a number typed in fullwidth",
+      "電話：＋８１　３－１２３４－５６７８",
+    ],
     ["a lone fullwidth letter", "Ａ"],
     ["a fullwidth letter beside an ASCII one", "Ａb"],
     ["fullwidth letters apart by a space", "Ａ Ｂ"],
@@ -246,9 +261,9 @@ describe("the fullwidth letters' reading", () => {
     for (let code: number = 0xff00; code <= 0xffef; code++) {
       if (isFullwidthLetter(code)) {
         letters++;
-        expect(/^[A-Za-z]$/.test(String.fromCharCode(code).normalize("NFKC"))).toBe(
-          true,
-        );
+        expect(
+          ASCII_LETTER.test(String.fromCharCode(code).normalize("NFKC")),
+        ).toBe(true);
       }
     }
 
@@ -293,10 +308,10 @@ describe("whatever text, each reading is null or its fold, as long as the text",
       const forms: string | null = readFullwidthForms(text);
       const letters: string | null = readFullwidthLetters(text);
 
-      expect([text, forms === null || forms === foldFullwidthForms(text)]).toEqual([
+      expect([
         text,
-        true,
-      ]);
+        forms === null || forms === foldFullwidthForms(text),
+      ]).toEqual([text, true]);
       expect([
         text,
         letters === null || letters === foldFullwidthLetters(text),
@@ -314,10 +329,7 @@ describe("whatever text, each reading is null or its fold, as long as the text",
 describe("the texts a database search and a Custom Regex rule read again", () => {
   // RE2's \x{...} written as JavaScript's \u{...}, for asking JavaScript what RE2 takes.
   function asJavaScript(re2: string): RegExp {
-    return new RegExp(
-      re2.split("\\x{").join("\\u{"),
-      "u",
-    );
+    return new RegExp(re2.split("\\x{").join("\\u{"), "u");
   }
 
   const FORMS: RegExp = asJavaScript(FULLWIDTH_FORM_PREFILTER);
@@ -342,16 +354,17 @@ describe("the texts a database search and a Custom Regex rule read again", () =>
     "plain ASCII 536-22-8731",
   ];
 
-  test.each(TEXTS.map((text: string): [string] => [text]))(
-    "are exactly those each reading reads: %s",
-    (text: string) => {
-      expect(FORMS.test(text)).toBe(holdsFullwidthFormOfANumber(text));
-      expect(LETTERS.test(text)).toBe(holdsFullwidthLettersOfAValue(text));
-      expect(mayReadOtherwise(text)).toBe(
-        text.indexOf("+") !== -1 ||
-          holdsFullwidthFormOfANumber(text) ||
-          holdsFullwidthLettersOfAValue(text),
-      );
-    },
-  );
+  test.each(
+    TEXTS.map((text: string): [string] => {
+      return [text];
+    }),
+  )("are exactly those each reading reads: %s", (text: string) => {
+    expect(FORMS.test(text)).toBe(holdsFullwidthFormOfANumber(text));
+    expect(LETTERS.test(text)).toBe(holdsFullwidthLettersOfAValue(text));
+    expect(mayReadOtherwise(text)).toBe(
+      text.indexOf("+") !== -1 ||
+        holdsFullwidthFormOfANumber(text) ||
+        holdsFullwidthLettersOfAValue(text),
+    );
+  });
 });

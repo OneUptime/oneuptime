@@ -389,29 +389,34 @@ export default class TraceScrubEngine {
      * attribute is read under the name Data Security gives it, its event's
      * name before its key. A Named Attributes rule hides every text whole.
      */
-    const scrubTextOf: (key: string, value: unknown) => (text: string) => string =
-      (key: string, value: unknown): ((text: string) => string) => {
-        if (isNamedKeys) {
-          return hideText;
-        }
+    const scrubTextOf: (
+      key: string,
+      value: unknown,
+    ) => (text: string) => string = (
+      key: string,
+      value: unknown,
+    ): ((text: string) => string) => {
+      if (isNamedKeys) {
+        return hideText;
+      }
 
-        const regex: ScrubRegExp = scrubRegExpUnderKey(
-          compiled.regex,
-          data.eventName !== undefined ? `${data.eventName}.${key}` : key,
-          value,
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        data.eventName !== undefined ? `${data.eventName}.${key}` : key,
+        value,
+      );
+
+      return (text: string): string => {
+        return this.scrubString(
+          text,
+          compiled,
+          data.jsonTexts,
+          data.tally,
+          data.recorder,
+          regex,
         );
-
-        return (text: string): string => {
-          return this.scrubString(
-            text,
-            compiled,
-            data.jsonTexts,
-            data.tally,
-            data.recorder,
-            regex,
-          );
-        };
       };
+    };
 
     /*
      * A number: a Named Attributes rule hides the whole value of what it
@@ -931,8 +936,7 @@ export default class TraceScrubEngine {
               keysRules,
               tally,
               recorder,
-              eventName:
-                typeof event["name"] === "string" ? event["name"] : "",
+              eventName: typeof event["name"] === "string" ? event["name"] : "",
             });
           }
         }

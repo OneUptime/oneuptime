@@ -47,7 +47,7 @@ import { digitZeroOf } from "./DigitReadings";
  *
  * A VALUE TYPED IN FULLWIDTH LETTERS (#11385). An input method in
  * fullwidth mode types a value's letters in fullwidth too: an IBAN
- * ＤＥ８９　３７０４　…, a UK postcode ＳＷ１Ａ　２ＡＡ, an email address
+ * ＤＥ８９ ３７０４ …, a UK postcode ＳＷ１Ａ ２ＡＡ, an email address
  * ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ - and the words beside a number, ＴＥＬ, ＳＳＮ.
  * A second reading folds every character of the fullwidth ASCII block
  * (U+FF01 to U+FF5E: its letters, digits, signs and punctuation) to the
@@ -280,7 +280,8 @@ export function holdsFullwidthLettersOfAValue(text: string): boolean {
     const previous: number = text.charCodeAt(index - 1);
 
     if (
-      (code >= FULLWIDTH_COMMERCIAL_AT || previous >= FULLWIDTH_COMMERCIAL_AT) &&
+      (code >= FULLWIDTH_COMMERCIAL_AT ||
+        previous >= FULLWIDTH_COMMERCIAL_AT) &&
       isPairOfAValue(previous, code)
     ) {
       return true;

@@ -576,8 +576,7 @@ export default class MetricPipelineEngine {
     }
 
     return (
-      pattern !== null &&
-      scrubRegExpUnderKey(pattern, key, actual).test(actual)
+      pattern !== null && scrubRegExpUnderKey(pattern, key, actual).test(actual)
     );
   }
 

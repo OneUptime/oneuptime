@@ -108,11 +108,17 @@ function traceRuleOf(
   });
 }
 
-function scrubLog(row: JSONObject, rules: Array<CompiledScrubRule>): JSONObject {
+function scrubLog(
+  row: JSONObject,
+  rules: Array<CompiledScrubRule>,
+): JSONObject {
   return LogScrubEngine.scrubLog(row, rules, null, { countValues: false });
 }
 
-function scrubSpan(row: JSONObject, rules: Array<CompiledScrubRule>): JSONObject {
+function scrubSpan(
+  row: JSONObject,
+  rules: Array<CompiledScrubRule>,
+): JSONObject {
   return TraceScrubEngine.scrubSpan(row, rules, null, { countValues: false });
 }
 
@@ -415,7 +421,9 @@ describe("the trace engine", () => {
         {
           name: "POST /signup",
           attributes: { [keyed.key]: keyed.value },
-          events: [{ name: "verified", attributes: { [keyed.key]: keyed.value } }],
+          events: [
+            { name: "verified", attributes: { [keyed.key]: keyed.value } },
+          ],
           links: [{ attributes: { [keyed.key]: keyed.value } }],
         },
         [traceRuleOf(keyed.patternType, action)],
@@ -484,7 +492,11 @@ describe("the trace engine", () => {
     expect(row["statusMessage"]).toBe("536221234");
   });
 
-  test.each(ACTIONS.map((action: string): [string] => [action]))(
+  test.each(
+    ACTIONS.map((action: string): [string] => {
+      return [action];
+    }),
+  )(
     "an exception's attributes are read under their keys, and its message as it is, under %s",
     (action: string) => {
       const content: ExceptionContent = TraceScrubEngine.scrubExceptionContent(
@@ -631,7 +643,11 @@ interface Place {
   location: string;
   signal: "log" | "trace" | "metric";
   // The value as the engine of the place leaves it, under a rule.
-  scrub: (key: string, value: string | number, rule: CompiledScrubRule) => unknown;
+  scrub: (
+    key: string,
+    value: string | number,
+    rule: CompiledScrubRule,
+  ) => unknown;
   key: string;
 }
 
@@ -640,9 +656,11 @@ function scrubbedLogAttribute(
   value: string | number,
   rule: CompiledScrubRule,
 ): unknown {
-  return (scrubLog({ body: "", attributes: { [key]: value } }, [rule])[
-    "attributes"
-  ] as JSONObject)[key];
+  return (
+    scrubLog({ body: "", attributes: { [key]: value } }, [rule])[
+      "attributes"
+    ] as JSONObject
+  )[key];
 }
 
 function scrubbedSpanAttribute(
@@ -726,18 +744,43 @@ const PLACES: ReadonlyArray<Place> = [
   },
 ];
 
-const FOUND_BY_NAME: ReadonlyArray<[string, string, string, string | number]> = [
-  ["phone-number", LogScrubPatternType.PhoneNumber, "user.phone", "02012345678"],
-  ["phone-number", LogScrubPatternType.PhoneNumber, "customer.mobile", "612345678"],
-  ["phone-number", LogScrubPatternType.PhoneNumber, "phone_number", "020 1234 5678"],
-  ["phone-number", LogScrubPatternType.PhoneNumber, "msisdn", 447700900123],
-  ["us-ssn", LogScrubPatternType.SSN, "customer.ssn", "536221234"],
-  ["us-ssn", LogScrubPatternType.SSN, "customer.ssn", 536221234],
-  ["us-ssn", LogScrubPatternType.SSN, "social_security_number", "５３６２２１２３４"],
-];
+const FOUND_BY_NAME: ReadonlyArray<[string, string, string, string | number]> =
+  [
+    [
+      "phone-number",
+      LogScrubPatternType.PhoneNumber,
+      "user.phone",
+      "02012345678",
+    ],
+    [
+      "phone-number",
+      LogScrubPatternType.PhoneNumber,
+      "customer.mobile",
+      "612345678",
+    ],
+    [
+      "phone-number",
+      LogScrubPatternType.PhoneNumber,
+      "phone_number",
+      "020 1234 5678",
+    ],
+    ["phone-number", LogScrubPatternType.PhoneNumber, "msisdn", 447700900123],
+    ["us-ssn", LogScrubPatternType.SSN, "customer.ssn", "536221234"],
+    ["us-ssn", LogScrubPatternType.SSN, "customer.ssn", 536221234],
+    [
+      "us-ssn",
+      LogScrubPatternType.SSN,
+      "social_security_number",
+      "５３６２２１２３４",
+    ],
+  ];
 
 // Whether Data Security finds a type in a field's values.
-function isFound(location: string, value: unknown, dataTypeId: string): boolean {
+function isFound(
+  location: string,
+  value: unknown,
+  dataTypeId: string,
+): boolean {
   return classifyField(location, [value]).some(
     (classification: FieldClassification): boolean => {
       return classification.dataTypeId === dataTypeId;
@@ -746,20 +789,28 @@ function isFound(location: string, value: unknown, dataTypeId: string): boolean 
 }
 
 describe("coverage is never said of a value that stays", () => {
-  const cases: Array<[string, string, Place, [string, string, string, string | number]]> =
-    PLACES.flatMap(
-      (
-        place: Place,
-      ): Array<[string, string, Place, [string, string, string, string | number]]> => {
-        return FOUND_BY_NAME.map(
-          (
-            found: [string, string, string, string | number],
-          ): [string, string, Place, [string, string, string, string | number]] => {
-            return [`${found[2]}=${String(found[3])}`, place.label, place, found];
-          },
-        );
-      },
-    );
+  const cases: Array<
+    [string, string, Place, [string, string, string, string | number]]
+  > = PLACES.flatMap(
+    (
+      place: Place,
+    ): Array<
+      [string, string, Place, [string, string, string, string | number]]
+    > => {
+      return FOUND_BY_NAME.map(
+        (
+          found: [string, string, string, string | number],
+        ): [
+          string,
+          string,
+          Place,
+          [string, string, string, string | number],
+        ] => {
+          return [`${found[2]}=${String(found[3])}`, place.label, place, found];
+        },
+      );
+    },
+  );
 
   test.each(cases)(
     "%s in %s: found, covered, and gone once its rule runs, under every action",
@@ -767,7 +818,12 @@ describe("coverage is never said of a value that stays", () => {
       _value: string,
       _place: string,
       place: Place,
-      [dataTypeId, patternType, key, value]: [string, string, string, string | number],
+      [dataTypeId, patternType, key, value]: [
+        string,
+        string,
+        string,
+        string | number,
+      ],
     ) => {
       const location: string = place.location.split(place.key).join(key);
 
@@ -796,18 +852,23 @@ describe("coverage is never said of a value that stays", () => {
             : traceRuleOf(patternType, action);
         const left: unknown = place.scrub(key, value, rule);
 
-        expect([action, left === value, isFound(location, left, dataTypeId)]).toEqual([
+        expect([
           action,
-          false,
-          false,
-        ]);
+          left === value,
+          isFound(location, left, dataTypeId),
+        ]).toEqual([action, false, false]);
       }
     },
   );
 
   test.each(FOUND_BY_NAME)(
     "a metric point's %s under %s=%s: found, covered by Scrub It's rule, and gone once it runs",
-    (dataTypeId: string, _patternType: string, key: string, value: string | number) => {
+    (
+      dataTypeId: string,
+      _patternType: string,
+      key: string,
+      value: string | number,
+    ) => {
       const location: string = `attributes.${key}`;
 
       expect(isFound(location, value, dataTypeId)).toBe(true);

@@ -307,25 +307,30 @@ export default class LogScrubEngine {
      * Number or SSN rule reads 02012345678 under `user.phone` as a phone
      * number, and a list or a map as its JSON text too (#11383).
      */
-    const scrubTextOf: (key: string, value: unknown) => (text: string) => string =
-      (key: string, value: unknown): ((text: string) => string) => {
-        const regex: ScrubRegExp = scrubRegExpUnderKey(
-          compiled.regex,
-          key,
-          value,
-        );
+    const scrubTextOf: (
+      key: string,
+      value: unknown,
+    ) => (text: string) => string = (
+      key: string,
+      value: unknown,
+    ): ((text: string) => string) => {
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        key,
+        value,
+      );
 
-        return (text: string): string => {
-          return this.scrubString(
-            text,
-            compiled,
-            data.jsonTexts,
-            data.tally,
-            data.recorder,
-            regex,
-          );
-        };
+      return (text: string): string => {
+        return this.scrubString(
+          text,
+          compiled,
+          data.jsonTexts,
+          data.tally,
+          data.recorder,
+          regex,
+        );
       };
+    };
 
     /*
      * A number, only under a key that changes what the rule finds:

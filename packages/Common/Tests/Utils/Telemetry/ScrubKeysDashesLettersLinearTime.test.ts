@@ -80,7 +80,10 @@ const DASH_AND_LETTER_CASES: ReadonlyArray<[string, string]> = [
     "IBANs typed in fullwidth back to back",
     repeat("ＤＥ４７　３７０４　００４４　０５３２　０１３０　７７ ", LENGTH),
   ],
-  ["a fullwidth word, then digits without end", "ＴＥＬ　" + repeat("０", LENGTH)],
+  [
+    "a fullwidth word, then digits without end",
+    "ＴＥＬ　" + repeat("０", LENGTH),
+  ],
   [
     "CJK prose with fullwidth punctuation",
     repeat("設定を確認してください。（注）以上です！", LENGTH),
@@ -88,23 +91,32 @@ const DASH_AND_LETTER_CASES: ReadonlyArray<[string, string]> = [
 ];
 
 describe("the readings of the other dashes and the fullwidth letters", () => {
-  test.each(DASH_AND_LETTER_CASES)("read %s in time", (_label: string, text: string) => {
-    const result: FastestRun<number> = timed((): number => {
-      return (
-        (readFullwidthForms(text)?.length || 0) +
-        (readFullwidthLetters(text)?.length || 0)
-      );
-    });
+  test.each(DASH_AND_LETTER_CASES)(
+    "read %s in time",
+    (_label: string, text: string) => {
+      const result: FastestRun<number> = timed((): number => {
+        return (
+          (readFullwidthForms(text)?.length || 0) +
+          (readFullwidthLetters(text)?.length || 0)
+        );
+      });
 
-    expect(result.inMs).toBeLessThan(LIMIT_IN_MS);
-  });
+      expect(result.inMs).toBeLessThan(LIMIT_IN_MS);
+    },
+  );
 });
 
 describe("the rules read them in time", () => {
   const RULES: ReadonlyArray<[string, ScrubRegExp]> = [
-    ["Phone Number", compileBuiltInScrubPattern(LogScrubPatternType.PhoneNumber)!],
+    [
+      "Phone Number",
+      compileBuiltInScrubPattern(LogScrubPatternType.PhoneNumber)!,
+    ],
     ["SSN", compileBuiltInScrubPattern(LogScrubPatternType.SSN)!],
-    ["Credit Card", compileBuiltInScrubPattern(LogScrubPatternType.CreditCard)!],
+    [
+      "Credit Card",
+      compileBuiltInScrubPattern(LogScrubPatternType.CreditCard)!,
+    ],
     ["Email Address", compileBuiltInScrubPattern(LogScrubPatternType.Email)!],
     [
       "Scrub It's IBAN Custom Regex",
@@ -117,41 +129,44 @@ describe("the rules read them in time", () => {
       [string, string, string, ScrubRegExp]
     > => {
       return DASH_AND_LETTER_CASES.map(
-        ([label, text]: [string, string]): [string, string, string, ScrubRegExp] => {
+        ([label, text]: [string, string]): [
+          string,
+          string,
+          string,
+          ScrubRegExp,
+        ] => {
           return [name, label, text, regex];
         },
       );
     },
   );
 
-  test.each(CASES)("a %s rule reads %s", (
-    _name: string,
-    _label: string,
-    text: string,
-    regex: ScrubRegExp,
-  ) => {
-    const result: FastestRun<string> = timed((): string => {
-      return regex.replace(text, (): string => {
-        return "[REDACTED]";
+  test.each(CASES)(
+    "a %s rule reads %s",
+    (_name: string, _label: string, text: string, regex: ScrubRegExp) => {
+      const result: FastestRun<string> = timed((): string => {
+        return regex.replace(text, (): string => {
+          return "[REDACTED]";
+        });
       });
-    });
 
-    expect(result.inMs).toBeLessThan(LIMIT_IN_MS);
-    expect(typeof result.result).toBe("string");
-  });
+      expect(result.inMs).toBeLessThan(LIMIT_IN_MS);
+      expect(typeof result.result).toBe("string");
+    },
+  );
 });
 
 describe("the scanner reads them in time", () => {
-  test.each(DASH_AND_LETTER_CASES)("with every built-in detector, %s", (
-    _label: string,
-    text: string,
-  ) => {
-    const result: FastestRun<number> = timed((): number => {
-      return findSensitiveValues(text).length;
-    });
+  test.each(DASH_AND_LETTER_CASES)(
+    "with every built-in detector, %s",
+    (_label: string, text: string) => {
+      const result: FastestRun<number> = timed((): number => {
+        return findSensitiveValues(text).length;
+      });
 
-    expect(result.inMs).toBeLessThan(LIMIT_IN_MS);
-  });
+      expect(result.inMs).toBeLessThan(LIMIT_IN_MS);
+    },
+  );
 });
 
 describe("a rule under a key that names its type reads in time (#11383)", () => {
@@ -164,7 +179,10 @@ describe("a rule under a key that names its type reads in time (#11383)", () => 
     ["digits without end", repeat("4", LENGTH)],
     ["national numbers back to back", repeat("02012345678 ", LENGTH)],
     ["nine digits back to back", repeat("536221234 ", LENGTH)],
-    ["digits and spaces in a phone's shape without end", repeat("020 1234 ", LENGTH)],
+    [
+      "digits and spaces in a phone's shape without end",
+      repeat("020 1234 ", LENGTH),
+    ],
     ["fullwidth digits without end", repeat("０", LENGTH)],
   ])("over %s", (_label: string, text: string) => {
     for (const [key, regex] of [

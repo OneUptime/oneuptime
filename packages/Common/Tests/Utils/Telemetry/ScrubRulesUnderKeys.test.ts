@@ -7,9 +7,7 @@ import {
   scrubRegExpFromBuiltIn,
   scrubRegExpUnderKey,
 } from "../../../Types/Telemetry/ScrubRule";
-import {
-  PHONE_NUMBER_DETECTORS,
-} from "../../../Utils/DataSecurity/Detectors/ContactDetectors";
+import { PHONE_NUMBER_DETECTORS } from "../../../Utils/DataSecurity/Detectors/ContactDetectors";
 import { US_SSN_DETECTORS } from "../../../Utils/DataSecurity/Detectors/GovernmentIdDetectors";
 import {
   FieldClassification,
@@ -65,7 +63,10 @@ import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
  */
 
 // The texts of a text's ranges.
-function textsOf(text: string, ranges: ReadonlyArray<TextRange>): Array<string> {
+function textsOf(
+  text: string,
+  ranges: ReadonlyArray<TextRange>,
+): Array<string> {
   return ranges.map(([start, end]: TextRange): string => {
     return text.slice(start, end);
   });
@@ -77,7 +78,10 @@ function foundUnder(
   key: string,
   value: string,
 ): Array<string> {
-  return textsOf(value, scrubRegExpUnderKey(regex, key, value).matchRanges(value));
+  return textsOf(
+    value,
+    scrubRegExpUnderKey(regex, key, value).matchRanges(value),
+  );
 }
 
 const PHONE: ScrubRegExp = compileBuiltInScrubPattern(
@@ -148,7 +152,11 @@ describe("findDetectorRanges reads a field's value as Data Security reads the fi
       "home 02012345678, office 02087654321",
       ["02012345678", "02087654321"],
     ],
-    ["one in fullwidth digits", "０２０１２３４５６７８", ["０２０１２３４５６７８"]],
+    [
+      "one in fullwidth digits",
+      "０２０１２３４５６７８",
+      ["０２０１２３４５６７８"],
+    ],
     ["one in Arabic-Indic digits", "٠٢٠١٢٣٤٥٦٧٨", ["٠٢٠١٢٣٤٥٦٧٨"]],
     ["one in a URL", "/notify?to=02012345678", ["02012345678"]],
   ])(
@@ -187,7 +195,7 @@ describe("findDetectorRanges reads a field's value as Data Security reads the fi
     },
   );
 
-  test.each([
+  test.each<[string, string, TextRange]>([
     ["in groups of spaces", "020 1234 5678", [0, 13]],
     ["in groups of hyphens", "020-1234-5678", [0, 13]],
     ["with a group in parentheses", "020 (1234) 5678", [0, 15]],
@@ -208,12 +216,9 @@ describe("findDetectorRanges reads a field's value as Data Security reads the fi
   test("the field's shape is read only where no detector found the type: a value in it is not hidden whole", () => {
     // The detectors find the number; the value's other characters are kept.
     expect(
-      findDetectorRanges(
-        PHONE_NUMBER_DETECTORS,
-        "02012345678",
-        undefined,
-        { hintedDataTypeIds: PHONE_HINTED },
-      ),
+      findDetectorRanges(PHONE_NUMBER_DETECTORS, "02012345678", undefined, {
+        hintedDataTypeIds: PHONE_HINTED,
+      }),
     ).toEqual([[0, 11]]);
     expect(
       findDetectorRanges(
@@ -305,16 +310,17 @@ describe("the hints of a key", () => {
     "",
   ];
 
-  test.each(KEYS.map((key: string): [string] => [key]))(
-    "are what Data Security reads a field's name as: %s",
-    (key: string) => {
-      expect(Array.from(getHintsOfKey(key)).sort()).toEqual(
-        Array.from(getHintedDataTypeIds(key)).sort(),
-      );
-      // Read again, the same answer.
-      expect(getHintsOfKey(key)).toBe(getHintsOfKey(key));
-    },
-  );
+  test.each(
+    KEYS.map((key: string): [string] => {
+      return [key];
+    }),
+  )("are what Data Security reads a field's name as: %s", (key: string) => {
+    expect(Array.from(getHintsOfKey(key)).sort()).toEqual(
+      Array.from(getHintedDataTypeIds(key)).sort(),
+    );
+    // Read again, the same answer.
+    expect(getHintsOfKey(key)).toBe(getHintsOfKey(key));
+  });
 
   test("are read from as much of a key as a field's name is read from", () => {
     const long: string = "x".repeat(MAX_FIELD_PATH_LENGTH) + ".phone";
@@ -347,10 +353,25 @@ const STORED_VALUES: ReadonlyArray<[string, unknown]> = [
   ["a map of texts", { a: "1", b: "two" }],
   ["numbers, true, false and null", [1, -0, 1.5, 1e21, true, false, null]],
   ["numbers JSON writes as null", [Number.NaN, Infinity, -Infinity]],
-  ["a list's undefined and function", [undefined, (): number => 1, "kept"]],
+  [
+    "a list's undefined and function",
+    [
+      undefined,
+      (): number => {
+        return 1;
+      },
+      "kept",
+    ],
+  ],
   [
     "a map's undefined and function, left out",
-    { a: undefined, b: (): number => 1, c: "kept" },
+    {
+      a: undefined,
+      b: (): number => {
+        return 1;
+      },
+      c: "kept",
+    },
   ],
   ["a date", [new Date(Date.UTC(2026, 10, 28, 10, 15, 2))]],
   ["nested lists and maps", { a: [{ b: ["c", { d: "e" }] }], f: { g: [] } }],
@@ -435,17 +456,14 @@ describe("a list or a map as the table stores it (ScrubStoredText)", () => {
   });
 
   test("places a range of the text on the text that holds it, past the escapes before it", () => {
-    const value: Array<string> = ["tel\n02012345678 \"x\" 02087654321", "kept"];
+    const value: Array<string> = ['tel\n02012345678 "x" 02087654321', "kept"];
     const stored: StoredText = readStoredText(value)!;
     const first: number = stored.text.indexOf("02012345678");
     const second: number = stored.text.indexOf("02087654321");
-    const placed: Map<string, Array<TextRange>> = placeRangesOnStrings(
-      stored,
-      [
-        [first, first + 11],
-        [second, second + 11],
-      ],
-    );
+    const placed: Map<string, Array<TextRange>> = placeRangesOnStrings(stored, [
+      [first, first + 11],
+      [second, second + 11],
+    ]);
 
     expect(Array.from(placed.keys())).toEqual([value[0]]);
     expect(textsOf(value[0]!, placed.get(value[0]!)!)).toEqual([
@@ -481,7 +499,9 @@ describe("a list or a map as the table stores it (ScrubStoredText)", () => {
     const parts: Array<string> = [];
 
     for (let index: number = 0; index < 2_000; index++) {
-      parts.push(`line ${index}\t"q"\n0201234${String(index).padStart(4, "0")}`);
+      parts.push(
+        `line ${index}\t"q"\n0201234${String(index).padStart(4, "0")}`,
+      );
     }
 
     const value: Array<string> = [parts.join(" ")];
@@ -540,16 +560,12 @@ describe("each built-in pattern under a key", () => {
       expect(scrubRegExpUnderKey(regex, undefined, "02012345678")).toBe(regex);
       expect(scrubRegExpUnderKey(regex, null, "02012345678")).toBe(regex);
       expect(scrubRegExpUnderKey(regex, "", "02012345678")).toBe(regex);
-      expect(scrubRegExpUnderKey(regex, "order.id", "02012345678")).toBe(
-        regex,
-      );
+      expect(scrubRegExpUnderKey(regex, "order.id", "02012345678")).toBe(regex);
       expect(scrubRegExpUnderKey(regex, "order.id", 536221234)).toBe(regex);
     }
 
     // A key that names the other type changes nothing either.
-    expect(scrubRegExpUnderKey(PHONE, "customer.ssn", "536221234")).toBe(
-      PHONE,
-    );
+    expect(scrubRegExpUnderKey(PHONE, "customer.ssn", "536221234")).toBe(PHONE);
     expect(scrubRegExpUnderKey(SSN, "user.phone", "02012345678")).toBe(SSN);
   });
 
@@ -560,17 +576,23 @@ describe("each built-in pattern under a key", () => {
     ["msisdn", "447700900123", ["447700900123"]],
     ["phoneNumber", "020 1234 5678", ["020 1234 5678"]],
     ["user.tel", "  555-1234  ", ["555-1234"]],
-    ["user.phone", "home 02012345678 work 02087654321", [
-      "02012345678",
-      "02087654321",
-    ]],
+    [
+      "user.phone",
+      "home 02012345678 work 02087654321",
+      ["02012345678", "02087654321"],
+    ],
     // What the pattern always found is found under the key too.
     ["user.phone", "+44 20 7946 0958", ["+44 20 7946 0958"]],
   ])(
     "a Phone Number pattern hides under %s what Data Security finds there: %s",
     (key: string, value: string, expected: Array<string>) => {
       expect(foundUnder(PHONE, key, value)).toEqual(expected);
-      expect(textsOf(value, dataSecurityFinds(`attributes.${key}`, value, "phone-number"))).toEqual(expected);
+      expect(
+        textsOf(
+          value,
+          dataSecurityFinds(`attributes.${key}`, value, "phone-number"),
+        ),
+      ).toEqual(expected);
     },
   );
 
@@ -584,7 +606,9 @@ describe("each built-in pattern under a key", () => {
     "an SSN pattern hides under %s what Data Security finds there: %s",
     (key: string, value: string, expected: Array<string>) => {
       expect(foundUnder(SSN, key, value)).toEqual(expected);
-      expect(textsOf(value, dataSecurityFinds(`attributes.${key}`, value, "us-ssn"))).toEqual(expected);
+      expect(
+        textsOf(value, dataSecurityFinds(`attributes.${key}`, value, "us-ssn")),
+      ).toEqual(expected);
     },
   );
 
@@ -606,7 +630,11 @@ describe("each built-in pattern under a key", () => {
 
       expect(foundUnder(regex, key, value)).toEqual([]);
       expect(
-        dataSecurityFinds(`attributes.${key}`, value, DATA_TYPE_OF[patternType]!),
+        dataSecurityFinds(
+          `attributes.${key}`,
+          value,
+          DATA_TYPE_OF[patternType]!,
+        ),
       ).toEqual([]);
     },
   );
@@ -635,7 +663,11 @@ describe("each built-in pattern under a key", () => {
       }),
     ).toEqual([["02012345678"], ["02087654321"], []]);
     expect(
-      dataSecurityFinds("attributes.user.phone", JSON.stringify(value), "phone-number"),
+      dataSecurityFinds(
+        "attributes.user.phone",
+        JSON.stringify(value),
+        "phone-number",
+      ),
     ).toHaveLength(2);
   });
 
@@ -657,7 +689,11 @@ describe("each built-in pattern under a key", () => {
     expect(
       textsOf(
         JSON.stringify(value),
-        dataSecurityFinds("attributes.contacts", JSON.stringify(value), "phone-number"),
+        dataSecurityFinds(
+          "attributes.contacts",
+          JSON.stringify(value),
+          "phone-number",
+        ),
       ),
     ).toEqual(["02012345678"]);
   });
@@ -671,12 +707,20 @@ describe("each built-in pattern under a key", () => {
         value: "02087654321",
       },
     ];
-    const regex: ScrubRegExp = scrubRegExpUnderKey(PHONE, "patient.telecom", value);
+    const regex: ScrubRegExp = scrubRegExpUnderKey(
+      PHONE,
+      "patient.telecom",
+      value,
+    );
 
     expect(regex.matchRanges("02012345678")).toEqual([[0, 11]]);
     expect(regex.matchRanges("02087654321")).toEqual([]);
     expect(
-      dataSecurityFinds("attributes.patient.telecom", JSON.stringify(value), "phone-number"),
+      dataSecurityFinds(
+        "attributes.patient.telecom",
+        JSON.stringify(value),
+        "phone-number",
+      ),
     ).toHaveLength(1);
   });
 
@@ -706,11 +750,17 @@ describe("each built-in pattern under a key", () => {
   });
 
   test("a map's key that only holds a word is no word, as Data Security reads it", () => {
-    const value: Array<Record<string, string>> = [{ phoneNumber: "02012345678" }];
+    const value: Array<Record<string, string>> = [
+      { phoneNumber: "02012345678" },
+    ];
 
     expect(scrubRegExpUnderKey(PHONE, "contacts", value)).toBe(PHONE);
     expect(
-      dataSecurityFinds("attributes.contacts", JSON.stringify(value), "phone-number"),
+      dataSecurityFinds(
+        "attributes.contacts",
+        JSON.stringify(value),
+        "phone-number",
+      ),
     ).toEqual([]);
   });
 

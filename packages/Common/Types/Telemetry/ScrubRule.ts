@@ -365,8 +365,10 @@ class RangesScrubRegExp implements ScrubRegExp {
 
   // See ScrubRegExp.underKey: this, when the key and the value change nothing.
   public underKey(key: string, value: unknown): ScrubRegExp {
-    const findRanges: ((text: string) => Array<[number, number]>) | null =
-      this.findRangesUnderKey ? this.findRangesUnderKey(key, value) : null;
+    const findRanges: ((text: string) => Array<[number, number]>) | null = this
+      .findRangesUnderKey
+      ? this.findRangesUnderKey(key, value)
+      : null;
 
     return findRanges
       ? new RangesScrubRegExp({
@@ -631,7 +633,7 @@ export function mayReadOtherwise(text: string): boolean {
  * fullwidth, ４７１．３９２．８６５－８２, is too (#11115), and one whose
  * groups are set apart by another dash, 471.392.865–82; and with the
  * fullwidth ASCII block read as ASCII, so an IBAN typed in fullwidth
- * letters, ＧＢ８２　ＷＥＳＴ　…, is too (#11385). Each match is placed on the
+ * letters, ＧＢ８２ ＷＥＳＴ …, is too (#11385). Each match is placed on the
  * characters the text writes it with, escapes and "+"s and fullwidth forms
  * and all, and what two readings share is one match. So a finding the
  * detectors make in a reading, the rule made from their patterns hides

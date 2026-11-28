@@ -12,10 +12,7 @@ import BUILT_IN_DETECTORS, {
   getBuiltInDetectorsOf,
 } from "../../../Utils/DataSecurity/Detectors/Index";
 import { getHintedDataTypeIds } from "../../../Utils/DataSecurity/FieldNameHints";
-import {
-  FULLWIDTH_FORMS,
-  NUMBER_DASHES,
-} from "../../../Utils/DataSecurity/FullwidthForms";
+import { NUMBER_DASHES } from "../../../Utils/DataSecurity/FullwidthForms";
 import { QUERY_NAME_DATA_TYPE_ID } from "../../../Utils/DataSecurity/QueryStringNames";
 import { sha256 } from "../../../Utils/DataSecurity/Sha256";
 import {
@@ -1396,7 +1393,9 @@ function holdsFullwidthLetter(value: string): boolean {
   return Array.from(value).some((character: string): boolean => {
     const code: number = character.charCodeAt(0);
 
-    return (code >= 0xff21 && code <= 0xff3a) || (code >= 0xff41 && code <= 0xff5a);
+    return (
+      (code >= 0xff21 && code <= 0xff3a) || (code >= 0xff41 && code <= 0xff5a)
+    );
   });
 }
 
@@ -2340,49 +2339,55 @@ const READING_CASES_OF: Readonly<
    * ss.number - and the same digits under a key that names nothing, or an
    * area no one is issued under the key that names one.
    */
-  "us-ssn: nine digits alone under a key that names an SSN": (): CorpusEntry => {
-    const first: string = drawnUntaken(
-      "us-ssn",
-      (): string => {
-        return drawnSsn().split("-").join("");
-      },
-      (drawn: string): string => {
-        return drawn;
-      },
-    );
-    const second: string = drawnUntaken(
-      "us-ssn",
-      (): string => {
-        return drawnSsn().split("-").join("");
-      },
-      (drawn: string): string => {
-        return `666${drawn.slice(3)}`;
-      },
-    );
-    const third: string = drawnUntaken(
-      "us-ssn",
-      (): string => {
-        return drawnSsn().split("-").join("");
-      },
-      (drawn: string): string => {
-        return `ref ${drawn}`;
-      },
-    );
-    const fullwidth: string = toFullwidth(drawnSsn().split("-").join(""));
+  "us-ssn: nine digits alone under a key that names an SSN":
+    (): CorpusEntry => {
+      const first: string = drawnUntaken(
+        "us-ssn",
+        (): string => {
+          return drawnSsn().split("-").join("");
+        },
+        (drawn: string): string => {
+          return drawn;
+        },
+      );
+      const second: string = drawnUntaken(
+        "us-ssn",
+        (): string => {
+          return drawnSsn().split("-").join("");
+        },
+        (drawn: string): string => {
+          return `666${drawn.slice(3)}`;
+        },
+      );
+      const third: string = drawnUntaken(
+        "us-ssn",
+        (): string => {
+          return drawnSsn().split("-").join("");
+        },
+        (drawn: string): string => {
+          return `ref ${drawn}`;
+        },
+      );
+      const fullwidth: string = toFullwidth(drawnSsn().split("-").join(""));
 
-    return {
-      positives: [
-        labelled("us-ssn", first, first, "customer.ssn"),
-        labelled("us-ssn", second, second, "applicant.social_security_number"),
-        labelled("us-ssn", `ref ${third}`, third, "ss.number"),
-        labelled("us-ssn", fullwidth, fullwidth, "ssn"),
-      ],
-      nearMisses: [
-        labelled("us-ssn", first, "", "order.id"),
-        labelled("us-ssn", `666${second.slice(3)}`, "", "customer.ssn"),
-      ],
-    };
-  },
+      return {
+        positives: [
+          labelled("us-ssn", first, first, "customer.ssn"),
+          labelled(
+            "us-ssn",
+            second,
+            second,
+            "applicant.social_security_number",
+          ),
+          labelled("us-ssn", `ref ${third}`, third, "ss.number"),
+          labelled("us-ssn", fullwidth, fullwidth, "ssn"),
+        ],
+        nearMisses: [
+          labelled("us-ssn", first, "", "order.id"),
+          labelled("us-ssn", `666${second.slice(3)}`, "", "customer.ssn"),
+        ],
+      };
+    },
   /*
    * #11385: a phone number whose groups are set apart by another dash -
    * the prolonged sound mark of a number typed in Japanese, a non-breaking
@@ -2390,110 +2395,113 @@ const READING_CASES_OF: Readonly<
    * so: a katakana word's ー beside a digit, a range, a time zone and a
    * date.
    */
-  "phone-number: its groups set apart by a typeset dash or a prolonged sound mark": (): CorpusEntry => {
-    const tokyo: string = toFullwidth(
-      `+81 3-${drawnDigitsOf(4, "1")}-${drawnDigitsOf(4)}`,
-    )
-      .split("－")
-      .join("ー");
-    const london: string = `+44 20 ${drawnDigitsOf(4, "7")}‑${drawnDigitsOf(4)}`;
-    const sanFrancisco: string = `(${drawnExchange()}) ${drawnExchange()}–${drawnDigitsOf(4)}`;
-    const paris: string = `+33 1‒${drawnDigitsOf(2)}‒${drawnDigitsOf(2)}‒${drawnDigitsOf(2)}‒${drawnDigitsOf(2)}`;
-    // Halfwidth katakana text writes the halfwidth prolonged sound mark.
-    const osaka: string = `+81 6ｰ${drawnDigitsOf(4, "1")}ｰ${drawnDigitsOf(4)}`;
+  "phone-number: its groups set apart by a typeset dash or a prolonged sound mark":
+    (): CorpusEntry => {
+      const tokyo: string = toFullwidth(
+        `+81 3-${drawnDigitsOf(4, "1")}-${drawnDigitsOf(4)}`,
+      )
+        .split("－")
+        .join("ー");
+      const london: string = `+44 20 ${drawnDigitsOf(4, "7")}‑${drawnDigitsOf(4)}`;
+      const sanFrancisco: string = `(${drawnExchange()}) ${drawnExchange()}–${drawnDigitsOf(4)}`;
+      const paris: string = `+33 1‒${drawnDigitsOf(2)}‒${drawnDigitsOf(2)}‒${drawnDigitsOf(2)}‒${drawnDigitsOf(2)}`;
+      // Halfwidth katakana text writes the halfwidth prolonged sound mark.
+      const osaka: string = `+81 6ｰ${drawnDigitsOf(4, "1")}ｰ${drawnDigitsOf(4)}`;
 
-    return {
-      positives: [
-        labelled("phone-number", `電話 ${tokyo}`, tokyo),
-        labelled("phone-number", `ﾃﾞﾝﾜ ${osaka}`, osaka),
-        labelled(
-          "phone-number",
-          `2026-10-27T10:15:02Z INFO call ${london} queued`,
-          london,
-        ),
-        labelled("phone-number", `{"tel": "${sanFrancisco}"}`, sanFrancisco),
-        labelled("phone-number", `fax ${paris}`, paris),
-      ],
-      nearMisses: [
-        labelled("phone-number", `サーバー3台 データ2ー${1 + random(8)}件`, ""),
-        labelled(
-          "phone-number",
-          `pages 10–20 of 2020–2026 call later`,
-          "",
-        ),
-        labelled(
-          "phone-number",
-          `at UTC +1 2026−11−${10 + random(18)} 10:15:00`,
-          "",
-        ),
-      ],
-    };
-  },
+      return {
+        positives: [
+          labelled("phone-number", `電話 ${tokyo}`, tokyo),
+          labelled("phone-number", `ﾃﾞﾝﾜ ${osaka}`, osaka),
+          labelled(
+            "phone-number",
+            `2026-10-27T10:15:02Z INFO call ${london} queued`,
+            london,
+          ),
+          labelled("phone-number", `{"tel": "${sanFrancisco}"}`, sanFrancisco),
+          labelled("phone-number", `fax ${paris}`, paris),
+        ],
+        nearMisses: [
+          labelled(
+            "phone-number",
+            `サーバー3台 データ2ー${1 + random(8)}件`,
+            "",
+          ),
+          labelled("phone-number", `pages 10–20 of 2020–2026 call later`, ""),
+          labelled(
+            "phone-number",
+            `at UTC +1 2026−11−${10 + random(18)} 10:15:00`,
+            "",
+          ),
+        ],
+      };
+    },
   // #11385: a Social Security number whose groups are set apart by another dash, and what is none so.
-  "us-ssn: its groups set apart by a typeset dash or a prolonged sound mark": (): CorpusEntry => {
-    const typed: string = toFullwidth(drawnSsn()).split("－").join("ー");
-    const enDash: string = drawnSsn().split("-").join("–");
-    const minus: string = drawnSsn().split("-").join("−");
+  "us-ssn: its groups set apart by a typeset dash or a prolonged sound mark":
+    (): CorpusEntry => {
+      const typed: string = toFullwidth(drawnSsn()).split("－").join("ー");
+      const enDash: string = drawnSsn().split("-").join("–");
+      const minus: string = drawnSsn().split("-").join("−");
 
-    return {
-      positives: [
-        labelled("us-ssn", `SSN：${typed}`, typed),
-        labelled(
-          "us-ssn",
-          `2026-10-27T10:15:02Z INFO applicant ssn ${enDash} verified`,
-          enDash,
-        ),
-        labelled("us-ssn", `{"ssn": "${minus}"}`, minus),
-      ],
-      nearMisses: [
-        labelled(
-          "us-ssn",
-          `SSN 666–${drawnSsn().slice(4).split("-").join("–")}`,
-          "",
-        ),
-        labelled("us-ssn", `ref ${enDash}–${drawnDigitsOf(2)}`, ""),
-      ],
-    };
-  },
+      return {
+        positives: [
+          labelled("us-ssn", `SSN：${typed}`, typed),
+          labelled(
+            "us-ssn",
+            `2026-10-27T10:15:02Z INFO applicant ssn ${enDash} verified`,
+            enDash,
+          ),
+          labelled("us-ssn", `{"ssn": "${minus}"}`, minus),
+        ],
+        nearMisses: [
+          labelled(
+            "us-ssn",
+            `SSN 666–${drawnSsn().slice(4).split("-").join("–")}`,
+            "",
+          ),
+          labelled("us-ssn", `ref ${enDash}–${drawnDigitsOf(2)}`, ""),
+        ],
+      };
+    },
   // #11385: a card whose groups are set apart by another dash, and a check digit off so.
-  "credit-card-number: its groups set apart by a typeset dash or a prolonged sound mark": (): CorpusEntry => {
-    // Drawn again while a near miss of it is another type's value.
-    const card: string = drawnUntaken(
-      "credit-card-number",
-      drawnCard,
-      (drawn: string): string => {
-        return `card ${inGroupsOfFour(checkDigitOff(drawn), "–")} order ${inGroupsOfFour(drawn, "‒").slice(0, 14)}`;
-      },
-    );
-    const other: string = drawnCard();
-    const enDashed: string = inGroupsOfFour(card, "–");
-    const typed: string = toFullwidth(inGroupsOfFour(other, "-"))
-      .split("－")
-      .join("ー");
+  "credit-card-number: its groups set apart by a typeset dash or a prolonged sound mark":
+    (): CorpusEntry => {
+      // Drawn again while a near miss of it is another type's value.
+      const card: string = drawnUntaken(
+        "credit-card-number",
+        drawnCard,
+        (drawn: string): string => {
+          return `card ${inGroupsOfFour(checkDigitOff(drawn), "–")} order ${inGroupsOfFour(drawn, "‒").slice(0, 14)}`;
+        },
+      );
+      const other: string = drawnCard();
+      const enDashed: string = inGroupsOfFour(card, "–");
+      const typed: string = toFullwidth(inGroupsOfFour(other, "-"))
+        .split("－")
+        .join("ー");
 
-    return {
-      positives: [
-        labelled(
-          "credit-card-number",
-          `2026-10-27T10:15:02Z INFO card ${enDashed} charged`,
-          enDashed,
-        ),
-        labelled("credit-card-number", `カード番号：${typed}`, typed),
-      ],
-      nearMisses: [
-        labelled(
-          "credit-card-number",
-          `2026-10-27T10:15:02Z INFO card ${inGroupsOfFour(checkDigitOff(card), "–")} charged`,
-          "",
-        ),
-        labelled(
-          "credit-card-number",
-          `order ${inGroupsOfFour(card, "‒").slice(0, 14)} shipped`,
-          "",
-        ),
-      ],
-    };
-  },
+      return {
+        positives: [
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO card ${enDashed} charged`,
+            enDashed,
+          ),
+          labelled("credit-card-number", `カード番号：${typed}`, typed),
+        ],
+        nearMisses: [
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO card ${inGroupsOfFour(checkDigitOff(card), "–")} charged`,
+            "",
+          ),
+          labelled(
+            "credit-card-number",
+            `order ${inGroupsOfFour(card, "‒").slice(0, 14)} shipped`,
+            "",
+          ),
+        ],
+      };
+    },
   /*
    * #11385: an email address typed in fullwidth, as an input method in
    * fullwidth mode types one - and one with its "@" alone in fullwidth -
@@ -2587,22 +2595,23 @@ const READING_CASES_OF: Readonly<
    * words that name them typed in fullwidth - ＴＥＬ, ＳＳＮ - and the same
    * digits beside words that name neither, or a word inside another.
    */
-  "phone-number and us-ssn: their words typed in fullwidth": (): CorpusEntry => {
-    const national: string = toFullwidth(`0${drawnDigitsOf(10, "3")}`);
-    const ssn: string = toFullwidth(drawnSsn().split("-").join(""));
+  "phone-number and us-ssn: their words typed in fullwidth":
+    (): CorpusEntry => {
+      const national: string = toFullwidth(`0${drawnDigitsOf(10, "3")}`);
+      const ssn: string = toFullwidth(drawnSsn().split("-").join(""));
 
-    return {
-      positives: [
-        labelled("phone-number", `ＴＥＬ　${national}`, national),
-        labelled("us-ssn", `ＳＳＮ：${ssn}`, ssn),
-      ],
-      nearMisses: [
-        labelled("phone-number", `ＩＤ　${national}`, ""),
-        labelled("phone-number", `ＴＥＬＥＭＥＴＲＹ　${national}`, ""),
-        labelled("us-ssn", `ＲＥＦ　${ssn}`, ""),
-      ],
-    };
-  },
+      return {
+        positives: [
+          labelled("phone-number", `ＴＥＬ\u3000${national}`, national),
+          labelled("us-ssn", `ＳＳＮ：${ssn}`, ssn),
+        ],
+        nearMisses: [
+          labelled("phone-number", `ＩＤ\u3000${national}`, ""),
+          labelled("phone-number", `ＴＥＬＥＭＥＴＲＹ\u3000${national}`, ""),
+          labelled("us-ssn", `ＲＥＦ\u3000${ssn}`, ""),
+        ],
+      };
+    },
   // #10936
   "ip-address: right after a key's colon": (): CorpusEntry => {
     const first: string = drawnIpv6();
@@ -3291,11 +3300,9 @@ function score(corpus: Record<string, CorpusEntry>): Scores {
 
       scores.positives++;
 
-      for (const match of findAsRead(
-        positive.text,
-        {},
-        positive.field,
-      ).filter(isSure)) {
+      for (const match of findAsRead(positive.text, {}, positive.field).filter(
+        isSure,
+      )) {
         if (
           match.dataTypeId === positive.dataTypeId &&
           match.start < end &&
@@ -3744,6 +3751,7 @@ describe("values written the ways the detectors now read them too", () => {
 
   // #11385: every number written with hyphens is written with the other dashes too.
   test("writes every type read with its fullwidth forms with its groups set apart by another dash (#11385)", () => {
+    const HYPHEN_BETWEEN_DIGITS: RegExp = /[0-9]-[0-9]/;
     let withADash: number = 0;
 
     for (const dataTypeId of FULLWIDTH_TYPES) {
@@ -3761,10 +3769,10 @@ describe("values written the ways the detectors now read them too", () => {
 
       for (const positive of written.positives) {
         // No hyphen between digits is left: each is another dash now.
-        expect([dataTypeId, /[0-9]-[0-9]/.test(positive.value)]).toEqual([
+        expect([
           dataTypeId,
-          false,
-        ]);
+          HYPHEN_BETWEEN_DIGITS.test(positive.value),
+        ]).toEqual([dataTypeId, false]);
 
         if (holdsOtherDash(positive.value)) {
           withADash++;
@@ -3851,11 +3859,11 @@ describe("values written the ways the detectors now read them too", () => {
         }
 
         keyed++;
-        expect([name, positive.field, isRefusedAlone(positive.dataTypeId, positive.text)]).toEqual([
+        expect([
           name,
           positive.field,
-          true,
-        ]);
+          isRefusedAlone(positive.dataTypeId, positive.text),
+        ]).toEqual([name, positive.field, true]);
       }
     }
 

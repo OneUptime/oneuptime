@@ -165,8 +165,8 @@ export interface DataTypeDetector {
    * Whether the text is also read with the fullwidth ASCII block - letters,
    * digits, signs and punctuation - read as ASCII, as NFKC folds it, the
    * ideographic space as a space (FullwidthForms.ts, #11385): a value typed
-   * in fullwidth letters, an IBAN ＤＥ８９　３７０４…, a UK postcode
-   * ＳＷ１Ａ　２ＡＡ, an email address ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ - and the
+   * in fullwidth letters, an IBAN ＤＥ８９ ３７０４…, a UK postcode
+   * ＳＷ１Ａ ２ＡＡ, an email address ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ - and the
    * words beside a value typed so, ＴＥＬ, ＳＳＮ. Read only for a text that
    * holds some of a value typed in fullwidth letters, never for CJK prose.
    * For a detector of a value with letters, and for one that reads a number
@@ -194,7 +194,7 @@ export interface DataTypeDetector {
  * fullwidth, its signs and separators too (#11115): １９８５／０３／１２,
  * ５３６－２２－８７３１, its groups set apart by another dash (#11385):
  * 536–22–8731, and its letters typed in fullwidth too: ＧＢ８２ＷＥＳＴ…,
- * ＳＷ１Ａ　２ＡＡ. For a detector of a number, of a code a bank or a card
+ * ＳＷ１Ａ ２ＡＡ. For a detector of a number, of a code a bank or a card
  * has, or of a value written in groups: the same value whatever the
  * writing, proven by the same checks.
  */

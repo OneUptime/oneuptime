@@ -49,20 +49,68 @@ function foundOf(text: string, dataTypeId: string): Array<string> {
 
 describe("a phone number Data Security finds is hidden", () => {
   test.each([
-    ["an international number in groups", "call +44 20 7946 0958 now", "call [redacted-phone] now"],
-    ["with its calling code in parentheses", "dial (+44) 20 7946 0958", "dial ([redacted-phone]"],
-    ["with a trunk prefix in parentheses", "tel +44 (0)20 7946 0958", "tel [redacted-phone]"],
-    ["typeset with no-break spaces", "mobile +49 30 123456", "mobile [redacted-phone]"],
-    ["a North American one as people write it", "ring (415) 555-2671 today", "ring [redacted-phone] today"],
+    [
+      "an international number in groups",
+      "call +44 20 7946 0958 now",
+      "call [redacted-phone] now",
+    ],
+    [
+      "with its calling code in parentheses",
+      "dial (+44) 20 7946 0958",
+      "dial ([redacted-phone]",
+    ],
+    [
+      "with a trunk prefix in parentheses",
+      "tel +44 (0)20 7946 0958",
+      "tel [redacted-phone]",
+    ],
+    [
+      "typeset with no-break spaces",
+      "mobile +49 30 123456",
+      "mobile [redacted-phone]",
+    ],
+    [
+      "a North American one as people write it",
+      "ring (415) 555-2671 today",
+      "ring [redacted-phone] today",
+    ],
     ["one with dots", "office 415.555.2671", "office [redacted-phone]"],
     ["a UK mobile", "sms 07700 900123 sent", "sms [redacted-phone] sent"],
-    ["a national number beside tel", "tel 02012345678 ok", "tel [redacted-phone] ok"],
-    ["a national number beside phone in JSON", '{"phone": "0612345678"}', '{"phone": "[redacted-phone]"}'],
-    ["in a URL, escaped", "GET /notify?phone=%2B44%2020%207946%200958", "GET /notify?phone=[redacted-phone]"],
-    ["typed into a form", "GET /c?tel=%2B44+20+7946+0958&x=1", "GET /c?tel=[redacted-phone]&x=1"],
-    ["typed wholly in fullwidth", "電話 ＋８１ ３－１２３４－５６７８", "電話 [redacted-phone]"],
-    ["set apart by the prolonged sound mark", "電話 ＋８１ ３ー１２３４ー５６７８", "電話 [redacted-phone]"],
-    ["in Arabic-Indic digits", "هاتف +٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨", "هاتف [redacted-phone]"],
+    [
+      "a national number beside tel",
+      "tel 02012345678 ok",
+      "tel [redacted-phone] ok",
+    ],
+    [
+      "a national number beside phone in JSON",
+      '{"phone": "0612345678"}',
+      '{"phone": "[redacted-phone]"}',
+    ],
+    [
+      "in a URL, escaped",
+      "GET /notify?phone=%2B44%2020%207946%200958",
+      "GET /notify?phone=[redacted-phone]",
+    ],
+    [
+      "typed into a form",
+      "GET /c?tel=%2B44+20+7946+0958&x=1",
+      "GET /c?tel=[redacted-phone]&x=1",
+    ],
+    [
+      "typed wholly in fullwidth",
+      "電話 ＋８１ ３－１２３４－５６７８",
+      "電話 [redacted-phone]",
+    ],
+    [
+      "set apart by the prolonged sound mark",
+      "電話 ＋８１ ３ー１２３４ー５６７８",
+      "電話 [redacted-phone]",
+    ],
+    [
+      "in Arabic-Indic digits",
+      "هاتف +٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨",
+      "هاتف [redacted-phone]",
+    ],
   ])("%s: %s", (_label: string, text: string, expected: string) => {
     expect(redacted(text)).toBe(expected);
     // Data Security calls it one.
@@ -72,13 +120,33 @@ describe("a phone number Data Security finds is hidden", () => {
 
 describe("a Social Security number Data Security finds is hidden", () => {
   test.each([
-    ["in its groups", "applicant 536-22-8731 ok", "applicant [redacted-ssn] ok"],
+    [
+      "in its groups",
+      "applicant 536-22-8731 ok",
+      "applicant [redacted-ssn] ok",
+    ],
     ["set apart by dots", "ssn 536.22.8731", "ssn [redacted-ssn]"],
     ["set apart by spaces", "SSN 536 22 8731", "SSN [redacted-ssn]"],
-    ["nine digits beside SSN", "SSN 536221234 verified", "SSN [redacted-ssn] verified"],
-    ["nine digits beside the words", "social security number: 536221234", "social security number: [redacted-ssn]"],
-    ["in a URL", "GET /apply?social+security+number=536221234", "GET /apply?social+security+number=[redacted-ssn]"],
-    ["typed wholly in fullwidth", "SSN：５３６－２２－８７３１", "SSN：[redacted-ssn]"],
+    [
+      "nine digits beside SSN",
+      "SSN 536221234 verified",
+      "SSN [redacted-ssn] verified",
+    ],
+    [
+      "nine digits beside the words",
+      "social security number: 536221234",
+      "social security number: [redacted-ssn]",
+    ],
+    [
+      "in a URL",
+      "GET /apply?social+security+number=536221234",
+      "GET /apply?social+security+number=[redacted-ssn]",
+    ],
+    [
+      "typed wholly in fullwidth",
+      "SSN：５３６－２２－８７３１",
+      "SSN：[redacted-ssn]",
+    ],
     ["set apart by en dashes", "ssn 536–22–8731", "ssn [redacted-ssn]"],
     ["in Persian digits beside ssn", "ssn ۵۳۶۲۲۱۲۳۴", "ssn [redacted-ssn]"],
   ])("%s: %s", (_label: string, text: string, expected: string) => {
@@ -233,8 +301,7 @@ describe("a security result keeps a phone number and hides a Social Security num
       "OTP to +44 20 7946 0958 from 203.0.113.9 for ssn 536221234";
 
     expect(
-      ToolResultSerializer.redact(text, { keepSecurityObservables: true })
-        .text,
+      ToolResultSerializer.redact(text, { keepSecurityObservables: true }).text,
     ).toBe("OTP to +44 20 7946 0958 from 203.0.113.9 for ssn [redacted-ssn]");
     expect(
       ToolResultSerializer.serializeRows([{ phone: "02012345678" }], 1, {

@@ -33,7 +33,7 @@ import PlusAsSpaceText from "./PlusAsSpaceText";
  * script's digits read in that too. A detector of a value with letters,
  * and of a number typed in fullwidth for its words, also reads each of
  * those with the fullwidth ASCII block read as ASCII (readsFullwidthLetters,
- * #11385: ＤＥ８９　３７０４…, ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ, ＴＥＬ). A
+ * #11385: ＤＥ８９ ３７０４…, ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ, ＴＥＬ). A
  * match found in a reading is placed on the characters the text writes it
  * with, so what it finds - and what a scrub rule hides - is the value as
  * written, escapes and "+"s and fullwidth forms and all.
@@ -162,7 +162,7 @@ export class TextReadings {
   /*
    * A reading of the text - as written, with its escapes read, or as a
    * query string reads it - with the fullwidth ASCII block read as ASCII,
-   * as NFKC folds it (FullwidthForms, #11385): ＤＥ８９　３７０４ as
+   * as NFKC folds it (FullwidthForms, #11385): ＤＥ８９ ３７０４ as
    * DE89 3704, ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ as jane@example.com, ＴＥＬ as
    * TEL. Null when the reading holds no value typed in fullwidth letters.
    * As long as the reading it folds, so placed as that one places it.
