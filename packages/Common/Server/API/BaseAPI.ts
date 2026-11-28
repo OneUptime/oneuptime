@@ -156,23 +156,34 @@ export default class BaseAPI<
      * Markdown.
      */
     if (MarkdownFiles.canShowFiles(new this.entityType())) {
-      for (const method of ["get", "post"] as const) {
-        router[method](
-          `${new this.entityType().getCrudApiPath()?.toString()}/:id${MARKDOWN_FILES_ROUTE}`,
-          UserMiddleware.getUserMiddleware,
-          async (
-            req: ExpressRequest,
-            res: ExpressResponse,
-            next: NextFunction,
-          ) => {
-            try {
-              await this.getMarkdownFiles(req, res);
-            } catch (err) {
-              next(err);
-            }
-          },
-        );
-      }
+      const markdownFilesPath: string = `${new this.entityType().getCrudApiPath()?.toString()}/:id${MARKDOWN_FILES_ROUTE}`;
+      const readMarkdownFiles: (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => Promise<void> = async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          await this.getMarkdownFiles(req, res);
+        } catch (err) {
+          next(err);
+        }
+      };
+
+      // Each verb by its name, so the routes guard reads both (ProductCustomRoutesGuard).
+      router.get(
+        markdownFilesPath,
+        UserMiddleware.getUserMiddleware,
+        readMarkdownFiles,
+      );
+      router.post(
+        markdownFilesPath,
+        UserMiddleware.getUserMiddleware,
+        readMarkdownFiles,
+      );
     }
 
     // Update
