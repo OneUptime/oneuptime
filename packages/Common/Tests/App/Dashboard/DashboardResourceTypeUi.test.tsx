@@ -100,7 +100,7 @@ jest.mock("../../../UI/Utils/Project", () => {
 jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap",
-  );
+  ) as Record<string, unknown>;
 
   // The module's own __esModule flag is not enumerable: a spread drops it.
   return {
