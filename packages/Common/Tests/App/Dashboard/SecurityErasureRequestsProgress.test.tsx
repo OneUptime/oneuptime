@@ -209,11 +209,11 @@ beforeEach(() => {
   jest.spyOn(window, "setInterval").mockImplementation(((
     handler: () => void,
     timeout?: number,
-  ): ReturnType<typeof window.setInterval> => {
+  ): unknown => {
     if (timeout === ERASURE_PROGRESS_REFRESH_IN_MS) {
       ticks.push(handler);
 
-      return 0 as unknown as ReturnType<typeof window.setInterval>;
+      return 0;
     }
 
     return setInterval(handler, timeout);
