@@ -4604,7 +4604,7 @@
   "Project Call Voices": "Голоса проектов",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "Выбирает ли каждый проект голос своих звонков через аккаунт Twilio этого сервера.",
   "Let projects choose their call voice": "Разрешить проектам выбирать голос своих звонков",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "Владельцы и администраторы проекта выбирают его в разделе Настройки проекта > Уведомления > Каналы уведомлений, а платит за него аккаунт Twilio этого сервера. Проект, не выбравший голос, говорит голосом, указанным выше.",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "Владельцы и администраторы проекта выбирают его в разделе Настройки проекта > Уведомления > Каналы уведомлений. Проект, не выбравший голос, говорит голосом, указанным выше.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "Звонки всех проектов через аккаунт Twilio этого сервера говорят голосом, указанным выше.",
   "Free. Twilio says its Basic voices are not meant for production.": "Бесплатно. По словам Twilio, голоса Basic не предназначены для использования в рабочей среде.",
   "Save, then send a test call to hear it.": "Сохраните, затем отправьте тестовый звонок, чтобы его услышать.",
@@ -4661,5 +4661,8 @@
   "Your permission is limited to {{items}} with certain labels.": "Ваши права распространяются только на {{items}} с определёнными метками.",
   "A team you are on blocks this on {{items}} labelled {{labels}}.": "Команда, в которую вы входите, блокирует это там, где {{items}} помечены меткой {{labels}}.",
   "A team you are on blocks this on {{items}} with certain labels.": "Команда, в которую вы входите, блокирует это там, где {{items}} помечены определёнными метками.",
-  "Your permissions do not reach this {{itemName}}.": "Ваши права не распространяются на этот элемент ({{itemName}})."
+  "Your permissions do not reach this {{itemName}}.": "Ваши права не распространяются на этот элемент ({{itemName}}).",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "При удалении шаблона монитора его мониторы отвязываются. Они сохраняют критерии и настройки, полученные от шаблона, и продолжают проверять и отправлять оповещения.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "У устройства, для которого создан этот монитор, уже есть монитор, связанный с этим шаблоном: {{monitorName}}. Удалите один из двух или свяжите этот монитор с другим шаблоном.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "У устройства, для которого создан этот монитор, уже есть монитор, связанный с этим шаблоном. Удалите один из двух или свяжите этот монитор с другим шаблоном."
 }

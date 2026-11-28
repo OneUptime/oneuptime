@@ -4604,7 +4604,7 @@
   "Project Call Voices": "Stimmen der Projekte",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "Ob jedes Projekt die Stimme seiner eigenen Anrufe über das Twilio-Konto dieses Servers wählt.",
   "Let projects choose their call voice": "Projekte ihre Stimme für Anrufe wählen lassen",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "Projektinhaber und Projektadministratoren wählen sie unter Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle, und das Twilio-Konto dieses Servers bezahlt sie. Ein Projekt, das keine wählt, spricht mit der Stimme oben.",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "Projektinhaber und Projektadministratoren wählen sie unter Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle. Ein Projekt, das keine wählt, spricht mit der Stimme oben.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "Die Anrufe aller Projekte über das Twilio-Konto dieses Servers sprechen mit der Stimme oben.",
   "Free. Twilio says its Basic voices are not meant for production.": "Kostenlos. Laut Twilio sind die Basic-Stimmen nicht für den Produktiveinsatz gedacht.",
   "Save, then send a test call to hear it.": "Speichern Sie und senden Sie dann einen Testanruf, um sie zu hören.",
@@ -4661,5 +4661,8 @@
   "Your permission is limited to {{items}} with certain labels.": "Ihre Berechtigung ist auf {{items}} mit bestimmten Beschriftungen beschränkt.",
   "A team you are on blocks this on {{items}} labelled {{labels}}.": "Ein Team, in dem Sie Mitglied sind, sperrt dies bei {{items}} mit der Beschriftung {{labels}}.",
   "A team you are on blocks this on {{items}} with certain labels.": "Ein Team, in dem Sie Mitglied sind, sperrt dies bei {{items}} mit bestimmten Beschriftungen.",
-  "Your permissions do not reach this {{itemName}}.": "Ihre Berechtigungen gelten nicht für diesen Eintrag ({{itemName}})."
+  "Your permissions do not reach this {{itemName}}.": "Ihre Berechtigungen gelten nicht für diesen Eintrag ({{itemName}}).",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Das Löschen einer Monitorvorlage hebt die Verknüpfung ihrer Monitore auf. Sie behalten die Kriterien und Einstellungen, die die Vorlage ihnen gegeben hat, und prüfen und warnen weiter.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "Das Gerät, für das dieser Monitor erstellt wurde, hat bereits einen mit dieser Vorlage verknüpften Monitor: {{monitorName}}. Löschen Sie einen der beiden, oder verknüpfen Sie diesen mit einer anderen Vorlage.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "Das Gerät, für das dieser Monitor erstellt wurde, hat bereits einen mit dieser Vorlage verknüpften Monitor. Löschen Sie einen der beiden, oder verknüpfen Sie diesen mit einer anderen Vorlage."
 }

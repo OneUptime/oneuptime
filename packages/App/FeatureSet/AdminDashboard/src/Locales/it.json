@@ -4604,7 +4604,7 @@
   "Project Call Voices": "Voci dei progetti",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "Se ogni progetto sceglie la voce delle proprie chiamate tramite l'account Twilio di questo server.",
   "Let projects choose their call voice": "Lascia che i progetti scelgano la voce delle loro chiamate",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "I proprietari e gli amministratori di un progetto la scelgono in Impostazioni del progetto > Notifiche > Canali di notifica, e la paga l'account Twilio di questo server. Un progetto che non ne sceglie nessuna parla con la voce qui sopra.",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "I proprietari e gli amministratori di un progetto la scelgono in Impostazioni del progetto > Notifiche > Canali di notifica. Un progetto che non ne sceglie nessuna parla con la voce qui sopra.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "Le chiamate di ogni progetto tramite l'account Twilio di questo server parlano con la voce qui sopra.",
   "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Secondo Twilio, le sue voci Basic non sono pensate per l'uso in produzione.",
   "Save, then send a test call to hear it.": "Salva, poi invia una chiamata di prova per ascoltarla.",
@@ -4661,5 +4661,8 @@
   "Your permission is limited to {{items}} with certain labels.": "La tua autorizzazione è limitata a {{items}} con determinate etichette.",
   "A team you are on blocks this on {{items}} labelled {{labels}}.": "Un team di cui fai parte blocca questa azione su {{items}} con l'etichetta {{labels}}.",
   "A team you are on blocks this on {{items}} with certain labels.": "Un team di cui fai parte blocca questa azione su {{items}} con determinate etichette.",
-  "Your permissions do not reach this {{itemName}}.": "Le tue autorizzazioni non arrivano a questo elemento ({{itemName}})."
+  "Your permissions do not reach this {{itemName}}.": "Le tue autorizzazioni non arrivano a questo elemento ({{itemName}}).",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Eliminare un modello di monitor scollega i suoi monitor. Mantengono i criteri e le impostazioni che ha dato loro, e continuano a controllare e a generare avvisi.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "Il dispositivo per cui è stato creato questo monitor ha già un monitor collegato a questo modello: {{monitorName}}. Elimina uno dei due, oppure collega questo a un altro modello.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "Il dispositivo per cui è stato creato questo monitor ha già un monitor collegato a questo modello. Elimina uno dei due, oppure collega questo a un altro modello."
 }

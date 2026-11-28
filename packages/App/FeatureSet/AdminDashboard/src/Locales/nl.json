@@ -4604,7 +4604,7 @@
   "Project Call Voices": "Stemmen van projecten",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "Of elk project de stem van zijn eigen oproepen via het Twilio-account van deze server kiest.",
   "Let projects choose their call voice": "Projecten de stem voor hun oproepen laten kiezen",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "Projecteigenaren en -beheerders kiezen haar onder Projectinstellingen > Meldingen > Meldingskanalen, en het Twilio-account van deze server betaalt ervoor. Een project dat er geen kiest, spreekt met de stem hierboven.",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "Projecteigenaren en -beheerders kiezen haar onder Projectinstellingen > Meldingen > Meldingskanalen. Een project dat er geen kiest, spreekt met de stem hierboven.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "De oproepen van elk project via het Twilio-account van deze server spreken met de stem hierboven.",
   "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Volgens Twilio zijn de Basic-stemmen niet bedoeld voor productiegebruik.",
   "Save, then send a test call to hear it.": "Sla op en verzend daarna een testoproep om de stem te horen.",
@@ -4661,5 +4661,8 @@
   "Your permission is limited to {{items}} with certain labels.": "Uw recht is beperkt tot {{items}} met bepaalde labels.",
   "A team you are on blocks this on {{items}} labelled {{labels}}.": "Een team waarvan u lid bent, blokkeert dit bij {{items}} met het label {{labels}}.",
   "A team you are on blocks this on {{items}} with certain labels.": "Een team waarvan u lid bent, blokkeert dit bij {{items}} met bepaalde labels.",
-  "Your permissions do not reach this {{itemName}}.": "Uw rechten gelden niet voor dit item ({{itemName}})."
+  "Your permissions do not reach this {{itemName}}.": "Uw rechten gelden niet voor dit item ({{itemName}}).",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Als u een monitorsjabloon verwijdert, worden de monitoren ervan ontkoppeld. Ze behouden de criteria en instellingen die het sjabloon ze gaf, en blijven controleren en waarschuwen.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "Het apparaat waarvoor deze monitor is gemaakt, heeft al een monitor die aan dit sjabloon is gekoppeld: {{monitorName}}. Verwijder een van de twee, of koppel deze aan een ander sjabloon.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "Het apparaat waarvoor deze monitor is gemaakt, heeft al een monitor die aan dit sjabloon is gekoppeld. Verwijder een van de twee, of koppel deze aan een ander sjabloon."
 }

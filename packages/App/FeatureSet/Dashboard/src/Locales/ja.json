@@ -68268,7 +68268,7 @@
   "How many images Files holds.": "「ファイル」に入っている画像の数です。",
   "Pick a record type": "レコードタイプを選択",
   "Read the images a record's Markdown shows, such as the screenshots in an incident's description, with their names, types and data, ready to attach to an email.": "レコードの Markdown が表示している画像 (インシデントの説明に貼られたスクリーンショットなど) を、名前、種類、データ付きで読み取ります。メールにそのまま添付できます。",
-  "Roster Turn Key": "Roster Turn Key",
+  "Roster Turn Key": "当番表のターンキー",
   "Taken when the record could not be read: it does not exist, or the workflow may not read it.": "レコードを読み取れなかったときに進みます。レコードが存在しないか、ワークフローに読み取りが許可されていません。",
   "Taken when the record was read, whether or not it shows any images.": "レコードを読み取れたときに進みます。画像を表示しているかどうかは問いません。",
   "The files the Markdown shows that are not in Files, each with the reason: not an image, too large, or not found in this project.": "Markdown が表示しているのに「ファイル」に入っていないファイルです。画像ではない、大きすぎる、このプロジェクトで見つからない、といった理由が付きます。",
