@@ -431,9 +431,13 @@ const Settings: FunctionComponent = (): ReactElement => {
 
       {/*
        * The voice the account's calls speak with (#10948): chosen here
-       * however the account is set, by this page or by the environment.
+       * however the account is set, by this page or by the environment -
+       * unless GLOBAL_TWILIO_CALL_VOICE sets the voice too (#11064).
        */}
-      <CallVoiceCard onSaveSuccess={onSettingsSaved} />
+      <CallVoiceCard
+        onSaveSuccess={onSettingsSaved}
+        environment={twilioEnvironment}
+      />
     </Page>
   );
 };

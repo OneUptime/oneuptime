@@ -41,8 +41,14 @@ import TwilioConfigWrite, {
   TwilioUseAndNumbers,
 } from "../../Types/CallAndSMS/TwilioConfigWrite";
 import { GLOBAL_TWILIO_CONFIG_USE_SELECT } from "../Utils/TwilioConfigSelect";
-import { getServerTwilioEnvironment } from "../Utils/ServerTwilioConfig";
-import { SERVER_TWILIO_SET_BY_ENVIRONMENT_MESSAGE } from "../../Types/CallAndSMS/ServerTwilioEnvironment";
+import {
+  getServerTwilioCallVoice,
+  getServerTwilioEnvironment,
+} from "../Utils/ServerTwilioConfig";
+import {
+  SERVER_TWILIO_CALL_VOICE_SET_BY_ENVIRONMENT_MESSAGE,
+  SERVER_TWILIO_SET_BY_ENVIRONMENT_MESSAGE,
+} from "../../Types/CallAndSMS/ServerTwilioEnvironment";
 import { getServerEmailEnvironment } from "../Utils/ServerEmailSettings";
 import {
   SERVER_EMAIL_COLUMNS,
@@ -1008,6 +1014,36 @@ export class Service extends DatabaseService<Model> {
     }
 
     throw new BadDataException(SERVER_TWILIO_SET_BY_ENVIRONMENT_MESSAGE);
+  }
+
+  /*
+   * While GLOBAL_TWILIO_CALL_VOICE sets the voice of the server's calls
+   * (#11064), the voice saved here is not the one calls speak with, so a
+   * write to it - the Call Voice card, or the API - is refused with where
+   * the voice is changed instead: one that went through would say "Saved"
+   * and change nothing. It is its own variable, set with or without the
+   * account's. An explicit null counts as a write; OneUptime's own writes
+   * (props.isRoot) go through, and change nothing a call says.
+   */
+  public assertTwilioCallVoiceNotSetByEnvironment(
+    data: unknown,
+    props: DatabaseCommonInteractionProps | undefined,
+  ): void {
+    if (props?.isRoot) {
+      return;
+    }
+
+    const written: boolean =
+      (data as Record<string, unknown> | null)?.["twilioCallVoice"] !==
+      undefined;
+
+    if (!written || !getServerTwilioCallVoice().isSet) {
+      return;
+    }
+
+    throw new BadDataException(
+      SERVER_TWILIO_CALL_VOICE_SET_BY_ENVIRONMENT_MESSAGE,
+    );
   }
 
   /*
@@ -2098,6 +2134,10 @@ export class Service extends DatabaseService<Model> {
     this.assertHelpAndSupportWrittenByRootOnly(createBy.data, createBy.props);
     this.assertMasterApiKeyWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioAccountNotSetByEnvironment(createBy.data, createBy.props);
+    this.assertTwilioCallVoiceNotSetByEnvironment(
+      createBy.data,
+      createBy.props,
+    );
     this.assertEmailSettingsNotSetByEnvironment(createBy.data, createBy.props);
     await this.assertMasterApiKeyTurnOnIsConfirmed(
       createBy.data,
@@ -2143,6 +2183,10 @@ export class Service extends DatabaseService<Model> {
     this.assertHelpAndSupportWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertMasterApiKeyWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioAccountNotSetByEnvironment(updateBy.data, updateBy.props);
+    this.assertTwilioCallVoiceNotSetByEnvironment(
+      updateBy.data,
+      updateBy.props,
+    );
     this.assertEmailSettingsNotSetByEnvironment(updateBy.data, updateBy.props);
     await this.assertEmailSettingsChangeIsConfirmed(updateBy);
     await this.assertMasterApiKeyTurnOnIsConfirmed(

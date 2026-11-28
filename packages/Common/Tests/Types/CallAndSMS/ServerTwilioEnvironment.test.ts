@@ -489,6 +489,9 @@ describe("what the Admin Dashboard is told", () => {
       secondaryPhoneNumbers: null,
       smsPhoneNumbers: null,
       problems: [],
+      isCallVoiceSetByEnvironment: false,
+      callVoice: null,
+      callVoiceProblem: null,
     });
 
     const unused: ServerTwilioEnvironmentReading = ServerTwilioEnvironment.read(
@@ -524,6 +527,9 @@ describe("what the Admin Dashboard is told", () => {
       secondaryPhoneNumbers: UK,
       smsPhoneNumbers: null,
       problems: [],
+      isCallVoiceSetByEnvironment: false,
+      callVoice: null,
+      callVoiceProblem: null,
     });
     expect(JSON.stringify(answer)).not.toContain(TOKEN);
     expect(Object.keys(answer)).not.toContain("authToken");
@@ -580,6 +586,9 @@ describe("what the Admin Dashboard is told", () => {
         secondaryPhoneNumbers: null,
         smsPhoneNumbers: null,
         problems: [],
+        isCallVoiceSetByEnvironment: false,
+        callVoice: null,
+        callVoiceProblem: null,
       });
     },
   );
@@ -606,6 +615,9 @@ describe("what the Admin Dashboard is told", () => {
       secondaryPhoneNumbers: null,
       smsPhoneNumbers: null,
       problems: ["one", "two"],
+      isCallVoiceSetByEnvironment: false,
+      callVoice: null,
+      callVoiceProblem: null,
     });
   });
 });

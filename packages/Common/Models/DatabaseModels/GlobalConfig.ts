@@ -749,7 +749,9 @@ export default class GlobalConfig extends GlobalConfigModel {
    * in the Twilio Console: Twilio's Basic voice, unless its owner picked
    * another. Not one of the account's columns (SERVER_TWILIO_ACCOUNT_COLUMNS):
    * it is chosen in the Admin Dashboard even while the GLOBAL_TWILIO_
-   * environment variables set the account. GlobalConfigService refuses a
+   * environment variables set the account - unless GLOBAL_TWILIO_CALL_VOICE
+   * sets the voice too (#11064): this one is then not used, and
+   * GlobalConfigService refuses a write to it. GlobalConfigService refuses a
    * voice the list does not hold.
    */
   @ColumnAccessControl({

@@ -17,7 +17,10 @@ import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 import ServerEmailLogReader from "../Utils/ServerSending/ServerEmailLogReader";
 import { ServerEmailLogAnswer } from "../../Types/Email/ServerEmailLog";
 import { SERVER_CHANNEL_SETUP_SELECT } from "../Utils/ServerSending/ServerChannelSetup";
-import { getServerTwilioEnvironment } from "../Utils/ServerTwilioConfig";
+import {
+  getServerTwilioCallVoice,
+  getServerTwilioEnvironment,
+} from "../Utils/ServerTwilioConfig";
 import ServerTwilioEnvironment, {
   ServerTwilioEnvironmentAnswer,
 } from "../../Types/CallAndSMS/ServerTwilioEnvironment";
@@ -846,8 +849,15 @@ export default class GlobalConfigAPI extends BaseAPI<
       MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
+          /*
+           * With the voice GLOBAL_TWILIO_CALL_VOICE sets (#11064), which the
+           * Call Voice card shows in place of the saved one.
+           */
           const answer: ServerTwilioEnvironmentAnswer =
-            ServerTwilioEnvironment.toAnswer(getServerTwilioEnvironment());
+            ServerTwilioEnvironment.toAnswer(
+              getServerTwilioEnvironment(),
+              getServerTwilioCallVoice(),
+            );
 
           return Response.sendJsonObjectResponse(
             req,
