@@ -86,7 +86,13 @@ import SecurityPlaybookRunService, {
   UNFINISHED_SECURITY_PLAYBOOK_RUN_STATUSES,
 } from "../../Services/SecurityPlaybookRunService";
 import SecurityEventsSwitch from "../SecurityCase/SecurityEventsSwitch";
+import SecurityTrustedProxies from "../SecurityEvent/SecurityTrustedProxies";
 import ThreatIntelIndicatorService from "../../Services/ThreatIntelIndicatorService";
+import {
+  TrustedProxies,
+  UnvouchedForwarding,
+  readUnvouchedForwarding,
+} from "../../../Utils/SecurityEvent/ClientAddressTrust";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import SecurityAutomaticResponseLimit from "./SecurityAutomaticResponseLimit";
@@ -275,6 +281,23 @@ export function describeAutomaticResponseProtection(data: {
       : data.protection;
 
   return describeSecurityAddressProtection({ value: data.value, protection });
+}
+
+/*
+ * Why a policy left an address for a person (#11389): its requests came
+ * through a proxy the project trusts only because it is private, as a
+ * policy's record and the case say it - with what to do so the next one
+ * can act.
+ */
+export function describeAutomaticResponseUnvouched(data: {
+  value: string;
+  forwarding: UnvouchedForwarding;
+}): string {
+  if (!data.forwarding.hop) {
+    return `${data.value} came through proxies OneUptime can't name, so it can't tell whether one passed on the X-Forwarded-For the client wrote. An address is blocked automatically only when every proxy it came through is listed under Trusted Proxies or is one of your load balancers.`;
+  }
+
+  return `${data.value} came through ${data.forwarding.hop}, a private address you haven't listed as a proxy. A TCP proxy there would pass on the X-Forwarded-For the client wrote, so ${data.value} may be the client's own words. If ${data.forwarding.hop} is your HTTP proxy, add it to Trusted Proxies, and automatic response can act on what it forwards.`;
 }
 
 // Who a signed-in check found, as a policy's record says it.
@@ -535,6 +558,46 @@ export default class SecurityAutomaticResponse {
    */
   private static async isSecurityEventsOff(): Promise<boolean> {
     return await SecurityEventsSwitch.isOff();
+  }
+
+  /*
+   * Whether an event the detection kept names the address as a client that
+   * came through a proxy the project does not vouch for (#11389), read with
+   * its trusted proxies as they are now: the first one it finds, or null.
+   * Events that name the address as their connection, or in their own
+   * words, are no such event.
+   */
+  private static async findUnvouchedForwarding(data: {
+    projectId: ObjectID;
+    address: string;
+    matched: SecurityDetectionMatchedEvents | null;
+  }): Promise<UnvouchedForwarding | null> {
+    const events: Array<SecurityDetectionMatchedEvent> = (
+      data.matched?.events || []
+    ).filter((event: SecurityDetectionMatchedEvent): boolean => {
+      return readSecurityBlockValue(event.principalIp)?.value === data.address;
+    });
+
+    if (events.length === 0) {
+      return null;
+    }
+
+    const proxies: TrustedProxies = await SecurityTrustedProxies.getForProject(
+      data.projectId,
+    );
+
+    for (const event of events) {
+      const unvouched: UnvouchedForwarding | null = readUnvouchedForwarding(
+        event,
+        proxies,
+      );
+
+      if (unvouched) {
+        return unvouched;
+      }
+    }
+
+    return null;
   }
 
   /*
@@ -829,6 +892,25 @@ export default class SecurityAutomaticResponse {
       return await spare({
         outcome: SecurityAutomaticResponseOutcome.SparedCannotTell,
         detail: SECURITY_BLOCK_MESSAGES.checkFailed({ value: address }),
+      });
+    }
+
+    /*
+     * Never an address a proxy nothing vouches for forwarded (#11389): one
+     * trusted only because it is private may be a TCP proxy that passed on
+     * the X-Forwarded-For the client wrote, so the address may be the
+     * client's own words. Left for a person.
+     */
+    const unvouched: UnvouchedForwarding | null =
+      await this.findUnvouchedForwarding({ projectId, address, matched });
+
+    if (unvouched) {
+      return await spare({
+        outcome: SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+        detail: describeAutomaticResponseUnvouched({
+          value: address,
+          forwarding: unvouched,
+        }),
       });
     }
 
