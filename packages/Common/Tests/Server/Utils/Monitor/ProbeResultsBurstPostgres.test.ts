@@ -60,6 +60,19 @@
  * probe takes to get through what is due (its round). "today" below is how
  * probes asked before #11333, as #11247 measured it.
  *
+ * #11386 RUNS THREE MORE, with the workers ticked as FetchList's cron ticks
+ * them and each probe's moments pinned: a busy probe of one worker, the
+ * Helm chart's three workers, and a probe whose round passes the next
+ * minute every time. Each says how far a monitor probe's place in its
+ * probe's round moved from one round to the next, and who missed a minute -
+ * by when results landed and by when the claim handed each out - and
+ * whether a monitor probe missed a second before every one of its probe's
+ * had missed one. Before #11386 the claim handed out the monitors due at
+ * the same moment in the order the table held them: a busy probe's monitor
+ * moved up to 16.6 s in its round, and when the probe fell behind, 350 of
+ * its 600 monitor probes took all its missed minutes, up to four each. Now
+ * a place moves under 2 s, and every monitor probe takes its turn.
+ *
  * Opt in with RUN_POSTGRES_PROBE_RESULTS_BURST_TESTS=true against a Postgres
  * migrated to head, e.g. the Postgres Schema Drift workflow's database:
  *
@@ -188,6 +201,23 @@ const INGEST_WORKERS: number = 100;
  */
 const GAP_SLACK_MS: number = 2 * SECOND_MS;
 
+/*
+ * #11386's runs: long enough for each monitor probe to be handed out in
+ * several rounds of its probe, and for a probe that falls behind to have
+ * monitors miss a minute in four of its rounds.
+ */
+const CLAIM_ORDER_RUN_MS: number = 5 * MINUTE_MS;
+const FALLING_BEHIND_RUN_MS: number = 9 * MINUTE_MS;
+const CLAIM_ORDER_RUN_TIMEOUT_MS: number = 8 * MINUTE_MS;
+
+/*
+ * How far a monitor's place in its probe's round may move from one round to
+ * the next when the claim keeps their order: its checks before it in the
+ * round take 100 to 900 ms each, so the time its probe takes to reach it
+ * varies a little; nothing else moves it.
+ */
+const PLACE_SLACK_MS: number = 3 * SECOND_MS;
+
 const DASHES: RegExp = /-/g;
 
 const BASE_TABLES: Array<string> = [
@@ -257,6 +287,73 @@ interface ProbeFleetSettings {
    * random moment of the first staggerMaxMs every minute, as it did before.
    */
   askAtOwnMoment?: boolean | undefined;
+  /*
+   * Each probe's workers' moments of the minute, in ms from its start,
+   * worker 1 first, in place of the moments drawn for the probe (#11386):
+   * a probe that keeps up with its round, or one whose moment plus its
+   * round passes the next minute.
+   */
+  offsetsMs?: Array<Array<number>> | undefined;
+  /*
+   * The workers tick as FetchList's cron ticks them (#11386): at every
+   * minute, a worker that is not still fetching waits for its moment and
+   * asks; one still fetching - its round ran past the minute - skips that
+   * minute's tick, as workerRunsInProgress has it. Otherwise each worker
+   * goes from one minute's round straight to the next.
+   */
+  ticksLikeTheCron?: boolean | undefined;
+  // How long the run lasts, from its first whole minute (RUN_FOR_MS).
+  runForMs?: number | undefined;
+}
+
+// How the probes' claims went, over a run (#11386).
+export interface ClaimsMeasured {
+  claims: number;
+  // How long each claim took, as the probe waited for it.
+  p50Ms: number;
+  p95Ms: number;
+  maxMs: number;
+  // Monitor probes handed out, a claim.
+  handedOutMean: number;
+  /*
+   * Monitor probes handed out a second of claiming: what one claim at a
+   * time hands out, the work the statement does, not the probes' checks.
+   */
+  handedOutPerClaimingSecond: number;
+}
+
+/*
+ * Where in its probe's round each monitor probe is handed out, from one
+ * round to the next (#11386): how far its place moved. A monitor whose
+ * place holds is checked a minute after it last was; one handed out
+ * anywhere in the round is checked a minute apart give or take the round.
+ */
+export interface PlaceInRound {
+  moves: number;
+  p50Ms: number;
+  p95Ms: number;
+  maxMs: number;
+}
+
+/*
+ * The minutes a monitor probe was not checked in, after the run's first
+ * (#11386): who waits when a probe falls behind. When the waits take turns,
+ * no monitor probe waits a second time before every one of its probe's has
+ * waited once.
+ */
+export interface SkipsMeasured {
+  total: number;
+  // Monitor probes that missed at least one minute.
+  monitorProbes: number;
+  // The most minutes one monitor probe missed.
+  mostOfOne: number;
+  /*
+   * Minutes missed by a monitor probe that had missed one before, while
+   * more than a batch of its probe's had missed none yet.
+   */
+  againBeforeOthersOnce: number;
+  // Minutes missed by a monitor probe that missed the minute before too.
+  inARow: number;
 }
 
 // The time between two checks of one monitor probe, over a run.
@@ -311,6 +408,27 @@ export interface BurstMeasured {
   longestRoundMs: number;
   checksSkipped: number;
   claims: number;
+  claimsMeasured: ClaimsMeasured;
+  placeInRound: PlaceInRound;
+  // Minutes missed by when each result reached the server.
+  skips: SkipsMeasured;
+  /*
+   * Minutes missed by when each monitor probe was handed out: who the claim
+   * made wait. A check handed out just before a minute whose result lands
+   * just after it misses that minute by its result alone.
+   */
+  skipsHandedOut: SkipsMeasured;
+  // Minutes a worker's round ran past, so the cron's next tick was skipped.
+  ticksSkipped: number;
+}
+
+// One monitor probe handed out: by which probe's round, and when (#11386).
+interface HandedOut {
+  monitorProbeId: string;
+  probeId: string;
+  // The minute whose round handed it out: the tick the worker asked at.
+  roundMinute: number;
+  claimedAt: number;
 }
 
 function percentile(values: Array<number>, share: number): number {
@@ -721,7 +839,7 @@ describePostgres(
       const random: SeededRandom = seededRandom(seedNumber);
       const startAt: number =
         (Math.floor(Date.now() / MINUTE_MS) + 1) * MINUTE_MS;
-      const stopAt: number = startAt + RUN_FOR_MS;
+      const stopAt: number = startAt + (settings.runForMs ?? RUN_FOR_MS);
 
       // Every monitor probe due as the run starts.
       if (settings.atOwnMoment) {
@@ -743,6 +861,12 @@ describePostgres(
       // Evaluations running now, on the queue's workers.
       const pool: { active: number } = { active: 0 };
       let claims: number = 0;
+      // Each claim: how long the probe waited for it, and how many it handed out.
+      const claimTimes: Array<{ tookMs: number; handedOut: number }> = [];
+      // Each monitor probe handed out, by whose round and when (#11386).
+      const handedOut: Array<HandedOut> = [];
+      // Ticks of the cron a worker still fetching skipped (ticksLikeTheCron).
+      let ticksSkipped: number = 0;
       // Each probe's round of each minute: its first and last claim with monitors.
       const rounds: Map<string, { firstMs: number; lastMs: number }> =
         new Map();
@@ -783,6 +907,100 @@ describePostgres(
         }
       };
 
+      /*
+       * One worker's round of one minute: it claims as many due monitors as
+       * it has room for, starts checking each, and claims again while it is
+       * handed a full batch, as FetchList does.
+       */
+      const runRound: (data: {
+        probeId: ObjectID;
+        slots: CheckSlots;
+        checks: Set<Promise<void>>;
+        minute: number;
+      }) => Promise<void> = async (data: {
+        probeId: ObjectID;
+        slots: CheckSlots;
+        checks: Set<Promise<void>>;
+        minute: number;
+      }): Promise<void> => {
+        for (;;) {
+          const room: number = await data.slots.reserve(
+            FETCH_LIMIT,
+            Math.ceil(FETCH_LIMIT / 2),
+          );
+
+          const sentAt: number = Date.now();
+          const claimed: Array<ObjectID> = (
+            await MonitorProbeService.claimMonitorProbesForProbing({
+              probeId: data.probeId,
+              limit: room,
+            })
+          ).map((claimedMonitorProbe: ClaimedMonitorProbe): ObjectID => {
+            return claimedMonitorProbe.monitorProbeId;
+          });
+          const claimedAt: number = Date.now();
+          claims++;
+          claimTimes.push({
+            tookMs: claimedAt - sentAt,
+            handedOut: claimed.length,
+          });
+
+          if (claimed.length > 0) {
+            const key: string = `${data.probeId.toString()} ${data.minute}`;
+            const round: { firstMs: number; lastMs: number } | undefined =
+              rounds.get(key);
+
+            rounds.set(key, {
+              firstMs: round ? round.firstMs : claimedAt,
+              lastMs: claimedAt,
+            });
+
+            for (const id of claimed) {
+              handedOut.push({
+                monitorProbeId: id.toString(),
+                probeId: data.probeId.toString(),
+                roundMinute: data.minute,
+                claimedAt: claimedAt,
+              });
+            }
+          }
+
+          data.slots.release(room - claimed.length);
+
+          if (settings.atOwnMoment) {
+            await stampAtOwnMoments(
+              claimed.map((id: ObjectID): string => {
+                return id.toString();
+              }),
+              new Date(),
+            );
+          }
+
+          for (const id of claimed) {
+            const check: Promise<void> = new Promise<void>(
+              (resolve: () => void) => {
+                setTimeout(resolve, 100 + random(800));
+              },
+            ).then(() => {
+              waiting.push({
+                monitorProbeId: id.toString(),
+                checkedAt: Date.now(),
+              });
+              data.slots.release(1);
+              data.checks.delete(check);
+              pump();
+            });
+
+            data.checks.add(check);
+          }
+
+          // A short batch: nothing more is due for this probe.
+          if (claimed.length < room) {
+            return;
+          }
+        }
+      };
+
       // One worker of a probe's replica: once a minute, as FetchList runs it.
       const runWorker: (data: {
         probeId: ObjectID;
@@ -796,81 +1014,70 @@ describePostgres(
       }): Promise<void> => {
         const checks: Set<Promise<void>> = new Set();
 
-        for (
-          let minute: number = startAt;
-          minute < stopAt;
-          minute += MINUTE_MS
-        ) {
-          await sleepUntil(
-            minute +
-              (settings.askAtOwnMoment
-                ? data.offsetMs
-                : settings.staggerMaxMs > 0
-                  ? random(settings.staggerMaxMs)
-                  : 0),
-          );
+        if (settings.ticksLikeTheCron) {
+          /*
+           * The cron ticks at every minute; a worker still fetching skips
+           * the tick (FetchList's workerRunsInProgress), so one whose round
+           * ran past the minute next asks at its moment of the minute after.
+           */
+          const worker: { fetching: Promise<void> | null } = {
+            fetching: null,
+          };
 
-          for (;;) {
-            const room: number = await data.slots.reserve(
-              FETCH_LIMIT,
-              Math.ceil(FETCH_LIMIT / 2),
+          // The worker's fetching from one tick: its moment, then its round.
+          const fetchFrom: (tick: number) => Promise<void> = async (
+            tick: number,
+          ): Promise<void> => {
+            try {
+              await sleepUntil(tick + data.offsetMs);
+              await runRound({
+                probeId: data.probeId,
+                slots: data.slots,
+                checks: checks,
+                minute: tick,
+              });
+            } finally {
+              worker.fetching = null;
+            }
+          };
+
+          for (
+            let minute: number = startAt;
+            minute < stopAt;
+            minute += MINUTE_MS
+          ) {
+            await sleepUntil(minute);
+
+            if (worker.fetching) {
+              ticksSkipped++;
+              continue;
+            }
+
+            worker.fetching = fetchFrom(minute);
+          }
+
+          await worker.fetching;
+        } else {
+          for (
+            let minute: number = startAt;
+            minute < stopAt;
+            minute += MINUTE_MS
+          ) {
+            await sleepUntil(
+              minute +
+                (settings.askAtOwnMoment
+                  ? data.offsetMs
+                  : settings.staggerMaxMs > 0
+                    ? random(settings.staggerMaxMs)
+                    : 0),
             );
 
-            const claimed: Array<ObjectID> = (
-              await MonitorProbeService.claimMonitorProbesForProbing({
-                probeId: data.probeId,
-                limit: room,
-              })
-            ).map((claimedMonitorProbe: ClaimedMonitorProbe): ObjectID => {
-              return claimedMonitorProbe.monitorProbeId;
+            await runRound({
+              probeId: data.probeId,
+              slots: data.slots,
+              checks: checks,
+              minute: minute,
             });
-            claims++;
-
-            if (claimed.length > 0) {
-              const key: string = `${data.probeId.toString()} ${minute}`;
-              const round: { firstMs: number; lastMs: number } | undefined =
-                rounds.get(key);
-              const claimedAt: number = Date.now();
-
-              rounds.set(key, {
-                firstMs: round ? round.firstMs : claimedAt,
-                lastMs: claimedAt,
-              });
-            }
-
-            data.slots.release(room - claimed.length);
-
-            if (settings.atOwnMoment) {
-              await stampAtOwnMoments(
-                claimed.map((id: ObjectID): string => {
-                  return id.toString();
-                }),
-                new Date(),
-              );
-            }
-
-            for (const id of claimed) {
-              const check: Promise<void> = new Promise<void>(
-                (resolve: () => void) => {
-                  setTimeout(resolve, 100 + random(800));
-                },
-              ).then(() => {
-                waiting.push({
-                  monitorProbeId: id.toString(),
-                  checkedAt: Date.now(),
-                });
-                data.slots.release(1);
-                checks.delete(check);
-                pump();
-              });
-
-              checks.add(check);
-            }
-
-            // A short batch: nothing more is due for this probe.
-            if (claimed.length < room) {
-              break;
-            }
           }
         }
 
@@ -882,34 +1089,38 @@ describePostgres(
 
       try {
         await Promise.all(
-          probeIds.flatMap((probeId: ObjectID): Array<Promise<void>> => {
-            const slots: CheckSlots = new CheckSlots(
-              settings.workers * FETCH_LIMIT,
-            );
-            /*
-             * Drawn once for the probe, as it starts (ProbeFetchMoments).
-             * Only by a run that asks at its own moments, so a run that asks
-             * as before draws the same seconds as before.
-             */
-            const offsetsMs: Array<number> = settings.askAtOwnMoment
-              ? ProbeFetchMoments.getWorkerOffsetsMs({
-                  workers: settings.workers,
-                  spreadMs: settings.staggerMaxMs,
-                  random: random(1000000) / 1000000,
-                })
-              : [];
+          probeIds.flatMap(
+            (probeId: ObjectID, probeIndex: number): Array<Promise<void>> => {
+              const slots: CheckSlots = new CheckSlots(
+                settings.workers * FETCH_LIMIT,
+              );
+              /*
+               * Drawn once for the probe, as it starts (ProbeFetchMoments).
+               * Only by a run that asks at its own moments, so a run that asks
+               * as before draws the same seconds as before.
+               */
+              const offsetsMs: Array<number> =
+                settings.offsetsMs?.[probeIndex] ||
+                (settings.askAtOwnMoment
+                  ? ProbeFetchMoments.getWorkerOffsetsMs({
+                      workers: settings.workers,
+                      spreadMs: settings.staggerMaxMs,
+                      random: random(1000000) / 1000000,
+                    })
+                  : []);
 
-            return Array.from(
-              { length: settings.workers },
-              (_value: unknown, worker: number) => {
-                return runWorker({
-                  probeId,
-                  slots,
-                  offsetMs: offsetsMs[worker] ?? 0,
-                });
-              },
-            );
-          }),
+              return Array.from(
+                { length: settings.workers },
+                (_value: unknown, worker: number) => {
+                  return runWorker({
+                    probeId,
+                    slots,
+                    offsetMs: offsetsMs[worker] ?? 0,
+                  });
+                },
+              );
+            },
+          ),
         );
 
         while (evaluations.size > 0 || waiting.length > 0) {
@@ -921,17 +1132,212 @@ describePostgres(
 
       expect(failures).toEqual([]);
 
-      const report: BurstMeasured = measure({
-        times,
-        statementsSentAt: statementTimes.sentAt,
-        startAt,
-        stopAt,
-        claims,
-        rounds: Array.from(rounds.values()),
-      });
+      const report: BurstMeasured = {
+        ...measure({
+          times,
+          statementsSentAt: statementTimes.sentAt,
+          startAt,
+          stopAt,
+          claims,
+          rounds: Array.from(rounds.values()),
+        }),
+        claimsMeasured: measureClaims(claimTimes),
+        placeInRound: measurePlaceInRound(handedOut, rounds),
+        skips: measureSkips({
+          events: times.map((time: ResultTimes) => {
+            return {
+              monitorProbeId: time.monitorProbeId,
+              atMs: time.checkedAt,
+            };
+          }),
+          startAt,
+          stopAt,
+        }),
+        skipsHandedOut: measureSkips({
+          events: handedOut.map((handOut: HandedOut) => {
+            return {
+              monitorProbeId: handOut.monitorProbeId,
+              atMs: handOut.claimedAt,
+            };
+          }),
+          startAt,
+          stopAt,
+        }),
+        ticksSkipped: ticksSkipped,
+      };
 
       measured[name] = report;
       return report;
+    }
+
+    function measureClaims(
+      claimTimes: Array<{ tookMs: number; handedOut: number }>,
+    ): ClaimsMeasured {
+      const took: Array<number> = claimTimes.map(
+        (claim: { tookMs: number }): number => {
+          return claim.tookMs;
+        },
+      );
+      const handedOutInAll: number = claimTimes.reduce(
+        (sum: number, claim: { handedOut: number }): number => {
+          return sum + claim.handedOut;
+        },
+        0,
+      );
+      const claimingMs: number = took.reduce(
+        (sum: number, tookMs: number): number => {
+          return sum + tookMs;
+        },
+        0,
+      );
+
+      return {
+        claims: claimTimes.length,
+        p50Ms: percentile(took, 0.5),
+        p95Ms: percentile(took, 0.95),
+        maxMs: Math.max(0, ...took),
+        handedOutMean:
+          claimTimes.length > 0 ? handedOutInAll / claimTimes.length : 0,
+        handedOutPerClaimingSecond:
+          claimingMs > 0 ? handedOutInAll / (claimingMs / SECOND_MS) : 0,
+      };
+    }
+
+    /*
+     * Each monitor probe's place in its probe's round: when it was handed
+     * out, from the round's first claim with monitors. Compared from one of
+     * its probe's rounds to the next one that handed it out.
+     */
+    function measurePlaceInRound(
+      handedOut: Array<HandedOut>,
+      rounds: Map<string, { firstMs: number; lastMs: number }>,
+    ): PlaceInRound {
+      // The first time each monitor probe was handed out in each round.
+      const placesOf: Map<string, Map<number, number>> = new Map();
+
+      for (const handOut of handedOut) {
+        const round: { firstMs: number } | undefined = rounds.get(
+          `${handOut.probeId} ${handOut.roundMinute}`,
+        );
+
+        if (!round) {
+          continue;
+        }
+
+        const places: Map<number, number> =
+          placesOf.get(handOut.monitorProbeId) || new Map<number, number>();
+
+        if (!places.has(handOut.roundMinute)) {
+          places.set(handOut.roundMinute, handOut.claimedAt - round.firstMs);
+        }
+
+        placesOf.set(handOut.monitorProbeId, places);
+      }
+
+      const moves: Array<number> = [];
+
+      for (const places of placesOf.values()) {
+        const minutes: Array<number> = Array.from(places.keys()).sort(
+          (a: number, b: number): number => {
+            return a - b;
+          },
+        );
+
+        for (let index: number = 1; index < minutes.length; index++) {
+          moves.push(
+            Math.abs(
+              places.get(minutes[index]!)! - places.get(minutes[index - 1]!)!,
+            ),
+          );
+        }
+      }
+
+      return {
+        moves: moves.length,
+        p50Ms: percentile(moves, 0.5),
+        p95Ms: percentile(moves, 0.95),
+        maxMs: Math.max(0, ...moves),
+      };
+    }
+
+    /*
+     * The minutes each monitor probe had no check in, from the run's second
+     * minute: in its first, a probe whose moment comes late in the minute has
+     * not reached all its monitors yet, through no fault of the order.
+     */
+    function measureSkips(data: {
+      // When each monitor probe was checked (or handed out).
+      events: Array<{ monitorProbeId: string; atMs: number }>;
+      startAt: number;
+      stopAt: number;
+    }): SkipsMeasured {
+      const checkedMinutesOf: Map<string, Set<number>> = new Map();
+
+      for (const event of data.events) {
+        const minute: number = Math.floor(
+          (event.atMs - data.startAt) / MINUTE_MS,
+        );
+        const minutes: Set<number> =
+          checkedMinutesOf.get(event.monitorProbeId) || new Set<number>();
+        minutes.add(minute);
+        checkedMinutesOf.set(event.monitorProbeId, minutes);
+      }
+
+      const minutesInRun: number = Math.floor(
+        (data.stopAt - data.startAt) / MINUTE_MS,
+      );
+      const result: SkipsMeasured = {
+        total: 0,
+        monitorProbes: 0,
+        mostOfOne: 0,
+        againBeforeOthersOnce: 0,
+        inARow: 0,
+      };
+
+      for (const probeId of probeIds) {
+        const monitorProbeIds: Array<string> = Array.from(
+          assignmentOf.keys(),
+        ).filter((id: string): boolean => {
+          return assignmentOf.get(id)!.probeId === probeId.toString();
+        });
+        const skipsOf: Map<string, number> = new Map<string, number>();
+
+        for (let minute: number = 1; minute < minutesInRun; minute++) {
+          const skippedNow: Array<string> = monitorProbeIds.filter(
+            (id: string): boolean => {
+              return !checkedMinutesOf.get(id)?.has(minute);
+            },
+          );
+
+          for (const id of skippedNow) {
+            skipsOf.set(id, (skipsOf.get(id) || 0) + 1);
+          }
+
+          // Monitor probes of this probe that have not missed a minute yet.
+          const notYetOnce: number = monitorProbeIds.filter(
+            (id: string): boolean => {
+              return !skipsOf.has(id);
+            },
+          ).length;
+
+          for (const id of skippedNow) {
+            result.total++;
+
+            if (skipsOf.get(id)! > 1 && notYetOnce > FETCH_LIMIT) {
+              result.againBeforeOthersOnce++;
+            }
+
+            if (minute > 1 && !checkedMinutesOf.get(id)?.has(minute - 1)) {
+              result.inARow++;
+            }
+          }
+        }
+
+        result.monitorProbes += skipsOf.size;
+        result.mostOfOne = Math.max(result.mostOfOne, ...skipsOf.values());
+      }
+
+      return result;
     }
 
     function measure(data: {
@@ -941,7 +1347,14 @@ describePostgres(
       stopAt: number;
       claims: number;
       rounds: Array<{ firstMs: number; lastMs: number }>;
-    }): BurstMeasured {
+    }): Omit<
+      BurstMeasured,
+      | "claimsMeasured"
+      | "placeInRound"
+      | "skips"
+      | "skipsHandedOut"
+      | "ticksSkipped"
+    > {
       const seconds: number = (data.stopAt - data.startAt) / SECOND_MS;
       const perSecond: Array<number> = new Array<number>(seconds).fill(0);
       const statementsPerSecond: Map<number, number> = new Map();
@@ -1199,11 +1612,10 @@ describePostgres(
         /*
          * A minute apart, give or take the probe's round: one worker with 10
          * check slots takes about 15 s to get through 300 monitors. Where in
-         * it a monitor is checked can move from one minute to the next. The
-         * claim orders the monitors due at the same moment by that moment
-         * alone, so Postgres hands them out in the order its index holds
-         * them, and each claim's rewrite of their rows moves that order.
-         * The probe's moment no longer moves (follow-up: #11386).
+         * it a monitor is checked could move from one minute to the next
+         * while the claim ordered the monitors due at the same moment by
+         * that moment alone; since #11386 it hands them out as the round
+         * before did (the #11386 runs below).
          */
         expect(report.betweenChecks.farthestFromAMinuteMs).toBeLessThanOrEqual(
           report.longestRoundMs + GAP_SLACK_MS,
@@ -1272,6 +1684,152 @@ describePostgres(
         expect(report.waitForAWorkerMsMax).toBeLessThan(SECOND_MS);
       },
       RUN_TIMEOUT_MS,
+    );
+
+    /*
+     * #11386: WHERE IN ITS PROBE'S ROUND A MONITOR IS HANDED OUT. Every
+     * monitor a probe claims is stamped with its next whole minute, so all of
+     * a probe's one-minute monitors are due at the same instant, and the
+     * claim hands those out in the order it reads them. It read them by
+     * when they were due alone, which Postgres answers in the order its
+     * index holds rows due at the same instant: where each row's last write
+     * put it, which moves as rows are written again. So a busy probe checked
+     * a monitor anywhere in its round, somewhere else each minute. These
+     * runs tick the workers as FetchList's cron does, and pin each probe's
+     * moments, so a run is the same every time it is run.
+     */
+    test(
+      "#11386: one worker a probe (the probe's default), busy - each monitor keeps its place in its probe's round, so its checks are a minute apart",
+      async () => {
+        const report: BurstMeasured = await runFleet(
+          "#11386 one worker a probe",
+          {
+            workers: 1,
+            staggerMaxMs: STAGGER_MAX_MS,
+            atOwnMoment: false,
+            askAtOwnMoment: true,
+            ticksLikeTheCron: true,
+            // Rounds of about 16 s from 3 s and 17 s: each ends in its minute.
+            offsetsMs: [[3 * SECOND_MS], [17 * SECOND_MS]],
+            runForMs: CLAIM_ORDER_RUN_MS,
+          },
+          11386,
+        );
+
+        // Every monitor probe checked in every minute: the probes keep up.
+        expect(report.checksSkipped).toBe(0);
+        expect(report.ticksSkipped).toBe(0);
+        expect(report.longestRoundMs).toBeGreaterThan(10 * SECOND_MS);
+
+        // A monitor's place in its round holds from one minute to the next...
+        expect(report.placeInRound.moves).toBeGreaterThan(
+          MONITORS * PROBES * 3,
+        );
+        expect(report.placeInRound.p95Ms).toBeLessThanOrEqual(PLACE_SLACK_MS);
+        // ...so its checks are a minute apart, not a minute give or take the round.
+        expect(report.betweenChecks.farthestFromAMinuteMs).toBeLessThan(
+          report.longestRoundMs / 2,
+        );
+        expect(report.betweenChecks.p95Ms - MINUTE_MS).toBeLessThanOrEqual(
+          PLACE_SLACK_MS,
+        );
+      },
+      CLAIM_ORDER_RUN_TIMEOUT_MS,
+    );
+
+    test(
+      "#11386: the Helm chart's three workers a probe - each monitor keeps its place in its probe's round",
+      async () => {
+        const report: BurstMeasured = await runFleet(
+          "#11386 three workers a probe",
+          {
+            workers: 3,
+            staggerMaxMs: STAGGER_MAX_MS,
+            atOwnMoment: false,
+            askAtOwnMoment: true,
+            ticksLikeTheCron: true,
+            // As ProbeFetchMoments spreads three workers: 15 s apart.
+            offsetsMs: [
+              [2 * SECOND_MS, 17 * SECOND_MS, 32 * SECOND_MS],
+              [9 * SECOND_MS, 24 * SECOND_MS, 39 * SECOND_MS],
+            ],
+            runForMs: CLAIM_ORDER_RUN_MS,
+          },
+          11387,
+        );
+
+        expect(report.checksSkipped).toBe(0);
+        expect(report.ticksSkipped).toBe(0);
+        expect(report.placeInRound.moves).toBeGreaterThan(
+          MONITORS * PROBES * 3,
+        );
+        /*
+         * A round of about 5 s: its checks before a monitor's hardly vary,
+         * so its place holds to well under a second. Handed out anywhere
+         * in the round, it moved up to the round's length (5.3 s measured).
+         */
+        expect(report.placeInRound.maxMs).toBeLessThanOrEqual(2 * SECOND_MS);
+        expect(report.betweenChecks.farthestFromAMinuteMs).toBeLessThanOrEqual(
+          GAP_SLACK_MS,
+        );
+        expect(report.betweenChecks.withinASecondShare).toBeGreaterThan(0.95);
+      },
+      CLAIM_ORDER_RUN_TIMEOUT_MS,
+    );
+
+    /*
+     * #11386: A PROBE WHOSE ROUND PASSES THE NEXT MINUTE. Its worker asks at
+     * 47 s and takes about 16 s, so the monitors it reaches after the minute
+     * are stamped with the minute after, and its next round - two minutes on,
+     * since the cron's tick at the minute it ran past is skipped - is the
+     * first that may hand them out: they miss a minute. Who misses it is the
+     * claim's order. Each monitor due at the same moment as others is handed
+     * out by when it was handed out last, oldest first, so the ones that
+     * waited go first next time and the wait goes round: no monitor misses a
+     * second minute before every monitor of its probe has missed one.
+     */
+    test(
+      "#11386: a probe whose round passes the next minute - the monitors that wait for its next round take turns",
+      async () => {
+        const report: BurstMeasured = await runFleet(
+          "#11386 a round past the minute",
+          {
+            workers: 1,
+            staggerMaxMs: STAGGER_MAX_MS,
+            atOwnMoment: false,
+            askAtOwnMoment: true,
+            ticksLikeTheCron: true,
+            offsetsMs: [[47 * SECOND_MS], [47 * SECOND_MS]],
+            runForMs: FALLING_BEHIND_RUN_MS,
+          },
+          11388,
+        );
+
+        // It falls behind: rounds run past the minute, and monitors miss one.
+        expect(report.ticksSkipped).toBeGreaterThan(0);
+        expect(report.skipsHandedOut.total).toBeGreaterThan(MONITORS / 10);
+
+        /*
+         * The ones the claim makes wait take turns: none waits a second
+         * time before every one of its probe's has waited once, and none
+         * two minutes running.
+         */
+        expect(report.skipsHandedOut.againBeforeOthersOnce).toBe(0);
+        expect(report.skipsHandedOut.inARow).toBe(0);
+        expect(report.skipsHandedOut.monitorProbes).toBe(MONITORS * PROBES);
+
+        /*
+         * By when their results land, the same, but for a check handed out
+         * just before a minute that finishes after it: it misses that
+         * minute by its result alone. So never one monitor more than once
+         * beyond its turns, and never two minutes running.
+         */
+        expect(report.skips.mostOfOne).toBeLessThanOrEqual(
+          report.skipsHandedOut.mostOfOne + 1,
+        );
+        expect(report.skips.inARow).toBe(0);
+      },
+      CLAIM_ORDER_RUN_TIMEOUT_MS * 2,
     );
   },
 );

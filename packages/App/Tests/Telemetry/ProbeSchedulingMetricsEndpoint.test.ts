@@ -86,6 +86,11 @@ function busyReplicaView(): ProbeSchedulingFleetView {
     handedOutAt: new Date(now),
     askedAt: [new Date(now - 3_000)],
   });
+  // Backed up: some of its answers asked their connection to reconnect (#11392).
+  for (let asked: number = 0; asked < 12; asked++) {
+    metrics.recordReconnectAsked(ProbeSchedulingLane.Work);
+  }
+  metrics.recordReconnectAsked(ProbeSchedulingLane.MonitorTests);
 
   return aggregateProbeScheduling([metrics.snapshot()], true);
 }
@@ -137,6 +142,12 @@ describe("GET /metrics/probe-scheduling", () => {
       monitorsLateByAnIntervalPerMinute: 1,
       monitorTestsHandedOutPerMinute: 1,
       monitorTestWaitMaxSeconds: 3,
+      reconnectsAskedPerMinute: 13,
+      monitorTestReconnectsAskedPerMinute: 1,
+    });
+    expect(body.replicas[0]).toMatchObject({
+      queueDepth: 23,
+      reconnectsAskedLastMinute: 13,
     });
   });
 
@@ -161,6 +172,7 @@ describe("GET /metrics/probe-scheduling", () => {
     expect(await response.json()).toMatchObject({
       queueDepth: 0,
       refusalsPerMinute: 0,
+      reconnectsAskedPerMinute: 0,
     });
   });
 });

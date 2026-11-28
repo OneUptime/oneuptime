@@ -354,8 +354,8 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
      * The fix must not disturb what the claim is otherwise for: disabled /
      * deleted monitors and deleted projects stay out, and the rows come
      * oldest first. The read is a range of the (probeId, isEnabled,
-     * nextPingAt) index in the index's own order, so it stops at its LIMIT
-     * (MonitorProbeClaimSetAside pins why).
+     * nextPingAt, lastPingAt) index in the index's own order, so it stops at
+     * its LIMIT (MonitorProbeClaimSetAside pins why).
      */
     test("keeps the rest of the claim predicate intact, oldest first, in the index's order", async () => {
       const { select } = await captureClaim();
@@ -372,7 +372,7 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       expect(sql).toContain('AND m."deletedAt" IS NULL');
       expect(sql).toContain('AND p."deletedAt" IS NULL');
       expect(sql).toContain(
-        'ORDER BY mp."nextPingAt" ASC LIMIT $3 FOR NO KEY UPDATE OF mp SKIP LOCKED',
+        'ORDER BY mp."nextPingAt" ASC, mp."lastPingAt" ASC LIMIT $3 FOR NO KEY UPDATE OF mp SKIP LOCKED',
       );
       expect(sql).not.toContain("FOR UPDATE");
 

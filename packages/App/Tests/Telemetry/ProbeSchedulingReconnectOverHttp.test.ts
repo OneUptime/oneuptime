@@ -32,6 +32,10 @@ import ProbeSchedulingReconnectInstance, {
   ProbeSchedulingReconnect,
 } from "Common/Server/Utils/Probe/ProbeSchedulingReconnect";
 import ProbeSchedulingLane from "Common/Server/Utils/Probe/ProbeSchedulingLane";
+import ProbeSchedulingMetricsInstance, {
+  ProbeSchedulingMetrics,
+  ProbeSchedulingMetricsSnapshot,
+} from "Common/Server/Utils/Probe/ProbeSchedulingMetrics";
 import { KeyedConcurrencyLimits } from "Common/Server/Utils/KeyedConcurrencyLimiter";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ObjectID from "Common/Types/ObjectID";
@@ -63,6 +67,8 @@ interface Served {
   server: http.Server;
   // Connections the server accepted.
   accepted: () => number;
+  // Requests that reached the scheduling limit, waiting or not.
+  arrived: () => number;
   // The requests the handler holds until the test answers them, by label.
   release: (label: string) => void;
   reached: (label: string) => boolean;
@@ -114,6 +120,7 @@ async function serve(options: {
   reconnect?: ProbeSchedulingReconnect;
   lane?: ProbeSchedulingLane;
   limiter?: ProbeSchedulingLimiter;
+  metrics?: ProbeSchedulingMetrics;
 }): Promise<Served> {
   const limiter: ProbeSchedulingLimiter =
     options.limiter ||
@@ -132,12 +139,14 @@ async function serve(options: {
   const held: Map<string, () => void> = new Map<string, () => void>();
   const reached: Set<string> = new Set<string>();
   let accepted: number = 0;
+  let arrived: number = 0;
 
   const app: ExpressApplication = createExpressApp();
   app.use(ExpressJson());
   app.post(
     "/work",
     (req: ExpressRequest, _res: ExpressResponse, next: NextFunction): void => {
+      arrived++;
       // What ProbeAuthorization sets once a probe's key checks out.
       (req as unknown as { probe: Probe }).probe = new Probe(
         new ObjectID(PROBE_ID),
@@ -152,6 +161,7 @@ async function serve(options: {
         limiter: limiter,
         ...(options.reconnect ? { reconnect: options.reconnect } : {}),
         ...(options.lane ? { lane: options.lane } : {}),
+        ...(options.metrics ? { metrics: options.metrics } : {}),
       },
     ),
     async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
@@ -186,6 +196,9 @@ async function serve(options: {
     server: server,
     accepted: (): number => {
       return accepted;
+    },
+    arrived: (): number => {
+      return arrived;
     },
     release: (label: string): void => {
       held.get(label)?.();
@@ -505,6 +518,218 @@ describe("a probe's kept-alive connection while its App pod is backed up", () =>
     await send(served, probeAgent(), { label: "one" });
 
     expect(asked).toEqual([{ lane: ProbeSchedulingLane.Work, waiting: 0 }]);
+  });
+});
+
+/*
+ * #11392: each answer that asks its probe's connection to reconnect is
+ * counted, in its lane, in the probe scheduling metrics that
+ * /metrics/probe-scheduling adds up (reconnectsAskedPerMinute) - so an
+ * operator who sees connections closed, or wants to know how long a pod
+ * spent backed up, reads it there instead of inferring it from the queue.
+ */
+describe("how often a backed-up App pod asks its probes' connections to reconnect (#11392)", () => {
+  // A view of the process's metrics of its own, so each test counts its own.
+  function freshMetrics(): ProbeSchedulingMetrics {
+    return new ProbeSchedulingMetrics({ replica: "app-under-test" });
+  }
+
+  function reconnectsAsked(
+    metrics: ProbeSchedulingMetrics,
+    lane: ProbeSchedulingLane,
+  ): number {
+    const snapshot: ProbeSchedulingMetricsSnapshot = metrics.snapshot();
+    return snapshot.lanes[lane]!.reconnectsAsked || 0;
+  }
+
+  // One request runs, `behind` wait behind it; then each runs in turn.
+  async function backedUp(data: {
+    served: Served;
+    agent: http.Agent;
+    behind: number;
+    prefix: string;
+  }): Promise<Array<Answer>> {
+    const labels: Array<string> = Array.from(
+      { length: data.behind + 1 },
+      (_value: unknown, index: number): string => {
+        return `${data.prefix}-${index}`;
+      },
+    );
+    const answers: Map<string, Promise<Answer>> = new Map<
+      string,
+      Promise<Answer>
+    >();
+    const arrivedBefore: number = data.served.arrived();
+
+    answers.set(
+      labels[0]!,
+      send(data.served, data.agent, { label: labels[0]!, hold: true }),
+    );
+    await eventually((): boolean => {
+      return data.served.reached(labels[0]!);
+    });
+    for (const label of labels.slice(1)) {
+      answers.set(label, send(data.served, data.agent, { label, hold: true }));
+    }
+    // Every one in, the rest waiting for the slot (kept connections, or new ones).
+    await eventually((): boolean => {
+      return data.served.arrived() >= arrivedBefore + labels.length;
+    });
+
+    const answered: Array<Answer> = [];
+    const released: Set<string> = new Set<string>();
+
+    for (let turn: number = 0; turn < labels.length; turn++) {
+      let label: string | undefined;
+      await eventually((): boolean => {
+        label = labels.find((candidate: string): boolean => {
+          return data.served.reached(candidate) && !released.has(candidate);
+        });
+        return Boolean(label);
+      });
+
+      released.add(label!);
+      data.served.release(label!);
+      answered.push(await answers.get(label!)!);
+    }
+
+    return answered;
+  }
+
+  function closes(answers: Array<Answer>): number {
+    return answers.filter((answer: Answer): boolean => {
+      return answer.connection === "close";
+    }).length;
+  }
+
+  test("with nothing waiting nothing is asked, and nothing counted", async () => {
+    const metrics: ProbeSchedulingMetrics = freshMetrics();
+    const served: Served = await serve({ metrics });
+    const agent: http.Agent = probeAgent();
+
+    for (let index: number = 0; index < 5; index++) {
+      expect(
+        (await send(served, agent, { label: `quiet-${index}` })).connection,
+      ).not.toBe("close");
+    }
+
+    expect(reconnectsAsked(metrics, ProbeSchedulingLane.Work)).toBe(0);
+    expect(reconnectsAsked(metrics, ProbeSchedulingLane.MonitorTests)).toBe(0);
+  });
+
+  test("each answer that says Connection: close is counted once, in the work lane", async () => {
+    const metrics: ProbeSchedulingMetrics = freshMetrics();
+    const served: Served = await serve({ metrics });
+
+    const answers: Array<Answer> = await backedUp({
+      served,
+      agent: probeAgent(),
+      behind: 1,
+      prefix: "one-behind",
+    });
+
+    expect(closes(answers)).toBe(1);
+    expect(reconnectsAsked(metrics, ProbeSchedulingLane.Work)).toBe(1);
+    expect(reconnectsAsked(metrics, ProbeSchedulingLane.MonitorTests)).toBe(0);
+  });
+
+  test("a backed-up lane asks once an interval, and is counted as often as it asks, never once an answer", async () => {
+    const clock: {
+      reconnect: ProbeSchedulingReconnect;
+      advance: (ms: number) => void;
+    } = stillClock();
+    const metrics: ProbeSchedulingMetrics = freshMetrics();
+    const served: Served = await serve({
+      metrics,
+      reconnect: clock.reconnect,
+    });
+    const agent: http.Agent = probeAgent();
+
+    // Four answers with the clock standing still: one ask.
+    const first: Array<Answer> = await backedUp({
+      served,
+      agent,
+      behind: 3,
+      prefix: "still",
+    });
+    expect(closes(first)).toBe(1);
+    expect(reconnectsAsked(metrics, ProbeSchedulingLane.Work)).toBe(1);
+
+    // An interval later, backed up again: one more.
+    clock.advance(PROBE_SCHEDULING_RECONNECT_EVERY_MS);
+    const second: Array<Answer> = await backedUp({
+      served,
+      agent,
+      behind: 2,
+      prefix: "later",
+    });
+    expect(closes(second)).toBe(1);
+    expect(reconnectsAsked(metrics, ProbeSchedulingLane.Work)).toBe(2);
+
+    // The count is the answers that asked, not the answers.
+    expect(first.length + second.length).toBe(7);
+  });
+
+  test("the Test Monitor lane's are counted in its own lane", async () => {
+    const metrics: ProbeSchedulingMetrics = freshMetrics();
+    const served: Served = await serve({
+      metrics,
+      lane: ProbeSchedulingLane.MonitorTests,
+    });
+
+    const answers: Array<Answer> = await backedUp({
+      served,
+      agent: probeAgent(),
+      behind: 1,
+      prefix: "tests",
+    });
+
+    expect(closes(answers)).toBe(1);
+    expect(reconnectsAsked(metrics, ProbeSchedulingLane.MonitorTests)).toBe(1);
+    expect(reconnectsAsked(metrics, ProbeSchedulingLane.Work)).toBe(0);
+  });
+
+  test("a request answered busy is neither asked to reconnect nor counted", async () => {
+    const metrics: ProbeSchedulingMetrics = freshMetrics();
+    const served: Served = await serve({
+      metrics,
+      limits: { maxWaiting: 0, maxWaitingPerKey: 0 },
+    });
+    const agent: http.Agent = probeAgent();
+
+    const running: Promise<Answer> = send(served, agent, {
+      label: "running",
+      hold: true,
+    });
+    await eventually((): boolean => {
+      return served.reached("running");
+    });
+
+    expect((await send(served, agent, { label: "refused" })).status).toBe(429);
+
+    served.release("running");
+    expect((await running).connection).not.toBe("close");
+    expect(reconnectsAsked(metrics, ProbeSchedulingLane.Work)).toBe(0);
+  });
+
+  test("by default each is counted in the process's own probe scheduling metrics, which /metrics/probe-scheduling reads", async () => {
+    const recorded: Array<ProbeSchedulingLane> = [];
+    jest
+      .spyOn(ProbeSchedulingMetricsInstance, "recordReconnectAsked")
+      .mockImplementation((lane: ProbeSchedulingLane): void => {
+        recorded.push(lane);
+      });
+
+    const served: Served = await serve({});
+    const answers: Array<Answer> = await backedUp({
+      served,
+      agent: probeAgent(),
+      behind: 1,
+      prefix: "process",
+    });
+
+    expect(closes(answers)).toBe(1);
+    expect(recorded).toEqual([ProbeSchedulingLane.Work]);
   });
 });
 

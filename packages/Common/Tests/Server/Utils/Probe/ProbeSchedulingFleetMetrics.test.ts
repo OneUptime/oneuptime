@@ -10,6 +10,7 @@ import {
 } from "../../../../Server/Utils/Probe/ProbeSchedulingFleetMetrics";
 import ProbeSchedulingLane from "../../../../Server/Utils/Probe/ProbeSchedulingLane";
 import {
+  ProbeSchedulingLaneMetrics,
   ProbeSchedulingMetrics,
   ProbeSchedulingMetricsSnapshot,
 } from "../../../../Server/Utils/Probe/ProbeSchedulingMetrics";
@@ -104,6 +105,9 @@ function replicaView(data: {
   lagMaxSeconds: number;
   lateByAnInterval: number;
   testWaitMaxSeconds: number;
+  // Answers that asked to reconnect (#11392); left out: none.
+  reconnectsAsked?: number;
+  testsReconnectsAsked?: number;
 }): ProbeSchedulingMetricsSnapshot {
   const summary: (
     p95: number,
@@ -130,6 +134,9 @@ function replicaView(data: {
         refused: data.refused,
         refusedQueueFull: data.refused,
         refusedWaitedTooLong: 0,
+        ...(data.reconnectsAsked !== undefined
+          ? { reconnectsAsked: data.reconnectsAsked }
+          : {}),
       },
       [ProbeSchedulingLane.MonitorTests]: {
         running: 0,
@@ -139,6 +146,9 @@ function replicaView(data: {
         refused: data.testsRefused || 0,
         refusedQueueFull: 0,
         refusedWaitedTooLong: data.testsRefused || 0,
+        ...(data.testsReconnectsAsked !== undefined
+          ? { reconnectsAsked: data.testsReconnectsAsked }
+          : {}),
       },
     },
     monitorsHandedOut: data.handedOut,
@@ -228,9 +238,152 @@ describe("aggregateProbeScheduling", () => {
       replicasReporting: 0,
       queueDepth: 0,
       refusalsPerMinute: 0,
+      reconnectsAskedPerMinute: 0,
+      monitorTestReconnectsAskedPerMinute: 0,
       dispatchLagP95Seconds: 0,
       replicas: [],
     });
+  });
+
+  /*
+   * #11392: how often the backed-up replicas asked their probes'
+   * connections to reconnect, so they move to replicas with room - summed
+   * over the replicas and both lanes, as the refusals are, with the Test
+   * Monitor lane's apart, and each replica's beside its queue.
+   */
+  test("the answers that asked to reconnect are summed a minute, both lanes and the Test Monitor lane's apart, and shown for each replica", () => {
+    const view: ProbeSchedulingFleetView = aggregateProbeScheduling(
+      [
+        replicaView({
+          replica: "backed-up",
+          at: 0,
+          waiting: 32,
+          running: 10,
+          slotWaitP95Ms: 4000,
+          refused: 0,
+          handedOut: 900,
+          lagP95Seconds: 12,
+          lagMaxSeconds: 30,
+          lateByAnInterval: 0,
+          testWaitMaxSeconds: 2,
+          // Ten a second for half the minute.
+          reconnectsAsked: 300,
+          testsReconnectsAsked: 4,
+        }),
+        replicaView({
+          replica: "new",
+          at: 0,
+          waiting: 0,
+          running: 8,
+          slotWaitP95Ms: 3,
+          refused: 0,
+          handedOut: 800,
+          lagP95Seconds: 1,
+          lagMaxSeconds: 2,
+          lateByAnInterval: 0,
+          testWaitMaxSeconds: 1,
+          reconnectsAsked: 0,
+          testsReconnectsAsked: 0,
+        }),
+      ],
+      true,
+    );
+
+    expect(view.reconnectsAskedPerMinute).toBe(304);
+    expect(view.monitorTestReconnectsAskedPerMinute).toBe(4);
+    // The busiest replica first, with what it asked.
+    expect(
+      view.replicas.map(
+        (replica: {
+          queueDepth: number;
+          reconnectsAskedLastMinute: number;
+        }): [number, number] => {
+          return [replica.queueDepth, replica.reconnectsAskedLastMinute];
+        },
+      ),
+    ).toEqual([
+      [32, 304],
+      [0, 0],
+    ]);
+    // Not refusals: nothing was answered busy.
+    expect(view.refusalsPerMinute).toBe(0);
+  });
+
+  test("a view an older replica wrote, with no reconnects in it, counts none: a rolling upgrade reads", () => {
+    const older: ProbeSchedulingMetricsSnapshot = replicaView({
+      replica: "older",
+      at: 0,
+      waiting: 5,
+      running: 10,
+      slotWaitP95Ms: 800,
+      refused: 1,
+      handedOut: 700,
+      lagP95Seconds: 5,
+      lagMaxSeconds: 9,
+      lateByAnInterval: 0,
+      testWaitMaxSeconds: 3,
+    });
+
+    expect(
+      Object.values(older.lanes).some(
+        (lane: ProbeSchedulingLaneMetrics): boolean => {
+          return "reconnectsAsked" in lane;
+        },
+      ),
+    ).toBe(false);
+
+    const view: ProbeSchedulingFleetView = aggregateProbeScheduling(
+      [
+        older,
+        replicaView({
+          replica: "newer",
+          at: 0,
+          waiting: 2,
+          running: 10,
+          slotWaitP95Ms: 600,
+          refused: 0,
+          handedOut: 650,
+          lagP95Seconds: 4,
+          lagMaxSeconds: 8,
+          lateByAnInterval: 0,
+          testWaitMaxSeconds: 2,
+          reconnectsAsked: 40,
+        }),
+      ],
+      true,
+    );
+
+    expect(view.reconnectsAskedPerMinute).toBe(40);
+    expect(Number.isNaN(view.reconnectsAskedPerMinute)).toBe(false);
+    expect(
+      view.replicas.map((replica: { reconnectsAskedLastMinute: number }) => {
+        return replica.reconnectsAskedLastMinute;
+      }),
+    ).toEqual([0, 40]);
+  });
+
+  test("a window other than a minute is said per minute", () => {
+    const halfMinute: ProbeSchedulingMetricsSnapshot = {
+      ...replicaView({
+        replica: "a",
+        at: 0,
+        waiting: 1,
+        running: 1,
+        slotWaitP95Ms: 1,
+        refused: 0,
+        handedOut: 0,
+        lagP95Seconds: 0,
+        lagMaxSeconds: 0,
+        lateByAnInterval: 0,
+        testWaitMaxSeconds: 0,
+        reconnectsAsked: 25,
+      }),
+      windowSeconds: 30,
+    };
+
+    expect(
+      aggregateProbeScheduling([halfMinute], true).reconnectsAskedPerMinute,
+    ).toBe(50);
   });
 });
 
@@ -262,6 +415,50 @@ describe("ProbeSchedulingFleetMetrics", () => {
       at: 1_000,
     });
     expect(valkey.expiries.get(PROBE_SCHEDULING_METRICS_KEY)).toBe(300);
+  });
+
+  test("#11392: the reconnects one replica asked reach a read on another, through the shared hash", async () => {
+    const clock: { now: () => number; move: (ms: number) => void } =
+      clockAt(2_000_000);
+    const valkey: FakeValkey = new FakeValkey();
+    const client: () => ProbeSchedulingFleetClient =
+      (): ProbeSchedulingFleetClient => {
+        return valkey;
+      };
+
+    const backedUp: ProbeSchedulingMetrics = new ProbeSchedulingMetrics({
+      replica: "backed-up",
+      now: clock.now,
+    });
+    backedUp.observe(() => {
+      return { running: 10, waiting: 30, maxConcurrentRequests: 10 };
+    });
+
+    for (let asked: number = 0; asked < 45; asked++) {
+      backedUp.recordReconnectAsked(ProbeSchedulingLane.Work);
+    }
+    backedUp.recordReconnectAsked(ProbeSchedulingLane.MonitorTests);
+
+    await new ProbeSchedulingFleetMetrics(
+      backedUp,
+      client,
+      clock.now,
+    ).publish();
+
+    const reader: ProbeSchedulingFleetMetrics = new ProbeSchedulingFleetMetrics(
+      new ProbeSchedulingMetrics({ replica: "reader", now: clock.now }),
+      client,
+      clock.now,
+    );
+    const view: ProbeSchedulingFleetView = await reader.read();
+
+    expect(view.replicasReporting).toBe(2);
+    expect(view.reconnectsAskedPerMinute).toBe(46);
+    expect(view.monitorTestReconnectsAskedPerMinute).toBe(1);
+    expect(view.replicas[0]).toMatchObject({
+      queueDepth: 30,
+      reconnectsAskedLastMinute: 46,
+    });
   });
 
   test("a read adds up the fresh views of every replica, with its own taken live", async () => {

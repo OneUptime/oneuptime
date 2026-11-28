@@ -147,6 +147,7 @@ app:
 | `queueDepth` | Os pedidos de sondas à espera de uma vaga agora, em todos os pods da aplicação. Acima de 0 durante minutos: adicione pods da aplicação. |
 | `slotWaitP95Ms` | Quanto tempo os pedidos esperaram por uma vaga, no pod da aplicação mais ocupado. |
 | `refusalsPerMinute` | Os pedidos de sondas a que o servidor respondeu estar ocupado. |
+| `reconnectsAskedPerMinute` | As respostas que pediram à ligação de uma sonda que voltasse a ligar-se, para que o pedido seguinte possa ir para outro pod da aplicação: poucas por segundo enquanto um pod da aplicação está atrasado. Acima de 0 durante minutos: adicione pods da aplicação. |
 | `dispatchLagP95Seconds` | Com que atraso os monitores foram distribuídos, desde o momento em que o seu intervalo os tornou pendentes. Perto do seu intervalo mais curto enquanto nenhum pedido espera: adicione réplicas das sondas. |
 | `monitorsLateByAnIntervalPerMinute` | Os monitores distribuídos com um intervalo inteiro de atraso: verificações que ficaram por fazer. |
 | `monitorTestWaitP95Seconds` | Quanto tempo as execuções de Test Monitor esperaram por uma sonda. |

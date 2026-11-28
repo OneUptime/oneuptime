@@ -39,6 +39,8 @@ import FieldsLeftOut, {
 } from "../../Types/API/FieldsLeftOut";
 import ListEntries from "../Utils/Database/ListEntries";
 import RetiredColumns from "../Utils/Database/RetiredColumns";
+import RecordOwnershipRoute from "./RecordOwnershipRoute";
+import KindsWithOwners from "../../Types/Database/AccessControl/KindsWithOwners";
 import MarkdownFiles from "../Utils/File/MarkdownFiles";
 import {
   MARKDOWN_FILES_ROUTE,
@@ -246,6 +248,21 @@ export default class BaseAPI<
      * means, is its own request. A request with no session is answered 401,
      * so an idle tab refreshes it.
      */
+    /*
+     * Who owns the records a page shows, for a kind with owner tables of its
+     * own: POST /<path>/record-ownership { "ids": [...] } (#11436,
+     * Types/RecordAccess/RecordOwnership). A record's page and a list read
+     * it once, and lock the changes a grant scoped to Owned does not reach
+     * with the reason, by the shared rule.
+     */
+    if (KindsWithOwners.hasOwnerTables(new this.entityType().tableName)) {
+      RecordOwnershipRoute.register({
+        router: router,
+        apiPath: `${new this.entityType().getCrudApiPath()?.toString()}`,
+        service: service as unknown as DatabaseService<BaseModel>,
+      });
+    }
+
     if (MoveInListUtil.getListColumn(new this.entityType())) {
       router.post(
         `${new this.entityType().getCrudApiPath()?.toString()}${MOVE_IN_LIST_ROUTE}`,

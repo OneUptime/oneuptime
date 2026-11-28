@@ -734,8 +734,10 @@ validate "kubernetes-agent / node collector DaemonSet, logs.openStack.cloudName"
 #   3. why the chart keeps the agent's ids, and move, the name the collector
 #      gives the first of the agent's moves: in that config, one of the
 #      user's operators named so is the duplicate the collector refuses;
-#   4. what values.schema.json refuses, with Helm's own message, which
-#      helm-unittest 0.5.1 cannot read.
+#   4. what values.schema.json refuses, with the message of the Helm this
+#      runs: before 3.18 Helm words it one way, from 3.18 another. The
+#      extra-log-operators suite holds the message of the Helm helm-unittest
+#      is built on, whole.
 echo "==> logs.extraOperators: the chart's verdicts beside ${COLLECTOR_IMAGE}'s"
 if node "${REPO_ROOT}/Tests/Ops/Utils/extra-log-operators-agreement.js" \
   "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \

@@ -279,7 +279,7 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
           "_id",
           "monitorId,probeId",
           "monitorId,projectId",
-          "probeId,isEnabled,nextPingAt",
+          "probeId,isEnabled,nextPingAt,lastPingAt",
           "projectId",
         ].sort(),
       );

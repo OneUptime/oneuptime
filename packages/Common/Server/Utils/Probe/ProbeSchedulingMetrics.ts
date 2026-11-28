@@ -28,7 +28,14 @@ import os from "os";
  *     many were handed out a whole interval or more late - a check that was
  *     skipped;
  *   - Test Monitor wait: how long each test run waited, from the moment
- *     someone asked for it to the moment a probe was handed it.
+ *     someone asked for it to the moment a probe was handed it;
+ *   - for each lane, the answers that asked their probe's connection to
+ *     reconnect (ProbeSchedulingReconnect, issue #11392): a few a second
+ *     on a replica whose requests wait for a slot, so the probes'
+ *     kept-alive connections spread over the replicas KEDA adds. Before
+ *     this, an operator who saw connections being closed, or wanted to
+ *     know how long a replica spent backed up, had to infer it from the
+ *     queue depth.
  *
  * ProbeSchedulingFleetMetrics adds up every App replica's view (through
  * Valkey) for /metrics/probe-scheduling, the endpoint KEDA reads. With an
@@ -65,6 +72,12 @@ export interface ProbeSchedulingLaneMetrics extends ProbeSchedulingLaneState {
   refused: number;
   refusedQueueFull: number;
   refusedWaitedTooLong: number;
+  /*
+   * Answers that asked their probe's connection to reconnect, because
+   * requests were waiting for a slot (ProbeSchedulingReconnect, #11392).
+   * Missing from a view an older replica wrote.
+   */
+  reconnectsAsked?: number | undefined;
 }
 
 export interface ProbeSchedulingMetricsSnapshot {
@@ -117,6 +130,10 @@ export class ProbeSchedulingMetrics {
     string,
     RollingCount
   >();
+  private readonly reconnectsAsked: Map<string, RollingCount> = new Map<
+    string,
+    RollingCount
+  >();
   private readonly dispatchLag: RollingHistogram;
   private readonly lateByAnInterval: RollingCount;
   private readonly monitorTestWait: RollingHistogram;
@@ -144,6 +161,8 @@ export class ProbeSchedulingMetrics {
       for (const reason of Object.values(KeyedConcurrencyRefusal)) {
         this.refusals.set(`${lane}:${reason}`, new RollingCount(window));
       }
+
+      this.reconnectsAsked.set(lane, new RollingCount(window));
     }
 
     this.dispatchLag = new RollingHistogram({
@@ -182,6 +201,20 @@ export class ProbeSchedulingMetrics {
       AppMetrics.getProbeSchedulingRefusedCounter().add(1, {
         lane: lane,
         reason: reason,
+      });
+    }
+  }
+
+  /*
+   * An answer of `lane` that asked its probe's connection to reconnect
+   * ("Connection: close", ProbeSchedulingReconnect).
+   */
+  public recordReconnectAsked(lane: ProbeSchedulingLane): void {
+    this.reconnectsAsked.get(lane)?.add(1);
+
+    if (this.exportTelemetry) {
+      AppMetrics.getProbeSchedulingReconnectCounter().add(1, {
+        lane: lane,
       });
     }
   }
@@ -259,6 +292,7 @@ export class ProbeSchedulingMetrics {
         refused: queueFull + waitedTooLong,
         refusedQueueFull: queueFull,
         refusedWaitedTooLong: waitedTooLong,
+        reconnectsAsked: this.reconnectsAsked.get(lane)?.total() || 0,
       };
     }
 

@@ -105,6 +105,15 @@ export const SPARED_CANNOT_TELL: PluralTemplate = {
   other:
     "It could not tell whether signed-in users had used {{count}} addresses, so it left them for a person.",
 };
+/*
+ * Forwarded through a private address nothing vouches for (#11389): a TCP
+ * proxy there would pass on what the client wrote.
+ */
+export const SPARED_UNVOUCHED_PROXY: PluralTemplate = {
+  one: "It left {{count}} address for a person: it came through a private address you haven't listed as a proxy, which may have passed on what the client wrote.",
+  other:
+    "It left {{count}} addresses for a person: they came through a private address you haven't listed as a proxy, which may have passed on what the client wrote.",
+};
 export const WOULD_HAVE_LIFTED: PluralTemplate = {
   one: "A signed-in user was seen later from {{count}} of them, so it would have lifted that block.",
   other:

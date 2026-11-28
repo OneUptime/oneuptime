@@ -261,7 +261,11 @@ tests:
     set:
       cost.enabled: "yes"
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/cost/enabled': value must be one of true, false, 'auto', 'true', 'false'
 
   # --- What the collector forwards -----------------------------------------------
   - it: forwards the engine's prices, one series per node, volume or load balancer
