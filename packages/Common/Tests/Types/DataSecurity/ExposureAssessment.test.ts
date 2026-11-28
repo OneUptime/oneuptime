@@ -1235,6 +1235,214 @@ describe("what the law may ask", () => {
     ).toBe(BreachObligationStatus.NotTriggered);
   });
 
+  test("a notice the law asks for immediately is due first and listed first: before Georgia's 24 hours, Texas's 30 days and every notice with no length (#11427)", () => {
+    const obligations: Array<BreachObligation> = applyBreachLaws({
+      whose: whose({
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [BreachPlace.Texas, BreachPlace.Georgia],
+        records: 300,
+      }),
+      reads: readsOf(ExposureReadsLogged.NotLogged),
+      foundAt: FOUND,
+      now: NOW,
+      holdsForAnother: true,
+    });
+    const mayApply: Array<BreachObligation> = obligations.filter(
+      (obligation: BreachObligation): boolean => {
+        return obligation.status === BreachObligationStatus.MayApply;
+      },
+    );
+    const first: BreachObligation = getMostUrgentObligation(obligations)!;
+
+    // Texas: "immediately after discovering the breach" - counted from when it was found, at no moment of its own.
+    expect(first.ruleId).toBe(BreachLawId.TexasDataOwner);
+    expect(first.dueAt).toBeUndefined();
+    expect(first.foundAt).toBe(FOUND.toISOString());
+    expect(
+      mayApply.map((obligation: BreachObligation): BreachLawId => {
+        return obligation.ruleId;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        BreachLawId.TexasDataOwner,
+        BreachLawId.GeorgiaDataOwner,
+        BreachLawId.TexasAttorneyGeneral,
+      ]),
+    );
+    expect(mayApply[0]!.ruleId).toBe(BreachLawId.TexasDataOwner);
+    expect(mayApply[1]).toMatchObject({
+      ruleId: BreachLawId.GeorgiaDataOwner,
+      dueAt: iso("2026-11-03T09:00:00Z"),
+    });
+    // After the immediate one: every notice with a moment, soonest first, then those with no length.
+    const rest: Array<BreachObligation> = mayApply.slice(1);
+    const lastDated: number = rest.reduce(
+      (last: number, obligation: BreachObligation, index: number): number => {
+        return obligation.dueAt ? index : last;
+      },
+      -1,
+    );
+    const firstUndated: number = rest.findIndex(
+      (obligation: BreachObligation): boolean => {
+        return !obligation.dueAt;
+      },
+    );
+
+    expect(firstUndated).toBeGreaterThan(lastDated);
+    expect(
+      rest
+        .slice(0, lastDated + 1)
+        .map((obligation: BreachObligation): number => {
+          return new Date(obligation.dueAt!).getTime();
+        }),
+    ).toEqual(
+      rest
+        .slice(0, lastDated + 1)
+        .map((obligation: BreachObligation): number => {
+          return new Date(obligation.dueAt!).getTime();
+        })
+        .sort((a: number, b: number): number => {
+          return a - b;
+        }),
+    );
+    // Georgia's to its residents has no length: never due first.
+    expect(
+      rest.find((obligation: BreachObligation): boolean => {
+        return obligation.ruleId === BreachLawId.GeorgiaResidents;
+      })!.dueAt,
+    ).toBeUndefined();
+  });
+
+  test("of two notices owed immediately, the table's first; one only where the people may live, or that is not triggered, is never due first (#11427)", () => {
+    const both: Array<BreachObligation> = applyBreachLaws({
+      whose: whose({
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [BreachPlace.Texas, BreachPlace.California],
+      }),
+      reads: readsOf(ExposureReadsLogged.NotLogged),
+      foundAt: FOUND,
+      now: NOW,
+      holdsForAnother: true,
+    });
+
+    // California's comes before Texas's in the table, and both are owed immediately.
+    expect(getMostUrgentObligation(both)!.ruleId).toBe(
+      BreachLawId.CaliforniaDataOwner,
+    );
+
+    // Nobody said which states: every state's notice to the owner waits on where the people live.
+    const unknown: Array<BreachObligation> = applyBreachLaws({
+      whose: whose({
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [BreachPlace.UnitedStates],
+      }),
+      reads: readsOf(ExposureReadsLogged.NotLogged),
+      foundAt: FOUND,
+      now: NOW,
+      holdsForAnother: true,
+    });
+    const texasOwner: BreachObligation = unknown.find(
+      (obligation: BreachObligation): boolean => {
+        return obligation.ruleId === BreachLawId.TexasDataOwner;
+      },
+    )!;
+
+    expect(texasOwner).toMatchObject({
+      status: BreachObligationStatus.MayApply,
+      isPlaceKnown: false,
+    });
+    expect(getMostUrgentObligation(unknown)).toBeNull();
+
+    // Emails are no data a state's law lists: Texas's notice to the owner is not triggered.
+    const emails: Array<BreachObligation> = applyBreachLaws({
+      whose: whose({
+        dataTypeIds: ["email-address"],
+        places: [BreachPlace.Texas],
+      }),
+      reads: readsOf(ExposureReadsLogged.NotLogged),
+      foundAt: FOUND,
+      now: NOW,
+      holdsForAnother: true,
+    });
+
+    expect(
+      emails.find((obligation: BreachObligation): boolean => {
+        return obligation.ruleId === BreachLawId.TexasDataOwner;
+      })!.status,
+    ).toBe(BreachObligationStatus.NotTriggered);
+    expect(getMostUrgentObligation(emails)).toBeNull();
+  });
+
+  test("as soon as practicable has no length: Massachusetts' notice to the owner is never due first - Indiana's 45 days is (#11427)", () => {
+    const obligations: Array<BreachObligation> = applyBreachLaws({
+      whose: whose({
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [BreachPlace.Massachusetts, BreachPlace.Indiana],
+      }),
+      reads: readsOf(ExposureReadsLogged.NotLogged),
+      foundAt: FOUND,
+      now: NOW,
+      holdsForAnother: true,
+    });
+    const massachusetts: BreachObligation = obligations.find(
+      (obligation: BreachObligation): boolean => {
+        return obligation.ruleId === BreachLawId.MassachusettsDataOwner;
+      },
+    )!;
+
+    expect(massachusetts).toMatchObject({
+      status: BreachObligationStatus.MayApply,
+      isPlaceKnown: true,
+    });
+    expect(massachusetts.dueAt).toBeUndefined();
+    expect(
+      getBreachLawRule(BreachLawId.MassachusettsDataOwner).deadline.unit,
+    ).toBe(BreachDeadlineUnit.AsSoonAsPracticable);
+    // Indiana's notices, its owner's too, are due 45 days from when it was found: the residents' is the table's first.
+    expect(getMostUrgentObligation(obligations)).toMatchObject({
+      ruleId: BreachLawId.IndianaResidents,
+      dueAt: iso("2026-12-17T09:00:00Z"),
+    });
+    expect(
+      obligations.find((obligation: BreachObligation): boolean => {
+        return obligation.ruleId === BreachLawId.IndianaDataOwner;
+      })!.dueAt,
+    ).toBe(iso("2026-12-17T09:00:00Z"));
+  });
+
+  test("the notice due first reads only the rows it is given, and a row the table does not hold is never due first (#11427)", () => {
+    const owed: BreachObligation = {
+      ruleId: "no-such-row" as BreachLawId,
+      status: BreachObligationStatus.MayApply,
+      reasons: [],
+      checks: [],
+      isPlaceKnown: true,
+      foundAt: FOUND.toISOString(),
+    };
+    const dated: BreachObligation = {
+      ...owed,
+      ruleId: BreachLawId.GdprAuthority,
+      dueAt: iso("2026-11-05T09:00:00Z"),
+    };
+
+    expect(getMostUrgentObligation([owed])).toBeNull();
+    expect(getMostUrgentObligation([owed, dated])!.ruleId).toBe(
+      BreachLawId.GdprAuthority,
+    );
+    // A table of its own, whose row is owed immediately: that row is due first.
+    expect(
+      getMostUrgentObligation(
+        [dated, owed],
+        [
+          {
+            ...getBreachLawRule(BreachLawId.TexasDataOwner),
+            id: "no-such-row" as BreachLawId,
+          },
+        ],
+      )!.ruleId,
+    ).toBe("no-such-row");
+  });
+
   test("the table's checks read in English for a person and OneUptime AI", () => {
     const obligations: Array<BreachObligation> = applyBreachLaws({
       whose: whose({ dataTypeIds: ["us-ssn"], records: 900 }),

@@ -1385,11 +1385,40 @@ export function isBreachLawForFacts(
 }
 
 /*
+ * When a notice is due, for putting notices in order: its deadline's
+ * moment or, for one the law asks for immediately (#11427), the moment it
+ * is counted from - due as soon as the breach is found, before any notice
+ * counted in hours or days. Nothing for one with no length of time, and
+ * for a row the table does not hold.
+ */
+function getDueOrder(
+  obligation: BreachObligation,
+  rules: ReadonlyArray<BreachLawRule> = BREACH_LAW_RULES,
+): number {
+  if (obligation.dueAt) {
+    return toTime(obligation.dueAt) ?? Number.POSITIVE_INFINITY;
+  }
+
+  const rule: BreachLawRule | undefined = rules.find(
+    (candidate: BreachLawRule): boolean => {
+      return candidate.id === obligation.ruleId;
+    },
+  );
+
+  if (rule?.deadline.unit === BreachDeadlineUnit.Immediately) {
+    return toTime(obligation.foundAt) ?? Number.POSITIVE_INFINITY;
+  }
+
+  return Number.POSITIVE_INFINITY;
+}
+
+/*
  * The table's rows of this exposure (isBreachLawForFacts) applied to the
- * facts: what may apply first, the soonest deadline first - those whose
- * place is known before those that depend on where the people live - then
- * what has no length of time, what is not in force yet, and what the facts
- * rule out, each in the table's order.
+ * facts: what may apply first, the soonest deadline first - one owed
+ * immediately before any counted in hours or days, those whose place is
+ * known before those that depend on where the people live - then what has
+ * no length of time, what is not in force yet, and what the facts rule
+ * out, each in the table's order.
  */
 export function applyBreachLaws(
   facts: BreachLawFacts,
@@ -1441,15 +1470,11 @@ export function applyBreachLaws(
           return a.isPlaceKnown ? -1 : 1;
         }
 
-        const aDue: number = a.dueAt
-          ? new Date(a.dueAt).getTime()
-          : Number.POSITIVE_INFINITY;
-        const bDue: number = b.dueAt
-          ? new Date(b.dueAt).getTime()
-          : Number.POSITIVE_INFINITY;
+        const aDue: number = getDueOrder(a, rules);
+        const bDue: number = getDueOrder(b, rules);
 
         if (aDue !== bDue) {
-          return aDue - bDue;
+          return aDue < bDue ? -1 : 1;
         }
       }
 
@@ -1460,11 +1485,14 @@ export function applyBreachLaws(
 
 /*
  * The obligation to read first: of those that may apply where the people
- * are known to live, or wherever they live, the one due soonest. Null when
- * none with a deadline is known to apply - the people's places decide it.
+ * are known to live, or wherever they live, the one due soonest - one the
+ * law asks for immediately before any counted in hours or days (#11427).
+ * Null when none with a deadline is known to apply - the people's places
+ * decide it.
  */
 export function getMostUrgentObligation(
   obligations: ReadonlyArray<BreachObligation>,
+  rules: ReadonlyArray<BreachLawRule> = BREACH_LAW_RULES,
 ): BreachObligation | null {
   return (
     obligations
@@ -1472,11 +1500,14 @@ export function getMostUrgentObligation(
         return (
           obligation.status === BreachObligationStatus.MayApply &&
           obligation.isPlaceKnown &&
-          Boolean(obligation.dueAt)
+          getDueOrder(obligation, rules) !== Number.POSITIVE_INFINITY
         );
       })
       .sort((a: BreachObligation, b: BreachObligation): number => {
-        return new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime();
+        const aDue: number = getDueOrder(a, rules);
+        const bDue: number = getDueOrder(b, rules);
+
+        return aDue === bDue ? 0 : aDue < bDue ? -1 : 1;
       })[0] || null
   );
 }

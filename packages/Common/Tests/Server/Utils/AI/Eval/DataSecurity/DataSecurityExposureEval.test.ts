@@ -4,6 +4,8 @@ import {
   BreachLawFamily,
   BreachLawId,
   BreachLawRule,
+  BreachPlace,
+  getBreachLawRule,
   isUsStateRule,
 } from "../../../../../../Types/DataSecurity/BreachLaws";
 import {
@@ -20,6 +22,8 @@ import {
   ExposureDraftPart,
   ExposureSecret,
   isAssessedOnItsOwn,
+  isBreachLawForFacts,
+  isBreachLawInForce,
   UncoveredLawKind,
 } from "../../../../../../Types/DataSecurity/ExposureAssessment";
 import { ExposureAssessmentEvalCase } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataSecurityEvalCase";
@@ -115,12 +119,20 @@ describe("every exposure of the eval set lists the obligations it should", () =>
       }),
     ).toEqual(sorted(expectation.notYetInForce));
 
-    // Every other row is not triggered: none is left out.
+    /*
+     * Every other row of this exposure is not triggered: none is left out.
+     * The exposure's rows are every row but one a newer text replaced before
+     * it was found (#11425) and the notices to the data's owner, while
+     * nobody says the data is held for another (#11427).
+     */
     const listed: Set<BreachLawId> = new Set([
       ...expectation.mayApplyKnown,
       ...expectation.mayApplyIfPlace,
       ...expectation.notYetInForce,
     ]);
+    const foundAt: Date = view.window
+      ? new Date(view.window.foundAt)
+      : new Date(view.now);
 
     expect(
       idsWhere(view, (obligation: BreachObligation): boolean => {
@@ -128,19 +140,31 @@ describe("every exposure of the eval set lists the obligations it should", () =>
       }),
     ).toEqual(
       sorted(
-        BREACH_LAW_RULES.map((rule: BreachLawRule): BreachLawId => {
-          return rule.id;
-        }).filter((id: BreachLawId): boolean => {
-          return !listed.has(id);
-        }),
+        BREACH_LAW_RULES.filter((rule: BreachLawRule): boolean => {
+          return isBreachLawForFacts(rule, {
+            foundAt,
+            holdsForAnother: view.holdsForAnother,
+          });
+        })
+          .map((rule: BreachLawRule): BreachLawId => {
+            return rule.id;
+          })
+          .filter((id: BreachLawId): boolean => {
+            return !listed.has(id);
+          }),
       ),
     );
+    // A notice to the data's owner is among its laws only where a person said the data is held for another.
+    expect(view.holdsForAnother).toBe(exposure.holdsForAnother);
+    expect(
+      view.obligations.some((obligation: BreachObligation): boolean => {
+        return getBreachLawRule(obligation.ruleId).forDataHolders === true;
+      }),
+    ).toBe(exposure.holdsForAnother === true);
 
+    // The notice due first, and its moment: none for one owed immediately.
     expect(view.mostUrgent?.ruleId || null).toBe(expectation.mostUrgent);
-
-    if (expectation.mostUrgentDueAt) {
-      expect(view.mostUrgent!.dueAt).toBe(expectation.mostUrgentDueAt);
-    }
+    expect(view.mostUrgent?.dueAt).toBe(expectation.mostUrgentDueAt);
 
     expect(view.reads.isTreatedAsRead).toBe(expectation.readsTreatedAsRead);
     expect(view.isPlaceUnknown).toBe(expectation.isPlaceUnknown);
@@ -171,6 +195,10 @@ describe("every exposure of the eval set lists the obligations it should", () =>
         "newsletter-emails-place-unknown",
         "japan-my-number",
         "exposed-by-a-logged-change",
+        // #11424 to #11427: data held for another, and the territories by their country codes.
+        "us-patient-records-texas-for-a-clinic",
+        "eu-and-uk-emails-for-a-client",
+        "territories-ssn-by-country-code",
       ]),
     );
     expect(new Set(ids).size).toBe(ids.length);
@@ -187,12 +215,31 @@ describe("every exposure of the eval set lists the obligations it should", () =>
       ),
     );
 
+    /*
+     * Every row may apply to some exposure of the set - but the US states'
+     * notices to the data's owner (#11427), of which the set holds Texas's:
+     * each of the others is held to its statute, and to the answer it waits
+     * on, in UsStateBreachLaws.test.ts.
+     */
     for (const rule of BREACH_LAW_RULES) {
       expect({ rule: rule.id, applies: everApplies.has(rule.id) }).toEqual({
         rule: rule.id,
-        applies: true,
+        applies:
+          !(rule.forDataHolders && isUsStateRule(rule)) ||
+          rule.id === BreachLawId.TexasDataOwner,
       });
     }
+
+    // Both answers to whose data it is, and none.
+    expect(
+      new Set(
+        EXPOSURE_EVAL_EXPOSURES.map(
+          (exposure: ExposureEvalExposure): boolean | undefined => {
+            return exposure.holdsForAnother;
+          },
+        ),
+      ),
+    ).toEqual(new Set([true, undefined]));
 
     // Both ways reads go: logged, not logged and not known.
     expect(
@@ -221,11 +268,27 @@ describe("every exposure of the eval set lists the obligations it should", () =>
   });
 
   test("nobody said which states: OneUptime AI is told how many states' notices wait on it, and is given none of them (#10952)", () => {
-    const facts: Array<ComplianceFact> = getExposureEvalFacts(
-      getExposureEvalExposure("us-ssn-state-not-said"),
-    ).facts;
-    const stateRows: Array<BreachLawRule> =
-      BREACH_LAW_RULES.filter(isUsStateRule);
+    const exposure: ExposureEvalExposure = getExposureEvalExposure(
+      "us-ssn-state-not-said",
+    );
+    const facts: Array<ComplianceFact> = getExposureEvalFacts(exposure).facts;
+    const foundAt: Date = new Date(
+      getExposureEvalView(exposure).window!.foundAt,
+    );
+    /*
+     * The states' rows of this exposure in force the day it was found: not
+     * Vermont's from 2027 (#11425), nor the notices to the data's owner,
+     * which wait on a person's answer (#11427).
+     */
+    const stateRows: Array<BreachLawRule> = BREACH_LAW_RULES.filter(
+      (rule: BreachLawRule): boolean => {
+        return (
+          isUsStateRule(rule) &&
+          isBreachLawForFacts(rule, { foundAt }) &&
+          isBreachLawInForce(rule, foundAt)
+        );
+      },
+    );
     const summary: UsStateLawsFact = facts.find(
       (fact: ComplianceFact): boolean => {
         return fact.kind === ComplianceFactKind.UsStateLaws;
@@ -291,6 +354,180 @@ describe("every exposure of the eval set lists the obligations it should", () =>
         return fact.kind === ComplianceFactKind.UsStateLaws;
       }),
     ).toBe(false);
+  });
+
+  test("a person said the records are held for the clinics: Texas's notice to the owner is due first, immediately, and OneUptime AI is told of it (#11427)", () => {
+    const exposure: ExposureEvalExposure = getExposureEvalExposure(
+      "us-patient-records-texas-for-a-clinic",
+    );
+    const view: ExposureAssessmentView = getExposureEvalView(exposure);
+    const facts: Array<ComplianceFact> = getExposureEvalFacts(exposure).facts;
+    const owner: BreachObligationFact | undefined = facts.find(
+      (fact: ComplianceFact): boolean => {
+        return fact.key === `obligation:${BreachLawId.TexasDataOwner}`;
+      },
+    ) as BreachObligationFact | undefined;
+
+    expect(view.mostUrgent).toMatchObject({
+      ruleId: BreachLawId.TexasDataOwner,
+      status: BreachObligationStatus.MayApply,
+      isPlaceKnown: true,
+      foundAt: "2026-11-16T15:30:00.000Z",
+    });
+    expect(view.mostUrgent!.dueAt).toBeUndefined();
+    // Listed first of the notices that may apply: the attorney general's 30 days after it.
+    expect(view.obligations[0]!.ruleId).toBe(BreachLawId.TexasDataOwner);
+    expect(view.obligations[1]!.ruleId).toBe(BreachLawId.TexasAttorneyGeneral);
+    expect(owner).toMatchObject({
+      kind: ComplianceFactKind.BreachObligation,
+      family: BreachLawFamily.Texas,
+      status: BreachObligationStatus.MayApply,
+      deadline: "immediately",
+      countsFrom: "2026-11-16T15:30:00.000Z",
+    });
+    expect(owner!.dueAt).toBeUndefined();
+    expect(
+      facts.some((fact: ComplianceFact): boolean => {
+        return fact.key === `obligation:${BreachLawId.HipaaBusinessAssociate}`;
+      }),
+    ).toBe(true);
+
+    // The prompt names it as the notice due first.
+    const data: { dueFirst: string } = JSON.parse(
+      exposureAssessmentCall({
+        id: "texas-for-a-clinic",
+        title: "Texas, held for the clinics",
+        feature: DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+        exposure,
+        expect: { parts: {}, never: [] },
+      }).messages[1]!.content as string,
+    );
+
+    expect(data.dueFirst).toBe(owner!.id);
+  });
+
+  test("the answer is what says whose data it is: unanswered, the table says what it leaves out; answered, it does not (#11427)", () => {
+    const unanswered: ExposureAssessmentView = getExposureEvalView(
+      getExposureEvalExposure("us-patient-records-texas"),
+    );
+    const answered: ExposureAssessmentView = getExposureEvalView(
+      getExposureEvalExposure("us-patient-records-texas-for-a-clinic"),
+    );
+    const own: ExposureAssessmentView = getExposureEvalView({
+      ...getExposureEvalExposure("us-patient-records-texas"),
+      holdsForAnother: false,
+    });
+    const kinds: (view: ExposureAssessmentView) => Array<UncoveredLawKind> = (
+      view: ExposureAssessmentView,
+    ): Array<UncoveredLawKind> => {
+      return view.uncovered.map(
+        (line: ExposureAssessmentView["uncovered"][number]): UncoveredLawKind => {
+          return line.kind;
+        },
+      );
+    };
+
+    expect(kinds(unanswered)).toContain(UncoveredLawKind.DataHeldForAnother);
+    expect(kinds(answered)).not.toContain(UncoveredLawKind.DataHeldForAnother);
+    expect(kinds(own)).not.toContain(UncoveredLawKind.DataHeldForAnother);
+    // The organization's own data: the same notices as nobody answering, and none to an owner.
+    expect(
+      own.obligations.map((obligation: BreachObligation): string => {
+        return `${obligation.ruleId}:${obligation.status}`;
+      }),
+    ).toEqual(
+      unanswered.obligations.map((obligation: BreachObligation): string => {
+        return `${obligation.ruleId}:${obligation.status}`;
+      }),
+    );
+    expect(own.mostUrgent?.ruleId).toBe(BreachLawId.TexasAttorneyGeneral);
+  });
+
+  test("Puerto Rico, Guam and the US Virgin Islands by the data's country codes: their notices are facts of their own, and the states' are counted without them (#11424, #11426)", () => {
+    const exposure: ExposureEvalExposure = getExposureEvalExposure(
+      "territories-ssn-by-country-code",
+    );
+    const view: ExposureAssessmentView = getExposureEvalView(exposure);
+    const facts: Array<ComplianceFact> = getExposureEvalFacts(exposure).facts;
+    const territories: Array<BreachLawId> = [
+      BreachLawId.PuertoRicoResidents,
+      BreachLawId.PuertoRicoConsumerAffairs,
+      BreachLawId.GuamResidents,
+      BreachLawId.UsVirginIslandsResidents,
+    ];
+    // In the table's order of places.
+    const territoryPlaces: Array<BreachPlace> = [
+      BreachPlace.Guam,
+      BreachPlace.PuertoRico,
+      BreachPlace.UsVirginIslands,
+    ];
+
+    expect(view.whose.placesNamed).toBeUndefined();
+    expect(view.whose.places).toEqual(territoryPlaces);
+    // Not countries the table leaves out: each has its law in the table.
+    expect(
+      view.uncovered.some(
+        (line: ExposureAssessmentView["uncovered"][number]): boolean => {
+          return line.kind === UncoveredLawKind.OtherCountries;
+        },
+      ),
+    ).toBe(false);
+
+    for (const id of territories) {
+      expect({
+        id,
+        isFact: facts.some((fact: ComplianceFact): boolean => {
+          return fact.key === `obligation:${id}`;
+        }),
+      }).toEqual({ id, isFact: true });
+    }
+
+    // Guam's law asks only where the breach causes, or will likely cause, identity theft or fraud.
+    expect(
+      (
+        facts.find((fact: ComplianceFact): boolean => {
+          return fact.key === `obligation:${BreachLawId.GuamResidents}`;
+        }) as BreachObligationFact
+      ).checks.length,
+    ).toBeGreaterThan(0);
+
+    // The states' notices nobody named are counted in one fact, without the territories'.
+    const others: Array<BreachLawRule> = BREACH_LAW_RULES.filter(
+      (rule: BreachLawRule): boolean => {
+        return (
+          isUsStateRule(rule) &&
+          view.obligations.some((obligation: BreachObligation): boolean => {
+            return (
+              obligation.ruleId === rule.id &&
+              obligation.status === BreachObligationStatus.MayApply &&
+              !obligation.isPlaceKnown
+            );
+          })
+        );
+      },
+    );
+
+    expect(others.length).toBeGreaterThan(100);
+    expect(
+      others.some((rule: BreachLawRule): boolean => {
+        return (
+          territories.includes(rule.id) ||
+          territoryPlaces.includes(rule.places![0]!)
+        );
+      }),
+    ).toBe(false);
+    expect(
+      facts.find((fact: ComplianceFact): boolean => {
+        return fact.kind === ComplianceFactKind.UsStateLaws;
+      }),
+    ).toMatchObject({
+      notices: others.length,
+      states: new Set(
+        others.map((rule: BreachLawRule): BreachPlace => {
+          return rule.places![0]!;
+        }),
+      ).size,
+    });
   });
 
   test("a Japanese bucket says the table does not cover Japan", () => {
@@ -378,7 +615,9 @@ describe("OneUptime AI's write-up of an exposure, asked and scored as the produc
     expect(data.facts).toHaveLength(facts.length);
     /*
      * The window, the reads and every row of the table are facts - but the
-     * US states' nobody named, which never crowd the rest out (#10952).
+     * US states' nobody named, which never crowd the rest out (#10952), and
+     * the notices to the data's owner, which wait on someone saying the
+     * data is held for another (#11427).
      */
     expect(
       facts.filter((fact: ComplianceFact): boolean => {
@@ -386,7 +625,7 @@ describe("OneUptime AI's write-up of an exposure, asked and scored as the produc
       }),
     ).toHaveLength(
       BREACH_LAW_RULES.filter((rule: BreachLawRule): boolean => {
-        return !isUsStateRule(rule);
+        return !isUsStateRule(rule) && !rule.forDataHolders;
       }).length,
     );
     expect(

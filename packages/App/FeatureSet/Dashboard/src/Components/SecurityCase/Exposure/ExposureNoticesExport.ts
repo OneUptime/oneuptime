@@ -458,7 +458,10 @@ function dueFirstLines(view: ExposureAssessmentView): Array<string> {
     return [
       `**${getBreachLawName(rule.id)}: ${rule.action}.** ${rule.recipient}.`,
       "",
-      `Due ${exportMoment(first.dueAt)}${first.isDueAtTheLatest ? " at the latest" : ""}: ${describeBreachDeadlineInEnglish(rule)}, counted from ${exportMoment(first.foundAt)}, when Data Security found the exposure.`,
+      // One the law asks for immediately has no moment of its own (#11427).
+      first.dueAt
+        ? `Due ${exportMoment(first.dueAt)}${first.isDueAtTheLatest ? " at the latest" : ""}: ${describeBreachDeadlineInEnglish(rule)}, counted from ${exportMoment(first.foundAt)}, when Data Security found the exposure.`
+        : `Due ${describeBreachDeadlineInEnglish(rule)}, counted from ${exportMoment(first.foundAt)}, when Data Security found the exposure.`,
       "",
     ];
   }

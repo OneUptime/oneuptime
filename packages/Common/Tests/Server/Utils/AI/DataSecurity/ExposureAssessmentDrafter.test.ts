@@ -1124,6 +1124,15 @@ describe("who sees it: the case's readers who may read the store and its finding
           now: NOW,
         });
       },
+      () => {
+        return ExposureAssessmentDrafter.setDataHeldFor({
+          projectId: PROJECT_ID,
+          securityCaseId: new ObjectID(CASE_ID),
+          props: SECURITY_VIEWER,
+          forAnother: true,
+          now: NOW,
+        });
+      },
     ]) {
       const refusal: Error = await refusalOf(change);
 
@@ -1519,6 +1528,120 @@ describe("where the people live", () => {
 
     const refusal: Error = await refusalOf(() => {
       return setPlaces([BreachPlace.UnitedKingdom]);
+    });
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal.message).toBe(NOT_ASSESSED_MESSAGE);
+  });
+});
+
+describe("whether the organization holds the data for another (#11427)", () => {
+  beforeEach(() => {
+    useTables({
+      cases: [caseRow({ exposureAssessment: startedAssessment() })],
+    });
+  });
+
+  async function setHeldFor(
+    forAnother: unknown,
+  ): Promise<DataSecurityExposureAssessmentResponse> {
+    return await ExposureAssessmentDrafter.setDataHeldFor({
+      projectId: PROJECT_ID,
+      securityCaseId: new ObjectID(CASE_ID),
+      props: OWNER,
+      forAnother,
+      now: NOW,
+    });
+  }
+
+  function ruleIds(answer: DataSecurityExposureAssessmentResponse): Array<string> {
+    return answer.view!.obligations.map(
+      (obligation: BreachObligation): string => {
+        return obligation.ruleId;
+      },
+    );
+  }
+
+  function uncoveredKinds(
+    answer: DataSecurityExposureAssessmentResponse,
+  ): Array<string> {
+    return answer.view!.uncovered.map((law: { kind: string }): string => {
+      return law.kind;
+    });
+  }
+
+  test("nobody said: the EU customers' processor notice is left out, and the card says what it waits on", async () => {
+    const answer: DataSecurityExposureAssessmentResponse = await read();
+
+    expect(answer.assessment!.dataHeldFor).toBeUndefined();
+    expect(answer.view!.holdsForAnother).toBeUndefined();
+    expect(ruleIds(answer)).not.toContain(BreachLawId.GdprProcessor);
+    expect(uncoveredKinds(answer)).toContain("DataHeldForAnother");
+  });
+
+  test("a person says it holds the data for another: GDPR's processor notice may apply, kept with who said it, and the timeline says so", async () => {
+    const answer: DataSecurityExposureAssessmentResponse =
+      await setHeldFor(true);
+
+    expect(answer.assessment!.dataHeldFor).toEqual({
+      forAnother: true,
+      saidAt: NOW.toISOString(),
+      saidByUserId: USER_ID.toString(),
+    });
+    expect(answer.view!.holdsForAnother).toBe(true);
+    expect(mayApply(answer.view!.obligations, true)).toContain(
+      BreachLawId.GdprProcessor,
+    );
+    expect(uncoveredKinds(answer)).not.toContain("DataHeldForAnother");
+    expect(answer.editors[USER_ID.toString()]).toBe("Alice Example");
+
+    // The case keeps the answer, and only the assessment changed.
+    const kept: StoredExposureAssessment = readStoredExposureAssessment(
+      tables.cases.updates[tables.cases.updates.length - 1]!.set[
+        "exposureAssessment"
+      ],
+    )!;
+
+    expect(kept.dataHeldFor?.forAnother).toBe(true);
+
+    const line: string = timelineLines()[0]!;
+
+    expect(line).toContain("holds the exposed data for another organization");
+    expect(line).toContain("notices owed to the data's owner");
+    expectNoPlantedValue(line);
+  });
+
+  test("a person says the data is the organization's own: no notice to an owner, and nothing waits on it", async () => {
+    const answer: DataSecurityExposureAssessmentResponse =
+      await setHeldFor(false);
+
+    expect(answer.assessment!.dataHeldFor!.forAnother).toBe(false);
+    expect(answer.view!.holdsForAnother).toBe(false);
+    expect(ruleIds(answer)).not.toContain(BreachLawId.GdprProcessor);
+    expect(uncoveredKinds(answer)).not.toContain("DataHeldForAnother");
+    expect(timelineLines()[0]).toContain("is the organization's own");
+  });
+
+  test("anything but true or false takes the answer back, and the timeline says it was taken back", async () => {
+    await setHeldFor(true);
+
+    for (const takenBack of [null, "yes", 1]) {
+      const answer: DataSecurityExposureAssessmentResponse =
+        await setHeldFor(takenBack);
+
+      expect(answer.assessment!.dataHeldFor).toBeUndefined();
+      expect(answer.view!.holdsForAnother).toBeUndefined();
+      expect(ruleIds(answer)).not.toContain(BreachLawId.GdprProcessor);
+    }
+
+    expect(timelineLines()[1]).toContain("took back the answer");
+  });
+
+  test("a case not assessed yet has no answer to keep", async () => {
+    useTables();
+
+    const refusal: Error = await refusalOf(() => {
+      return setHeldFor(true);
     });
 
     expect(refusal).toBeInstanceOf(BadDataException);
