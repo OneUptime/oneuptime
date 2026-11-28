@@ -55,6 +55,18 @@ const GLOBAL_PROBE_FIELDS: Array<string> = [
    * to true whatever the caller sent.
    */
   "isGlobalProbe",
+  /*
+   * Whether the probe is behind, since when and by how much
+   * (Types/Probe/ProbeBehind), for Settings > Probes to say so: times
+   * OneUptime keeps, read as the probe's status is. Not in the default
+   * select: the probe pickers need none of them.
+   */
+  "checksLateSince",
+  "checksLastLateAt",
+  "checksLastLateDueAt",
+  "devicePollsLateSince",
+  "devicePollsLastLateAt",
+  "devicePollsLastLateDueAt",
 ];
 
 /*

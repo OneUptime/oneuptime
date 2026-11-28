@@ -984,6 +984,42 @@ describe("series by series", () => {
     expect(row.details["speedBytesPerSec"]).toBeUndefined();
   });
 
+  /*
+   * The quota and port types are read from the agent's labels through
+   * tables that answer only for the types they list: a type named
+   * "constructor" or "toString" is that word, never a function's source.
+   */
+  test("a quota's or a port's type the tables do not list is kept as it reads, even one every object inherits", () => {
+    const f: Feed = newFeed();
+    f.feed(
+      "powerscale_quota_usage_bytes",
+      { path: "/ifs/x", type: "constructor" },
+      1,
+    );
+    f.feed("powerscale_quota_usage_bytes", { path: "/ifs/y", type: "5" }, 1);
+    f.feed(
+      "powerscale_interface_status",
+      { node: "lab-1", interface: "ix0", interface_type: "toString" },
+      1,
+    );
+    f.feed(
+      "powerscale_interface_status",
+      { node: "lab-1", interface: "ib0", interface_type: "199" },
+      1,
+    );
+
+    const byId: Map<string, StorageArrayResourceBufferEntry> = new Map(
+      f.rows().map((row: StorageArrayResourceBufferEntry) => {
+        return [row.externalId, row];
+      }),
+    );
+
+    expect(byId.get("/ifs/x (constructor)")?.componentType).toBe("constructor");
+    expect(byId.get("/ifs/y (special)")?.componentType).toBe("special");
+    expect(byId.get("lab-1/ix0")?.componentType).toBe("port");
+    expect(byId.get("lab-1/ib0")?.componentType).toBe("infiniband");
+  });
+
   test("a node's series without its node label, and a series the platform does not read, are left alone", () => {
     const f: Feed = newFeed();
     f.feed("powerscale_node_health", {}, 0);

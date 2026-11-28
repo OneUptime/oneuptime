@@ -67354,7 +67354,7 @@
   "Connect Xen Orchestra": "Xen Orchestra を接続",
   "Delta": "差分",
   "Event Read Status": "イベントの読み取り状態",
-  "Event State": "イベントの状態",
+  "Alarm and Backup Reading Progress": "アラームとバックアップの読み取りの進捗",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, what XAPI and Xen Orchestra said of it, and every change since.": "この XCP-ng プールに起きたすべてのこと - 作成された方法と理由、所有者、XAPI と Xen Orchestra が伝えた内容、それ以降のすべての変更。",
   "External authentication did not start on a host": "ホストで外部認証が開始されませんでした",
   "External authentication differs across the pool": "プール内で外部認証の設定が一致していません",
@@ -67843,5 +67843,16 @@
   "Same name as another {{kind}}": "ほかの {{kind}} と同じ名前",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} 件の {{kinds}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} 件の {{kind}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
-  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} 件の {{kind}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。"
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} 件の {{kind}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
+  "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "OneUptime が解決しました：このクラウド予算アラートが発生した四半期が終了しました。",
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "OneUptime が解決しました：このクラウド予算アラートが発生した年が終了しました。",
+  "Fell behind {{time}}": "{{time}} から遅延",
+  "Behind by {{count}} days": "{{count}} 日遅れ",
+  "Behind by {{count}} days_one": "{{count}} 日遅れ",
+  "Behind by {{count}} hours": "{{count}} 時間遅れ",
+  "Behind by {{count}} hours_one": "{{count}} 時間遅れ",
+  "Behind by {{count}} minutes": "{{count}} 分遅れ",
+  "Behind by {{count}} minutes_one": "{{count}} 分遅れ",
+  "Checks Last Late Due At": "最も遅れているチェックの予定日時",
+  "Device Polls Last Late Due At": "最も遅れているデバイスポーリングの予定日時"
 }

@@ -336,7 +336,8 @@ describe("a Fluent record's level word (issue #8425)", () => {
     ["crit", 18, LogSeverity.Error, "Unspecified before"],
     ["alert", 19, LogSeverity.Error, "Unspecified before"],
     ["severe", 17, LogSeverity.Error, "Unspecified before"],
-    ["panic", 19, LogSeverity.Error, "Unspecified before"],
+    // A crash (issue #11228): Error (19) from #8425 until then.
+    ["panic", 21, LogSeverity.Fatal, "Unspecified before"],
     ["verbose", 5, LogSeverity.Debug, "Unspecified before"],
     ["error3", 19, LogSeverity.Error, "Unspecified before"],
     ["fatal4", 24, LogSeverity.Fatal, "Unspecified before"],

@@ -140,6 +140,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_SERVICE_TOKEN` | 是 | 來自 **專案設定 → 遙測與 APM → 擷取金鑰** 的擷取金鑰。 |
 | `PODMAN_HOST_NAME` | 否 | 主機在 OneUptime 中的名稱。預設為 `podman-host`，因此請為每台主機設定自己的名稱。 |
 | `DOCKER_API_VERSION` | 否 | 代理程式與 Podman 通訊端溝通時使用的 Docker API 版本。預設為空：代理程式會與通訊端協商版本。僅在需要固定某個版本時才設定它（請參閱 [疑難排解](#疑難排解)）。 |
+| `ONEUPTIME_LOG_OPERATOR_1` 到 `ONEUPTIME_LOG_OPERATOR_5` | 否 | 你自己的 Collector operators，每個都以 JSON 形式提供，用於代理程式讀取不了的日誌格式。請參閱 [讀取自訂日誌格式](#讀取自訂日誌格式)。 |
 
 若要變更某個值，請移除代理程式並重新執行其指令（Podman CLI），或編輯 `docker-compose.yml` 並執行 `podman compose up -d`（Podman Compose）。
 
@@ -200,6 +201,33 @@ log_size_max = 104857600
 ```
 
 然後重新建立容器。容器會一直使用建立時的日誌驅動程式，因此只重新啟動它是不夠的。
+
+## 讀取自訂日誌格式
+
+代理程式能讀取大多數程式所寫格式中的等級。對於它讀取不了的格式，例如公司內部的格式，最多可以給它五個你自己的 Collector operators，每個都以 JSON 形式寫在 `ONEUPTIME_LOG_OPERATOR_1` 到 `ONEUPTIME_LOG_OPERATOR_5` 中。它們會作用於每一行容器日誌，時機是在代理程式讀取其容器和串流之後，在讀取該行的等級之前。若要設定某一行的等級，請將它以代理程式能讀取的字詞寫入 `attributes.severity_text`，例如 `ERROR`、`warn` 或 `critical`，並把該行交給代理程式的第一步 `severity-router`。自行設定嚴重性的 operator（例如 `severity_parser`）的結果會被覆寫：代理程式會在你的 operators 之後讀取每一行的等級。
+
+對於 `<<E>> payment failed` 這樣以字母表示等級的行：
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+Collector 遇到無法建置的 operator 時不會啟動，因此請在代理程式執行它們之前先檢查：
+
+- 帶著這些變數執行 `install.sh` 時，它會先用 Collector 自己的 `validate` 檢查它們，然後才變更你現有的代理程式。如果 Collector 拒絕它們，指令碼會停止並顯示 Collector 的訊息，你的代理程式則會繼續執行。
+- 使用 Podman Compose 時，將它們寫入 `docker-compose.yml` 旁邊的 `.env`，每個值都用單引號括起來，然後執行 `podman compose up -d`。`oneuptime-podman-agent-config-check` 服務會先執行同樣的檢查。當 `podman compose` 執行的是 Docker Compose 時，只有檢查通過，代理程式才會啟動；podman-compose 則不論檢查結果如何都會啟動代理程式，因此請用 `podman compose logs oneuptime-podman-agent-config-check` 查看檢查的輸出。
+- 使用 Podman CLI 時，請自己執行檢查，帶上代理程式的其他變數，然後用同樣的 `-e` 旗標啟動代理程式：
+
+```bash
+podman run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e PODMAN_HOST_NAME="my-podman-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/podman-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Kubernetes 代理程式](/docs/telemetry/kubernetes-agent#讀取自訂日誌格式) 說明了範例中的 operators，Kubernetes 代理程式也接受這些 operators。
 
 ## 升級代理程式
 

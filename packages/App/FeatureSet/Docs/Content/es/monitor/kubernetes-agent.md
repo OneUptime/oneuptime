@@ -384,6 +384,7 @@ El perfilado necesita **Linux 5.10** o posterior, y un pod privilegiado con los 
 | `logs.mode` | (según `preset`) | `daemonset`, `api` o `disabled`. Prevalece sobre el preset. |
 | `logs.windowsPods.enabled` | `false` | Sigue también los pods de nodos Windows. Consulte [Clústeres con varios sistemas operativos](#clústeres-con-varios-sistemas-operativos-grupos-de-nodos-windows). |
 | `logs.api.replicas` | `1` | Réplicas del lector de registros, en modo `api`. |
+| `logs.extraOperators` | `[]` | Operators del colector propios, para un formato de log que el agente no lee, en modo `daemonset`. Consulte [Leer un formato de log propio](/docs/telemetry/kubernetes-agent#leer-un-formato-de-log-propio). |
 | `ebpf.enabled` | `true` | Trazas eBPF y métricas de solicitudes. Consulte [Trazas de aplicación con eBPF](#trazas-de-aplicación-con-ebpf). |
 | `profiling.enabled` | `false` | Flame graphs de CPU. Consulte [Perfilado continuo de CPU](#perfilado-continuo-de-cpu). |
 | `kubeStateMetrics.enabled` | `false` | El estado del clúster desde kube-state-metrics. |

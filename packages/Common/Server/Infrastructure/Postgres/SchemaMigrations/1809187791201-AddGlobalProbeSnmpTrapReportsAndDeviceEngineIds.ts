@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *     answered its last SNMPv3 poll with. Nullable, no default: adding it
  *     rewrites nothing.
  */
-export class AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791172
+export class AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201
   implements MigrationInterface
 {
-  public name = "AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791172";
+  public name = "AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

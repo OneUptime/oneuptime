@@ -35,7 +35,13 @@ import {
   measureRawTelemetryIngestBody,
   TelemetryIngestBodySize,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestBodySize";
-import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import {
+  TelemetryIngestionBudgetRefusal,
+  TelemetryIngestionBudgetSignal,
+} from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import TelemetryIngestShedding, {
+  TelemetryIngestShedError,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestShedding";
 import {
   ProductAnalyticsParsedEvent,
   ProductAnalyticsParsedMetric,
@@ -933,6 +939,27 @@ export default class TelemetryQueueService {
         getTelemetryIngestionBudgetSignalForTelemetryType(type);
 
       /*
+       * A project far ahead of the workers, or a queue nearly full for
+       * everyone (TelemetryIngestShedding, 2026-11-27): refused before
+       * anything is stored for it, whichever producer made the batch. The
+       * HTTP and gRPC ingest refuse it before it gets here; this is for the
+       * rest - MQTT, the cloud streams, the compatible endpoints,
+       * OneUptime's own collectors - which answer a TooManyRequests as they
+       * answer a queue that cannot take the batch.
+       */
+      if (budgetSignal) {
+        const shed: TelemetryIngestionBudgetRefusal | null =
+          TelemetryIngestShedding.getRefusal({
+            projectId: req.projectId,
+            signal: budgetSignal,
+          });
+
+        if (shed) {
+          throw new TelemetryIngestShedError(shed);
+        }
+      }
+
+      /*
        * Count the batch against its ingestion budget before anything is
        * stored for it, so a batch dropped over a used-up budget costs no
        * Redis body and no job. Measured lazily: a project without a budget
@@ -1122,8 +1149,14 @@ export default class TelemetryQueueService {
 
       logger.debug(`Added ${type} ingestion job: ${jobId}`);
     } catch (error) {
-      logger.error(`Error adding ${type} ingestion job:`);
-      logger.error(error);
+      /*
+       * A refused batch is not an error of this server's: the flood it is
+       * part of is logged once, where it is decided.
+       */
+      if (!(error instanceof TelemetryIngestShedError)) {
+        logger.error(`Error adding ${type} ingestion job:`);
+        logger.error(error);
+      }
       throw error;
     }
   }

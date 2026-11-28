@@ -116,6 +116,7 @@ Lo script di installazione scrive le prime quattro in `/opt/oneuptime-docker-swa
 | `DOCKER_SWARM_NODE_NAME` | No | Il nome del nodo, applicato alle metriche e ai log dei suoi container come attributo di risorsa `docker.swarm.node.name`, in base al quale filtra un [monitor Docker Swarm](/docs/monitor/docker-swarm-monitor#impostazioni-del-monitor). Lo script di installazione lo imposta sull'hostname del nodo, come lo mostra `docker node ls`. Se è vuoto, non viene applicato alcun nome di nodo. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | No | Ogni quanto il poller dell'inventario scatta uno snapshot, in secondi. Il valore predefinito è `300`. |
 | `DOCKER_API_VERSION` | No | La versione dell'API di Docker Engine che parlano il collector e il poller dell'inventario. Vuota per impostazione predefinita: usano quella del daemon, quindi funziona con ogni Docker Engine dalla 20.10 in poi. Impostala solo per fissare una versione (vedi [Risoluzione dei problemi](#risoluzione-dei-problemi)). L'agente IA la negozia a meno che tu non ne imposti una. |
+| da `ONEUPTIME_LOG_OPERATOR_1` a `ONEUPTIME_LOG_OPERATOR_5` | No | I tuoi operators del collector, ognuno in JSON, per un formato di log che l'agent non legge. Vedi [Leggere un formato di log proprio](#leggere-un-formato-di-log-proprio). |
 
 Le impostazioni proprie dell'agente IA sono in [Agente IA](#agente-ia).
 
@@ -162,6 +163,23 @@ processors:
 
 Il collector legge la sua configurazione solo all'avvio: esegui `docker compose restart oneuptime-docker-swarm-agent`. Il cluster mostra quindi le etichette `team:platform` e `env:production`. Le etichette vengono confrontate senza distinguere maiuscole e minuscole, quindi un'etichetta `Production` esistente viene riutilizzata invece che duplicata, e l'agent non rimuove mai un'etichetta che qualcuno ha aggiunto in OneUptime.
 
+## Leggere un formato di log proprio
+
+L'agent legge i livelli dei formati che scrive la maggior parte dei programmi. Per un formato che non legge, come uno interno, dagli fino a cinque operators del collector tuoi, ognuno in JSON in una delle variabili da `ONEUPTIME_LOG_OPERATOR_1` a `ONEUPTIME_LOG_OPERATOR_5`. Vengono eseguiti su ogni riga di log dei container dopo che l'agent ne ha letto il container e il flusso, e prima che ne legga il livello. Per impostare il livello di una riga, scrivilo in `attributes.severity_text` come una parola che l'agent legge, ad esempio `ERROR`, `warn` o `critical`, e passa la riga a `severity-router`, il primo passaggio dell'agent. Un operator che imposta da sé la severità, come un `severity_parser`, vede il suo risultato sovrascritto: l'agent legge il livello di ogni riga dopo i tuoi operators.
+
+Per righe come `<<E>> payment failed`, la cui lettera è il livello, esegui lo script di installazione con l'operator impostato:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+sh install.sh
+```
+
+Lo script scrive ogni operator in `.env` tra apici singoli e li controlla con il `validate` del collector stesso prima di sostituire il tuo `.env`. Se il collector li rifiuta, lo script si ferma con il messaggio del collector e l'agent continua a funzionare con ciò che aveva. Un operator presente in `.env` vi rimane quando esegui di nuovo lo script senza di esso; uno che contiene un apice singolo viene rifiutato, perché `.env` non può conservarlo.
+
+Con Docker Compose, mettili nel `.env` accanto a `docker-compose.yml`, ogni valore tra apici singoli, ed esegui `docker compose up -d`. Il servizio `oneuptime-docker-swarm-agent-config-check` esegue prima lo stesso controllo, e l'agent si avvia solo se lo supera.
+
+[Agent Kubernetes](/docs/telemetry/kubernetes-agent#leggere-un-formato-di-log-proprio) spiega gli operators dell'esempio, che accetta anche l'agent Kubernetes.
+
 ## Eseguire come servizio systemd
 
 Per avviare l'agent insieme al nodo e riavviarlo quando si blocca, installa la sua unità systemd. Presuppone che l'agent si trovi in `/opt/oneuptime-docker-swarm-agent`, dove lo mette lo script di installazione:
@@ -183,7 +201,7 @@ curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
-Lo script riscrive `.env` a partire dalle tue risposte. Conserva solo gli elenchi di destinazioni dell'agente IA e ciò che l'IA può fare (`ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`): aggiungi di nuovo qualsiasi variabile che avevi impostato tu, come `DOCKER_API_VERSION`. Avevi attivato le correzioni IA? Eseguilo come `ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh` per mantenerle attive. Avevi omesso l'agente IA? Passa di nuovo `--no-ai-agent`.
+Lo script riscrive `.env` a partire dalle tue risposte. Conserva solo gli elenchi di destinazioni dell'agente IA, ciò che l'IA può fare (`ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`) e i tuoi operators dei log (da `ONEUPTIME_LOG_OPERATOR_1` a `ONEUPTIME_LOG_OPERATOR_5`): aggiungi di nuovo qualsiasi variabile che avevi impostato tu, come `DOCKER_API_VERSION`. Avevi attivato le correzioni IA? Eseguilo come `ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh` per mantenerle attive. Avevi omesso l'agente IA? Passa di nuovo `--no-ai-agent`.
 
 Con Docker Compose, scarica di nuovo i tre file nella cartella dell'agent (poi rifai le eventuali modifiche apportate a `docker-compose.yml`), scarica le immagini e riavvia:
 

@@ -197,11 +197,25 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "CloudCostReport",
     migration: "1809187761009-AddCloudCostReports.ts",
   },
+  // Storage array connections (a PowerMax's Unisphere) and their tests, read by a probe (#11004).
+  ...["StorageArrayConnection", "StorageArrayConnectionTest"].map(
+    (table: string): { table: string; migration: string } => {
+      return {
+        table,
+        migration: "1809187781104-AddStorageArrayConnections.ts",
+      };
+    },
+  ),
+  // An external MCP server's tools a Project Admin marked read-only (#11081).
+  {
+    table: "ExternalMcpToolReadOnlyMark",
+    migration: "1809187791081-AddExternalMcpToolReadOnlyMarks.ts",
+  },
   // Each project's share of a global probe's refused SNMPv3 traps (#11173).
   {
     table: "GlobalProbeSnmpTrapReport",
     migration:
-      "1809187791172-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds.ts",
+      "1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds.ts",
   },
 ];
 

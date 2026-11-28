@@ -329,19 +329,23 @@ The URLs each marketplace asks for (production):
 approved OneUptime Cloud; on 11 November the decision had been not to list it):
 see the hosting rule under
 [Before you start](#before-you-start-decisions-and-facts-that-are-the-businesss).
-**Where it stands** (24 November 2026): the SaaS product `oneuptime-cloud`
-("OneUptime") is in Producer Portal next to the self-hosted Kubernetes app
+**Where it stands** (28 November 2026): the SaaS product `oneuptime-cloud`
+("OneUptime") is in Producer Portal next to OneUptime Enterprise's
+Kubernetes app
 ([SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)),
-with steps 2 to 8 done: its product details were approved on 20 November,
-and its pricing has been in Google's review since 19 November (both
-submitted that day with the maintainer's go-ahead); production has the
-settings (step 7); and the Pub/Sub subscription pushes to it (step 6). A
-test purchase made an `Active` subscription (step 9), whose first usage
-report waits for its trial to end. Google approved OneUptime Cloud (case
-77068529) with an adjusted revenue share, which the maintainer accepted on
-the case on 19 November; Google's approval letter of that day sets it.
-Nothing is waiting on us. **Left**: the pricing's approval; the technical
-integration's review (step 10); then **Publish** once all three reviews are
+with steps 2 to 8 done: its product details were approved on 20 November
+and its pricing on 27 November (both submitted on 19 November with the
+maintainer's go-ahead); production has the settings (step 7); and the
+Pub/Sub subscription pushes to it (step 6). Approving the pricing, Google
+asked on case 77498377 for the technical integration next. A test purchase
+made an `Active` subscription (step 9), whose first usage report waits for
+its trial to end on 3 December; Google was told on 28 November that the
+integration goes in once that report reaches billing, or sooner if it
+asks. Google approved OneUptime Cloud (case 77068529) with an adjusted
+revenue share, which the maintainer accepted on the case on 19 November;
+Google's approval letter of that day sets it. **Left**: usage billing
+tested once the trial ends (step 9); the technical integration submitted
+and reviewed (step 10); then **Publish** once all three reviews are
 approved (the maintainer's go-ahead).
 
 The listing, its service account, its Pub/Sub subscription and its Service
@@ -529,7 +533,10 @@ rules do.
    Portal's **Test Billing Accounts** page lists) made an `Active` row in
    production. Its account is in a trial until 3 December, and trial hours
    are not billed, so it has no `MarketplaceUsageReport` yet; changing plan
-   and cancelling are still to test.
+   and cancelling are still to test. The Admin Dashboard's **Extend Trial**
+   cannot end that trial sooner: it moves the trial in Stripe first, and a
+   project billed through a marketplace has no Stripe subscription, so it
+   refuses.
 10. **Submit for review** - a maintainer's decision. Product details and
     pricing went in on 19 November 2026. The technical integration's
     **Submit** (on its **Frontend integration** tab) is open before the
@@ -794,6 +801,8 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-19 | Google Cloud | Test purchase with the test billing account: production's row is Active, in its trial                                 | Maintainer |
 | 2026-11-20 | Google Cloud | Product details review of `oneuptime-cloud` approved                                                                  | Google     |
 | 2026-11-24 | Google Cloud | Pricing still in review (since 19 November); the integration review waits for usage billing tests                     | Agent      |
+| 2026-11-27 | Google Cloud | Pricing approved (case 77498377); Google asks for the technical integration next                                      | Google     |
+| 2026-11-28 | Google Cloud | Told on the case: the integration goes in once the test's first usage report reaches billing                          | Agent      |
 
 ## Notes for agents driving the browser
 
