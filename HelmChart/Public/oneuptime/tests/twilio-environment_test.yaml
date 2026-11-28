@@ -13,7 +13,11 @@
 #     twilio.existingSecret names - under authToken unless authTokenKey
 #     names another key - and then never as a plain value too;
 #   - a block nothing would read, an account without its token, and a token
-#     given both ways are refused, each saying what to change.
+#     given both ways are refused, each saying what to change;
+#   - twilio.callVoice, the voice the server's calls speak with (#11064), is
+#     a setting of its own: GLOBAL_TWILIO_CALL_VOICE whenever it is set, with
+#     the account or without it, never counted among the values nothing
+#     reads, and only one of the voices OneUptime offers.
 suite: Twilio account from the values
 release:
   name: oneuptime
@@ -41,6 +45,8 @@ tests:
           path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS")]
       - notExists:
           path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_SMS_PHONE_NUMBERS")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_CALL_VOICE")]
 
   - it: app treats an account SID of spaces as empty, and a Secret key name alone as nothing set
     templates:
@@ -324,6 +330,137 @@ tests:
           errorMessage: 'twilio.authToken and twilio.existingSecret.name are both set. Set one of them: to read the Twilio auth token from the Secret oneuptime-twilio, clear authToken (--set twilio.authToken="").'
 
   # ---------------------------------------------------------------------------
+  # twilio.callVoice: the voice the server's calls speak with (#11064)
+  # ---------------------------------------------------------------------------
+  - it: app renders no GLOBAL_TWILIO_CALL_VOICE for an account without a voice
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: *fullAccount
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_CALL_VOICE")]
+
+  - it: app gets the call voice beside the account
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        accountSid: AC00000000000000000000000000000001
+        authToken: twilio-auth-token
+        primaryPhoneNumber: "+14155550100"
+        callVoice: Polly.Joanna-Neural
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_CALL_VOICE
+            value: Polly.Joanna-Neural
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_CALL_VOICE
+          any: true
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_ACCOUNT_SID
+            value: AC00000000000000000000000000000001
+
+  - it: app gets the call voice without the account, and none of the account's variables
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: &voiceOnly
+      twilio:
+        callVoice: Google.en-US-Neural2-J
+    asserts: &voiceOnlyAsserts
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_CALL_VOICE
+            value: Google.en-US-Neural2-J
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_ACCOUNT_SID")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_AUTH_TOKEN")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_USED_FOR")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER")]
+
+  - it: app renders nothing for a call voice left empty
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        callVoice: ""
+    asserts: *noTwilioAsserts
+
+  - it: app does not count the call voice among the values nothing reads without an account SID
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        usedFor: sms-only
+        callVoice: Polly.Amy-Neural
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "twilio.accountSid is empty, so OneUptime reads none of the other twilio values, and these are set: twilio.usedFor. Set twilio.accountSid to send through that Twilio account, or clear them to set the account up in the Admin Dashboard."
+
+  - it: refuses a voice OneUptime does not offer
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        callVoice: Polly.Joanna
+    asserts: &refusesCallVoice
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/twilio/callVoice': value must be one of <nil>, '', 'Polly.Joanna-Neural', 'Polly.Matthew-Neural', 'Polly.Amy-Neural', 'Polly.Brian-Neural', 'Google.en-US-Neural2-F', 'Google.en-US-Neural2-J'
+
+  - it: refuses a voice written in another case
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        callVoice: polly.joanna-neural
+    asserts: *refusesCallVoice
+
+  - it: refuses a Basic voice
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        callVoice: alice
+    asserts: *refusesCallVoice
+
+  - it: refuses a voice of another language, which calls choose themselves
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        callVoice: Polly.Vicki-Neural
+    asserts: *refusesCallVoice
+
+  # ---------------------------------------------------------------------------
   # worker: it sends what the queues hold, so it reads the same account
   # ---------------------------------------------------------------------------
   - it: worker renders no GLOBAL_TWILIO_ variable while twilio.accountSid is empty
@@ -348,6 +485,18 @@ tests:
       worker:
         enabled: true
     asserts: *fullAccountAsserts
+
+  - it: worker gets the call voice without the account
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *voiceOnly
+      worker:
+        enabled: true
+    asserts: *voiceOnlyAsserts
 
   - it: worker reads the auth token from the operator's Secret, and never as a plain value too
     templates:
@@ -396,3 +545,12 @@ tests:
       value: Job
     set: *existingSecret
     asserts: *existingSecretAsserts
+
+  - it: the migrate Job gets the call voice without the account
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set: *voiceOnly
+    asserts: *voiceOnlyAsserts

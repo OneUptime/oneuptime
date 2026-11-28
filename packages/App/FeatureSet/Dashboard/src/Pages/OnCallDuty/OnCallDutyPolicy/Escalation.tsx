@@ -93,17 +93,20 @@ const OnCallPolicyEscalation: FunctionComponent<
             }),
           ]}
         >
+          {/*
+           * Each card a section of its own, a divider between them
+           * (CardSections): a wrapper would sit the card inside More
+           * settings with no divider.
+           */}
           <AcknowledgementTimeoutCard
             onCallDutyPolicyId={modelId}
             onLoaded={setAcknowledgementTimeoutMinutes}
           />
 
-          <div className="mt-6">
-            <PagedPeopleIncidentRoleCard
-              onCallDutyPolicyId={modelId}
-              onLoaded={setIncidentRoleName}
-            />
-          </div>
+          <PagedPeopleIncidentRoleCard
+            onCallDutyPolicyId={modelId}
+            onLoaded={setIncidentRoleName}
+          />
         </AdvancedPageSection>
       </div>
     </Fragment>

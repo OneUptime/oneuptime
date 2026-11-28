@@ -29,9 +29,13 @@ import {
   getResourceReference,
 } from "../Utils/OnCallNotificationContext";
 import OnCallPagePassOn from "../Utils/OnCall/OnCallPagePassOn";
+import {
+  getCallAnswerEscalated,
+  getCallAnswerNotAcknowledged,
+  getCallAnswerNotEscalated,
+} from "../Utils/OnCall/OnCallPageCallAnswers";
 import OnCallAcknowledgePageAnswerReader from "../Utils/OnCall/OnCallAcknowledgePageAnswer";
 import {
-  ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
   ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
   ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
   ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
@@ -366,7 +370,12 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
           const answers: OnCallInputRequest = keypad.answers;
 
-          // Every answer is said in the voice the call speaks with (#10948).
+          /*
+           * Every answer is said in the voice the call speaks with (#10948),
+           * and in its language (#11066): the answers the call carries are
+           * in it already, and what this route words itself is worded in
+           * the language of that voice (OnCallPageCallAnswers).
+           */
           const voice: string | undefined = keypad.voice;
 
           /*
@@ -383,6 +392,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               await this.passOnFromCall({
                 itemId: itemId,
                 timelineItem: timelineItem,
+                voice: voice,
               }),
               voice,
             );
@@ -414,7 +424,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 req,
                 res,
                 answers,
-                ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
+                getCallAnswerNotAcknowledged(voice),
                 voice,
               );
             }
@@ -1613,11 +1623,14 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
   /*
    * The second key of a call: escalates the person's page and says what came
-   * of it, in a sentence or two the call reads out.
+   * of it, in a sentence or two the call reads out - in the language of the
+   * voice the call speaks with (#11066, OnCallPageCallAnswers).
    */
   private async passOnFromCall(data: {
     itemId: ObjectID;
     timelineItem: UserOnCallLogTimeline;
+    // The voice the call speaks with, from its keypad token.
+    voice?: string | undefined;
   }): Promise<string> {
     const timelineItem: UserOnCallLogTimeline = data.timelineItem;
 
@@ -1626,10 +1639,13 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     ).toLowerCase();
 
     if (!timelineItem.userId || !timelineItem.onCallDutyPolicyExecutionLogId) {
-      return `${getOnCallPassOnRefusalSentence({
-        passedOn: false,
-        refusal: OnCallPassOnRefusal.NotPaged,
-      })} Good bye.`;
+      return getCallAnswerNotEscalated({
+        voice: data.voice,
+        answer: {
+          passedOn: false,
+          refusal: OnCallPassOnRefusal.NotPaged,
+        },
+      });
     }
 
     const answer: OnCallPassOnAnswer = await OnCallPagePassOn.passOn({
@@ -1643,14 +1659,20 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
        * "by 3:34 AM CEST": a time read out is the person's own. Read out, a
        * sentence keeps plain spaces (no keepTogether).
        */
-      return `You escalated this ${noun}. ${getOnCallPassOnSentence(
-        answer.result,
-        { timezone: timelineItem.user?.timezone?.toString() || undefined },
-      )} Good bye.`;
+      return getCallAnswerEscalated({
+        voice: data.voice,
+        noun: noun,
+        result: answer.result,
+        wording: {
+          timezone: timelineItem.user?.timezone?.toString() || undefined,
+        },
+      });
     }
 
-    return `${getOnCallPassOnRefusalSentence(answer, {
-      recordLabel: `This ${noun}`,
-    })} Good bye.`;
+    return getCallAnswerNotEscalated({
+      voice: data.voice,
+      answer: answer,
+      wording: { recordLabel: `This ${noun}` },
+    });
   }
 }

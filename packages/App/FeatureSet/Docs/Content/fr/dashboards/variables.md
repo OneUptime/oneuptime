@@ -61,6 +61,10 @@ Définissez la **Clé d'attribut**, comme `service.name`, `host.name` ou `k8s.na
 
 C'est la source la plus courante, car elle n'a besoin d'aucune liste propre : les valeurs sont celles que vous envoyez déjà.
 
+Une variable Telemetry Attribute peut aussi avoir un **Type de ressource** : **Clusters Kubernetes**, **Hôtes**, **clusters Docker Swarm**, **clusters Proxmox**, **clouds OpenStack**, **vCenter VMware**, **pools XCP-ng**, **clusters Ceph** ou **Baies de stockage**. Avec un type, chaque widget n'affiche que les données de ce type, avant même qu'une valeur soit choisie : **Tous** devient **Tous les hôtes**, **Tous les clusters**, etc., et les affiche tous, et choisir des valeurs le restreint à celles-ci. Le sélecteur ne propose que les noms de ce type, si bien qu'une variable de type **Hôtes** propose vos hôtes, jamais un hôte Docker ni un pod. Tant que rien de ce type n'envoie encore de données à OneUptime, le tableau de bord l'indique au-dessus de ses widgets, avec un bouton pour en configurer un, comme **Configurer Kubernetes**.
+
+Les modèles d'infrastructure donnent son type à leur variable, et les tableaux de bord créés à partir d'eux avant l'existence des types ont reçu le leur lors de la mise à niveau. Pour lire de nouveau tout le projet, réglez le **Type de ressource** de la variable sur **N'importe quel type de ressource**.
+
 ### Project Labels
 
 Choisissez des étiquettes de projet existantes à proposer dans une liste du tableau de bord. Par exemple, créez une variable nommée `UNIT`, réglez sa source sur **Étiquettes du projet**, et choisissez les étiquettes `0660` et `0661`.
@@ -83,7 +87,7 @@ Une variable Query d'un tableau de bord plus ancien est conservée et affiche un
 
 Avec **Autoriser la sélection multiple** coché, les personnes choisissent une ou plusieurs valeurs, et les widgets affichent n'importe laquelle d'entre elles. Une sélection vide signifie **Tous**, et une variable à choix multiple démarre toujours sur **Tous**, d'où sa valeur **Par défaut** grisée.
 
-Une variable à choix unique démarre sur sa valeur **Par défaut**, ou sur **Tous** si elle n'en a pas. **Tous** retire le filtre de la variable, et les widgets affichent tout.
+Une variable à choix unique démarre sur sa valeur **Par défaut**, ou sur **Tous** si elle n'en a pas. **Tous** retire le filtre de la variable, et les widgets affichent tout. Sur une variable dotée d'un **Type de ressource**, ils affichent tout ce qui est de ce type.
 
 Utilisez le choix multiple pour comparer « checkout et payments ensemble » sans quitter le tableau de bord. Évitez-le quand les chiffres ne s'additionnent pas d'une valeur à l'autre, comme une moyenne de moyennes.
 

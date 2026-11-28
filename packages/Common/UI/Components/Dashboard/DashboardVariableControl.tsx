@@ -19,6 +19,8 @@ import DashboardVariable, {
   DashboardVariableType,
   DashboardVariableOption,
 } from "../../../Types/Dashboard/DashboardVariable";
+import { isDashboardResourceScope } from "../../../Types/Dashboard/DashboardResourceScope";
+import { getDashboardResourceScopeAllLabel } from "./DashboardResourceScopeWords";
 
 export interface VariableValueChange {
   selectedValue?: string | undefined;
@@ -40,6 +42,8 @@ const MultiSelectPopover: FunctionComponent<{
   selected: Array<string>;
   label: string;
   isLoading: boolean;
+  // What nothing picked means: "All", or "All hosts" for a kind's variable.
+  allLabel: string;
   maxSelections?: number | undefined;
   unavailableLabel?: string | undefined;
   onChange: (next: Array<string>) => void;
@@ -48,6 +52,7 @@ const MultiSelectPopover: FunctionComponent<{
   selected,
   label,
   isLoading,
+  allLabel,
   maxSelections,
   unavailableLabel,
   onChange,
@@ -56,6 +61,7 @@ const MultiSelectPopover: FunctionComponent<{
   selected: Array<string>;
   label: string;
   isLoading: boolean;
+  allLabel: string;
   maxSelections?: number | undefined;
   unavailableLabel?: string | undefined;
   onChange: (next: Array<string>) => void;
@@ -82,8 +88,8 @@ const MultiSelectPopover: FunctionComponent<{
   const buttonText: string =
     selected.length === 0
       ? isLoading
-        ? "Loading…"
-        : "All"
+        ? translator.translateText("Loading…") || "Loading…"
+        : allLabel
       : selected.length === 1
         ? options.find((option: DashboardVariableOption) => {
             return option.value === selected[0];
@@ -264,6 +270,18 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
     isTelemetryAttribute || isCustomList || isProjectLabel;
   const label: string = variable.label || variable.name;
 
+  /*
+   * A variable that picks among one kind of resource reads its "All" as
+   * all of them - "All hosts" - since that is what its widgets then show
+   * (DashboardResourceScope, issue #11258).
+   */
+  const allLabel: string = getDashboardResourceScopeAllLabel(
+    translator,
+    isTelemetryAttribute && isDashboardResourceScope(variable.resourceScope)
+      ? variable.resourceScope
+      : undefined,
+  );
+
   return (
     <div className="flex items-center gap-1.5">
       <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -282,6 +300,7 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
           selected={variable.selectedValues || []}
           label={label}
           isLoading={Boolean(props.isLoadingOptions)}
+          allLabel={allLabel}
           maxSelections={isProjectLabel ? 100 : undefined}
           unavailableLabel={isProjectLabel ? "Unavailable label" : undefined}
           onChange={(next: Array<string>) => {
@@ -305,9 +324,11 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
            * so what the toolbar shows and what the widgets are filtered by
            * stay in step.
            */
-          placeholder={translator.translateText(
-            props.isLoadingOptions ? "Loading…" : "All",
-          )}
+          placeholder={
+            props.isLoadingOptions
+              ? translator.translateText("Loading…")
+              : allLabel
+          }
           isPlaceholderTranslated={true}
           options={selectOptions}
           value={findDropdownOption(selectOptions, selectedValue)}

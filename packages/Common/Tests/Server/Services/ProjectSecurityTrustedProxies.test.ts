@@ -369,6 +369,8 @@ describe("SecurityTrustedProxies: what the scans read", () => {
       select: {
         securityTrustedProxies: true,
         securityTrustOwnLoadBalancers: true,
+        // Whether private addresses are trusted unlisted (#11389).
+        securityTrustPrivateAddresses: true,
         securityReadAccessLogForwardedFor: true,
         // The format the project's access logs are written in (#11048).
         securityAccessLogFormat: true,
@@ -381,7 +383,7 @@ describe("SecurityTrustedProxies: what the scans read", () => {
     expect(TRUSTED_PROXIES_CACHE_TTL_MS).toBe(60 * 1000);
   });
 
-  it("a project with none trusts only private addresses", async () => {
+  it("a project with none trusts only private addresses, while it trusts those", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(new Project());
 
     const proxies: TrustedProxies =
@@ -390,6 +392,57 @@ describe("SecurityTrustedProxies: what the scans read", () => {
     expect(proxies.blocks).toEqual([]);
     expect(isTrustedProxy("10.0.0.5", proxies)).toBe(true);
     expect(isTrustedProxy("203.0.113.7", proxies)).toBe(false);
+  });
+
+  /*
+   * #11389: Private Addresses off - where a new project starts - trusts a
+   * private address only when the project lists it, or it is one of its
+   * load balancers'.
+   */
+  it("a project that turned Private Addresses off trusts a private address only when it lists it", async () => {
+    const project: Project = new Project();
+    project.securityTrustPrivateAddresses = false;
+    project.securityTrustedProxies = "10.0.0.0/24";
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project);
+
+    const proxies: TrustedProxies =
+      await SecurityTrustedProxies.getForProject(PROJECT_ID);
+
+    expect(proxies.trustsPrivateAddresses).toBe(false);
+    expect(isTrustedProxy("10.0.0.5", proxies)).toBe(true);
+    expect(isTrustedProxy("10.0.1.5", proxies)).toBe(false);
+    expect(isTrustedProxy("127.0.0.1", proxies)).toBe(false);
+    expect(isTrustedProxy("fd00::5", proxies)).toBe(false);
+
+    // A TCP proxy at 10.0.1.5 passing on what the client wrote: the proxy is blamed, the client's words claimed.
+    const reading: ClientAddressReading = resolveClientAddress(
+      { peer: "10.0.1.5", forwardedFor: "198.51.100.7" },
+      proxies,
+    );
+
+    expect(reading.address).toBe("10.0.1.5");
+    expect(reading.trust).toBe(ClientAddressTrust.Peer);
+    expect(reading.claimed?.address).toBe("198.51.100.7");
+  });
+
+  it("a project that turned it on, or one from before it, trusts every private address", async () => {
+    for (const trusts of [true, undefined]) {
+      SecurityTrustedProxies.clearCache();
+
+      const project: Project = new Project();
+
+      if (trusts !== undefined) {
+        project.securityTrustPrivateAddresses = trusts;
+      }
+
+      jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project);
+
+      const proxies: TrustedProxies =
+        await SecurityTrustedProxies.getForProject(PROJECT_ID);
+
+      expect(proxies.trustsPrivateAddresses).toBe(true);
+      expect(isTrustedProxy("10.0.1.5", proxies)).toBe(true);
+    }
   });
 
   it("a read that fails trusts less, never more, and is read again next time", async () => {
@@ -401,6 +454,8 @@ describe("SecurityTrustedProxies: what the scans read", () => {
       await SecurityTrustedProxies.getForProject(PROJECT_ID);
 
     expect(proxies.blocks).toEqual([]);
+    // Not even a private address (#11389): the project may have turned those off.
+    expect(isTrustedProxy("10.0.0.5", proxies)).toBe(false);
 
     const project: Project = new Project();
     project.securityTrustedProxies = "203.0.113.50";

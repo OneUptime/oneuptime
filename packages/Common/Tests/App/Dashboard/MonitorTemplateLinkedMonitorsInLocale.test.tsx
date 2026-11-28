@@ -17,6 +17,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
+import type { Mock } from "jest-mock";
 import React from "react";
 import { I18nextProvider } from "react-i18next";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -28,23 +29,33 @@ import { JSONObject } from "../../../Types/JSON";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  FIRST_STRONG_ISOLATE,
-  POP_DIRECTIONAL_ISOLATE,
-} from "../../../Types/ReadingDirection";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
-import { MONITOR_NOT_LINKED_REFUSAL } from "../../../Utils/Monitor/MonitorTemplateLinkRefusal";
-import MonitorTemplatesView from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplatesView";
 import {
-  LINKED_MONITORS_RESULT,
+  emptyMonitorTemplateChangeProgress,
+  MonitorTemplateChangeKind,
+  MonitorTemplateChangeStatus,
+  MonitorTemplateChangeView,
+} from "../../../Types/Monitor/MonitorTemplateChange";
+import MonitorTemplatesView, {
+  ACTIVE_CHANGE_REFRESH_MS,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplatesView";
+import {
   LINKED_MONITORS_TITLE,
   SYNC_TO_LINKED_MONITORS_TITLES,
   SYNCED_MONITOR_RESULT,
-  UNLINK_MONITOR_CONFIRMATION,
-  UNLINKED_MONITOR_RESULT,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
+import {
+  ComponentProps as ChangeDialogProps,
+  MonitorTemplateChangeDialogMode,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeDialog";
+import { ComponentProps as DeleteChoiceProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateDeleteChoice";
+import {
+  APPLY_SETTINGS_TITLE,
+  DeleteChoice,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeModel";
+import * as ChangeApi from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeApi";
 import {
   buildSyncResultSummary,
   STILL_ON_PREVIOUS_CONFIGURATION,
@@ -75,8 +86,16 @@ import {
  * synchronisieren", never the noun "Synchronisierungsintervall" until the
  * count turns it into a command - as its dialog's button does; a sync's
  * summary writes its counts in the reader's digits and runs its two
- * sentences together as the reader's script does; and Unlink from
- * Template asks first with the monitor's name set apart.
+ * sentences together as the reader's script does.
+ *
+ * And (#11260, #11266): Link Existing Monitors is one change the server
+ * runs, the template's criteria and interval with it unless switched off,
+ * and its progress in a dialog of its own; Unlink from Template opens the
+ * change dialog for its monitor, with its two choices; the template's
+ * Delete says what happens to the monitors linked to it, and can clear its
+ * criteria from them first; and a change still running shows on the page.
+ * The dialogs' own words, in German and Persian, are held by
+ * MonitorTemplateChangeDialogInLocale.
  */
 
 interface CardButton {
@@ -110,13 +129,34 @@ interface CapturedMonitorTable {
 
 interface CapturedFormModal {
   title: string;
-  onSubmit: (values: { monitorIds: Array<string> }) => Promise<void> | void;
+  error?: string | undefined;
+  onSubmit: (values: {
+    monitorIds: Array<string>;
+    applyTemplateSettings?: boolean | undefined;
+  }) => Promise<void> | void;
+  formProps?:
+    | {
+        initialValues?: JSONObject | undefined;
+        fields?:
+          | Array<{ field?: JSONObject | undefined; title?: string }>
+          | undefined;
+      }
+    | undefined;
+}
+
+interface CapturedDelete {
+  confirmationContent?: React.ReactElement<DeleteChoiceProps> | undefined;
+  hideDeleteToast?: boolean | undefined;
+  onDelete?: (() => Promise<void>) | undefined;
+  onDeleteSuccess: () => void;
 }
 
 let capturedDetails: Array<CapturedDetail> = [];
 let capturedCustomFields: Array<CapturedCustomFields> = [];
 let capturedTables: Array<CapturedMonitorTable> = [];
 let capturedModals: Array<CapturedFormModal> = [];
+let capturedDeletes: Array<CapturedDelete> = [];
+let capturedChangeDialogs: Array<ChangeDialogProps> = [];
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -140,11 +180,47 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
 jest.mock("../../../UI/Components/ModelDelete/ModelDelete", () => {
   return {
     __esModule: true,
-    default: () => {
+    default: (props: CapturedDelete) => {
+      capturedDeletes.push(props);
       return null;
     },
   };
 });
+
+// The change dialog is kept for what the page opens it with.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeDialog",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeDialog",
+    ) as Record<string, unknown>;
+
+    return {
+      ...actual,
+      __esModule: true,
+      default: (props: ChangeDialogProps) => {
+        capturedChangeDialogs.push(props);
+        return null;
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeApi",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeApi",
+    ) as Record<string, unknown>;
+
+    return {
+      ...actual,
+      __esModule: true,
+      startMonitorTemplateChange: jest.fn(),
+      getActiveMonitorTemplateChanges: jest.fn(),
+    };
+  },
+);
 
 jest.mock("../../../UI/Components/CustomFields/CustomFieldsDetail", () => {
   return {
@@ -181,7 +257,7 @@ jest.mock(
   },
 );
 
-// The link dialog is kept for its submit: every monitor picked is linked here.
+// The link dialog is kept for its submit: the change it starts is checked here.
 jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
   return {
     __esModule: true,
@@ -226,6 +302,39 @@ const PERSIAN: Record<string, string> = readDashboardLocale("fa");
 // The template's linked monitors, as the server counts them.
 let linkedMonitors: number = 0;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyFunction = (...args: Array<any>) => any;
+
+const startChange: Mock<AnyFunction> =
+  ChangeApi.startMonitorTemplateChange as unknown as Mock<AnyFunction>;
+const activeChanges: Mock<AnyFunction> =
+  ChangeApi.getActiveMonitorTemplateChanges as unknown as Mock<AnyFunction>;
+
+function changeView(
+  overrides: Partial<MonitorTemplateChangeView> = {},
+): MonitorTemplateChangeView {
+  return {
+    id: "change-1",
+    status: MonitorTemplateChangeStatus.Queued,
+    settings: {
+      kind: MonitorTemplateChangeKind.Link,
+      applyTemplateSettings: true,
+      clearTemplateSettings: false,
+      deleteTemplateWhenDone: false,
+    },
+    monitorTemplateId: TEMPLATE_ID,
+    monitorTemplateName: "Checkout",
+    progress: emptyMonitorTemplateChangeProgress(1),
+    lines: [],
+    isLinesTruncated: false,
+    isStopRequested: false,
+    retryableCount: 0,
+    isTemplateDeleted: false,
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
 const instances: Record<string, i18n> = {};
 
 beforeAll(async () => {
@@ -255,11 +364,19 @@ beforeEach(() => {
   capturedCustomFields = [];
   capturedTables = [];
   capturedModals = [];
+  capturedDeletes = [];
+  capturedChangeDialogs = [];
   linkedMonitors = 0;
+
+  startChange.mockReset();
+  startChange.mockResolvedValue(changeView());
+  activeChanges.mockReset();
+  activeChanges.mockResolvedValue([]);
 
   const template: MonitorTemplate = new MonitorTemplate();
   template.monitorType = MonitorType.API;
   template.monitorSteps = new MonitorSteps();
+  template.templateName = "Checkout";
 
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
@@ -342,8 +459,11 @@ function lastTable(): CapturedMonitorTable {
   return capturedTables[capturedTables.length - 1]!;
 }
 
-// Opens Link Existing Monitors and links the monitors picked.
-async function link(monitorIds: Array<string>): Promise<void> {
+// Opens Link Existing Monitors and submits the monitors picked.
+async function link(
+  monitorIds: Array<string>,
+  applyTemplateSettings?: boolean,
+): Promise<void> {
   const linkButton: CardButton = lastTable().cardButtons!.find(
     (button: CardButton): boolean => {
       return button.title === "Link Existing Monitors";
@@ -363,21 +483,31 @@ async function link(monitorIds: Array<string>): Promise<void> {
   await act(async () => {
     await capturedModals[capturedModals.length - 1]!.onSubmit({
       monitorIds: monitorIds,
+      ...(applyTemplateSettings === undefined
+        ? {}
+        : { applyTemplateSettings: applyTemplateSettings }),
     });
+  });
+}
+
+function lastChangeDialog(): ChangeDialogProps {
+  return capturedChangeDialogs[capturedChangeDialogs.length - 1]!;
+}
+
+function lastDelete(): CapturedDelete {
+  return capturedDeletes[capturedDeletes.length - 1]!;
+}
+
+// The change dialog says its change finished: the page reads its count again.
+async function changeFinished(): Promise<void> {
+  await act(async () => {
+    lastChangeDialog().onChanged!();
   });
 }
 
 // The Done dialog's line.
 async function resultLine(): Promise<HTMLElement> {
   return await screen.findByTestId("confirm-modal-description");
-}
-
-async function closeResult(): Promise<void> {
-  fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
-
-  await waitFor(() => {
-    expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
-  });
 }
 
 // Starts a row action of the Linked Monitors table on Checkout API: its confirmation opens.
@@ -503,15 +633,13 @@ const SYNC_BUTTONS: Array<{
 ];
 
 describe("Link Existing Monitors and the sync buttons, in German", () => {
-  test("after linking 1 monitor and then 3: the line and the titles are German, each in its number's form", async () => {
+  test("after a link of 1 monitor and then of 3 finishes: the titles are German, each in its number's form", async () => {
     await openPage("de");
 
-    linkedMonitors = 1;
     await link([CHECKOUT_ID]);
+    linkedMonitors = 1;
+    await changeFinished();
 
-    expect((await resultLine()).textContent).toBe(
-      "1 Monitor mit dieser Vorlage verknüpft.",
-    );
     await waitFor(() => {
       expect(titles()).toEqual({
         criteria: "Kriterien mit 1 verknüpften Monitor synchronisieren",
@@ -523,18 +651,14 @@ describe("Link Existing Monitors and the sync buttons, in German", () => {
       });
     });
 
-    await closeResult();
-
-    linkedMonitors = 4;
     await link([
       "60000000-0000-4000-8000-000000000002",
       "60000000-0000-4000-8000-000000000003",
       "60000000-0000-4000-8000-000000000004",
     ]);
+    linkedMonitors = 4;
+    await changeFinished();
 
-    expect((await resultLine()).textContent).toBe(
-      "3 Monitore mit dieser Vorlage verknüpft.",
-    );
     await waitFor(() => {
       expect(titles()).toEqual({
         criteria: "Kriterien mit 4 verknüpften Monitoren synchronisieren",
@@ -545,21 +669,6 @@ describe("Link Existing Monitors and the sync buttons, in German", () => {
         linkedMonitors: "Verknüpfte Monitore (4)",
       });
     });
-  });
-
-  test("Unlink from Template says it in German, the monitor's name as written, set apart", async () => {
-    await openPage("de");
-    await runRowAction("Unlink from Template");
-
-    await waitFor(async () => {
-      expect((await resultLine()).textContent).toBe(
-        "Die Verknüpfung von „Checkout API“ mit dieser Vorlage wurde aufgehoben.",
-      );
-    });
-
-    const name: HTMLElement | null = (await resultLine()).querySelector("bdi");
-
-    expect(name?.textContent).toBe("Checkout API");
   });
 
   test("Sync from Template says it in German, the monitor's name as written, set apart", async () => {
@@ -574,28 +683,6 @@ describe("Link Existing Monitors and the sync buttons, in German", () => {
 
     expect((await resultLine()).querySelector("bdi")?.textContent).toBe(
       "Checkout API",
-    );
-  });
-
-  test("Unlink from Template, refused: the server's reason, in German", async () => {
-    jest
-      .spyOn(API, "post")
-      .mockResolvedValue(
-        new HTTPErrorResponse(
-          400,
-          { message: MONITOR_NOT_LINKED_REFUSAL },
-          {},
-        ) as never,
-      );
-
-    await openPage("de");
-    await runRowAction("Unlink from Template");
-
-    expect((await screen.findByTestId("modal-error")).textContent).toBe(
-      "Dieser Monitor ist nicht mit dieser Vorlage verknüpft.",
-    );
-    expect(GERMAN[MONITOR_NOT_LINKED_REFUSAL]).toBe(
-      "Dieser Monitor ist nicht mit dieser Vorlage verknüpft.",
     );
   });
 
@@ -677,15 +764,13 @@ describe("Link Existing Monitors and the sync buttons, in German", () => {
 });
 
 describe("Link Existing Monitors and the sync buttons, in Persian", () => {
-  test("after linking 1 monitor and then 3: the line and the titles are Persian, with Persian digits", async () => {
+  test("after a link of 1 monitor and then of 3 finishes: the titles are Persian, with Persian digits", async () => {
     await openPage("fa");
 
-    linkedMonitors = 1;
     await link([CHECKOUT_ID]);
+    linkedMonitors = 1;
+    await changeFinished();
 
-    expect((await resultLine()).textContent).toBe(
-      "۱ مانیتور به این قالب پیوند داده شد.",
-    );
     await waitFor(() => {
       expect(titles()).toEqual({
         criteria: "همگام‌سازی معیارها با ۱ مانیتور پیوندشده",
@@ -696,18 +781,14 @@ describe("Link Existing Monitors and the sync buttons, in Persian", () => {
       });
     });
 
-    await closeResult();
-
-    linkedMonitors = 4;
     await link([
       "60000000-0000-4000-8000-000000000002",
       "60000000-0000-4000-8000-000000000003",
       "60000000-0000-4000-8000-000000000004",
     ]);
+    linkedMonitors = 4;
+    await changeFinished();
 
-    expect((await resultLine()).textContent).toBe(
-      "۳ مانیتور به این قالب پیوند داده شد.",
-    );
     await waitFor(() => {
       expect(titles()).toEqual({
         criteria: "همگام‌سازی معیارها با ۴ مانیتور پیوندشده",
@@ -720,42 +801,6 @@ describe("Link Existing Monitors and the sync buttons, in Persian", () => {
 
     // Not a Latin digit anywhere.
     expect(JSON.stringify(titles())).not.toMatch(/[0-9]/);
-  });
-
-  test("Unlink from Template says it in Persian, a Latin name kept as written, set apart", async () => {
-    await openPage("fa");
-    await runRowAction("Unlink from Template");
-
-    // In a sentence read right to left the name is set apart twice: in an isolate, and in its bdi.
-    await waitFor(async () => {
-      expect((await resultLine()).textContent).toBe(
-        `پیوند «${FIRST_STRONG_ISOLATE}Checkout API${POP_DIRECTIONAL_ISOLATE}» از این قالب لغو شد.`,
-      );
-    });
-
-    const name: HTMLElement | null = (await resultLine()).querySelector("bdi");
-
-    expect(name?.textContent).toBe("Checkout API");
-    expect(name?.getAttribute("dir")).toBe("ltr");
-  });
-
-  test("Unlink from Template asks first in Persian, a Latin name kept as written, set apart (#7710)", async () => {
-    await openPage("fa");
-    await openRowAction("Unlink from Template");
-
-    const question: HTMLElement = await resultLine();
-
-    expect(question.textContent).toBe(
-      PERSIAN[UNLINK_MONITOR_CONFIRMATION]!.replace(
-        "{{monitorName}}",
-        `${FIRST_STRONG_ISOLATE}Checkout API${POP_DIRECTIONAL_ISOLATE}`,
-      ),
-    );
-
-    const name: HTMLElement | null = question.querySelector("bdi");
-
-    expect(name?.textContent).toBe("Checkout API");
-    expect(name?.getAttribute("dir")).toBe("ltr");
   });
 
   test("a sync that reached 3 of 5 linked monitors says so in Persian, with Persian digits (#7710)", async () => {
@@ -828,7 +873,6 @@ describe("the page's words about its linked monitors", () => {
   test("are worded in every language the Dashboard speaks, each count form", () => {
     const english: Record<string, string> = readDashboardLocale("en");
     const counted: Array<{ one: string; other: string }> = [
-      LINKED_MONITORS_RESULT,
       SYNC_TO_LINKED_MONITORS_TITLES.criteria,
       SYNC_TO_LINKED_MONITORS_TITLES.interval,
       SYNC_TO_LINKED_MONITORS_TITLES.labels,
@@ -836,9 +880,7 @@ describe("the page's words about its linked monitors", () => {
     ];
     const sentences: Array<string> = [
       LINKED_MONITORS_TITLE,
-      UNLINKED_MONITOR_RESULT,
       SYNCED_MONITOR_RESULT,
-      UNLINK_MONITOR_CONFIRMATION,
     ];
 
     for (const template of counted) {
@@ -959,6 +1001,347 @@ describe("the page's words about its linked monitors", () => {
         ),
         dialogButton: reader.translateText("Sync Interval"),
       }).toEqual({ language, ...expected });
+    }
+  });
+});
+
+describe("Link Existing Monitors, Unlink from Template and Delete change the template's monitors on the server (#11260, #11266)", () => {
+  test("Link Existing Monitors asks whether the template's criteria and interval come too, on until switched off", async () => {
+    await openPage("de");
+
+    const linkButton: CardButton = lastTable().cardButtons!.find(
+      (button: CardButton): boolean => {
+        return button.title === "Link Existing Monitors";
+      },
+    )!;
+
+    await act(async () => {
+      linkButton.onClick!();
+    });
+
+    const form: CapturedFormModal = capturedModals[capturedModals.length - 1]!;
+
+    expect(form.formProps?.initialValues).toEqual({
+      monitorIds: [],
+      applyTemplateSettings: true,
+    });
+    expect(
+      form.formProps?.fields?.map(
+        (field: { field?: JSONObject | undefined; title?: string }) => {
+          return [Object.keys(field.field || {})[0], field.title];
+        },
+      ),
+    ).toEqual([
+      ["monitorIds", expect.anything()],
+      ["applyTemplateSettings", APPLY_SETTINGS_TITLE],
+    ]);
+  });
+
+  test("it starts one change for every monitor picked - an import's too - and shows its progress, not a request per monitor", async () => {
+    await openPage("de");
+    await link([CHECKOUT_ID, "60000000-0000-4000-8000-000000000002"]);
+
+    expect(startChange).toHaveBeenCalledTimes(1);
+    expect(startChange).toHaveBeenCalledWith({
+      monitorTemplateId: TEMPLATE_ID,
+      settings: {
+        kind: MonitorTemplateChangeKind.Link,
+        applyTemplateSettings: true,
+        clearTemplateSettings: false,
+        deleteTemplateWhenDone: false,
+      },
+      monitorIds: [CHECKOUT_ID, "60000000-0000-4000-8000-000000000002"],
+    });
+
+    // Not the old loop: no link-monitor request from the browser.
+    expect(API.post).not.toHaveBeenCalled();
+
+    expect(lastChangeDialog()).toMatchObject({
+      mode: MonitorTemplateChangeDialogMode.Progress,
+      changeId: "change-1",
+      template: {
+        id: TEMPLATE_ID,
+        name: "Checkout",
+        monitorType: MonitorType.API,
+      },
+    });
+  });
+
+  test("switched off, the monitors keep their own criteria until a sync", async () => {
+    await openPage("de");
+    await link([CHECKOUT_ID], false);
+
+    expect(startChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({ applyTemplateSettings: false }),
+      }),
+    );
+  });
+
+  test("a change the server refuses to start is said in the link dialog, which stays open", async () => {
+    startChange.mockRejectedValue(
+      new HTTPErrorResponse(
+        400,
+        { message: "Pick at most 10,000 monitors." },
+        {},
+      ),
+    );
+
+    await openPage("de");
+    await link([CHECKOUT_ID]);
+
+    await waitFor(() => {
+      expect(capturedModals[capturedModals.length - 1]!.error).toBe(
+        "Pick at most 10,000 monitors.",
+      );
+    });
+    expect(capturedChangeDialogs).toEqual([]);
+  });
+
+  test("Unlink from Template opens the change dialog for that one monitor, from this template", async () => {
+    await openPage("de");
+    await openRowAction("Unlink from Template");
+
+    expect(lastChangeDialog().mode).toBe(
+      MonitorTemplateChangeDialogMode.Unlink,
+    );
+    expect(
+      lastChangeDialog().monitors?.map((monitor: Monitor) => {
+        return [monitor.id?.toString(), monitor.name];
+      }),
+    ).toEqual([[CHECKOUT_ID, "Checkout API"]]);
+    expect(lastChangeDialog().template).toEqual({
+      id: TEMPLATE_ID,
+      name: "Checkout",
+      monitorType: MonitorType.API,
+    });
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
+  test("the Linked Monitors table knows its template, for its Move to Another Template and Unlink from Template", async () => {
+    await openPage("de");
+
+    expect(
+      (lastTable() as CapturedMonitorTable & { linkedToTemplate?: unknown })
+        .linkedToTemplate,
+    ).toEqual({
+      id: TEMPLATE_ID,
+      name: "Checkout",
+      monitorType: MonitorType.API,
+    });
+  });
+
+  test("with no monitors linked, Delete asks nothing more and deletes the template", async () => {
+    const deleteItem: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "deleteItem")
+      .mockResolvedValue(undefined as never);
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((() => {}) as never);
+
+    await openPage("de");
+
+    expect(lastDelete().confirmationContent).toBeUndefined();
+    expect(lastDelete().hideDeleteToast).toBe(false);
+
+    await act(async () => {
+      await lastDelete().onDelete!();
+      lastDelete().onDeleteSuccess();
+    });
+
+    expect(deleteItem).toHaveBeenCalledWith({
+      modelType: MonitorTemplate,
+      id: new ObjectID(TEMPLATE_ID),
+    });
+    expect(startChange).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+
+  test("with monitors linked, Delete asks what happens to them; keeping their settings deletes the template as it always did", async () => {
+    linkedMonitors = 851;
+
+    const deleteItem: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "deleteItem")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(Navigation, "navigate").mockImplementation((() => {}) as never);
+
+    await openPage("de");
+
+    await waitFor(() => {
+      expect(lastDelete().confirmationContent?.props).toMatchObject({
+        templateName: "Checkout",
+        linkedMonitorCount: 851,
+      });
+    });
+
+    await act(async () => {
+      await lastDelete().onDelete!();
+    });
+
+    expect(deleteItem).toHaveBeenCalledTimes(1);
+    expect(startChange).not.toHaveBeenCalled();
+  });
+
+  test("clearing the template's criteria from them first is a change on the server that deletes the template once nothing is linked to it", async () => {
+    linkedMonitors = 851;
+    startChange.mockResolvedValue(
+      changeView({
+        id: "change-delete",
+        settings: {
+          kind: MonitorTemplateChangeKind.Unlink,
+          applyTemplateSettings: false,
+          clearTemplateSettings: true,
+          deleteTemplateWhenDone: true,
+        },
+      }),
+    );
+
+    const deleteItem: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ModelAPI, "deleteItem")
+      .mockResolvedValue(undefined as never);
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((() => {}) as never);
+
+    await openPage("de");
+
+    await waitFor(() => {
+      expect(lastDelete().confirmationContent).toBeDefined();
+    });
+
+    await act(async () => {
+      lastDelete().confirmationContent!.props.onChange(
+        DeleteChoice.ClearCriteria,
+      );
+    });
+
+    // The change says what it did: the delete's own toast would say it is gone already.
+    expect(lastDelete().hideDeleteToast).toBe(true);
+
+    await act(async () => {
+      await lastDelete().onDelete!();
+      lastDelete().onDeleteSuccess();
+    });
+
+    expect(startChange).toHaveBeenCalledWith({
+      monitorTemplateId: TEMPLATE_ID,
+      settings: {
+        kind: MonitorTemplateChangeKind.Unlink,
+        applyTemplateSettings: false,
+        clearTemplateSettings: true,
+        deleteTemplateWhenDone: true,
+      },
+      allLinkedToTemplate: true,
+    });
+    expect(deleteItem).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(lastChangeDialog()).toMatchObject({
+      mode: MonitorTemplateChangeDialogMode.Progress,
+      changeId: "change-delete",
+    });
+
+    // Once the template is gone, its page goes too.
+    await act(async () => {
+      lastChangeDialog().onTemplateDeleted!();
+    });
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+
+  test("a change of the template's monitors still running shows on its page, and opens its progress", async () => {
+    activeChanges.mockResolvedValue([
+      changeView({
+        id: "change-running",
+        status: MonitorTemplateChangeStatus.Running,
+        progress: {
+          ...emptyMonitorTemplateChangeProgress(2000),
+          processed: 400,
+          changed: 400,
+        },
+      }),
+    ]);
+
+    await openPage("de");
+
+    const banner: HTMLElement = await screen.findByTestId(
+      "monitor-template-active-change",
+    );
+
+    expect(activeChanges).toHaveBeenCalledWith(TEMPLATE_ID);
+    expect(banner.textContent).toContain("400");
+    expect(banner.textContent).toContain("2.000");
+
+    await act(async () => {
+      fireEvent.click(banner);
+    });
+
+    expect(lastChangeDialog()).toMatchObject({
+      mode: MonitorTemplateChangeDialogMode.Progress,
+      changeId: "change-running",
+    });
+  });
+
+  test("while its dialog is closed, the line follows the change, and once it is done the page reads its monitors again", async () => {
+    jest.useFakeTimers();
+
+    try {
+      activeChanges.mockResolvedValue([
+        changeView({
+          id: "change-running",
+          status: MonitorTemplateChangeStatus.Running,
+          progress: {
+            ...emptyMonitorTemplateChangeProgress(2000),
+            processed: 400,
+            changed: 400,
+          },
+        }),
+      ]);
+
+      await openPage("de");
+      await screen.findByTestId("monitor-template-active-change");
+
+      const counted: Mock<AnyFunction> =
+        ModelAPI.count as unknown as Mock<AnyFunction>;
+      const countsBefore: number = counted.mock.calls.length;
+
+      // Further on.
+      activeChanges.mockResolvedValue([
+        changeView({
+          id: "change-running",
+          status: MonitorTemplateChangeStatus.Running,
+          progress: {
+            ...emptyMonitorTemplateChangeProgress(2000),
+            processed: 1500,
+            changed: 1500,
+          },
+        }),
+      ]);
+
+      await act(async () => {
+        jest.advanceTimersByTime(ACTIVE_CHANGE_REFRESH_MS);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("monitor-template-active-change").textContent,
+        ).toContain("1.500");
+      });
+      expect(counted.mock.calls.length).toBe(countsBefore);
+
+      // Done.
+      activeChanges.mockResolvedValue([]);
+
+      await act(async () => {
+        jest.advanceTimersByTime(ACTIVE_CHANGE_REFRESH_MS);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId("monitor-template-active-change"),
+        ).toBeNull();
+      });
+      expect(counted.mock.calls.length).toBeGreaterThan(countsBefore);
+    } finally {
+      jest.useRealTimers();
     }
   });
 });

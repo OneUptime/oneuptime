@@ -486,7 +486,12 @@ describe("agents/XcpNgAgent/docker-compose.yml", () => {
     expect(service.image).toBe(
       `otel/opentelemetry-collector-contrib:${composePin()}`,
     );
-    expect(service.container_name).toBe(SERVICE);
+    // Named by .env, the default the service's own name: a second Xen
+    // Orchestra's agent on the same machine gets a name of its own there,
+    // which an upgrade (it replaces this file) never takes away.
+    expect(service.container_name).toBe(
+      `\${XCP_NG_AGENT_CONTAINER_NAME:-${SERVICE}}`,
+    );
     expect(service.read_only).toBe(true);
     expect(service.cap_drop).toEqual(["ALL"]);
     expect(service.security_opt).toEqual(["no-new-privileges:true"]);
@@ -537,7 +542,11 @@ describe("agents/XcpNgAgent/docker-compose.yml: the XCP-ng AI agent", () => {
 
   test("runs the resource AI agent image only when its profile is on, hardened, as no root", () => {
     expect(service().image).toBe("oneuptime/resource-ai-agent:release");
-    expect(service().container_name).toBe(AI_SERVICE);
+    // Named by .env, as the collector is: a second Xen Orchestra's agent
+    // runs its AI agent under a name of its own.
+    expect(service().container_name).toBe(
+      `\${XCP_NG_AI_AGENT_CONTAINER_NAME:-${AI_SERVICE}}`,
+    );
     expect(service().profiles).toEqual([AI_PROFILE]);
     expect(service().user).toBe("1000:1000");
     expect(service().read_only).toBe(true);
@@ -565,9 +574,9 @@ describe("agents/XcpNgAgent/docker-compose.yml: the XCP-ng AI agent", () => {
       bind: { create_host_path: false },
     });
     // The agent's own default (ONEUPTIME_AI_XO_CA_FILE), so the compose file sets none.
-    expect(
-      read("agents/ResourceAIAgent/Executors/XcpNgExecutor.ts"),
-    ).toContain(`DEFAULT_XO_CA_FILE: string = "${CA_FILE_IN_CONTAINER}"`);
+    expect(read("agents/ResourceAIAgent/Executors/XcpNgExecutor.ts")).toContain(
+      `DEFAULT_XO_CA_FILE: string = "${CA_FILE_IN_CONTAINER}"`,
+    );
   });
 
   test("reads Xen Orchestra where the collector does, and never the collector's secret", () => {

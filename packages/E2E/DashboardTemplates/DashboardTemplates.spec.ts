@@ -62,6 +62,7 @@ const TEMPLATES: Array<{ type: string; name: string }> = [
   { type: "Host", name: "Hosts Dashboard" },
   { type: "Proxmox", name: "Proxmox Dashboard" },
   { type: "VMware", name: "VMware Dashboard" },
+  { type: "XcpNg", name: "XCP-ng Dashboard" },
   { type: "OpenStack", name: "OpenStack Dashboard" },
   { type: "Ceph", name: "Ceph Dashboard" },
   { type: "StorageArray", name: "Storage Array Dashboard" },
@@ -632,7 +633,7 @@ test.describe("Create a dashboard", () => {
     await expect(page.getByRole("dialog")).toHaveCount(1);
   });
 
-  test("the category select: each category its own templates, All templates all sixteen under three headings", async ({
+  test("the category select: each category its own templates, All templates all seventeen under three headings", async ({
     page,
   }: {
     page: Page;
@@ -650,8 +651,9 @@ test.describe("Create a dashboard", () => {
       "All templates",
     ]);
 
+    // Infrastructure's eleven, XCP-ng's after VMware's (#11093).
     await pickDropdownOption(page, select, "Infrastructure");
-    await expect(templateRows(dialog)).toHaveCount(10);
+    await expect(templateRows(dialog)).toHaveCount(11);
 
     await pickDropdownOption(page, select, "All templates");
     await expect(templateRows(dialog)).toHaveCount(TEMPLATES.length);

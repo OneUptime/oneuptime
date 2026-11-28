@@ -72,6 +72,27 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
+/*
+ * A self-hosted server's admin, who is told where to look in its logs: on
+ * OneUptime's cloud nobody is (getExplanationWords), and CI's config.env
+ * sets BILLING_ENABLED=true (test-setup.sh), so the suite says which it is.
+ */
+jest.mock("../../../UI/Config", () => {
+  const actualConfig: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+
+  const mockedConfig: Record<string, unknown> = { ...actualConfig };
+
+  Object.defineProperty(mockedConfig, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return false;
+    },
+  });
+
+  return mockedConfig;
+});
+
 const REFERENCE: string = "9c4e1a07";
 const WITH_REFERENCE: string = getUnexplainedServerErrorMessage(REFERENCE);
 

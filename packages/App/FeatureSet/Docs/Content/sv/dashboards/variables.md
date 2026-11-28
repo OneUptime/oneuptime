@@ -61,6 +61,10 @@ Ange **Attributnyckel**, till exempel `service.name`, `host.name` eller `k8s.nam
 
 Det här är den vanligaste källan, eftersom den inte behöver någon egen lista: värdena är de som du redan skickar.
 
+En Telemetry Attribute-variabel kan också ha en **Resurstyp**: **Kubernetes-kluster**, **Värdar**, **Docker Swarm-kluster**, **Proxmox-kluster**, **OpenStack-moln**, **VMware-vCenter**, **XCP-ng-pooler**, **Ceph-kluster** eller **Lagringsarrayer**. Med en typ visar varje widget bara den typens data, redan innan ett värde har valts: **Alla** heter **Alla värdar**, **Alla kluster** och så vidare och visar alla, och att välja värden begränsar det till dem. Väljaren erbjuder bara den typens namn, så en variabel av typen **Värdar** erbjuder dina värdar, aldrig en Docker-värd eller en podd. Så länge inget av typen rapporterar till OneUptime än säger instrumentpanelen det ovanför sina widgetar, med en knapp för att konfigurera en, till exempel **Konfigurera Kubernetes**.
+
+Infrastrukturmallarna ger sin variabel dess typ, och instrumentpaneler som skapades från dem innan typerna fanns fick sin vid uppgraderingen. För att läsa hela projektet igen ställer du in variabelns **Resurstyp** på **Valfri resurstyp**.
+
 ### Project Labels
 
 Välj befintliga projektetiketter att erbjuda som en rullgardinslista på instrumentpanelen. Skapa till exempel en variabel med namnet `UNIT`, sätt dess källa till **Projektetiketter** och välj etiketterna `0660` och `0661`.
@@ -83,7 +87,7 @@ En Query-variabel från en äldre instrumentpanel behålls och visar en textruta
 
 Med **Tillåt flerval** markerat väljer tittarna ett eller flera värden, och widgetarna visar vilket som helst av dem. Ett tomt urval betyder **Alla**, och en flervalsvariabel börjar alltid på **Alla**, så dess **Standard** är nedtonad.
 
-En enkelvalsvariabel börjar på sin **Standard**, eller på **Alla** när den inte har någon. **Alla** tar bort variabelns filter, så att widgetarna visar allt.
+En enkelvalsvariabel börjar på sin **Standard**, eller på **Alla** när den inte har någon. **Alla** tar bort variabelns filter, så att widgetarna visar allt. På en variabel med en **Resurstyp** visar de allt av den typen.
 
 Använd flerval för att jämföra "checkout och payments tillsammans" utan att lämna instrumentpanelen. Undvik det där talen inte går att lägga ihop mellan värden, till exempel ett medelvärde av medelvärden.
 

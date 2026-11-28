@@ -36,12 +36,13 @@ import Sleep from "Common/Types/Sleep";
  * there is room; once a batch comes back short, everything that was due has
  * been handed out, and the worker waits for the next minute.
  *
- * So a monitor checked every minute is checked a minute apart, give or take
- * where in the probe's round the server hands it out. The round, from a
- * minute's first ask to its last, lasts as long as the probe takes to get
- * through what is due: a few seconds unless it is busy. The server does not
- * keep the order of monitors due at the same moment from one minute to the
- * next (issue #11386).
+ * So a monitor checked every minute is checked a minute apart. The round,
+ * from a minute's first ask to its last, lasts as long as the probe takes to
+ * get through what is due: a few seconds unless it is busy. The server hands
+ * out the monitors due at the same moment in the order it handed them out
+ * the minute before, so each keeps its place in the round (issue #11386);
+ * when a round runs past the next minute, the ones it reaches after the
+ * minute miss one, and go first the next time.
  *
  * It used to ask once a minute and wait for the whole batch to finish, so a
  * probe checked at most PROBE_MONITORING_WORKERS x PROBE_MONITOR_FETCH_LIMIT

@@ -167,7 +167,7 @@ export default class WorkingHours {
   public static getProblem(input: WorkingHoursInput): string | null {
     const hours: RestrictionTimes | null = this.toRestrictionTimes(input.hours);
 
-    if (!hours || hours.restictionType === RestrictionType.None) {
+    if (!hours || hours.restrictionType === RestrictionType.None) {
       return WORKING_HOURS_NOT_SET_MESSAGE;
     }
 
@@ -177,7 +177,7 @@ export default class WorkingHours {
 
     const timezone: string = input.timezone!.trim();
 
-    if (hours.restictionType === RestrictionType.Daily) {
+    if (hours.restrictionType === RestrictionType.Daily) {
       if (!hours.dayRestrictionTimes) {
         return WORKING_HOURS_NOT_SET_MESSAGE;
       }
@@ -202,7 +202,7 @@ export default class WorkingHours {
       return null;
     }
 
-    if (hours.restictionType === RestrictionType.Weekly) {
+    if (hours.restrictionType === RestrictionType.Weekly) {
       const windows: Array<WeeklyResctriction> =
         hours.weeklyRestrictionTimes || [];
 
@@ -241,7 +241,7 @@ export default class WorkingHours {
     const windows: Array<WorkingHoursWindow> = [];
 
     if (
-      hours.restictionType === RestrictionType.Daily &&
+      hours.restrictionType === RestrictionType.Daily &&
       hours.dayRestrictionTimes
     ) {
       const start: number | null = this.getMinuteOfDay(
@@ -268,7 +268,7 @@ export default class WorkingHours {
       }
     }
 
-    if (hours.restictionType === RestrictionType.Weekly) {
+    if (hours.restrictionType === RestrictionType.Weekly) {
       for (const weeklyWindow of hours.weeklyRestrictionTimes || []) {
         const window: WorkingHoursWindow | null = this.getWeeklyWindow(
           weeklyWindow,
@@ -420,7 +420,7 @@ export default class WorkingHours {
     };
 
     const hours: RestrictionTimes = new RestrictionTimes();
-    hours.restictionType = RestrictionType.Weekly;
+    hours.restrictionType = RestrictionType.Weekly;
     hours.dayRestrictionTimes = null;
     hours.weeklyRestrictionTimes = WORKING_WEEKDAYS.map(
       (weekday: DayOfWeek, index: number): WeeklyResctriction => {
@@ -581,7 +581,7 @@ export default class WorkingHours {
       });
 
     const hours: RestrictionTimes = new RestrictionTimes();
-    hours.restictionType = RestrictionType.Weekly;
+    hours.restrictionType = RestrictionType.Weekly;
     hours.dayRestrictionTimes = null;
     hours.weeklyRestrictionTimes = days.map(
       (day: number): WeeklyResctriction => {
@@ -690,7 +690,7 @@ export default class WorkingHours {
     };
 
     const moved: RestrictionTimes = new RestrictionTimes();
-    moved.restictionType = hours.restictionType;
+    moved.restrictionType = hours.restrictionType;
     moved.dayRestrictionTimes = hours.dayRestrictionTimes
       ? {
           startTime: move(hours.dayRestrictionTimes.startTime),

@@ -25,6 +25,8 @@ Chaque statut est une pastille dont la couleur indique où en est le message :
 
 Pointez un statut, touchez-le ou atteignez-le avec la touche Tab : il indique ce qu'il signifie et ce qui vient ensuite. **Voir le message de statut**, dans le menu de la ligne, montre ce que le fournisseur a répondu, comme l'identifiant du message ou la raison de son échec. Le filtre **Statut** de chaque onglet liste tous les statuts que l'onglet peut afficher, dans l'ordre où un message les traverse.
 
+La carte **Qui a été prévenu**, dans la vue d'ensemble d'un incident ou d'une alerte, et le résultat d'un appel de test affichent le statut de chaque message de la même façon, dans les mêmes couleurs : un appel qui sonne encore y apparaît aussi comme **Appel en cours**, jamais comme **Envoyé**.
+
 ## SMS
 
 ```mermaid title="Les statuts d'un SMS, de OneUptime au téléphone"
@@ -40,7 +42,7 @@ flowchart TB
 | **Envoi en cours** | OneUptime a remis le SMS à Twilio, qui le transmet à l'opérateur. |
 | **Envoyé** | L'opérateur a accepté le SMS. Il passe à **Livrés** ou **Non livré** dès que l'opérateur répond. |
 | **Livrés** | L'opérateur a confirmé que le SMS a atteint le téléphone. C'est le dernier statut d'un SMS arrivé. |
-| **Non livré** | L'opérateur n'a pas pu le livrer. **Code d'erreur** en donne la raison : `30003` est un téléphone éteint ou injoignable, `30005` un numéro qui n'existe pas, `30006` une ligne fixe, et `30007` un message que l'opérateur a filtré. |
+| **Non livré** | L'opérateur n'a pas pu le livrer. **Code d'erreur** en donne la raison, et ce que signifie le code. |
 | **Échec** | Twilio n'a pas pu l'envoyer. **Code d'erreur** en donne la raison. |
 | **Erreur** | Il n'a pas été envoyé, par exemple parce que les SMS sont désactivés pour le projet, ou que Twilio a refusé le numéro. **Voir le message de statut** en donne la raison. |
 | **Solde insuffisant** | Il n'a pas été envoyé : le solde du projet était insuffisant pour le payer. |
@@ -49,6 +51,33 @@ flowchart TB
 Un SMS que la passerelle SMS et appels du serveur a pris reste **Envoyé**, en vert : la passerelle ne signale pas la livraison, c'est donc son dernier statut.
 
 Twilio signale chaque changement à OneUptime dès qu'il se produit, signé avec le jeton d'authentification du compte qui a envoyé le SMS, et OneUptime refuse tout rapport qui ne vient pas de Twilio. Pour cela, Twilio doit pouvoir joindre votre serveur : voir [Intégration Twilio](/docs/self-hosted/twilio-integration).
+
+### Codes d'erreur
+
+Chaque code sous **Code d'erreur** ouvre la page que Twilio lui consacre, qui liste ce qui peut le provoquer. Sous les codes avec lesquels un SMS échoue le plus souvent, le journal dit en une ligne ce qu'ils signifient :
+
+| Code | Ce qu'il signifie |
+| --- | --- |
+| `20003` | Twilio n'a pas accepté les identifiants du compte. |
+| `21211` | Le numéro n'est pas un numéro de téléphone valide. |
+| `21408` | Le compte Twilio n'est pas autorisé à envoyer des SMS vers ce pays. |
+| `21606` | Le numéro de l'expéditeur ne peut pas envoyer de SMS pour ce compte Twilio. |
+| `21608` | Un compte d'essai Twilio ne peut envoyer qu'aux numéros vérifiés dans ce compte. |
+| `21610` | Le destinataire a répondu STOP : Twilio ne lui envoie donc plus de SMS depuis ce numéro. |
+| `21612` | Le numéro de l'expéditeur ne peut pas joindre ce numéro. |
+| `21614` | Le numéro n'est pas un numéro mobile, mais par exemple une ligne fixe. |
+| `30001` | Trop de SMS ont été envoyés en même temps, et la file d'attente de Twilio a débordé. |
+| `30002` | Le compte Twilio a été suspendu avant l'envoi du SMS. |
+| `30003` | Le téléphone est éteint ou injoignable. |
+| `30004` | La réception du SMS est bloquée pour ce numéro. |
+| `30005` | Le numéro est inconnu et n'existe peut-être plus. |
+| `30006` | Le numéro ne peut pas recevoir de SMS, par exemple parce que c'est une ligne fixe. |
+| `30007` | Twilio ou l'opérateur a filtré le SMS comme spam. |
+| `30008` | L'opérateur n'a pas pu livrer le SMS et n'a pas dit pourquoi. |
+| `30032` | Le numéro gratuit de l'expéditeur n'est pas encore vérifié. |
+| `30034` | Le numéro de l'expéditeur n'est pas enregistré pour A2P 10DLC, ce qu'exigent les opérateurs américains. |
+
+Un code qui ne vient pas de Twilio, comme le statut HTTP qu'a renvoyé votre passerelle SMS et appels, est affiché tel quel.
 
 ## Appels
 

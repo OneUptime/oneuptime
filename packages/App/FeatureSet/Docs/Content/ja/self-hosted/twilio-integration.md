@@ -66,6 +66,7 @@
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | 通話の発信元となる、国番号付きの番号。`sms-only` では不要です |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | 任意のカンマ区切りの番号。その国の受信者には、プライマリ番号の代わりにこれらが使われます |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | すべての SMS の送信元となる、カンマ区切りの番号。`sms-only` では必須です |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | 任意。通話で使う音声で、[通話で使われる音声](#通話で使われる音声) の音声のいずれかです。`GLOBAL_TWILIO_ACCOUNT_SID` があってもなくても読み取られ、設定されている間は、Admin Dashboard の **通話の音声** に読み取り専用で表示されます |
 
 Helm では、values の `twilio` の下で設定します。Helm がリリースごとに保存する values に auth token を残さないよう、自分で管理する Secret に入れ、その Secret を `twilio.existingSecret.name` で指定します。
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-values ファイルでは電話番号を引用符で囲み、`--set` ではなく `--set-string` で渡してください。引用符がないと `+14155550100` は数値になり、チャートはそれを拒否します。チャートはほかにも、`twilio.accountSid` のない `twilio` の値、auth token のない Account SID、`twilio.authToken` と Secret の両方で指定された auth token を拒否します。Terraform では、同じ値を `helm_release` に設定し、auth token は機密の値として渡します。
+values ファイルでは電話番号を引用符で囲み、`--set` ではなく `--set-string` で渡してください。引用符がないと `+14155550100` は数値になり、チャートはそれを拒否します。チャートはほかにも、`twilio.accountSid` のない `twilio` の値（`twilio.callVoice` を除くすべて。これは、アカウントを誰が設定しても音声を設定します）、auth token のない Account SID、`twilio.authToken` と Secret の両方で指定された auth token、音声のいずれでもない `twilio.callVoice` を拒否します。Terraform では、同じ値を `helm_release` に設定し、auth token は機密の値として渡します。
 
 Docker Compose では、`config.env` で `GLOBAL_TWILIO_` の設定を行い、`npm run start` を実行してコンテナーを作り直します。
 
-OneUptime は起動時に変数を読み取ります。OneUptime が読み取れない電話番号や auth token の欠落など、いずれかが誤っていると、修正されるまでこのアカウントは SMS を送信せず、電話もかけません。どの変数かは、サーバーのログ、**Admin Dashboard > 設定 > 通話とSMS**、`/admin/setup` のチェックリストに表示されます。auth token が表示されることはありません。アカウントを変更するには、変数を変更して OneUptime を再起動してください。Admin Dashboard では変更できません。
+OneUptime は起動時に変数を読み取ります。OneUptime が読み取れない電話番号や auth token の欠落など、いずれかが誤っていると、修正されるまでこのアカウントは SMS を送信せず、電話もかけません。どの変数かは、サーバーのログ、**Admin Dashboard > 設定 > 通話とSMS**、`/admin/setup` のチェックリストに表示されます。OneUptime が提供するどの音声も指定していない `GLOBAL_TWILIO_CALL_VOICE` は、電話を止めません。修正されるまで電話はアカウントのデフォルトの音声で話し、同じ 3 か所にこの変数が表示されます。auth token が表示されることはありません。アカウントを変更するには、変数を変更して OneUptime を再起動してください。Admin Dashboard では変更できません。
 
 ### Terraform でプロジェクトの設定を管理する
 
@@ -149,7 +150,7 @@ SMS だけ、または通話だけに使うアカウントには、もう一方�
 
 ### 通話で使われる音声
 
-通話では、Twilio アカウントがデフォルトで使う音声が使われます。Twilio Console で別の音声を選んでいなければ、Twilio の無料の Basic 音声です。Twilio によると Basic 音声は本番環境での使用を想定していないため、各アカウントでは代わりに次のニューラル音声のいずれかを使えます。インストール全体のアカウントの音声は **Admin Dashboard > 設定 > 通話とSMS** の **通話の音声** カードで、プロジェクトの設定の音声は **その他の項目** にある **通話の音声** で選びます。
+通話では、Twilio アカウントがデフォルトで使う音声が使われます。Twilio Console で別の音声を選んでいなければ、Twilio の無料の Basic 音声です。Twilio によると Basic 音声は本番環境での使用を想定していないため、各アカウントでは代わりに次のニューラル音声のいずれかを使えます。インストール全体のアカウントの音声は **Admin Dashboard > 設定 > 通話とSMS** の **通話の音声** カードで、プロジェクトの設定の音声は **その他の項目** にある **通話の音声** で選びます。インストール全体のアカウントの音声をコードから設定するには、`GLOBAL_TWILIO_CALL_VOICE`（Helm では `twilio.callVoice`）を使います。詳しくは [環境変数でインストール全体のアカウントを設定する](#環境変数でインストール全体のアカウントを設定する) を参照してください。
 
 | 音声 | 提供元 | 聞こえ方 |
 | --- | --- | --- |
@@ -160,7 +161,37 @@ SMS だけ、または通話だけに使うアカウントには、もう一方�
 | `Google.en-US-Neural2-F` | Google | アメリカ英語、女性の声 |
 | `Google.en-US-Neural2-J` | Google | アメリカ英語、男性の声 |
 
-このアカウントを通るすべての電話が、この音声で話します。対象は、オンコールの呼び出しと押したキーへの応答、留守番電話に残すメッセージ、確認コード、 **テスト通話を発信**、着信ポリシーの挨拶です。これらの音声では、`INC-42` のような番号は SSML で 1 文字ずつ読み上げられ、ほかの音声に渡されるスペース区切りの文字より自然に聞こえます。これらの音声の料金は、電話をかけるアカウントに Twilio が請求します。2026 年 11 月時点で 100 文字ごとに $0.0032 で、呼び出しの電話 1 件あたり 2 米セント未満です。 [Twilio の音声通話の料金](https://www.twilio.com/en-us/voice/pricing/us) を参照してください。アカウントのデフォルトの音声のままにするには、 **通話の音声** を空のままにします。API と Terraform では、音声は `twilioCallVoice` フィールドで、表にない音声は拒否されます。
+このアカウントを通るすべての電話が、この音声で話します。対象は、オンコールの呼び出しと押したキーへの応答、留守番電話に残すメッセージ、確認コード、 **テスト通話を発信**、着信ポリシーの挨拶です。これらの音声では、`INC-42` のような番号は SSML で 1 文字ずつ読み上げられ、ほかの音声に渡されるスペース区切りの文字より自然に聞こえます。これらの音声の料金は、電話をかけるアカウントに Twilio が請求します。2026 年 11 月時点で 100 文字ごとに $0.0032 で、どの言語でも、呼び出しの電話 1 件あたり 3 米セント未満です。 [Twilio の音声通話の料金](https://www.twilio.com/en-us/voice/pricing/us) を参照してください。アカウントのデフォルトの音声のままにするには、 **通話の音声** を空のままにします。API と Terraform では、音声は `twilioCallVoice` フィールドで、表にない音声は拒否されます。
+
+#### ほかの言語での電話
+
+アカウントが上の音声のいずれかで話す場合、OneUptime をほかの言語で使っている人へのオンコールの呼び出しの電話は、その言語で話します。言葉はその言語で書かれ、その言語の音声が読み上げます。アカウントの音声が女性の声ならその言語の女性の声、男性の声なら男性の声です。キーを押すよう求める案内、キーが押されなかったときに繰り返される内容、誤ったキーへの応答、各キーへの応答はすべてその言語で、キーは 1 と 2 のままです。使われる音声は次のとおりで、Twilio のニューラル音声の一覧から選び、2026 年 11 月 27 日に確認しました。料金は上の音声と同じです。
+
+| 言語 | 女性の声 | 男性の声 |
+| --- | --- | --- |
+| ドイツ語 | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| フランス語 | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| スペイン語 | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| イタリア語 | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| ポルトガル語 | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| オランダ語 | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| デンマーク語 | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| ノルウェー語 | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| スウェーデン語 | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| ロシア語 | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| 日本語 | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| 韓国語 | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| 簡体字中国語 | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| 繁体字中国語 | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| ヒンディー語 | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| アラビア語 | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| ペルシア語 | なし: 電話は英語です | なし: 電話は英語です |
+
+Amazon Polly にも Google にもペルシア語の音声はないため、ペルシア語で OneUptime を使っている人への電話は英語になります。デフォルトの音声のままのアカウントを通る電話も、その音声が英語しか話さないため、すべて英語です。通話のログには、電話が話した内容が、話した言語のまま残ります。確認コード、 **テスト通話を発信**、着信ポリシーの挨拶は英語です。
+
+#### 独自の音声を選ぶプロジェクト
+
+セルフホストのインストールでは、マスター管理者が、インストール全体のアカウントを通る通話の音声を各プロジェクトに選ばせることができます。 **Admin Dashboard > 設定 > 通話とSMS** の **プロジェクトの通話の音声** カードで **プロジェクトに通話の音声を選ばせる** をオンにしてください。その後、 **プロジェクト所有者** または **プロジェクト管理者** が、 **プロジェクト設定 > 通知 > 通知チャネル** の **その他の設定** にある **通話の音声** カードで音声を選びます。音声を選ばないプロジェクトは、インストールの音声で話します。各プロジェクトの音声の料金は Twilio がインストール全体のアカウントに請求するため、このスイッチは最初はオフで、オフにするとすべてのプロジェクトがインストールの音声に戻ります。OneUptime Cloud ではこの機能は提供されません。プロジェクト独自の設定で音声を選んでください。API では、音声はプロジェクトの `callVoice` フィールドで、スイッチがオフの間は拒否されます。
 
 ### オンコール通話の留守番電話
 

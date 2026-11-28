@@ -63,7 +63,7 @@ Nothing is sent until you pick a status page: an event shown on no status page t
 | **Owners**                           | **Maintenance Details** | Nobody                          | People and teams who own the event and are told about it.                        |
 | **Labels**                           | **Maintenance Details** | None                            | Labels that rules and filters can match on.                                      |
 | **Monitors**                         | **Resources Affected** | None                        | The monitors that are not checked while the event is in progress.               |
-| **Change Monitor Status to**         | **Resources Affected** | No change                   | The status those monitors show during the event. Asked once a monitor is picked. |
+| **Change Monitor Status to**         | **Resources Affected** | No change                   | The status those monitors show during the event, which their uptime counts. With none, they keep their status and their uptime leaves the time out. Asked once a monitor is picked. |
 | **Other Affected Resources**         | **Resources Affected** | None                        | Hosts, clusters, databases, network sites, services and more.                    |
 | **Show event on these status pages** | **Resources Affected** | None                        | The only status pages that can show the event or tell their subscribers.         |
 | **Subscriber Notifications**         | **Resources Affected** | Published right away, all three moments on, no reminders | When the event shows on those pages, and when their subscribers are told. |

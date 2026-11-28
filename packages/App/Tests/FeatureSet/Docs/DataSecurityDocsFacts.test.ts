@@ -46,7 +46,9 @@ import {
   alignTelemetryLeakTemplates,
   maskUnprovenWords,
 } from "Common/Utils/DataSecurity/TelemetryLeakTemplate";
-import { getBuiltInDetectorsOf } from "Common/Utils/DataSecurity/Detectors/Index";
+import BUILT_IN_DETECTORS, {
+  getBuiltInDetectorsOf,
+} from "Common/Utils/DataSecurity/Detectors/Index";
 import { readScanWarning } from "Common/Types/DataSecurity/ScanWarnings";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -3815,6 +3817,7 @@ describe("Data Security Integrations", () => {
       DATA_SECURITY_API_ROUTES.draftExposureAssessment("<id>"),
       DATA_SECURITY_API_ROUTES.editExposureAssessment("<id>"),
       DATA_SECURITY_API_ROUTES.exposurePeoplePlaces("<id>"),
+      DATA_SECURITY_API_ROUTES.exposureDataHeldFor("<id>"),
     ]);
   });
 
@@ -3887,26 +3890,103 @@ describe("Data Security Integrations", () => {
       });
     }
 
-    // The states the table leaves out, by the names a person picks them by; Puerto Rico is no state.
-    const statesLeftOut: Array<string> = UNCOVERED_US_STATES.filter(
-      (place: BreachPlace): boolean => {
-        return place !== BreachPlace.PuertoRico;
+    /*
+     * The states the table leaves out, by the names a person picks them by:
+     * West Virginia alone, now that Puerto Rico's, Guam's and the US Virgin
+     * Islands' laws are rows (#11424, #11426).
+     */
+    const statesLeftOut: Array<string> = UNCOVERED_US_STATES.map(
+      (place: BreachPlace): string => {
+        return BREACH_PLACE_CHOICES[place];
       },
-    ).map((place: BreachPlace): string => {
-      return BREACH_PLACE_CHOICES[place];
-    });
+    );
 
     expect(statesLeftOut).toEqual(["West Virginia"]);
-    expect(COVERED_US_STATES).toContain(BreachPlace.DistrictOfColumbia);
-    expect(COVERED_US_STATES).not.toContain(BreachPlace.PuertoRico);
-    expect(breach).toContain(
-      `the breach laws of every US state but ${statesLeftOut.join(" and ")}, and of the District of Columbia`,
+    expect(COVERED_US_STATES).toEqual(
+      expect.arrayContaining([
+        BreachPlace.DistrictOfColumbia,
+        BreachPlace.PuertoRico,
+        BreachPlace.Guam,
+        BreachPlace.UsVirginIslands,
+      ]),
     );
     expect(breach).toContain(
-      "West Virginia and Puerto Rico, whose statutes could not be read from an official source",
+      `the breach laws of every US state but ${statesLeftOut.join(" and ")}, and of the District of Columbia, Puerto Rico, Guam and the US Virgin Islands`,
+    );
+    expect(breach).toContain(
+      "West Virginia, whose statute could not be read from an official source",
+    );
+    expect(breach).not.toContain("Puerto Rico, whose statutes");
+    expect(breach).not.toContain("; Guam and the US Virgin Islands;");
+    expect(breach).toContain(
+      "each US state, the District of Columbia, Puerto Rico, Guam and the US Virgin Islands",
     );
     expect(breach).toContain(
       "its notices to the attorney general or another state office and to the consumer reporting agencies",
+    );
+
+    /*
+     * The notices to the data's owner (#11427): added only once a person
+     * says the organization holds the data for another - each state's, and
+     * the processor's and business associate's of GDPR, UK GDPR and HIPAA,
+     * as the table has them - and what the table leaves out says so while
+     * nobody has.
+     */
+    expect(
+      [
+        ...new Set(
+          BREACH_LAW_RULES.filter((rule: BreachLawRule): boolean => {
+            return rule.forDataHolders === true && !isUsStateRule(rule);
+          }).map((rule: BreachLawRule): string => {
+            return rule.family;
+          }),
+        ),
+      ].sort(),
+    ).toEqual(
+      [
+        BreachLawFamily.Gdpr,
+        BreachLawFamily.Hipaa,
+        BreachLawFamily.UkGdpr,
+      ].sort(),
+    );
+    expect(breach).toContain(
+      "A person also says whether your organization holds the data for another organization, as its vendor, service provider or processor: only then are the notices the law asks a holder to send the data's owner added.",
+    );
+    expect(breach).toContain("each state's notice to the data's owner");
+    expect(breach).toContain(
+      "GDPR's and UK GDPR's notice from a processor to its controller and HIPAA's from a business associate to its covered entity",
+    );
+    expect(breach).toContain(
+      "A notice the law asks for immediately is the notice due first.",
+    );
+    expect(breach).toContain(
+      "the notices to the data's owner, while nobody has said whose data it is",
+    );
+    expect(breach).toContain(
+      "saying where the people live and whose data it is take permission to edit the case",
+    );
+
+    /*
+     * A law whose text changes on a set day (#11425): the day the exposure
+     * was found picks the row - Vermont's, from 1 January 2027.
+     */
+    const vermont: Array<BreachLawRule> = BREACH_LAW_RULES.filter(
+      (rule: BreachLawRule): boolean => {
+        return rule.family === BreachLawFamily.Vermont;
+      },
+    );
+
+    expect([
+      ...new Set(
+        vermont
+          .map((rule: BreachLawRule): string => {
+            return rule.inForceFrom || rule.inForceUntil || "";
+          })
+          .filter(Boolean),
+      ),
+    ]).toEqual(["2027-01-01"]);
+    expect(breach).toContain(
+      "the day Data Security found the exposure decides which one applies: Vermont's text from 1 January 2027 applies to an exposure found from that day, and the text before it to one found earlier",
     );
 
     expect(breach).toContain("Nothing is sent anywhere");
@@ -4002,10 +4082,18 @@ describe("Data Security Integrations", () => {
     expect(pullRequests).toContain(
       "For a migration, in a private repository only, it names the store the table is in, what that store holds",
     );
-    // An exception's message is telemetry too (#10778).
+    // An exception's message is telemetry too (#10778), and so is a recorded session's user (#11395).
     expect(types).toContain('Exception = "Exception",');
+    expect(types).toContain('Session = "Session",');
     expect(pullRequests).toContain(
-      "in a log, a span, a metric, an exception's message or an error tracker's report",
+      "in a log, a span, a metric, an exception's message, an error tracker's report or a recorded session's user",
+    );
+    // A web or mobile app's code: its RUM application's session replays (#11395).
+    expect(sensitiveData).toContain(
+      "[SensitiveDataSink.Session]: [DataStoreKind.TelemetrySessionReplays],",
+    );
+    expect(pullRequests).toContain(
+      "or, for a web or mobile app's code, its RUM application's session replays",
     );
   });
 
@@ -4366,6 +4454,46 @@ describe("What a value is read as, and what a leak's template keeps", () => {
     expect(paragraph).toContain(
       "Such a number typed wholly in fullwidth, as Japanese and Chinese text writes one, is read with its plus sign, hyphens, parentheses, full stops, slashes and ideographic spaces as ASCII ones too",
     );
+
+    /*
+     * #11385: a number set apart by another dash, and a value typed in
+     * fullwidth letters - each example the paragraph gives is found as
+     * its type - and CJK prose read as it is.
+     */
+    expect(paragraph).toContain(
+      "and so is a number whose groups are set apart by another dash, read as a hyphen between two digits only",
+    );
+    expect(paragraph).toContain(
+      "A value typed in fullwidth letters is read with its letters, digits and signs as ASCII ones",
+    );
+    expect(paragraph).toContain(
+      "Text with no value typed in fullwidth letters, such as Japanese or Chinese prose, is read as it is.",
+    );
+
+    for (const [text, dataTypeId] of [
+      ["tel ＋８１ ３ー１２３４ー５６７８", "phone-number"],
+      ["ssn 536–22–8731", "us-ssn"],
+      ["mail ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ", "email-address"],
+      ["IBAN ＤＥ８９　３７０４　００４４　０５３２　０１３０　００", "iban"],
+      ["postcode ＳＷ１Ａ　２ＡＡ", "postal-code"],
+      ["ＴＥＬ　０３１２３４５６７８", "phone-number"],
+    ]) {
+      expect({
+        text,
+        found: findSensitiveValues(text!).some((match: TextMatch): boolean => {
+          return match.dataTypeId === dataTypeId;
+        }),
+      }).toEqual({ text, found: true });
+    }
+
+    for (const detector of BUILT_IN_DETECTORS) {
+      if (detector.readsFullwidthForms) {
+        expect({
+          dataTypeId: detector.dataTypeId,
+          letters: detector.readsFullwidthLetters,
+        }).toEqual({ dataTypeId: detector.dataTypeId, letters: true });
+      }
+    }
 
     // A street address is words, read in a URL as a form writes them.
     expect(

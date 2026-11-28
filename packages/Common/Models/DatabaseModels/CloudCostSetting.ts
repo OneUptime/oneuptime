@@ -12,7 +12,6 @@ import {
   CLOUD_COMMITMENT_DEFAULT_UTILIZATION_THRESHOLD,
 } from "../../Types/Cloud/CloudCommitmentAlerts";
 import {
-  CLOUD_COST_BASES,
   CLOUD_COST_DEFAULT_BASIS,
   CloudCostBasis,
 } from "../../Types/Cloud/CloudCostBasis";
@@ -178,7 +177,7 @@ export default class CloudCostSetting extends BaseModel {
       "The cost basis the Cloud pages open on and budgets watch unless they pick their own: billed, amortized (commitment fees spread over what they cover) or net (less credits, refunds and discounts).",
     defaultValue: CLOUD_COST_DEFAULT_BASIS,
     isDefaultValueColumn: true,
-    allowedValues: [...CLOUD_COST_BASES],
+    allowedValues: Object.values(CloudCostBasis),
     example: "amortized",
   })
   @Column({

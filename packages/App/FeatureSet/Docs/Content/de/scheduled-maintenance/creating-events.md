@@ -63,7 +63,7 @@ Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf ke
 | **Eigentümer**                       | **Wartungsdetails**       | Niemand                         | Personen und Teams, denen das Ereignis gehört und die darüber informiert werden. |
 | **Beschriftungen**                   | **Wartungsdetails**       | Keine                           | Beschriftungen, nach denen Regeln und Filter suchen können.                      |
 | **Monitore**                         | **Betroffene Ressourcen** | Keine                    | Die Monitore, die nicht geprüft werden, solange das Ereignis läuft.              |
-| **Monitor-Status ändern in**         | **Betroffene Ressourcen** | Keine Änderung           | Der Status, den diese Monitore während des Ereignisses zeigen. Wird abgefragt, sobald ein Monitor gewählt ist. |
+| **Monitor-Status ändern in**         | **Betroffene Ressourcen** | Keine Änderung           | Der Status, den diese Monitore während des Ereignisses zeigen und den ihre Verfügbarkeit zählt. Ist keiner gewählt, behalten sie ihren Status, und ihre Verfügbarkeit lässt die Zeit heraus. Wird abgefragt, sobald ein Monitor gewählt ist. |
 | **Andere betroffene Ressourcen**     | **Betroffene Ressourcen** | Keine                    | Hosts, Cluster, Datenbanken, Netzwerkstandorte, Dienste und mehr.                |
 | **Ereignis auf diesen Status-Seiten anzeigen** | **Betroffene Ressourcen** | Keine          | Die einzigen Statusseiten, die das Ereignis zeigen oder ihre Abonnenten informieren können. |
 | **Abonnentenbenachrichtigungen**     | **Betroffene Ressourcen** | Sofort veröffentlicht, alle drei Momente an, keine Erinnerungen | Wann das Ereignis auf diesen Seiten erscheint und wann ihre Abonnenten informiert werden. |

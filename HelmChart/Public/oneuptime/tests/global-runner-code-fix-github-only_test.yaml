@@ -116,7 +116,10 @@ tests:
       globalRunner.codeFixGitHubOnly: "true"
     asserts:
       - failedTemplate:
-          errorPattern: "globalRunner.codeFixGitHubOnly: Invalid type. Expected: boolean, given: string"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/globalRunner/codeFixGitHubOnly': got string, want boolean
 
   # A misspelt key would otherwise leave the switch silently off.
   - it: rejects an unknown key in the block
@@ -126,4 +129,7 @@ tests:
       globalRunner.codeFixGitHubWonly: true
     asserts:
       - failedTemplate:
-          errorPattern: "Additional property codeFixGitHubWonly is not allowed"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/globalRunner': additional properties 'codeFixGitHubWonly' not allowed

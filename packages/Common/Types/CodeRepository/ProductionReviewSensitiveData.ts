@@ -1,6 +1,7 @@
 import { getDataSecurityCheck } from "../DataSecurity/DataSecurityCheckCatalog";
 import DataSensitivity from "../DataSecurity/DataSensitivity";
 import { DataStoreExposure } from "../DataSecurity/DataStorePosture";
+import { TelemetryLeakFixOwnerKind } from "../DataSecurity/TelemetryLeakFix";
 import SecuritySeverity from "../SecuritySeverity";
 
 /*
@@ -19,9 +20,10 @@ import SecuritySeverity from "../SecuritySeverity";
  *
  *   - Telemetry: code that writes a value to a log, a span or event
  *     attribute, a metric label, an exception or an error tracker's
- *     report, or a prompt sent to an AI provider, whose name a data
- *     type's field-name hints point at (`email`, `ssn`, `password`, the
- *     project's own types), or a whole request body or user record;
+ *     report, a prompt sent to an AI provider, or a recorded session's
+ *     identity (#11395), whose name a data type's field-name hints point
+ *     at (`email`, `ssn`, `password`, the project's own types), or a
+ *     whole request body or user record;
  *   - Infrastructure: Terraform, CloudFormation, Bicep, Pulumi or
  *     Kubernetes that makes a store public, turns off its encryption,
  *     backups or access logging, opens its firewall to every address or
@@ -74,6 +76,15 @@ export enum SensitiveDataSink {
    * the service's exceptions in telemetry, as a log line does its logs.
    */
   Exception = "Exception",
+  /*
+   * A recorded session's identity (#11395): who a session recorder or a
+   * product analytics SDK is told the session's user is - the reference
+   * and traits `identify()` hands OneUptime's RUM SDK, LogRocket,
+   * FullStory, PostHog or Datadog RUM. It reaches a RUM application's
+   * sessions (sessions.identifiedUserLabel, sessions.identifiedUserTraits),
+   * where every replay of the user's sessions is filed under it.
+   */
+  Session = "Session",
 }
 
 // What a new column of a migration or a model is.
@@ -228,8 +239,14 @@ export interface ProductionReviewLeakSuggestionJSON {
 
 // A place of production's telemetry that held the same data lately.
 export interface ProductionReviewLeakHeldBeforeJSON {
+  // The service's, or - for a RUM application's place (#11395) - the application's.
   serviceId: string;
   serviceName: string;
+  /*
+   * Whose telemetry it is (#11395): a RUM application's session replays,
+   * for a web or mobile app's code - or, unset, a service's.
+   */
+  ownerKind?: TelemetryLeakFixOwnerKind | undefined;
   // The telemetry store's kind: Logs, Traces, Metrics, AI Conversations.
   storeKind: string;
   // Where in it: "attributes.user.email", "body".

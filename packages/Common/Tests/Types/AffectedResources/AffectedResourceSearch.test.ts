@@ -40,7 +40,12 @@ function refusal(body: unknown): string {
 }
 
 describe("the kinds", () => {
-  test("are every kind the pickers offer, each once, monitors and network devices included", () => {
+  /*
+   * A kind that joins the pickers grows the count. The newest is XCP-ng's
+   * pool (#11093), which an incident, an alert or a maintenance event can
+   * name as it names a vCenter.
+   */
+  test("are every kind the pickers offer, each once, monitors, network devices and XCP-ng pools included", () => {
     expect(new Set(AFFECTED_RESOURCE_KINDS).size).toBe(
       AFFECTED_RESOURCE_KINDS.length,
     );
@@ -51,7 +56,9 @@ describe("the kinds", () => {
     expect(AFFECTED_RESOURCE_KINDS).toContain(
       AffectedResourceKind.NetworkDevice,
     );
-    expect(AFFECTED_RESOURCE_KINDS).toHaveLength(17);
+    expect(AFFECTED_RESOURCE_KINDS).toContain(AffectedResourceKind.XcpNgPool);
+    expect(isAffectedResourceKind("XcpNgPool")).toBe(true);
+    expect(AFFECTED_RESOURCE_KINDS).toHaveLength(18);
   });
 
   test("a network device comes right after a host, as on the incident's card", () => {

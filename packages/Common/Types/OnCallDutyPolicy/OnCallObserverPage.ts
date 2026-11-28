@@ -67,7 +67,8 @@ import {
  * their language, and writes English - exactly as before - without one.
  * Each sentence is whole for each kind of record, so a language words
  * "this incident" and "this alert" with its own articles. A call's words
- * stay English: a call is spoken by a voice that speaks English.
+ * are written in the person's language too, and spoken by a voice of that
+ * language where the call has one (Utils/Call/OnCallPageCall, #11066).
  */
 
 // The translator of what nobody asked to read in another language: English.
@@ -149,6 +150,10 @@ interface OnCallObserverPageKindWords {
   // A push's body, with the project and without (getOnCallObserverPagePushBody).
   pushBodyInProject: string;
   pushBody: string;
+  // What a call says after what the page is about (getOnCallObserverPageSpokenNotice).
+  callNotice: string;
+  // What a call asks for (getOnCallObserverPageCallPrompt), {{key}} the key to press.
+  callPrompt: string;
 }
 
 const OBSERVER_KIND_WORDS: Readonly<
@@ -167,6 +172,12 @@ const OBSERVER_KIND_WORDS: Readonly<
     pushBody: translationKey(
       "{{lead}}: the people responding stay on this incident. Tap to view.",
     ),
+    callNotice: translationKey(
+      "You are kept informed: the people responding stay on this incident.",
+    ),
+    callPrompt: translationKey(
+      "To say you have heard this, press {{key}}. This does not acknowledge the incident.",
+    ),
   },
   alert: {
     notice: translationKey(
@@ -180,6 +191,12 @@ const OBSERVER_KIND_WORDS: Readonly<
     ),
     pushBody: translationKey(
       "{{lead}}: the people responding stay on this alert. Tap to view.",
+    ),
+    callNotice: translationKey(
+      "You are kept informed: the people responding stay on this alert.",
+    ),
+    callPrompt: translationKey(
+      "To say you have heard this, press {{key}}. This does not acknowledge the alert.",
     ),
   },
   "incident episode": {
@@ -195,6 +212,12 @@ const OBSERVER_KIND_WORDS: Readonly<
     pushBody: translationKey(
       "{{lead}}: the people responding stay on this incident episode. Tap to view.",
     ),
+    callNotice: translationKey(
+      "You are kept informed: the people responding stay on this incident episode.",
+    ),
+    callPrompt: translationKey(
+      "To say you have heard this, press {{key}}. This does not acknowledge the incident episode.",
+    ),
   },
   "alert episode": {
     notice: translationKey(
@@ -208,6 +231,12 @@ const OBSERVER_KIND_WORDS: Readonly<
     ),
     pushBody: translationKey(
       "{{lead}}: the people responding stay on this alert episode. Tap to view.",
+    ),
+    callNotice: translationKey(
+      "You are kept informed: the people responding stay on this alert episode.",
+    ),
+    callPrompt: translationKey(
+      "To say you have heard this, press {{key}}. This does not acknowledge the alert episode.",
     ),
   },
 };
@@ -227,11 +256,13 @@ export function getOnCallObserverPageNotice(
 /*
  * What a call says after what the page is about: a call says less, and says
  * it slowly, so the rest is in its prompt (getOnCallObserverPageCallPrompt).
+ * In the call's language (#11066): English, as every call was, without one.
  */
 export function getOnCallObserverPageSpokenNotice(
   kind: OnCallObserverPageRecordKind,
+  translator: Translator = getEnglishTranslator(),
 ): string {
-  return `You are kept informed: the people responding stay on this ${kind}.`;
+  return say(translator, OBSERVER_KIND_WORDS[kind].callNotice);
 }
 
 /*
@@ -254,16 +285,37 @@ export function getOnCallObserverPageCallSentence(data: {
   return `You are paged as an observer about an ${data.recordNoun}`;
 }
 
-// What a call asks for, where a responder's says "Press 1 to acknowledge, or 2 to escalate.".
+/*
+ * The key an observer's call is answered with: 1, as a responder's
+ * acknowledges with (OnCallPageCall's ON_CALL_PAGE_CALL_ACKNOWLEDGE_DIGIT).
+ */
+export const ON_CALL_OBSERVER_PAGE_CALL_DIGIT: string = "1";
+
+/*
+ * What a call asks for, where a responder's says "Press 1 to acknowledge, or
+ * 2 to escalate.", in the call's language: the key goes into each language's
+ * sentence as the digit, so no language says another key.
+ */
 export function getOnCallObserverPageCallPrompt(
   kind: OnCallObserverPageRecordKind,
+  translator: Translator = getEnglishTranslator(),
 ): string {
-  return `To say you have heard this, press 1. This does not acknowledge the ${kind}.`;
+  return translator.translateTemplate(OBSERVER_KIND_WORDS[kind].callPrompt, {
+    key: ON_CALL_OBSERVER_PAGE_CALL_DIGIT,
+  });
 }
 
 // What a call says once 1 is pressed.
-export const ON_CALL_OBSERVER_PAGE_CALL_ANSWERED: string =
-  "Thank you. The page is marked as heard. Good bye";
+export const ON_CALL_OBSERVER_PAGE_CALL_ANSWERED: string = translationKey(
+  "Thank you. The page is marked as heard. Good bye",
+);
+
+// The same, in the call's language.
+export function getOnCallObserverPageCallAnswered(
+  translator: Translator = getEnglishTranslator(),
+): string {
+  return say(translator, ON_CALL_OBSERVER_PAGE_CALL_ANSWERED);
+}
 
 /*
  * What a chat or Telegram message, a push and an email open with, where a

@@ -25,10 +25,13 @@ import OnCallTestPageService, {
   getResultStatus,
   getStepStatus,
   toDelivery,
+  toDeliveryLogReading,
 } from "../../../Server/Services/OnCallTestPageService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import SmsLogService from "../../../Server/Services/SmsLogService";
+import CallLogService from "../../../Server/Services/CallLogService";
+import WhatsAppLogService from "../../../Server/Services/WhatsAppLogService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
@@ -40,7 +43,14 @@ import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import CallStatus from "../../../Types/Call/CallStatus";
+import { getSentToCallAndSmsGatewayMessage } from "../../../Types/CallAndSMS/CallAndSmsGatewayLine";
 import Email from "../../../Types/Email";
+import MailStatus from "../../../Types/Mail/MailStatus";
+import {
+  NotificationLogKind,
+  NotificationLogStatusLine,
+} from "../../../Types/Notification/NotificationLogStatus";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
@@ -56,11 +66,19 @@ import {
   SENDING_NOTIFICATION_TO_USER_TIMELINE_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallPageLine";
 import {
+  getCallAnsweredAndLastedMessage,
+  getCallIdStatusMessage,
+  getCallOutcomeMessage,
+  getMessageIdStatusMessage,
+  getProviderDeliveryStatusMessage,
+} from "../../../Types/OnCallDutyPolicy/OnCallSentLine";
+import {
   ON_CALL_TEST_PAGES_PER_PROJECT_PER_HOUR,
   ON_CALL_TEST_PAGE_LIMIT_UNREADABLE_MESSAGE,
   ON_CALL_TEST_PAGE_PROJECT_LIMIT_MESSAGE,
   ON_CALL_TEST_PAGE_ENDED_UNANSWERED_MESSAGE,
   ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES,
+  OnCallTestPageDelivery as OnCallTestPageResultDelivery,
   OnCallTestPageDeliveryStatus,
   OnCallTestPageFix,
   OnCallTestPageKind,
@@ -83,9 +101,13 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import Phone from "../../../Types/Phone";
+import PushStatus from "../../../Types/PushNotification/PushStatus";
+import SmsStatus from "../../../Types/SmsStatus";
+import TelegramStatus from "../../../Types/TelegramStatus";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import UserType from "../../../Types/UserType";
+import WhatsAppStatus from "../../../Types/WhatsAppStatus";
 import {
   ProjectNotificationChannel,
   getProjectNotificationChannelOffMessage,
@@ -1742,6 +1764,7 @@ describe("what became of a test: the chain as it happened", () => {
         userOnCallLogTimelineId: new ObjectID(
           "7e5ae000-0000-4000-8000-000000000401",
         ),
+        status: SmsStatus.Delivered,
       },
     ] as never);
     runRead.mockResolvedValue({
@@ -2197,7 +2220,7 @@ describe("the result's words, from the records", () => {
       createdAt: new Date("2026-11-11T09:00:00.000Z"),
     } as unknown as UserOnCallLogTimeline;
 
-    expect(toDelivery({ delivery: push, isDelivered: false })).toMatchObject({
+    expect(toDelivery({ delivery: push })).toMatchObject({
       channel: OnCallPageChannel.Push,
       address: "Pixel",
       canAcknowledge: true,
@@ -2221,9 +2244,7 @@ describe("the result's words, from the records", () => {
       createdAt: new Date("2026-11-11T09:00:00.000Z"),
     } as unknown as UserOnCallLogTimeline;
 
-    expect(
-      toDelivery({ delivery: browser, isDelivered: false }).statusMessageCode,
-    ).toEqual({
+    expect(toDelivery({ delivery: browser }).statusMessageCode).toEqual({
       code: OnCallTestPageLineCode.PushDeviceNoLongerReceives,
       isMobileApp: false,
     });
@@ -2241,7 +2262,6 @@ describe("the result's words, from the records", () => {
 
     const delivered: ReturnType<typeof toDelivery> = toDelivery({
       delivery: smsOff,
-      isDelivered: false,
     });
 
     expect(delivered.statusMessage).toBe(
@@ -2505,5 +2525,550 @@ describe("the result's words, from the records", () => {
         awayUntil: "2026-11-12T09:00:00.000Z",
       }),
     ).toMatch(/^Bob Stone is away until .+, with nobody covering\.$/);
+  });
+});
+
+/*
+ * #11416: A TEST PAGE'S RESULT SAYS WHAT BECAME OF EACH MESSAGE AS ITS LOG
+ * DOES.
+ *
+ * The result read each message from the page's own notification, which says
+ * Sent once the provider took it - of a call still ringing and one that was
+ * answered, of an SMS waiting for its carrier's receipt and of one the
+ * server's own gateway took for good - and asked the SMS log only whether
+ * an SMS was delivered. It now reads each SMS's, call's and WhatsApp
+ * message's own log, by the notification it was sent for, and the status
+ * the log of every other channel holds once its provider took the message,
+ * and hands each on as the logs read it (logStatus). Never the log's
+ * message, which can name a provider's id.
+ */
+describe("#11416: each message of a test, as its log says it", () => {
+  const CALL_SID: string = "CA1342fe1b2c904d1ab04f0fc7a58abca9";
+  const SMS_SID: string = "SM1342fe1b2c904d1ab04f0fc7a58abca9";
+  const ANSWERED: string = getCallOutcomeMessage({
+    callId: CALL_SID,
+    sentence: getCallAnsweredAndLastedMessage(42),
+  });
+  const SMS_ROW: string = "7e5ae000-0000-4000-8000-000000000601";
+  const CALL_ROW: string = "7e5ae000-0000-4000-8000-000000000602";
+  const WHATSAPP_ROW: string = "7e5ae000-0000-4000-8000-000000000603";
+  const EMAIL_ROW: string = "7e5ae000-0000-4000-8000-000000000604";
+
+  function message(data: {
+    id: string;
+    channel: "sms" | "call" | "whatsapp" | "email" | "push" | "telegram";
+    status: UserNotificationStatus;
+    statusMessage?: string | undefined;
+    isAcknowledged?: boolean | undefined;
+  }): UserOnCallLogTimeline {
+    const methods: Record<typeof data.channel, Record<string, unknown>> = {
+      sms: {
+        userSmsId: new ObjectID("7e5ae000-0000-4000-8000-000000000611"),
+        userSms: { phone: new Phone("+15550100") },
+      },
+      call: {
+        userCallId: new ObjectID("7e5ae000-0000-4000-8000-000000000612"),
+        userCall: { phone: new Phone("+15550100") },
+      },
+      whatsapp: {
+        userWhatsAppId: new ObjectID("7e5ae000-0000-4000-8000-000000000613"),
+        userWhatsApp: { phone: new Phone("+15550100") },
+      },
+      email: {
+        userEmailId: new ObjectID("7e5ae000-0000-4000-8000-000000000614"),
+        userEmail: { email: new Email("ana@example.com") },
+      },
+      push: {
+        userPushId: new ObjectID("7e5ae000-0000-4000-8000-000000000615"),
+        userPush: { deviceName: "Pixel" },
+      },
+      telegram: {
+        userTelegramId: new ObjectID("7e5ae000-0000-4000-8000-000000000616"),
+        userTelegram: { telegramUserHandle: "ana" },
+      },
+    };
+
+    return {
+      id: new ObjectID(data.id),
+      userId: ANA,
+      onCallDutyPolicyExecutionLogTimelineId: LINE_ANA,
+      status: data.status,
+      statusMessage: data.statusMessage || "",
+      createdAt: new Date("2026-11-11T09:00:00.000Z"),
+      isAcknowledged: Boolean(data.isAcknowledged),
+      acknowledgedAt: data.isAcknowledged
+        ? new Date("2026-11-11T09:00:20.000Z")
+        : undefined,
+      ...methods[data.channel],
+    } as unknown as UserOnCallLogTimeline;
+  }
+
+  describe("one message", () => {
+    test("an SMS its carrier accepted is on its way, as the SMS log says: Sent, its receipt still to come", () => {
+      const result: OnCallTestPageResultDelivery = toDelivery({
+        delivery: message({
+          id: SMS_ROW,
+          channel: "sms",
+          status: UserNotificationStatus.Sent,
+          statusMessage: getMessageIdStatusMessage(SMS_SID),
+        }),
+        log: toDeliveryLogReading({
+          kind: NotificationLogKind.SMS,
+          status: SmsStatus.Sent,
+          statusMessage: getProviderDeliveryStatusMessage({
+            status: SmsStatus.Sent,
+            messageId: SMS_SID,
+          }),
+        }),
+      });
+
+      expect(result.status).toBe(OnCallTestPageDeliveryStatus.Sent);
+      expect(result.logStatus).toEqual({
+        kind: NotificationLogKind.SMS,
+        status: SmsStatus.Sent,
+      });
+    });
+
+    test("an SMS the carrier delivered reads Delivered, as before", () => {
+      const result: OnCallTestPageResultDelivery = toDelivery({
+        delivery: message({
+          id: SMS_ROW,
+          channel: "sms",
+          status: UserNotificationStatus.Sent,
+        }),
+        log: { kind: NotificationLogKind.SMS, status: SmsStatus.Delivered },
+      });
+
+      expect(result.status).toBe(OnCallTestPageDeliveryStatus.Delivered);
+      expect(result.logStatus).toEqual({
+        kind: NotificationLogKind.SMS,
+        status: SmsStatus.Delivered,
+      });
+    });
+
+    test("an SMS the server's own gateway took is Sent for good, read from the page's message when its log is not", () => {
+      const result: OnCallTestPageResultDelivery = toDelivery({
+        delivery: message({
+          id: SMS_ROW,
+          channel: "sms",
+          status: UserNotificationStatus.Sent,
+          statusMessage: getSentToCallAndSmsGatewayMessage(200),
+        }),
+      });
+
+      expect(result.status).toBe(OnCallTestPageDeliveryStatus.Sent);
+      expect(result.logStatus).toEqual({
+        kind: NotificationLogKind.SMS,
+        status: SmsStatus.Sent,
+        line: NotificationLogStatusLine.SentToGateway,
+      });
+    });
+
+    test("a call still ringing is Calling, and an answered one reached them", () => {
+      const ringing: OnCallTestPageResultDelivery = toDelivery({
+        delivery: message({
+          id: CALL_ROW,
+          channel: "call",
+          status: UserNotificationStatus.Sent,
+          statusMessage: getCallIdStatusMessage(CALL_SID),
+        }),
+        log: toDeliveryLogReading({
+          kind: NotificationLogKind.Call,
+          status: CallStatus.Calling,
+          statusMessage: getCallIdStatusMessage(CALL_SID),
+        }),
+      });
+      const answered: OnCallTestPageResultDelivery = toDelivery({
+        delivery: message({
+          id: CALL_ROW,
+          channel: "call",
+          status: UserNotificationStatus.Sent,
+          statusMessage: ANSWERED,
+        }),
+        log: toDeliveryLogReading({
+          kind: NotificationLogKind.Call,
+          status: CallStatus.Success,
+          statusMessage: ANSWERED,
+        }),
+      });
+
+      expect([ringing.status, ringing.logStatus]).toEqual([
+        OnCallTestPageDeliveryStatus.Sent,
+        { kind: NotificationLogKind.Call, status: CallStatus.Calling },
+      ]);
+      expect([answered.status, answered.logStatus]).toEqual([
+        OnCallTestPageDeliveryStatus.Delivered,
+        {
+          kind: NotificationLogKind.Call,
+          status: CallStatus.Success,
+          line: NotificationLogStatusLine.Answered,
+        },
+      ]);
+    });
+
+    test("an answered call is read from the page's own message too, which keeps the call's line", () => {
+      const result: OnCallTestPageResultDelivery = toDelivery({
+        delivery: message({
+          id: CALL_ROW,
+          channel: "call",
+          status: UserNotificationStatus.Sent,
+          statusMessage: ANSWERED,
+        }),
+      });
+
+      expect(result.status).toBe(OnCallTestPageDeliveryStatus.Delivered);
+      expect(result.logStatus?.line).toBe(NotificationLogStatusLine.Answered);
+    });
+
+    test("a call that rang out is not answered, in its log's word", () => {
+      const result: OnCallTestPageResultDelivery = toDelivery({
+        delivery: message({
+          id: CALL_ROW,
+          channel: "call",
+          status: UserNotificationStatus.NotAnswered,
+        }),
+        log: { kind: NotificationLogKind.Call, status: CallStatus.MissedCall },
+      });
+
+      expect(result.status).toBe(OnCallTestPageDeliveryStatus.NotAnswered);
+      expect(result.logStatus).toEqual({
+        kind: NotificationLogKind.Call,
+        status: CallStatus.MissedCall,
+      });
+    });
+
+    test("an email, a push notification and a Telegram message are their logs' last status once sent", () => {
+      expect(
+        toDelivery({
+          delivery: message({
+            id: EMAIL_ROW,
+            channel: "email",
+            status: UserNotificationStatus.Sent,
+          }),
+        }).logStatus,
+      ).toEqual({
+        kind: NotificationLogKind.Email,
+        status: MailStatus.Success,
+      });
+      expect(
+        toDelivery({
+          delivery: message({
+            id: EMAIL_ROW,
+            channel: "push",
+            status: UserNotificationStatus.Sent,
+          }),
+        }).logStatus,
+      ).toEqual({ kind: NotificationLogKind.Push, status: PushStatus.Success });
+      expect(
+        toDelivery({
+          delivery: message({
+            id: EMAIL_ROW,
+            channel: "telegram",
+            status: UserNotificationStatus.Sent,
+          }),
+        }).logStatus,
+      ).toEqual({
+        kind: NotificationLogKind.Telegram,
+        status: TelegramStatus.Sent,
+      });
+    });
+
+    test("acknowledged from it, it says so first - and keeps what its log says", () => {
+      const result: OnCallTestPageResultDelivery = toDelivery({
+        delivery: message({
+          id: SMS_ROW,
+          channel: "sms",
+          status: UserNotificationStatus.Acknowledged,
+          isAcknowledged: true,
+        }),
+        log: { kind: NotificationLogKind.SMS, status: SmsStatus.Delivered },
+      });
+
+      expect(result.status).toBe(OnCallTestPageDeliveryStatus.Acknowledged);
+      expect(result.logStatus).toEqual({
+        kind: NotificationLogKind.SMS,
+        status: SmsStatus.Delivered,
+      });
+    });
+
+    test("an SMS the carrier could not deliver failed, in its log's word, and still says where it is fixed", () => {
+      const result: OnCallTestPageResultDelivery = toDelivery({
+        delivery: message({
+          id: SMS_ROW,
+          channel: "sms",
+          status: UserNotificationStatus.Error,
+          statusMessage: getProviderDeliveryStatusMessage({
+            status: SmsStatus.Undelivered,
+            messageId: SMS_SID,
+            errorCode: "30003",
+          }),
+        }),
+        log: { kind: NotificationLogKind.SMS, status: SmsStatus.Undelivered },
+      });
+
+      expect(result.status).toBe(OnCallTestPageDeliveryStatus.Failed);
+      expect(result.logStatus).toEqual({
+        kind: NotificationLogKind.SMS,
+        status: SmsStatus.Undelivered,
+      });
+    });
+
+    test("a message that was not sent has no log to read: it says why, as before", () => {
+      const result: OnCallTestPageResultDelivery = toDelivery({
+        delivery: message({
+          id: EMAIL_ROW,
+          channel: "email",
+          status: UserNotificationStatus.Error,
+          statusMessage:
+            "Email notification not sent because email ana@example.com is not verified.",
+        }),
+      });
+
+      expect(result.status).toBe(OnCallTestPageDeliveryStatus.Failed);
+      expect(result.logStatus).toBeUndefined();
+      expect(result.fix).toBe(OnCallTestPageFix.NotificationMethods);
+    });
+
+    test("a log's reading carries its status and what its message says - never the message", () => {
+      const reading: ReturnType<typeof toDeliveryLogReading> =
+        toDeliveryLogReading({
+          kind: NotificationLogKind.Call,
+          status: CallStatus.Success,
+          statusMessage: ANSWERED,
+        });
+
+      expect(reading).toEqual({
+        kind: NotificationLogKind.Call,
+        status: CallStatus.Success,
+        line: NotificationLogStatusLine.Answered,
+      });
+      expect(JSON.stringify(reading)).not.toContain(CALL_SID);
+      expect(
+        toDeliveryLogReading({
+          kind: NotificationLogKind.SMS,
+          status: SmsStatus.Sent,
+          statusMessage: getMessageIdStatusMessage(SMS_SID),
+        }),
+      ).toEqual({ kind: NotificationLogKind.SMS, status: SmsStatus.Sent });
+    });
+  });
+
+  describe("a test's result", () => {
+    let smsLogs: jest.SpyInstance;
+    let callLogs: jest.SpyInstance;
+    let whatsAppLogs: jest.SpyInstance;
+
+    beforeEach(() => {
+      jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "findOneBy")
+        .mockResolvedValue({
+          id: RUN,
+          projectId: PROJECT,
+          status: OnCallDutyPolicyStatus.Executing,
+          createdAt: new Date("2026-11-11T09:00:00.000Z"),
+          userNotificationEventType: UserNotificationEventType.TestPage,
+          testPageRecordKind: OnCallTestPageRecordKind.Incident,
+          testPageSeverityId: SEVERITY,
+          createdByUserId: ANA,
+        } as never);
+      jest
+        .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
+        .mockResolvedValue([
+          {
+            id: LINE_ANA,
+            status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+            statusMessage: "",
+            alertSentToUserId: ANA,
+            alertSentToUser: { name: new Name("Ana Lopez") },
+          },
+        ] as never);
+      jest.spyOn(UserOnCallLogTimelineService, "findBy").mockResolvedValue([
+        message({
+          id: SMS_ROW,
+          channel: "sms",
+          status: UserNotificationStatus.Sent,
+          statusMessage: getMessageIdStatusMessage(SMS_SID),
+        }),
+        message({
+          id: CALL_ROW,
+          channel: "call",
+          status: UserNotificationStatus.Sent,
+          statusMessage: ANSWERED,
+        }),
+        message({
+          id: WHATSAPP_ROW,
+          channel: "whatsapp",
+          status: UserNotificationStatus.Sent,
+        }),
+        message({
+          id: EMAIL_ROW,
+          channel: "email",
+          status: UserNotificationStatus.Sent,
+        }),
+      ] as never);
+
+      smsLogs = jest.spyOn(SmsLogService, "findBy").mockResolvedValue([
+        {
+          userOnCallLogTimelineId: new ObjectID(SMS_ROW),
+          status: SmsStatus.Sent,
+          statusMessage: getProviderDeliveryStatusMessage({
+            status: SmsStatus.Sent,
+            messageId: SMS_SID,
+          }),
+        },
+      ] as never);
+      callLogs = jest.spyOn(CallLogService, "findBy").mockResolvedValue([
+        {
+          userOnCallLogTimelineId: new ObjectID(CALL_ROW),
+          status: CallStatus.Success,
+          statusMessage: ANSWERED,
+        },
+      ] as never);
+      whatsAppLogs = jest
+        .spyOn(WhatsAppLogService, "findBy")
+        .mockResolvedValue([
+          {
+            userOnCallLogTimelineId: new ObjectID(WHATSAPP_ROW),
+            status: WhatsAppStatus.Read,
+            statusMessage: "Delivery status: Read. Message ID: wamid.1.",
+          },
+          // An older try of the same message: the latest one says.
+          {
+            userOnCallLogTimelineId: new ObjectID(WHATSAPP_ROW),
+            status: WhatsAppStatus.Failed,
+          },
+        ] as never);
+    });
+
+    async function readResult(): Promise<OnCallTestPageResult> {
+      return OnCallTestPageService.getResult({
+        projectId: PROJECT,
+        executionLogId: RUN,
+        props: { isRoot: true },
+      });
+    }
+
+    function deliveryOf(
+      result: OnCallTestPageResult,
+      id: string,
+    ): OnCallTestPageResultDelivery {
+      const delivery: OnCallTestPageResultDelivery | undefined =
+        result.steps[0]!.deliveries.find(
+          (candidate: OnCallTestPageResultDelivery): boolean => {
+            return candidate.id === id;
+          },
+        );
+
+      expect(delivery).toBeDefined();
+
+      return delivery!;
+    }
+
+    test("each message reads as its own log says it: the SMS on its way, the call answered, the WhatsApp message read, the email gone for good", async () => {
+      const result: OnCallTestPageResult = await readResult();
+
+      expect(deliveryOf(result, SMS_ROW).logStatus).toEqual({
+        kind: NotificationLogKind.SMS,
+        status: SmsStatus.Sent,
+      });
+      expect(deliveryOf(result, SMS_ROW).status).toBe(
+        OnCallTestPageDeliveryStatus.Sent,
+      );
+      expect(deliveryOf(result, CALL_ROW).logStatus).toEqual({
+        kind: NotificationLogKind.Call,
+        status: CallStatus.Success,
+        line: NotificationLogStatusLine.Answered,
+      });
+      expect(deliveryOf(result, CALL_ROW).status).toBe(
+        OnCallTestPageDeliveryStatus.Delivered,
+      );
+      expect(deliveryOf(result, WHATSAPP_ROW).logStatus).toEqual({
+        kind: NotificationLogKind.WhatsApp,
+        status: WhatsAppStatus.Read,
+      });
+      expect(deliveryOf(result, WHATSAPP_ROW).status).toBe(
+        OnCallTestPageDeliveryStatus.Delivered,
+      );
+      expect(deliveryOf(result, EMAIL_ROW).logStatus).toEqual({
+        kind: NotificationLogKind.Email,
+        status: MailStatus.Success,
+      });
+    });
+
+    test("each log is read once, by the messages sent on it, for its status alone", async () => {
+      await readResult();
+
+      for (const [spy, ids] of [
+        [smsLogs, [SMS_ROW]],
+        [callLogs, [CALL_ROW]],
+        [whatsAppLogs, [WHATSAPP_ROW]],
+      ] as Array<[jest.SpyInstance, Array<string>]>) {
+        expect(spy).toHaveBeenCalledTimes(1);
+
+        const read: {
+          query: { userOnCallLogTimelineId: { toString: () => string } };
+          select: Record<string, boolean>;
+          props: { isRoot?: boolean };
+        } = spy.mock.calls[0]![0];
+
+        expect(JSON.stringify(read.query.userOnCallLogTimelineId)).toContain(
+          ids[0]!,
+        );
+        expect(Object.keys(read.select).sort()).toEqual([
+          "createdAt",
+          "status",
+          "statusMessage",
+          "userOnCallLogTimelineId",
+        ]);
+        expect(read.props.isRoot).toBe(true);
+      }
+    });
+
+    test("no log's message reaches the result: not the call's id, not the SMS's", async () => {
+      const result: OnCallTestPageResult = await readResult();
+
+      for (const id of [SMS_ROW, WHATSAPP_ROW, EMAIL_ROW]) {
+        expect(JSON.stringify(deliveryOf(result, id).logStatus)).not.toContain(
+          "Message ID",
+        );
+      }
+
+      expect(
+        JSON.stringify(deliveryOf(result, CALL_ROW).logStatus),
+      ).not.toContain(CALL_SID);
+    });
+
+    test("a test sent by email alone reads no log", async () => {
+      jest.spyOn(UserOnCallLogTimelineService, "findBy").mockResolvedValue([
+        message({
+          id: EMAIL_ROW,
+          channel: "email",
+          status: UserNotificationStatus.Sent,
+        }),
+      ] as never);
+
+      await readResult();
+
+      expect(smsLogs).not.toHaveBeenCalled();
+      expect(callLogs).not.toHaveBeenCalled();
+      expect(whatsAppLogs).not.toHaveBeenCalled();
+    });
+
+    test("a log that cannot be read leaves its message as the page's message says it, and the rest as their logs do", async () => {
+      jest.spyOn(logger, "error").mockImplementation((() => {}) as never);
+      smsLogs.mockRejectedValue(new Error("connection reset"));
+
+      const result: OnCallTestPageResult = await readResult();
+
+      // The SMS: Sent, as its message says, with no word from its log.
+      expect(deliveryOf(result, SMS_ROW).status).toBe(
+        OnCallTestPageDeliveryStatus.Sent,
+      );
+      expect(deliveryOf(result, SMS_ROW).logStatus).toBeUndefined();
+      // The call still reads its own log.
+      expect(deliveryOf(result, CALL_ROW).logStatus?.line).toBe(
+        NotificationLogStatusLine.Answered,
+      );
+    });
   });
 });

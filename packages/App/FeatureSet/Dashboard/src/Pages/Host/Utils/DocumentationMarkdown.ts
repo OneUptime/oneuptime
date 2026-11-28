@@ -1030,9 +1030,9 @@ function getReportedTopic(method: HostInstallMethod): SetupGuideTopic {
 
 - \`hostmetrics\` receiver metrics (CPU, memory, disk, filesystem, network, load, processes), OR
 - \`process\` scraper metrics (per-process CPU/memory/threads), OR
-- an \`os.type\` or \`container.runtime\` resource attribute, on metrics, logs or traces
+- an \`os.type\` resource attribute, on metrics, logs or traces
 
-…and starts populating the Overview, Metrics, Processes, and Logs tabs. \`host.id\` or \`host.arch\` alone do not register a host, and telemetry that carries a Kubernetes identity (\`k8s.cluster.name\`, \`k8s.node.name\`, \`k8s.pod.name\`, …) is filed under its Kubernetes cluster instead.
+…and starts populating the Overview, Metrics, Processes, and Logs tabs. \`host.id\` or \`host.arch\` alone do not register a host. Telemetry that carries a Kubernetes identity (\`k8s.cluster.name\`, \`k8s.node.name\`, \`k8s.pod.name\`, …) is filed under its Kubernetes cluster instead, and telemetry that names a container runtime (\`container.runtime\`), a container (\`container.id\`) or an application's OpenTelemetry SDK (\`telemetry.sdk.name\`) never registers a host: it is a Docker or Podman host's, a container's or an app's, not the host's own.
 
 **Running on OpenStack?** Use \`detectors: [nova, system, env]\`, so \`host.id\` is the instance's UUID and OneUptime links this host to its instance, and set \`host.name\` to \`enabled: false\` under \`nova: resource_attributes:\` so its name stays the one \`system\` reports.
 

@@ -403,7 +403,11 @@ function getInstallScriptAgentGuide(
  * <file>.bak.<timestamp>), so running it again is the upgrade. One agent
  * reads one array, so another array's agent lives in a folder of its own,
  * which the script is pointed at with INSTALL_DIR. A Docker Compose install
- * takes the compose file and all three collector configs itself.
+ * downloads every file the agent runs itself, the files install.sh
+ * downloads, whichever array it reads (STORAGE_ARRAY_AGENT_FILES): a
+ * PowerStore's or an ONTAP cluster's agent then runs the new version of its
+ * own files too. Their names are too many to list, so the step says to
+ * re-apply a change to any of them.
  */
 function getStorageArrayAgentGuide(oneuptimeUrl: string): AgentUpgradeGuide {
   return {
@@ -426,7 +430,7 @@ function getStorageArrayAgentGuide(oneuptimeUrl: string): AgentUpgradeGuide {
           {
             title: DOWNLOAD_LATEST_FILES,
             description: translationKey(
-              "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.",
+              "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.",
             ),
             code: getStorageArrayAgentDownloadCommand(oneuptimeUrl),
           },

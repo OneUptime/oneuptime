@@ -248,6 +248,18 @@ Keep `PrioritizeReleaseRuns.sh` running through it. The release is out when
   list has unexpected SHA-256 hash": publish its provider again as the next
   patch version, with **Republish a Terraform provider version**
   (`gh workflow run terraform-provider-republish.yml -f from=17.1.0 -f version=17.1.1`).
+- `check-terraform-provider-registries` failed: what a registry read for the
+  provider version just published is not what its release serves, or
+  registry.terraform.io did not list it within half an hour. Its log says which,
+  platform by platform. A version the registry does not list: resync the
+  provider on its settings page at registry.terraform.io, which re-creates the
+  webhook. Checksums that differ: the release's assets changed after the
+  registry read them, which no registry mends; publish the provider again as the
+  next patch version, as above
+  ([Scripts/TerraformProvider/README.md](Scripts/TerraformProvider/README.md#-publishing)).
+- Never re-run a release run from before 17.3.0: a re-run runs its own commit's
+  scripts, and before 17.3.0 the provider's publish script uploaded a rebuild
+  over a published release, which is how 14.3.0 to 17.2.0 broke (#11016).
 - `docs-screens / Draw every docs screenshot again` failed: a docs screenshot
   no longer shows its page, and `push-release-tags` waits for it. Its log names
   the shots. That is a failure in the code: draw them again in the release

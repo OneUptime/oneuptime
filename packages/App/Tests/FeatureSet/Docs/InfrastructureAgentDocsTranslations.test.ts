@@ -1223,6 +1223,12 @@ const LINKS_INTO_THESE_PAGES: ReadonlyArray<LinkIntoPage> = [
     to: VMWARE,
     anchor: "verify-the-installation",
   },
+  {
+    // What the VM Memory Swapping template's swapped memory is (#11157).
+    from: "monitor/vmware-monitor",
+    to: VMWARE,
+    anchor: "swapped-memory-is-not-swapping",
+  },
   { from: "ai/infrastructure-ai-agents", to: DOCKER_SWARM, anchor: "ai-agent" },
   { from: "ai/infrastructure-ai-agents", to: VMWARE, anchor: "ai-agent" },
   { from: "ai/infrastructure-ai-agents", to: CEPH, anchor: "ai-agent" },

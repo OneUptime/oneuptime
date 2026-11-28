@@ -70,12 +70,18 @@ const NotificationLogsTabs: FunctionComponent<NotificationLogsTabsProps> = (
             name: "Webhook",
             children: <WebhookLogsTable {...commonProps} />,
           },
+          /*
+           * A phone call and a push notification, by keys that name their
+           * meaning (#11418): the bare "Call" is a function call in Chinese
+           * (调用), Korean (호출) and Russian (Вызов), and the bare "Push" a
+           * payment in Arabic (الدفع). English reads "Call" and "Push".
+           */
           {
-            name: "Call",
+            name: "Call (phone call)",
             children: <CallLogsTable {...commonProps} />,
           },
           {
-            name: "Push",
+            name: "Push (push notification)",
             children: <PushLogsTable {...commonProps} />,
           },
           {

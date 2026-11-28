@@ -20,6 +20,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * A Docker or Podman host's Overview and a container's page
@@ -403,6 +404,13 @@ beforeEach(() => {
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
+  /*
+   * A container's alerts card asks the server which of its recommended
+   * alerts a monitor covers (#11074): none does yet.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   window.localStorage.clear();
 });
 

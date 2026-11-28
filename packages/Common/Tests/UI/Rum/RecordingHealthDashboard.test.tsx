@@ -130,6 +130,9 @@ import {
   MonitorRecommendationContext,
   MonitorRecommendationResourceType,
 } from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import MonitorRecommendationCoverageApi from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi";
+import { serveCoverageFrom } from "../../App/Dashboard/MonitorCoverageServer";
+import type { SpyInstance } from "jest-mock";
 
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const NOW: number = Date.parse("2026-09-05T10:00:00.000Z");
@@ -1329,6 +1332,13 @@ describe("the page Set up alerts opens", () => {
       });
   }
 
+  // The monitors the project has: none, unless a test makes some.
+  let monitors: Array<Monitor> = [];
+
+  let coverageSpy: SpyInstance<
+    typeof MonitorRecommendationCoverageApi.findCoveringMonitors
+  >;
+
   beforeEach(() => {
     getItemMock.mockReset();
     getListMock.mockReset();
@@ -1337,9 +1347,19 @@ describe("the page Set up alerts opens", () => {
         projectList((args as { modelType: unknown }).modelType),
       );
     });
+
+    /*
+     * Which recommendations a monitor covers is the server's to say
+     * (#11074): answered from the monitors the project has.
+     */
+    monitors = [];
+    coverageSpy = serveCoverageFrom(() => {
+      return monitors;
+    });
   });
 
   afterEach(() => {
+    coverageSpy.mockRestore();
     window.history.pushState({}, "", "/");
   });
 
@@ -1404,24 +1424,8 @@ describe("the page Set up alerts opens", () => {
 
     expect(created).toHaveLength(2);
 
-    getListMock.mockImplementation((args: unknown) => {
-      const request: {
-        modelType: unknown;
-        query?: { monitorType?: MonitorType } | undefined;
-      } = args as {
-        modelType: unknown;
-        query?: { monitorType?: MonitorType } | undefined;
-      };
-
-      if (request.modelType === Monitor) {
-        return Promise.resolve({
-          data:
-            request.query?.monitorType === MonitorType.Metrics ? created : [],
-        });
-      }
-
-      return Promise.resolve(projectList(request.modelType));
-    });
+    // The project has them: the server says they cover the daily pair.
+    monitors = created;
 
     await followSetUpAlerts(null);
 

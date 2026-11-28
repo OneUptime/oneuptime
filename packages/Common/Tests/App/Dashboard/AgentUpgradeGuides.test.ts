@@ -145,6 +145,18 @@ import {
 import AiResourceType, {
   CLOUD_AI_RESOURCE_TYPES,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
+import {
+  INSTALL_SCRIPT_FILE,
+  InstallScriptEntry,
+  InstallScriptName,
+  TROUBLESHOOT_SCRIPT_FILE,
+  getInstallScriptEntry,
+} from "../../../Types/InstallScripts/InstallScripts";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayAgentConfig,
+  StorageArrayPlatform as StorageArrayPlatformDefinition,
+} from "../../../Types/StorageArray/StorageArrayPlatform";
 
 /*
  * The dialog beside an outdated agent version says how to upgrade THAT kind
@@ -1308,9 +1320,10 @@ test("a Proxmox cluster on the native push runs no agent, so its guide has nothi
  * the upgrade (it keeps a file the reader edited as <file>.bak.<timestamp>).
  * One agent reads one array, so a second array's agent lives in a folder of
  * its own: the script tab says how to point the script there. A Docker
- * Compose install takes the compose file and all three collector configs
- * again itself. The guide asks which array it is for, so every platform's
- * guide shows the same upgrade.
+ * Compose install downloads every file the agent runs again itself, the
+ * files install.sh downloads, whichever array it reads, so a PowerStore's or
+ * an ONTAP cluster's agent gets its own files too. The guide asks which
+ * array it is for, so every platform's guide shows the same upgrade.
  */
 describe("Storage Array agent: the install script again, or every file again", () => {
   const guide: AgentUpgradeGuide = guideFor(AgentKind.StorageArrayAgent);
@@ -1402,9 +1415,12 @@ describe("Storage Array agent: the install script again, or every file again", (
     expect(script.noteValues).toEqual({
       directory: STORAGE_ARRAY_AGENT_INSTALL_DIR,
     });
-    // The setup guide installs a second array's agent the same way.
+    /*
+     * The setup guide installs a second array's agent the same way, a value
+     * a line (AgentInstallCommandsServed).
+     */
     expect(getSetupGuideMarkdown(setupGuideFor("flasharray"))).toContain(
-      `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 bash install.sh`,
+      `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 \\\n  STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 \\\n  bash install.sh`,
     );
   });
 
@@ -1423,7 +1439,18 @@ describe("Storage Array agent: the install script again, or every file again", (
     );
   });
 
-  test("the Compose tab downloads the compose file and every config, then pulls and recreates", () => {
+  // The files the Compose tab's download step fetches, by name, in order.
+  function filesTheComposeTabDownloads(): Array<string> {
+    const download: AgentUpgradeStep = methodLabelled(guide, "Docker Compose")
+      .steps[0]!;
+    const prefix: string = `curl -fsSLO ${URL}/install/storage-array-agent/`;
+    return (download.code || "").split("\n").map((line: string): string => {
+      expect(line.startsWith(prefix)).toBe(true);
+      return line.substring(prefix.length);
+    });
+  }
+
+  test("the Compose tab downloads every file the agent runs, then pulls and recreates", () => {
     const compose: AgentUpgradeMethod = methodLabelled(guide, "Docker Compose");
     expect(codesOf(compose)).toEqual([
       getStorageArrayAgentDownloadCommand(URL),
@@ -1447,6 +1474,14 @@ describe("Storage Array agent: the install script again, or every file again", (
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerstore.yaml",
+      "powerstore-exporter.Dockerfile",
+      "powerstore-syslog.yaml",
+      "otel-collector-config.netapp-ontap.yaml",
+      "netapp-harvest.yml",
+      "netapp-harvest-rest.yaml",
+      "netapp-harvest-keyperf.yaml",
+      "netapp-harvest-restperf.yaml",
       "otel-collector-config.powerscale.yaml",
     ]);
     expect(STORAGE_ARRAY_AGENT_RECREATE_COMMAND).toBe(
@@ -1460,17 +1495,116 @@ describe("Storage Array agent: the install script again, or every file again", (
     }
   });
 
-  test("the Compose tab names every config the reader may have edited", () => {
+  /*
+   * The files are read from the platform registry, so a platform's new
+   * collector config or exporter file reaches a Compose install, and its
+   * upgrade, with the platform.
+   */
+  test("the files are the compose file, then each agent config's collector config and other files, in the registry's order, each once", () => {
+    const files: Array<string> = ["docker-compose.yml"];
+    for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
+      for (const config of platform.agentConfigs) {
+        for (const file of [
+          config.collectorConfigFile,
+          ...(config.otherFiles || []),
+        ]) {
+          if (!files.includes(file)) {
+            files.push(file);
+          }
+        }
+      }
+    }
+    expect(STORAGE_ARRAY_AGENT_FILES).toEqual(files);
+  });
+
+  /*
+   * install.sh downloads the compose file and every file of its PLATFORMS
+   * table, and every OneUptime serves those for it, beside the scripts and
+   * the systemd unit (Common/Types/InstallScripts, which
+   * Tests/Ops/AgentInstallScriptsServed.test.js holds to install.sh). A
+   * Compose upgrade takes the same files the script does.
+   */
+  test("the files are the ones every OneUptime serves for install.sh, less the scripts and the systemd unit", () => {
+    const entry: InstallScriptEntry | null = getInstallScriptEntry(
+      InstallScriptName.StorageArrayAgent,
+    );
+    expect(entry).not.toBeNull();
+    const served: Array<string> = entry!.files.filter(
+      (file: string): boolean => {
+        return (
+          file !== INSTALL_SCRIPT_FILE &&
+          file !== TROUBLESHOOT_SCRIPT_FILE &&
+          !file.startsWith("systemd/")
+        );
+      },
+    );
+    expect([...STORAGE_ARRAY_AGENT_FILES].sort()).toEqual([...served].sort());
+  });
+
+  /*
+   * A PowerStore's or an ONTAP cluster's agent installed with Docker Compose
+   * (agents/StorageArrayAgent/README.md) runs files no Pure array's does.
+   * Downloading only the configs the guide's options show left its
+   * collector config as it was, still reporting the old version, so the
+   * sign that opened this dialog never went away.
+   */
+  test.each(
+    StorageArrayPlatformRegistry.getPlatforms().flatMap(
+      (
+        platform: StorageArrayPlatformDefinition,
+      ): Array<[string, StorageArrayAgentConfig]> => {
+        return platform.agentConfigs.map(
+          (
+            config: StorageArrayAgentConfig,
+          ): [string, StorageArrayAgentConfig] => {
+            return [`${platform.displayName} (${config.key})`, config];
+          },
+        );
+      },
+    ),
+  )(
+    "the Compose tab brings a %s agent its collector config and every other file it runs",
+    (_name: string, config: StorageArrayAgentConfig) => {
+      const downloaded: Array<string> = filesTheComposeTabDownloads();
+      for (const file of [
+        config.collectorConfigFile,
+        ...(config.otherFiles || []),
+      ]) {
+        expect({ file, downloaded: downloaded.includes(file) }).toEqual({
+          file,
+          downloaded: true,
+        });
+      }
+    },
+  );
+
+  test("every file the Compose tab downloads is in the agent's folder", () => {
+    const downloaded: Array<string> = filesTheComposeTabDownloads();
+    expect(downloaded).toEqual(STORAGE_ARRAY_AGENT_FILES);
+    for (const file of downloaded) {
+      expect({
+        file,
+        exists: fs.existsSync(
+          path.join(REPO_ROOT, "agents/StorageArrayAgent", file),
+        ),
+      }).toEqual({ file, exists: true });
+    }
+  });
+
+  test("the Compose tab says to re-apply a change to any file it downloads", () => {
     const download: AgentUpgradeStep = methodLabelled(guide, "Docker Compose")
       .steps[0]!;
     expect(download.description).toBe(
-      "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.",
+      "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.",
     );
-    for (const file of STORAGE_ARRAY_AGENT_FILES) {
-      if (file !== "docker-compose.yml") {
-        expect(file).toMatch(/^otel-collector-config.*\.yaml$/);
-      }
-    }
+    /*
+     * It downloads more files than a sentence can name (a PowerStore's
+     * Dockerfile, Harvest's templates), so the sentence names none:
+     * "docker-compose.yml or otel-collector-config*.yaml" left them out.
+     */
+    expect(download.description).not.toMatch(
+      /docker-compose|otel-collector-config|Dockerfile|harvest/,
+    );
   });
 });
 

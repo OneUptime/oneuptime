@@ -185,7 +185,7 @@ Everything is ready. Begin running and processing data.
 
 ### Trouver le vCenter dans OneUptime
 
-Rien n'est envoyé avant la fin du premier parcours complet de l'inventaire : patientez donc un intervalle de collecte (2 minutes par défaut). Ouvrez ensuite **Produits → Infrastructure → VMware → Tous les vCenter** : le vCenter s'y trouve, avec ses datacenters, ses clusters, ses hôtes ESXi, ses machines virtuelles, ses datastores et ses pools de ressources. Sa page **Topologie** les dessine tous sur une seule carte, en marquant ce qui demande votre attention : voir [Topologie](/docs/telemetry/topology#ouvrir-la-carte-propre-à-une-ressource).
+Rien n'est envoyé avant la fin du premier parcours complet de l'inventaire : patientez donc un intervalle de collecte (2 minutes par défaut). Ouvrez ensuite **Produits → Infrastructure → VMware → Tous les vCenter** : le vCenter s'y trouve, avec ses datacenters, ses clusters, ses hôtes ESXi, ses machines virtuelles, ses datastores et ses pools de ressources. Sa page **Topologie** les dessine tous sur une seule carte, en marquant ce qui demande votre attention : voir [Topologie](/docs/telemetry/topology#ouvrir-la-carte-propre-à-une-ressource). Dans **Inventaire**, chaque VM, hôte ESXi, cluster et datastore est un élément nommé comme vCenter le nomme, avec sous le nom l'endroit où il se trouve : l'hôte et le cluster d'une VM, le cluster et le datacenter d'un hôte.
 :::
 
 ## Variables d'environnement
@@ -246,7 +246,7 @@ Le récepteur n'envoie aucune métrique d'état d'alimentation pour une VM. Il e
 
 La page **Vue d'ensemble** répond d'abord à la question « ce vCenter est-il en bonne santé ». Son en-tête dit si les données arrivent et comment va le vCenter : **Sain**, **Dégradé** tant que quelque chose demande un coup d'œil, **Défaillant** tant que quelque chose demande quelqu'un tout de suite, ou **Santé inconnue** tant que le vCenter est déconnecté, car son dernier rapport n'est plus la vérité. Ses puces comptent les datacenters, les clusters, les hôtes ESXi que vCenter joint sur l'ensemble, les VM allumées sur l'ensemble, les modèles et les datastores, et toutes sauf les datacenters ouvrent leur liste.
 
-Vient ensuite **Attention requise** : tout ce qui demande quelqu'un, le plus urgent d'abord, chaque élément avec sa raison et à un pas de sa page. Un hôte ESXi que vCenter ne joint plus, un datastore plein à plus de 90 % et une VM dont l'hôte envoie la mémoire sur disque sont critiques. Un hôte occupé à plus de 90 %, un datastore plein à plus de 80 %, une VM qui attend un CPU libre ou dont l'hôte reprend la mémoire, un cluster avec des hôtes non effectifs ou sans la mémoire pour en perdre un, et les alarmes que vCenter compte dans chaque datacenter demandent un coup d'œil. Chaque seuil est celui auquel son [modèle d'alerte](/docs/monitor/vmware-monitor#modèles-dalerte-prédéfinis) se déclenche. Quand rien ne demande d'attention, il n'y a pas de carte.
+Vient ensuite **Attention requise** : tout ce qui demande quelqu'un, le plus urgent d'abord, chaque élément avec sa raison et à un pas de sa page. Un hôte ESXi que vCenter ne joint plus, un datastore plein à plus de 90 % et une VM dont l'hôte met la mémoire en swap en ce moment sont critiques. Un hôte occupé à plus de 90 %, un datastore plein à plus de 80 %, une VM qui attend un CPU libre, dont l'hôte reprend la mémoire, ou qui relit de la mémoire en swap ou en garde plus de 1 GiB, un cluster avec des hôtes non effectifs ou sans la mémoire pour en perdre un, et les alarmes que vCenter compte dans chaque datacenter demandent un coup d'œil. Votre projet peut modifier ou désactiver chacun de ces seuils : voir [Règles de santé](#règles-de-santé). Quand rien ne demande d'attention, il n'y a pas de carte.
 
 En dessous viennent les hôtes effectifs, le CPU et la mémoire des hôtes pondérés par la capacité, le datastore le plus plein et le pire temps de CPU ready d'une VM, avec leurs graphiques ; **Hôtes ESXi**, l'état et la charge de chaque hôte à un pas de sa page ; et les plus grands consommateurs.
 
@@ -263,6 +263,37 @@ vCenter ne remonte l'utilisation du CPU et de la mémoire d'un hôte que tant qu
 | **Hors tension ou en veille** | Il ne remonte aucune utilisation, et son datacenter a des hôtes hors tension et d'autres en veille. |
 | **Aucune utilisation signalée** | Il ne remonte aucune utilisation, et ce que compte son datacenter ne dit pas pourquoi. Il demande un coup d'œil. |
 | **Ne remonte plus de données** | vCenter ne l'a pas remonté depuis plus de 15 minutes. |
+
+### Mémoire en swap ne veut pas dire swap en cours
+
+`vcenter.vm.memory.swapped` indique quelle part de la mémoire d'une VM se trouve dans le fichier de swap de son hôte. ESXi laisse une page en swap à cet endroit jusqu'à ce que la VM y accède à nouveau, si bien qu'une VM peut garder quelques MiB en swap pendant des semaines après la fin de la pression mémoire qui les y a mis. La mémoire restée d'avant n'est pas un problème en soi : l'hôte qui met de la mémoire en swap en ce moment, si.
+
+Ni le récepteur `vcenter` de l'agent ni une sonde n'envoient de débit de swap : OneUptime le déduit donc de la façon dont la mémoire en swap d'une VM change entre deux rapports. La page d'une VM indique dans quel sens elle évolue, sous **Swap en cours**. Avec les règles par défaut :
+
+| Mémoire en swap d'une VM | Ce que dit Attention requise |
+| --- | --- |
+| Elle augmente : l'hôte la met en swap en ce moment | Critique |
+| Elle diminue plus vite que 1 MiB/s : la VM relit de la mémoire en swap | Demande un coup d'œil |
+| Elle reste stable, à plus de 1 GiB | Demande un coup d'œil, comme mise en swap plus tôt |
+| Elle reste stable, à 1 GiB ou moins | Rien |
+
+Un débit demande deux rapports espacés de moins de 15 minutes : le premier rapport d'une VM, ou un rapport après une interruption, dit donc seulement combien de mémoire est en swap. Un pool de ressources ne demande un coup d'œil que tant que sa mémoire est mise en swap.
+
+### Règles de santé
+
+Chaque seuil ci-dessus est une règle que votre projet peut modifier : ouvrez **Produits → Infrastructure → VMware**, puis **Paramètres → Règles de santé**. Les règles s'appliquent à chaque vCenter du projet : **Attention requise**, la page de chaque objet, la colonne Statut et les barres des listes, et la Topologie. Les tuiles de la Vue d'ensemble qui font la moyenne sur les hôtes ou les VM gardent leurs propres seuils. Laissez un seuil vide pour désactiver sa règle. Ce qui n'a pas de seuil est toujours affiché : un hôte que vCenter ne joint plus, un cluster sans la mémoire pour perdre un hôte, et les alarmes que vCenter compte.
+
+| Carte | Règle | Par défaut |
+| --- | --- | --- |
+| **Hôtes ESXi chargés** | CPU, mémoire | Un avertissement au-delà de 90 % pour chacun |
+| **Datastores pleins** | Espace utilisé | Un avertissement au-delà de 80 %, critique au-delà de 90 % |
+| **Swap des VM** | Swap sortant en cours | Critique au-delà de 0 KiB/s : le moindre swap sortant |
+| **Swap des VM** | Relecture de la mémoire en swap | Un avertissement au-delà de 1024 KiB/s |
+| **Swap des VM** | Mise en swap plus tôt, aucun swap en cours | Un avertissement au-delà de 1024 MiB |
+| **Ballooning et CPU Ready des VM** | Mémoire récupérée par ballooning, CPU ready | Un avertissement au-delà de 0 MiB (le moindre ballooning), au-delà de 10 % |
+| **Swap des pools de ressources** | Swap sortant en cours | Un avertissement au-delà de 0 KiB/s : le moindre swap sortant |
+
+Les valeurs par défaut sont les seuils auxquels les [modèles d'alerte](/docs/monitor/vmware-monitor#modèles-dalerte-prédéfinis) se déclenchent, sauf pour le swap : le modèle VM Memory Swapping se déclenche dès qu'il y a de la mémoire en swap. Modifier une règle change ce que les pages marquent, pas vos moniteurs, qui gardent leurs propres critères.
 
 ### Hôtes ESXi
 
@@ -285,7 +316,7 @@ Les six alertes d'hôte (un hôte qui ne répond pas, saturation du CPU et de la
 
 Les machines virtuelles éteintes et les modèles sont listés aussi. vCenter ne remonte les compteurs CPU que pour les VM allumées : leurs colonnes CPU affichent donc N/A plutôt qu'un zéro trompeur.
 
-La page d'une VM dit ce qu'elle fait (**En cours d'exécution**, **Hors tension**, **Modèle**, ou **Déconnecté** tant que vCenter ne joint pas son hôte) et où elle tourne, son hôte et son cluster à un pas. Sa **Vue d'ensemble** comporte **Attention requise** pour la VM, son CPU, son CPU ready, sa mémoire et son disque, les incidents et alertes ouverts sur elle, celles des sept alertes de VM qui sont activées, et ses détails. **Métriques** contient ses graphiques.
+La page d'une VM dit ce qu'elle fait (**En cours d'exécution**, **Hors tension**, **Modèle**, ou **Déconnecté** tant que vCenter ne joint pas son hôte) et où elle tourne, son hôte et son cluster à un pas. Sa **Vue d'ensemble** comporte **Attention requise** pour la VM, son CPU, son CPU ready, sa mémoire et son disque, les incidents et alertes ouverts sur elle, celles des sept alertes de VM qui sont activées, et ses détails, avec la quantité de sa mémoire qui est en swap et si l'hôte la déplace en ce moment (**Swap en cours**). **Métriques** contient ses graphiques.
 
 ### Datastores
 

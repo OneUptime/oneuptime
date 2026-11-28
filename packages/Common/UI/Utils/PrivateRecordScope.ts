@@ -1,4 +1,9 @@
 import { HeldPermissions } from "../../Types/HeldPermissions";
+import LabelAccess from "../../Types/LabelAccess/LabelAccess";
+import RecordParts, {
+  RecordOfPart,
+  RecordPartModel,
+} from "../../Types/LabelAccess/RecordParts";
 import ObjectID from "../../Types/ObjectID";
 import PrivateRecordParts, {
   PrivateRecordPartModel,
@@ -6,6 +11,7 @@ import PrivateRecordParts, {
 import { PermissionGateOptions } from "./PermissionGate";
 import {
   getRecordAccessGateOptions,
+  isAnsweredAsPart,
   RecordAccessScope,
   useRecordAccessScope,
 } from "./RecordAccessScope";
@@ -104,11 +110,15 @@ export function usePrivateRecordGateOptions(
   );
   const tableName: string = model?.tableName || "";
 
-  return React.useMemo((): PermissionGateOptions | undefined => {
-    const isAnswered: boolean = Boolean(
-      getRecordAccessGateOptions(recordAccessScope, { tableName: tableName }),
-    );
+  /*
+   * Asked of the model itself: a part of the record is answered from what
+   * the rule reads of it (RecordAccessScope.getPartAccess, #11435).
+   */
+  const isAnswered: boolean = Boolean(
+    getRecordAccessGateOptions(recordAccessScope, model),
+  );
 
+  return React.useMemo((): PermissionGateOptions | undefined => {
     if (!isPart && !isAnswered) {
       return undefined;
     }
@@ -121,7 +131,7 @@ export function usePrivateRecordGateOptions(
         ? { recordAccess: recordAccessScope }
         : {}),
     };
-  }, [scope, isPart, recordAccessScope, tableName]);
+  }, [scope, isPart, recordAccessScope, tableName, isAnswered]);
 }
 
 /*
@@ -183,27 +193,79 @@ function withoutAnswerForOtherRecords(data: {
  * other monitors on a monitor's page - lists other records, which what the
  * server or the labels say of the page's record is not about, so its rows
  * are weighed by their own labels (ModelTable) and not by the page's
- * answer. A list of the record's parts keeps the answer.
+ * answer. A list of the record's parts keeps the answer - where the page
+ * answers the part by the record's labels and owners (#11435,
+ * RecordAccessScope.getPartAccess), only while the list is kept to the
+ * record's rows: its `query` names the record by the part's key
+ * (`monitorId: <this monitor>`). Rows of other records carry their labels.
  */
 export function useListGateOptions(
   model: PrivateRecordPartModel | null | undefined,
+  query?: unknown,
 ): PermissionGateOptions | undefined {
   const options: PermissionGateOptions | undefined =
     usePrivateRecordGateOptions(model);
   const recordAccessScope: RecordAccessScope | null = useRecordAccessScope();
   const tableName: string = model?.tableName || "";
 
-  return React.useMemo((): PermissionGateOptions | undefined => {
-    return withoutAnswerForOtherRecords({
-      options: options,
+  const isOtherRecordsPart: boolean =
+    isAnsweredAsPart(recordAccessScope, model) &&
+    !isListOfRecordRows({
+      model: model,
+      query: query,
       scope: recordAccessScope,
-      tableName: tableName,
-      // A list of the page's own kind is of other records.
-      isAboutPageRecord: (): boolean => {
-        return false;
-      },
     });
-  }, [options, recordAccessScope, tableName]);
+
+  return React.useMemo((): PermissionGateOptions | undefined => {
+    const kept: PermissionGateOptions | undefined =
+      withoutAnswerForOtherRecords({
+        options: options,
+        scope: recordAccessScope,
+        tableName: tableName,
+        // A list of the page's own kind is of other records.
+        isAboutPageRecord: (): boolean => {
+          return false;
+        },
+      });
+
+    if (!isOtherRecordsPart || !kept?.recordAccess) {
+      return kept;
+    }
+
+    const rest: PermissionGateOptions = { ...kept };
+    delete rest.recordAccess;
+
+    return Object.keys(rest).length > 0 ? rest : undefined;
+  }, [options, recordAccessScope, tableName, isOtherRecordsPart]);
+}
+
+/*
+ * Whether a list of a part of the page's record is kept to the record's
+ * rows: its query names the record, by the part's key.
+ */
+function isListOfRecordRows(data: {
+  model: PrivateRecordPartModel | null | undefined;
+  query: unknown;
+  scope: RecordAccessScope | null;
+}): boolean {
+  const record: RecordOfPart | null = RecordParts.getRecordOf(
+    data.model as RecordPartModel | null | undefined,
+  );
+
+  if (
+    !record ||
+    !record.key ||
+    !data.scope?.recordId ||
+    !data.query ||
+    typeof data.query !== "object"
+  ) {
+    return false;
+  }
+
+  return (
+    LabelAccess.readId((data.query as Record<string, unknown>)[record.key]) ===
+    data.scope.recordId
+  );
 }
 
 /*

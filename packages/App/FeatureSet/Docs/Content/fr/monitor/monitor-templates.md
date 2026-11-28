@@ -6,6 +6,7 @@ Un modèle de moniteur est une configuration de moniteur enregistrée (un type, 
 - [Créer un modèle](#créer-un-modèle): Quatre étapes, comme Créer un moniteur.
 - [Créer des moniteurs à partir de lui](#créer-des-moniteurs-à-partir-dun-modèle): Un clic, ou liez des moniteurs que vous avez déjà.
 - [Synchroniser les modifications](#synchroniser-les-modifications-vers-les-moniteurs-liés): Ce que copie chaque bouton de synchronisation.
+- [Déplacer des moniteurs vers un autre modèle](#déplacer-des-moniteurs-vers-un-autre-modèle): Un meilleur modèle, et chaque moniteur garde son historique.
 - [Garder des valeurs propres à chaque moniteur](#garder-des-valeurs-propres-à-chaque-moniteur): Protéger une destination ou des en-têtes d'une synchronisation.
 :::
 
@@ -55,7 +56,7 @@ Le modèle est ajouté à la liste. Ouvrez-le pour voir sa page, avec une carte 
 ## Créer des moniteurs à partir d'un modèle
 
 - **Nouveau moniteur.** Cliquez sur **Créer un moniteur** sur la ligne du modèle dans la liste, ou sur **Créer un moniteur à partir d'un modèle** sur sa page. **Créer un moniteur** s'ouvre avec le type et les réglages du modèle remplis ; changez ce dont vous avez besoin, puis créez-le. Le nouveau moniteur est lié au modèle.
-- **Moniteurs que vous avez déjà.** Dans **Moniteurs liés**, cliquez sur **Lier des moniteurs existants** et choisissez-les. Ils gardent leurs réglages jusqu'à ce que vous synchronisiez.
+- **Moniteurs que vous avez déjà.** Dans **Moniteurs liés**, cliquez sur **Lier des moniteurs existants** et choisissez-les. Avec **Utiliser les critères et l'intervalle du modèle** activé, ils prennent les critères, l'intervalle et l'accord des sondes du modèle au moment où ils sont liés ; désactivé, ils gardent leurs réglages jusqu'à ce que vous synchronisiez. Un moniteur lié à un autre modèle passe à celui-ci.
 
 Les valeurs définies sous **Valeurs par défaut des champs personnalisés** sont écrites sur chaque moniteur créé à partir du modèle, y compris les moniteurs que les règles d'import automatique et les politiques d'alerte créent à partir de lui.
 
@@ -70,9 +71,60 @@ Modifier un modèle ne change que le modèle. Pour copier une modification sur l
 | **Synchroniser les étiquettes vers les moniteurs liés** | Les étiquettes, et rien d'autre | Tout le reste |
 | **Synchroniser les champs personnalisés avec les moniteurs liés** | Les champs personnalisés pour lesquels le modèle a une valeur par défaut, à la place de ce que chaque moniteur avait | Les champs personnalisés que le modèle laisse vides, et tout le reste |
 
-Pour synchroniser un seul moniteur, cliquez sur **Synchroniser depuis le modèle** sur sa ligne dans **Moniteurs liés**. Cela copie les critères et les réglages d'étape (sauf les champs protégés), l'intervalle de surveillance, l'accord minimum des sondes et les étiquettes, et laisse intacts le nom, la description et les valeurs des champs personnalisés du moniteur. **Dissocier du modèle** déconnecte un moniteur ; il garde ses réglages.
+Pour synchroniser un seul moniteur, cliquez sur **Synchroniser depuis le modèle** sur sa ligne dans **Moniteurs liés**. Cela copie les critères et les réglages d'étape (sauf les champs protégés), l'intervalle de surveillance, l'accord minimum des sondes et les étiquettes, et laisse intacts le nom, la description et les valeurs des champs personnalisés du moniteur. Pour déconnecter un moniteur, voir [Dissocier des moniteurs d'un modèle](#dissocier-des-moniteurs-dun-modèle).
 
 Après une synchronisation, un résumé indique combien de moniteurs ont été mis à jour. **Synchronisé partiellement** signifie que certains moniteurs liés ont encore la configuration précédente, généralement parce que vos autorisations ne les couvrent pas.
+
+## Déplacer des moniteurs vers un autre modèle
+
+Quand un meilleur modèle en remplace un autre, déplacez les moniteurs de l'ancien vers le nouveau au lieu de les supprimer. Chaque moniteur garde son nom, son historique de statut, ses étiquettes, ses propriétaires et ses incidents, et prend les critères du nouveau modèle.
+
+:::steps
+### Sélectionner les moniteurs
+
+Ouvrez le modèle auquel ils sont liés actuellement. Dans **Moniteurs liés**, sélectionnez les moniteurs, ou tous. Vous pouvez aussi sélectionner des moniteurs dans la liste des moniteurs, filtrée sur n'importe quelle colonne.
+
+### Les déplacer
+
+Dans **Actions groupées**, cliquez sur **Déplacer vers un autre modèle** (dans la liste des moniteurs, **Lier à un modèle**). Choisissez le modèle.
+
+### Garder les réglages du modèle activés
+
+Laissez **Utiliser les critères et l'intervalle du modèle** activé, pour que chaque moniteur prenne dès maintenant les critères, les réglages d'étape, l'intervalle et l'accord des sondes du modèle. Désactivé, chacun garde les siens jusqu'à ce que vous synchronisiez. Confirmez ensuite.
+:::
+
+Ce que fait le déplacement :
+
+- Les critères, l'intervalle et l'accord des sondes des moniteurs sont remplacés par ceux du modèle. Les incidents et alertes ouverts que leurs anciens critères étaient configurés pour résoudre automatiquement sont résolus, et les nouveaux critères en ouvrent de nouveaux si le problème est toujours présent. Chaque moniteur Équipement réseau continue de surveiller son propre équipement, et chaque moniteur d'adresse ou d'URL continue de vérifier l'adresse de son propre équipement.
+- Les noms, les descriptions, l'historique de statut, les étiquettes, les propriétaires, les valeurs des champs personnalisés et les liens vers les incidents restent inchangés.
+- Un moniteur qu'un import, une règle d'import automatique ou une politique d'alerte réseau a créé garde le modèle à partir duquel il a été créé. Cette règle ne le recrée jamais, et une politique d'alerte le libère : elle ne le supprime ni ne le remplace plus.
+- Un équipement a un seul moniteur par modèle. Quand un équipement a déjà un moniteur créé pour lui à partir du nouveau modèle, son autre moniteur est exclu, et le changement nomme celui qui gêne : supprimez l'un des deux, puis déplacez de nouveau.
+- Un moniteur d'un autre type que celui du modèle est exclu.
+
+Le changement s'exécute sur le serveur, jusqu'à 10 000 moniteurs à la fois, et affiche sa progression : ce qui a été déplacé, ce qui a été exclu et pourquoi, et les incidents et alertes ouverts qu'il a résolus. Fermer la boîte de dialogue ne l'arrête pas, et la page du modèle affiche un changement encore en cours. **Arrêter** l'arrête avant le moniteur suivant, et **Réessayer** retente les moniteurs en échec ou non atteints.
+
+> [!TIP]
+> Vous déplacez les équipements d'une règle d'import automatique vers un nouveau modèle ? Déplacez d'abord les moniteurs, puis faites pointer la règle vers le nouveau modèle. Dans l'autre ordre, la règle donne à chaque équipement un second moniteur, issu du nouveau modèle, à côté de celui qu'il a.
+
+## Dissocier des moniteurs d'un modèle
+
+Cliquez sur **Dissocier du modèle** sur la ligne d'un moniteur dans **Moniteurs liés**, ou sélectionnez des moniteurs à cet endroit ou dans la liste des moniteurs et utilisez **Dissocier du modèle** dans **Actions groupées**. Choisissez ce que les moniteurs gardent :
+
+| Choix | Ce que font ensuite les moniteurs |
+| --- | --- |
+| **Garder leurs réglages** | Ils continuent de vérifier et d'alerter avec les critères qu'ils ont maintenant, en tant que moniteurs autonomes, et ne reçoivent plus les mises à jour du modèle. |
+| **Leur retirer les critères du modèle** | Ils continuent de vérifier, mais n'ouvrent ni incident ni alerte et ne définissent aucun statut tant que vous ne les liez pas de nouveau à un modèle. Les incidents et alertes ouverts que leurs critères étaient configurés pour résoudre automatiquement sont résolus. |
+
+Dans les deux cas, ils gardent leurs noms, leur historique de statut, leurs étiquettes, leurs propriétaires et leurs incidents, et une règle qui les a créés ne les recrée jamais.
+
+## Supprimer un modèle
+
+Un modèle à partir duquel une politique d'alerte réseau ou une règle d'import automatique provisionne des moniteurs ne peut pas être supprimé : faites d'abord pointer la politique ou la règle vers un autre modèle. Quand des moniteurs sont liés au modèle, sa suppression demande ce qu'il advient d'eux :
+
+- **Garder leurs réglages** (par défaut) : la suppression les dissocie, et ils continuent de vérifier et d'alerter avec les critères qu'ils ont.
+- **Leur retirer les critères de ce modèle** : chacun est dissocié et ses critères sont retirés, comme ci-dessus, puis le modèle est supprimé. Quand un moniteur reste lié, par exemple un moniteur que vos autorisations ne couvrent pas, le modèle est conservé, et la boîte de dialogue indique combien.
+
+Pour déplacer plutôt les moniteurs vers un autre modèle, utilisez **Déplacer vers un autre modèle** avant de le supprimer.
 
 ## Garder des valeurs propres à chaque moniteur
 
@@ -174,6 +226,14 @@ Un champ protégé n'a pas pu être associé à une étape de l'un des moniteurs
 
 :::details Les boutons de synchronisation sont grisés
 Aucun moniteur n'est encore lié au modèle. Créez un moniteur à partir de lui, ou cliquez sur **Lier des moniteurs existants** dans **Moniteurs liés**.
+:::
+
+:::details Un déplacement exclut un moniteur : « L'équipement pour lequel ce moniteur a été créé a déjà un moniteur lié à ce modèle »
+L'équipement a un moniteur créé pour lui à partir du modèle vers lequel vous déplacez, généralement parce qu'une règle d'import automatique a été pointée vers ce modèle avant le déplacement. Supprimez celui dont vous n'avez pas besoin (le plus récent a le moins d'historique), puis déplacez de nouveau.
+:::
+
+:::details Après le passage d'une règle d'import automatique à un nouveau modèle, les équipements ont deux moniteurs
+La règle a donné à chaque équipement le moniteur du nouveau modèle à côté de celui qu'il avait. Supprimez les nouveaux moniteurs, puis déplacez les anciens vers le nouveau modèle : ils gardent leur historique, et la règle n'en recrée aucun.
 :::
 
 :::details L'enregistrement échoue avec « Unsupported do not sync field »

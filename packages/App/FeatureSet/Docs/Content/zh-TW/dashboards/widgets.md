@@ -191,7 +191,7 @@ SLO 小工具可以在 [公開儀表板](/docs/dashboards/sharing) 上使用。�
 
 | 分組 | 小工具 | 資料來源 |
 | --- | --- | --- |
-| **主機** | **主機**，含連線狀態、作業系統、CPU 和記憶體 | 任何傳送 `host.name` 的 OpenTelemetry 收集器 |
+| **主機** | **主機**，含連線狀態、作業系統、CPU 和記憶體 | 每台主機上的收集器：請參閱 [什麼算是主機](/docs/telemetry/hosts#什麼算是主機) |
 | **Kubernetes** | **Pod**、**節點**、**命名空間**、**部署**、**StatefulSets**、**DaemonSets**、**工作**、**CronJobs** | [Kubernetes 代理程式](/docs/monitor/kubernetes-agent) |
 | **Docker** | **主機**、**容器**、**映像**、**網路**、**磁碟區** | Docker 代理程式 |
 | **Docker Swarm** | **節點**、**服務** | Docker Swarm 代理程式 |

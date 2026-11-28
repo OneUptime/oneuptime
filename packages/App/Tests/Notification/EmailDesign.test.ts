@@ -81,6 +81,11 @@ function templateVariables(
     unsubscribeUrl: SUBSCRIPTION_URL,
     hasResources: "true",
     report: {
+      /*
+       * A cloud cost report's heading is the report's name (#11009), which
+       * its sender always sends; the rest is the uptime report's.
+       */
+      title: "Weekly cloud costs",
       reportPeriodName: "August 2026",
       averageUptimePercent: "99.95%",
       reportStartDate: "Aug 1, 2026",

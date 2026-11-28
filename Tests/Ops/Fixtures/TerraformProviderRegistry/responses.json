@@ -1,0 +1,1835 @@
+{
+  "recordedAt": "2026-11-28T07:58:36.941Z",
+  "responses": {
+    "https://registry.terraform.io/.well-known/terraform.json": {
+      "status": 200,
+      "json": {
+        "modules.v1": "/v1/modules/",
+        "providers.v1": "/v1/providers/"
+      }
+    },
+    "https://registry.terraform.io/v1/providers/oneuptime/oneuptime/versions": {
+      "status": 200,
+      "json": {
+        "id": "OneUptime/oneuptime",
+        "versions": [
+          {
+            "version": "16.0.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "linux",
+                "arch": "amd64"
+              },
+              {
+                "os": "windows",
+                "arch": "amd64"
+              },
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              }
+            ]
+          },
+          {
+            "version": "17.2.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "windows",
+                "arch": "amd64"
+              },
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              },
+              {
+                "os": "linux",
+                "arch": "amd64"
+              }
+            ]
+          },
+          {
+            "version": "15.0.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "linux",
+                "arch": "amd64"
+              },
+              {
+                "os": "windows",
+                "arch": "amd64"
+              },
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              }
+            ]
+          },
+          {
+            "version": "17.1.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              },
+              {
+                "os": "linux",
+                "arch": "amd64"
+              },
+              {
+                "os": "windows",
+                "arch": "amd64"
+              }
+            ]
+          },
+          {
+            "version": "17.3.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "windows",
+                "arch": "amd64"
+              },
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              },
+              {
+                "os": "linux",
+                "arch": "amd64"
+              }
+            ]
+          },
+          {
+            "version": "17.0.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "windows",
+                "arch": "amd64"
+              },
+              {
+                "os": "linux",
+                "arch": "amd64"
+              },
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              }
+            ]
+          }
+        ],
+        "warnings": null
+      }
+    },
+    "https://registry.terraform.io/v1/providers/oneuptime/oneuptime/17.2.0/download/darwin/arm64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "darwin",
+        "arch": "arm64",
+        "filename": "terraform-provider-oneuptime_17.2.0_darwin_arm64.zip",
+        "download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_darwin_arm64.zip",
+        "shasums_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig",
+        "shasum": "d1f416b04f95aae053714c5160e6b3f86de5adb383436280ba765e8780f62ab2",
+        "signing_keys": {
+          "gpg_public_keys": [
+            {
+              "key_id": "9D87E494AC016697",
+              "ascii_armor": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nmQINBGUW6l8BEADOIdxJHkfZsbwC5+4h7er9AQnhcoKyfu46snvsrpdve+4uAI+W\nCw0KaWtjjfwLzyxOJlgNpRhF+ik9taa8mTOs9k3pZQxxRzAYpmOoIseFyRhUFVYb\nIFfVip9NBFAcFefgFL9Kt5wNpx/8Noqyd7MVtkMZ77c7TXKHY/Ca0OMpIGUqO4Wz\nzkNCceDYiK0/Un0gGyd+1ApncuavIsTAzpu0pweAll251f2CPOvZpUONlpZdAjU0\nrxUlZ2GqK2T98e1Lj3Pm5Q3j94+uS6BtJ+r4jtqE0LIn1CaErlRHWeYOYLLMS9l4\nMABLyJ+dXN5GWMI4yLZqZQhWkyFaZs+RNZUUH7yYkUpwEq2MqjoMzkB8B9YuFnR4\n+IuiLlw4L2oWQA9B1CbeCnorrCWNcvHfuJIHIPTMfDoC81HWkxdGPX3+/dQuLhTo\n0Tdq0EQrv9otsor5pAeDBPCDBhC4lPmQOI2qOQHGnOOqRPX+xVjMK8KXf4+81710\nmlo2w+9bI1c7a2ZWD7LVtGzyPSWLs2Mz4Zu0TjSpOu+Lw8RusJI3BfUrDNCIvnC5\nWFV/vrfiTQnfO/RIKyZLjSOIiAeE/qd6JBzXHhIfNCEzXV+s6TiDVa0+C8TXUPsY\nn2Vbo2OUtgD0xDcLD1kzOneQXVziYVRZtLLUyIA3X7v59bU5ZNjUDlwumQARAQAB\ntB1PbmVVcHRpbWUgPGtleUBvbmV1cHRpbWUuY29tPokCVAQTAQgAPgIbAwULCQgH\nAgYVCgkICwIEFgIDAQIeAQIXgBYhBIPywd31igUkZMShcp2H5JSsAWaXBQJlFup7\nBQmO9FZeAAoJEJ2H5JSsAWaX6rIP/2wDzHkmY7ETFGpWgiJdR5Et+fQXtiFZbkq0\nAvdsrumsaiuxqg0alNUK1qaQhCy3+MKabgWr1Q+JtGAX5DPu/0pS5CPkw3OXDl6w\nRyzJ4cj/86wAhI6Bs1jXd/cBYF80hgOLEuH2LJoZ+YH1htkoE6U8NY1gmLn5VFTx\n6mdRjOnGVk+JEpQLlMS2ToJAGJmbvayQsuQiHdl5tayKHTLANL2ZMzLwKAp4G/t5\nRBr5nvY5ALhFeF0NuB9dFJxQcSlRhcqVdKp32oG6SbqNOAOk6NZ/J3S4/zHWfWJl\n1iqWIEaoZCu8gk0nPqbMuHo+G+4T2hqS78+KzgGQGwd3kbybGtP4maO7vHf2u/dP\n/pZ9zIohMIP8XolvpSiL8AIraQ8m72wi5uHL9Xr7WyhMBCKMvNLZrTd9+McHNjvS\nq7ADxr7gTjHsQO/M8qB8wV4Q6vVYpZ2TU0ikDqdLmofXLxo72V+J5h+gEYHs+XZq\nv06ip9dQgiOOytSQJubaLpzitVATw5hoMlfEk/YrCEkhbzI151cW2bdGFivP9GvT\nVtKihCTeAkXSNgRewAT8CbnQhIrDJphqp2ef9i6ZOuc+LlSfZJho7i61Z9+L/o6o\nrRWoqn7H7bG/K9vmb9PMtufhrTcEt0Ddx7wHvcNFv7T0anbjFhISPvTB+sWC9cwg\nJuP3iR+2uQINBGUW6l8BEAC08IsAAXeCpJsnU0IYrPP/qXw7N03wVyEheuJS9Hmw\neb4gGtPq+Q+O7a/934sM6r2iEYHYKKKIeygQw6pqtdRXNvSOfTFjFW1pvmDF4AH+\nDTH/r3xPzplyWhuEEch0sS4VCCH7TnDFjp2k8f/qimpOQyO6TXGOkbbdz7KzKpK8\ntMuLHvXx2KTf7vhzLUmu8X/cXkt9wtpe07XaVTkVYLuZcgZ73Qp0qzbAg8eYAbuK\nCM6H7Vs7uJI1n4STK15oAeWPGABeyaYS2abcJOH11LtQCq3TwAacpbpprZsVCKVx\nA7aryh0RBRgoUYOAlLGAJNgYi7o4tuu1jgfnJSrnxHyX2hwcPaifVATaD9v8iQb2\n6sgaIxJ/TuLH7JFotQ7giF1qt+f0Ix9zVyfGxaDCT5FDeRavQkkTfVMNN6uoahEX\nwVWrYCUUj1NSpfgNC17E8lqAcmufVC3BW6SVfv5duuhnJPXQgGHvikDfS9qTDjim\nZi/7ZwNQ8KS0TTo90UNt2ECdDogms/qIyrCAORTn1LXhne+iINSiNAkvXVbXHLBm\nh5N6yB5iJoJLurEa14PB74OLh43LHOStKbw+U8kAANjPD3EjoXJ6WYvTJf+ndRgV\nQzy5fRC/WCGPl2XUlk3b9YYsbCYT9UgYoh+sEPPl4HawHEfvKuZIJv+JXNpWQ1FA\nmQARAQABiQI8BBgBCAAmFiEEg/LB3fWKBSRkxKFynYfklKwBZpcFAmUW6l8CGwwF\nCQeGH14ACgkQnYfklKwBZpf6+RAAscrNqfPjrATRiIgPE56BIbSJiktSsQJXX55F\n0b+epO5recyjfi/RHSarfpPlzjprpkg4rHhBcrI8+vKQTwTHYLGKBr7SA6fMaLvT\nV8ZP4Ne1qS6zJrtakxMbAxu8Cc3CkbngFq6MwmfAxPMNFpYKg2hWRAI+6RYUqqQp\nQj+INUnI0mjKrdSpepAoe8bS4s2Uel+BZy7Db1jwsc4PO6Pwx7RJF6aKlWWO7vA1\nJ4tqfnBC8ZUl1JTkAqTyU1e497C2iWTEUxHreo41purDJ/kSMVH8mqiHOU687Mck\ni3MGVohup3OG1Mx1+Qg2jpPx807fXi0NO6+c2TjS2T9AcfiZEzRcFyA6RkotwL5H\nxiVdw3OAG1BLJOnLc4A16TYjx4tc8FAhZAGC2xTwINV2Nxy6qyUfLUNwVuP6Svow\nkD/IxuPermanbPeHuqi0VgaQdXisCgXyFqlZa8bQBmSTGx0McMjiNm2xl4un/fLN\nQIltsQ5cVxWTXG5xi88X42xyErqfb2S04ofar5m+sRHOOo03W9+Vyamvo58ZgKtZ\n8TEy6eQHw9Z3qg9Kq3uqangzBGCrTHqlW4Bg7xaU0GpOBDBWbIAFEJISZ9F8Or5x\nP6s2KzgBiBLQAHOPN4B5N57LnognG6JZieTsygTKY2JHhVoTAjJXFu3LAs2iHuG/\njDsx+ls=\n=cwJH\n-----END PGP PUBLIC KEY BLOCK-----\n",
+              "trust_signature": "",
+              "source": "",
+              "source_url": null
+            }
+          ]
+        }
+      }
+    },
+    "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS": {
+      "status": 200,
+      "file": "terraform-provider-oneuptime_17.2.0_SHA256SUMS"
+    },
+    "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig": {
+      "status": 200,
+      "file": "terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig"
+    },
+    "https://registry.terraform.io/v1/providers/oneuptime/oneuptime/17.2.0/download/linux/amd64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "linux",
+        "arch": "amd64",
+        "filename": "terraform-provider-oneuptime_17.2.0_linux_amd64.zip",
+        "download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_linux_amd64.zip",
+        "shasums_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig",
+        "shasum": "f6cc9d2b7aaefd772c86370691ba0c2be278f0e9b726d56d45d0fccf9253efdc",
+        "signing_keys": {
+          "gpg_public_keys": [
+            {
+              "key_id": "9D87E494AC016697",
+              "ascii_armor": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nmQINBGUW6l8BEADOIdxJHkfZsbwC5+4h7er9AQnhcoKyfu46snvsrpdve+4uAI+W\nCw0KaWtjjfwLzyxOJlgNpRhF+ik9taa8mTOs9k3pZQxxRzAYpmOoIseFyRhUFVYb\nIFfVip9NBFAcFefgFL9Kt5wNpx/8Noqyd7MVtkMZ77c7TXKHY/Ca0OMpIGUqO4Wz\nzkNCceDYiK0/Un0gGyd+1ApncuavIsTAzpu0pweAll251f2CPOvZpUONlpZdAjU0\nrxUlZ2GqK2T98e1Lj3Pm5Q3j94+uS6BtJ+r4jtqE0LIn1CaErlRHWeYOYLLMS9l4\nMABLyJ+dXN5GWMI4yLZqZQhWkyFaZs+RNZUUH7yYkUpwEq2MqjoMzkB8B9YuFnR4\n+IuiLlw4L2oWQA9B1CbeCnorrCWNcvHfuJIHIPTMfDoC81HWkxdGPX3+/dQuLhTo\n0Tdq0EQrv9otsor5pAeDBPCDBhC4lPmQOI2qOQHGnOOqRPX+xVjMK8KXf4+81710\nmlo2w+9bI1c7a2ZWD7LVtGzyPSWLs2Mz4Zu0TjSpOu+Lw8RusJI3BfUrDNCIvnC5\nWFV/vrfiTQnfO/RIKyZLjSOIiAeE/qd6JBzXHhIfNCEzXV+s6TiDVa0+C8TXUPsY\nn2Vbo2OUtgD0xDcLD1kzOneQXVziYVRZtLLUyIA3X7v59bU5ZNjUDlwumQARAQAB\ntB1PbmVVcHRpbWUgPGtleUBvbmV1cHRpbWUuY29tPokCVAQTAQgAPgIbAwULCQgH\nAgYVCgkICwIEFgIDAQIeAQIXgBYhBIPywd31igUkZMShcp2H5JSsAWaXBQJlFup7\nBQmO9FZeAAoJEJ2H5JSsAWaX6rIP/2wDzHkmY7ETFGpWgiJdR5Et+fQXtiFZbkq0\nAvdsrumsaiuxqg0alNUK1qaQhCy3+MKabgWr1Q+JtGAX5DPu/0pS5CPkw3OXDl6w\nRyzJ4cj/86wAhI6Bs1jXd/cBYF80hgOLEuH2LJoZ+YH1htkoE6U8NY1gmLn5VFTx\n6mdRjOnGVk+JEpQLlMS2ToJAGJmbvayQsuQiHdl5tayKHTLANL2ZMzLwKAp4G/t5\nRBr5nvY5ALhFeF0NuB9dFJxQcSlRhcqVdKp32oG6SbqNOAOk6NZ/J3S4/zHWfWJl\n1iqWIEaoZCu8gk0nPqbMuHo+G+4T2hqS78+KzgGQGwd3kbybGtP4maO7vHf2u/dP\n/pZ9zIohMIP8XolvpSiL8AIraQ8m72wi5uHL9Xr7WyhMBCKMvNLZrTd9+McHNjvS\nq7ADxr7gTjHsQO/M8qB8wV4Q6vVYpZ2TU0ikDqdLmofXLxo72V+J5h+gEYHs+XZq\nv06ip9dQgiOOytSQJubaLpzitVATw5hoMlfEk/YrCEkhbzI151cW2bdGFivP9GvT\nVtKihCTeAkXSNgRewAT8CbnQhIrDJphqp2ef9i6ZOuc+LlSfZJho7i61Z9+L/o6o\nrRWoqn7H7bG/K9vmb9PMtufhrTcEt0Ddx7wHvcNFv7T0anbjFhISPvTB+sWC9cwg\nJuP3iR+2uQINBGUW6l8BEAC08IsAAXeCpJsnU0IYrPP/qXw7N03wVyEheuJS9Hmw\neb4gGtPq+Q+O7a/934sM6r2iEYHYKKKIeygQw6pqtdRXNvSOfTFjFW1pvmDF4AH+\nDTH/r3xPzplyWhuEEch0sS4VCCH7TnDFjp2k8f/qimpOQyO6TXGOkbbdz7KzKpK8\ntMuLHvXx2KTf7vhzLUmu8X/cXkt9wtpe07XaVTkVYLuZcgZ73Qp0qzbAg8eYAbuK\nCM6H7Vs7uJI1n4STK15oAeWPGABeyaYS2abcJOH11LtQCq3TwAacpbpprZsVCKVx\nA7aryh0RBRgoUYOAlLGAJNgYi7o4tuu1jgfnJSrnxHyX2hwcPaifVATaD9v8iQb2\n6sgaIxJ/TuLH7JFotQ7giF1qt+f0Ix9zVyfGxaDCT5FDeRavQkkTfVMNN6uoahEX\nwVWrYCUUj1NSpfgNC17E8lqAcmufVC3BW6SVfv5duuhnJPXQgGHvikDfS9qTDjim\nZi/7ZwNQ8KS0TTo90UNt2ECdDogms/qIyrCAORTn1LXhne+iINSiNAkvXVbXHLBm\nh5N6yB5iJoJLurEa14PB74OLh43LHOStKbw+U8kAANjPD3EjoXJ6WYvTJf+ndRgV\nQzy5fRC/WCGPl2XUlk3b9YYsbCYT9UgYoh+sEPPl4HawHEfvKuZIJv+JXNpWQ1FA\nmQARAQABiQI8BBgBCAAmFiEEg/LB3fWKBSRkxKFynYfklKwBZpcFAmUW6l8CGwwF\nCQeGH14ACgkQnYfklKwBZpf6+RAAscrNqfPjrATRiIgPE56BIbSJiktSsQJXX55F\n0b+epO5recyjfi/RHSarfpPlzjprpkg4rHhBcrI8+vKQTwTHYLGKBr7SA6fMaLvT\nV8ZP4Ne1qS6zJrtakxMbAxu8Cc3CkbngFq6MwmfAxPMNFpYKg2hWRAI+6RYUqqQp\nQj+INUnI0mjKrdSpepAoe8bS4s2Uel+BZy7Db1jwsc4PO6Pwx7RJF6aKlWWO7vA1\nJ4tqfnBC8ZUl1JTkAqTyU1e497C2iWTEUxHreo41purDJ/kSMVH8mqiHOU687Mck\ni3MGVohup3OG1Mx1+Qg2jpPx807fXi0NO6+c2TjS2T9AcfiZEzRcFyA6RkotwL5H\nxiVdw3OAG1BLJOnLc4A16TYjx4tc8FAhZAGC2xTwINV2Nxy6qyUfLUNwVuP6Svow\nkD/IxuPermanbPeHuqi0VgaQdXisCgXyFqlZa8bQBmSTGx0McMjiNm2xl4un/fLN\nQIltsQ5cVxWTXG5xi88X42xyErqfb2S04ofar5m+sRHOOo03W9+Vyamvo58ZgKtZ\n8TEy6eQHw9Z3qg9Kq3uqangzBGCrTHqlW4Bg7xaU0GpOBDBWbIAFEJISZ9F8Or5x\nP6s2KzgBiBLQAHOPN4B5N57LnognG6JZieTsygTKY2JHhVoTAjJXFu3LAs2iHuG/\njDsx+ls=\n=cwJH\n-----END PGP PUBLIC KEY BLOCK-----\n",
+              "trust_signature": "",
+              "source": "",
+              "source_url": null
+            }
+          ]
+        }
+      }
+    },
+    "https://registry.terraform.io/v1/providers/oneuptime/oneuptime/17.2.0/download/windows/amd64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "windows",
+        "arch": "amd64",
+        "filename": "terraform-provider-oneuptime_17.2.0_windows_amd64.zip",
+        "download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_windows_amd64.zip",
+        "shasums_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig",
+        "shasum": "5bb853f19a22846aaa2c1b607b93fcb128cd5408d8bc067d19c9e4cb44bcf904",
+        "signing_keys": {
+          "gpg_public_keys": [
+            {
+              "key_id": "9D87E494AC016697",
+              "ascii_armor": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n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\njDsx+ls=\n=cwJH\n-----END PGP PUBLIC KEY BLOCK-----\n",
+              "trust_signature": "",
+              "source": "",
+              "source_url": null
+            }
+          ]
+        }
+      }
+    },
+    "https://registry.terraform.io/v1/providers/oneuptime/oneuptime/17.3.0/download/darwin/arm64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "darwin",
+        "arch": "arm64",
+        "filename": "terraform-provider-oneuptime_17.3.0_darwin_arm64.zip",
+        "download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_darwin_arm64.zip",
+        "shasums_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig",
+        "shasum": "127a45fac26fed141add03beeb5207724f4d8114f1e30fd301260743e8ac5de0",
+        "signing_keys": {
+          "gpg_public_keys": [
+            {
+              "key_id": "9D87E494AC016697",
+              "ascii_armor": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n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\njDsx+ls=\n=cwJH\n-----END PGP PUBLIC KEY BLOCK-----\n",
+              "trust_signature": "",
+              "source": "",
+              "source_url": null
+            }
+          ]
+        }
+      }
+    },
+    "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS": {
+      "status": 200,
+      "file": "terraform-provider-oneuptime_17.3.0_SHA256SUMS"
+    },
+    "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig": {
+      "status": 200,
+      "file": "terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig"
+    },
+    "https://registry.terraform.io/v1/providers/oneuptime/oneuptime/17.3.0/download/linux/amd64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "linux",
+        "arch": "amd64",
+        "filename": "terraform-provider-oneuptime_17.3.0_linux_amd64.zip",
+        "download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_linux_amd64.zip",
+        "shasums_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig",
+        "shasum": "29baeb4b7c6d4c41a1ef662ea134101040dedbe03049251f2bb637eb2e3a6b5b",
+        "signing_keys": {
+          "gpg_public_keys": [
+            {
+              "key_id": "9D87E494AC016697",
+              "ascii_armor": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n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\njDsx+ls=\n=cwJH\n-----END PGP PUBLIC KEY BLOCK-----\n",
+              "trust_signature": "",
+              "source": "",
+              "source_url": null
+            }
+          ]
+        }
+      }
+    },
+    "https://registry.terraform.io/v1/providers/oneuptime/oneuptime/17.3.0/download/windows/amd64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "windows",
+        "arch": "amd64",
+        "filename": "terraform-provider-oneuptime_17.3.0_windows_amd64.zip",
+        "download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_windows_amd64.zip",
+        "shasums_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig",
+        "shasum": "76869d84faf7263d9a2706b4026aa96b938a911bd0ef367cb9c933948eda0906",
+        "signing_keys": {
+          "gpg_public_keys": [
+            {
+              "key_id": "9D87E494AC016697",
+              "ascii_armor": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n\n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\njDsx+ls=\n=cwJH\n-----END PGP PUBLIC KEY BLOCK-----\n",
+              "trust_signature": "",
+              "source": "",
+              "source_url": null
+            }
+          ]
+        }
+      }
+    },
+    "https://registry.opentofu.org/.well-known/terraform.json": {
+      "status": 200,
+      "json": {
+        "modules.v1": "/v1/modules/",
+        "providers.v1": "/v1/providers/"
+      }
+    },
+    "https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/versions": {
+      "status": 200,
+      "json": {
+        "versions": [
+          {
+            "version": "17.3.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              },
+              {
+                "os": "linux",
+                "arch": "amd64"
+              },
+              {
+                "os": "windows",
+                "arch": "amd64"
+              }
+            ],
+            "discovered": "2026-11-26T09:37:37.338596847Z"
+          },
+          {
+            "version": "17.2.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              },
+              {
+                "os": "linux",
+                "arch": "amd64"
+              },
+              {
+                "os": "windows",
+                "arch": "amd64"
+              }
+            ],
+            "discovered": "2026-11-24T14:33:16.605462497Z"
+          },
+          {
+            "version": "17.1.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              },
+              {
+                "os": "linux",
+                "arch": "amd64"
+              },
+              {
+                "os": "windows",
+                "arch": "amd64"
+              }
+            ],
+            "discovered": "2026-11-20T18:46:46.787954366Z"
+          },
+          {
+            "version": "17.0.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              },
+              {
+                "os": "linux",
+                "arch": "amd64"
+              },
+              {
+                "os": "windows",
+                "arch": "amd64"
+              }
+            ],
+            "discovered": "2026-11-19T15:27:27.584931567Z"
+          },
+          {
+            "version": "16.0.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              },
+              {
+                "os": "linux",
+                "arch": "amd64"
+              },
+              {
+                "os": "windows",
+                "arch": "amd64"
+              }
+            ],
+            "discovered": "2026-11-17T21:16:35.079420724Z"
+          },
+          {
+            "version": "15.0.0",
+            "protocols": [
+              "6.0"
+            ],
+            "platforms": [
+              {
+                "os": "darwin",
+                "arch": "arm64"
+              },
+              {
+                "os": "linux",
+                "arch": "amd64"
+              },
+              {
+                "os": "windows",
+                "arch": "amd64"
+              }
+            ],
+            "discovered": "2026-11-17T10:46:44.427779289Z"
+          }
+        ]
+      }
+    },
+    "https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/17.2.0/download/darwin/arm64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "darwin",
+        "arch": "arm64",
+        "filename": "terraform-provider-oneuptime_17.2.0_darwin_arm64.zip",
+        "download_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_darwin_arm64.zip",
+        "shasums_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig",
+        "shasum": "d1f416b04f95aae053714c5160e6b3f86de5adb383436280ba765e8780f62ab2",
+        "signing_keys": {
+          "gpg_public_keys": null
+        },
+        "packages": {
+          "darwin_amd64": {
+            "hashes": [
+              "zh:7d39ddb205c0d1bc681b85d94a11bdb0a6808e8d9317904bb897a4315a6f35fa",
+              "h1:+kW5HxocKqAeIpJ1dZcOkXc3mZlyR8CZ31XnQ7d5Yak="
+            ],
+            "package_size": 27139283
+          },
+          "darwin_arm64": {
+            "hashes": [
+              "zh:d1f416b04f95aae053714c5160e6b3f86de5adb383436280ba765e8780f62ab2",
+              "h1:WVbEk/x9ejbIwPdKv08Tfpv/TsuHqgD3EFrGk7fjJkI="
+            ],
+            "package_size": 21979971
+          },
+          "freebsd_386": {
+            "hashes": [
+              "zh:e0e64e87c9ace8e53d889e5efd60e9d2ff7180f4825773e3e05f56dfda9eb8dc",
+              "h1:oXQHSdlntfR5J/15GeOE6MpZXIqIm4dIqmqUhzPMx88="
+            ],
+            "package_size": 21217659
+          },
+          "freebsd_amd64": {
+            "hashes": [
+              "zh:2140a059e03fc7180b9d5ff1be998b695fc310a15fbcc4cbb10943fa52f5a6e7",
+              "h1:oYJuZnQDrMhgMHrvg0CKRjNstWpD/j5YoNsToW4osPk="
+            ],
+            "package_size": 26806518
+          },
+          "freebsd_arm": {
+            "hashes": [
+              "zh:f40f16e286a9e96d2275b442d1dc55becae30e8f0c4ef37ba13636a281edf074",
+              "h1:ocqsbbox1BCmltMYW6bGTVINdWKXRpU7/MdU0kk7WWM="
+            ],
+            "package_size": 24965600
+          },
+          "freebsd_arm64": {
+            "hashes": [
+              "zh:902a39cf97752ad6278e0c4d227176ed95cdf1d012cccf5071a2e011987451ce",
+              "h1:CxyXum2oUIahXEqW7A4yVx33ZDtNF5MWELmPFtgIUOg="
+            ],
+            "package_size": 21026548
+          },
+          "linux_386": {
+            "hashes": [
+              "zh:04121a37b4b10a75c133d5810c52d8d01c11a9958d336b2446e2cb36da2e2354",
+              "h1:MmzcqMuiQyawhYAEmRGnBQe0olB5obNIJEBcMLt7TVs="
+            ],
+            "package_size": 21258809
+          },
+          "linux_amd64": {
+            "hashes": [
+              "zh:f6cc9d2b7aaefd772c86370691ba0c2be278f0e9b726d56d45d0fccf9253efdc",
+              "h1:zLEHV6OGVTWzA8p4rqx/BtrxgIgTBMK47fr/2pVQcBo="
+            ],
+            "package_size": 26828187
+          },
+          "linux_arm": {
+            "hashes": [
+              "zh:af0c86ae0eb85972b857d532f669b224ede59bbf1ab2d1099ee8ed058e4bbfe9",
+              "h1:lSXlAkGIHpwmSm/RI6HHfrGHnb2OeyLRmWi1eIOPQH4="
+            ],
+            "package_size": 24993819
+          },
+          "linux_arm64": {
+            "hashes": [
+              "zh:d2d4b283da8cac34353be93d1ae2a66bc409407bff7fd642572ff4cd0864a259",
+              "h1:iopWvU2rA7xCgzamqr4v4BAar7zwPGhyjYEtpK9ZJVo="
+            ],
+            "package_size": 21064742
+          },
+          "openbsd_386": {
+            "hashes": [
+              "zh:1f8fa682cb41b8de7ffacddea6e51d75f4c889559e5b9bc6bb2bad113f37b5c2",
+              "h1:fFa4KvJK+fE22e2uLqtwr4Ya/44AmjLkr3AKbE9HcEg="
+            ],
+            "package_size": 21216744
+          },
+          "openbsd_amd64": {
+            "hashes": [
+              "zh:bd2a4c6b7893531a20f7c06ed6d48da83ac0ae6ff1891046a1fc2638cb3f7b4c",
+              "h1:0WGmtcZ+7tUhCM7AhMuV0VMpsBGtjR/H0dQpEIGeucA="
+            ],
+            "package_size": 26802608
+          },
+          "openbsd_arm": {
+            "hashes": [
+              "zh:08c303c7610cea9553a62d5dd4d5d33ae66642027ab2b5a59ff0499d8175e74e",
+              "h1:shUFb63+Bb6E5H9knJCWpDfduiRPqKd3ywm4gRfp1Ys="
+            ],
+            "package_size": 24963267
+          },
+          "openbsd_arm64": {
+            "hashes": [
+              "zh:da7e5907979e49ec635273100efb9a3fde778ff82e8a9d036e561e9e4b94fca9",
+              "h1:Xj+4LXfF4GloX9khcAcXhcyLQNPSnmFGUAfJ5dd/KUg="
+            ],
+            "package_size": 21032026
+          },
+          "solaris_amd64": {
+            "hashes": [
+              "zh:459807abfcaf37bc741d9bc6135fbf4c67e19cac33c589473538fa71d39ee059",
+              "h1:RJGS5SaNCr6jquhJkDxM7/bLatyZXAbBpwQ0cKHPvmA="
+            ],
+            "package_size": 26804021
+          },
+          "windows_386": {
+            "hashes": [
+              "zh:85df47f9a8662d719d168de74979fcb8f2431ba308304e9a9e9a489624410ab1",
+              "h1:0bzpzwa8/Xp/SZml9MyI5/fB3Lv6kEuqwlrbQZtSEe4="
+            ],
+            "package_size": 23747465
+          },
+          "windows_amd64": {
+            "hashes": [
+              "zh:5bb853f19a22846aaa2c1b607b93fcb128cd5408d8bc067d19c9e4cb44bcf904",
+              "h1:ux+o+q12X9QEfClf6wYfr7pYA1seqgrUn7CfvkAS1VE="
+            ],
+            "package_size": 27134290
+          },
+          "windows_arm64": {
+            "hashes": [
+              "zh:26bced73beb796e82d98cae9b09e49830401d680af98f2375f8baa4da8734784",
+              "h1:IzwgapBRKCaSk8HZuP2+A+dGTxmM1BN1+eI9mzwUIu0="
+            ],
+            "package_size": 21164372
+          }
+        }
+      }
+    },
+    "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS": {
+      "status": 200,
+      "file": "terraform-provider-oneuptime_17.2.0_SHA256SUMS"
+    },
+    "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig": {
+      "status": 200,
+      "file": "terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig"
+    },
+    "https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/17.2.0/download/linux/amd64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "linux",
+        "arch": "amd64",
+        "filename": "terraform-provider-oneuptime_17.2.0_linux_amd64.zip",
+        "download_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_linux_amd64.zip",
+        "shasums_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig",
+        "shasum": "f6cc9d2b7aaefd772c86370691ba0c2be278f0e9b726d56d45d0fccf9253efdc",
+        "signing_keys": {
+          "gpg_public_keys": null
+        },
+        "packages": {
+          "darwin_amd64": {
+            "hashes": [
+              "zh:7d39ddb205c0d1bc681b85d94a11bdb0a6808e8d9317904bb897a4315a6f35fa",
+              "h1:+kW5HxocKqAeIpJ1dZcOkXc3mZlyR8CZ31XnQ7d5Yak="
+            ],
+            "package_size": 27139283
+          },
+          "darwin_arm64": {
+            "hashes": [
+              "zh:d1f416b04f95aae053714c5160e6b3f86de5adb383436280ba765e8780f62ab2",
+              "h1:WVbEk/x9ejbIwPdKv08Tfpv/TsuHqgD3EFrGk7fjJkI="
+            ],
+            "package_size": 21979971
+          },
+          "freebsd_386": {
+            "hashes": [
+              "zh:e0e64e87c9ace8e53d889e5efd60e9d2ff7180f4825773e3e05f56dfda9eb8dc",
+              "h1:oXQHSdlntfR5J/15GeOE6MpZXIqIm4dIqmqUhzPMx88="
+            ],
+            "package_size": 21217659
+          },
+          "freebsd_amd64": {
+            "hashes": [
+              "zh:2140a059e03fc7180b9d5ff1be998b695fc310a15fbcc4cbb10943fa52f5a6e7",
+              "h1:oYJuZnQDrMhgMHrvg0CKRjNstWpD/j5YoNsToW4osPk="
+            ],
+            "package_size": 26806518
+          },
+          "freebsd_arm": {
+            "hashes": [
+              "zh:f40f16e286a9e96d2275b442d1dc55becae30e8f0c4ef37ba13636a281edf074",
+              "h1:ocqsbbox1BCmltMYW6bGTVINdWKXRpU7/MdU0kk7WWM="
+            ],
+            "package_size": 24965600
+          },
+          "freebsd_arm64": {
+            "hashes": [
+              "zh:902a39cf97752ad6278e0c4d227176ed95cdf1d012cccf5071a2e011987451ce",
+              "h1:CxyXum2oUIahXEqW7A4yVx33ZDtNF5MWELmPFtgIUOg="
+            ],
+            "package_size": 21026548
+          },
+          "linux_386": {
+            "hashes": [
+              "zh:04121a37b4b10a75c133d5810c52d8d01c11a9958d336b2446e2cb36da2e2354",
+              "h1:MmzcqMuiQyawhYAEmRGnBQe0olB5obNIJEBcMLt7TVs="
+            ],
+            "package_size": 21258809
+          },
+          "linux_amd64": {
+            "hashes": [
+              "zh:f6cc9d2b7aaefd772c86370691ba0c2be278f0e9b726d56d45d0fccf9253efdc",
+              "h1:zLEHV6OGVTWzA8p4rqx/BtrxgIgTBMK47fr/2pVQcBo="
+            ],
+            "package_size": 26828187
+          },
+          "linux_arm": {
+            "hashes": [
+              "zh:af0c86ae0eb85972b857d532f669b224ede59bbf1ab2d1099ee8ed058e4bbfe9",
+              "h1:lSXlAkGIHpwmSm/RI6HHfrGHnb2OeyLRmWi1eIOPQH4="
+            ],
+            "package_size": 24993819
+          },
+          "linux_arm64": {
+            "hashes": [
+              "zh:d2d4b283da8cac34353be93d1ae2a66bc409407bff7fd642572ff4cd0864a259",
+              "h1:iopWvU2rA7xCgzamqr4v4BAar7zwPGhyjYEtpK9ZJVo="
+            ],
+            "package_size": 21064742
+          },
+          "openbsd_386": {
+            "hashes": [
+              "zh:1f8fa682cb41b8de7ffacddea6e51d75f4c889559e5b9bc6bb2bad113f37b5c2",
+              "h1:fFa4KvJK+fE22e2uLqtwr4Ya/44AmjLkr3AKbE9HcEg="
+            ],
+            "package_size": 21216744
+          },
+          "openbsd_amd64": {
+            "hashes": [
+              "zh:bd2a4c6b7893531a20f7c06ed6d48da83ac0ae6ff1891046a1fc2638cb3f7b4c",
+              "h1:0WGmtcZ+7tUhCM7AhMuV0VMpsBGtjR/H0dQpEIGeucA="
+            ],
+            "package_size": 26802608
+          },
+          "openbsd_arm": {
+            "hashes": [
+              "zh:08c303c7610cea9553a62d5dd4d5d33ae66642027ab2b5a59ff0499d8175e74e",
+              "h1:shUFb63+Bb6E5H9knJCWpDfduiRPqKd3ywm4gRfp1Ys="
+            ],
+            "package_size": 24963267
+          },
+          "openbsd_arm64": {
+            "hashes": [
+              "zh:da7e5907979e49ec635273100efb9a3fde778ff82e8a9d036e561e9e4b94fca9",
+              "h1:Xj+4LXfF4GloX9khcAcXhcyLQNPSnmFGUAfJ5dd/KUg="
+            ],
+            "package_size": 21032026
+          },
+          "solaris_amd64": {
+            "hashes": [
+              "zh:459807abfcaf37bc741d9bc6135fbf4c67e19cac33c589473538fa71d39ee059",
+              "h1:RJGS5SaNCr6jquhJkDxM7/bLatyZXAbBpwQ0cKHPvmA="
+            ],
+            "package_size": 26804021
+          },
+          "windows_386": {
+            "hashes": [
+              "zh:85df47f9a8662d719d168de74979fcb8f2431ba308304e9a9e9a489624410ab1",
+              "h1:0bzpzwa8/Xp/SZml9MyI5/fB3Lv6kEuqwlrbQZtSEe4="
+            ],
+            "package_size": 23747465
+          },
+          "windows_amd64": {
+            "hashes": [
+              "zh:5bb853f19a22846aaa2c1b607b93fcb128cd5408d8bc067d19c9e4cb44bcf904",
+              "h1:ux+o+q12X9QEfClf6wYfr7pYA1seqgrUn7CfvkAS1VE="
+            ],
+            "package_size": 27134290
+          },
+          "windows_arm64": {
+            "hashes": [
+              "zh:26bced73beb796e82d98cae9b09e49830401d680af98f2375f8baa4da8734784",
+              "h1:IzwgapBRKCaSk8HZuP2+A+dGTxmM1BN1+eI9mzwUIu0="
+            ],
+            "package_size": 21164372
+          }
+        }
+      }
+    },
+    "https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/17.2.0/download/windows/amd64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "windows",
+        "arch": "amd64",
+        "filename": "terraform-provider-oneuptime_17.2.0_windows_amd64.zip",
+        "download_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_windows_amd64.zip",
+        "shasums_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig",
+        "shasum": "5bb853f19a22846aaa2c1b607b93fcb128cd5408d8bc067d19c9e4cb44bcf904",
+        "signing_keys": {
+          "gpg_public_keys": null
+        },
+        "packages": {
+          "darwin_amd64": {
+            "hashes": [
+              "zh:7d39ddb205c0d1bc681b85d94a11bdb0a6808e8d9317904bb897a4315a6f35fa",
+              "h1:+kW5HxocKqAeIpJ1dZcOkXc3mZlyR8CZ31XnQ7d5Yak="
+            ],
+            "package_size": 27139283
+          },
+          "darwin_arm64": {
+            "hashes": [
+              "zh:d1f416b04f95aae053714c5160e6b3f86de5adb383436280ba765e8780f62ab2",
+              "h1:WVbEk/x9ejbIwPdKv08Tfpv/TsuHqgD3EFrGk7fjJkI="
+            ],
+            "package_size": 21979971
+          },
+          "freebsd_386": {
+            "hashes": [
+              "zh:e0e64e87c9ace8e53d889e5efd60e9d2ff7180f4825773e3e05f56dfda9eb8dc",
+              "h1:oXQHSdlntfR5J/15GeOE6MpZXIqIm4dIqmqUhzPMx88="
+            ],
+            "package_size": 21217659
+          },
+          "freebsd_amd64": {
+            "hashes": [
+              "zh:2140a059e03fc7180b9d5ff1be998b695fc310a15fbcc4cbb10943fa52f5a6e7",
+              "h1:oYJuZnQDrMhgMHrvg0CKRjNstWpD/j5YoNsToW4osPk="
+            ],
+            "package_size": 26806518
+          },
+          "freebsd_arm": {
+            "hashes": [
+              "zh:f40f16e286a9e96d2275b442d1dc55becae30e8f0c4ef37ba13636a281edf074",
+              "h1:ocqsbbox1BCmltMYW6bGTVINdWKXRpU7/MdU0kk7WWM="
+            ],
+            "package_size": 24965600
+          },
+          "freebsd_arm64": {
+            "hashes": [
+              "zh:902a39cf97752ad6278e0c4d227176ed95cdf1d012cccf5071a2e011987451ce",
+              "h1:CxyXum2oUIahXEqW7A4yVx33ZDtNF5MWELmPFtgIUOg="
+            ],
+            "package_size": 21026548
+          },
+          "linux_386": {
+            "hashes": [
+              "zh:04121a37b4b10a75c133d5810c52d8d01c11a9958d336b2446e2cb36da2e2354",
+              "h1:MmzcqMuiQyawhYAEmRGnBQe0olB5obNIJEBcMLt7TVs="
+            ],
+            "package_size": 21258809
+          },
+          "linux_amd64": {
+            "hashes": [
+              "zh:f6cc9d2b7aaefd772c86370691ba0c2be278f0e9b726d56d45d0fccf9253efdc",
+              "h1:zLEHV6OGVTWzA8p4rqx/BtrxgIgTBMK47fr/2pVQcBo="
+            ],
+            "package_size": 26828187
+          },
+          "linux_arm": {
+            "hashes": [
+              "zh:af0c86ae0eb85972b857d532f669b224ede59bbf1ab2d1099ee8ed058e4bbfe9",
+              "h1:lSXlAkGIHpwmSm/RI6HHfrGHnb2OeyLRmWi1eIOPQH4="
+            ],
+            "package_size": 24993819
+          },
+          "linux_arm64": {
+            "hashes": [
+              "zh:d2d4b283da8cac34353be93d1ae2a66bc409407bff7fd642572ff4cd0864a259",
+              "h1:iopWvU2rA7xCgzamqr4v4BAar7zwPGhyjYEtpK9ZJVo="
+            ],
+            "package_size": 21064742
+          },
+          "openbsd_386": {
+            "hashes": [
+              "zh:1f8fa682cb41b8de7ffacddea6e51d75f4c889559e5b9bc6bb2bad113f37b5c2",
+              "h1:fFa4KvJK+fE22e2uLqtwr4Ya/44AmjLkr3AKbE9HcEg="
+            ],
+            "package_size": 21216744
+          },
+          "openbsd_amd64": {
+            "hashes": [
+              "zh:bd2a4c6b7893531a20f7c06ed6d48da83ac0ae6ff1891046a1fc2638cb3f7b4c",
+              "h1:0WGmtcZ+7tUhCM7AhMuV0VMpsBGtjR/H0dQpEIGeucA="
+            ],
+            "package_size": 26802608
+          },
+          "openbsd_arm": {
+            "hashes": [
+              "zh:08c303c7610cea9553a62d5dd4d5d33ae66642027ab2b5a59ff0499d8175e74e",
+              "h1:shUFb63+Bb6E5H9knJCWpDfduiRPqKd3ywm4gRfp1Ys="
+            ],
+            "package_size": 24963267
+          },
+          "openbsd_arm64": {
+            "hashes": [
+              "zh:da7e5907979e49ec635273100efb9a3fde778ff82e8a9d036e561e9e4b94fca9",
+              "h1:Xj+4LXfF4GloX9khcAcXhcyLQNPSnmFGUAfJ5dd/KUg="
+            ],
+            "package_size": 21032026
+          },
+          "solaris_amd64": {
+            "hashes": [
+              "zh:459807abfcaf37bc741d9bc6135fbf4c67e19cac33c589473538fa71d39ee059",
+              "h1:RJGS5SaNCr6jquhJkDxM7/bLatyZXAbBpwQ0cKHPvmA="
+            ],
+            "package_size": 26804021
+          },
+          "windows_386": {
+            "hashes": [
+              "zh:85df47f9a8662d719d168de74979fcb8f2431ba308304e9a9e9a489624410ab1",
+              "h1:0bzpzwa8/Xp/SZml9MyI5/fB3Lv6kEuqwlrbQZtSEe4="
+            ],
+            "package_size": 23747465
+          },
+          "windows_amd64": {
+            "hashes": [
+              "zh:5bb853f19a22846aaa2c1b607b93fcb128cd5408d8bc067d19c9e4cb44bcf904",
+              "h1:ux+o+q12X9QEfClf6wYfr7pYA1seqgrUn7CfvkAS1VE="
+            ],
+            "package_size": 27134290
+          },
+          "windows_arm64": {
+            "hashes": [
+              "zh:26bced73beb796e82d98cae9b09e49830401d680af98f2375f8baa4da8734784",
+              "h1:IzwgapBRKCaSk8HZuP2+A+dGTxmM1BN1+eI9mzwUIu0="
+            ],
+            "package_size": 21164372
+          }
+        }
+      }
+    },
+    "https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/17.3.0/download/darwin/arm64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "darwin",
+        "arch": "arm64",
+        "filename": "terraform-provider-oneuptime_17.3.0_darwin_arm64.zip",
+        "download_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_darwin_arm64.zip",
+        "shasums_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig",
+        "shasum": "127a45fac26fed141add03beeb5207724f4d8114f1e30fd301260743e8ac5de0",
+        "signing_keys": {
+          "gpg_public_keys": null
+        },
+        "packages": {
+          "darwin_amd64": {
+            "hashes": [
+              "zh:c4a6e0dec60efeb07d7d71ec69b87d02d882ad64cf15275ae28c598f87527b40",
+              "h1:iSz1MP2Br8aikpnc3lcRuxk8lyQDiK45vX1AFmQXiOk="
+            ],
+            "package_size": 33569014
+          },
+          "darwin_arm64": {
+            "hashes": [
+              "zh:127a45fac26fed141add03beeb5207724f4d8114f1e30fd301260743e8ac5de0",
+              "h1:/PTz5+d3SSjkfrXaOX/XKDpQqfzSLav56mwC3XmUT3M="
+            ],
+            "package_size": 26435625
+          },
+          "freebsd_386": {
+            "hashes": [
+              "zh:8c1b284f916866e83dfb2a78d9856e0fc02c0502847fd8b730a8f2e7ad3107f5",
+              "h1:uUO0Qoi69XbPmgIBiVCT0Kt8GVJ2cwdmuBx197TfaPc="
+            ],
+            "package_size": 25760902
+          },
+          "freebsd_amd64": {
+            "hashes": [
+              "zh:2e44300266b7d179cfbbe818e7aaedcc1cb992e0d4803e6cfa2480f378780f4b",
+              "h1:KJ1Metu97wfxY9v2AjChw8brpvMa6fjxGqpD+TPYqVE="
+            ],
+            "package_size": 33224591
+          },
+          "freebsd_arm": {
+            "hashes": [
+              "zh:55586edbf0a4b64a76d54bc55bda7846fef62a8af65c1b84ed2a753797ac29ed",
+              "h1:JjEPWZ3UlNtb3ipb29hwqySc7nsMzV3EhIOrquSMqcQ="
+            ],
+            "package_size": 30890067
+          },
+          "freebsd_arm64": {
+            "hashes": [
+              "zh:e36b89fead513bfb4f1e256372f79cdef7758a4aee7ea2a56872a546f770aed5",
+              "h1:ygsLI2sCEoaA9a+5ZzV/aLtMq2yCeI6mIq9t/f7X6co="
+            ],
+            "package_size": 25305623
+          },
+          "linux_386": {
+            "hashes": [
+              "zh:de3e5d311b05baf75e1defe400eeeea389fd95086fd92e7fb7305ad5e77e6496",
+              "h1:3+N9m33KxykO0F22MfhsP0GDfRHD/PWpGvnPRpGLW/8="
+            ],
+            "package_size": 25805059
+          },
+          "linux_amd64": {
+            "hashes": [
+              "zh:29baeb4b7c6d4c41a1ef662ea134101040dedbe03049251f2bb637eb2e3a6b5b",
+              "h1:3u0r9oTB8SvJhckChI9E1cUE8lioBLH2ENE3J5qvO/k="
+            ],
+            "package_size": 33252113
+          },
+          "linux_arm": {
+            "hashes": [
+              "zh:01856b9b2753ec4a9b47e571dacc2d042604569ff0e2ba0b5113b0f1408ff3d1",
+              "h1:3A362Yri8ILUV7kTpZjc8jSCTy29r2/DZsCEUJomodQ="
+            ],
+            "package_size": 30919015
+          },
+          "linux_arm64": {
+            "hashes": [
+              "zh:9f1d65aed8dbb470ad9cb18681fc809c0a26a6089b594dea92fb9eaa37eca231",
+              "h1:4nJppI2Py1NhhwE1ytbc4zKwGEuGOpMKzsFpZnElANE="
+            ],
+            "package_size": 25334983
+          },
+          "openbsd_386": {
+            "hashes": [
+              "zh:e0fb32411e62320fa66c9ae2c8a59cf0944c151d4bc6970fba24fdbf6588221c",
+              "h1:kxTOdV+01LX0U+Z6HPasBhxDw/8WW2xw/IAAQEWmS6E="
+            ],
+            "package_size": 25755410
+          },
+          "openbsd_amd64": {
+            "hashes": [
+              "zh:edebafa0fe8accf941bfc3b8d8bb6dd0d9c95bf80ce2327895e3d84012a1def6",
+              "h1:VB/fz+MJZo88IiO3LEG/Pp7mj6xL9SzFoZ2XzcgVO0M="
+            ],
+            "package_size": 33222811
+          },
+          "openbsd_arm": {
+            "hashes": [
+              "zh:cdaba934b55e9d14f14c05f343f976b51159c5d45be01008190e816abb87e37b",
+              "h1:uuuA0/d9/jBQYI1jb+bZ2nYT3DUAnmxWboy8k8piSW0="
+            ],
+            "package_size": 30888164
+          },
+          "openbsd_arm64": {
+            "hashes": [
+              "zh:be0bd6476dc18157d7affb56b3ce3c778027a3fa563e7e597efc9cd67697435b",
+              "h1:dSrjx9HxO/FN9E0yKoLpDTmxwlxptqzWfH8h7z7ErYc="
+            ],
+            "package_size": 25306012
+          },
+          "solaris_amd64": {
+            "hashes": [
+              "zh:eb6d5468cbf1de4e68c0b816c691b92d9abb327f0fc299ba2202dc7d4ec158cd",
+              "h1:O/nq6T0UG0cvokqnonqxjATlzhbmeO8vwkOBLuinE9Q="
+            ],
+            "package_size": 33221748
+          },
+          "windows_386": {
+            "hashes": [
+              "zh:b428f2aa123ac2a0f13cacb1ea90fa79cb0f001967cf1de5b4527fb8543b75d9",
+              "h1:G7aCppJo0lFmedVs7hWZSdes14Bb5gZlXEgRdfVrcaM="
+            ],
+            "package_size": 29165359
+          },
+          "windows_amd64": {
+            "hashes": [
+              "zh:76869d84faf7263d9a2706b4026aa96b938a911bd0ef367cb9c933948eda0906",
+              "h1:fMNU2KOYI/C1NE6wEXski9podznRhPpWLZlD9v0N6H4="
+            ],
+            "package_size": 33570925
+          },
+          "windows_arm64": {
+            "hashes": [
+              "zh:c4c82168a84f50552a6088f7c53aea8144c47ebadaf48c2f7615eb5c2935fc47",
+              "h1:QihRvnKlu1MvHYOO9uOkCxfnzunqpfUT7uO0mlqXA3Q="
+            ],
+            "package_size": 25455587
+          }
+        }
+      }
+    },
+    "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS": {
+      "status": 200,
+      "file": "terraform-provider-oneuptime_17.3.0_SHA256SUMS"
+    },
+    "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig": {
+      "status": 200,
+      "file": "terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig"
+    },
+    "https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/17.3.0/download/linux/amd64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "linux",
+        "arch": "amd64",
+        "filename": "terraform-provider-oneuptime_17.3.0_linux_amd64.zip",
+        "download_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_linux_amd64.zip",
+        "shasums_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig",
+        "shasum": "29baeb4b7c6d4c41a1ef662ea134101040dedbe03049251f2bb637eb2e3a6b5b",
+        "signing_keys": {
+          "gpg_public_keys": null
+        },
+        "packages": {
+          "darwin_amd64": {
+            "hashes": [
+              "zh:c4a6e0dec60efeb07d7d71ec69b87d02d882ad64cf15275ae28c598f87527b40",
+              "h1:iSz1MP2Br8aikpnc3lcRuxk8lyQDiK45vX1AFmQXiOk="
+            ],
+            "package_size": 33569014
+          },
+          "darwin_arm64": {
+            "hashes": [
+              "zh:127a45fac26fed141add03beeb5207724f4d8114f1e30fd301260743e8ac5de0",
+              "h1:/PTz5+d3SSjkfrXaOX/XKDpQqfzSLav56mwC3XmUT3M="
+            ],
+            "package_size": 26435625
+          },
+          "freebsd_386": {
+            "hashes": [
+              "zh:8c1b284f916866e83dfb2a78d9856e0fc02c0502847fd8b730a8f2e7ad3107f5",
+              "h1:uUO0Qoi69XbPmgIBiVCT0Kt8GVJ2cwdmuBx197TfaPc="
+            ],
+            "package_size": 25760902
+          },
+          "freebsd_amd64": {
+            "hashes": [
+              "zh:2e44300266b7d179cfbbe818e7aaedcc1cb992e0d4803e6cfa2480f378780f4b",
+              "h1:KJ1Metu97wfxY9v2AjChw8brpvMa6fjxGqpD+TPYqVE="
+            ],
+            "package_size": 33224591
+          },
+          "freebsd_arm": {
+            "hashes": [
+              "zh:55586edbf0a4b64a76d54bc55bda7846fef62a8af65c1b84ed2a753797ac29ed",
+              "h1:JjEPWZ3UlNtb3ipb29hwqySc7nsMzV3EhIOrquSMqcQ="
+            ],
+            "package_size": 30890067
+          },
+          "freebsd_arm64": {
+            "hashes": [
+              "zh:e36b89fead513bfb4f1e256372f79cdef7758a4aee7ea2a56872a546f770aed5",
+              "h1:ygsLI2sCEoaA9a+5ZzV/aLtMq2yCeI6mIq9t/f7X6co="
+            ],
+            "package_size": 25305623
+          },
+          "linux_386": {
+            "hashes": [
+              "zh:de3e5d311b05baf75e1defe400eeeea389fd95086fd92e7fb7305ad5e77e6496",
+              "h1:3+N9m33KxykO0F22MfhsP0GDfRHD/PWpGvnPRpGLW/8="
+            ],
+            "package_size": 25805059
+          },
+          "linux_amd64": {
+            "hashes": [
+              "zh:29baeb4b7c6d4c41a1ef662ea134101040dedbe03049251f2bb637eb2e3a6b5b",
+              "h1:3u0r9oTB8SvJhckChI9E1cUE8lioBLH2ENE3J5qvO/k="
+            ],
+            "package_size": 33252113
+          },
+          "linux_arm": {
+            "hashes": [
+              "zh:01856b9b2753ec4a9b47e571dacc2d042604569ff0e2ba0b5113b0f1408ff3d1",
+              "h1:3A362Yri8ILUV7kTpZjc8jSCTy29r2/DZsCEUJomodQ="
+            ],
+            "package_size": 30919015
+          },
+          "linux_arm64": {
+            "hashes": [
+              "zh:9f1d65aed8dbb470ad9cb18681fc809c0a26a6089b594dea92fb9eaa37eca231",
+              "h1:4nJppI2Py1NhhwE1ytbc4zKwGEuGOpMKzsFpZnElANE="
+            ],
+            "package_size": 25334983
+          },
+          "openbsd_386": {
+            "hashes": [
+              "zh:e0fb32411e62320fa66c9ae2c8a59cf0944c151d4bc6970fba24fdbf6588221c",
+              "h1:kxTOdV+01LX0U+Z6HPasBhxDw/8WW2xw/IAAQEWmS6E="
+            ],
+            "package_size": 25755410
+          },
+          "openbsd_amd64": {
+            "hashes": [
+              "zh:edebafa0fe8accf941bfc3b8d8bb6dd0d9c95bf80ce2327895e3d84012a1def6",
+              "h1:VB/fz+MJZo88IiO3LEG/Pp7mj6xL9SzFoZ2XzcgVO0M="
+            ],
+            "package_size": 33222811
+          },
+          "openbsd_arm": {
+            "hashes": [
+              "zh:cdaba934b55e9d14f14c05f343f976b51159c5d45be01008190e816abb87e37b",
+              "h1:uuuA0/d9/jBQYI1jb+bZ2nYT3DUAnmxWboy8k8piSW0="
+            ],
+            "package_size": 30888164
+          },
+          "openbsd_arm64": {
+            "hashes": [
+              "zh:be0bd6476dc18157d7affb56b3ce3c778027a3fa563e7e597efc9cd67697435b",
+              "h1:dSrjx9HxO/FN9E0yKoLpDTmxwlxptqzWfH8h7z7ErYc="
+            ],
+            "package_size": 25306012
+          },
+          "solaris_amd64": {
+            "hashes": [
+              "zh:eb6d5468cbf1de4e68c0b816c691b92d9abb327f0fc299ba2202dc7d4ec158cd",
+              "h1:O/nq6T0UG0cvokqnonqxjATlzhbmeO8vwkOBLuinE9Q="
+            ],
+            "package_size": 33221748
+          },
+          "windows_386": {
+            "hashes": [
+              "zh:b428f2aa123ac2a0f13cacb1ea90fa79cb0f001967cf1de5b4527fb8543b75d9",
+              "h1:G7aCppJo0lFmedVs7hWZSdes14Bb5gZlXEgRdfVrcaM="
+            ],
+            "package_size": 29165359
+          },
+          "windows_amd64": {
+            "hashes": [
+              "zh:76869d84faf7263d9a2706b4026aa96b938a911bd0ef367cb9c933948eda0906",
+              "h1:fMNU2KOYI/C1NE6wEXski9podznRhPpWLZlD9v0N6H4="
+            ],
+            "package_size": 33570925
+          },
+          "windows_arm64": {
+            "hashes": [
+              "zh:c4c82168a84f50552a6088f7c53aea8144c47ebadaf48c2f7615eb5c2935fc47",
+              "h1:QihRvnKlu1MvHYOO9uOkCxfnzunqpfUT7uO0mlqXA3Q="
+            ],
+            "package_size": 25455587
+          }
+        }
+      }
+    },
+    "https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/17.3.0/download/windows/amd64": {
+      "status": 200,
+      "json": {
+        "protocols": [
+          "6.0"
+        ],
+        "os": "windows",
+        "arch": "amd64",
+        "filename": "terraform-provider-oneuptime_17.3.0_windows_amd64.zip",
+        "download_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_windows_amd64.zip",
+        "shasums_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS",
+        "shasums_signature_url": "https://github.com/oneuptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig",
+        "shasum": "76869d84faf7263d9a2706b4026aa96b938a911bd0ef367cb9c933948eda0906",
+        "signing_keys": {
+          "gpg_public_keys": null
+        },
+        "packages": {
+          "darwin_amd64": {
+            "hashes": [
+              "zh:c4a6e0dec60efeb07d7d71ec69b87d02d882ad64cf15275ae28c598f87527b40",
+              "h1:iSz1MP2Br8aikpnc3lcRuxk8lyQDiK45vX1AFmQXiOk="
+            ],
+            "package_size": 33569014
+          },
+          "darwin_arm64": {
+            "hashes": [
+              "zh:127a45fac26fed141add03beeb5207724f4d8114f1e30fd301260743e8ac5de0",
+              "h1:/PTz5+d3SSjkfrXaOX/XKDpQqfzSLav56mwC3XmUT3M="
+            ],
+            "package_size": 26435625
+          },
+          "freebsd_386": {
+            "hashes": [
+              "zh:8c1b284f916866e83dfb2a78d9856e0fc02c0502847fd8b730a8f2e7ad3107f5",
+              "h1:uUO0Qoi69XbPmgIBiVCT0Kt8GVJ2cwdmuBx197TfaPc="
+            ],
+            "package_size": 25760902
+          },
+          "freebsd_amd64": {
+            "hashes": [
+              "zh:2e44300266b7d179cfbbe818e7aaedcc1cb992e0d4803e6cfa2480f378780f4b",
+              "h1:KJ1Metu97wfxY9v2AjChw8brpvMa6fjxGqpD+TPYqVE="
+            ],
+            "package_size": 33224591
+          },
+          "freebsd_arm": {
+            "hashes": [
+              "zh:55586edbf0a4b64a76d54bc55bda7846fef62a8af65c1b84ed2a753797ac29ed",
+              "h1:JjEPWZ3UlNtb3ipb29hwqySc7nsMzV3EhIOrquSMqcQ="
+            ],
+            "package_size": 30890067
+          },
+          "freebsd_arm64": {
+            "hashes": [
+              "zh:e36b89fead513bfb4f1e256372f79cdef7758a4aee7ea2a56872a546f770aed5",
+              "h1:ygsLI2sCEoaA9a+5ZzV/aLtMq2yCeI6mIq9t/f7X6co="
+            ],
+            "package_size": 25305623
+          },
+          "linux_386": {
+            "hashes": [
+              "zh:de3e5d311b05baf75e1defe400eeeea389fd95086fd92e7fb7305ad5e77e6496",
+              "h1:3+N9m33KxykO0F22MfhsP0GDfRHD/PWpGvnPRpGLW/8="
+            ],
+            "package_size": 25805059
+          },
+          "linux_amd64": {
+            "hashes": [
+              "zh:29baeb4b7c6d4c41a1ef662ea134101040dedbe03049251f2bb637eb2e3a6b5b",
+              "h1:3u0r9oTB8SvJhckChI9E1cUE8lioBLH2ENE3J5qvO/k="
+            ],
+            "package_size": 33252113
+          },
+          "linux_arm": {
+            "hashes": [
+              "zh:01856b9b2753ec4a9b47e571dacc2d042604569ff0e2ba0b5113b0f1408ff3d1",
+              "h1:3A362Yri8ILUV7kTpZjc8jSCTy29r2/DZsCEUJomodQ="
+            ],
+            "package_size": 30919015
+          },
+          "linux_arm64": {
+            "hashes": [
+              "zh:9f1d65aed8dbb470ad9cb18681fc809c0a26a6089b594dea92fb9eaa37eca231",
+              "h1:4nJppI2Py1NhhwE1ytbc4zKwGEuGOpMKzsFpZnElANE="
+            ],
+            "package_size": 25334983
+          },
+          "openbsd_386": {
+            "hashes": [
+              "zh:e0fb32411e62320fa66c9ae2c8a59cf0944c151d4bc6970fba24fdbf6588221c",
+              "h1:kxTOdV+01LX0U+Z6HPasBhxDw/8WW2xw/IAAQEWmS6E="
+            ],
+            "package_size": 25755410
+          },
+          "openbsd_amd64": {
+            "hashes": [
+              "zh:edebafa0fe8accf941bfc3b8d8bb6dd0d9c95bf80ce2327895e3d84012a1def6",
+              "h1:VB/fz+MJZo88IiO3LEG/Pp7mj6xL9SzFoZ2XzcgVO0M="
+            ],
+            "package_size": 33222811
+          },
+          "openbsd_arm": {
+            "hashes": [
+              "zh:cdaba934b55e9d14f14c05f343f976b51159c5d45be01008190e816abb87e37b",
+              "h1:uuuA0/d9/jBQYI1jb+bZ2nYT3DUAnmxWboy8k8piSW0="
+            ],
+            "package_size": 30888164
+          },
+          "openbsd_arm64": {
+            "hashes": [
+              "zh:be0bd6476dc18157d7affb56b3ce3c778027a3fa563e7e597efc9cd67697435b",
+              "h1:dSrjx9HxO/FN9E0yKoLpDTmxwlxptqzWfH8h7z7ErYc="
+            ],
+            "package_size": 25306012
+          },
+          "solaris_amd64": {
+            "hashes": [
+              "zh:eb6d5468cbf1de4e68c0b816c691b92d9abb327f0fc299ba2202dc7d4ec158cd",
+              "h1:O/nq6T0UG0cvokqnonqxjATlzhbmeO8vwkOBLuinE9Q="
+            ],
+            "package_size": 33221748
+          },
+          "windows_386": {
+            "hashes": [
+              "zh:b428f2aa123ac2a0f13cacb1ea90fa79cb0f001967cf1de5b4527fb8543b75d9",
+              "h1:G7aCppJo0lFmedVs7hWZSdes14Bb5gZlXEgRdfVrcaM="
+            ],
+            "package_size": 29165359
+          },
+          "windows_amd64": {
+            "hashes": [
+              "zh:76869d84faf7263d9a2706b4026aa96b938a911bd0ef367cb9c933948eda0906",
+              "h1:fMNU2KOYI/C1NE6wEXski9podznRhPpWLZlD9v0N6H4="
+            ],
+            "package_size": 33570925
+          },
+          "windows_arm64": {
+            "hashes": [
+              "zh:c4c82168a84f50552a6088f7c53aea8144c47ebadaf48c2f7615eb5c2935fc47",
+              "h1:QihRvnKlu1MvHYOO9uOkCxfnzunqpfUT7uO0mlqXA3Q="
+            ],
+            "package_size": 25455587
+          }
+        }
+      }
+    },
+    "https://api.github.com/repos/OneUptime/terraform-provider-oneuptime/releases/tags/v17.2.0": {
+      "status": 200,
+      "json": {
+        "tag_name": "v17.2.0",
+        "draft": false,
+        "prerelease": false,
+        "immutable": false,
+        "created_at": "2026-11-24T13:49:27Z",
+        "published_at": "2026-11-24T14:30:16Z",
+        "upload_url": "https://uploads.github.com/repos/OneUptime/terraform-provider-oneuptime/releases/456881196/assets{?name,label}",
+        "assets": [
+          {
+            "id": 787966513,
+            "name": "terraform-provider-oneuptime_17.2.0_darwin_amd64.zip",
+            "size": 27139283,
+            "digest": "sha256:56d57c0ee5ac21b1fbef94e61bc28785d53f5b875c7eb8889351e47ee0060a40",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_darwin_amd64.zip",
+            "created_at": "2026-11-24T16:33:26Z",
+            "updated_at": "2026-11-24T16:33:28Z"
+          },
+          {
+            "id": 787966645,
+            "name": "terraform-provider-oneuptime_17.2.0_darwin_arm64.zip",
+            "size": 21979971,
+            "digest": "sha256:7efe91fc5f98d5f56dca6aa131d83283950c9cea4c2b8c3dcef72f48f9c416a2",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_darwin_arm64.zip",
+            "created_at": "2026-11-24T16:33:29Z",
+            "updated_at": "2026-11-24T16:33:30Z"
+          },
+          {
+            "id": 787966773,
+            "name": "terraform-provider-oneuptime_17.2.0_freebsd_386.zip",
+            "size": 21217659,
+            "digest": "sha256:32e79af00053ee3d44a71d49ce482e4d341d50aac5fb5dc074bb90eedee11b9f",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_freebsd_386.zip",
+            "created_at": "2026-11-24T16:33:31Z",
+            "updated_at": "2026-11-24T16:33:33Z"
+          },
+          {
+            "id": 787966885,
+            "name": "terraform-provider-oneuptime_17.2.0_freebsd_amd64.zip",
+            "size": 26806518,
+            "digest": "sha256:8ebf4713ed5340bbd113521f6435f3ddad88d36a468e22428fcae9abe3cb03f3",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_freebsd_amd64.zip",
+            "created_at": "2026-11-24T16:33:34Z",
+            "updated_at": "2026-11-24T16:33:35Z"
+          },
+          {
+            "id": 787967057,
+            "name": "terraform-provider-oneuptime_17.2.0_freebsd_arm.zip",
+            "size": 24965600,
+            "digest": "sha256:89602e5a0b1327efad5d2751e963ad4f7e7871db42d17abb8ad1689acedc233f",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_freebsd_arm.zip",
+            "created_at": "2026-11-24T16:33:37Z",
+            "updated_at": "2026-11-24T16:33:38Z"
+          },
+          {
+            "id": 787967201,
+            "name": "terraform-provider-oneuptime_17.2.0_freebsd_arm64.zip",
+            "size": 21026548,
+            "digest": "sha256:735d89f8e607a924b941b6e5a4b53c2f2f8ada605af1da9fa7e496e7fb6cc974",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_freebsd_arm64.zip",
+            "created_at": "2026-11-24T16:33:39Z",
+            "updated_at": "2026-11-24T16:33:40Z"
+          },
+          {
+            "id": 787967320,
+            "name": "terraform-provider-oneuptime_17.2.0_linux_386.zip",
+            "size": 21258809,
+            "digest": "sha256:a71ec70a910a610160718653fbb6ca6f296add77e20cd0c920dbc6dcc0426140",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_linux_386.zip",
+            "created_at": "2026-11-24T16:33:41Z",
+            "updated_at": "2026-11-24T16:33:43Z"
+          },
+          {
+            "id": 787967437,
+            "name": "terraform-provider-oneuptime_17.2.0_linux_amd64.zip",
+            "size": 26828187,
+            "digest": "sha256:0534cf54b2e77a630bee649c653936733d6282314cef3c9a0f653bc71ee37e63",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_linux_amd64.zip",
+            "created_at": "2026-11-24T16:33:44Z",
+            "updated_at": "2026-11-24T16:33:45Z"
+          },
+          {
+            "id": 787967615,
+            "name": "terraform-provider-oneuptime_17.2.0_linux_arm.zip",
+            "size": 24993819,
+            "digest": "sha256:11af0ce459d06d17b39f42aefd25f021f68cd78c562c195426c184ba01e33507",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_linux_arm.zip",
+            "created_at": "2026-11-24T16:33:47Z",
+            "updated_at": "2026-11-24T16:33:48Z"
+          },
+          {
+            "id": 787967739,
+            "name": "terraform-provider-oneuptime_17.2.0_linux_arm64.zip",
+            "size": 21064742,
+            "digest": "sha256:ba71349b09411f3e633c02e6ad9d7211eeb6b261c0dd657cdc06b15da9882e5f",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_linux_arm64.zip",
+            "created_at": "2026-11-24T16:33:49Z",
+            "updated_at": "2026-11-24T16:33:51Z"
+          },
+          {
+            "id": 787969277,
+            "name": "terraform-provider-oneuptime_17.2.0_manifest.json",
+            "size": 85,
+            "digest": "sha256:f26e0763dbe6a6b2195c94b44696f2110f7f55433dc142839be16b9697fa5597",
+            "state": "uploaded",
+            "content_type": "application/json",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_manifest.json",
+            "created_at": "2026-11-24T16:34:17Z",
+            "updated_at": "2026-11-24T16:34:17Z"
+          },
+          {
+            "id": 787967939,
+            "name": "terraform-provider-oneuptime_17.2.0_openbsd_386.zip",
+            "size": 21216744,
+            "digest": "sha256:282350fb5b0b9047ca948247717da909496d1ed9b197a55712be73498b30a2b9",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_openbsd_386.zip",
+            "created_at": "2026-11-24T16:33:52Z",
+            "updated_at": "2026-11-24T16:33:53Z"
+          },
+          {
+            "id": 787968077,
+            "name": "terraform-provider-oneuptime_17.2.0_openbsd_amd64.zip",
+            "size": 26802608,
+            "digest": "sha256:ee2a1c8d911faf09e39b5d9f3bd250eae666e6a6b8e8c19b2cca8d64c9bdebb4",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_openbsd_amd64.zip",
+            "created_at": "2026-11-24T16:33:55Z",
+            "updated_at": "2026-11-24T16:33:56Z"
+          },
+          {
+            "id": 787968218,
+            "name": "terraform-provider-oneuptime_17.2.0_openbsd_arm.zip",
+            "size": 24963267,
+            "digest": "sha256:723ab1e3feac76dd8fae017151bc29233ddc23442dea587da4b0a11abe6599e1",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_openbsd_arm.zip",
+            "created_at": "2026-11-24T16:33:57Z",
+            "updated_at": "2026-11-24T16:33:59Z"
+          },
+          {
+            "id": 787968368,
+            "name": "terraform-provider-oneuptime_17.2.0_openbsd_arm64.zip",
+            "size": 21032026,
+            "digest": "sha256:c006b83ddbf2e4119562d981732be209a249ff696a239748354083eff1611858",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_openbsd_arm64.zip",
+            "created_at": "2026-11-24T16:34:00Z",
+            "updated_at": "2026-11-24T16:34:01Z"
+          },
+          {
+            "id": 787969075,
+            "name": "terraform-provider-oneuptime_17.2.0_SHA256SUMS",
+            "size": 2252,
+            "digest": "sha256:a603ec4ff940164917e719b67c80b90ed33f25af653cd210c77f0b24139f9e05",
+            "state": "uploaded",
+            "content_type": "application/octet-stream",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS",
+            "created_at": "2026-11-24T16:34:13Z",
+            "updated_at": "2026-11-24T16:34:13Z"
+          },
+          {
+            "id": 787969187,
+            "name": "terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig",
+            "size": 566,
+            "digest": "sha256:c6e2c046910a1f1e327830d0c02e4347dcdf8a6ce6079e21a951201cc3c6a1bc",
+            "state": "uploaded",
+            "content_type": "application/pgp-signature",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_SHA256SUMS.sig",
+            "created_at": "2026-11-24T16:34:15Z",
+            "updated_at": "2026-11-24T16:34:16Z"
+          },
+          {
+            "id": 787968504,
+            "name": "terraform-provider-oneuptime_17.2.0_solaris_amd64.zip",
+            "size": 26804021,
+            "digest": "sha256:96db4a8e82ff1be38ea3c312a27eeb380e9fd802dd07f8a6c094e4c9255f9f6d",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_solaris_amd64.zip",
+            "created_at": "2026-11-24T16:34:02Z",
+            "updated_at": "2026-11-24T16:34:03Z"
+          },
+          {
+            "id": 787968647,
+            "name": "terraform-provider-oneuptime_17.2.0_windows_386.zip",
+            "size": 23747465,
+            "digest": "sha256:e907c8a343bfae17b4e9ce03a5e844d15684565459d9f1fa5681779c91e57fc8",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_windows_386.zip",
+            "created_at": "2026-11-24T16:34:05Z",
+            "updated_at": "2026-11-24T16:34:06Z"
+          },
+          {
+            "id": 787968773,
+            "name": "terraform-provider-oneuptime_17.2.0_windows_amd64.zip",
+            "size": 27134290,
+            "digest": "sha256:68567ed4e5bf101f9524aa16d042213c71b02473bb386161e3c107a122c725c5",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_windows_amd64.zip",
+            "created_at": "2026-11-24T16:34:07Z",
+            "updated_at": "2026-11-24T16:34:09Z"
+          },
+          {
+            "id": 787968908,
+            "name": "terraform-provider-oneuptime_17.2.0_windows_arm64.zip",
+            "size": 21164372,
+            "digest": "sha256:7eb1654a886d42f04d99ca0d2c6bbfd8ff8a29149a0c4e4f788425a145529804",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.2.0/terraform-provider-oneuptime_17.2.0_windows_arm64.zip",
+            "created_at": "2026-11-24T16:34:10Z",
+            "updated_at": "2026-11-24T16:34:11Z"
+          }
+        ]
+      }
+    },
+    "https://api.github.com/repos/OneUptime/terraform-provider-oneuptime/releases/tags/v17.3.0": {
+      "status": 200,
+      "json": {
+        "tag_name": "v17.3.0",
+        "draft": false,
+        "prerelease": false,
+        "immutable": false,
+        "created_at": "2026-11-26T08:03:37Z",
+        "published_at": "2026-11-26T09:04:10Z",
+        "upload_url": "https://uploads.github.com/repos/OneUptime/terraform-provider-oneuptime/releases/459165412/assets{?name,label}",
+        "assets": [
+          {
+            "id": 795072846,
+            "name": "terraform-provider-oneuptime_17.3.0_darwin_amd64.zip",
+            "size": 33569014,
+            "digest": "sha256:c4a6e0dec60efeb07d7d71ec69b87d02d882ad64cf15275ae28c598f87527b40",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_darwin_amd64.zip",
+            "created_at": "2026-11-26T09:03:28Z",
+            "updated_at": "2026-11-26T09:03:30Z"
+          },
+          {
+            "id": 795072934,
+            "name": "terraform-provider-oneuptime_17.3.0_darwin_arm64.zip",
+            "size": 26435625,
+            "digest": "sha256:127a45fac26fed141add03beeb5207724f4d8114f1e30fd301260743e8ac5de0",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_darwin_arm64.zip",
+            "created_at": "2026-11-26T09:03:30Z",
+            "updated_at": "2026-11-26T09:03:32Z"
+          },
+          {
+            "id": 795073034,
+            "name": "terraform-provider-oneuptime_17.3.0_freebsd_386.zip",
+            "size": 25760902,
+            "digest": "sha256:8c1b284f916866e83dfb2a78d9856e0fc02c0502847fd8b730a8f2e7ad3107f5",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_freebsd_386.zip",
+            "created_at": "2026-11-26T09:03:33Z",
+            "updated_at": "2026-11-26T09:03:34Z"
+          },
+          {
+            "id": 795073133,
+            "name": "terraform-provider-oneuptime_17.3.0_freebsd_amd64.zip",
+            "size": 33224591,
+            "digest": "sha256:2e44300266b7d179cfbbe818e7aaedcc1cb992e0d4803e6cfa2480f378780f4b",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_freebsd_amd64.zip",
+            "created_at": "2026-11-26T09:03:34Z",
+            "updated_at": "2026-11-26T09:03:36Z"
+          },
+          {
+            "id": 795073238,
+            "name": "terraform-provider-oneuptime_17.3.0_freebsd_arm.zip",
+            "size": 30890067,
+            "digest": "sha256:55586edbf0a4b64a76d54bc55bda7846fef62a8af65c1b84ed2a753797ac29ed",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_freebsd_arm.zip",
+            "created_at": "2026-11-26T09:03:37Z",
+            "updated_at": "2026-11-26T09:03:38Z"
+          },
+          {
+            "id": 795073364,
+            "name": "terraform-provider-oneuptime_17.3.0_freebsd_arm64.zip",
+            "size": 25305623,
+            "digest": "sha256:e36b89fead513bfb4f1e256372f79cdef7758a4aee7ea2a56872a546f770aed5",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_freebsd_arm64.zip",
+            "created_at": "2026-11-26T09:03:39Z",
+            "updated_at": "2026-11-26T09:03:40Z"
+          },
+          {
+            "id": 795073531,
+            "name": "terraform-provider-oneuptime_17.3.0_linux_386.zip",
+            "size": 25805059,
+            "digest": "sha256:de3e5d311b05baf75e1defe400eeeea389fd95086fd92e7fb7305ad5e77e6496",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_linux_386.zip",
+            "created_at": "2026-11-26T09:03:41Z",
+            "updated_at": "2026-11-26T09:03:42Z"
+          },
+          {
+            "id": 795073622,
+            "name": "terraform-provider-oneuptime_17.3.0_linux_amd64.zip",
+            "size": 33252113,
+            "digest": "sha256:29baeb4b7c6d4c41a1ef662ea134101040dedbe03049251f2bb637eb2e3a6b5b",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_linux_amd64.zip",
+            "created_at": "2026-11-26T09:03:43Z",
+            "updated_at": "2026-11-26T09:03:44Z"
+          },
+          {
+            "id": 795073735,
+            "name": "terraform-provider-oneuptime_17.3.0_linux_arm.zip",
+            "size": 30919015,
+            "digest": "sha256:01856b9b2753ec4a9b47e571dacc2d042604569ff0e2ba0b5113b0f1408ff3d1",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_linux_arm.zip",
+            "created_at": "2026-11-26T09:03:45Z",
+            "updated_at": "2026-11-26T09:03:46Z"
+          },
+          {
+            "id": 795073834,
+            "name": "terraform-provider-oneuptime_17.3.0_linux_arm64.zip",
+            "size": 25334983,
+            "digest": "sha256:9f1d65aed8dbb470ad9cb18681fc809c0a26a6089b594dea92fb9eaa37eca231",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_linux_arm64.zip",
+            "created_at": "2026-11-26T09:03:47Z",
+            "updated_at": "2026-11-26T09:03:48Z"
+          },
+          {
+            "id": 795074858,
+            "name": "terraform-provider-oneuptime_17.3.0_manifest.json",
+            "size": 85,
+            "digest": "sha256:f26e0763dbe6a6b2195c94b44696f2110f7f55433dc142839be16b9697fa5597",
+            "state": "uploaded",
+            "content_type": "application/json",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_manifest.json",
+            "created_at": "2026-11-26T09:04:08Z",
+            "updated_at": "2026-11-26T09:04:08Z"
+          },
+          {
+            "id": 795073949,
+            "name": "terraform-provider-oneuptime_17.3.0_openbsd_386.zip",
+            "size": 25755410,
+            "digest": "sha256:e0fb32411e62320fa66c9ae2c8a59cf0944c151d4bc6970fba24fdbf6588221c",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_openbsd_386.zip",
+            "created_at": "2026-11-26T09:03:49Z",
+            "updated_at": "2026-11-26T09:03:50Z"
+          },
+          {
+            "id": 795074036,
+            "name": "terraform-provider-oneuptime_17.3.0_openbsd_amd64.zip",
+            "size": 33222811,
+            "digest": "sha256:edebafa0fe8accf941bfc3b8d8bb6dd0d9c95bf80ce2327895e3d84012a1def6",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_openbsd_amd64.zip",
+            "created_at": "2026-11-26T09:03:51Z",
+            "updated_at": "2026-11-26T09:03:53Z"
+          },
+          {
+            "id": 795074127,
+            "name": "terraform-provider-oneuptime_17.3.0_openbsd_arm.zip",
+            "size": 30888164,
+            "digest": "sha256:cdaba934b55e9d14f14c05f343f976b51159c5d45be01008190e816abb87e37b",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_openbsd_arm.zip",
+            "created_at": "2026-11-26T09:03:53Z",
+            "updated_at": "2026-11-26T09:03:55Z"
+          },
+          {
+            "id": 795074252,
+            "name": "terraform-provider-oneuptime_17.3.0_openbsd_arm64.zip",
+            "size": 25306012,
+            "digest": "sha256:be0bd6476dc18157d7affb56b3ce3c778027a3fa563e7e597efc9cd67697435b",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_openbsd_arm64.zip",
+            "created_at": "2026-11-26T09:03:56Z",
+            "updated_at": "2026-11-26T09:03:57Z"
+          },
+          {
+            "id": 795074792,
+            "name": "terraform-provider-oneuptime_17.3.0_SHA256SUMS",
+            "size": 2252,
+            "digest": "sha256:cce9452d247725679b000ac2d98cfabae451ab58ba51b6170d8824d75bef6173",
+            "state": "uploaded",
+            "content_type": "application/octet-stream",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS",
+            "created_at": "2026-11-26T09:04:06Z",
+            "updated_at": "2026-11-26T09:04:06Z"
+          },
+          {
+            "id": 795074834,
+            "name": "terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig",
+            "size": 566,
+            "digest": "sha256:995f5a08422110af3755ccfe8ab9e029aa3d4444f09a6f60448b4300bc375723",
+            "state": "uploaded",
+            "content_type": "application/pgp-signature",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_SHA256SUMS.sig",
+            "created_at": "2026-11-26T09:04:07Z",
+            "updated_at": "2026-11-26T09:04:07Z"
+          },
+          {
+            "id": 795074378,
+            "name": "terraform-provider-oneuptime_17.3.0_solaris_amd64.zip",
+            "size": 33221748,
+            "digest": "sha256:eb6d5468cbf1de4e68c0b816c691b92d9abb327f0fc299ba2202dc7d4ec158cd",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_solaris_amd64.zip",
+            "created_at": "2026-11-26T09:03:58Z",
+            "updated_at": "2026-11-26T09:03:59Z"
+          },
+          {
+            "id": 795074471,
+            "name": "terraform-provider-oneuptime_17.3.0_windows_386.zip",
+            "size": 29165359,
+            "digest": "sha256:b428f2aa123ac2a0f13cacb1ea90fa79cb0f001967cf1de5b4527fb8543b75d9",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_windows_386.zip",
+            "created_at": "2026-11-26T09:04:00Z",
+            "updated_at": "2026-11-26T09:04:01Z"
+          },
+          {
+            "id": 795074590,
+            "name": "terraform-provider-oneuptime_17.3.0_windows_amd64.zip",
+            "size": 33570925,
+            "digest": "sha256:76869d84faf7263d9a2706b4026aa96b938a911bd0ef367cb9c933948eda0906",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_windows_amd64.zip",
+            "created_at": "2026-11-26T09:04:02Z",
+            "updated_at": "2026-11-26T09:04:03Z"
+          },
+          {
+            "id": 795074700,
+            "name": "terraform-provider-oneuptime_17.3.0_windows_arm64.zip",
+            "size": 25455587,
+            "digest": "sha256:c4c82168a84f50552a6088f7c53aea8144c47ebadaf48c2f7615eb5c2935fc47",
+            "state": "uploaded",
+            "content_type": "application/zip",
+            "browser_download_url": "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v17.3.0/terraform-provider-oneuptime_17.3.0_windows_arm64.zip",
+            "created_at": "2026-11-26T09:04:04Z",
+            "updated_at": "2026-11-26T09:04:05Z"
+          }
+        ]
+      }
+    }
+  }
+}

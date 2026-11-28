@@ -1,6 +1,7 @@
 import CalendarEvent from "../Calendar/CalendarEvent";
 import OneUptimeDate from "../Date";
 import { ROTATION_PERIOD_START_KEY } from "./Layer";
+import ShiftSeamUtil from "./ShiftSeamUtil";
 import UserOverrideUtil, { OverrideEventMeta } from "./UserOverrideUtil";
 
 /*
@@ -83,6 +84,22 @@ export interface GroupEventsIntoShiftsOptions {
   groupKey?: ShiftGroupKeyFunction | undefined;
 }
 
+// A shift with the group key its segments were folded by.
+export interface KeyedOnCallShift {
+  shift: OnCallShift;
+  key: string;
+}
+
+/*
+ * A shift as the schedule timeline shows it (getTimelineShifts), with the
+ * rotation turn it is part of: the person, the override when one put them
+ * there, the layer and the rotation period (groupKeyByUserOverrideAndLayer).
+ * Two shifts of one turn are one person's windows of active hours in it.
+ */
+export interface TimelineShift extends OnCallShift {
+  turnKey: string;
+}
+
 export interface CoverageGap {
   start: Date;
   end: Date;
@@ -163,6 +180,81 @@ export default class ScheduleShiftUtil {
     events: Array<CalendarEvent>,
     options?: GroupEventsIntoShiftsOptions | undefined,
   ): Array<OnCallShift> {
+    return ScheduleShiftUtil.groupEventsIntoKeyedShifts(events, options).map(
+      (keyed: KeyedOnCallShift): OnCallShift => {
+        return keyed.shift;
+      },
+    );
+  }
+
+  /*
+   * THE SHIFTS THE SCHEDULE TIMELINE SHOWS - AND THE ROSTER STATES (#11268).
+   *
+   * The engine hands out coverage as segments that are not the shifts a
+   * person is on call for: an overnight window of active hours (17:00 to
+   * 07:00) comes out as two segments, split at midnight, and every boundary
+   * carries a one-second seam. The schedule timeline, the calendar feeds,
+   * /my-shifts and the shift reminders read them as shifts this one way
+   * (OnCallShiftMaterializer):
+   *
+   *   1. the segments of one person, in one layer and one rotation turn - or
+   *      one override - that touch are one shift (groupKeyByUserOverrideAnd
+   *      Layer, with no gap bridged), so a restricted layer is one shift per
+   *      window of its active hours, and a hand-off is a boundary;
+   *   2. the engine's seams are closed, on the minute (ShiftSeamUtil).
+   *
+   * The roster - who is on call, since and until when, and who is next, as
+   * the hand-off emails, the mobile app, Slack and Microsoft Teams and the
+   * schedules list state them - is read from the same shifts
+   * (ScheduleRoster), so it can never say a shift ends at 11:59 PM that the
+   * timeline shows ending at 07:00 the next morning.
+   *
+   * Each shift keeps its group key as turnKey: what the roster tells a turn
+   * of active hours apart by.
+   */
+  public static getTimelineShifts(
+    segments: Array<CalendarEvent>,
+  ): Array<TimelineShift> {
+    const keyed: Array<KeyedOnCallShift> =
+      ScheduleShiftUtil.groupEventsIntoKeyedShifts(segments, {
+        mergeAcrossGaps: false,
+        groupKey: ScheduleShiftUtil.groupKeyByUserOverrideAndLayer,
+      });
+
+    /*
+     * Seam normalisation widens a shift by the engine's one-second seams;
+     * with mergeAcrossGaps = false every shift is one contiguous block, so
+     * its honest active time is exactly its span. Recompute rather than
+     * carry the pre-normalisation sum, which would read 28799 for an 8-hour
+     * block.
+     */
+    return ShiftSeamUtil.normalizeSeams(
+      keyed.map((entry: KeyedOnCallShift): TimelineShift => {
+        return { ...entry.shift, turnKey: entry.key };
+      }),
+    )
+      .filter((shift: TimelineShift) => {
+        return shift.end.getTime() > shift.start.getTime();
+      })
+      .map((shift: TimelineShift): TimelineShift => {
+        return {
+          ...shift,
+          coverageSeconds: Math.round(
+            (shift.end.getTime() - shift.start.getTime()) / 1000,
+          ),
+        };
+      });
+  }
+
+  /*
+   * groupEventsIntoShifts, with each shift's group key beside it: the key
+   * of the segments folded into it (they all share it, or they would not
+   * have been folded).
+   */
+  public static groupEventsIntoKeyedShifts(
+    events: Array<CalendarEvent>,
+    options?: GroupEventsIntoShiftsOptions | undefined,
+  ): Array<KeyedOnCallShift> {
     if (!events || events.length === 0) {
       return [];
     }
@@ -192,7 +284,7 @@ export default class ScheduleShiftUtil {
       options?.bridgeGapsWithinTurnOnly,
     );
 
-    const shifts: Array<OnCallShift> = [];
+    const shifts: Array<KeyedOnCallShift> = [];
     let lastKey: string | null = null;
     // The rotation turn of the last segment folded in (see the option above).
     let lastPeriod: number | undefined = undefined;
@@ -204,7 +296,7 @@ export default class ScheduleShiftUtil {
         event.end,
         event.start,
       );
-      const last: OnCallShift | undefined = shifts[shifts.length - 1];
+      const last: OnCallShift | undefined = shifts[shifts.length - 1]?.shift;
 
       const sameUser: boolean = Boolean(last) && lastKey === key;
 
@@ -272,7 +364,7 @@ export default class ScheduleShiftUtil {
         shift.layerName = layerName;
       }
 
-      shifts.push(shift);
+      shifts.push({ shift: shift, key: key });
       lastKey = key;
       lastPeriod = period;
     }
