@@ -349,6 +349,15 @@
     "loadFailed": "यह अनुरोध लोड नहीं हो सका। कृपया कुछ मिनट बाद फिर से कोशिश करें।",
     "backToForm": "फ़ॉर्म पर वापस जाएँ"
   },
+  "formFollowUpStates": {
+    "identified": "पहचाना गया",
+    "acknowledged": "स्वीकार किया गया",
+    "resolved": "सुलझाया गया",
+    "scheduled": "निर्धारित",
+    "ongoing": "जारी",
+    "ended": "समाप्त",
+    "completed": "पूर्ण"
+  },
   "errors": {
     "forbidden": {
       "title": "निषिद्ध",

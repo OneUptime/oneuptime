@@ -349,6 +349,15 @@
     "loadFailed": "Denne anmodning kunne ikke indlæses. Prøv igen om et par minutter.",
     "backToForm": "Tilbage til formularen"
   },
+  "formFollowUpStates": {
+    "identified": "Identificeret",
+    "acknowledged": "Bekræftet",
+    "resolved": "Løst",
+    "scheduled": "Planlagt",
+    "ongoing": "Igangværende",
+    "ended": "Afsluttet",
+    "completed": "Fuldført"
+  },
   "errors": {
     "forbidden": {
       "title": "Forbudt",

@@ -8,6 +8,11 @@ import {
   FORM_FOLLOW_UP_RECORD_GONE_MESSAGE,
   FORM_FOLLOW_UP_TOO_MANY_PEOPLE_MESSAGE,
 } from "Common/Types/Form/FormFollowUp";
+import {
+  DEFAULT_ALERT_STATE_NAMES,
+  DEFAULT_INCIDENT_STATE_NAMES,
+  DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES,
+} from "Common/Types/StatusPage/DefaultStatusNames";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
@@ -158,6 +163,78 @@ describe("the view's copy", () => {
       }
     }
   });
+});
+
+/*
+ * A request's state, named by its list (Utils/FormFollowUp,
+ * getFormRequestStateName): OneUptime's own names for an incident's, an
+ * alert's and a maintenance event's states, in the formFollowUpStates
+ * block - the very words the status page shows for them.
+ */
+describe("a request's state names", () => {
+  const STATES_BLOCK: string = "formFollowUpStates";
+  const STATUS_PAGE_LOCALES_DIR: string = nodePath.join(
+    APP_DIR,
+    "FeatureSet",
+    "StatusPage",
+    "src",
+    "Locales",
+  );
+
+  const statesOf: (code: string) => Record<string, string> = (
+    code: string,
+  ): Record<string, string> => {
+    return readLocale(code)[STATES_BLOCK] as Record<string, string>;
+  };
+
+  test("are every one of OneUptime's own names for the three lists, in English as they are", () => {
+    const names: Array<string> = Array.from(
+      new Set<string>([
+        ...DEFAULT_INCIDENT_STATE_NAMES,
+        ...DEFAULT_ALERT_STATE_NAMES,
+        ...DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES,
+      ]),
+    );
+
+    expect(Object.values(statesOf("en")).sort()).toEqual(names.sort());
+
+    for (const name of names) {
+      const key: string = name.charAt(0).toLowerCase() + name.slice(1);
+
+      expect({ name, english: statesOf("en")[key] }).toEqual({
+        name,
+        english: name,
+      });
+    }
+  });
+
+  test.each(localeCodes)(
+    "%s: sits right after the view's copy, its keys in English's order",
+    (code: string) => {
+      const keys: Array<string> = Object.keys(readLocale(code));
+
+      expect(keys[keys.indexOf(BLOCK) + 1]).toBe(STATES_BLOCK);
+      expect(Object.keys(statesOf(code))).toEqual(Object.keys(statesOf("en")));
+    },
+  );
+
+  test.each(localeCodes)(
+    "%s: words each state as the status page does",
+    (code: string) => {
+      const statusNames: Record<string, string> = (
+        JSON.parse(
+          fs.readFileSync(
+            nodePath.join(STATUS_PAGE_LOCALES_DIR, `${code}.json`),
+            "utf8",
+          ),
+        ) as Record<string, Record<string, string>>
+      )["statusNames"]!;
+
+      for (const [key, value] of Object.entries(statesOf(code))) {
+        expect({ key, value }).toEqual({ key, value: statusNames[key] });
+      }
+    },
+  );
 });
 
 describe("the follow-up routes' refusals", () => {

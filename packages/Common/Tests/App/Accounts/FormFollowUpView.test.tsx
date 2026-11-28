@@ -39,6 +39,7 @@ import {
   formatFormFollowUpCredential,
 } from "../../../Types/Form/FormFollowUp";
 import { JSONObject } from "../../../Types/JSON";
+import { StateListType } from "../../../Utils/StateListType";
 import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import FormFollowUpView from "../../../../App/FeatureSet/Accounts/src/Components/FormFollowUp/FormFollowUpView";
 import { FormFollowUpView as FollowUpView } from "../../../../App/FeatureSet/Accounts/src/Utils/FormFollowUp";
@@ -244,6 +245,52 @@ describe("a request", () => {
     expect(team).toHaveTextContent("We are looking into it.");
     expect(mine).toHaveTextContent("You");
     expect(mine).toHaveTextContent("steps.txt");
+  });
+
+  test("names OneUptime's own state in the reader's language, and the project's own as written", async () => {
+    await i18n.changeLanguage("de");
+
+    await openRequest(
+      aRequest({
+        state: {
+          name: "Resolved",
+          list: StateListType.IncidentState,
+          isClosed: true,
+        },
+      }),
+    );
+
+    expect(screen.getByTestId("form-request-state")).toHaveTextContent(
+      "Behoben",
+    );
+
+    cleanup();
+
+    await openRequest(
+      aRequest({
+        state: {
+          name: "Open",
+          list: StateListType.IncidentState,
+          isClosed: false,
+        },
+      }),
+    );
+
+    expect(screen.getByTestId("form-request-state")).toHaveTextContent("Open");
+  });
+
+  test("names a state of an alert by the alert's own list", async () => {
+    await i18n.changeLanguage("de");
+
+    await openRequest(
+      aRequest({
+        state: { name: "Acknowledged", list: StateListType.AlertState },
+      }),
+    );
+
+    expect(screen.getByTestId("form-request-state")).toHaveTextContent(
+      "Bestätigt",
+    );
   });
 
   test("says so when nobody has written yet", async () => {

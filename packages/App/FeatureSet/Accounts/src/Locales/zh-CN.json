@@ -349,6 +349,15 @@
     "loadFailed": "此请求未能加载。请过几分钟再试。",
     "backToForm": "返回表单"
   },
+  "formFollowUpStates": {
+    "identified": "已识别",
+    "acknowledged": "已确认",
+    "resolved": "已解决",
+    "scheduled": "已计划",
+    "ongoing": "进行中",
+    "ended": "已结束",
+    "completed": "已完成"
+  },
   "errors": {
     "forbidden": {
       "title": "禁止访问",

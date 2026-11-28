@@ -349,6 +349,15 @@
     "loadFailed": "Denne forespørselen kunne ikke lastes inn. Prøv igjen om noen minutter.",
     "backToForm": "Tilbake til skjemaet"
   },
+  "formFollowUpStates": {
+    "identified": "Identifisert",
+    "acknowledged": "Bekreftet",
+    "resolved": "Løst",
+    "scheduled": "Planlagt",
+    "ongoing": "Pågående",
+    "ended": "Avsluttet",
+    "completed": "Fullført"
+  },
   "errors": {
     "forbidden": {
       "title": "Forbudt",

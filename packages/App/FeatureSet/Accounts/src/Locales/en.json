@@ -349,6 +349,15 @@
     "loadFailed": "This request could not be loaded. Please try again in a few minutes.",
     "backToForm": "Back to the form"
   },
+  "formFollowUpStates": {
+    "identified": "Identified",
+    "acknowledged": "Acknowledged",
+    "resolved": "Resolved",
+    "scheduled": "Scheduled",
+    "ongoing": "Ongoing",
+    "ended": "Ended",
+    "completed": "Completed"
+  },
   "errors": {
     "forbidden": {
       "title": "Forbidden",

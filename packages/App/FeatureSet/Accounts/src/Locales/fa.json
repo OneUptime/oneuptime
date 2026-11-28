@@ -349,6 +349,15 @@
     "loadFailed": "این درخواست بارگذاری نشد. لطفاً چند دقیقه دیگر دوباره تلاش کنید.",
     "backToForm": "بازگشت به فرم"
   },
+  "formFollowUpStates": {
+    "identified": "شناسایی‌شده",
+    "acknowledged": "تأییدشده",
+    "resolved": "برطرف‌شده",
+    "scheduled": "زمان‌بندی‌شده",
+    "ongoing": "در جریان",
+    "ended": "پایان‌یافته",
+    "completed": "تکمیل‌شده"
+  },
   "errors": {
     "forbidden": {
       "title": "دسترسی ممنوع",

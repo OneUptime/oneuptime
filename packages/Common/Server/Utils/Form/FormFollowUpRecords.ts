@@ -14,9 +14,13 @@ import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInterna
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceInternalNote from "../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { PublicFormRequestState } from "../../../Types/Form/FormFollowUp";
+import {
+  FormFollowUpStateList,
+  PublicFormRequestState,
+} from "../../../Types/Form/FormFollowUp";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import ObjectID from "../../../Types/ObjectID";
+import { StateListType } from "../../../Utils/StateListType";
 
 /*
  * THE RECORDS A FOLLOW-UP IS ABOUT (Common/Types/Form/FormFollowUp): an
@@ -99,9 +103,11 @@ const STATE_COLOR: RegExp = /^#[0-9a-f]{6}$/i;
 // A state as the people following the request read it.
 const toRequestState: (data: {
   state: StateLike | undefined;
+  list: FormFollowUpStateList;
   isClosed: boolean;
 }) => PublicFormRequestState | null = (data: {
   state: StateLike | undefined;
+  list: FormFollowUpStateList;
   isClosed: boolean;
 }): PublicFormRequestState | null => {
   const name: string = (data.state?.name || "").trim();
@@ -112,6 +118,7 @@ const toRequestState: (data: {
 
   const state: PublicFormRequestState = {
     name: name,
+    list: data.list,
     isClosed: data.isClosed,
   };
 
@@ -208,6 +215,7 @@ const RECORD_KINDS: Record<FormTargetType, FormFollowUpRecordKind> = {
       return {
         state: toRequestState({
           state: incident.currentIncidentState,
+          list: StateListType.IncidentState,
           isClosed: isClosed,
         }),
         reference: getReference({
@@ -300,6 +308,7 @@ const RECORD_KINDS: Record<FormTargetType, FormFollowUpRecordKind> = {
       return {
         state: toRequestState({
           state: alert.currentAlertState,
+          list: StateListType.AlertState,
           isClosed: isClosed,
         }),
         reference: getReference({
@@ -402,6 +411,7 @@ const RECORD_KINDS: Record<FormTargetType, FormFollowUpRecordKind> = {
       return {
         state: toRequestState({
           state: event.currentScheduledMaintenanceState,
+          list: StateListType.ScheduledMaintenanceState,
           isClosed: isClosed,
         }),
         reference: getReference({

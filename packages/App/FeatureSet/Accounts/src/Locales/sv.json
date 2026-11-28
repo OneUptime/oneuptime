@@ -349,6 +349,15 @@
     "loadFailed": "Den här förfrågan kunde inte läsas in. Försök igen om några minuter.",
     "backToForm": "Tillbaka till formuläret"
   },
+  "formFollowUpStates": {
+    "identified": "Identifierad",
+    "acknowledged": "Bekräftad",
+    "resolved": "Löst",
+    "scheduled": "Schemalagd",
+    "ongoing": "Pågående",
+    "ended": "Avslutad",
+    "completed": "Slutförd"
+  },
   "errors": {
     "forbidden": {
       "title": "Förbjuden",

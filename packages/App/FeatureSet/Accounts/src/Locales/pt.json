@@ -349,6 +349,15 @@
     "loadFailed": "Não foi possível carregar esta solicitação. Tente novamente em alguns minutos.",
     "backToForm": "Voltar ao formulário"
   },
+  "formFollowUpStates": {
+    "identified": "Identificado",
+    "acknowledged": "Confirmado",
+    "resolved": "Resolvido",
+    "scheduled": "Agendado",
+    "ongoing": "Em andamento",
+    "ended": "Encerrado",
+    "completed": "Concluído"
+  },
   "errors": {
     "forbidden": {
       "title": "Proibido",

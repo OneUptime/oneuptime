@@ -349,6 +349,15 @@
     "loadFailed": "このリクエストを読み込めませんでした。数分後にもう一度お試しください。",
     "backToForm": "フォームに戻る"
   },
+  "formFollowUpStates": {
+    "identified": "原因特定",
+    "acknowledged": "確認済み",
+    "resolved": "解決済み",
+    "scheduled": "予定",
+    "ongoing": "進行中",
+    "ended": "終了",
+    "completed": "完了"
+  },
   "errors": {
     "forbidden": {
       "title": "禁止されています",
