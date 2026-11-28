@@ -960,7 +960,10 @@ describe("SessionReplayScrubService.scrubTagMarkers (#11458)", () => {
       {
         type: 5,
         timestamp: 6,
-        data: { tag: "oneuptime.tags", payload: { tags: { customer_name: 7 } } },
+        data: {
+          tag: "oneuptime.tags",
+          payload: { tags: { customer_name: 7 } },
+        },
       },
       "not an event",
       null,

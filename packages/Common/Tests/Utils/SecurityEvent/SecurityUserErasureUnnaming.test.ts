@@ -1111,10 +1111,7 @@ describe("the feed's indicator, out of what was written about a match on the per
 
   test("an indicator's score, out of a match's text, wherever its sentence states one (#11447)", () => {
     expect(withoutIndicatorConfidence(alertText())).toBe(
-      alertText().replace(
-        "(email-addr, confidence 80)",
-        "(email-addr)",
-      ),
+      alertText().replace("(email-addr, confidence 80)", "(email-addr)"),
     );
     expect(withoutIndicatorConfidence(match())).toContain(
       "(email-addr) from the threat intel feed",
@@ -1167,14 +1164,11 @@ describe("the feed's indicator, out of what was written about a match on the per
 
   test("a description is a threat intel match on the person, as written or as an erasure left it", () => {
     expect(isThreatIntelMatchOf(match(), NAMES)).toBe(true);
+    expect(isThreatIntelMatchOf(unnameDescription(match(), NAMES), NAMES)).toBe(
+      true,
+    );
     expect(
-      isThreatIntelMatchOf(unnameDescription(match(), NAMES), NAMES),
-    ).toBe(true);
-    expect(
-      isThreatIntelMatchOf(
-        match({ indicatorValue: "198.51.100.4" }),
-        NAMES,
-      ),
+      isThreatIntelMatchOf(match({ indicatorValue: "198.51.100.4" }), NAMES),
     ).toBe(false);
     expect(isThreatIntelMatchOf("A person wrote this.", NAMES)).toBe(false);
     expect(isThreatIntelMatchOf(undefined, NAMES)).toBe(false);

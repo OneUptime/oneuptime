@@ -608,9 +608,11 @@ describe("rewriteFingerprints", () => {
       });
 
       expect(
-        sent.find((one: Sent): boolean => {
-          return one.sql.startsWith('UPDATE "Alert" SET "description"');
-        })?.parameters.slice(2),
+        sent
+          .find((one: Sent): boolean => {
+            return one.sql.startsWith('UPDATE "Alert" SET "description"');
+          })
+          ?.parameters.slice(2),
       ).toEqual([description(ERASED_ID, false), description(ERASED_ID)]);
     });
 

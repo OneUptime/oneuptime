@@ -35,7 +35,9 @@ import ScrubRuleValueCounter from "Common/Server/Utils/Telemetry/ScrubRuleValueC
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubField from "Common/Types/Log/LogScrubField";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
-import { CompiledScrubRule } from "../../FeatureSet/Telemetry/Services/SessionReplayScrubService";
+import SessionReplayScrubService, {
+  CompiledScrubRule,
+} from "../../FeatureSet/Telemetry/Services/SessionReplayScrubService";
 import zlib from "zlib";
 
 jest.mock("Common/Server/Utils/Logger", () => {
@@ -356,7 +358,6 @@ import SessionReplayHealthCounters from "Common/Server/Utils/SessionReplay/Sessi
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import logger from "Common/Server/Utils/Logger";
 import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
-import SessionReplayScrubService from "../../FeatureSet/Telemetry/Services/SessionReplayScrubService";
 import SessionReplayChunkStore from "../../FeatureSet/Telemetry/Utils/SessionReplayChunkStore";
 import SessionReplaySignalMetrics from "../../FeatureSet/Telemetry/Utils/SessionReplaySignalMetrics";
 import SessionReplayRateLimiter, {

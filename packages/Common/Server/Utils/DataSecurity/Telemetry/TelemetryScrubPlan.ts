@@ -393,16 +393,14 @@ export async function planProvenScrubRule(data: {
    * (pickUnprovenScrubRuleCandidate, #11458).
    */
   if (cannotProve && tried.length > 0) {
-    const unproven: ScrubRuleCandidate | null = pickUnprovenScrubRuleCandidate(
-      {
-        candidates: tried.map(
-          (each: ProvenScrubCandidate): ScrubRuleCandidate => {
-            return each.candidate;
-          },
-        ),
-        finding: planFinding,
-      },
-    );
+    const unproven: ScrubRuleCandidate | null = pickUnprovenScrubRuleCandidate({
+      candidates: tried.map(
+        (each: ProvenScrubCandidate): ScrubRuleCandidate => {
+          return each.candidate;
+        },
+      ),
+      finding: planFinding,
+    });
 
     return {
       chosen:

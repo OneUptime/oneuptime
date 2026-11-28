@@ -265,7 +265,9 @@ describe("the scan reads a session's tags (#11458)", () => {
       "sessions.identifiedUserLabel",
     ]);
     expect(
-      locationsOf(valuesOf({ readTags: "customer=" + EMAIL, readLabel: "u-1" })),
+      locationsOf(
+        valuesOf({ readTags: "customer=" + EMAIL, readLabel: "u-1" }),
+      ),
     ).toEqual(["sessions.identifiedUserLabel"]);
     expect(
       locationsOf(valuesOf({ readTags: [["customer"]], readLabel: "" })),
@@ -998,9 +1000,7 @@ describe("the places of a session's tags, as every reader names them (#11458)", 
     expect(isRumSessionTagLocation(" sessions.tags.customer ")).toBe(true);
     expect(isRumSessionTagLocation("sessions.tags.")).toBe(false);
     expect(isRumSessionTagLocation("sessions.tags")).toBe(false);
-    expect(isRumSessionTagLocation("sessions.identifiedUserLabel")).toBe(
-      false,
-    );
+    expect(isRumSessionTagLocation("sessions.identifiedUserLabel")).toBe(false);
     expect(isRumSessionTagLocation("logs.attributes.sessions.tags.x")).toBe(
       false,
     );

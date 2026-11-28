@@ -389,7 +389,9 @@ export default class SessionReplayScrubService {
   }
 
   // An rrweb custom event's data, when the event is a oneuptime.tags marker.
-  private static tagMarkerDataOf(event: JSONValue | undefined): JSONObject | null {
+  private static tagMarkerDataOf(
+    event: JSONValue | undefined,
+  ): JSONObject | null {
     if (!event || typeof event !== "object" || Array.isArray(event)) {
       return null;
     }

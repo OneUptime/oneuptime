@@ -870,11 +870,8 @@ describe("the feed's indicator, out of a threat intel finding about the person (
         )?.indicator,
       ).toEqual({ id: ERASED_ID });
       expect(
-        planFindingRewrite(
-          cutBefore({ confidence: "" }),
-          NAMES,
-          CONTEXT,
-        )?.indicator,
+        planFindingRewrite(cutBefore({ confidence: "" }), NAMES, CONTEXT)
+          ?.indicator,
       ).toEqual({ id: ERASED_ID });
       // An unscored indicator's "0" is a score the feed gave: it goes too.
       expect(

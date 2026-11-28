@@ -140,17 +140,13 @@ describe("a recorded session's tags (#11458)", () => {
     ],
     [
       "the command queue, on one line",
-      [
-        'window.OneUptimeReplayQueue.push(["setTags", { owner: user.email }]);',
-      ],
+      ['window.OneUptimeReplayQueue.push(["setTags", { owner: user.email }]);'],
       'window.OneUptimeReplayQueue.push(["setTags"])',
       "sessions.tags.owner",
     ],
     [
       "the command queue's addTag",
-      [
-        'window.OneUptimeReplayQueue.push(["addTag", "owner", user.email]);',
-      ],
+      ['window.OneUptimeReplayQueue.push(["addTag", "owner", user.email]);'],
       'window.OneUptimeReplayQueue.push(["addTag"])',
       "sessions.tags.owner",
     ],
@@ -167,12 +163,7 @@ describe("a recorded session's tags (#11458)", () => {
     ],
   ])(
     "%s",
-    (
-      _label: string,
-      lines: Array<string>,
-      where: string,
-      location: string,
-    ) => {
+    (_label: string, lines: Array<string>, where: string, location: string) => {
       const point: SensitiveDataCandidate = onlyPoint("src/session.ts", lines);
 
       expect(point.sink).toBe(SensitiveDataSink.Session);
@@ -187,8 +178,8 @@ describe("a recorded session's tags (#11458)", () => {
     const points: Array<SensitiveDataCandidate> = writesIn("src/boot.js", [
       "window.OneUptimeReplayQueue.push(",
       '  ["grantConsent"],',
-      "  [\"identify\", user.email, { plan: \"pro\" }],",
-      "  [\"setTags\", { contact: user.email }],",
+      '  ["identify", user.email, { plan: "pro" }],',
+      '  ["setTags", { contact: user.email }],',
       '  ["addTag", "phone", user.phone],',
       ");",
     ]);
@@ -243,9 +234,7 @@ describe("a recorded session's tags (#11458)", () => {
       ["OneUptimeReplay.setTags(currentUser);", "currentUser"],
       ["OneUptimeReplay.setTags({ ...user });", "user"],
     ] as Array<[string, string]>) {
-      const point: SensitiveDataCandidate = onlyPoint("src/session.js", [
-        line,
-      ]);
+      const point: SensitiveDataCandidate = onlyPoint("src/session.js", [line]);
 
       expect(point).toMatchObject({
         sink: SensitiveDataSink.Session,
@@ -293,9 +282,7 @@ describe("a recorded session's tags (#11458)", () => {
     ["OneUptimeReplay.setTags({ email: sha256(user.email) });"],
     ['OneUptimeReplay.setTags({ email: "redacted" });'],
     ["OneUptimeReplay.setTags({ hasEmail: !!user.email });"],
-    [
-      'window.OneUptimeReplayQueue.push(["setTags", { build: "1.4.2" }]);',
-    ],
+    ['window.OneUptimeReplayQueue.push(["setTags", { build: "1.4.2" }]);'],
     [
       "OneUptimeReplay.setTags({ contact: user.email }); // oneuptime:not-sensitive",
     ],
@@ -312,10 +299,9 @@ describe("a recorded session's tags (#11458)", () => {
       "tracker.setTags({ contact: user.email });",
       "LogRocket.setTags({ contact: user.email });",
     ]) {
-      const points: Array<SensitiveDataCandidate> = writesIn(
-        "src/session.ts",
-        [line],
-      );
+      const points: Array<SensitiveDataCandidate> = writesIn("src/session.ts", [
+        line,
+      ]);
 
       expect(
         points.map((point: SensitiveDataCandidate): unknown => {
@@ -344,9 +330,7 @@ describe("a recorded session's tags (#11458)", () => {
       "sessionRecorder.setTags",
       "sessionReplay.addTag",
     ]) {
-      expect(
-        readSink({ name, isMacro: false, isConstructor: false }),
-      ).toEqual({
+      expect(readSink({ name, isMacro: false, isConstructor: false })).toEqual({
         sink: SensitiveDataSink.Session,
         isErrorReport: false,
         isIdentity: false,

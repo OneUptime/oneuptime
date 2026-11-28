@@ -3989,7 +3989,9 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
           }),
         );
         // Nor the indicator's score, nor the severity it gave the finding (#11447).
-        expect(attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE]).toBeUndefined();
+        expect(
+          attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE],
+        ).toBeUndefined();
         expect(finding["severityName"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
         expect(Number(finding["severityId"])).toBe(3);
         // The same token its id's fingerprint is: the finding still points at its alert.
@@ -4042,7 +4044,9 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         const bobFinding: JSONObject = await feedFindingOf(BOB);
 
         expect(bobFinding["ruleId"]).toBe(BOB_STIX_ID);
-        expect(attributesOf(bobFinding)[THREAT_CONFIDENCE_ATTRIBUTE]).toBe("60");
+        expect(attributesOf(bobFinding)[THREAT_CONFIDENCE_ATTRIBUTE]).toBe(
+          "60",
+        );
         expect(attributesOf(await stampedEventOf("bob-stamped"))).toEqual(
           expect.objectContaining({
             [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: BOB,
@@ -4251,7 +4255,9 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
           erasedIdOf(ALICE_TOKEN),
         );
         // And the score and severity an earlier erasure left (#11447).
-        expect(attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE]).toBeUndefined();
+        expect(
+          attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE],
+        ).toBeUndefined();
         expect(finding["severityName"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
 
         expect(
@@ -4444,28 +4450,26 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         await client.insert({
           table: indicatorsTable,
           format: "JSONEachRow",
-          values: LISTED.map(
-            (listed: (typeof LISTED)[number]): JSONObject => {
-              return {
-                projectId: PROJECT_ID.toString(),
-                feedId: SMALL_FEED_ID.toString(),
-                feedName: SMALL_FEED_NAME,
-                stixId: listed.stixId,
-                indicatorType: "email-addr",
-                indicatorValue: listed.address,
-                indicatorName: "",
-                confidence: listed.confidence,
-                stixLabels: ["watchlist"],
-                validFrom: OneUptimeDate.toClickhouseDateTime64(listedFrom),
-                validUntil: OneUptimeDate.toClickhouseDateTime64(listedUntil),
-                revoked: false,
-                version: 1,
-                retentionDate: OneUptimeDate.toClickhouseDateTime(
-                  OneUptimeDate.addRemoveDays(listedUntil, 1),
-                ).slice(0, 10),
-              };
-            },
-          ),
+          values: LISTED.map((listed: (typeof LISTED)[number]): JSONObject => {
+            return {
+              projectId: PROJECT_ID.toString(),
+              feedId: SMALL_FEED_ID.toString(),
+              feedName: SMALL_FEED_NAME,
+              stixId: listed.stixId,
+              indicatorType: "email-addr",
+              indicatorValue: listed.address,
+              indicatorName: "",
+              confidence: listed.confidence,
+              stixLabels: ["watchlist"],
+              validFrom: OneUptimeDate.toClickhouseDateTime64(listedFrom),
+              validUntil: OneUptimeDate.toClickhouseDateTime64(listedUntil),
+              revoked: false,
+              version: 1,
+              retentionDate: OneUptimeDate.toClickhouseDateTime(
+                OneUptimeDate.addRemoveDays(listedUntil, 1),
+              ).slice(0, 10),
+            };
+          }),
           clickhouse_settings: { wait_for_async_insert: 1 },
         });
       }
@@ -4496,8 +4500,8 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
               attributes: {
                 [SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal].hidden]:
                   USER_HIDDEN_BY_SCRUB_RULE,
-                [SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]
-                  .scrubbed]: listed.token,
+                [SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal].scrubbed]:
+                  listed.token,
                 [SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal].in]:
                   "log",
               },
@@ -4642,9 +4646,9 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
 
         expect(attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE]).toBe("95");
         expect(finding["severityName"]).toBe(ocsfSeverityForConfidence(95));
-        expect(
-          await addressesFitting({ finding, by: "confidence" }),
-        ).toEqual([ALICE]);
+        expect(await addressesFitting({ finding, by: "confidence" })).toEqual([
+          ALICE,
+        ]);
         expect(await addressesFitting({ finding, by: "band" })).toEqual([
           ALICE,
         ]);
@@ -4661,9 +4665,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         await seedTheSmallFeed();
 
         for (const listed of LISTED) {
-          const finding: JSONObject = await smallFeedFindingOf(
-            listed.address,
-          );
+          const finding: JSONObject = await smallFeedFindingOf(listed.address);
 
           expect(finding["severityName"]).toBe(
             ocsfSeverityForConfidence(listed.confidence),
@@ -4693,7 +4695,9 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
             [FINDING_USER_ERASED_ATTRIBUTE]: USER_ERASED_ON_REQUEST,
           }),
         );
-        expect(attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE]).toBeUndefined();
+        expect(
+          attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE],
+        ).toBeUndefined();
         expect(finding["severityName"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
         expect(await addressesFitting({ finding, by: "kept" })).toEqual(
           [ALICE, BOB, CAROL].sort(),
@@ -4757,12 +4761,8 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
             severityId: Number(finding["severityId"]),
           };
         };
-        const alice: JSONObject = keptOf(
-          await smallFeedFindingOf(ALICE_TOKEN),
-        );
-        const carol: JSONObject = keptOf(
-          await smallFeedFindingOf(CAROL_TOKEN),
-        );
+        const alice: JSONObject = keptOf(await smallFeedFindingOf(ALICE_TOKEN));
+        const carol: JSONObject = keptOf(await smallFeedFindingOf(CAROL_TOKEN));
 
         expect(alice).toEqual(carol);
         expect(alice).toEqual({

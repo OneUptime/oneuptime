@@ -399,9 +399,8 @@ integration("a RUM session's tags, in a real ClickHouse (#11458)", () => {
 
     // Each finding keeps the sessions it was found in, by their ids, never a value.
     const kept: Array<FindingSampleRecord> =
-      at_(replays, "sessions.tags.customer").sampleRecords?.[
-        "email-address"
-      ] || [];
+      at_(replays, "sessions.tags.customer").sampleRecords?.["email-address"] ||
+      [];
 
     expect(
       kept
@@ -593,15 +592,14 @@ integration("a RUM session's tags, in a real ClickHouse (#11458)", () => {
       plantedTags[tag.key] = tag.value;
     }
 
-    const scrubbed: Record<string, string> = SessionReplayScrubService.scrubTags(
-      {
+    const scrubbed: Record<string, string> =
+      SessionReplayScrubService.scrubTags({
         tags: plantedTags,
         compiledRules,
         rumApplicationId: WEB_APP,
         appVersion: "2026.11.29",
         countValues: false,
-      },
-    );
+      });
 
     // The opaque tags are as the page sent them.
     for (const [key, value] of Object.entries(OPAQUE_TAGS)) {
