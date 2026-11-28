@@ -5,6 +5,7 @@ import NetworkDeviceHydrationUtil, {
   HOSTNAME_RESOLVE_CONCURRENCY,
   MAX_HOSTNAMES_PER_RESOLVE,
 } from "../../../../Server/Utils/Monitor/NetworkDeviceHydrationUtil";
+import { MAX_DNS_NAMED_DEVICES_PER_REPORT } from "../../../../Server/Utils/Monitor/SnmpTrapReceiverReports";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock, SpyInstance } from "jest-mock";
@@ -385,6 +386,49 @@ describe("resolveHostnames", () => {
         return address === "127.0.0.1" || address === "::1";
       }),
     ).toBe(true);
+  });
+
+  test("a long list is worked through report by report: what is cached answers at once, so each gets further", async () => {
+    const asked: Set<string> = new Set();
+
+    useCache(
+      new DnsResolutionCache({
+        resolver: async (hostname: string): Promise<Array<string>> => {
+          asked.add(hostname);
+          // A slow resolver: far more names than one budget covers.
+          await new Promise<void>((done: () => void) => {
+            setTimeout(done, 5);
+          });
+          return ["10.0.0.1"];
+        },
+      }),
+    );
+
+    const names: Array<string> = Array.from(
+      { length: 400 },
+      (_: unknown, index: number): string => {
+        return `device-${index}.example`;
+      },
+    );
+
+    let resolved: Map<string, Array<string>> = new Map();
+
+    for (let report: number = 0; report < 40 && resolved.size < 400; report++) {
+      resolved = await NetworkDeviceHydrationUtil.resolveHostnames({
+        hostnames: names,
+        budgetInMs: 40,
+      });
+    }
+
+    // Every name, the last ones too, in the end.
+    expect(resolved.size).toBe(400);
+    expect(asked.size).toBe(400);
+  });
+
+  test("every DNS-named device a report reads has its name asked about", () => {
+    expect(MAX_HOSTNAMES_PER_RESOLVE).toBeGreaterThanOrEqual(
+      MAX_DNS_NAMED_DEVICES_PER_REPORT,
+    );
   });
 
   test("no names, no lookup", async () => {

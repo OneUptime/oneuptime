@@ -54,8 +54,12 @@ export const SOURCE_MATCH_CACHE_MAX_ENTRIES: number = 50_000;
  * SNMPv3 users, every thirty seconds, so it asks about at most this many
  * names, this many at a time - dns.lookup runs on libuv's small threadpool,
  * which the file system and crypto share - and answers within this long.
+ * As many names as a report reads devices (MAX_DNS_NAMED_DEVICES_PER_REPORT):
+ * the names come in a stable order, and a cached one answers at once, so
+ * each report gets further down a long list than the one before rather
+ * than asking about its first names forever.
  */
-export const MAX_HOSTNAMES_PER_RESOLVE: number = 1000;
+export const MAX_HOSTNAMES_PER_RESOLVE: number = 5000;
 export const HOSTNAME_RESOLVE_CONCURRENCY: number = 8;
 export const HOSTNAME_RESOLVE_BUDGET_MS: number = 3000;
 
