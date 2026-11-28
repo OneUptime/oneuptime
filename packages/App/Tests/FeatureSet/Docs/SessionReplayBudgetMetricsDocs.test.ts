@@ -1397,14 +1397,31 @@ describe("Session replay storage budget alerts docs", (): void => {
       expect(composeCommand).toContain("--appendonly no");
       expect(composeCommand).toContain('--save ""');
 
-      // The block scalar's own lines: those indented deeper than its key.
-      const helmConfiguration: string =
-        readCheckout("HelmChart/Public/oneuptime/values.yaml").match(
-          /^([ \t]*)commonConfiguration: \|-\n((?:\1[ \t]+\S[^\n]*\n)+)/m,
-        )?.[2] || "";
+      /*
+       * The chart writes Valkey's persistence lines itself, from
+       * valkey.master.persistence (#11421): off by default, which is no
+       * append-only file, and no RDB snapshots either way.
+       */
+      const helmConfiguration: string = readCheckout(
+        "HelmChart/Public/oneuptime/templates/valkey-configmap.yaml",
+      );
+      const [withoutPersistence, afterPersistence] = (
+        helmConfiguration
+          .split("{{- if (($valkey.master).persistence).enabled }}")[1]
+          ?.split("{{- else }}")[1] || ""
+      ).split("{{- end }}");
 
-      expect(helmConfiguration).toMatch(/^\s*appendonly no\s*$/m);
-      expect(helmConfiguration).toMatch(/^\s*save ""\s*$/m);
+      // valkey.master.persistence.enabled, in the values' own valkey block.
+      const valkeyValues: string =
+        readCheckout("HelmChart/Public/oneuptime/values.yaml")
+          .split(/^valkey:\n/m)[1]
+          ?.split(/^\S/m)[0] || "";
+
+      expect(
+        valkeyValues.match(/^ {4}persistence:\n {6}enabled: (\S+)$/m)?.[1],
+      ).toBe("false");
+      expect(withoutPersistence).toMatch(/^\s*appendonly no\s*$/m);
+      expect(afterPersistence).toMatch(/^\s*save ""\s*$/m);
 
       const bullet: string =
         section(readContent(SESSION_REPLAY_PAGE), "## Self-hosted notes")
