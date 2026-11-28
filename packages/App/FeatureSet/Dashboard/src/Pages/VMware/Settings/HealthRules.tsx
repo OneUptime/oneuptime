@@ -40,7 +40,12 @@ export const HEALTH_RULES_NOT_MADE: string = translationKey(
   "These rules have not been set up yet. Someone who may edit vCenters needs to open this page first.",
 );
 const OFF: string = translationKey("Off");
-const ANY: string = translationKey("Any");
+/*
+ * A threshold of 0: every rule compares "above", so 0 marks any amount at
+ * all. Not the bare "Any", which is the Match Condition's word (one filter
+ * is enough) and reads so in Korean, French, Dutch and Persian.
+ */
+const ANY_AMOUNT: string = translationKey("Any amount");
 
 async function readSettingId(projectId: ObjectID): Promise<ObjectID | null> {
   const result: ListResult<VMwareHealthSetting> =
@@ -117,7 +122,7 @@ const VMwareHealthRulesPage: FunctionComponent<
     return <ErrorMessage message={HEALTH_RULES_NOT_MADE} />;
   }
 
-  // "Above 90%", "Above 1,024 KiB/s", "Any" for 0, "Off" for nothing.
+  // "Above 90%", "Above 1,024 KiB/s", "Any amount" for 0, "Off" for nothing.
   const threshold: (value: unknown, unit: ThresholdUnit) => string = (
     value: unknown,
     unit: ThresholdUnit,
@@ -130,7 +135,7 @@ const VMwareHealthRulesPage: FunctionComponent<
       return translator.translateText(OFF) || OFF;
     }
     if (number === 0) {
-      return translator.translateText(ANY) || ANY;
+      return translator.translateText(ANY_AMOUNT) || ANY_AMOUNT;
     }
     const figure: string = translator.formatNumber(number);
     if (unit === "percent") {

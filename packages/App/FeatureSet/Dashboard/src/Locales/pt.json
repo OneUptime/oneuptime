@@ -68395,5 +68395,6 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "A voz com que as chamadas do seu projeto falam quando saem pela conta do Twilio deste servidor. Uma configuração do Twilio própria tem uma voz própria.",
   "This server's voice": "Voz deste servidor",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "O Twilio cobra um valor extra por estas vozes: menos de {{cents}} centavos de dólar pela chamada de cada acionamento, em qualquer idioma.",
-  "Voice": "Voz"
+  "Voice": "Voz",
+  "Any amount": "Qualquer quantidade"
 }

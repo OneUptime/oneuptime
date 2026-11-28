@@ -68395,5 +68395,6 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "이 서버의 Twilio 계정을 통해 나갈 때 프로젝트의 통화가 말하는 음성입니다. 자체 Twilio 구성에는 자체 음성이 있습니다.",
   "This server's voice": "이 서버의 음성",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio는 이 음성들에 추가 요금을 청구합니다. 어떤 언어든 호출 전화 1건당 미화 {{cents}}센트 미만입니다.",
-  "Voice": "음성"
+  "Voice": "음성",
+  "Any amount": "양에 관계없이"
 }

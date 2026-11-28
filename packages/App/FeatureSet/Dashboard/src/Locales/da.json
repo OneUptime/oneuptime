@@ -68395,5 +68395,6 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "Den stemme, dit projekts opkald taler med, når de går gennem denne servers Twilio-konto. En Twilio-konfiguration, der er jeres egen, har sin egen stemme.",
   "This server's voice": "Denne servers stemme",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio tager ekstra betaling for disse stemmer: under {{cents}} amerikanske cent per vagtopkald, på ethvert sprog.",
-  "Voice": "Stemme"
+  "Voice": "Stemme",
+  "Any amount": "Enhver mængde"
 }
