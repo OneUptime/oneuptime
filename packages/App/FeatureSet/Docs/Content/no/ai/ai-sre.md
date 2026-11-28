@@ -427,6 +427,8 @@ En avgjørelse tas én gang, med prosjektets innstillinger i det øyeblikket: en
 
 Når undersøkelsen finner årsaken i koden, sier trinnet hva som kom ut av det: pull-forespørselen med retting som OneUptime AI skriver eller har åpnet, med en lenke til den i Code; det ene oppsettstrinnet som står i veien, som **Koble til et kodelager**; eller **Åpne pull-forespørsel med retting**, med grunnen til at OneUptime AI ikke åpnet den selv (se [Automatiske koderettelser](#automatiske-koderettelser)).
 
+**Åpne pull-forespørsel med retting** arbeider bare i et repositorium du får bruke i Code: et du kan lese og får be OneUptime AI arbeide i, noe som krever tillatelse til å redigere det. Er flere av dine koblet til, og ingen av dem heter som hendelsens eller varselets monitor, spør trinnet først hvilket repositorium koden ligger i, og tilbyr bare dine. Får du ikke bruke noen av de tilkoblede repositoriene, tilbyr ikke trinnet denne knappen. Se [Hvor rettingsoppgaver starter](/docs/ai/ai-agent#hvor-rettingsoppgaver-starter).
+
 Tidslinjen til hendelsen eller varselet holder oversikt over hver endring. Når en godkjent plan har kjørt, viser oppføringen dens hver kommando i den rekkefølgen den kjørte i, med hvor den kjørte og hvordan den endte, og oppføringen til en tilbakerulling viser hver kommando som ruller en endring tilbake på samme måte, med kommandoen den rullet tilbake. Listen ligger under **Vis detaljer** i oppføringen, bare på tidslinjen: Slack- og Microsoft Teams-kanalene til hendelsen eller varselet får høyst den ene linjen i oppføringen, aldri listen.
 
 ### Hvorfor OneUptime AI ikke fant noen retting, eller stoppet

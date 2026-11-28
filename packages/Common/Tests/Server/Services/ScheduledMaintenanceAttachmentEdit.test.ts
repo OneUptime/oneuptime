@@ -315,6 +315,7 @@ let enableActiveMonitoring: jest.SpyInstance;
 let recomputeSiteRollups: jest.SpyInstance;
 let monitorUpdateOneById: jest.SpyInstance;
 let changeMonitorStatus: jest.SpyInstance;
+let uptimeMarks: jest.SpyInstance;
 let monitorFindBy: jest.SpyInstance;
 let feedItem: jest.SpyInstance;
 
@@ -521,6 +522,11 @@ beforeEach(() => {
 
   changeMonitorStatus = jest
     .spyOn(MonitorService, "changeMonitorStatus")
+    .mockResolvedValue(undefined as never);
+
+  // What an attached monitor's time counts as from here (#11301).
+  uptimeMarks = jest
+    .spyOn(ScheduledMaintenanceStateTimelineService, "markUptimeOfMonitors")
     .mockResolvedValue(undefined as never);
 
   /*
@@ -978,6 +984,20 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: editing the monitors of a
     expect(enableActiveMonitoring).not.toHaveBeenCalled();
     // An ongoing event needs no timeline to say it holds its monitors.
     expect(timelineFindBy).not.toHaveBeenCalled();
+
+    // Then its time is worked out, once it is paused and in the status.
+    expect(uptimeMarks).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        (uptimeMarks.mock.calls[0]![0] as { monitors: Array<Monitor> })
+          .monitors || []
+      ).map((item: Monitor): string => {
+        return item.id!.toString();
+      }),
+    ).toEqual([MONITOR_C]);
+    expect(changeMonitorStatus.mock.invocationCallOrder[0]!).toBeLessThan(
+      uptimeMarks.mock.invocationCallOrder[0]!,
+    );
   });
 
   test("an attached monitor on an event that changes no status only has probing stopped", async () => {
@@ -992,6 +1012,8 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: editing the monitors of a
 
     expect(flaggedMonitorIds()).toEqual([MONITOR_C]);
     expect(changeMonitorStatus).not.toHaveBeenCalled();
+    // Its time is worked out: left out, with no status of the event's.
+    expect(uptimeMarks).toHaveBeenCalledTimes(1);
   });
 
   test("swapping one monitor for another restores the old and holds the new", async () => {

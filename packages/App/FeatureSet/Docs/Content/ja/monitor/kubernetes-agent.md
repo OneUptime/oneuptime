@@ -384,6 +384,7 @@ eBPF インストルメンテーションもオンにしていると (デフォ�
 | `logs.mode` | (`preset` から) | `daemonset`、`api`、`disabled` のいずれか。プリセットより優先されます。 |
 | `logs.windowsPods.enabled` | `false` | Windows ノード上の Pod も追跡します。[複数の OS が混在するクラスター](#複数の-os-が混在するクラスター-windows-ノードプール) を参照してください。 |
 | `logs.api.replicas` | `1` | `api` モードでのログテイラーのレプリカ数。 |
+| `logs.extraOperators` | `[]` | エージェントが読み取らないログ形式のための、独自の Collector の operators (`daemonset` モード)。[独自のログ形式を読み取る](/docs/telemetry/kubernetes-agent#独自のログ形式を読み取る) を参照してください。 |
 | `ebpf.enabled` | `true` | eBPF のトレースとリクエストメトリクス。[eBPF によるアプリケーショントレース](#ebpf-によるアプリケーショントレース) を参照してください。 |
 | `profiling.enabled` | `false` | CPU フレームグラフ。[継続的な CPU プロファイリング](#継続的な-cpu-プロファイリング) を参照してください。 |
 | `kubeStateMetrics.enabled` | `false` | kube-state-metrics からのクラスターの状態。 |

@@ -522,6 +522,8 @@ describe("a case's checklist", () => {
       [
         "_id",
         "title",
+        // The playbook checklist line it was made from (#10954).
+        "responseStepKey",
         "isDone",
         "doneAt",
         "createdAt",

@@ -2027,7 +2027,7 @@ describe("the Docker Swarm agent page, against the agent and its setup guide", (
     );
   });
 
-  it("names the three containers the compose file runs", () => {
+  it("names the three containers the compose file runs, beside the config check that runs once before them", () => {
     const services: YamlNode = at(yamlOf(compose), "services") as YamlNode;
     const names: Array<string> = Object.values(services).map(
       (service: unknown): string => {
@@ -2036,8 +2036,22 @@ describe("the Docker Swarm agent page, against the agent and its setup guide", (
     );
     expect(names).toEqual([
       "oneuptime-docker-swarm-agent",
+      "oneuptime-docker-swarm-agent-config-check",
       "oneuptime-docker-swarm-inventory",
       "oneuptime-docker-swarm-ai-agent",
+    ]);
+    /*
+     * The check of the collector's config with your log operators (#11225)
+     * runs once and exits, so `docker compose ps`, which lists the running
+     * ones, shows the three.
+     */
+    const check: YamlNode = (services as Record<string, YamlNode>)[
+      "oneuptime-docker-swarm-agent-config-check"
+    ] as YamlNode;
+    expect(check["restart"]).toBe("no");
+    expect(check["command"]).toEqual([
+      "validate",
+      "--config=/etc/otelcol-contrib/config.yaml",
     ]);
     lineWith(
       DOCKER_SWARM_PAGE,
@@ -2089,9 +2103,14 @@ describe("the Docker Swarm agent page, against the agent and its setup guide", (
     expect(install).not.toContain("env_file_value ONEUPTIME_AI_ALLOW_WRITES");
     expect(install).toContain("--no-ai-agent) INSTALL_AI_AGENT=false ;;");
 
+    // And each log operator (#11225), read back from .env as it wrote it.
+    expect(install).toContain(
+      'value="$(sed -n "s/^${name}=\'\\(.*\\)\'\\$/\\1/p" "${INSTALL_DIR}/.env" | tail -n 1)"',
+    );
+
     lineWith(
       DOCKER_SWARM_PAGE,
-      "It keeps only the AI agent's target lists and what AI may do (`ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`)",
+      "It keeps only the AI agent's target lists, what AI may do (`ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`) and your log operators (`ONEUPTIME_LOG_OPERATOR_1` to `ONEUPTIME_LOG_OPERATOR_5`)",
     );
     lineWith(
       DOCKER_SWARM_PAGE,

@@ -172,6 +172,14 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   "Call (phone call)",
   "Push (push notification)",
   /*
+   * A WhatsApp or Telegram message the person has read: its status in the
+   * notification logs' pills and Status filters (#11138). The bare "Read" is
+   * the Read buttons' and the permissions' verb, worded so in every language
+   * (Lesen, Чтение, 読み取り), which no message's status is: it read "Lesen"
+   * on a German WhatsApp log.
+   */
+  "Read (message status)",
+  /*
    * The room left on a store - a volume, a disk, a datastore: the Free
    * column of the storage lists and the Free figure of a store's usage
    * (StorageUsageBar, #9539). The bare "Free" is the price, free of charge
@@ -235,6 +243,13 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    */
   "Up (port link)",
   "Down (port link)",
+  /*
+   * The US state, as "Where do the people live?" offers it and an exposure's
+   * assessment names it (BREACH_PLACE_WORDS and BREACH_PLACE_CHOICES,
+   * #10952). The bare "Georgia" is the country, in the country lists - German
+   * "Georgien", Russian "Грузия" - which no US state is.
+   */
+  "Georgia (US state)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

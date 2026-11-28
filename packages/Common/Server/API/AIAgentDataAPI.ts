@@ -1082,11 +1082,17 @@ export default class AIAgentDataAPI {
               ? `Improve ${pillar} for ${improvementServiceName}`
               : `Improve ${pillar}`;
 
+            /*
+             * Among the repository decided for the person who asked for
+             * it, as when the run was queued (getRunRepositoryAllowance,
+             * #11209); every connected one for a run queued before.
+             */
             const resolution: RepoResolution | null =
               await CodeRepositoryService.resolveRepositoryForException({
                 projectId: run.projectId,
                 stackTrace: null,
                 serviceName: improvementServiceName || null,
+                allowance: getRunRepositoryAllowance(run.taskContext),
               });
 
             const repository: CodeRepository | null = resolution
@@ -1622,11 +1628,13 @@ export default class AIAgentDataAPI {
           /*
            * Resolve the repository WITHOUT a stack trace — these tasks have
            * no exception, so only the name-match (against the subject's
-           * monitor/service name) and only-repository fallbacks apply - among
-           * the repositories the auto remediation rules that opened the run
-           * allow (every connected one when they named none, as when it was
-           * queued: CodeFixRunRepository). When nothing resolves the worker
-           * fails the run with this guidance.
+           * monitor/service name) and only-repository fallbacks apply - in
+           * the repository decided for the person who opened the fix pull
+           * request (#11209), or among the repositories the auto remediation
+           * rules that opened the run allow (every connected one when they
+           * named none), as when it was queued: getRunRepositoryAllowance.
+           * When nothing resolves the worker fails the run with this
+           * guidance.
            */
           const resolution: RepoResolution | null =
             await CodeRepositoryService.resolveRepositoryForException({

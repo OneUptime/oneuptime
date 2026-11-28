@@ -7,6 +7,27 @@ import { InstallationHealthProbeBehind } from "../../../Types/InstallationHealth
 import ProbeBehindUtil, {
   ProbeBehindWork,
 } from "../../../Types/Probe/ProbeBehind";
+import { ServerAlertChannel } from "../../../Types/ServerSending/ServerAlerts";
+
+/*
+ * A global probe behind for this long raises the alarm in the server log
+ * (alarmText): long past a probe that restarted and is catching up, and
+ * still within the first few minutes of one that is handed nothing.
+ */
+export const GLOBAL_PROBES_BEHIND_ALARM_AFTER_MS: number = 5 * 60 * 1000;
+
+// What each kind of work is called in the alarm.
+const WORK_WORDS: Record<ProbeBehindWork, string> = {
+  [ProbeBehindWork.MonitorChecks]: "monitor checks",
+  [ProbeBehindWork.DevicePolls]: "network device polls",
+};
+
+// The channels the master admins' outage notifications go by, in words.
+const CHANNEL_WORDS: Record<ServerAlertChannel, string> = {
+  [ServerAlertChannel.Push]: "push",
+  [ServerAlertChannel.SMS]: "SMS",
+  [ServerAlertChannel.Email]: "the Admin Notification Email",
+};
 
 /*
  * THE GLOBAL PROBES THAT ARE BEHIND: THEIR MONITORS CHECKED, OR THEIR
@@ -23,6 +44,13 @@ import ProbeBehindUtil, {
  * A probe that is not connected is never behind - Disconnected says more,
  * and the job keeps nothing for it. Global probes are few, so every
  * connected one is read and judged here rather than narrowed in SQL.
+ *
+ * One behind for GLOBAL_PROBES_BEHIND_ALARM_AFTER_MS raises an alarm in the
+ * server log too (alarmText, ProbeAlarmLog), each time ServerAlerts looks
+ * while it lasts: on 27 November 2026 both of OneUptime Cloud's global
+ * probes were behind within a minute and stayed behind for twelve hours,
+ * and the outage notifications, which OneUptime Cloud sends only once its
+ * operator turns them on, told nobody. The alarm says whether they do.
  */
 export default class GlobalProbesBehind {
   public static async read(): Promise<Array<InstallationHealthProbeBehind>> {
@@ -78,5 +106,76 @@ export default class GlobalProbesBehind {
     }
 
     return behind;
+  }
+
+  /*
+   * The entries that have been behind for GLOBAL_PROBES_BEHIND_ALARM_AFTER_MS
+   * at `now`, in the order read.
+   */
+  public static getAlarmEntries(data: {
+    behind: Array<InstallationHealthProbeBehind>;
+    now: Date;
+  }): Array<InstallationHealthProbeBehind> {
+    return data.behind.filter(
+      (entry: InstallationHealthProbeBehind): boolean => {
+        const since: number = Date.parse(entry.since);
+
+        return (
+          !Number.isNaN(since) &&
+          data.now.getTime() - since >= GLOBAL_PROBES_BEHIND_ALARM_AFTER_MS
+        );
+      },
+    );
+  }
+
+  /*
+   * The alarm's words, without the prefix ProbeAlarmLog puts before them, or
+   * null while no global probe has been behind long enough. `channels`: the
+   * ones the master admins' outage notifications about it can go by now
+   * (ServerAlerts' getChannels); none says so, and where to turn them on.
+   */
+  public static getAlarmText(data: {
+    behind: Array<InstallationHealthProbeBehind>;
+    now: Date;
+    channels: Array<ServerAlertChannel>;
+  }): string | null {
+    const entries: Array<InstallationHealthProbeBehind> =
+      GlobalProbesBehind.getAlarmEntries(data);
+
+    if (entries.length === 0) {
+      return null;
+    }
+
+    const probes: string = entries
+      .map((entry: InstallationHealthProbeBehind): string => {
+        const name: string = entry.name.trim() || entry.id;
+        const work: string =
+          WORK_WORDS[entry.work || ProbeBehindWork.MonitorChecks];
+
+        return `${name} on ${work} since ${entry.since}`;
+      })
+      .join("; ");
+
+    const told: string =
+      data.channels.length > 0
+        ? `Master admins are told by ${data.channels
+            .map((channel: ServerAlertChannel): string => {
+              return CHANNEL_WORDS[channel];
+            })
+            .join(", ")} (Outage Notifications).`
+        : "No master admin is told: no Outage Notifications channel can carry it. Turn one on in the Admin Dashboard, under Settings > Emails.";
+
+    const probeCount: number = new Set(
+      entries.map((entry: InstallationHealthProbeBehind): string => {
+        return entry.id;
+      }),
+    ).size;
+
+    const subject: string =
+      probeCount === 1
+        ? "a global probe has been behind"
+        : `${probeCount} global probes have been behind`;
+
+    return `${subject} for ${GLOBAL_PROBES_BEHIND_ALARM_AFTER_MS / 60000} minutes or more: ${probes}. Their checks wait more than a minute past their time, so they run less often than set, or not at all. OneUptime Health in the Admin Dashboard lists them, and /metrics/probe-scheduling shows how the App replicas hand out probe work. ${told}`;
   }
 }

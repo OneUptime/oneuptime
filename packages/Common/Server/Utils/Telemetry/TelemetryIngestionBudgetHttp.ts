@@ -15,8 +15,8 @@ import {
 } from "./TelemetryIngestBodySize";
 import ProductType from "../../../Types/MeteredPlan/ProductType";
 import {
+  isRetryableTelemetryIngestionBudgetRefusal,
   TelemetryIngestionBudgetRefusal,
-  TelemetryIngestionBudgetRefusalKind,
   TelemetryIngestionBudgetSignal,
 } from "../../../Types/Telemetry/TelemetryIngestionBudget";
 import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
@@ -31,7 +31,9 @@ import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurf
  *
  *   - Over a per-second rate: 429 with Retry-After. The sender is told to
  *     come back when the rate allows it, and retries the same batch then -
- *     the per-key requests-per-minute limit answers the same way.
+ *     the per-key requests-per-minute limit answers the same way, and so
+ *     does a project with too much already waiting in the telemetry queue
+ *     (TelemetryIngestShedding).
  *   - Over a used-up daily budget: 403. Not 429: a budget that resets at
  *     midnight cannot be met by retrying, and exporters that retry for hours
  *     would only add load. 403 is permanent for an exporter, which logs the
@@ -181,9 +183,7 @@ const setHeader: (res: ExpressResponse, name: string, value: string) => void = (
 export const getTelemetryIngestionBudgetHttpStatus: (
   refusal: TelemetryIngestionBudgetRefusal,
 ) => number = (refusal: TelemetryIngestionBudgetRefusal): number => {
-  return refusal.kind === TelemetryIngestionBudgetRefusalKind.RateLimited
-    ? 429
-    : 403;
+  return isRetryableTelemetryIngestionBudgetRefusal(refusal.kind) ? 429 : 403;
 };
 
 // Answer a refused request, as the top of the file describes.

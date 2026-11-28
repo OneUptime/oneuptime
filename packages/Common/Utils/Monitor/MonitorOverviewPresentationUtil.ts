@@ -268,11 +268,11 @@ export interface MonitorOverviewPresentationInput {
     byManualIncident: boolean;
     byScheduledMaintenance: boolean;
     /*
-     * Paused by incidents declared by hand that put it in no status: its
-     * status is only what its last check saw, so its time is left out of
-     * uptime from the pause on, as the newest status event marks it
-     * (MonitorStatusTimeline.isMonitoringOff, issue #11141). Unset reads as
-     * counted.
+     * Paused by incidents declared by hand or by scheduled maintenance that
+     * put it in no status: its status is only what its last check saw, so
+     * its time is left out of uptime from the pause on, as the newest status
+     * event marks it (MonitorStatusTimeline.isMonitoringOff, issues #11141
+     * and #11301). Unset reads as counted.
      */
     isLeftOutOfUptime?: boolean | undefined;
   };
@@ -373,8 +373,9 @@ export interface MonitorOverviewPresentation {
    */
   isMonitoringOff?: boolean | undefined;
   /*
-   * Paused by an incident declared by hand that put it in no status: its
-   * uptime windows leave the paused time out too (issue #11141).
+   * Paused by an incident declared by hand or by scheduled maintenance that
+   * put it in no status: its uptime windows leave the paused time out too
+   * (issues #11141 and #11301).
    */
   isPausedTimeLeftOut?: boolean | undefined;
   facts: Array<MonitorOverviewFact>;
@@ -652,7 +653,8 @@ export default class MonitorOverviewPresentationUtil {
       isNeverReported: MonitorOverviewPresentationUtil.isNeverReported(context),
       isMonitoringOff: input.pause.isDisabled === true,
       isPausedTimeLeftOut:
-        input.pause.byManualIncident === true &&
+        (input.pause.byManualIncident === true ||
+          input.pause.byScheduledMaintenance === true) &&
         input.pause.isLeftOutOfUptime === true,
       facts: MonitorOverviewPresentationUtil.getFacts(input, context),
       target: MonitorOverviewTargetUtil.getTarget({
@@ -701,10 +703,11 @@ export default class MonitorOverviewPresentationUtil {
    * Monitoring turned off is the exception (issue #6480): that time is not
    * counted but left out, from the moment it was turned off, whatever the
    * monitor's kind, so the windows say that instead - measured over less
-   * than their length. So is a pause by incidents declared by hand that put
-   * the monitor in no status (issue #11141): "paused-left-out". Archived, or
-   * paused by an incident that put it in a status or by a scheduled
-   * maintenance event, the status still counts: "paused".
+   * than their length. So is a pause by incidents declared by hand or by
+   * scheduled maintenance that put the monitor in no status (issues #11141
+   * and #11301): "paused-left-out". Archived, or paused by an incident or a
+   * maintenance event that put it in a status, the status still counts:
+   * "paused".
    */
   public static getUptimeCaveat(
     presentation: Pick<

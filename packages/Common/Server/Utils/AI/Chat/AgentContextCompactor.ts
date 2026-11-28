@@ -1,4 +1,8 @@
-import { LLMMessage, LLMToolCall } from "../../LLM/LLMService";
+import {
+  LLMMessage,
+  LLMReplyReasoning,
+  LLMToolCall,
+} from "../../LLM/LLMService";
 import {
   AgentLoopToolCall,
   agentLoopResultKey,
@@ -601,6 +605,48 @@ export function joinAnswerContinuation(
   }
 
   return previous + continuation;
+}
+
+// One reply of an answer that was finished in parts: what it said, and of its reasoning.
+export interface AnswerPart {
+  // The reply's text, its reasoning already left out (LLMService).
+  content: string;
+  reasoning?: LLMReplyReasoning | undefined;
+}
+
+/*
+ * The answer the parts of one final answer make: the reply, then each
+ * continuation the output-token limit asked for, joined at each seam
+ * (joinAnswerContinuation).
+ *
+ * A model whose chat template opens its reasoning (DeepSeek-R1, QwQ, Qwen3's
+ * thinking models) writes no opening tag, so a reply the limit cut off
+ * before it reached its "</think>" reads as text, and is passed back to it
+ * as such to go on from. The reply that does close it says the model starts
+ * inside its reasoning (startedInsideReasoning): the parts just before it
+ * that showed no reasoning of their own were that reasoning, and are left
+ * out with it. A part whose reasoning was found keeps its answer.
+ */
+export function joinAnswerParts(parts: ReadonlyArray<AnswerPart>): string {
+  const kept: Array<AnswerPart> = [];
+
+  for (const part of parts) {
+    if (part.reasoning?.startedInsideReasoning) {
+      while (kept.length > 0 && !kept[kept.length - 1]!.reasoning) {
+        kept.pop();
+      }
+    }
+
+    kept.push(part);
+  }
+
+  let answer: string = "";
+
+  for (const part of kept) {
+    answer = joinAnswerContinuation(answer, part.content);
+  }
+
+  return answer;
 }
 
 /*

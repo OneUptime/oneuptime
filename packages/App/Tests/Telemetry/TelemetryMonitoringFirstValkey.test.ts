@@ -317,6 +317,16 @@ describe("the Telemetry queue, on a real Valkey", () => {
     expect((await Queue.getQueueStats(QueueName.Telemetry)).waiting).toBe(3);
     expect(await Queue.getQueueBacklogSize(QueueName.Telemetry)).toBe(3);
     expect(await Queue.getQueueSize(QueueName.Telemetry)).toBe(3);
+
+    /*
+     * While ClickHouse is refusing inserts, KEDA leaves the bulk batch out
+     * and still counts the monitoring work (TelemetryInsertBackpressure).
+     */
+    expect(
+      await Queue.getQueueBacklogSize(QueueName.Telemetry, {
+        withoutPrioritized: true,
+      }),
+    ).toBe(2);
   });
 
   test("a job an earlier release queued, with no priority, waits with the monitoring work", async () => {

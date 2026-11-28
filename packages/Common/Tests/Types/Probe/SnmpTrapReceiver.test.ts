@@ -7,6 +7,7 @@ import SnmpTrapReceiverUtil, {
   SnmpTrapRefusal,
   SnmpTrapRefusalReason,
 } from "../../../Types/Probe/SnmpTrapReceiver";
+import { SnmpV3CredentialHolders } from "../../../Types/Probe/SnmpV3CredentialHolders";
 import SnmpAuthProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import SnmpSecurityLevel from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
@@ -307,6 +308,43 @@ describe("sanitizeUser", () => {
     ).toHaveLength(MAX_SNMP_TRAP_RECEIVER_USER_ADDRESSES);
   });
 
+  test("who holds the credential is kept, read as what it can be (#11172)", () => {
+    const heldBy: SnmpV3CredentialHolders = {
+      projectIds: ["11720000-0000-4000-8000-0000000000a1"],
+      deviceIds: ["11720000-0000-4000-8000-000000000d01"],
+      siteIds: ["11720000-0000-4000-8000-000000000501"],
+    };
+
+    expect(
+      SnmpTrapReceiverUtil.sanitizeUser({ ...AUTH_PRIV, heldBy: heldBy }),
+    ).toEqual({ ...AUTH_PRIV, heldBy: heldBy });
+
+    // From a server older than #11172, or not readable: the user still is.
+    expect(
+      SnmpTrapReceiverUtil.sanitizeUser({
+        ...AUTH_PRIV,
+        heldBy: { projectIds: ["not-an-id"] },
+      }),
+    ).toEqual(AUTH_PRIV);
+    expect(SnmpTrapReceiverUtil.sanitizeUser(AUTH_PRIV)).not.toHaveProperty(
+      "heldBy",
+    );
+  });
+
+  test("a noAuthNoPriv user keeps who holds it too", () => {
+    const heldBy: SnmpV3CredentialHolders = {
+      projectIds: ["11720000-0000-4000-8000-0000000000a1"],
+    };
+
+    expect(
+      SnmpTrapReceiverUtil.sanitizeUser({
+        ...AUTH_PRIV,
+        securityLevel: SnmpSecurityLevel.NoAuthNoPriv,
+        heldBy: heldBy,
+      })?.heldBy,
+    ).toEqual(heldBy);
+  });
+
   test("sanitizeUsers keeps the users and leaves out the rest", () => {
     expect(
       SnmpTrapReceiverUtil.sanitizeUsers([
@@ -317,6 +355,54 @@ describe("sanitizeUser", () => {
       ]),
     ).toEqual([AUTH_PRIV]);
     expect(SnmpTrapReceiverUtil.sanitizeUsers("users")).toEqual([]);
+  });
+});
+
+describe("toSharedReport: what of a global probe's report belongs to no project (#11173)", () => {
+  test("whether it is on, its port, why it cannot listen and its engine ID", () => {
+    expect(
+      SnmpTrapReceiverUtil.toSharedReport({
+        ...REPORT,
+        listenError: "EADDRINUSE",
+      }),
+    ).toStrictEqual({
+      isEnabled: true,
+      port: 162,
+      listenError: "EADDRINUSE",
+      engineId: "8000B98380A1B2C3D4E5F60718293A4B",
+      refusals: [],
+    });
+  });
+
+  test("never its refusals, how many users it takes, or when it last took a trap", () => {
+    const shared: SnmpTrapReceiverReport =
+      SnmpTrapReceiverUtil.toSharedReport(REPORT);
+
+    expect(shared.refusals).toEqual([]);
+    expect(shared).not.toHaveProperty("userCount");
+    expect(shared).not.toHaveProperty("lastReceivedAt");
+    expect(JSON.stringify(shared)).not.toContain(REFUSAL.sourceAddress);
+    expect(JSON.stringify(shared)).not.toContain(REFUSAL.userName);
+  });
+
+  test("a receiver that is off is only that", () => {
+    expect(
+      SnmpTrapReceiverUtil.toSharedReport({ isEnabled: false, refusals: [] }),
+    ).toStrictEqual({ isEnabled: false, refusals: [] });
+  });
+
+  test("what is not in the report is not made up", () => {
+    expect(
+      SnmpTrapReceiverUtil.toSharedReport({ isEnabled: true, refusals: [] }),
+    ).toStrictEqual({ isEnabled: true, refusals: [] });
+  });
+
+  test("it reads back as a report", () => {
+    expect(
+      SnmpTrapReceiverUtil.parseReport(
+        SnmpTrapReceiverUtil.toSharedReport(REPORT),
+      ),
+    ).toEqual(SnmpTrapReceiverUtil.toSharedReport(REPORT));
   });
 });
 

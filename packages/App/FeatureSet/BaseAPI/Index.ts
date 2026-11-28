@@ -1627,6 +1627,9 @@ import RunbookVariableService, {
 import ProbeOwnerTeamService, {
   Service as ProbeOwnerTeamServiceType,
 } from "Common/Server/Services/ProbeOwnerTeamService";
+import GlobalProbeSnmpTrapReportService, {
+  Service as GlobalProbeSnmpTrapReportServiceType,
+} from "Common/Server/Services/GlobalProbeSnmpTrapReportService";
 
 import ProbeOwnerUserService, {
   Service as ProbeOwnerUserServiceType,
@@ -2010,6 +2013,7 @@ import TeamOwnerTeam from "Common/Models/DatabaseModels/TeamOwnerTeam";
 import TeamOwnerUser from "Common/Models/DatabaseModels/TeamOwnerUser";
 import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
+import GlobalProbeSnmpTrapReport from "Common/Models/DatabaseModels/GlobalProbeSnmpTrapReport";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
@@ -4642,6 +4646,21 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProbeOwnerTeam, ProbeOwnerTeamServiceType>(
         ProbeOwnerTeam,
         ProbeOwnerTeamService,
+      ).getRouter(),
+    );
+
+    /*
+     * A project's share of a global probe's SNMP trap receiver report
+     * (#11173): read on its devices' pages, written only by OneUptime.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        GlobalProbeSnmpTrapReport,
+        GlobalProbeSnmpTrapReportServiceType
+      >(
+        GlobalProbeSnmpTrapReport,
+        GlobalProbeSnmpTrapReportService,
       ).getRouter(),
     );
 

@@ -81,14 +81,23 @@ const os = require("os");
 const path = require("path");
 const yaml = require("js-yaml");
 
+const {
+  AGENTS,
+  KUBERNETES_CONFIGMAP_PATH,
+  KUBERNETES_SOURCE,
+  REPO_ROOT,
+  readChainConfigs,
+} = require("./Utils/AgentLogSeverityConfigs.js");
 const behaviour = require("./Utils/LogSeverityBehaviour.js");
 const { CASES, PROSE } = require("./Utils/LogSeverityCorpus.js");
 const {
   STDOUT_ROUTE_EXPR,
+  USER_LEVEL_ROUTE_EXPR,
   classify,
   compileRe2AsJs,
   extractMatchesPattern,
   indexOperatorsById,
+  isBodyRoute,
   oneUptimeLogSeverity,
   outputTargets,
   resolveSeverityNumber,
@@ -96,34 +105,56 @@ const {
   unescapeGoStringLiteral,
 } = require("./Utils/StanzaSeverity.js");
 
-const REPO_ROOT = path.resolve(__dirname, "..", "..");
-
-/** The three agents whose `filelog` receiver carries the severity chain. */
-const AGENTS = ["DockerAgent", "PodmanAgent", "DockerSwarmAgent"];
-
-/**
- * The Kubernetes agent grew this chain first. It lives in a Helm template, so
- * it cannot be parsed as YAML wholesale — the block itself is plain YAML and is
- * lifted out textually below.
- */
-const KUBERNETES_CONFIGMAP_PATH = path.join(
-  REPO_ROOT,
-  "HelmChart",
-  "Public",
-  "kubernetes-agent",
-  "templates",
-  "configmap-daemonset.yaml",
-);
-
 /** The chain, in the order the operators must appear in the list. */
-const SEVERITY_CHAIN_IDS = [
-  "severity-router",
+/**
+ * The router's routes, in the order they must be tried. Order is meaning
+ * here: stanza takes the FIRST route whose expression holds, so a reader that
+ * knows exactly where a format keeps its level (klog's letter, an
+ * exception's header, pino's top-level number, the formats of issue #11226
+ * that keep it in a place of their own) goes before the general read, which
+ * would otherwise find a level field further along the same line; slog's
+ * levels between its names come after it, so a line the general read reads
+ * keeps that level; the stdout fallback is last.
+ */
+const ROUTE_OUTPUTS = [
   "parse-klog-severity",
   "add-exception-severity",
   "add-warning-severity",
   "parse-numeric-severity",
+  "parse-mongodb-severity",
+  "parse-cnpg-severity",
+  "parse-clef-severity",
+  "add-clef-information",
+  "parse-redis-severity",
+  "parse-nest-severity",
+  "parse-logrus-severity",
+  "parse-mysql-severity",
+  "parse-jul-severity",
+  "parse-sidekiq-severity",
+  "parse-php-severity",
+  "parse-gitea-severity",
   "parse-severity-from-body",
+  "parse-slog-severity",
   "add-fallback-severity",
+];
+
+/** The level each `add` operator writes. */
+const ADDED_LEVELS = {
+  "add-exception-severity": "ERROR",
+  "add-warning-severity": "WARN",
+  "add-clef-information": "INFO",
+  "add-fallback-severity": "INFO",
+};
+
+/** The readers that lift a text with a regex_parser. */
+const REGEX_READERS = ROUTE_OUTPUTS.filter((id) => {
+  return !Object.prototype.hasOwnProperty.call(ADDED_LEVELS, id);
+});
+
+/** The chain, in the order the operators must appear in the list. */
+const SEVERITY_CHAIN_IDS = [
+  "severity-router",
+  ...ROUTE_OUTPUTS,
   "severity-parser",
   "remove-severity-attr",
   "severity-unspecified",
@@ -132,108 +163,18 @@ const SEVERITY_CHAIN_IDS = [
 /** The type each of those operators must be. */
 const OPERATOR_TYPES = {
   "severity-router": "router",
-  "parse-klog-severity": "regex_parser",
-  "add-exception-severity": "add",
-  "add-warning-severity": "add",
-  "parse-numeric-severity": "regex_parser",
-  "parse-severity-from-body": "regex_parser",
-  "add-fallback-severity": "add",
+  ...Object.fromEntries(
+    ROUTE_OUTPUTS.map((id) => {
+      return [id, REGEX_READERS.includes(id) ? "regex_parser" : "add"];
+    }),
+  ),
   "severity-parser": "severity_parser",
   "remove-severity-attr": "remove",
   "severity-unspecified": "noop",
 };
 
-/**
- * The router's routes, in the order they must be tried. Order is meaning
- * here: stanza takes the FIRST route whose expression holds, so a reader that
- * knows exactly where a format keeps its level (klog's letter, an
- * exception's header, pino's top-level number) goes before the general read,
- * which would otherwise find a level field further along the same line.
- */
-const ROUTE_OUTPUTS = [
-  "parse-klog-severity",
-  "add-exception-severity",
-  "add-warning-severity",
-  "parse-numeric-severity",
-  "parse-severity-from-body",
-  "add-fallback-severity",
-];
-
-/** The level each `add` operator writes. */
-const ADDED_LEVELS = {
-  "add-exception-severity": "ERROR",
-  "add-warning-severity": "WARN",
-  "add-fallback-severity": "INFO",
-};
-
 /** The scratch attribute the chain writes and must clean up again. */
 const SCRATCH_ATTRIBUTE = "attributes.severity_text";
-
-function readAgentOperators(agent) {
-  const configPath = path.join(
-    REPO_ROOT,
-    "agents",
-    agent,
-    "otel-collector-config.yaml",
-  );
-  const config = yaml.load(fs.readFileSync(configPath, "utf8"));
-  const operators = config.receivers.filelog.operators;
-
-  if (!Array.isArray(operators) || operators.length === 0) {
-    throw new Error(`${agent}: receivers.filelog.operators is empty`);
-  }
-
-  return operators;
-}
-
-/**
- * Lift the severity chain out of the Kubernetes agent's Helm template as text
- * and parse just that block.
- *
- * Deliberately strict: if a `{{ … }}` action ever appears inside the block the
- * extraction stops and the lockstep test fails loudly, rather than quietly
- * comparing half a chain.
- */
-function readKubernetesOperators() {
-  const lines = fs.readFileSync(KUBERNETES_CONFIGMAP_PATH, "utf8").split("\n");
-  const start = lines.findIndex((line, index) => {
-    return (
-      /^\s*- type: router\s*$/.test(line) &&
-      /^\s*id: severity-router\s*$/.test(lines[index + 1] || "")
-    );
-  });
-
-  if (start === -1) {
-    throw new Error(
-      `${KUBERNETES_CONFIGMAP_PATH}: no 'severity-router' operator found`,
-    );
-  }
-
-  const markerIndent = lines[start].length - lines[start].trimStart().length;
-  const block = [];
-
-  for (let index = start; index < lines.length; index++) {
-    const line = lines[index];
-
-    if (line.trim() === "") {
-      continue;
-    }
-
-    if (line.includes("{{")) {
-      break;
-    }
-
-    const indent = line.length - line.trimStart().length;
-
-    if (indent < markerIndent) {
-      break;
-    }
-
-    block.push(line.slice(markerIndent));
-  }
-
-  return yaml.load(block.join("\n"));
-}
 
 /**
  * The chain's operators, in chain order, or a hard error naming what is
@@ -258,18 +199,11 @@ function severityChain(source, operators) {
   });
 }
 
-const KUBERNETES_SOURCE = "the Kubernetes agent's DaemonSet";
-
 /**
  * Every config the chain ships in: an agent's whole operator list, or the
  * Kubernetes agent's chain on its own.
  */
-const CONFIGS = new Map([
-  ...AGENTS.map((agent) => {
-    return [agent, readAgentOperators(agent)];
-  }),
-  [KUBERNETES_SOURCE, readKubernetesOperators()],
-]);
+const CONFIGS = readChainConfigs();
 
 /** The pattern a regex_parser of the chain uses. */
 function parserPattern(operators, id) {
@@ -357,6 +291,27 @@ const PATHOLOGICAL = {
   digitsColon: (n) => `${"1:".repeat(n)}x`,
   quotes: (n) => `${'" '.repeat(n)}x`,
   celeryProcess: (n) => `INFO/${"A".repeat(n)}`,
+  // The readers of issue #11226.
+  mongoDate: (n) => `{"t":{"$date":"${"x".repeat(n)}`,
+  cnpgPairs: (n) =>
+    `{"level":"info","ts":"x","logger":"postgres","msg":"record",${'"a":"b",'.repeat(n)}`,
+  clefRenders: (n) => `{"@t":"x","@mt":"y","@r":[${'"a",'.repeat(n)}`,
+  clefEscapes: (n) => `{"@t":"x","@mt":"${'\\"'.repeat(n)}`,
+  redisPrefix: (n) => `${"1:M ".repeat(n)}x`,
+  nestSpaces: (n) => `[Nest] 1  - 1${" ".repeat(n)}x`,
+  nestDigits: (n) => `[Nest] 1  - ${"1 ".repeat(n)}x`,
+  nestColours: (n) => `[Nest] 1  - 1 ${"\u001b[0m".repeat(n)}x`,
+  logrusBracket: (n) => `\u001b[31mERRO\u001b[0m[${"a".repeat(n)}`,
+  mysqlPrefix: (n) => `${"2026-11-27T20:39:32.776965Z 0 ".repeat(n)}x`,
+  julLevels: (n) => `${"FINE".repeat(n)}: x`,
+  sidekiqPairs: (n) => `pid=1 tid=a${" k=v".repeat(n)} x`,
+  sidekiqEquals: (n) => `pid=1 tid=a k=${"=".repeat(n)}`,
+  phpSpaces: (n) => `PHP Warning:${" ".repeat(n)}`,
+  giteaToken: (n) => `2026/11/27 20:44:55 ${"a".repeat(n)}`,
+  giteaParens: (n) => `2026/11/27 20:44:55 ${"()".repeat(n)}x`,
+  slogLevels: (n) => " level=ERROR+".repeat(n),
+  slogQuotes: (n) => `{${'"level":"INFO+'.repeat(n)}`,
+  kitchenTimes: (n) => `${"8:50PM ".repeat(n)}x`,
 };
 
 describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
@@ -411,8 +366,58 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       router.routes.map((route) => {
         return route.output;
       }),
-    ).toEqual(ROUTE_OUTPUTS);
+    ).toEqual(["severity-parser", ...ROUTE_OUTPUTS]);
     expect(router.default).toBe("severity-unspecified");
+  });
+
+  /*
+   * Issue #11225: your own operators (logs.extraOperators, the container
+   * agents' ONEUPTIME_LOG_OPERATOR_n) run before the router, and a level one
+   * of them writes to attributes.severity_text is read before every reader
+   * of the chain, by the one severity parser, so it means what the same word
+   * means everywhere else.
+   */
+  test("reads a level your own operators wrote before any reader of its own", () => {
+    const firstRoute = router.routes[0];
+
+    expect(firstRoute).toEqual({
+      output: "severity-parser",
+      expr: USER_LEVEL_ROUTE_EXPR,
+    });
+    expect(
+      classify(operators, "[ERROR] upstream said so", "stdout", {
+        severity_text: "WARN",
+      }),
+    ).toEqual({
+      reader: "severity-parser",
+      text: "WARN",
+      number: 13,
+      severity: "Warning",
+    });
+    // Any word the agent reads, a reader token too, at the table's number.
+    expect(
+      classify(operators, "payment failed", "stderr", {
+        severity_text: "crit",
+      }).number,
+    ).toBe(18);
+    expect(
+      classify(operators, "payment failed", "stderr", {
+        severity_text: "E",
+      }).severity,
+    ).toBe("Error");
+    // A word it does not read names no level: the parser leaves none.
+    expect(
+      classify(operators, "[ERROR] x", "stdout", { severity_text: "SEV1" }),
+    ).toEqual({
+      reader: "severity-parser",
+      text: "SEV1",
+      number: 0,
+      severity: "Unspecified",
+    });
+    // Without one, the chain reads the line as before.
+    expect(classify(operators, "[ERROR] x", "stdout").reader).toBe(
+      "parse-severity-from-body",
+    );
   });
 
   test("only an unread line on stdout falls back to the stream, and to INFO", () => {
@@ -555,24 +560,51 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
    * would admit lines the parser cannot parse (leaving them Unspecified, with
    * an error logged for each) or reject lines that carry a level.
    */
-  test.each([
-    "parse-klog-severity",
-    "parse-numeric-severity",
-    "parse-severity-from-body",
-  ])("the route to %s uses its parser's pattern", (id) => {
-    expect(routePattern(operators, id)).toBe(
-      parserPattern(operators, id).replace("(?P<severity_text>", "("),
-    );
-    expect(byId.get(id).parse_from).toBe("body");
-    // parse_to is left at its default (`attributes`), which MERGES the
-    // capture into the attribute map rather than replacing it, so
-    // log.iostream and log.file.path survive the parser.
-    expect(byId.get(id).parse_to).toBeUndefined();
+  test.each(REGEX_READERS)(
+    "the route to %s uses its parser's pattern",
+    (id) => {
+      expect(routePattern(operators, id)).toBe(
+        parserPattern(operators, id).replace("(?P<severity_text>", "("),
+      );
+      expect(byId.get(id).parse_from).toBe("body");
+      // parse_to is left at its default (`attributes`), which MERGES the
+      // capture into the attribute map rather than replacing it, so
+      // log.iostream and log.file.path survive the parser.
+      expect(byId.get(id).parse_to).toBeUndefined();
+    },
+  );
+
+  /*
+   * Collector 0.96.0, which a --reuse-values upgrade keeps, still expands a
+   * bare $NAME in any string of its config as an environment variable
+   * (0.165.0 expands only ${...}). MongoDB's reader once matched `\$date`:
+   * on 0.96.0 that reached RE2 as a lone backslash and an empty variable, and
+   * every MongoDB line went unread there, and only there. A literal dollar is
+   * written [$], which no collector expands.
+   */
+  test("no pattern holds a $ that collector 0.96.0 expands as a variable", () => {
+    const strings = chain()
+      .flatMap((operator) => {
+        return [
+          operator.regex,
+          ...(operator.routes || []).map((route) => {
+            return route.expr;
+          }),
+        ];
+      })
+      .filter(Boolean);
+
+    expect(strings.length).toBeGreaterThan(30);
+    expect(
+      strings.filter((text) => {
+        return /\$[A-Za-z_{]/.test(text);
+      }),
+    ).toEqual([]);
   });
 
   test("every route's pattern compiles", () => {
     for (const route of router.routes) {
-      if (route.expr !== STDOUT_ROUTE_EXPR) {
+      if (isBodyRoute(route.expr)) {
         expect(() => {
           return compileRe2AsJs(extractMatchesPattern(route.expr));
         }).not.toThrow();
@@ -592,17 +624,13 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
    */
   test("every text the chain can produce resolves to a real severity number", () => {
     const texts = [
-      ...[
-        "parse-klog-severity",
-        "parse-numeric-severity",
-        "parse-severity-from-body",
-      ].flatMap((id) => {
+      ...REGEX_READERS.flatMap((id) => {
         return severityKeywordsFromRegex(parserPattern(operators, id));
       }),
       ...Object.values(ADDED_LEVELS),
     ];
 
-    expect(texts.length).toBeGreaterThan(40);
+    expect(texts.length).toBeGreaterThan(100);
 
     const unresolved = texts.filter((text) => {
       return resolveSeverityNumber(text, severityParser) === 0;
@@ -618,11 +646,7 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
    * lands on "Unspecified" and the Logs page cannot filter it.
    */
   test("every number the chain can emit survives OneUptime ingest as a real level", () => {
-    const texts = [
-      "parse-klog-severity",
-      "parse-numeric-severity",
-      "parse-severity-from-body",
-    ].flatMap((id) => {
+    const texts = REGEX_READERS.flatMap((id) => {
       return severityKeywordsFromRegex(parserPattern(operators, id));
     });
 
@@ -669,15 +693,53 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       Information: "Information",
       eror: "Error",
       DPANIC: "Error",
-      // PSR-3 / syslog, and the shapes read by their form
+      // PSR-3 / syslog, as the one table reads them (issue #11228): an
+      // alert is an error that asks for action, an emergency a crash; an
+      // application logger's critical is its top level, and a panic a crash.
       notice: "Information",
-      alert: "Fatal",
+      alert: "Error",
       emerg: "Fatal",
       emergency: "Fatal",
+      critical: "Fatal",
       panic: "Fatal",
+      PNC: "Fatal",
       ERROR: "Error",
       WARN: "Warning",
       INFO: "Information",
+      // Issue #11226's formats: MongoDB's letters, Redis's symbols in
+      // their order, Gitea's letters, logrus's four letters, NestJS's and
+      // Serilog's Verbose, java.util.logging's lower levels, MySQL's System,
+      // PHP's error types, Go's log/slog between its names.
+      D1: "Debug",
+      D5: "Debug",
+      ".": "Debug",
+      "-": "Debug",
+      "*": "Information",
+      "#": "Warning",
+      T: "Trace",
+      D: "Debug",
+      TRAC: "Trace",
+      DEBU: "Debug",
+      ERRO: "Error",
+      FATA: "Fatal",
+      PANI: "Fatal",
+      Verbose: "Debug",
+      FINEST: "Trace",
+      FINER: "Debug",
+      FINE: "Debug",
+      CONFIG: "Debug",
+      System: "Information",
+      "Fatal error": "Fatal",
+      "Parse error": "Fatal",
+      "Recoverable fatal error": "Error",
+      Deprecated: "Warning",
+      "DEBUG-4": "Trace",
+      "DEBUG+2": "Debug",
+      "INFO+2": "Information",
+      "WARN+1": "Warning",
+      "ERROR+1": "Error",
+      "ERROR+4": "Fatal",
+      "ERROR+7": "Fatal",
     };
 
     for (const [text, severity] of Object.entries(expected)) {
@@ -927,6 +989,8 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       ).toBe("Error");
     });
 
+    // Read at all, and since issue #11228 as the one table reads them:
+    // EMERGENCY is a crash, ALERT an error that asks for action (ERROR3).
     test("reads the two most severe PSR-3 levels", () => {
       expect(
         severityOf(
@@ -936,7 +1000,14 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       ).toBe("Fatal");
       expect(
         severityOf("[2026-08-31 07:25:04] app.ALERT: replica lag\n", "stdout"),
-      ).toBe("Fatal");
+      ).toBe("Error");
+      expect(
+        classify(
+          operators,
+          "[2026-08-31 07:25:04] app.ALERT: replica lag\n",
+          "stdout",
+        ).number,
+      ).toBe(19);
       expect(
         severityOf("2026/08/31 [emerg] 1#1: bind() failed\n", "stdout"),
       ).toBe("Fatal");
@@ -1003,7 +1074,7 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       const body = PATHOLOGICAL[shape](30000);
 
       for (const route of router.routes) {
-        if (route.expr === STDOUT_ROUTE_EXPR) {
+        if (!isBodyRoute(route.expr)) {
           continue;
         }
 
@@ -1264,6 +1335,96 @@ describe("agent-log-severity-behaviour.sh", () => {
     }
   });
 
+  /*
+   * logs.extraOperators (issue #11225): the documented example's operators
+   * on the chart, on 0.96.0 too and with minSeverity, and on each container
+   * agent through its variables, with the in-house lines they read beside
+   * the whole corpus.
+   */
+  test("runs the documented logs.extraOperators example through the chart and through the three agents' variables", () => {
+    const script = readRepoFile(SCRIPT);
+
+    expect(script).toContain(
+      "\nkubernetes_case kubernetes-extra-operators --extra-operators\n",
+    );
+    expect(script).toContain(
+      "\nkubernetes_case kubernetes-0.96.0-extra-operators --extra-operators --set image.tag=0.96.0\n",
+    );
+    expect(script).toContain(
+      "\nkubernetes_case kubernetes-extra-operators-min-error --min-severity ERROR --extra-operators --set filters.logs.minSeverity=ERROR\n",
+    );
+    for (const agent of AGENTS) {
+      expect(script).toMatch(
+        new RegExp(
+          `\\nagent_case ${agent} [a-z]+ [^\\n]+ --extra-operators\\n`,
+        ),
+      );
+    }
+    // The chart gets the example as --set-json, and an agent as variables.
+    expect(script).toContain(
+      'operators=(--set-json "logs.extraOperators=$(node "${HELPER}" operators json)")',
+    );
+    expect(script).toContain('COLLECTOR_ENV+=(-e "${variable}")');
+    expect(script).toContain('done < <(node "${HELPER}" operators env)');
+    expect(script).toContain('${COLLECTOR_ENV[@]+"${COLLECTOR_ENV[@]}"}');
+  });
+
+  test("adds the in-house lines to the corpus only for a run with the example", () => {
+    const {
+      EXTRA_OPERATOR_CASES,
+    } = require("./Utils/ExtraLogOperatorExamples.js");
+    const without = behaviour.allRecords();
+    const withExample = behaviour.allRecords(true);
+
+    expect(withExample.slice(0, without.length)).toEqual(without);
+    expect(withExample.slice(without.length)).toEqual(
+      EXTRA_OPERATOR_CASES.map((entry) => {
+        return { ...entry, name: `logs.extraOperators: ${entry.name}` };
+      }),
+    );
+
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "log-severity-"));
+
+    try {
+      behaviour.fixtures("docker", path.join(dir, "logs"), true);
+
+      expect(
+        JSON.parse(fs.readFileSync(path.join(dir, "cases.json"), "utf8")),
+      ).toHaveLength(withExample.length);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("hands an agent the example one operator a variable, as JSON its slot reads as one operator", () => {
+    const {
+      DOCUMENTED_EXAMPLE,
+    } = require("./Utils/ExtraLogOperatorExamples.js");
+    const result = require("child_process").spawnSync(
+      process.execPath,
+      [
+        path.join(REPO_ROOT, "Tests/Ops/Utils/LogSeverityBehaviour.js"),
+        "operators",
+        "env",
+      ],
+      { encoding: "utf8" },
+    );
+    const lines = result.stdout.split("\n").filter(Boolean);
+
+    expect(result.status).toBe(0);
+    expect(lines).toEqual(
+      DOCUMENTED_EXAMPLE.map((operator, index) => {
+        return `ONEUPTIME_LOG_OPERATOR_${index + 1}=${JSON.stringify(operator)}`;
+      }),
+    );
+    for (const line of lines) {
+      // JSON is YAML: the slot's ${env:...} expands to one map.
+      expect(yaml.load(line.slice(line.indexOf("=") + 1))).toEqual(
+        DOCUMENTED_EXAMPLE[lines.indexOf(line)],
+      );
+    }
+  });
+
   test("writes every case, and every line of prose on both streams, as its own container", () => {
     const records = behaviour.allRecords();
 
@@ -1417,6 +1578,76 @@ describe("agent-log-severity-behaviour.sh", () => {
       expect(() => {
         return behaviour.exported(file);
       }).toThrow();
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  /*
+   * Issue #11228: a record at the right level can still carry a number
+   * ingest gives the same word elsewhere. The collector's severityText is
+   * the word the chain lifted, so its number must be the one table's.
+   */
+  test("fails a record whose number is not the one table's for the word it carries", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "log-severity-"));
+    const casesFile = path.join(dir, "cases.json");
+    const exportedFile = path.join(dir, "logs.json");
+    const collectorLog = path.join(dir, "collector.log");
+    const exportOf = (record) => {
+      return `${JSON.stringify({
+        resourceLogs: [
+          {
+            resource: {
+              attributes: [
+                { key: "k8s.pod.name", value: { stringValue: "case-0" } },
+              ],
+            },
+            scopeLogs: [{ logRecords: [record] }],
+          },
+        ],
+      })}\n`;
+    };
+    const quietly = (run) => {
+      const log = console.log;
+
+      console.log = () => {};
+
+      try {
+        return run();
+      } finally {
+        console.log = log;
+      }
+    };
+
+    try {
+      fs.writeFileSync(
+        casesFile,
+        JSON.stringify([
+          { id: "case-0", name: "nginx [crit]", severity: "Error" },
+        ]),
+      );
+      fs.writeFileSync(collectorLog, "");
+
+      // syslog's crit is ERROR2 (18): an Error at 17 is the wrong number.
+      fs.writeFileSync(
+        exportedFile,
+        exportOf({ severityText: "crit", severityNumber: 17 }),
+      );
+      expect(
+        quietly(() => {
+          return behaviour.check(casesFile, exportedFile, collectorLog, "");
+        }),
+      ).toBe(false);
+
+      fs.writeFileSync(
+        exportedFile,
+        exportOf({ severityText: "crit", severityNumber: 18 }),
+      );
+      expect(
+        quietly(() => {
+          return behaviour.check(casesFile, exportedFile, collectorLog, "");
+        }),
+      ).toBe(true);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
