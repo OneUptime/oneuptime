@@ -559,6 +559,35 @@ const MONITORING_TURNED_OFF_NOTES: ReadonlyArray<StatusChangeNote> = [
 ];
 
 /*
+ * MonitorCriteriaReplaced (#11260, #11266): an incident or alert set to
+ * resolve on its own, resolved when a template took the criteria that
+ * opened it off the monitor - linking it to another template, whose
+ * criteria replaced its own, or unlinking it and clearing the template's.
+ */
+const MONITOR_CRITERIA_REPLACED_NOTES: ReadonlyArray<StatusChangeNote> = [
+  {
+    written: translationKey(
+      "The monitor **{{monitor}}** was linked to the template **{{template}}**, and its criteria replaced the ones that opened this incident. This incident was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now. If the problem is still there, the monitor's new criteria open a new incident.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The monitor **{{monitor}}** was linked to the template **{{template}}**, and its criteria replaced the ones that opened this alert. This alert was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now. If the problem is still there, the monitor's new criteria open a new alert.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The monitor **{{monitor}}** was unlinked from the template **{{template}}**, and the template's criteria were cleared from it. This incident was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The monitor **{{monitor}}** was unlinked from the template **{{template}}**, and the template's criteria were cleared from it. This alert was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now.",
+    ),
+  },
+];
+
+/*
  * DeviceManagementConnectionAlerts (#10286): an incident or alert set to
  * resolve on its own, resolved when its device management connection was
  * turned off - its Connection Stopped Reading monitor's - or deleted -
@@ -952,6 +981,7 @@ export const STATUS_CHANGE_NOTES: ReadonlyArray<StatusChangeNote> = [
   ...LINKED_ALERT_NOTES,
   ...SERIES_RESOLVED_NOTES,
   ...MONITORING_TURNED_OFF_NOTES,
+  ...MONITOR_CRITERIA_REPLACED_NOTES,
   ...DEVICE_MANAGEMENT_CONNECTION_NOTES,
   ...NETWORK_SITE_NOTES,
   ...SLO_NOTES,

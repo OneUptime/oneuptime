@@ -6,6 +6,7 @@ En monitorskabelon er en gemt monitorkonfiguration (en type, kriterier, et inter
 - [Opret en skabelon](#opret-en-skabelon): Fire trin, som Opret monitor.
 - [Opret monitorer ud fra den](#opret-monitorer-ud-fra-en-skabelon): Ét klik, eller tilknyt monitorer, du allerede har.
 - [Synkronisér ændringer](#synkronisér-ændringer-til-tilknyttede-monitorer): Hvad hver synkroniseringsknap kopierer.
+- [Flyt monitorer til en anden skabelon](#flyt-monitorer-til-en-anden-skabelon): En bedre skabelon, og hver monitor beholder sin historik.
 - [Behold værdier for hver monitor](#behold-værdier-for-hver-monitor): Beskyt en destination eller headere mod en synkronisering.
 :::
 
@@ -55,7 +56,7 @@ Skabelonen tilføjes listen. Åbn den for at se dens side med et kort for hver d
 ## Opret monitorer ud fra en skabelon
 
 - **Ny monitor.** Klik på **Opret monitor** i skabelonens række på listen eller på **Opret monitor fra skabelon** på dens side. **Opret monitor** åbner med skabelonens type og indstillinger udfyldt; ret det, du har brug for, og opret den. Den nye monitor er knyttet til skabelonen.
-- **Monitorer, du allerede har.** Klik på **Tilknyt eksisterende monitorer** under **Tilknyttede monitorer**, og vælg dem. De beholder deres indstillinger, indtil du synkroniserer.
+- **Monitorer, du allerede har.** Klik på **Tilknyt eksisterende monitorer** under **Tilknyttede monitorer**, og vælg dem. Med **Brug skabelonens kriterier og interval** slået til får de skabelonens kriterier, interval og sondeenighed, når de tilknyttes; slået fra beholder de deres indstillinger, indtil du synkroniserer. En monitor, der er tilknyttet en anden skabelon, flyttes til denne.
 
 Værdier, der er sat under **Standardværdier for brugerdefinerede felter**, skrives til hver monitor, der oprettes ud fra skabelonen, også monitorer, som regler for automatisk import og advarselspolitikker opretter ud fra den.
 
@@ -70,9 +71,60 @@ At redigere en skabelon ændrer kun skabelonen. For at kopiere en ændring til d
 | **Synkronisér etiketter til tilknyttede monitorer** | Etiketterne og intet andet | Alt andet |
 | **Synkroniser brugerdefinerede felter til tilknyttede monitorer** | De brugerdefinerede felter, som skabelonen har en standardværdi for, i stedet for det, hver monitor havde | Brugerdefinerede felter, som skabelonen lader stå tomme, og alt andet |
 
-For at synkronisere en enkelt monitor klikker du på **Synkronisér fra skabelon** i dens række under **Tilknyttede monitorer**. Det kopierer kriterierne og trinindstillingerne (undtagen beskyttede felter), overvågningsintervallet, minimum sondeenighed og etiketterne og lader monitorens navn, beskrivelse og værdier i brugerdefinerede felter være. **Fjern kæde fra skabelon** frakobler en monitor; den beholder sine indstillinger.
+For at synkronisere en enkelt monitor klikker du på **Synkronisér fra skabelon** i dens række under **Tilknyttede monitorer**. Det kopierer kriterierne og trinindstillingerne (undtagen beskyttede felter), overvågningsintervallet, minimum sondeenighed og etiketterne og lader monitorens navn, beskrivelse og værdier i brugerdefinerede felter være. Se [Frakobl monitorer fra en skabelon](#frakobl-monitorer-fra-en-skabelon) for at frakoble en monitor.
 
 Efter en synkronisering siger en opsummering, hvor mange monitorer der blev opdateret. **Delvist synkroniseret** betyder, at nogle tilknyttede monitorer stadig har den tidligere konfiguration, som regel fordi dine tilladelser ikke dækker dem.
+
+## Flyt monitorer til en anden skabelon
+
+Når en bedre skabelon afløser en anden, så flyt dens monitorer til den i stedet for at slette dem. Hver monitor beholder sit navn, sin statushistorik, sine etiketter, ejere og hændelser og får den nye skabelons kriterier.
+
+:::steps
+### Vælg monitorerne
+
+Åbn den skabelon, de er tilknyttet nu. Vælg monitorerne under **Tilknyttede monitorer**, eller dem alle. Du kan også vælge monitorer på monitorlisten, filtreret efter en hvilken som helst kolonne.
+
+### Flyt dem
+
+Klik på **Flyt til en anden skabelon** under **Massehandlinger** (på monitorlisten **Tilknyt til skabelon**). Vælg skabelonen.
+
+### Lad skabelonens indstillinger være slået til
+
+Lad **Brug skabelonens kriterier og interval** være slået til, så hver monitor får skabelonens kriterier, trinindstillinger, interval og sondeenighed med det samme. Slået fra beholder hver monitor sine egne, indtil du synkroniserer. Bekræft derefter.
+:::
+
+Det gør flytningen:
+
+- Monitorernes kriterier, interval og sondeenighed erstattes af skabelonens. En åben hændelse eller advarsel, som deres gamle kriterier var sat til at løse automatisk, bliver løst, og de nye kriterier åbner en ny, hvis problemet stadig er der. Hver netværksenhedsmonitor bliver ved med at holde øje med sin egen enhed, og hver monitor, der tjekker en adresse eller URL, bliver ved med at tjekke sin egen enheds adresse.
+- Navne, beskrivelser, statushistorik, etiketter, ejere, værdier i brugerdefinerede felter og hændelsestilknytninger forbliver, som de er.
+- En monitor, som en import, en regel for automatisk import eller en netværksadvarselspolitik har oprettet, beholder den skabelon, den blev oprettet fra. Den regel opretter den aldrig igen, og en advarselspolitik slipper den: den sletter eller erstatter den ikke længere.
+- En enhed har én monitor fra hver skabelon. Når en enhed allerede har en monitor, der er oprettet til den fra den nye skabelon, udelades dens anden monitor, og ændringen nævner den, der står i vejen: slet en af de to, og flyt derefter igen.
+- En monitor af en anden type end skabelonens udelades.
+
+Ændringen kører på serveren, op til 10.000 monitorer ad gangen, og viser sit fremskridt: hvad der blev flyttet, hvad der blev udeladt og hvorfor, og de åbne hændelser og advarsler, den løste. Den stopper ikke, når du lukker dialogen, og skabelonens side viser en ændring, der stadig kører. **Stands** standser den før næste monitor, og **Prøv igen** prøver igen med de monitorer, der mislykkedes eller ikke blev nået.
+
+> [!TIP]
+> Flytter du enhederne fra en regel for automatisk import til en ny skabelon? Flyt monitorerne først, og peg derefter reglen på den nye skabelon. I den modsatte rækkefølge giver reglen hver enhed endnu en monitor fra den nye skabelon ved siden af den, den har.
+
+## Frakobl monitorer fra en skabelon
+
+Klik på **Fjern kæde fra skabelon** i en monitors række under **Tilknyttede monitorer**, eller vælg monitorer der eller på monitorlisten, og brug **Fjern kæde fra skabelon** under **Massehandlinger**. Vælg, hvad monitorerne beholder:
+
+| Valg | Hvad monitorerne gør bagefter |
+| --- | --- |
+| **Behold deres indstillinger** | De bliver ved med at tjekke og advare med de kriterier, de har nu, som selvstændige monitorer, og får ikke længere skabelonens opdateringer. |
+| **Ryd skabelonens kriterier fra dem** | De bliver ved med at tjekke, men åbner ingen hændelser eller advarsler og sætter ingen status, før du tilknytter dem til en skabelon igen. En åben hændelse eller advarsel, som deres kriterier var sat til at løse automatisk, bliver løst. |
+
+Uanset valget beholder de deres navne, statushistorik, etiketter, ejere og hændelser, og en regel, der har oprettet dem, opretter dem aldrig igen.
+
+## Slet en skabelon
+
+En skabelon, som en netværksadvarselspolitik eller en regel for automatisk import opretter monitorer ud fra, kan ikke slettes: peg først politikken eller reglen på en anden skabelon. Når monitorer er tilknyttet skabelonen, spørger sletningen, hvad der skal ske med dem:
+
+- **Behold deres indstillinger** (standard): sletningen frakobler dem, og de bliver ved med at tjekke og advare med de kriterier, de har.
+- **Ryd denne skabelons kriterier fra dem**: hver monitor frakobles, og dens kriterier ryddes, som ovenfor, og derefter slettes skabelonen. Når en monitor forbliver tilknyttet, som en, dine tilladelser ikke dækker, bevares skabelonen, og dialogen siger, hvor mange.
+
+Hvis du i stedet vil flytte monitorerne til en anden skabelon, så brug **Flyt til en anden skabelon**, før du sletter den.
 
 ## Behold værdier for hver monitor
 
@@ -174,6 +226,14 @@ Et beskyttet felt kunne ikke matches til et trin på en af monitorerne, så synk
 
 :::details Synkroniseringsknapperne er nedtonede
 Ingen monitor er knyttet til skabelonen endnu. Opret en monitor ud fra den, eller klik på **Tilknyt eksisterende monitorer** under **Tilknyttede monitorer**.
+:::
+
+:::details En flytning udelader en monitor: "Den enhed, som denne monitor blev oprettet til, har allerede en monitor, der er tilknyttet denne skabelon"
+Enheden har en monitor, der er oprettet til den fra den skabelon, du flytter til, som regel fordi en regel for automatisk import blev peget på den skabelon før flytningen. Slet den, du ikke har brug for, den nyeste har mindst historik, og flyt derefter igen.
+:::
+
+:::details Efter at en regel for automatisk import er flyttet til en ny skabelon, har enheder to monitorer
+Reglen gav hver enhed den nye skabelons monitor ved siden af den, den havde. Slet de nye monitorer, og flyt derefter de gamle til den nye skabelon: de beholder deres historik, og reglen opretter ingen igen.
 :::
 
 :::details Gem fejler med "Unsupported do not sync field"
