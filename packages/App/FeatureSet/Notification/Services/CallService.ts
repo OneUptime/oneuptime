@@ -100,6 +100,7 @@ import {
   renderSpeechAsText,
 } from "Common/Utils/Call/CallSpeech";
 import { SpokenCall, getSpokenCalls } from "Common/Utils/Call/CallLanguage";
+import { asSentenceInLanguage } from "Common/Utils/Call/OnCallPageCall";
 import { getCallTranslator } from "Common/Server/Utils/ServerTranslation";
 import {
   DEFAULT_READER_LANGUAGE,
@@ -194,20 +195,18 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
 }
 
 /*
- * How a sentence ends: a full stop, a question mark, an exclamation mark - or
- * the "…" of a title cut for speech.
- */
-const SENTENCE_END: RegExp = new RegExp("[.!?…]$");
-
-/*
  * What a call says, for a gateway that makes it (CallAndSmsGatewayPayload):
  * its spoken sentences in order. The "press 1" a call asks for is left out -
  * it is Twilio's keypad, and the gateway offers the page's actions its own
  * way - as are the answers to a key press. Of a call request, its English
- * words; of one way of speaking it, those words.
+ * words; of one way of speaking it, those words, in their `language`. Each
+ * sentence is ended once, as its language ends one: a full stop, a
+ * question or exclamation mark - or the "…" of a title cut for speech - and
+ * "。", "।" or "؟" in the languages that write them (asSentenceInLanguage).
  */
 export function getCallGatewayMessage(
   callRequest: CallRequest | CallRequestMessage,
+  language: string = DEFAULT_READER_LANGUAGE,
 ): string {
   const sentences: Array<string> = [];
 
@@ -219,8 +218,7 @@ export function getCallGatewayMessage(
     }
 
     // Each a sentence of its own, ended as one.
-    const sentence: string = sayMessage.trim();
-    sentences.push(SENTENCE_END.test(sentence) ? sentence : `${sentence}.`);
+    sentences.push(asSentenceInLanguage(sayMessage.trim(), language));
   }
 
   return sentences.join(" ");
@@ -256,7 +254,10 @@ export function getCallGatewayMessageInLanguage(
     return undefined;
   }
 
-  const message: string = getCallGatewayMessage({ data: inLanguage.data });
+  const message: string = getCallGatewayMessage(
+    { data: inLanguage.data },
+    language,
+  );
 
   if (!message) {
     return undefined;
@@ -298,7 +299,10 @@ export function getCallVoicemailWords(
     ).trim();
 
     if (sentence) {
-      sentences.push(SENTENCE_END.test(sentence) ? sentence : `${sentence}.`);
+      // Ended once, as the words' language ends a sentence.
+      sentences.push(
+        asSentenceInLanguage(sentence, language || DEFAULT_READER_LANGUAGE),
+      );
     }
   }
 
