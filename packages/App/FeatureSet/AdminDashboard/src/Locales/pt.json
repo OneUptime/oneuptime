@@ -4633,5 +4633,10 @@
   "Only XCP-ng pools that match conditions": "Somente pools do XCP-ng que atendem às condições",
   "All savings": "Todas as economias",
   "Only savings that match conditions": "Somente as economias que atendem às condições",
-  "XCP-ng Pool": "Pool do XCP-ng"
+  "XCP-ng Pool": "Pool do XCP-ng",
+  "Same name as another {{kind}}": "Mesmo nome que outro item do tipo {{kind}}",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Outro item do tipo {{kind}} deste projeto tem este nome, então os seletores não conseguem distingui-los. Abra cada um para ver qual é qual e depois renomeie um deles.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} tem o mesmo nome que outro item do tipo {{kind}}, e os seletores não conseguem distingui-los. Abra cada um para ver qual é qual e depois renomeie um deles.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} têm o mesmo nome que outro item do tipo {{kind}}, e os seletores não conseguem distingui-los. Abra cada um para ver qual é qual e depois renomeie um deles.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} tem o mesmo nome que outro item do tipo {{kind}}, e os seletores não conseguem distingui-los. Abra cada um para ver qual é qual e depois renomeie um deles."
 }
