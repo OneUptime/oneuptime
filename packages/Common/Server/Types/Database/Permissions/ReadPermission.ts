@@ -54,7 +54,8 @@ export interface LabelledReferences {
  * Plain id columns, by "<table>.<column>", that name a record carrying no
  * labels although their names do not say which: a project's single sign-on
  * provider, an ingestion key, the instance, a digest batch, the discovery
- * import a retry tries again, the AI run that opened a code task, the
+ * import a retry tries again, the monitor template change a retry tries
+ * again (changes carry no labels), the AI run that opened a code task, the
  * playbook (playbooks carry no labels) a security case's AI triage
  * suggested, the audit log entry an audit log export's cursor stands at
  * (entries are kept in ClickHouse and carry no labels), the incident or
@@ -73,6 +74,11 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "GlobalConfig.instanceId",
     "UserNotificationEmailRollupItem.rollupBatchId",
     "NetworkDeviceDiscoveryImport.retryOfImportId",
+    /*
+     * The change of many monitors' template a retry tries again (#11411): a
+     * MonitorTemplateChange, which carries no labels.
+     */
+    "MonitorTemplateChange.retryOfChangeId",
     "AIRun.codeTaskId",
     // The code task a postmortem's action item became: an AIRun, which carries no labels.
     "IncidentPostmortemActionItem.codeTaskId",
