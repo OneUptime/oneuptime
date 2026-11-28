@@ -510,6 +510,7 @@
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
     "Cloudflare": "Cloudflare",
+    "CrowdSec": "CrowdSec",
     "Global SSO": "Global SSO",
     "Import and Export Label Rules": "Importera och exportera etikettregler",
     "Run Rules on Existing Resources": "Köra regler på befintliga resurser"

@@ -33,8 +33,19 @@ export type SecurityEventConnectorCategory =
   | "Network security"
   | "Identity";
 
+/*
+ * In the order the connection form groups the products. Each is a key: the
+ * form, the provider tiles and the Events card draw it in the reader's
+ * language.
+ */
 export const SecurityEventConnectorCategories: Array<SecurityEventConnectorCategory> =
-  ["SIEM", "EDR / XDR", "Cloud security", "Network security", "Identity"];
+  [
+    translationKey("SIEM"),
+    translationKey("EDR / XDR"),
+    translationKey("Cloud security"),
+    translationKey("Network security"),
+    translationKey("Identity"),
+  ];
 
 /*
  * "json" is a multi-line JSON document edited in a code editor, such as a

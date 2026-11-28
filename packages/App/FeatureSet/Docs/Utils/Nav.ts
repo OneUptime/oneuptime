@@ -1538,6 +1538,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/cloudflare",
       },
       {
+        title: "CrowdSec",
+        url: "/docs/integrations/crowdsec",
+      },
+      {
         title: "GitHub",
         url: "/docs/integrations/github",
       },

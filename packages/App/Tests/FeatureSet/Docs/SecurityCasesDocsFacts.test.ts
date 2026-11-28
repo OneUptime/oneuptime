@@ -2420,6 +2420,8 @@ describe("Security Cases and Playbooks docs", () => {
         SecurityProtectedAddressSource.GlobalProbe,
         SecurityProtectedAddressSource.OneUptimeCloud,
         SecurityProtectedAddressSource.Edge,
+        SecurityProtectedAddressSource.TrustedProxy,
+        SecurityProtectedAddressSource.GoogleFrontEnd,
         SecurityProtectedAddressSource.OneUptime,
         SecurityProtectedAddressSource.EndpointProduct,
         SecurityProtectedAddressSource.Monitor,
@@ -2432,7 +2434,7 @@ describe("Security Cases and Playbooks docs", () => {
       "Nor are its own domains blocked: OneUptime's, Microsoft Defender's and CrowdStrike Falcon's, the hosts your monitors check, your status pages' and verified domains, and your cloud resources' DNS names and zones, nor the hash of an empty file.",
     );
     expect(blocklist).toContain(
-      "Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app.",
+      "Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, the edge in front of your app, your **Trusted Proxies**, and the Google front ends your Google Cloud load balancers connect from.",
     );
     expect(AUTOMATIC_PROTECTIONS_TITLE).toBe("Protected Automatically");
     expect(blocklist).toContain(

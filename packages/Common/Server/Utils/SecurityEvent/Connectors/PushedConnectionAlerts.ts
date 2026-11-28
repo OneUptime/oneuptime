@@ -100,7 +100,7 @@ export default class PushedConnectionAlerts {
 
     if (!ObjectID.isValidUUID(id)) {
       throw new BadDataException(
-        "The connection this request names is not a connection's ID. Copy the address from the connection's Send alerts, under Security > Connections.",
+        "The connection this request names is not a connection's ID. Copy the address from the connection's Send alerts, under Security Events > Connections.",
       );
     }
 
@@ -125,7 +125,7 @@ export default class PushedConnectionAlerts {
 
     if (!connection || !isPushedProvider(connection.provider)) {
       throw new BadDataException(
-        "This project has no connection of that ID that receives alerts. Copy the address from the connection's Send alerts, under Security > Connections.",
+        "This project has no connection of that ID that receives alerts. Copy the address from the connection's Send alerts, under Security Events > Connections.",
       );
     }
 

@@ -330,7 +330,7 @@ describe("SecurityEventConnectionsEmptyState", () => {
       expect(title.tagName).toBe("H3");
       expect(hero()).toContainElement(title);
       expect(screen.getByTestId(`${ID}-description`)).toHaveTextContent(
-        "Connect a SIEM, EDR / XDR, cloud security or identity product and OneUptime polls it on a schedule, importing each new alert, finding or log event as an OCSF security event.",
+        "Connect a SIEM, EDR / XDR, cloud security, network security or identity product, and OneUptime imports each new alert, finding or log event as an OCSF security event.",
       );
       expect(hero()).toContainElement(screen.getByTestId(`${ID}-description`));
     });
