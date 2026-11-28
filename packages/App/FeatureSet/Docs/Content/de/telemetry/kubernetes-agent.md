@@ -485,6 +485,53 @@ Mehrzeilige Ereignisse werden in beiden Modi vor dem Filtern wieder zusammengese
 > [!IMPORTANT]
 > Kubernetes-Ereignisse und Ressourcenspezifikationen werden dadurch nie gefiltert. Sie kommen ohne eigenen Schweregrad aus der Kubernetes-API, daher würde eine Schwelle den ganzen Feed löschen, einschließlich der Warnungen `FailedScheduling`, `BackOff` und `OOMKilling`, die Sie am dringendsten brauchen. Sie sind wenige und wertvoll, deshalb sendet der Agent sie immer; um sie auszudünnen, verwenden Sie **Protokolle → Einstellungen → Drop-Filter** in OneUptime.
 
+### Ein eigenes Log-Format lesen
+
+Der Agent liest die Stufen der Formate, die die meisten Programme schreiben. Für ein Format, das er nicht liest, etwa ein hauseigenes, fügen Sie mit `logs.extraOperators` eigene Collector-Operators hinzu. Sie laufen im Modus `daemonset` auf jeder Pod-Logzeile, nachdem der Agent die Zeile wieder zusammengesetzt und ihren Pod und Stream gelesen hat, und bevor er die Stufe der Zeile liest.
+
+Um die Stufe einer Zeile zu setzen, schreiben Sie sie nach `attributes.severity_text`, als ein Wort, das der Agent liest, etwa `ERROR`, `warn`, `critical` oder ein klog-Buchstabe. Der Agent liest das vor jedem seiner eigenen Leser und speichert es so, wie OneUptime dieses Wort überall sonst speichert. Geben Sie die Zeile dann an `severity-router` weiter, den ersten Schritt des Agents, oder lassen Sie sie zu Ihrem nächsten Operator weiterlaufen.
+
+Für Zeilen wie `<<E>> payment failed` und `SEV1 checkout is down`:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+Das Chart prüft die Operators, wenn Sie installieren oder aktualisieren. Ein Wert, den der Collector ablehnen würde, lässt `helm install` mit einer Meldung fehlschlagen, die den Operator nennt, statt ein DaemonSet zu hinterlassen, das immer wieder neu startet: ein Typ, den der Collector von `image.tag` nicht hat, eine Einstellung, die der Typ braucht, ein Feld, eine bereits vergebene ID, ein `output`, das auf nichts verweist, eine Regex oder ein String in einem Ausdruck. In einem String eines Ausdrucks wird der Backslash einer Regex doppelt geschrieben, wie in `"^\\d+ "`, oder die Regex steht in einem Raw-String zwischen Backticks. Den Rest eines Ausdrucks kompiliert der Collector erst, wenn er startet.
+
+Das Chart lehnt außerdem drei Arten von Operators ab, die der Collector ausführen würde, und sagt, warum:
+
+- Einen, der den Schweregrad der Zeile selbst setzt, etwa einen `severity_parser`, einen `syslog_parser` oder den `severity`-Block eines Parsers. Der Agent liest die Stufe jeder Zeile nach Ihren Operators und würde ihn überschreiben; schreiben Sie die Stufe daher stattdessen nach `attributes.severity_text`.
+- Einen Router ohne `default` oder eine Route ohne `output`. Die Zeilen, die er an keinen Operator weitergibt, werden verworfen.
+- Den Parser `container`. Der Agent hat das Format der Container-Laufzeit bereits gelesen, daher sehen Ihre Operators die eigene Zeile des Programms.
+
+`logs.extraOperators` braucht den Modus `daemonset`. Der Log-Tailer des Modus `api` führt keine Collector-Operators aus, daher lehnt das Chart die Einstellung dort ab, und die Windows-Pods einer Hybridinstallation (`logs.windowsPods.enabled`) erhalten sie nicht.
+
 ### Metriken nach Namen ein- oder ausschließen
 
 `filters.metrics` entscheidet über alle Receiver hinweg, welche Metriken den Cluster verlassen.

@@ -485,6 +485,53 @@ In entrambe le modalità gli eventi su più righe vengono ricomposti prima del f
 > [!IMPORTANT]
 > Gli eventi Kubernetes e le specifiche delle risorse non vengono mai filtrati da questa impostazione. Arrivano dall'API di Kubernetes senza una severità propria, quindi una soglia cancellerebbe l'intero feed, compresi gli avvisi `FailedScheduling`, `BackOff` e `OOMKilling` che più ti servono. Sono pochi e preziosi, quindi l'agent li invia sempre; per sfoltirli, usa **Log → Impostazioni → Filtri di scarto** in OneUptime.
 
+### Leggere un formato di log proprio
+
+L'agent legge i livelli dei formati che scrive la maggior parte dei programmi. Per un formato che non legge, come uno interno, aggiungi i tuoi operators del collector con `logs.extraOperators`. Vengono eseguiti su ogni riga di log dei pod in modalità `daemonset`, dopo che l'agent ha ricomposto la riga e letto il suo pod e il suo flusso, e prima che ne legga il livello.
+
+Per impostare il livello di una riga, scrivilo in `attributes.severity_text` come una parola che l'agent legge, ad esempio `ERROR`, `warn`, `critical` o una lettera di klog. L'agent lo legge prima di qualsiasi suo lettore e lo memorizza come OneUptime memorizza quella parola ovunque altrove. Poi passa la riga a `severity-router`, il primo passaggio dell'agent, oppure lasciala proseguire verso il tuo operator successivo.
+
+Per righe come `<<E>> payment failed` e `SEV1 checkout is down`:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+Il chart controlla gli operators quando installi o aggiorni. Un valore che il collector rifiuterebbe fa fallire `helm install` con un messaggio che nomina l'operator, invece di lasciare un DaemonSet che si riavvia di continuo: un tipo che il collector di `image.tag` non ha, un'impostazione di cui il tipo ha bisogno, un campo, un id già in uso, un `output` che non punta a nulla, una regex o una stringa in un'espressione. Nella stringa di un'espressione il backslash di una regex si scrive due volte, come in `"^\\d+ "`, oppure la regex va in una stringa raw, tra apici inversi. Il resto di un'espressione viene compilato dal collector all'avvio.
+
+Il chart rifiuta anche tre tipi di operator che il collector eseguirebbe, e dice perché:
+
+- Uno che imposta da sé la severità della riga, come un `severity_parser`, un `syslog_parser` o il blocco `severity` di un parser. L'agent legge il livello di ogni riga dopo i tuoi operators e la sovrascriverebbe, quindi scrivi invece il livello in `attributes.severity_text`.
+- Un router senza `default`, o una route senza `output`. Le righe che non passa a nessun operator vengono scartate.
+- Il parser `container`. L'agent ha già letto il formato del runtime dei container, quindi i tuoi operators vedono la riga così come l'ha scritta il programma.
+
+`logs.extraOperators` richiede la modalità `daemonset`. Il lettore di log della modalità `api` non esegue operators del collector, quindi lì il chart rifiuta l'impostazione, e i pod Windows di un'installazione ibrida (`logs.windowsPods.enabled`) non la ricevono.
+
 ### Includere o escludere metriche per nome
 
 `filters.metrics` decide quali metriche lasciano il cluster, su tutti i receiver.

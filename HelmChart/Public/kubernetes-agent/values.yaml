@@ -592,13 +592,16 @@ logs:
   # severity_parser, a syslog_parser, a parser's severity block) would be
   # overwritten, so the chart refuses one.
   #
-  # The chart checks each at install time: its type (against what the
-  # collector of image.tag has), its id (none of the agent's own), where it
-  # hands lines on to, and its regex, and fails with a message naming it. An
-  # expression (expr, if) is the collector's to check when it starts. It runs
-  # in daemonset log mode only: the API log tailer (logs.mode=api, and the
-  # Windows pods of logs.windowsPods) runs no collector operators, and the
-  # chart refuses the setting with logs.mode=api.
+  # The chart checks each at install time, against what the collector refuses,
+  # and fails with a message naming it: its type (against the collector of
+  # image.tag), the settings that type needs, its fields, its on_error, its id
+  # (none of the agent's own), where it hands lines on to, its regex, and the
+  # strings of its expressions (in an expression's string a regex's backslash
+  # is written twice: "^\\d+"). The rest of an expression (expr, if) is the
+  # collector's to compile when it starts. It runs in daemonset log mode
+  # only: the API log tailer (logs.mode=api, and the Windows pods of
+  # logs.windowsPods) runs no collector operators, and the chart refuses the
+  # setting with logs.mode=api.
   #
   # For lines like "<<E>> payment failed" and "SEV1 checkout is down":
   #

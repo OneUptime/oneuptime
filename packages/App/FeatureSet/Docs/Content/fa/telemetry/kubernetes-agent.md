@@ -485,6 +485,53 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 > [!IMPORTANT]
 > رویدادهای Kubernetes و مشخصات منابع هرگز با این پالایش نمی‌شوند. این‌ها بدون شدتی از آنِ خود از API در Kubernetes می‌رسند، پس یک آستانه کل جریان را حذف می‌کرد، از جمله هشدارهای `FailedScheduling`، `BackOff` و `OOMKilling` که بیش از همه می‌خواهید. کم‌شمار و ارزشمندند، پس عامل همیشه آن‌ها را می‌فرستد؛ برای کم کردنشان در OneUptime از **لاگ‌ها** > **تنظیمات** > **فیلترهای حذف** استفاده کنید.
 
+### خواندن قالب لاگ خودتان
+
+عامل سطح‌های قالب‌هایی را می‌خواند که بیشتر برنامه‌ها می‌نویسند. برای قالبی که نمی‌خواند، مانند یک قالب درون‌سازمانی، با `logs.extraOperators` عملگرهای کالکتور خودتان را بیفزایید. این عملگرها در حالت `daemonset` روی هر خط لاگ پاد اجرا می‌شوند، پس از آنکه عامل خط را دوباره سرهم کرده و پاد و جریان آن را خوانده است، و پیش از آنکه سطح خط را بخواند.
+
+برای تعیین سطح یک خط، آن را در `attributes.severity_text` به‌صورت واژه‌ای بنویسید که عامل می‌خواند، مانند `ERROR`، `warn`، `critical` یا یک حرف klog. عامل آن را پیش از هر خواننده‌ای از آنِ خودش می‌خواند و همان‌گونه ذخیره‌اش می‌کند که OneUptime آن واژه را در هر جای دیگری ذخیره می‌کند. سپس خط را به `severity-router`، نخستین گام عامل، بسپارید، یا بگذارید به عملگر بعدی‌تان برود.
+
+برای خط‌هایی مانند `<<E>> payment failed` و `SEV1 checkout is down`:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+چارت هنگام نصب یا ارتقا عملگرها را بررسی می‌کند. مقداری که کالکتور نمی‌پذیرفت، `helm install` را با پیامی که عملگر را نام می‌برد شکست می‌دهد، به‌جای آنکه DaemonSetی بر جا بگذارد که پیوسته دوباره راه‌اندازی می‌شود: نوعی که کالکتورِ `image.tag` ندارد، تنظیمی که آن نوع لازم دارد، یک فیلد، شناسه‌ای که پیش‌تر گرفته شده است، یک `output` که هیچ چیزی را نام نمی‌برد، یک regex، یا رشته‌ای در یک عبارت. در رشته یک عبارت، بک‌اسلش regex دو بار نوشته می‌شود، مانند `"^\\d+ "`، یا regex در یک رشته خام، میان دو بک‌کوت، می‌آید. باقی عبارت را کالکتور هنگام راه‌اندازی کامپایل می‌کند.
+
+چارت سه گونه عملگر را هم که کالکتور اجرا می‌کرد نمی‌پذیرد، و می‌گوید چرا:
+
+- عملگری که خودش شدت خط را تعیین می‌کند، مانند یک `severity_parser`، یک `syslog_parser` یا بلوک `severity` یک پارسر. عامل سطح هر خط را پس از عملگرهای شما می‌خواند و آن را بازنویسی می‌کرد، پس به‌جایش سطح را در `attributes.severity_text` بنویسید.
+- یک router بدون `default`، یا یک route بدون `output`. خط‌هایی که به هیچ عملگری سپرده نمی‌شوند کنار گذاشته می‌شوند.
+- پارسر `container`. عامل قالب محیط اجرای کانتینر را پیش‌تر خوانده است، پس عملگرهای شما خودِ خطی را می‌بینند که برنامه نوشته است.
+
+`logs.extraOperators` به حالت `daemonset` نیاز دارد. دنبال‌کننده لاگ در حالت `api` هیچ عملگر کالکتوری اجرا نمی‌کند، پس چارت این تنظیم را در آنجا نمی‌پذیرد، و پادهای Windows در یک نصب ترکیبی (`logs.windowsPods.enabled`) آن را نمی‌گیرند.
+
 ### گنجاندن یا کنار گذاشتن متریک‌ها بر پایه نام
 
 `filters.metrics` در همه گیرنده‌ها تعیین می‌کند کدام متریک‌ها از خوشه بیرون بروند.

@@ -485,6 +485,53 @@ Kubernetes 事件不会在代理端按命名空间过滤：代理会发送所有
 > [!IMPORTANT]
 > Kubernetes 事件和资源规格永远不会被它过滤。它们来自 Kubernetes API，没有自己的严重性，因此阈值会删除整个数据流，包括你最需要的 `FailedScheduling`、`BackOff` 和 `OOMKilling` 警告。它们数量少而价值高，所以代理总是发送它们；要精简它们，请在 OneUptime 中使用 **日志 → 设置 → 丢弃过滤器**。
 
+### 读取自定义日志格式
+
+代理能读取大多数程序所写格式中的级别。对于它读取不了的格式，例如公司内部的格式，请用 `logs.extraOperators` 添加你自己的 Collector operators。在 `daemonset` 模式下，它们会作用于每一条 Pod 日志行，时机是在代理把该行重新拼合、读取其 Pod 和流之后，在读取该行的级别之前。
+
+要设置某行的级别，请把它以代理能读取的词写入 `attributes.severity_text`，例如 `ERROR`、`warn`、`critical` 或 klog 字母。代理会先于它自己的任何读取器读取该值，并按 OneUptime 在其他所有地方存储该词的方式存储它。然后把该行交给代理的第一步 `severity-router`，或者让它继续流向你的下一个 operator。
+
+对于 `<<E>> payment failed` 和 `SEV1 checkout is down` 这样的行：
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+该 chart 会在你安装或升级时检查这些 operators。如果某个值会被 Collector 拒绝，`helm install` 会失败，并给出指明该 operator 的消息，而不是留下一个不断重启的 DaemonSet：`image.tag` 对应的 Collector 没有的类型、该类型需要的设置、字段、已被占用的 id、没有指向任何对象的 `output`、正则表达式，或表达式中的字符串。在表达式的字符串中，正则表达式的反斜杠要写两次，如 `"^\\d+ "`，或者把正则表达式放进原始字符串，用反引号括起来。表达式的其余部分由 Collector 在启动时编译。
+
+该 chart 还会拒绝三种 Collector 本会运行的 operator，并说明原因：
+
+- 自行设置该行严重性的 operator，例如 `severity_parser`、`syslog_parser` 或解析器的 `severity` 块。代理会在你的 operators 之后读取每一行的级别，并会覆盖它，因此请改为把级别写入 `attributes.severity_text`。
+- 没有 `default` 的路由器，或没有 `output` 的路由。它没有交给任何 operator 的行会被丢弃。
+- `container` 解析器。代理已经读取了容器运行时的格式，因此你的 operators 看到的是程序自己写出的行。
+
+`logs.extraOperators` 需要 `daemonset` 模式。`api` 模式的日志尾随器不运行 Collector operators，因此 chart 在该模式下会拒绝此设置，混合安装（`logs.windowsPods.enabled`）中的 Windows Pod 也不会获得它。
+
 ### 按名称包含或排除指标
 
 `filters.metrics` 决定哪些指标离开集群，作用于所有接收器。
