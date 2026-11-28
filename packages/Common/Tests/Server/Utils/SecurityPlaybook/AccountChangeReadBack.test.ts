@@ -99,7 +99,7 @@ function change(data: Partial<AccountChange>): AccountChange {
     ownerType: "",
     cloudAccountId: "",
     cloudConnectionId: "",
-    trustPolicies: [],
+    policyDocuments: [],
     eventName: "",
     eventUid: "event-1",
     time: "2026-11-17T19:30:00.000Z",

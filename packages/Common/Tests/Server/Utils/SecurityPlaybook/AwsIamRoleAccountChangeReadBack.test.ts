@@ -14,6 +14,7 @@ import {
 } from "../../../../Server/Utils/DataSource/HttpFetch";
 import AccountChangeReadBack, {
   AccountChangeFacts,
+  AccountChangePolicyDocument,
   AccountChangeState,
   AccountChangeUnknownReason,
 } from "../../../../Server/Utils/SecurityPlaybook/AccountChangeReadBack";
@@ -31,12 +32,14 @@ import {
   ATTACH_ROLE_POLICY_RECORD,
   AWS_DOCS_GAP,
   CREATE_ROLE_RECORD,
+  GET_ROLE_POLICY_SAMPLE_RESPONSE,
   GET_ROLE_SAMPLE_RESPONSE,
   LIST_ATTACHED_ROLE_POLICIES_SAMPLE_RESPONSE,
   LIST_ROLE_POLICIES_SAMPLE_RESPONSE,
   PUT_ROLE_POLICY_RECORD,
   RECORDED_ACCOUNT,
   UPDATE_ASSUME_ROLE_POLICY_RECORD,
+  getInlinePolicyResponse,
   getRoleResponse,
   iamErrorBody,
   readRecordedEvent,
@@ -69,7 +72,8 @@ interface FakeRole {
   roleId: string;
   trustPolicy: JSONObject | string;
   attachedPolicies?: Array<string> | undefined;
-  inlinePolicies?: Array<string> | undefined;
+  // Its inline policies, by name: each one's document (#11377).
+  inlinePolicies?: Record<string, JSONObject | string> | undefined;
 }
 
 interface FakeIamOptions {
@@ -201,7 +205,7 @@ function fakeIam(
       }
       case "ListRolePolicies": {
         const listed: { items: Array<string>; tail: string } = page(
-          role.inlinePolicies || [],
+          Object.keys(role.inlinePolicies || {}),
           form,
           size,
         );
@@ -217,6 +221,30 @@ function fakeIam(
               .join("")}</PolicyNames>${listed.tail}`,
           ),
         );
+      }
+      // One inline policy's document, URL-encoded as GetRolePolicy writes it (#11377).
+      case "GetRolePolicy": {
+        const policyName: string = form.get("PolicyName") || "";
+        const document: JSONObject | string | undefined =
+          role.inlinePolicies?.[policyName];
+
+        return document === undefined
+          ? answer(
+              404,
+              iamErrorBody(
+                "NoSuchEntity",
+                `The role policy with name ${policyName} cannot be found.`,
+              ),
+            )
+          : answer(
+              200,
+              getInlinePolicyResponse({
+                action,
+                subject: name,
+                policyName,
+                document,
+              }),
+            );
       }
       default:
         throw new Error(`the fake does not answer ${action} for a role`);
@@ -288,6 +316,12 @@ function trusting(...principals: Array<string>): JSONObject {
   };
 }
 
+// The IAM API Reference's PutRolePolicy sample's document: s3:* on everything (#11377).
+const S3_ACCESS_POLICY: JSONObject = {
+  Version: "2012-10-17",
+  Statement: { Effect: "Allow", Action: "s3:*", Resource: "*" },
+};
+
 const EC2_TRUST: JSONObject = {
   Version: "2012-10-17",
   Statement: [
@@ -340,7 +374,7 @@ describe("the recorded calls, as the case reads them", () => {
           objectId: change.objectId,
           objectName: change.objectName,
           cloudAccountId: change.cloudAccountId,
-          trustPolicies: change.trustPolicies.length,
+          policyDocuments: change.policyDocuments.length,
         };
       }),
     ).toEqual([
@@ -352,7 +386,7 @@ describe("the recorded calls, as the case reads them", () => {
         objectId: "",
         objectName: "",
         cloudAccountId: RECORDED_ACCOUNT,
-        trustPolicies: 0,
+        policyDocuments: 0,
       },
       {
         subject: AccountChangeSubject.Role,
@@ -362,7 +396,7 @@ describe("the recorded calls, as the case reads them", () => {
         objectId: "",
         objectName: "",
         cloudAccountId: RECORDED_ACCOUNT,
-        trustPolicies: 1,
+        policyDocuments: 1,
       },
       {
         subject: AccountChangeSubject.Role,
@@ -372,7 +406,7 @@ describe("the recorded calls, as the case reads them", () => {
         objectId: "arn:aws:iam::aws:policy/ReadOnlyAccess",
         objectName: "ReadOnlyAccess",
         cloudAccountId: RECORDED_ACCOUNT,
-        trustPolicies: 0,
+        policyDocuments: 0,
       },
       {
         subject: AccountChangeSubject.Role,
@@ -382,7 +416,8 @@ describe("the recorded calls, as the case reads them", () => {
         objectId: "",
         objectName: "S3AccessPolicy",
         cloudAccountId: RECORDED_ACCOUNT,
-        trustPolicies: 0,
+        // The document it set (#11377): what the policy now is held to.
+        policyDocuments: 1,
       },
     ]);
   });
@@ -628,7 +663,7 @@ describe("a trust policy the attack set (UpdateAssumeRolePolicy)", () => {
       }),
     );
 
-    expect(cut.trustPolicies[0]!.length).toBe(1000);
+    expect(cut.policyDocuments[0]!.length).toBe(1000);
 
     for (const [trustPolicy, trusted] of [
       [EC2_TRUST, undefined],
@@ -664,7 +699,7 @@ describe("a trust policy the attack set (UpdateAssumeRolePolicy)", () => {
       }),
     );
 
-    expect(twice.trustPolicies).toHaveLength(2);
+    expect(twice.policyDocuments).toHaveLength(2);
 
     const read: (trustPolicy: JSONObject) => Promise<AccountChangeFacts> = (
       trustPolicy: JSONObject,
@@ -747,25 +782,29 @@ describe("a policy the attack gave the role (AttachRolePolicy, PutRolePolicy)", 
     }
   });
 
-  test("an inline policy: still there while the role has one of its name - GetRole's and ListRolePolicies' own samples say S3Access does", async () => {
+  test("an inline policy: still there while the role has it as the attack wrote it - GetRole's, ListRolePolicies' and GetRolePolicy's own samples say S3Access does (#11377)", async () => {
     expect(
       await readBack(inline, {
         roles: {},
         answers: {
           GetRole: GET_ROLE_SAMPLE_RESPONSE,
           ListRolePolicies: LIST_ROLE_POLICIES_SAMPLE_RESPONSE,
+          GetRolePolicy: GET_ROLE_POLICY_SAMPLE_RESPONSE,
         },
       }),
     ).toEqual({
       provider: "AWS",
       state: AccountChangeState.StillThere,
       url: rolePage("S3Access"),
+      policyDocument: AccountChangePolicyDocument.Attack,
     });
   });
 
-  test("an inline policy: still there case aside; undone once deleted", async () => {
-    const role: (inlinePolicies: Array<string>) => FakeIamOptions = (
-      inlinePolicies: Array<string>,
+  test("an inline policy: still there case aside while its document is the attack's; undone once deleted, or once its document is another (#11377)", async () => {
+    const role: (
+      inlinePolicies: Record<string, JSONObject>,
+    ) => FakeIamOptions = (
+      inlinePolicies: Record<string, JSONObject>,
     ): FakeIamOptions => {
       return {
         roles: {
@@ -778,12 +817,38 @@ describe("a policy the attack gave the role (AttachRolePolicy, PutRolePolicy)", 
       };
     };
 
-    expect((await readBack(inline, role(["s3accesspolicy"]))).state).toBe(
-      AccountChangeState.StillThere,
-    );
     expect(
-      (await readBack(inline, role(["CloudwatchPutMetricPolicy"]))).state,
+      (await readBack(inline, role({ s3accesspolicy: S3_ACCESS_POLICY })))
+        .state,
+    ).toBe(AccountChangeState.StillThere);
+    expect(
+      (
+        await readBack(
+          inline,
+          role({ CloudwatchPutMetricPolicy: S3_ACCESS_POLICY }),
+        )
+      ).state,
     ).toBe(AccountChangeState.Undone);
+    expect(
+      await readBack(
+        inline,
+        role({
+          S3AccessPolicy: {
+            Version: "2012-10-17",
+            Statement: {
+              Effect: "Allow",
+              Action: "s3:GetObject",
+              Resource: "*",
+            },
+          },
+        }),
+      ),
+    ).toEqual({
+      provider: "AWS",
+      state: AccountChangeState.Undone,
+      url: rolePage("S3Access"),
+      policyDocument: AccountChangePolicyDocument.Changed,
+    });
   });
 
   test("the role deleted took its policies with it", async () => {
@@ -841,11 +906,13 @@ describe("a policy the attack gave the role (AttachRolePolicy, PutRolePolicy)", 
           S3Access: {
             roleId: "AROADBQP57FF2AEXAMPLE",
             trustPolicy: EC2_TRUST,
-            inlinePolicies: Array.from(
-              { length: AWS_IAM_MAX_LIST_PAGES + 1 },
-              (_: unknown, index: number): string => {
-                return `policy-${index}`;
-              },
+            inlinePolicies: Object.fromEntries(
+              Array.from(
+                { length: AWS_IAM_MAX_LIST_PAGES + 1 },
+                (_: unknown, index: number): [string, JSONObject] => {
+                  return [`policy-${index}`, S3_ACCESS_POLICY];
+                },
+              ),
             ),
           },
         },

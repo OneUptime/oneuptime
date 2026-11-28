@@ -36,12 +36,15 @@ import { getIamEndpoint } from "./AwsInventory";
  *                              since when - NoSuchEntity when it has none
  *   ListAttachedUserPolicies   the managed policies attached to the user
  *   ListUserPolicies           the names of the user's inline policies
+ *   GetUserPolicy              one inline policy's document (#11377): what
+ *                              it grants, never a secret
  *   ListGroupsForUser          the groups the user is in
  *   ListMFADevices             the MFA devices the user has enabled
  *   GetRole                    the role, its id and its trust policy - who
  *                              may assume it - or NoSuchEntity once deleted
  *   ListAttachedRolePolicies   the managed policies attached to the role
  *   ListRolePolicies           the names of the role's inline policies
+ *   GetRolePolicy              one of them's document (#11377)
  *
  * IAM is global: one endpoint a partition (getIamEndpoint), signed for its
  * Region, through the query protocol, answered in XML. A connection that
@@ -63,10 +66,12 @@ const IAM_PAGE_SIZE: number = 1000;
 export const AWS_IAM_MAX_LIST_PAGES: number = 5;
 
 /*
- * One case's read of one account: two calls a change at most, twenty
- * changes a case (ACCOUNT_CHANGES_MAX), and the sign-in.
+ * One case's read of one account: three calls a change at most - an
+ * inline policy's subject, its list and its document (#11377) - twenty
+ * changes a case (ACCOUNT_CHANGES_MAX), and the sign-in, with room for a
+ * list's further pages.
  */
-const DEFAULT_MAX_REQUESTS: number = 60;
+const DEFAULT_MAX_REQUESTS: number = 80;
 const DEFAULT_MAX_DURATION_MS: number = 60 * 1000;
 
 // IAM's code for a user, or a user's login profile, that is not there.
@@ -432,6 +437,43 @@ export async function listAwsIamAttachedUserPolicies(
   });
 }
 
+/*
+ * An inline policy's document, as GetUserPolicy and GetRolePolicy write it
+ * (#11377): URL-encoded (readAwsPolicyDocument reads it), or null once the
+ * policy - or the user or role it is in - is not there.
+ */
+async function getInlinePolicyDocument(
+  session: AwsIamSession,
+  data: {
+    action: "GetUserPolicy" | "GetRolePolicy";
+    of: Dictionary<string>;
+    policyName: string;
+    step: string;
+  },
+): Promise<string | null> {
+  const text: string | null = await iamRead(session, {
+    action: data.action,
+    body: { ...data.of, PolicyName: data.policyName },
+    step: data.step,
+    missingIsNull: true,
+  });
+
+  return text === null ? null : readXmlTag(text, "PolicyDocument");
+}
+
+// The document of one of the user's inline policies, or null once it is gone (#11377).
+export async function getAwsIamUserPolicyDocument(
+  session: AwsIamSession,
+  data: { userName: string; policyName: string },
+): Promise<string | null> {
+  return await getInlinePolicyDocument(session, {
+    action: "GetUserPolicy",
+    of: { UserName: data.userName },
+    policyName: data.policyName,
+    step: "IAM inline policy document lookup",
+  });
+}
+
 // The names of the user's inline policies, or null when the user is not there.
 export async function listAwsIamUserPolicyNames(
   session: AwsIamSession,
@@ -574,6 +616,19 @@ export async function listAwsIamRolePolicyNames(
         return Boolean(name);
       });
     },
+  });
+}
+
+// The document of one of the role's inline policies, or null once it is gone (#11377).
+export async function getAwsIamRolePolicyDocument(
+  session: AwsIamSession,
+  data: { roleName: string; policyName: string },
+): Promise<string | null> {
+  return await getInlinePolicyDocument(session, {
+    action: "GetRolePolicy",
+    of: { RoleName: data.roleName },
+    policyName: data.policyName,
+    step: "IAM role inline policy document lookup",
   });
 }
 

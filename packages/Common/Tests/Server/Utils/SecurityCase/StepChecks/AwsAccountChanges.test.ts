@@ -104,7 +104,7 @@ function change(data: Partial<AccountChange> = {}): AccountChange {
     ownerType: "",
     cloudAccountId: ACCOUNT,
     cloudConnectionId: "",
-    trustPolicies: [],
+    policyDocuments: [],
     eventName: "AddUserToGroup",
     eventUid: "cloudtrail:1",
     time: "2026-11-17T19:30:00.000Z",

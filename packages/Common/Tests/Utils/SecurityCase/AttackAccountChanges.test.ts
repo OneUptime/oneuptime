@@ -1041,7 +1041,7 @@ describe("AWS CloudTrail's IAM role calls (#11038)", () => {
         accountId: "AROA6ON6E4XEFFEXAMPLE",
         objectId: "",
         objectName: "",
-        trustPolicies: [],
+        policyDocuments: [],
       },
     ],
     [
@@ -1056,7 +1056,7 @@ describe("AWS CloudTrail's IAM role calls (#11038)", () => {
         accountId: "",
         objectId: "",
         objectName: "",
-        trustPolicies: [BACKDOOR_TRUST],
+        policyDocuments: [BACKDOOR_TRUST],
       },
     ],
     [
@@ -1072,7 +1072,7 @@ describe("AWS CloudTrail's IAM role calls (#11038)", () => {
         accountId: "",
         objectId: "arn:aws:iam::aws:policy/AdministratorAccess",
         objectName: "AdministratorAccess",
-        trustPolicies: [],
+        policyDocuments: [],
       },
     ],
     [
@@ -1089,7 +1089,10 @@ describe("AWS CloudTrail's IAM role calls (#11038)", () => {
         accountId: "",
         objectId: "",
         objectName: "escalate",
-        trustPolicies: [],
+        // The document it set, to hold the policy now to (#11377).
+        policyDocuments: [
+          '{"Version":"2012-10-17","Statement":{"Effect":"Allow","Action":"*","Resource":"*"}}',
+        ],
       },
     ],
   ])(
@@ -1211,7 +1214,7 @@ describe("AWS CloudTrail's IAM role calls (#11038)", () => {
       subject: AccountChangeSubject.Account,
       kind: AccountChangeKind.Policy,
       account: "Deploy",
-      trustPolicies: [],
+      policyDocuments: [],
     });
   });
 
@@ -1292,7 +1295,7 @@ describe("AWS CloudTrail's IAM role calls (#11038)", () => {
     expect(changes[0]).toMatchObject({
       kind: AccountChangeKind.Trust,
       eventUid: "a",
-      trustPolicies: [second, first],
+      policyDocuments: [second, first],
     });
   });
 
@@ -1302,7 +1305,7 @@ describe("AWS CloudTrail's IAM role calls (#11038)", () => {
         cloudTrail("UpdateAssumeRolePolicy", {
           "requestParameters.roleName": "Deploy",
         }),
-      )?.trustPolicies,
+      )?.policyDocuments,
     ).toEqual([]);
   });
 });

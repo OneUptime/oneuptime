@@ -656,6 +656,38 @@ export const CHECK_ACCOUNT_CHANGE_ROLE_GONE: string = translationKey(
 );
 
 /*
+ * An inline policy the attack wrote to a user or a role, read by its
+ * document (#11377): PutUserPolicy and PutRolePolicy rewrite a policy of
+ * the name they write, so these say its document, never its name alone -
+ * a person who put the old one back keeps the policy. {{object}} is the
+ * policy's name, {{account}} the user's or the role's. One deleted says
+ * so in the policy's own words above.
+ */
+export const CHECK_ACCOUNT_CHANGE_INLINE_POLICY_STILL: string = translationKey(
+  "The inline policy {{object}} of {{account}} in {{provider}} still has the document the attack wrote.",
+);
+export const CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CHANGED: string =
+  translationKey(
+    "The inline policy {{object}} of {{account}} in {{provider}} no longer has the document the attack wrote.",
+  );
+export const CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CONFIRM: string =
+  translationKey(
+    "Confirm the inline policy {{object}} of {{account}} in {{provider}} is gone, or no longer has the document the attack wrote.",
+  );
+export const CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_STILL: string =
+  translationKey(
+    "The inline policy {{object}} of the role {{account}} in {{provider}} still has the document the attack wrote.",
+  );
+export const CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CHANGED: string =
+  translationKey(
+    "The inline policy {{object}} of the role {{account}} in {{provider}} no longer has the document the attack wrote.",
+  );
+export const CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CONFIRM: string =
+  translationKey(
+    "Confirm the inline policy {{object}} of the role {{account}} in {{provider}} is gone, or no longer has the document the attack wrote.",
+  );
+
+/*
  * Whom a role trusts outside the AWS account it is in (#11038), as its
  * trust policy says now: the line under the role's, unmarked, naming what
  * a person checks. {{trusted}} is an account's 12 digits, {{cloudAccount}}

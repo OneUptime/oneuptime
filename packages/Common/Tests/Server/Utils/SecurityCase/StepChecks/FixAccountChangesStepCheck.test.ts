@@ -18,6 +18,7 @@ import {
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/StepCheck";
 import {
   AccountChangeFacts,
+  AccountChangePolicyDocument,
   AccountChangeState,
   AccountChangeUnknownReason,
 } from "../../../../../Server/Utils/SecurityPlaybook/AccountChangeReadBack";
@@ -63,6 +64,9 @@ import {
   CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE,
   CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
   CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
+  CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CHANGED,
+  CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_INLINE_POLICY_STILL,
   CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
   CHECK_ACCOUNT_CHANGE_MFA_UNDONE,
   CHECK_ACCOUNT_CHANGE_PASSWORD_CONFIRM,
@@ -73,6 +77,9 @@ import {
   CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
   CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM,
   CHECK_ACCOUNT_CHANGE_ROLE_GONE,
+  CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CHANGED,
+  CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_STILL,
   CHECK_ACCOUNT_CHANGE_ROLE_MADE_CONFIRM,
   CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
   CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE,
@@ -118,7 +125,7 @@ function change(data: Partial<AccountChange>): AccountChange {
     ownerType: "",
     cloudAccountId: "",
     cloudConnectionId: "",
-    trustPolicies: [],
+    policyDocuments: [],
     eventName: "group.user_membership.add",
     eventUid: "event-1",
     time: "2026-11-17T19:30:00.000Z",
@@ -1406,5 +1413,214 @@ describe("the lines that say what to grant link to where it is granted (#11039)"
       template: CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
       values: { cloudAccount: AWS_ACCOUNT },
     });
+  });
+});
+
+// ---------- An inline policy, said by its document (#11377) ----------
+
+describe("an inline policy the attack wrote is said by its document, never its name alone (#11377)", () => {
+  const ROLE_INLINE: AccountChange = roleChange({
+    kind: AccountChangeKind.Policy,
+    objectName: "ci-deploy",
+    policyDocuments: [
+      '{"Version":"2012-10-17","Statement":{"Effect":"Allow","Action":"*","Resource":"*"}}',
+    ],
+    eventName: "PutRolePolicy",
+    eventUid: "inline-1",
+  });
+  const USER_INLINE: AccountChange = change({
+    ...AWS_KEY,
+    kind: AccountChangeKind.Policy,
+    objectId: "",
+    objectName: "IAMReadAccess",
+    policyDocuments: ROLE_INLINE.policyDocuments,
+    eventName: "PutUserPolicy",
+    eventUid: "inline-2",
+  });
+  const read: (
+    item: AccountChange,
+    facts: AccountChangeFacts,
+  ) => SecurityCaseStepCheckSentence = (
+    item: AccountChange,
+    facts: AccountChangeFacts,
+  ): SecurityCaseStepCheckSentence => {
+    return decide([answer(item, { facts })]).evidence.facts[0]!;
+  };
+
+  test.each([
+    [
+      "a role's",
+      ROLE_INLINE,
+      CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_STILL,
+      CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CHANGED,
+      CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CONFIRM,
+      CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE,
+    ],
+    [
+      "a user's",
+      USER_INLINE,
+      CHECK_ACCOUNT_CHANGE_INLINE_POLICY_STILL,
+      CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CHANGED,
+      CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CONFIRM,
+      CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
+    ],
+  ])(
+    "%s: still there and to confirm by its document, undone by it once it changed, and by its name once deleted",
+    (
+      _: string,
+      item: AccountChange,
+      still: string,
+      changed: string,
+      confirm: string,
+      deleted: string,
+    ) => {
+      const values: Record<string, string> = {
+        account: item.account,
+        object: item.objectName,
+        provider: "AWS",
+      };
+
+      expect(
+        read(
+          item,
+          awsFacts(AccountChangeState.StillThere, {
+            policyDocument: AccountChangePolicyDocument.Attack,
+          }),
+        ),
+      ).toEqual({ template: still, values, mark: StepCheckFactMark.NotDone });
+      expect(
+        read(
+          item,
+          awsFacts(AccountChangeState.Undone, {
+            policyDocument: AccountChangePolicyDocument.Changed,
+          }),
+        ),
+      ).toEqual({ template: changed, values, mark: StepCheckFactMark.Done });
+      // Deleted: the policy is simply gone, as any policy is.
+      expect(read(item, awsFacts(AccountChangeState.Undone))).toEqual({
+        template: deleted,
+        values,
+        mark: StepCheckFactMark.Done,
+      });
+
+      // Whatever OneUptime could not read or compare is to confirm, by its document.
+      for (const facts of [
+        NOT_GRANTED,
+        awsFacts(AccountChangeState.Unknown, {
+          reason: AccountChangeUnknownReason.CannotTellWhich,
+          policyDocument: AccountChangePolicyDocument.Earlier,
+        }),
+        awsFacts(AccountChangeState.Unknown, {
+          reason: AccountChangeUnknownReason.CannotTellWhich,
+          policyDocument: AccountChangePolicyDocument.NotComparable,
+        }),
+      ]) {
+        expect(read(item, facts)).toEqual({
+          template: confirm,
+          values,
+          mark: StepCheckFactMark.Confirm,
+        });
+      }
+    },
+  );
+
+  test("the user or role deleted took the policy with it, as for any change", () => {
+    const gone: AccountChangeFacts = {
+      provider: "AWS",
+      state: AccountChangeState.Undone,
+      isAccountGone: true,
+    };
+
+    expect(read(ROLE_INLINE, gone).template).toBe(
+      CHECK_ACCOUNT_CHANGE_ROLE_GONE,
+    );
+    expect(read(USER_INLINE, gone).template).toBe(
+      CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE,
+    );
+  });
+
+  test("a managed policy, attached by its ARN, is still said by its name", () => {
+    expect(
+      read(ROLE_POLICY, awsFacts(AccountChangeState.StillThere)).template,
+    ).toBe(CHECK_ACCOUNT_CHANGE_ROLE_POLICY_STILL);
+    expect(
+      describeAccountChange({
+        change: change({
+          ...USER_INLINE,
+          objectId: "arn:aws:iam::aws:policy/AdministratorAccess",
+          objectName: "AdministratorAccess",
+          policyDocuments: [],
+          eventName: "AttachUserPolicy",
+        }),
+        outcome: "Still" as never,
+        facts: awsFacts(AccountChangeState.StillThere),
+      }).template,
+    ).toBe(CHECK_ACCOUNT_CHANGE_POLICY_STILL);
+  });
+
+  test("its document changed reads as undone: looks done, never checked", () => {
+    const result: StepCheckResult = decide([
+      answer(ROLE_INLINE, {
+        facts: awsFacts(AccountChangeState.Undone, {
+          policyDocument: AccountChangePolicyDocument.Changed,
+        }),
+      }),
+    ]);
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.LooksDone);
+    expect(result.evidence.sentence.template).toEqual(
+      CHECK_ACCOUNT_CHANGES_ALL_UNDONE,
+    );
+  });
+
+  test("to confirm says why on its own line: no 'cannot tell which' line; refused, run the command again, linked to the connection", () => {
+    const cannotTell: StepCheckResult = decide([
+      answer(ROLE_INLINE, {
+        facts: awsFacts(AccountChangeState.Unknown, {
+          reason: AccountChangeUnknownReason.CannotTellWhich,
+          policyDocument: AccountChangePolicyDocument.Earlier,
+        }),
+        reader: { connectionId: CONNECTION_ID, isChecking: true },
+      }),
+    ]);
+
+    expect(templates(cannotTell.evidence.facts)).toEqual([
+      CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CONFIRM,
+    ]);
+    expect(templates(cannotTell.evidence.facts)).not.toContain(
+      CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
+    );
+
+    // A connection set up before the document reads: AWS refused them.
+    const refused: StepCheckResult = decide([
+      answer(USER_INLINE, {
+        facts: {
+          ...awsFacts(AccountChangeState.Unknown),
+          reason: AccountChangeUnknownReason.NotGranted,
+        },
+        reader: { connectionId: CONNECTION_ID, isChecking: true },
+      }),
+    ]);
+
+    expect(refused.evidence.facts).toEqual([
+      {
+        template: CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CONFIRM,
+        values: {
+          account: "deploy-bot",
+          object: "IAMReadAccess",
+          provider: "AWS",
+        },
+        mark: StepCheckFactMark.Confirm,
+      },
+      {
+        template: CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
+        values: { cloudAccount: AWS_ACCOUNT },
+        mark: StepCheckFactMark.HowToCheck,
+        link: {
+          kind: ResponseLinkKind.OpenCloudConnection,
+          connectionId: CONNECTION_ID,
+        },
+      },
+    ]);
   });
 });

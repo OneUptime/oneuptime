@@ -13,6 +13,7 @@ import SecurityCaseStepCheckState, {
   isStepCheckHolding,
 } from "../../../../Types/SecurityCase/SecurityCaseStepCheckState";
 import {
+  AWS_IAM_INLINE_POLICY_CALLS,
   AccountChange,
   AccountChangeKind,
   AccountChangeProvider,
@@ -44,6 +45,9 @@ import {
   CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
   CHECK_ACCOUNT_CHANGE_GROUP_STILL,
   CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
+  CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CHANGED,
+  CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_INLINE_POLICY_STILL,
   CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
   CHECK_ACCOUNT_CHANGE_KEY_STILL,
   CHECK_ACCOUNT_CHANGE_KEY_UNDONE,
@@ -58,6 +62,9 @@ import {
   CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
   CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM,
   CHECK_ACCOUNT_CHANGE_ROLE_GONE,
+  CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CHANGED,
+  CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_STILL,
   CHECK_ACCOUNT_CHANGE_ROLE_MADE_CONFIRM,
   CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
   CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE,
@@ -78,6 +85,7 @@ import {
 } from "../../../../Utils/SecurityCase/ResponsePlan/StepCheckWords";
 import {
   AccountChangeFacts,
+  AccountChangePolicyDocument,
   AccountChangeState,
   AccountChangeUnknownReason,
 } from "../../SecurityPlaybook/AccountChangeReadBack";
@@ -125,9 +133,11 @@ import {
  * there, to confirm, or how to let OneUptime read the rest. An IAM role's
  * change (#11038) is said as a role's, and a role still there or to
  * confirm is followed by an unmarked line naming the outside AWS accounts
- * it trusts - kept with its line, or left out with it. A line that says
- * what to change in OneUptime links to where it is changed: the AWS
- * connection's form, or Cloud → Connect to connect one (#11039).
+ * it trusts - kept with its line, or left out with it. An inline policy
+ * the attack wrote is said by its document, never its name alone (#11377).
+ * A line that says what to change in OneUptime links to where it is
+ * changed: the AWS connection's form, or Cloud → Connect to connect one
+ * (#11039).
  */
 
 export interface AccountChangesInput {
@@ -222,6 +232,64 @@ function isRoleChange(change: AccountChange): boolean {
   return change.subject === AccountChangeSubject.Role;
 }
 
+/*
+ * An inline policy the attack wrote to an IAM user or role (#11377), read
+ * by its document: never said by its name alone, since a person who put
+ * its old document back keeps the policy.
+ */
+export function isInlinePolicyChange(change: AccountChange): boolean {
+  return (
+    change.provider === AccountChangeProvider.Aws &&
+    change.kind === AccountChangeKind.Policy &&
+    AWS_IAM_INLINE_POLICY_CALLS.includes(change.eventName)
+  );
+}
+
+// An inline policy's words (#11377), a role's or a user's, by what was read of it.
+const INLINE_POLICY_SENTENCES: Record<
+  ChangeOutcome.Still | ChangeOutcome.Undone | ChangeOutcome.Confirm,
+  Record<AccountChangeSubject, string>
+> = {
+  [ChangeOutcome.Still]: {
+    [AccountChangeSubject.Account]: CHECK_ACCOUNT_CHANGE_INLINE_POLICY_STILL,
+    [AccountChangeSubject.Role]: CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_STILL,
+  },
+  // Undone with its document changed: one deleted says so as any policy does.
+  [ChangeOutcome.Undone]: {
+    [AccountChangeSubject.Account]: CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CHANGED,
+    [AccountChangeSubject.Role]:
+      CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CHANGED,
+  },
+  [ChangeOutcome.Confirm]: {
+    [AccountChangeSubject.Account]: CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CONFIRM,
+    [AccountChangeSubject.Role]:
+      CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CONFIRM,
+  },
+};
+
+/*
+ * The words an inline policy is said in, or "" for those of any policy:
+ * still there and to confirm always by its document, undone by it only
+ * when its document changed - a policy deleted is just gone.
+ */
+function inlinePolicySentenceOf(
+  item: Pick<ReadChange, "change" | "facts">,
+  outcome: ChangeOutcome.Still | ChangeOutcome.Undone | ChangeOutcome.Confirm,
+): string {
+  if (!isInlinePolicyChange(item.change)) {
+    return "";
+  }
+
+  if (
+    outcome === ChangeOutcome.Undone &&
+    item.facts?.policyDocument !== AccountChangePolicyDocument.Changed
+  ) {
+    return "";
+  }
+
+  return INLINE_POLICY_SENTENCES[outcome][item.change.subject];
+}
+
 // The most accounts' pages the evidence links to.
 const MAX_PROVIDER_LINKS: number = 5;
 
@@ -282,9 +350,12 @@ export function describeAccountChange(
   };
 
   if (item.outcome === ChangeOutcome.Still) {
-    return sentence(sentenceOf(item.change, ChangeOutcome.Still), values, {
-      mark: StepCheckFactMark.NotDone,
-    });
+    return sentence(
+      inlinePolicySentenceOf(item, ChangeOutcome.Still) ||
+        sentenceOf(item.change, ChangeOutcome.Still),
+      values,
+      { mark: StepCheckFactMark.NotDone },
+    );
   }
 
   if (item.outcome === ChangeOutcome.Undone) {
@@ -298,15 +369,19 @@ export function describeAccountChange(
         ? isRoleChange(item.change)
           ? CHECK_ACCOUNT_CHANGE_ROLE_GONE
           : CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE
-        : sentenceOf(item.change, ChangeOutcome.Undone),
+        : inlinePolicySentenceOf(item, ChangeOutcome.Undone) ||
+            sentenceOf(item.change, ChangeOutcome.Undone),
       values,
       { mark: StepCheckFactMark.Done },
     );
   }
 
-  return sentence(sentenceOf(item.change, ChangeOutcome.Confirm), values, {
-    mark: StepCheckFactMark.Confirm,
-  });
+  return sentence(
+    inlinePolicySentenceOf(item, ChangeOutcome.Confirm) ||
+      sentenceOf(item.change, ChangeOutcome.Confirm),
+    values,
+    { mark: StepCheckFactMark.Confirm },
+  );
 }
 
 /*
@@ -373,7 +448,8 @@ export function describeAccountChangeLines(
  *     scope (#10901);
  *   - a product that says the account holds something of the kind, but
  *     not which - but for a role's trust policy, whose own line says what
- *     to confirm, and names whom it trusts.
+ *     to confirm, and names whom it trusts, and an inline policy, whose
+ *     own line says to confirm its document (#11377).
  */
 export function confirmReasons(
   confirms: Array<
@@ -458,7 +534,8 @@ export function confirmReasons(
       }
     } else if (
       item.facts?.reason === AccountChangeUnknownReason.CannotTellWhich &&
-      item.change.kind !== AccountChangeKind.Trust
+      item.change.kind !== AccountChangeKind.Trust &&
+      !isInlinePolicyChange(item.change)
     ) {
       once(
         `which:${provider}:${item.change.subject}:${item.change.account.toLowerCase()}`,

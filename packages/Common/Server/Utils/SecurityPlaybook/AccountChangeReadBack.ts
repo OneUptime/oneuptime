@@ -24,8 +24,10 @@ import {
   AwsIamUser,
   getAwsIamLoginProfile,
   getAwsIamRole,
+  getAwsIamRolePolicyDocument,
   getAwsIamRoleUrl,
   getAwsIamUser,
+  getAwsIamUserPolicyDocument,
   getAwsIamUserUrl,
   isAwsIamAccessKeyActive,
   listAwsIamAccessKeys,
@@ -85,7 +87,9 @@ import {
  *                       account, with its Security case checks (#10900) -
  *                       and a role's: a role made, a trust policy set, a
  *                       managed or inline policy (#11038), naming the
- *                       outside accounts the role trusts now
+ *                       outside accounts the role trusts now; an inline
+ *                       policy by its document, held to the ones the
+ *                       attack wrote (#11377)
  *
  * A change the product cannot say anything of, or one the connection was
  * not given the access to read (NotGranted: a delegation without the
@@ -123,11 +127,41 @@ export enum AccountChangeUnknownReason {
   NotGranted = "NotGranted",
 }
 
+/*
+ * An inline policy's document beside the ones the case's CloudTrail events
+ * show written to it (#11377). PutRolePolicy and PutUserPolicy rewrite a
+ * policy of the name they write, so a policy the attack rewrote keeps its
+ * name after its old document is put back: only the document says whether
+ * what the attack wrote is still there.
+ */
+export enum AccountChangePolicyDocument {
+  // The last one the attack wrote, as IAM reads it: still there.
+  Attack = "Attack",
+  /*
+   * An earlier one the case's events show written to it: the old one put
+   * back, or one the attack wrote first - a person's to tell apart.
+   */
+  Earlier = "Earlier",
+  // None the case's events show, each read whole: what the attack wrote is gone.
+  Changed = "Changed",
+  /*
+   * There is no telling: CloudTrail cut one of them short (OneUptime keeps
+   * an attribute's first 1,000 characters), or it or the one IAM has now
+   * is not a whole policy.
+   */
+  NotComparable = "NotComparable",
+}
+
 export interface AccountChangeFacts {
   // The product, as it names itself.
   provider: string;
   state: AccountChangeState;
   reason?: AccountChangeUnknownReason | undefined;
+  /*
+   * An inline policy's, once its document was read (#11377): how it stands
+   * beside the documents the case's events show written to it.
+   */
+  policyDocument?: AccountChangePolicyDocument | undefined;
   // The account no longer exists there: what it was given went with it.
   isAccountGone?: boolean | undefined;
   // What the account still holds of the kind, in the product's words, when OneUptime cannot tell which.
@@ -181,6 +215,51 @@ const OKTA_GONE_STATUSES: ReadonlyArray<string> = [
 
 function sameText(left: string, right: string): boolean {
   return left.trim().toLowerCase() === right.trim().toLowerCase();
+}
+
+/*
+ * An inline policy's document now, held to the ones the case's events show
+ * written to it, oldest first - the last is what the attack left (#11377):
+ * each read as IAM reads it (isSameAwsPolicy), however it is written. The
+ * last one is the attack's still there; an earlier one may be the old one
+ * put back; none of them, each read whole, is the attack's gone. Anything
+ * OneUptime cannot read whole is no telling, never gone.
+ */
+export function compareInlinePolicyDocument(data: {
+  // As IAM answers it: URL-encoded.
+  now: string;
+  // As CloudTrail recorded them, oldest first.
+  written: Array<string>;
+}): AccountChangePolicyDocument {
+  const now: JSONObject | null = readAwsPolicyDocument(data.now);
+  const written: Array<JSONObject | null> = data.written.map(
+    (document: string): JSONObject | null => {
+      return readAwsPolicyDocument(document);
+    },
+  );
+  const isNow: (policy: JSONObject | null) => boolean = (
+    policy: JSONObject | null,
+  ): boolean => {
+    return Boolean(now && policy && isSameAwsPolicy(now, policy));
+  };
+
+  if (!now || written.length === 0) {
+    return AccountChangePolicyDocument.NotComparable;
+  }
+
+  if (isNow(written[written.length - 1] || null)) {
+    return AccountChangePolicyDocument.Attack;
+  }
+
+  if (written.slice(0, -1).some(isNow)) {
+    return AccountChangePolicyDocument.Earlier;
+  }
+
+  return written.every((policy: JSONObject | null): boolean => {
+    return policy !== null;
+  })
+    ? AccountChangePolicyDocument.Changed
+    : AccountChangePolicyDocument.NotComparable;
 }
 
 function names(items: Array<{ name: string }>): Array<string> {
@@ -865,7 +944,7 @@ export default class AccountChangeReadBack {
         });
       }
 
-      // A managed policy, by its ARN; an inline one, by its name.
+      // A managed policy, by its ARN; an inline one, by its document (#11377).
       case AccountChangeKind.Policy: {
         if (change.eventName === "AttachUserPolicy" || change.objectId) {
           if (!change.objectId) {
@@ -888,18 +967,20 @@ export default class AccountChangeReadBack {
           return notNamed;
         }
 
-        const inline: Array<string> | null = await listAwsIamUserPolicyNames(
-          session,
-          user.userName,
-        );
-
-        return inline
-          ? has(
-              inline.some((name: string): boolean => {
-                return sameText(name, change.objectName);
-              }),
-            )
-          : gone;
+        return await AccountChangeReadBack.readInlinePolicy({
+          change,
+          facts,
+          gone,
+          listNames: async (): Promise<Array<string> | null> => {
+            return await listAwsIamUserPolicyNames(session, user.userName);
+          },
+          readDocument: async (policyName: string): Promise<string | null> => {
+            return await getAwsIamUserPolicyDocument(session, {
+              userName: user.userName,
+              policyName,
+            });
+          },
+        });
       }
 
       // A group, by its name: IAM's are unique case aside.
@@ -961,7 +1042,8 @@ export default class AccountChangeReadBack {
    *   a role made      still there until it is deleted
    *   a trust policy   readIamTrust: the policy now, held to the ones the
    *                    attack set
-   *   a policy         a managed one by its ARN, an inline one by its name
+   *   a policy         a managed one by its ARN, an inline one by its
+   *                    document (readInlinePolicy, #11377)
    *
    * Each names the outside accounts the role trusts now where a person
    * acts on it: a role still there, a trust policy to confirm.
@@ -1050,23 +1132,119 @@ export default class AccountChangeReadBack {
           return notNamed;
         }
 
-        const inline: Array<string> | null = await listAwsIamRolePolicyNames(
-          session,
-          role.roleName,
-        );
-
-        return inline
-          ? has(
-              inline.some((name: string): boolean => {
-                return sameText(name, change.objectName);
-              }),
-            )
-          : gone;
+        return await AccountChangeReadBack.readInlinePolicy({
+          change,
+          facts,
+          gone,
+          listNames: async (): Promise<Array<string> | null> => {
+            return await listAwsIamRolePolicyNames(session, role.roleName);
+          },
+          readDocument: async (policyName: string): Promise<string | null> => {
+            return await getAwsIamRolePolicyDocument(session, {
+              roleName: role.roleName,
+              policyName,
+            });
+          },
+        });
       }
 
       default:
         return facts(AccountChangeState.Unknown, {
           reason: AccountChangeUnknownReason.NotReadBack,
+        });
+    }
+  }
+
+  /*
+   * An inline policy the attack wrote to a user or a role (PutUserPolicy,
+   * PutRolePolicy), read by its document (#11377). The call rewrites a
+   * policy of its name, so the name alone says nothing once a person has
+   * put the old document back:
+   *
+   *   undone        the policy is gone - its list, which every connection
+   *                 with Security case checks on may read, says so - or
+   *                 its document is none the case's events show written to
+   *                 it, each read whole;
+   *   still there   its document is the last one the attack wrote;
+   *   to confirm    it is an earlier one the case's events show (the old
+   *                 one, or the attack's first), one of theirs CloudTrail
+   *                 cut short, or no policy - never undone on a document
+   *                 OneUptime could not compare - or AWS refused the
+   *                 document's read: a connection whose command was run
+   *                 before it was granted, which the step says to run
+   *                 again. The user's or role's page stays linked.
+   */
+  private static async readInlinePolicy(data: {
+    change: AccountChange;
+    facts: (
+      state: AccountChangeState,
+      extra?: Partial<AccountChangeFacts>,
+    ) => AccountChangeFacts;
+    // The user or the role gone since it was read.
+    gone: AccountChangeFacts;
+    // Its inline policies' names, or null once it is gone.
+    listNames: () => Promise<Array<string> | null>;
+    // One's document, by the name IAM lists it under, or null once it is gone.
+    readDocument: (policyName: string) => Promise<string | null>;
+  }): Promise<AccountChangeFacts> {
+    const { change, facts } = data;
+    const names: Array<string> | null = await data.listNames();
+
+    if (!names) {
+      return data.gone;
+    }
+
+    const name: string | undefined = names.find((listed: string): boolean => {
+      return sameText(listed, change.objectName);
+    });
+
+    if (!name) {
+      return facts(AccountChangeState.Undone);
+    }
+
+    // With no document the events show, there is nothing to hold it to.
+    if (change.policyDocuments.length === 0) {
+      return facts(AccountChangeState.Unknown, {
+        reason: AccountChangeUnknownReason.CannotTellWhich,
+        policyDocument: AccountChangePolicyDocument.NotComparable,
+      });
+    }
+
+    let document: string | null;
+
+    try {
+      document = await data.readDocument(name);
+    } catch (error) {
+      if (error instanceof AwsIamAccessNotGranted) {
+        return facts(AccountChangeState.Unknown, {
+          reason: AccountChangeUnknownReason.NotGranted,
+        });
+      }
+
+      throw error;
+    }
+
+    // Deleted between the list and the read.
+    if (document === null) {
+      return facts(AccountChangeState.Undone);
+    }
+
+    const reading: AccountChangePolicyDocument = compareInlinePolicyDocument({
+      now: document,
+      written: change.policyDocuments,
+    });
+
+    switch (reading) {
+      case AccountChangePolicyDocument.Attack:
+        return facts(AccountChangeState.StillThere, {
+          policyDocument: reading,
+        });
+      case AccountChangePolicyDocument.Changed:
+        return facts(AccountChangeState.Undone, { policyDocument: reading });
+      default:
+        return facts(AccountChangeState.Unknown, {
+          reason: AccountChangeUnknownReason.CannotTellWhich,
+          policyDocument: reading,
         });
     }
   }
@@ -1113,7 +1291,7 @@ export default class AccountChangeReadBack {
       return cannotTell([]);
     }
 
-    const set: Array<JSONObject | null> = change.trustPolicies.map(
+    const set: Array<JSONObject | null> = change.policyDocuments.map(
       (policy: string): JSONObject | null => {
         return readAwsPolicyDocument(policy);
       },
