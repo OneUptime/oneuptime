@@ -79,8 +79,10 @@ describe("the provider's .goreleaser.yml", () => {
       return match[1] || "";
     });
 
-    // Nothing else goes in a zip: without `files`, GoReleaser adds every
-    // README*, LICENSE* and CHANGELOG* it finds, stamped as they are on disk.
+    /*
+     * Nothing else goes in a zip: without `files`, GoReleaser adds every
+     * README*, LICENSE* and CHANGELOG* it finds, stamped as they are on disk.
+     */
     expect(files).toEqual(["LICENSE", "README.md"]);
     expect(archives.match(/- src:/g)).toHaveLength(2);
   });

@@ -382,7 +382,12 @@ describe("ProviderRelease.js: what a release holds, against what it must", () =>
   describe("uploading to a draft, never to a published release (#11016)", () => {
     const UPLOAD_URL = `${UPLOADS}/5/assets`;
     const files = [
-      { name: ZIPS[0], size: 10, sha256: sha("zip 0"), path: `/dist/${ZIPS[0]}` },
+      {
+        name: ZIPS[0],
+        size: 10,
+        sha256: sha("zip 0"),
+        path: `/dist/${ZIPS[0]}`,
+      },
       { name: SUMS, size: 10, sha256: sha("sums"), path: `/dist/${SUMS}` },
     ];
     const release = (assets, extra = {}) => {
@@ -444,7 +449,11 @@ describe("ProviderRelease.js: what a release holds, against what it must", () =>
           draft: false,
         }),
         // gh's own answer says isDraft.
-        { isDraft: false, upload_url: `${UPLOAD_URL}{?name,label}`, assets: [] },
+        {
+          isDraft: false,
+          upload_url: `${UPLOAD_URL}{?name,label}`,
+          assets: [],
+        },
       ]) {
         expect(uploadPlan(published, files)).toEqual({
           refused:
@@ -473,7 +482,12 @@ describe("ProviderRelease.js: what a release holds, against what it must", () =>
 
     test("a file's name goes into the URL encoded", () => {
       const [step] = uploadPlan(release([]), [
-        { name: "a b&c.zip", size: 1, sha256: sha("x"), path: "/dist/a b&c.zip" },
+        {
+          name: "a b&c.zip",
+          size: 1,
+          sha256: sha("x"),
+          path: "/dist/a b&c.zip",
+        },
       ]).steps;
       expect(step.url).toBe(`${UPLOAD_URL}?name=a%20b%26c.zip`);
     });
@@ -1447,7 +1461,9 @@ describe(`${SCRIPT}, end to end`, () => {
           return call.args.includes("--verify");
         });
         expect(verify.args).toMatch(
-          new RegExp(`--status-fd 1 --verify \\S+/dist/${SIGNATURE} \\S+/dist/${SUMS}$`),
+          new RegExp(
+            `--status-fd 1 --verify \\S+/dist/${SIGNATURE} \\S+/dist/${SUMS}$`,
+          ),
         );
       },
       RUN_TIMEOUT,

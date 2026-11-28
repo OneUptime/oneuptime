@@ -317,7 +317,11 @@ function uploadPlan(release, files) {
     };
   }
   const uploadUrl = String(release.upload_url || "").replace(/\{[^}]*\}$/, "");
-  if (!/^https:\/\/[^/]+\/repos\/[^/]+\/[^/]+\/releases\/\d+\/assets$/.test(uploadUrl)) {
+  if (
+    !/^https:\/\/[^/]+\/repos\/[^/]+\/[^/]+\/releases\/\d+\/assets$/.test(
+      uploadUrl,
+    )
+  ) {
     return {
       refused: `GitHub gives no upload URL for it (${release.upload_url || "none"})`,
       steps: [],
