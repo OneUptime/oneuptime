@@ -409,6 +409,57 @@ export function unnameJson<T extends JSONValue | undefined | null>(
   return { value: (changed ? visited : value) as T, changed };
 }
 
+/*
+ * A JSON value of what OneUptime wrote in Markdown - a playbook run's step
+ * results, whose summary and details set a value apart as inline code - with
+ * every whole string that is one of the names, and every name written as a
+ * value of its own inside one (unnameDescription's places), replaced by
+ * what the rule left. A key is never changed. Says whether anything was.
+ */
+export function unnameJsonMarkdown<T extends JSONValue | undefined | null>(
+  value: T,
+  names: ReadonlyArray<ErasedName>,
+): { value: T; changed: boolean } {
+  let changed: boolean = false;
+
+  const visit: (item: unknown) => unknown = (item: unknown): unknown => {
+    if (typeof item === "string") {
+      const replaced: string = (unnameDescription(
+        unnameValue(item, names) as string,
+        names,
+      ) || "") as string;
+
+      if (replaced !== item) {
+        changed = true;
+      }
+
+      return replaced;
+    }
+
+    if (Array.isArray(item)) {
+      return item.map(visit);
+    }
+
+    if (item && typeof item === "object") {
+      const result: Record<string, unknown> = {};
+
+      for (const [key, inner] of Object.entries(
+        item as Record<string, unknown>,
+      )) {
+        writeOwnValue(result, key, visit(inner));
+      }
+
+      return result;
+    }
+
+    return item;
+  };
+
+  const visited: unknown = visit(value);
+
+  return { value: (changed ? visited : value) as T, changed };
+}
+
 // Whether a JSON value holds one of the names as a whole string, at any depth.
 export function namesAnyone(
   value: JSONValue | undefined | null,

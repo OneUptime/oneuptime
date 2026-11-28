@@ -683,6 +683,55 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
         SecurityPlaybookRunStatus.WaitingForApproval,
       );
     });
+
+    test("a step's summary that names the person as inline code - a threat intel lookup's - gets the token too, a person's words do not (#11230)", async () => {
+      const summary: (value: string) => string = (value: string): string => {
+        return `1 entity is known-bad in threat intel: \`${value}\`.`;
+      };
+      const finished: ObjectID = await insert("SecurityPlaybookRun", {
+        projectId: projectId.toString(),
+        playbookName: "Look up the account",
+        status: SecurityPlaybookRunStatus.Succeeded,
+        stepResults: [
+          {
+            stepId: "lookup",
+            summaryInMarkdown: summary(ALICE),
+            detailsInMarkdown: `- \`${ALICE}\`: email-addr, feed **Acme**, confidence 80`,
+          },
+          // A person's own words keep what they wrote.
+          { stepId: "note", note: `Ask ${ALICE} about it` },
+        ],
+      });
+
+      await SecurityUserErasureRecords.withdrawPlaybookRuns({
+        projectId,
+        names,
+      });
+
+      const results: Array<Record<string, unknown>> = (
+        await rowOf("SecurityPlaybookRun", finished)
+      )["stepResults"] as Array<Record<string, unknown>>;
+
+      expect(results[0]!["summaryInMarkdown"]).toBe(summary(aliceToken));
+      expect(results[0]!["detailsInMarkdown"]).toBe(
+        `- \`${aliceToken}\`: email-addr, feed **Acme**, confidence 80`,
+      );
+      expect(results[1]!["note"]).toBe(`Ask ${ALICE} about it`);
+
+      // Done again, nothing more is found to change.
+      const version: unknown = (await rowOf("SecurityPlaybookRun", finished))[
+        "version"
+      ];
+
+      await SecurityUserErasureRecords.withdrawPlaybookRuns({
+        projectId,
+        names,
+      });
+
+      expect((await rowOf("SecurityPlaybookRun", finished))["version"]).toBe(
+        version,
+      );
+    });
   });
 
   test("all of it at once, then again: the second run changes nothing more", async () => {

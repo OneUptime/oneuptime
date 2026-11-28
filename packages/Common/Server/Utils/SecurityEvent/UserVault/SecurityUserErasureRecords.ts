@@ -32,6 +32,7 @@ import {
   unnameGroupValue,
   unnameGroupingKey,
   unnameJson,
+  unnameJsonMarkdown,
   unnameKeptEventStamps,
   unnameThreatIntelDescription,
   unnameTitle,
@@ -1334,10 +1335,17 @@ export default class SecurityUserErasureRecords {
     projectId: ObjectID;
     names: ReadonlyArray<ErasedName>;
   }): Promise<number> {
+    // A name as a whole value of the results, or as inline code in a step's summary or details.
     const ids: Array<ObjectID> = idsOf(
       await this.query(
         `SELECT "_id" FROM "SecurityPlaybookRun" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos(COALESCE("stepResults"::text, ''), erased.name) > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
-        [data.projectId.toString(), jsonNamesOf(data.names)],
+        [
+          data.projectId.toString(),
+          [
+            ...jsonNamesOf(data.names),
+            ...getDescriptionNameTexts(data.names).code,
+          ],
+        ],
       ),
     );
 
@@ -1361,8 +1369,13 @@ export default class SecurityUserErasureRecords {
         continue;
       }
 
+      /*
+       * Each whole value, and each name a step wrote as inline code in its
+       * summary or details: "1 entity is known-bad in threat intel:
+       * `alice@example.com`." kept the address (#11230).
+       */
       const results: { value: JSONArray | undefined; changed: boolean } =
-        unnameJson(run.stepResults, data.names);
+        unnameJsonMarkdown(run.stepResults, data.names);
 
       if (!results.changed) {
         continue;

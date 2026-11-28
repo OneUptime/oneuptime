@@ -25,6 +25,7 @@ import {
   unnameGroupValue,
   unnameGroupingKey,
   unnameJson,
+  unnameJsonMarkdown,
   unnameKeptEventStamps,
   unnameThreatIntelDescription,
   unnameTitle,
@@ -541,6 +542,61 @@ describe("a correlation's group value", () => {
     ]) {
       expect(unnameGroupingKey(key, NAMES)).toBe(key);
     }
+  });
+});
+
+describe("a JSON value OneUptime wrote in Markdown, as a playbook run's step results", () => {
+  test("a whole value, and a name a step set apart as inline code, get what the rule left", () => {
+    const results: Array<JSONObject> = [
+      {
+        stepId: "lookup",
+        summaryInMarkdown:
+          "1 entity is known-bad in threat intel: `alice@example.com`.",
+        detailsInMarkdown:
+          "- `alice@example.com`: email-addr, feed **Acme**, confidence 80",
+        targets: ["auth0|alice@example.com"],
+      },
+    ];
+
+    expect(unnameJsonMarkdown(results, NAMES)).toEqual({
+      value: [
+        {
+          stepId: "lookup",
+          summaryInMarkdown: `1 entity is known-bad in threat intel: \`${TOKEN}\`.`,
+          detailsInMarkdown: `- \`${TOKEN}\`: email-addr, feed **Acme**, confidence 80`,
+          targets: [`auth0|${TOKEN}`],
+        },
+      ],
+      changed: true,
+    });
+  });
+
+  test("a name inside other words, or inside a longer code span, stays as written", () => {
+    const results: Array<JSONObject> = [
+      {
+        note: "Call alice@example.com about her sign-ins",
+        summaryInMarkdown: "Ran `whois alice@example.com` on the host",
+      },
+    ];
+
+    expect(unnameJsonMarkdown(results, NAMES)).toEqual({
+      value: results,
+      changed: false,
+    });
+  });
+
+  test("keys and what is no text stay, and nothing stays nothing", () => {
+    const value: JSONObject = {
+      "alice@example.com": 3,
+      count: 2,
+      flags: [true, null],
+    };
+
+    expect(unnameJsonMarkdown(value, NAMES)).toEqual({ value, changed: false });
+    expect(unnameJsonMarkdown(undefined, NAMES)).toEqual({
+      value: undefined,
+      changed: false,
+    });
   });
 });
 
