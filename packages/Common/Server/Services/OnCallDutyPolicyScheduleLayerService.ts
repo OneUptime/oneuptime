@@ -192,7 +192,16 @@ export class Service extends ProjectReferencesService<Model> {
 
     const types: Set<RestrictionType> = new Set<RestrictionType>(
       layers.map((layer: Model): RestrictionType => {
-        return layer.restrictionTimes?.restrictionType || RestrictionType.None;
+        // Read as the engine reads it, an instance or the stored JSON alike.
+        try {
+          return layer.restrictionTimes
+            ? RestrictionTimes.fromJSON(
+                layer.restrictionTimes as RestrictionTimes | JSONObject,
+              ).restrictionType
+            : RestrictionType.None;
+        } catch {
+          return RestrictionType.None;
+        }
       }),
     );
 
