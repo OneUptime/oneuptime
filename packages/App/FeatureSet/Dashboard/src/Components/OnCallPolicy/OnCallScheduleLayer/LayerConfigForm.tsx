@@ -223,6 +223,7 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
                 {...fieldProps}
                 value={value.restrictionTimes as RestrictionTimes}
                 timezone={props.timezone}
+                marksWindowsToCheck={true}
               />
             );
           },

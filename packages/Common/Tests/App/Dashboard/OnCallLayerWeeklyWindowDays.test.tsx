@@ -447,6 +447,7 @@ describe("RestrictionTimesFieldElement: a window's menus show the days it is on 
       <RestrictionTimesFieldElement
         value={movedByAZoneChange()}
         timezone={NEW_YORK}
+        marksWindowsToCheck={true}
       />,
     );
 
@@ -460,7 +461,11 @@ describe("RestrictionTimesFieldElement: a window's menus show the days it is on 
 
   test("REGRESSION #11455: the issue's window shows the Wednesday it pages on, not the Monday it was saved with", () => {
     render(
-      <RestrictionTimesFieldElement value={theIssues()} timezone={WARSAW} />,
+      <RestrictionTimesFieldElement
+        value={theIssues()}
+        timezone={WARSAW}
+        marksWindowsToCheck={true}
+      />,
     );
 
     expect(shownEnd("From:")).toContain("Wednesday");
@@ -472,7 +477,11 @@ describe("RestrictionTimesFieldElement: a window's menus show the days it is on 
 
   test("a window on its days shows them, and says nothing more", () => {
     render(
-      <RestrictionTimesFieldElement value={onItsDays()} timezone={WARSAW} />,
+      <RestrictionTimesFieldElement
+        value={onItsDays()}
+        timezone={WARSAW}
+        marksWindowsToCheck={true}
+      />,
     );
 
     expect(shownEnd("From:")).toContain("Monday");
@@ -492,6 +501,7 @@ describe("RestrictionTimesFieldElement: a window's menus show the days it is on 
       <RestrictionTimesFieldElement
         value={restrictionTimes}
         timezone={WARSAW}
+        marksWindowsToCheck={true}
       />,
     );
 
@@ -511,12 +521,28 @@ describe("RestrictionTimesFieldElement: a window's menus show the days it is on 
       <RestrictionTimesFieldElement
         value={value}
         timezone={NEW_YORK}
+        marksWindowsToCheck={true}
         onChange={onChange}
       />,
     );
 
     expect(onChange).not.toHaveBeenCalled();
     expect(asJSON(value)).toEqual(before);
+  });
+
+  test("as an on-call rule's working hours use it: the days the times fall on are shown, and no layer's note", () => {
+    render(
+      <RestrictionTimesFieldElement
+        value={theIssues()}
+        timezone={WARSAW}
+        hidesNoRestrictions={true}
+      />,
+    );
+
+    expect(shownEnd("From:")).toContain("Wednesday");
+    expect(
+      screen.queryByTestId("restriction-window-to-check"),
+    ).not.toBeInTheDocument();
   });
 });
 

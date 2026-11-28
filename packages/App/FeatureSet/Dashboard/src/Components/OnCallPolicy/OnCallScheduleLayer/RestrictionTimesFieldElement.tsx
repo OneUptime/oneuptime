@@ -87,6 +87,13 @@ export interface ComponentProps {
   timezoneNoteTemplate?: string | undefined;
   // The button that adds a weekly window, when "Add Restriction Time" is not its name.
   addWindowTitle?: string | undefined;
+  /*
+   * Say under a weekly window whose times fall on other days than it was
+   * saved with that it is on call on the days shown (getWindowToCheckNote):
+   * a schedule layer's form, whose Save Layer stores those days (#11455).
+   * Its words are a layer's, so an on-call rule's working hours leave it out.
+   */
+  marksWindowsToCheck?: boolean | undefined;
   // The addWindowTitle is in the reader's words already, drawn as given (Button's isTitleTranslated).
   isAddWindowTitleTranslated?: boolean | undefined;
 }
@@ -246,12 +253,14 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
     number,
     WindowToCheck
   >(
-    WeeklyWindowDays.getWindowsToCheck(
-      restrictionTimes,
-      props.timezone || null,
-    ).map((window: WindowToCheck): [number, WindowToCheck] => {
-      return [window.index, window];
-    }),
+    props.marksWindowsToCheck
+      ? WeeklyWindowDays.getWindowsToCheck(
+          restrictionTimes,
+          props.timezone || null,
+        ).map((window: WindowToCheck): [number, WindowToCheck] => {
+          return [window.index, window];
+        })
+      : [],
   );
 
   /*
