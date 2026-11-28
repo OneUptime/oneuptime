@@ -34,7 +34,22 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * voice OneUptime offers leaves the calls in the account's default voice:
  * never the saved voice, which nobody set the variable to, and never no
  * call. Unset or empty, the saved voice applies, as before.
+ *
+ * The server is a self-hosted one, the server the variable is for (the Helm
+ * chart's twilio.callVoice): OneUptime Cloud refuses the switch beside the
+ * voice for a reason of its own (ProjectCallVoiceSetting.test.ts), and
+ * Common's tests run in CI with BILLING_ENABLED=true.
  */
+
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  return {
+    ...(jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >),
+    IsBillingEnabled: false,
+  };
+});
 
 type ServiceWithHooks<T extends DatabaseBaseModel> = {
   onBeforeCreate(createBy: CreateBy<T>): Promise<OnCreate<T>>;
