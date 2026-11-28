@@ -80,7 +80,7 @@ jobs:
         run: bash ./HelmChart/Tests/run.sh
       - name: Show how to run these locally
         if: ${{ failure() }}
-        run: echo "Run 'npm run test-helm-chart-all', or a single suite with 'bash ./HelmChart/Tests/run.sh <suite>' (suites live in HelmChart/Tests/suites). 'npm run test-helm-chart' still runs just the cluster-free helm-unittest suites."
+        run: echo "Run 'npm run test-helm-chart-all', or a single suite with 'bash ./HelmChart/Tests/run.sh <suite>' (suites live in HelmChart/Tests/suites). 'npm run test-helm-chart' runs just the helm-unittest suites (unit), on the pinned helm-unittest; 'bash ./HelmChart/Tests/run.sh assertions-can-fail' plants a wrong message in every refusal they hold."
 
 
   # The shell scripts the release runs on. Most only ever execute during a

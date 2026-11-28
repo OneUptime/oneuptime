@@ -262,7 +262,10 @@ tests:
       kubeletstats.nodesProxy: sometimes
     asserts:
       - failedTemplate:
-          errorPattern: "nodesProxy"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/kubeletstats/nodesProxy': value must be one of true, false, 'auto', 'true', 'false'
 
   # EKS Fargate runs no node collector, so nothing reads a kubelet's pod list.
   - it: grants none on the eks-fargate preset, whose cost monitoring is off

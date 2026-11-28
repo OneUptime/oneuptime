@@ -957,7 +957,13 @@ describe("a policy's pages", () => {
       ),
     ).toContain("<NotificationLogsTabs");
 
-    for (const channel of ["Email", "SMS", "Call", "Push"]) {
+    // A phone call and a push notification, by keys of their own (#11418).
+    for (const channel of [
+      "Email",
+      "SMS",
+      "Call (phone call)",
+      "Push (push notification)",
+    ]) {
       expect(tabs).toContain(`name: "${channel}"`);
     }
 

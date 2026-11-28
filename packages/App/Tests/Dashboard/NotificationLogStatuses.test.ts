@@ -99,13 +99,26 @@ function toneOf(
   ];
 }
 
-// The explanation as English reads it: its sentences, one after another.
+/*
+ * The explanation as the log's pill says it in English: its sentences, one
+ * after another, and last the one that names the log's own column or
+ * button (inTheLog), which only the log says.
+ */
 function explanationOf(
   kind: NotificationLogKind,
   status: string,
   statusMessage?: string | undefined,
 ): string {
-  return wordsOf(kind, status, statusMessage).explanation.join(" ");
+  const words: NotificationLogStatusWords = wordsOf(
+    kind,
+    status,
+    statusMessage,
+  );
+
+  return [
+    ...words.explanation,
+    ...(words.inTheLog ? [words.inTheLog] : []),
+  ].join(" ");
 }
 
 // Every status each log's enum holds.
@@ -524,8 +537,9 @@ describe("one meaning, one colour", () => {
         meaning: NotificationLogStatusMeaning.NotSent,
         explanation: [
           "It was not sent: the project's balance was too low to pay for it.",
-          "View Status Message says who can add balance.",
         ],
+        // Said by the log alone: away from it, there is no View Status Message.
+        inTheLog: "View Status Message says who can add balance.",
       });
     }
   });
@@ -553,12 +567,17 @@ describe("every status says what it means", () => {
       expect(words.explanation.length).toBeGreaterThanOrEqual(1);
       expect(words.explanation.length).toBeLessThanOrEqual(3);
 
-      for (const sentence of words.explanation) {
+      for (const sentence of [
+        ...words.explanation,
+        ...(words.inTheLog ? [words.inTheLog] : []),
+      ]) {
         expect(sentence).toMatch(/^[A-Z].*\.$/);
       }
 
-      // Short enough for a tooltip.
-      expect(words.explanation.join(" ").length).toBeLessThanOrEqual(240);
+      // Short enough for a tooltip, as the log says it.
+      expect(
+        explanationOf(data.kind, data.status, data.statusMessage).length,
+      ).toBeLessThanOrEqual(240);
 
       // The pill says the stored word, as the filter offers it.
       expect(withMeaningKeyAsItsWord(words.text).toLowerCase()).toBe(
@@ -572,10 +591,8 @@ describe("every status says what it means", () => {
       text: "Delivered-ish",
       isTextAsWritten: true,
       meaning: NotificationLogStatusMeaning.Unknown,
-      explanation: [
-        "OneUptime does not know this status.",
-        "View Status Message shows what was reported.",
-      ],
+      explanation: ["OneUptime does not know this status."],
+      inTheLog: "View Status Message shows what was reported.",
     });
   });
 
@@ -733,7 +750,11 @@ describe("in every language the Dashboard ships", () => {
             data.statusMessage,
           );
 
-          return [words.text, ...words.explanation];
+          return [
+            words.text,
+            ...words.explanation,
+            ...(words.inTheLog ? [words.inTheLog] : []),
+          ];
         },
       ),
     ),

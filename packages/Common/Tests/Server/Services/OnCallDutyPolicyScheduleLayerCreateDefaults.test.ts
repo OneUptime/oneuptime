@@ -128,6 +128,18 @@ describe("OnCallDutyPolicyScheduleLayerService.create", () => {
 
   beforeEach(() => {
     table = useInMemoryTable(OnCallDutyPolicyScheduleLayerService, []);
+    /*
+     * The layer's schedule, for the zone its weekly windows are held to
+     * their days in (#11455): Europe/Berlin, as the layers above are dated.
+     */
+    useInMemoryTable(OnCallDutyPolicyScheduleService, [
+      {
+        _id: SCHEDULE_ID.toString(),
+        projectId: PROJECT_ID.toString(),
+        name: "Business hours",
+        timezone: "Europe/Berlin",
+      },
+    ]);
     stubProjectDirectory({});
 
     // The schedule's roster is worked out elsewhere; not under test.
@@ -182,6 +194,11 @@ describe("OnCallDutyPolicyScheduleLayerService.create", () => {
     rotation.intervalType = EventInterval.Day;
     rotation.intervalCount = new PositiveNumber(2);
 
+    /*
+     * Monday 09:00 to Friday 18:00 in Berlin, each time dated on its day:
+     * the end was dated on the Monday too, until a window was held to the
+     * days it names (#11455) - it was on call Monday 09:00 to 18:00 only.
+     */
     const restrictionTimes: RestrictionTimes = new RestrictionTimes();
     restrictionTimes.restictionType = RestrictionType.Weekly;
     restrictionTimes.weeklyRestrictionTimes = [
@@ -189,7 +206,7 @@ describe("OnCallDutyPolicyScheduleLayerService.create", () => {
         startDay: DayOfWeek.Monday,
         endDay: DayOfWeek.Friday,
         startTime: new Date("2026-08-17T07:00:00.000Z"),
-        endTime: new Date("2026-08-17T16:00:00.000Z"),
+        endTime: new Date("2026-08-21T16:00:00.000Z"),
       },
     ];
 
@@ -205,6 +222,29 @@ describe("OnCallDutyPolicyScheduleLayerService.create", () => {
       RestrictionType.Weekly,
     );
     expect(restrictionTimesOf(stored).weeklyRestrictionTimes).toHaveLength(1);
+  });
+
+  test("REGRESSION #11455: a window named Monday to Friday with both times on the Monday is refused, and nothing written", async () => {
+    const restrictionTimes: RestrictionTimes = new RestrictionTimes();
+    restrictionTimes.restrictionType = RestrictionType.Weekly;
+    restrictionTimes.weeklyRestrictionTimes = [
+      {
+        startDay: DayOfWeek.Monday,
+        endDay: DayOfWeek.Friday,
+        startTime: new Date("2026-08-17T07:00:00.000Z"),
+        endTime: new Date("2026-08-17T16:00:00.000Z"),
+      },
+    ];
+
+    await expect(
+      OnCallDutyPolicyScheduleLayerService.create({
+        data: layer({ restrictionTimes }),
+        props: adminProps(),
+      }),
+    ).rejects.toThrow(
+      "restrictionTimes.value.weeklyRestrictionTimes[0].endTime is 2026-08-17T16:00:00.000Z, a Monday in Europe/Berlin, the schedule's time zone, but its endDay is Friday.",
+    );
+    expect(table.inserts).toHaveLength(0);
   });
 
   test("each default is the layer's own: changing one changes no other layer's", async () => {

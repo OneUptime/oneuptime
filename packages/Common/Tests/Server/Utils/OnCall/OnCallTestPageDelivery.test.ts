@@ -1555,7 +1555,6 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
       const result: OnCallTestPageResultDelivery = toDelivery({
         delivery: row,
-        isDelivered: false,
       });
 
       expect(result.channel).toBe(channel);
@@ -1580,9 +1579,7 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
     row.id = new ObjectID("abababab-abab-4bab-8bab-abababababab");
 
-    expect(
-      toDelivery({ delivery: row, isDelivered: false }).statusMessageCode,
-    ).toEqual({
+    expect(toDelivery({ delivery: row }).statusMessageCode).toEqual({
       code: OnCallTestPageLineCode.MethodNotVerified,
       channel: OnCallPageChannel.CustomChannel,
     });
@@ -1603,7 +1600,6 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
     const result: OnCallTestPageResultDelivery = toDelivery({
       delivery: row,
-      isDelivered: false,
     });
 
     expect(result.statusMessage).toBe(row.statusMessage);
@@ -1657,7 +1653,6 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
       const result: OnCallTestPageResultDelivery = toDelivery({
         delivery: row,
-        isDelivered: false,
       });
 
       // The English stays, for every other reader of the API.

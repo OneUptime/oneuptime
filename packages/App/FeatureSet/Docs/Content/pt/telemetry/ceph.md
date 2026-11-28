@@ -80,6 +80,8 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 CEPH_CLUSTER_NAME=my-ceph-cluster
 CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]
+CEPH_AGENT_CONTAINER_NAME=oneuptime-ceph-agent
+CEPH_AI_AGENT_CONTAINER_NAME=oneuptime-ceph-ai-agent
 ```
 
 Liste cada daemon mgr, o ativo e os em standby, separados por vírgulas e entre colchetes: os colchetes fazem o coletor ler o valor como uma lista de alvos de coleta. Inicie o agente:
@@ -119,6 +121,8 @@ O script de instalação grava estes valores em `/opt/oneuptime-ceph-agent/.env`
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sim | A chave de ingestão de **Configurações do projeto → Telemetria e APM → Chaves de ingestão**. |
 | `CEPH_CLUSTER_NAME` | Não | O nome do cluster no OneUptime, marcado em cada métrica como o atributo de recurso `ceph.cluster.name`. Mantenha-o estável: mudá-lo depois registra um segundo cluster. O padrão é `ceph`. |
 | `CEPH_MGR_ENDPOINTS` | Sim | Cada daemon mgr como uma lista `host:port` separada por vírgulas e entre colchetes, como `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. O script de instalação adiciona os colchetes para você. |
+| `CEPH_AGENT_CONTAINER_NAME` | Não | O nome do contêiner do coletor. O padrão é `oneuptime-ceph-agent`. O agente de um segundo cluster na mesma máquina precisa de nomes próprios: veja [Monitorar vários clusters](#monitorar-vários-clusters). O script de instalação dá aos contêineres de um novo agente o nome da pasta dele, a menos que você os defina, e os mantém quando você executa o script de novo. |
+| `CEPH_AI_AGENT_CONTAINER_NAME` | Não | O nome do contêiner do agente de IA. O padrão é `oneuptime-ceph-ai-agent` e, para um segundo agente, um nome ao lado do nome do coletor dele, como `oneuptime-ceph-ai-agent-cluster2`. |
 
 As configurações próprias do agente de IA estão em [Agente de IA](#agente-de-ia).
 
@@ -206,6 +210,18 @@ processors:
 
 O coletor só lê a configuração quando inicia: execute `docker compose restart oneuptime-ceph-agent`. O cluster passa então a mostrar os rótulos `team:storage` e `env:production`. Os rótulos são comparados sem diferenciar maiúsculas e minúsculas, então um rótulo `Production` existente é reutilizado em vez de duplicado, e o agente nunca remove um rótulo que alguém adicionou no OneUptime.
 
+## Monitorar vários clusters
+
+Um agente lê um cluster. Para monitorar vários a partir da mesma máquina, instale cada agente na própria pasta, com o próprio `.env` e nomes de contêiner próprios, já que dois contêineres não podem compartilhar um nome:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-ceph-agent-cluster2 bash install.sh
+```
+
+O script dá aos contêineres do agente nomes baseados na pasta: `oneuptime-ceph-agent-cluster2` e `oneuptime-ceph-ai-agent-cluster2`. Para escolhê-los você mesmo, defina `CEPH_AGENT_CONTAINER_NAME` e `CEPH_AI_AGENT_CONTAINER_NAME` ao executá-lo. Ele guarda os nomes no `.env` desse agente, então executar o script de novo para atualizar o agente os mantém, e um agente cujo `container_name` você já editou no `docker-compose.yml` mantém esse nome. Dê a cada pasta um nome próprio: o Docker Compose dá a um projeto o nome apenas da pasta dele, então o script recusa uma pasta com o mesmo nome de outra que já executa um agente em outro lugar. Com o Docker Compose, defina os nomes no `.env` de cada agente em vez disso.
+
+A unidade do systemd supõe `/opt/oneuptime-ceph-agent`: para outra pasta, salve-a com outro nome, como `oneuptime-ceph-agent-cluster2.service`, e altere o `WorkingDirectory` dela. Passe a pasta ao script de diagnóstico com `-d`.
+
 ## Execute como um serviço do systemd
 
 Para iniciar o agente junto com a máquina e reiniciá-lo quando falhar, instale a unidade do systemd dele. Ela supõe que o agente fica em `/opt/oneuptime-ceph-agent`, onde o script de instalação o coloca:
@@ -220,7 +236,7 @@ sudo systemctl enable --now oneuptime-ceph-agent
 
 O agente informa como **Versão do agente** a versão do coletor que os arquivos dele fixam. Quando ela é mais antiga que a versão que esta versão do OneUptime fixa, um sinal de aviso aparece ao lado dela na **Visão geral** do cluster. Selecione-o para ver estes comandos. Um agente instalado antes de os arquivos dele informarem uma versão não mostra nenhuma até ser atualizado dessa forma.
 
-A imagem do coletor está fixada em `docker-compose.yml`, e a configuração dele é um arquivo ao lado, então só baixar as imagens não faz o agente avançar. Execute `install.sh` de novo: ele reutiliza todos os valores do seu `.env` atual (nada é perguntado de novo), renova `docker-compose.yml` e `otel-collector-config.yaml` (um arquivo que você editou é guardado como `<file>.bak.<timestamp>`), baixa as imagens e recria o agente para que o coletor leia a nova configuração. A pasta `ceph/` do agente de IA fica como está.
+A imagem do coletor está fixada em `docker-compose.yml`, e a configuração dele é um arquivo ao lado, então só baixar as imagens não faz o agente avançar. Execute `install.sh` de novo: ele reutiliza todos os valores do seu `.env` atual (nada é perguntado de novo), renova `docker-compose.yml` e `otel-collector-config.yaml` (um arquivo que você editou é guardado como `<file>.bak.<timestamp>`), baixa as imagens e recria o agente para que o coletor leia a nova configuração. A pasta `ceph/` do agente de IA fica como está. Um agente instalado fora de `/opt/oneuptime-ceph-agent` precisa da pasta dele, `INSTALL_DIR=<folder> bash install.sh`, e mantém os nomes de contêiner dele.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/ceph-agent -o install.sh

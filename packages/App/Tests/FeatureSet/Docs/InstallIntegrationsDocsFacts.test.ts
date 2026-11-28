@@ -2590,7 +2590,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
         return unwrap(cells[0] as string);
       });
 
-    expect(fields).toHaveLength(6);
+    expect(fields).toHaveLength(7);
 
     for (const field of fields) {
       expect({ field, answered: answered.includes(field) }).toEqual({

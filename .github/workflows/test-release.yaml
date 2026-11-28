@@ -1064,21 +1064,10 @@ jobs:
           node-version: 26
           cache: 'npm'
 
-      # No Go cache, as release.yml's publish-terraform-provider: setup-go keys
-      # it on a go.sum the repository does not have at its root.
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 'stable'
-          cache: false
-
-      - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v6.1.0
-        with:
-          install-only: true
-          # Pin to v2.x for the same reason as release.yml: a future v3 with
-          # renamed flags/config must not silently break this job.
-          version: '~> v2'
+      # Go and GoReleaser at the versions every release build uses, as
+      # release.yml's publish-terraform-provider installs them (#11464).
+      - name: Set up the release toolchain
+        uses: ./.github/actions/setup-release-toolchain
 
       # The dry run generates the provider: Scripts/TerraformProvider through
       # the root's ts-node, against Common's sources. It needs all three.
@@ -1807,30 +1796,14 @@ jobs:
       - name: Free disk space if the runner is short of it
         uses: ./.github/actions/free-disk-space
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-
-      - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v6.1.0
+      # The same InfrastructureAgent/.goreleaser.yaml as release.yml, with the
+      # same Go, GoReleaser and syft (#11464): its sboms: block needs syft,
+      # and --snapshot does not skip it. GoReleaser makes the packages itself;
+      # the nfpm this job used to `go install` ran nowhere.
+      - name: Set up the release toolchain
+        uses: ./.github/actions/setup-release-toolchain
         with:
-          install-only: true
-
-      - name: GoReleaser Version
-        run: goreleaser -v
-
-      # This tool is used to generate .rpm and .deb packages
-      - name: Install NFPM
-        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
-
-      # This job runs the same InfrastructureAgent/.goreleaser.yaml as
-      # release.yml, and that config now has an sboms: block. --snapshot does
-      # not skip SBOM generation, so without syft on PATH GoReleaser fails the
-      # whole job — and this workflow runs on every push to main.
-      - name: Install syft
-        uses: anchore/sbom-action/download-syft@v0
-
-      - name: Show GoReleaser version
-        run: goreleaser -v
+          syft: 'true'
 
       - name: Run GoReleaser
         run: cd agents/InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean --snapshot

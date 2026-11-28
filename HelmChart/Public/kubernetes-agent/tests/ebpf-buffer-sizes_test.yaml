@@ -109,18 +109,27 @@ tests:
       ebpf.bufferSizes.postgres: 65536
     asserts:
       - failedTemplate:
-          errorPattern: "ebpf.bufferSizes.postgres: Must be less than or equal to 65535"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/bufferSizes/postgres': maximum: got 65,536, want 65,535
 
   - it: rejects a negative buffer
     set:
       ebpf.bufferSizes.mysql: -1
     asserts:
       - failedTemplate:
-          errorPattern: "ebpf.bufferSizes.mysql: Must be greater than or equal to 0"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/bufferSizes/mysql': minimum: got -1, want 0
 
   - it: rejects a protocol it has no buffer for
     set:
       ebpf.bufferSizes.http: 4096
     asserts:
       - failedTemplate:
-          errorPattern: "Additional property http is not allowed"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/bufferSizes': additional properties 'http' not allowed

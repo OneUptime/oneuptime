@@ -274,4 +274,5 @@ Het incident van een formulier voert het bereikbaarheidsbeleid uit dat de instel
 - [Formulieren – overzicht](/docs/forms/index): Waar formulieren voor zijn, rechten en de API.
 - [Een formulier bouwen](/docs/forms/building): De vragen, verborgen vragen en sjablonen.
 - [Wat een inzending aanmaakt](/docs/forms/on-submit): Het incident of de gebeurtenis die elke inzending aanmaakt.
+- [Een inzending opvolgen](/docs/forms/follow-ups): Wie verstuurt, volgt de eigen aanvraag, schrijft uw team en voegt anderen toe.
 :::

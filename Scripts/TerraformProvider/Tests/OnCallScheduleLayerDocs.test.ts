@@ -207,6 +207,28 @@ describe("the on-call schedule layer's guide", () => {
     expect(layerDoc).toContain("give each day a window of its own");
   });
 
+  /*
+   * A window's days are the days it names (OneUptime/oneuptime#11455): a
+   * configuration that named Monday with a Wednesday date was on call on
+   * Wednesdays, and is refused from 18.0.0 on.
+   */
+  test("says a window dated on other weekdays than it names is refused from 18.0.0, and what earlier versions did", () => {
+    expect(layerDoc).toContain(
+      "OneUptime 18.0.0 and later refuse a window whose times fall on other weekdays than it names, in the schedule's `timezone`, with an error that names the window and a time to write instead",
+    );
+    expect(layerDoc).toContain(
+      "earlier versions put such a window on the weekdays its times fall on",
+    );
+  });
+
+  // The older spelling in answers goes (OneUptime/oneuptime#11456).
+  test("says restictionType in answers is deprecated, when it stops, and to write restrictionType on 18.0.0 and later", () => {
+    expect(layerDoc).toContain("On 18.0.0 and later, write `restrictionType`");
+    expect(layerDoc).toContain(
+      "sending the type back under `restictionType` is deprecated, and stops in the first major version released on or after 1 June 2027",
+    );
+  });
+
   test("says what a time is: with or without fractional seconds, in the schedule's timezone", () => {
     expect(layerDoc).toContain("with or without fractional seconds");
     expect(layerDoc).toContain("schedule's `timezone`");

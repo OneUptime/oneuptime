@@ -256,6 +256,7 @@ A submission that breaks a limit, leaves out a required answer or gives an answe
 
 :::cards
 - [What a Submission Creates](/docs/forms/on-submit): How the answers and the On Submit settings become an incident or a maintenance event.
+- [Following Up on a Submission](/docs/forms/follow-ups): Let submitters follow what they sent, write to your team and add others.
 - [Sharing & Security](/docs/forms/sharing-and-security): Sharing the link, a link for each template, and what protects them.
 - [Incident Settings & Automation](/docs/incidents/settings): Incident custom fields and templates.
 :::

@@ -14,7 +14,11 @@ services:
     # with the one-line custom image from README.md ("Shipping Proxmox
     # service logs") when you enable that pipeline.
     image: otel/opentelemetry-collector-contrib:0.165.0
-    container_name: oneuptime-proxmox-agent
+    # The container's name, from .env: a second cluster's agent on this
+    # machine, in a directory of its own, has names of its own, which
+    # install.sh writes there and an upgrade keeps (README.md, "Monitoring
+    # several clusters"). Its sidecars and AI agent are named beside it.
+    container_name: ${PROXMOX_AGENT_CONTAINER_NAME:-oneuptime-proxmox-agent}
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
       # The node pve-api-failover (below) picked to read the cluster from,
@@ -71,7 +75,7 @@ services:
   # says which node it reads the cluster from, and why.
   pve-api-failover:
     image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
-    container_name: oneuptime-pve-api-failover
+    container_name: ${PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME:-oneuptime-pve-api-failover}
     # tini forwards docker stop's SIGTERM to the script, which exits at once.
     init: true
     # The image's own user, which owns the pve-api-target volume below.
@@ -216,7 +220,7 @@ services:
   # PVEAuditor role.
   pve-exporter:
     image: prompve/prometheus-pve-exporter:latest
-    container_name: oneuptime-pve-exporter
+    container_name: ${PROXMOX_PVE_EXPORTER_CONTAINER_NAME:-oneuptime-pve-exporter}
     profiles: ["pve-exporter"]
     init: true
     # prometheus-pve-exporter wants the API token split into a user part
@@ -254,7 +258,7 @@ services:
   # service if you do not use OneUptime AI.
   oneuptime-proxmox-ai-agent:
     image: oneuptime/resource-ai-agent:release
-    container_name: oneuptime-proxmox-ai-agent
+    container_name: ${PROXMOX_AI_AGENT_CONTAINER_NAME:-oneuptime-proxmox-ai-agent}
     # It only talks HTTPS to the Proxmox VE API and to OneUptime: no root,
     # no capabilities, a read-only root filesystem and a tmpfs for /tmp.
     user: "1000:1000"

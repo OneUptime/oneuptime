@@ -2663,11 +2663,6 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
     why: "A name pattern's token, as typed ({site.code}), then what it stands for: code and its definition.",
   },
   {
-    file: "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness.tsx",
-    text: "`${translator.translateTerm(method.methodType)} ${ method.maskedIdentifier }`",
-    why: 'A notification method\'s kind and its masked address ("SMS +1 ••• 0100"), an item of the list a sentence holds.',
-  },
-  {
     file: "packages/App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowVariableUtil.ts",
     text: "`${saved}${translator.translateTemplate(",
     why: "Two whole sentences: what was saved, ending with its own space (none after a full-width stop), then what the token refresh did.",

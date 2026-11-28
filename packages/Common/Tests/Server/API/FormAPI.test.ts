@@ -111,6 +111,13 @@ import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { FORM_SIGN_IN_STATE_ROUTE } from "../../../Types/Form/FormPrivateUserSignIn";
 import {
+  FORM_FOLLOW_UP_ADD_PERSON_ROUTE,
+  FORM_FOLLOW_UP_REPLY_ROUTE,
+  FORM_FOLLOW_UP_ROUTE,
+  FORM_FOLLOW_UP_STOP_ROUTE,
+  FORM_MY_REQUESTS_ROUTE,
+} from "../../../Types/Form/FormFollowUp";
+import {
   FORM_PAGE_HEADER,
   FORM_PAGE_HEADER_VALUE,
   PublicForm,
@@ -338,7 +345,7 @@ describe("FormAPI", () => {
       };
     };
 
-    it("adds exactly the two public routes, their twins on a form's own domain and its CNAME check to the model's CRUD routes", () => {
+    it("adds exactly the two public routes, their twins on a form's own domain, its CNAME check and its follow-ups to the model's CRUD routes", () => {
       const { custom, inherited } = splitRoutes();
 
       expect(
@@ -357,6 +364,18 @@ describe("FormAPI", () => {
           // A form's sign-in state, on its link and on its domain (#10249).
           `GET ${READ_URI}${FORM_SIGN_IN_STATE_ROUTE}`,
           `GET ${CUSTOM_DOMAIN_READ_URI}${FORM_SIGN_IN_STATE_ROUTE}`,
+          // Its follow-ups (Types/Form/FormFollowUp), on both too.
+          ...[READ_URI, CUSTOM_DOMAIN_READ_URI].flatMap(
+            (prefix: string): Array<string> => {
+              return [
+                `POST ${prefix}${FORM_FOLLOW_UP_ROUTE}`,
+                `POST ${prefix}${FORM_FOLLOW_UP_REPLY_ROUTE}`,
+                `POST ${prefix}${FORM_FOLLOW_UP_ADD_PERSON_ROUTE}`,
+                `POST ${prefix}${FORM_FOLLOW_UP_STOP_ROUTE}`,
+                `GET ${prefix}${FORM_MY_REQUESTS_ROUTE}`,
+              ];
+            },
+          ),
         ].sort(),
       );
       expect(inherited.length).toBeGreaterThan(0);

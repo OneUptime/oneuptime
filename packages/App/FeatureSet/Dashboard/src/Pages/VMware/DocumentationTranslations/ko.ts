@@ -273,6 +273,24 @@ const TRANSLATION: SetupGuideTranslation = {
     "vCenter의 식별 이름은 `VMWARE_VCENTER_NAME`에서 오며, 모든 메트릭에 `vmware.vcenter.name`으로 찍힙니다. `/opt/oneuptime-vmware-agent/.env`에서 고치고 `sudo systemctl restart oneuptime-vmware-agent`로 적용하세요. 새 이름을 쓰면 새 vCenter로 등록된다는 점에 유의하세요.",
   "The vCenter identity comes from `VMWARE_VCENTER_NAME`, stamped on every metric as `vmware.vcenter.name`. This vCenter is **`vcenter-1`**. Fix it in `/opt/oneuptime-vmware-agent/.env` and apply it with `sudo systemctl restart oneuptime-vmware-agent` — note that a new name registers a new vCenter.":
     "vCenter의 식별 이름은 `VMWARE_VCENTER_NAME`에서 오며, 모든 메트릭에 `vmware.vcenter.name`으로 찍힙니다. 이 vCenter의 이름은 **`vcenter-1`** 입니다. `/opt/oneuptime-vmware-agent/.env`에서 고치고 `sudo systemctl restart oneuptime-vmware-agent`로 적용하세요. 새 이름을 쓰면 새 vCenter로 등록된다는 점에 유의하세요.",
+  "| `VMWARE_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-vmware-agent`). A second vCenter's agent on the same machine needs names of its own: the install script names a new agent's containers after its folder unless you set them, and keeps them when you run the script again |":
+    "| `VMWARE_AGENT_CONTAINER_NAME` | 아니요 | 컬렉터의 컨테이너 이름(기본값: `oneuptime-vmware-agent`). 같은 머신에 있는 두 번째 vCenter의 에이전트에는 고유한 이름이 필요합니다. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 컨테이너 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다 |",
+  "| `VMWARE_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-vmware-ai-agent`). The install script names a second vCenter's AI agent after its collector (`oneuptime-vmware-ai-agent-vcenter2` beside `oneuptime-vmware-agent-vcenter2`) unless you set it, and keeps it when you run the script again |":
+    "| `VMWARE_AI_AGENT_CONTAINER_NAME` | 아니요 | AI 에이전트의 컨테이너 이름(기본값: `oneuptime-vmware-ai-agent`). 설치 스크립트는 이 값을 설정하지 않으면 두 번째 vCenter의 AI 에이전트 이름을 그 컬렉터 이름에 맞춰 짓고(`oneuptime-vmware-ai-agent-vcenter2`, 컬렉터 `oneuptime-vmware-agent-vcenter2`와 나란히), 스크립트를 다시 실행해도 그 이름을 유지합니다 |",
+  "One agent reads one vCenter. For a second vCenter, install a second agent in a folder of its own, with container names of its own — two containers cannot share a name:":
+    "에이전트 하나는 vCenter 하나를 읽습니다. 두 번째 vCenter에는 별도 폴더에 고유한 컨테이너 이름으로 두 번째 에이전트를 설치하세요. 두 컨테이너는 이름을 공유할 수 없습니다:",
+  "The script names the containers after the folder, such as `oneuptime-vmware-agent-vcenter2`, unless you set their variables, such as `VMWARE_AGENT_CONTAINER_NAME`. It keeps the names in that agent's `.env`, so running the script again with the same `INSTALL_DIR` to upgrade the agent keeps them, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name.":
+    "변수(예: `VMWARE_AGENT_CONTAINER_NAME`)를 설정하지 않으면 스크립트가 폴더 이름을 따서 컨테이너 이름을 짓습니다(예: `oneuptime-vmware-agent-vcenter2`). 스크립트는 그 이름을 해당 에이전트의 `.env`에 보관하므로, 같은 `INSTALL_DIR`로 스크립트를 다시 실행해 에이전트를 업그레이드해도 이름이 유지되며, `docker-compose.yml`에서 `container_name`을 직접 수정한 적이 있는 에이전트도 그 이름을 유지합니다.",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so the script refuses a folder named like one that already runs an agent elsewhere. Pass the folder to the diagnostic script with `-d`.":
+    "폴더마다 고유한 이름을 붙이세요. Docker Compose는 폴더 이름만으로 프로젝트 이름을 짓기 때문에, 스크립트는 다른 곳에서 이미 에이전트를 실행 중인 폴더와 같은 이름의 폴더를 거부합니다. 진단 스크립트에는 `-d`로 폴더를 넘기세요.",
+  "| `VMWARE_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-vmware-agent`). A second vCenter's agent on the same machine needs one of its own |":
+    "| `VMWARE_AGENT_CONTAINER_NAME` | 아니요 | 컬렉터의 컨테이너 이름(기본값: `oneuptime-vmware-agent`). 같은 머신에 있는 두 번째 vCenter의 에이전트에는 고유한 이름이 필요합니다 |",
+  "| `VMWARE_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-vmware-ai-agent`). A second vCenter's agent on the same machine needs one of its own |":
+    "| `VMWARE_AI_AGENT_CONTAINER_NAME` | 아니요 | AI 에이전트의 컨테이너 이름(기본값: `oneuptime-vmware-ai-agent`). 같은 머신에 있는 두 번째 vCenter의 에이전트에는 고유한 이름이 필요합니다 |",
+  "One agent reads one vCenter. For a second vCenter, set up a second agent in a folder of its own, with container names of its own — two containers cannot share a name. Set them in that agent's `.env`:":
+    "에이전트 하나는 vCenter 하나를 읽습니다. 두 번째 vCenter에는 별도 폴더에 고유한 컨테이너 이름으로 두 번째 에이전트를 구성하세요. 두 컨테이너는 이름을 공유할 수 없습니다. 이름은 그 에이전트의 `.env`에 설정하세요:",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so a second folder of the same name would replace the first agent's containers. Keep the names out of `docker-compose.yml`, which an upgrade replaces.":
+    "폴더마다 고유한 이름을 붙이세요. Docker Compose는 폴더 이름만으로 프로젝트 이름을 짓기 때문에, 같은 이름의 두 번째 폴더는 첫 번째 에이전트의 컨테이너를 대체합니다. 이름은 `docker-compose.yml`에 넣지 마세요. 업그레이드가 이 파일을 대체합니다.",
 };
 
 export default TRANSLATION;

@@ -607,7 +607,10 @@ tests:
       probes.one.allowPrivateNetworkMonitors: "yes"
     asserts:
       - failedTemplate:
-          errorPattern: "probes.one.allowPrivateNetworkMonitors: Invalid type. Expected: boolean, given: string"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/probes/one/allowPrivateNetworkMonitors': got string, want boolean
 
   # A quoted "true" would happen to work at the probe, but the schema has always
   # asked for a boolean; keep one spelling so NOTES.txt and the probe agree.
@@ -618,7 +621,10 @@ tests:
       probes.one.allowPrivateNetworkMonitors: "true"
     asserts:
       - failedTemplate:
-          errorPattern: "probes.one.allowPrivateNetworkMonitors: Invalid type. Expected: boolean, given: string"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/probes/one/allowPrivateNetworkMonitors': got string, want boolean
 
   - it: rejects a number such as 1
     templates:
@@ -627,7 +633,10 @@ tests:
       probes.one.allowPrivateNetworkMonitors: 1
     asserts:
       - failedTemplate:
-          errorPattern: "probes.one.allowPrivateNetworkMonitors: Invalid type. Expected: boolean, given: integer"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/probes/one/allowPrivateNetworkMonitors': got number, want boolean
 
   # The schema's patternProperties covers operator-added probes too.
   - it: rejects a non-boolean value on an operator-added probe
@@ -639,7 +648,10 @@ tests:
       probes.two.allowPrivateNetworkMonitors: "yes"
     asserts:
       - failedTemplate:
-          errorPattern: "probes.two.allowPrivateNetworkMonitors: Invalid type. Expected: boolean, given: string"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/probes/two/allowPrivateNetworkMonitors': got string, want boolean
 
   # NOTES.txt lists the probes the opt-in applies to (see
   # probe-private-network-monitors_test.yaml). The notice and the pod spec have

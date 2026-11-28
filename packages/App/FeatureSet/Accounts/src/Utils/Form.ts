@@ -29,10 +29,12 @@ import {
   PublicFormField,
   PublicFormFieldOption,
   PublicFormFieldType,
+  PublicFormSubmissionFollowUp,
   PublicFormSubmissionRequest,
   PublicFormSubmissionResult,
   PublicFormTemplate,
 } from "Common/Types/Form/FormPublic";
+import { readFormFollowUpCredential } from "Common/Types/Form/FormFollowUp";
 import {
   defineOwnValue,
   FORM_MAX_TEMPLATES,
@@ -453,6 +455,10 @@ export const readPublicForm: ReadPublicFormFunction = (
     form.favicon = favicon;
   }
 
+  if (data["isFollowUpOn"] === true) {
+    form.isFollowUpOn = true;
+  }
+
   return form;
 };
 
@@ -485,7 +491,58 @@ export const readFormSubmissionResult: ReadFormSubmissionResultFunction = (
     result.successMessage = data["successMessage"];
   }
 
+  const followUp: PublicFormSubmissionFollowUp | undefined =
+    readSubmissionFollowUp(data["followUp"]);
+
+  if (followUp) {
+    result.followUp = followUp;
+  }
+
   return result;
+};
+
+// A follow-up's value as text, or empty.
+const readFollowUpText: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  return typeof value === "string" ? value : "";
+};
+
+export type ReadSubmissionFollowUpFunction = (
+  value: unknown,
+) => PublicFormSubmissionFollowUp | undefined;
+
+/*
+ * Where a submission's thank-you screen opens its request, as the submit
+ * route said: a credential of the link's shape, or a submission's id - or
+ * nothing at all.
+ */
+export const readSubmissionFollowUp: ReadSubmissionFollowUpFunction = (
+  value: unknown,
+): PublicFormSubmissionFollowUp | undefined => {
+  if (!isPlainObject(value)) {
+    return undefined;
+  }
+
+  const followUp: PublicFormSubmissionFollowUp = {};
+
+  const credential: string = readFollowUpText(value["credential"]);
+  const submissionId: string = readFollowUpText(value["submissionId"]);
+  const emailedTo: string = readFollowUpText(value["emailedTo"]).trim();
+
+  if (credential && readFormFollowUpCredential(credential)) {
+    followUp.credential = credential;
+  } else if (submissionId && ObjectID.isValidUUID(submissionId)) {
+    followUp.submissionId = submissionId;
+  } else {
+    return undefined;
+  }
+
+  if (emailedTo) {
+    followUp.emailedTo = emailedTo;
+  }
+
+  return followUp;
 };
 
 type ReadFormAtFunction = (url: URL) => Promise<PublicForm>;

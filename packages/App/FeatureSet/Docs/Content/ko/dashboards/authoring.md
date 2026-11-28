@@ -43,6 +43,8 @@
 
 **추천**에는 Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard, Metrics Dashboard가 있습니다. 템플릿은 출발점일 뿐 연결이 아닙니다. 대시보드를 만든 뒤에는 원하는 대로 바꾸세요. 나중에 템플릿이 대시보드를 업데이트하는 일은 없습니다.
 
+각 인프라 템플릿은 변수의 [리소스 유형](/docs/dashboards/variables#telemetry-attribute)을 통해 자기 종류의 리소스만 보여 줍니다. swarm이 없는 프로젝트의 Docker Swarm Dashboard는 다른 모든 것의 컨테이너와 로그를 보여 주는 대신 비어 있으며, 비어 있다고 알려 줍니다.
+
 ## 편집과 저장
 
 대시보드는 읽기용 보기 모드로 열립니다. 바꾸려면 툴바의 **⋯** 메뉴를 열고 **대시보드 편집**을 고릅니다. 툴바의 이름 옆에 **편집 중**이 표시되고, 시간 범위와 다른 컨트롤이 **위젯 추가**, **변수**, **취소**, **변경 사항 저장**으로 바뀝니다. 그 아래에는 대시보드의 **기본 기간**과 **기본 자동 새로고침**을 정하는 줄이 나타납니다.

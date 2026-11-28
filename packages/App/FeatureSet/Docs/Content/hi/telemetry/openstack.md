@@ -292,6 +292,12 @@ ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
 COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
+OPENSTACK_AGENT_CONTAINER_NAME=oneuptime-openstack-agent
+OPENSTACK_EXPORTER_CONTAINER_NAME=oneuptime-openstack-exporter
+OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME=oneuptime-openstack-quota-exporter
+OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-database-exporter
+OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-worker-state-exporter
+OPENSTACK_AI_AGENT_CONTAINER_NAME=oneuptime-openstack-ai-agent
 ```
 
 `OPENSTACK_EXPORTER_CLOUDS` हर क्षेत्र को वर्गाकार कोष्ठकों में सूचीबद्ध करता है, और `COMPOSE_PROFILES` साथ आने वाला एक्सपोर्टर और [AI एजेंट](#ai-एजेंट) शुरू करता है। दोनों फ़ाइलों में गोपनीय जानकारी है। एक्सपोर्टर uid 65532 के रूप में चलता है, और `clouds.yaml` पढ़ सकने वाला वही एकमात्र खाता होना चाहिए। एजेंट शुरू करें:
@@ -380,6 +386,12 @@ Docker के बिना, `systemctl status oneuptime-openstack-agent oneuptim
 | `OPENSTACK_AGENT_SERVICES` | नहीं | यह एजेंट कौन-सी सेवाएँ पढ़ता है, [एजेंटों के बीच क्लाउड साझा करने](/docs/telemetry/openstack-very-large-clouds#कलेक्टरों-के-बीच-क्लाउड-बाँटना) के लिए, जैसे `compute\|placement`। डिफ़ॉल्ट सभी हैं। |
 | `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | नहीं | कलेक्टर मेमोरी में कितना रख सकता है। बहुत बड़े क्लाउड के स्क्रेप को `512` के डिफ़ॉल्ट से ज़्यादा चाहिए। |
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | नहीं | `openstack_database_exporter`, [डेटाबेस पथ](/docs/telemetry/openstack-very-large-clouds#डेटाबेस-का-रास्ता) के लिए: `[openstack-database-exporter:9180]`। डिफ़ॉल्ट कोई नहीं। उस पथ की बाकी सेटिंग वहीं सूचीबद्ध हैं। |
+| `OPENSTACK_AGENT_CONTAINER_NAME` | नहीं | कलेक्टर के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-openstack-agent` है। उसी मशीन पर दूसरे क्लाउड के एजेंट को अपने अलग नाम चाहिए: देखें [कई क्लाउड की निगरानी](#कई-क्लाउड-की-निगरानी)। अगर आप इन्हें सेट नहीं करते, तो इंस्टॉल स्क्रिप्ट नए एजेंट के कंटेनरों के नाम उसके फ़ोल्डर पर रखती है, और स्क्रिप्ट फिर से चलाने पर उन्हें बनाए रखती है। |
+| `OPENSTACK_EXPORTER_CONTAINER_NAME` | नहीं | साथ वाले एक्सपोर्टर के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-openstack-exporter` है, और दूसरे एजेंट के लिए उसके कलेक्टर के नाम के बगल वाला नाम, जैसे `oneuptime-openstack-exporter-cloud2`। |
+| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | नहीं | कोटा एक्सपोर्टर के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-openstack-quota-exporter` है, और दूसरे एजेंट के लिए उसके कलेक्टर के नाम के बगल वाला नाम, जैसे `oneuptime-openstack-quota-exporter-cloud2`। |
+| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | नहीं | डेटाबेस एक्सपोर्टर के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-openstack-database-exporter` है, और दूसरे एजेंट के लिए उसके कलेक्टर के नाम के बगल वाला नाम, जैसे `oneuptime-openstack-database-exporter-cloud2`। |
+| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | नहीं | वर्कर स्थिति एक्सपोर्टर के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-openstack-worker-state-exporter` है, और दूसरे एजेंट के लिए उसके कलेक्टर के नाम के बगल वाला नाम, जैसे `oneuptime-openstack-worker-state-exporter-cloud2`। |
+| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | नहीं | AI एजेंट के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-openstack-ai-agent` है, और दूसरे एजेंट के लिए उसके कलेक्टर के नाम के बगल वाला नाम, जैसे `oneuptime-openstack-ai-agent-cloud2`। |
 
 इंस्टॉल स्क्रिप्ट अपने सवाल छोड़ने के लिए क्रेडेंशियल एनवायरनमेंट से भी पढ़ती है: `OPENSTACK_APPLICATION_CREDENTIAL_ID` और `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, या `OPENSTACK_USERNAME`, `OPENSTACK_PASSWORD`, `OPENSTACK_PROJECT_NAME`, `OPENSTACK_USER_DOMAIN_NAME` और `OPENSTACK_PROJECT_DOMAIN_NAME`। इनके अपने नाम हैं, उन `OS_*` वाले नहीं जो openrc फ़ाइल सेट करती है, ताकि किसी admin की source की हुई openrc बिना किसी से पूछे कभी एजेंट का क्रेडेंशियल न बन जाए। यूज़रनेम और पासवर्ड से बेहतर एप्लिकेशन क्रेडेंशियल है: उसे केवल पढ़ने तक सीमित किया जा सकता है और वह एक्सपायर हो सकता है।
 
@@ -1025,6 +1037,7 @@ sudo bash install-logs.sh
 | `OPENSTACK_LOGS_DIRECTORY` | Kolla-Ansible के लॉग कहाँ हैं, अगर उसके सामान्य Docker वॉल्यूम में नहीं |
 | `OPENSTACK_LOGS_TIMEZONE` | वह ज़ोन जिसमें oslo.log अपने समय लिखता है। डिफ़ॉल्ट `UTC` है |
 | `OPENSTACK_LOGS_UNITS` | पढ़ने के लिए जर्नल की यूनिट, वर्गाकार कोष्ठकों में। डिफ़ॉल्ट हर OpenStack सेवा की हैं |
+| `OPENSTACK_LOGS_CONTAINER_NAME` | Docker के साथ कलेक्टर के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-openstack-logs` है। स्क्रिप्ट फिर चलाने पर यह बना रहता है |
 
 फ़ाइल प्रोफ़ाइल OpenStack की सेवाओं को नाम से पढ़ती है, इसलिए उसी फ़ोल्डर में RabbitMQ, MariaDB, HAProxy और libvirt अकेले छोड़ दिए जाते हैं। बाद में रीस्टार्ट हुआ कलेक्टर उस पंक्ति से आगे चलता है जहाँ वह पहुँचा था।
 
@@ -1645,6 +1658,20 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 वर्कफ़्लो OpenStack अलर्ट से शुरू होकर फ़िक्स प्रस्तावित कर सकता है: **OpenStack सुधार प्रस्तावित करें** चरण अलर्ट या घटना और कमांड लेता है। यह वही पॉलिसी, वही लिखने का दायरा और बदलाव जो छूता है उसकी वही रीड से गुज़रता है जो OneUptime AI के प्रस्तावित फ़िक्स से, इसे किसी AI मॉडल की ज़रूरत नहीं, और व्यक्ति इसे अलर्ट पर मंज़ूर करता है। वर्कफ़्लो खुद बदलाव नहीं कर सकता या जो वह प्रस्तावित करे उसे मंज़ूर नहीं कर सकता, क्लाउड का फ़िक्स मोड कुछ भी हो। **Propose taking a failing OpenStack compute service out of scheduling** टेम्पलेट शुरू करने की जगह है।
 
+## कई क्लाउड की निगरानी
+
+एक एजेंट एक क्लाउड पढ़ता है। एक ही मशीन से कई क्लाउड की निगरानी के लिए, हर एजेंट को उसकी अपनी `.env` और उसके अपने कंटेनर नामों के साथ उसके अपने फ़ोल्डर में इंस्टॉल करें, क्योंकि दो कंटेनर एक नाम साझा नहीं कर सकते:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-openstack-agent-cloud2 bash install.sh
+```
+
+स्क्रिप्ट एजेंट के कंटेनरों के नाम फ़ोल्डर पर रखती है: `oneuptime-openstack-agent-cloud2`, `oneuptime-openstack-exporter-cloud2`, `oneuptime-openstack-quota-exporter-cloud2`, `oneuptime-openstack-database-exporter-cloud2`, `oneuptime-openstack-worker-state-exporter-cloud2` और `oneuptime-openstack-ai-agent-cloud2`। इन्हें ख़ुद चुनने के लिए, स्क्रिप्ट चलाते समय `OPENSTACK_AGENT_CONTAINER_NAME` और ऊपर की तालिका के बाकी वेरिएबल सेट करें। स्क्रिप्ट ये नाम उस एजेंट की `.env` में सहेज लेती है, इसलिए एजेंट अपग्रेड करने के लिए स्क्रिप्ट फिर से चलाने पर भी नाम बने रहते हैं, और जिस एजेंट का `container_name` आपने कभी `docker-compose.yml` में बदला था, वह वही नाम रखता है। हर फ़ोल्डर को अपना अलग नाम दें: Docker Compose किसी प्रोजेक्ट का नाम सिर्फ़ उसके फ़ोल्डर पर रखता है, इसलिए स्क्रिप्ट ऐसे फ़ोल्डर को अस्वीकार करती है जिसका नाम उस फ़ोल्डर जैसा हो जो पहले से कहीं और एजेंट चला रहा है। Docker Compose के साथ, इसके बजाय नाम हर एजेंट की `.env` में सेट करें।
+
+ये नाम Docker के साथ लागू होते हैं: Docker के बिना इंस्टॉल कोई कंटेनर नहीं चलाता। लॉग और ट्रेस के कलेक्टर भी इसी तरह `.env` से अपने नाम पढ़ते हैं: `OPENSTACK_LOGS_CONTAINER_NAME` और `OPENSTACK_TRACES_CONTAINER_NAME`।
+
+systemd यूनिट मानती है कि एजेंट `/opt/oneuptime-openstack-agent` में है: किसी दूसरे फ़ोल्डर के लिए उसे किसी दूसरे नाम से सहेजें, जैसे `oneuptime-openstack-agent-cloud2.service`, और उसकी `WorkingDirectory` बदलें। फ़ोल्डर को डायग्नोस्टिक स्क्रिप्ट को `-d` से दें।
+
 ## systemd सेवा के रूप में चलाएँ
 
 एजेंट को मशीन के साथ शुरू करने और विफल होने पर रीस्टार्ट करने के लिए, उसकी systemd यूनिट इंस्टॉल करें। यह मानती है कि एजेंट `/opt/oneuptime-openstack-agent` में है, जहाँ इंस्टॉल स्क्रिप्ट उसे रखती है। Docker के बिना इंस्टॉल पहले से systemd सेवा है।
@@ -1659,7 +1686,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 एजेंट अपनी फ़ाइलों का संस्करण अपने **एजेंट संस्करण** के रूप में रिपोर्ट करता है: वे जो कलेक्टर संस्करण पिन करती हैं, और उस कलेक्टर पर हर बार फ़ाइलें बदलने पर आख़िरी संख्या बढ़ा दी जाती है। जब यह उस संस्करण से पुराना होता है जिसे यह OneUptime रिलीज़ पिन करता है, तो उसके बगल में चेतावनी का चिह्न दिखता है। ये कमांड देखने के लिए उसे चुनें।
 
-कलेक्टर इमेज `docker-compose.yml` में पिन है और उसका कॉन्फ़िग उसके बगल की फ़ाइल है, इसलिए केवल pull करने से एजेंट आगे नहीं बढ़ता। `install.sh` फिर चलाएँ, अगर आपने Docker के बिना इंस्टॉल किया तो `sudo` के साथ: यह आपके मौजूदा `.env` का हर मान और `clouds.yaml` का क्रेडेंशियल दोबारा इस्तेमाल करता है (कुछ फिर नहीं पूछा जाता), क्रेडेंशियल को Keystone से जाँचता है, एजेंट की फ़ाइलें ताज़ा करता है (जो फ़ाइल आपने संपादित की वह `<file>.bak.<timestamp>` के रूप में रहती है), इमेज pull करता है और एजेंट को फिर बनाता है ताकि कलेक्टर अपना नया कॉन्फ़िग पढ़े।
+कलेक्टर इमेज `docker-compose.yml` में पिन है और उसका कॉन्फ़िग उसके बगल की फ़ाइल है, इसलिए केवल pull करने से एजेंट आगे नहीं बढ़ता। `install.sh` फिर चलाएँ, अगर आपने Docker के बिना इंस्टॉल किया तो `sudo` के साथ: यह आपके मौजूदा `.env` का हर मान और `clouds.yaml` का क्रेडेंशियल दोबारा इस्तेमाल करता है (कुछ फिर नहीं पूछा जाता), क्रेडेंशियल को Keystone से जाँचता है, एजेंट की फ़ाइलें ताज़ा करता है (जो फ़ाइल आपने संपादित की वह `<file>.bak.<timestamp>` के रूप में रहती है), इमेज pull करता है और एजेंट को फिर बनाता है ताकि कलेक्टर अपना नया कॉन्फ़िग पढ़े। `/opt/oneuptime-openstack-agent` के बाहर इंस्टॉल किए गए एजेंट को उसका फ़ोल्डर चाहिए, `INSTALL_DIR=<folder> bash install.sh`, और वह अपने कंटेनर नाम बनाए रखता है।
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh

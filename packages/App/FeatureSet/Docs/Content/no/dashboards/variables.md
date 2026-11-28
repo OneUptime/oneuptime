@@ -61,6 +61,10 @@ Angi **Attributtnøkkel**, for eksempel `service.name`, `host.name` eller `k8s.n
 
 Dette er den vanligste kilden, fordi den ikke trenger en egen liste: verdiene er de du allerede sender.
 
+En Telemetry Attribute-variabel kan også ha en **Ressurstype**: **Kubernetes-klynger**, **Verter**, **Docker Swarm-klynger**, **Proxmox-klynger**, **OpenStack-skyer**, **VMware-vCentere**, **XCP-ng-pooler**, **Ceph-klynger** eller **Lagringsarrayer**. Med en type viser hver widget bare data av den typen, allerede før en verdi er valgt: **Alle** heter **Alle verter**, **Alle klynger** og så videre og viser alle, og når du velger verdier, snevres det inn til dem. Velgeren tilbyr bare navnene av den typen, så en variabel av typen **Verter** tilbyr vertene dine, aldri en Docker-vert eller en pod. Så lenge ingenting av typen rapporterer til OneUptime ennå, sier dashbordet det over widgetene sine, med en knapp for å sette opp en, for eksempel **Sett opp Kubernetes**.
+
+Infrastrukturmalene gir variabelen sin en type, og dashbord som ble laget fra dem før typene fantes, fikk sin ved oppgraderingen. For å lese hele prosjektet igjen setter du variabelens **Ressurstype** til **Hvilken som helst ressurstype**.
+
 ### Project Labels
 
 Velg eksisterende prosjektetiketter som skal tilbys som en nedtrekksliste på dashbordet. Opprett for eksempel en variabel med navnet `UNIT`, sett kilden til **Prosjektetiketter**, og velg etikettene `0660` og `0661`.
@@ -83,7 +87,7 @@ En Query-variabel fra et eldre dashbord beholdes og viser et tekstfelt i verktø
 
 Med **Tillat flervalg** avhuket velger seerne én eller flere verdier, og widgetene viser hvilken som helst av dem. Et tomt utvalg betyr **Alle**, og en flervalgsvariabel starter alltid på **Alle**, så **Standard** er nedtonet.
 
-En enkeltvalgsvariabel starter på sin **Standard**, eller på **Alle** når den ikke har noen. **Alle** fjerner variabelens filter, så widgetene viser alt.
+En enkeltvalgsvariabel starter på sin **Standard**, eller på **Alle** når den ikke har noen. **Alle** fjerner variabelens filter, så widgetene viser alt. På en variabel med en **Ressurstype** viser de alt av den typen.
 
 Bruk flervalg til å sammenligne "checkout og payments sammen" uten å forlate dashbordet. Unngå det der tallene ikke kan legges sammen på tvers av verdier, for eksempel et gjennomsnitt av gjennomsnitt.
 

@@ -2225,8 +2225,9 @@ compliance:
     # its nodes, so list a group per set of nodes configured alike (an EKS
     # node group, a GKE or AKS node pool). The default runs one pod on any
     # worker node. Each group: a name (lowercase letters, digits and hyphens,
-    # at most 20), and the nodeSelector, affinity and tolerations that put it
-    # on that group's nodes, e.g.
+    # at most 20, and not control-plane, the run on a control plane node's),
+    # and the nodeSelector, affinity and tolerations that put it on that
+    # group's nodes, e.g.
     #   - name: gpu
     #     nodeSelector:
     #       eks.amazonaws.com/nodegroup: gpu

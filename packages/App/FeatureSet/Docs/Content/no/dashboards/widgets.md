@@ -191,7 +191,7 @@ Hver av disse widgetene viser ressursene som en agent eller en collector rapport
 
 | Gruppe | Widgets | Fylles av |
 | --- | --- | --- |
-| **Verter** | **Verter**, med tilkoblingsstatus, OS, CPU og minne | Enhver OpenTelemetry-collector som sender `host.name` |
+| **Verter** | **Verter**, med tilkoblingsstatus, OS, CPU og minne | Innsamleren på hver vert: se [Hva som teller som en vert](/docs/telemetry/hosts#hva-som-teller-som-en-vert) |
 | **Kubernetes** | **Pods**, **Noder**, **Navnerom**, **Distribusjoner**, **StatefulSets**, **DaemonSets**, **Jobber**, **CronJobs** | [Kubernetes-agent](/docs/monitor/kubernetes-agent) |
 | **Docker** | **Verter**, **Containere**, **Bilder**, **Nettverk**, **Volumer** | Docker-agenten |
 | **Docker Swarm** | **Noder**, **Tjenester** | Docker Swarm-agenten |

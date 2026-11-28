@@ -42,11 +42,13 @@ const HealthProbes: FunctionComponent = (): ReactElement => {
         showRefreshButton={true}
         selectMoreFields={{
           lastAlive: true,
-          // Whether it is behind (GlobalProbeStatus).
+          // Whether it is behind, and how far (GlobalProbeStatus).
           checksLateSince: true,
           checksLastLateAt: true,
+          checksLastLateDueAt: true,
           devicePollsLateSince: true,
           devicePollsLastLateAt: true,
+          devicePollsLastLateDueAt: true,
         }}
         filters={[
           {
@@ -76,7 +78,7 @@ const HealthProbes: FunctionComponent = (): ReactElement => {
             },
             title: "Status",
             type: FieldType.Text,
-            // Connected, Behind - its monitors checked late (#9488) - or Disconnected.
+            // Connected, Behind by how far - its monitors checked late (#9488) - or Disconnected.
             getElement: (item: Probe): ReactElement => {
               return <GlobalProbeStatusElement probe={item} />;
             },

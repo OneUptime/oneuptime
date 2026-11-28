@@ -440,12 +440,16 @@ export async function settleIngestionBudgetCharge(data: {
  * Inside the scope, every fan-in submission captures a deterministic
  * "<jobId>:<table>:<chunk>" token and TelemetryFanInWriter inserts each
  * tokened submission INDIVIDUALLY — one ClickHouse statement per submission.
- * That preserves per-job retry idempotence (a retry re-issues byte-identical
- * statements that content-hash dedup drops), but it also pins the statement
- * rate to the job arrival rate: cross-job batching never merges
- * differently-tokened rows, so at high trace/log/metric volume ClickHouse
- * saturates on per-statement overhead (gunzip + parse + async-insert
- * bookkeeping per statement) while the merged-insert machinery sits unused.
+ * That was meant to preserve per-job retry idempotence (a retry re-issues
+ * the same tokens, for ClickHouse to drop what a prior attempt already
+ * landed - which through a Distributed table it did only for a token that
+ * led its flush, see below, so the tokens no longer reach ClickHouse,
+ * #11536), and it pins the statement rate to the job arrival rate: a token
+ * belongs to the whole INSERT, so cross-job batching
+ * can never merge differently-tokened rows, and at high trace/log/metric
+ * volume ClickHouse saturates on per-statement overhead (gunzip + parse +
+ * async-insert bookkeeping per statement) while the merged-insert machinery
+ * sits unused.
  *
  * So the high-volume signals — the reason the fan-in writer exists — run
  * OUTSIDE the scope: their submissions are untokened, and the writer merges
@@ -455,17 +459,32 @@ export async function settleIngestionBudgetCharge(data: {
  *
  * The accepted trade: a job that fails AFTER one of its merged inserts was
  * accepted (multi-table job failing on a later table, stalled-job recovery
- * after acks) re-processes into a differently-composed batch that content
- * hashing cannot dedup, so those rows can land twice. Per-job tokens were
- * never honored for async inserts anyway (ClickHouse #52018 — see the
- * comment in Common/Server/Services/AnalyticsDatabaseService.ts); what
- * actually deduped retries was content hashing of solo-statement bodies,
- * which is precisely the one-statement-per-job pattern that saturates
- * ClickHouse.
+ * after acks) re-processes into a differently-composed batch under the next
+ * batch's token, so those rows can land twice.
  *
- * Profiles / syslog / fluent-logs / Kubernetes-cost stay tokened: their
- * statement rate is negligible, so their retry idempotence costs nothing
- * to keep.
+ * Re-checked on ClickHouse 26.7 for #11441 (App's
+ * InsertDedupTokensAsyncClickhouse holds it), per-job tokens must not come
+ * back, for two reasons:
+ *
+ *   - they would not dedup: ClickHouse leaves the token out of the key async
+ *     inserts are buffered by, so jobs under tokens of their own share a
+ *     flush and a part, and through the Distributed table OneUptime inserts
+ *     into, a flush is deduplicated under its first entry's token alone. A
+ *     retried job lands again unless its token led the flush, and a flush
+ *     led by a retry of a stored token is dropped whole, other jobs' rows
+ *     with it (#11536);
+ *   - they would cost a statement each: 50,000 rows as 400 tokened INSERTs
+ *     of 125 rows took ClickHouse 11 to 17 times the CPU of one merged
+ *     INSERT (3.1 to 4.5 s against 0.27 s), and the writer 7 to 13 times as
+ *     long, in four slots or one - the one-statement-per-job pattern that
+ *     saturated ClickHouse.
+ *
+ * Profiles / syslog / fluent-logs / Kubernetes-cost still run in the scope,
+ * so the fan-in writer still inserts each of their submissions on its own -
+ * but no longer under its token: every fan-in insert is async, and an
+ * async insert is sent without one (#11536), the hazard above. Their
+ * retries may land twice, as every signal's may; merging their submissions
+ * as well would spare the statements (#11545).
  *
  * The probe / server-monitor / incoming-request types (a request of its
  * own, and a monitor's waiting requests) are excluded

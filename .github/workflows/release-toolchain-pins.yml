@@ -1,0 +1,63 @@
+name: Release Toolchain Pins
+
+# Are the release toolchain's pins at their newest releases?
+#
+# Every release build of the Terraform provider and the infrastructure agent
+# installs Go, GoReleaser and syft at the exact versions in
+# .github/actions/setup-release-toolchain/versions.env, so a version built
+# again from its tag is the same bytes (#11464). A security fix in any of them
+# reaches those builds only once someone moves the pin, and no update bot
+# reads it: the repository runs neither Renovate nor Dependabot.
+#
+# Every week, and by hand, Scripts/Release/ReleaseToolchain.js reads Go's
+# releases from go.dev and GoReleaser's and syft's from GitHub, and keeps the
+# one issue "Release toolchain: a pinned Go, GoReleaser or syft is behind": it
+# opens it when a pin is behind, rewrites it while one is, and closes it once
+# none is. It fails only when the releases cannot be read.
+#
+# No pull request runs this: it writes issues. The checker's logic has its
+# tests (Tests/Ops/ReleaseToolchain.test.js), which the Ops Config Test
+# workflow runs on every pull request.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  schedule:
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-pins:
+    name: Every pin against its newest release
+    # A fork that runs schedules keeps no issue of OneUptime's.
+    if: ${{ github.repository == 'OneUptime/oneuptime' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/actions/setup-release-toolchain
+            Scripts/Release
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      # Plain Node.js: nothing to install. Only main's run keeps the issue;
+      # one dispatched on a branch says what is behind in its log, and writes
+      # nothing.
+      - name: Check the pins, and keep the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          KEEP_ISSUE: ${{ github.ref == 'refs/heads/main' && '--keep-issue' || '' }}
+        run: node Scripts/Release/ReleaseToolchain.js check ${KEEP_ISSUE}

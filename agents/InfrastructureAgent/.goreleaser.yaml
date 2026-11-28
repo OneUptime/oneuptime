@@ -8,6 +8,26 @@
 
 version: 2
 
+# A second build of the same commit is the same bytes (#11466): every archive,
+# package, SBOM and the checksums file. The apt and yum repositories, the
+# Homebrew cask and the winget manifest each record the SHA-256 of what they
+# point to, so a release whose files were built again would fail every
+# install from them, as the Terraform provider's rebuilt zips failed
+# `terraform init` for 14.3.0 to 17.2.0 (#11016). What a build would
+# otherwise take from the machine and the moment, and what fixes it here:
+#   - the time it ran: each binary is stamped with the commit's time
+#     (builds' mod_timestamp), and so is each file in an archive or package
+#     (archives' builds_info and files, nfpms' mtime), and each SBOM (sbom.sh);
+#   - where the commit was checked out: -trimpath;
+#   - who built it, and their umask: each archived file is root's, with a
+#     fixed mode;
+#   - the repository's name, which GoReleaser names the checksums file and
+#     the build directories after (build-msi.sh reads them): project_name.
+# The toolchain is pinned in .github/actions/setup-release-toolchain, which
+# every release build installs. Tests/Ops/InfrastructureAgentReproducibleBuild
+# .test.js builds the agent twice, and holds every file to the same bytes.
+project_name: oneuptime
+
 before:
   hooks:
     - go mod tidy
@@ -82,11 +102,29 @@ nfpms:
       - bash
       - coreutils
       - systemd
-  
+
+    # The package's own time (an .rpm's build time, an Arch package's
+    # builddate) and its directories' times: the commit's, not the build's.
+    # The binary in it carries the commit's time too (builds' mod_timestamp).
+    mtime: "{{ .CommitDate }}"
+
 
 builds:
   - binary: oneuptime-infrastructure-agent
     main: ./
+    # The binary's time on disk, which every archive and package copies: the
+    # commit's, not when it was built.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    # No path of the machine that built it in the binary: two checkouts in
+    # two places build the same bytes.
+    flags:
+      - -trimpath
+    # GoReleaser's own ldflags, with the commit's date for the build's. The
+    # agent has none of these variables, but the linker hashes every flag it
+    # is given into the binary's build ID, so the build's time alone made
+    # every binary another, and every archive and package with it.
+    ldflags:
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .CommitDate }} -X main.builtBy=goreleaser
     goos:
       - linux
       - windows
@@ -106,6 +144,30 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+    # The binary in the archive: root's, 0755, with the commit's time.
+    # Without these a tar.gz names the user who built it, and the time.
+    builds_info:
+      owner: root
+      group: root
+      mode: 0755
+      mtime: "{{ .CommitDate }}"
+    # Beside the binary, these two and nothing else, each as the binary is:
+    # without `files`, GoReleaser adds every README*, LICENSE* and
+    # CHANGELOG* it finds, stamped with when they were checked out, and with
+    # the mode the builder's umask gave them.
+    files:
+      - src: LICENSE
+        info:
+          owner: root
+          group: root
+          mode: 0644
+          mtime: "{{ .CommitDate }}"
+      - src: README.md
+        info:
+          owner: root
+          group: root
+          mode: 0644
+          mtime: "{{ .CommitDate }}"
 # CycloneDX SBOMs for everything published to the GitHub release.
 #
 # These artifacts are installed as root on customer hosts, and a stripped Go
@@ -138,19 +200,32 @@ archives:
 # explicitly here because the upstream docs page states the default is true
 # while the code says otherwise — being explicit costs nothing and survives
 # whichever one turns out to be authoritative later.
+#
+# syft runs through sbom.sh, beside this file (GoReleaser runs the command in
+# dist/, so ../sbom.sh): syft writes a random serial number and the time it
+# ran into each SBOM, and sbom.sh makes them the same for the same file, with
+# the commit's time (#11466). syft's version is pinned with the rest of the
+# toolchain (.github/actions/setup-release-toolchain), as a newer syft writes
+# another document.
 sboms:
   - id: archives
     artifacts: archive
     disable: false
+    cmd: ../sbom.sh
+    env:
+      - SBOM_TIMESTAMP={{ .CommitDate }}
     documents:
       - "${artifact}.cdx.json"
-    args: ["$artifact", "--output", "cyclonedx-json=$document"]
+    args: ["$artifact", "$document"]
   - id: binaries
     artifacts: binary
     disable: false
+    cmd: ../sbom.sh
+    env:
+      - SBOM_TIMESTAMP={{ .CommitDate }}
     documents:
       - "{{ .Binary }}_{{ .Os }}_{{ .Arch }}.cdx.json"
-    args: ["$artifact", "--output", "cyclonedx-json=$document"]
+    args: ["$artifact", "$document"]
 
 # The Homebrew cask and the winget manifests, generated here and published by
 # release.yml.

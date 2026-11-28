@@ -1344,6 +1344,7 @@ describe("the command line", () => {
       to: BUILT_COMMIT,
       repository: "someone/fork",
       output: null,
+      toolchain: null,
       fallbackOnError: false,
     });
   });
@@ -1367,6 +1368,8 @@ describe("the command line", () => {
           "someone/fork",
           "--output",
           "notes.md",
+          "--toolchain",
+          "Go 1.27.4, GoReleaser v2.20.3 and syft v1.57.2",
           "--fallback-on-error",
         ],
         {},
@@ -1377,8 +1380,15 @@ describe("the command line", () => {
       to: "main",
       repository: "someone/fork",
       output: "notes.md",
+      toolchain: "Go 1.27.4, GoReleaser v2.20.3 and syft v1.57.2",
       fallbackOnError: true,
     });
+  });
+
+  // The release job passes an empty one when the pins cannot be read.
+  test("takes an empty --toolchain as none", () => {
+    expect(parseArguments(["--toolchain", "  "], {}).toolchain).toBeNull();
+    expect(parseArguments(["--toolchain", ""], {}).toolchain).toBeNull();
   });
 
   test.each([
@@ -1492,6 +1502,24 @@ describe("release.yml writes the notes of each release", () => {
 
   test("a release is not held back for its notes", () => {
     expect(steps[noteStep].run).toContain("--fallback-on-error");
+  });
+
+  /*
+   * The infrastructure agent's toolchain, as this commit pins it, which
+   * infrastructure-agent-build installs and checks (#11464). Pins that cannot
+   * be read leave it out, and the notes are written all the same.
+   */
+  test("the notes name the toolchain the infrastructure agent was built with", () => {
+    expect(steps[noteStep].run).toContain(
+      'TOOLCHAIN="$(node ./Scripts/Release/ReleaseToolchain.js describe --with-syft)" || TOOLCHAIN=""',
+    );
+    expect(steps[noteStep].run).toContain('--toolchain "$TOOLCHAIN"');
+    const build = release.jobs["infrastructure-agent-build"].steps.find(
+      (step) => {
+        return step.uses === "./.github/actions/setup-release-toolchain";
+      },
+    );
+    expect(build.with).toEqual({ syft: "true" });
   });
 
   test("the script comes from the commit the run built", () => {

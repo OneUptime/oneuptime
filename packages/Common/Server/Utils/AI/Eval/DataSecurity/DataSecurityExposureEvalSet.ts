@@ -81,6 +81,8 @@ export interface ExposureEvalExposure {
   secrets?: Array<ExposureSecret> | undefined;
   placesNamed?: Array<BreachPlace> | undefined;
   people?: Array<string> | undefined;
+  // What a person said on the card: whether the organization holds this data for another (#11427).
+  holdsForAnother?: boolean | undefined;
   now: string;
   expect: ExposureEvalExpectation;
 }
@@ -135,9 +137,35 @@ function issue(data: {
   };
 }
 
+/*
+ * Vermont's text from 1 January 2027 (#11425): its rows of the notices an
+ * exposure found in 2026 could owe, not in force yet that day. Its notice to
+ * the data's owner waits on a person saying the data is held for another
+ * (NOT_YET_FOR_HOLDERS).
+ */
+const VERMONT_FROM_2027: Array<BreachLawId> = [
+  BreachLawId.VermontResidentsFrom2027,
+  BreachLawId.VermontAttorneyGeneralFrom2027,
+  BreachLawId.VermontConsumerReportingAgenciesFrom2027,
+];
+
+// Vermont's rows of the text in force until then, which those replace.
+const VERMONT_UNTIL_2027: Array<BreachLawId> = [
+  BreachLawId.VermontResidents,
+  BreachLawId.VermontAttorneyGeneral,
+  BreachLawId.VermontConsumerReportingAgencies,
+];
+
 const NOT_YET: Array<BreachLawId> = [
   BreachLawId.DpdpPeople,
   BreachLawId.DpdpBoard,
+  ...VERMONT_FROM_2027,
+];
+
+// The same, where a person said the data is held for another (#11427): Vermont's notice to the owner from 2027 too.
+const NOT_YET_FOR_HOLDERS: Array<BreachLawId> = [
+  ...NOT_YET,
+  BreachLawId.VermontDataOwnerFrom2027,
 ];
 
 // The notices any personal data brings in, wherever its people may live.
@@ -208,22 +236,38 @@ const OTHER_GOVERNMENT_ID_STATES: Array<BreachLawId> = [
   BreachLawId.SouthDakotaResidents,
   BreachLawId.SouthDakotaAttorneyGeneral,
   BreachLawId.SouthDakotaConsumerReportingAgencies,
-  BreachLawId.VermontResidents,
-  BreachLawId.VermontAttorneyGeneral,
-  BreachLawId.VermontConsumerReportingAgencies,
+  ...VERMONT_UNTIL_2027,
   BreachLawId.VirginiaResidents,
   BreachLawId.VirginiaAttorneyGeneral,
   BreachLawId.VirginiaConsumerReportingAgencies,
+  // Puerto Rico's "otra Identificación Oficial" (#11424).
+  BreachLawId.PuertoRicoResidents,
+  BreachLawId.PuertoRicoConsumerAffairs,
+];
+
+// The same, for an exposure found once Vermont's text from 2027 is in force (#11425).
+const OTHER_GOVERNMENT_ID_STATES_FROM_2027: Array<BreachLawId> = [
+  ...OTHER_GOVERNMENT_ID_STATES.filter((id: BreachLawId): boolean => {
+    return !VERMONT_UNTIL_2027.includes(id);
+  }),
+  ...VERMONT_FROM_2027,
 ];
 
 /*
  * Every US state's notices: each state's law covers a Social Security
  * number held with a name (UsStateBreachLaws.test.ts holds each row to its
- * statute), so they all wait on which states the people live in.
+ * statute), so they all wait on which states the people live in - but for
+ * the rows not in force on the day an exposure of 2026 was found (Vermont's
+ * from 2027), and the notices to the data's owner, which wait on a person
+ * saying the data is held for another (#11427).
  */
 const EVERY_US_STATE_ROW: Array<BreachLawId> = BREACH_LAW_RULES.filter(
   (rule: BreachLawRule): boolean => {
-    return isUsStateRule(rule);
+    return (
+      isUsStateRule(rule) &&
+      !rule.forDataHolders &&
+      !VERMONT_FROM_2027.includes(rule.id)
+    );
   },
 ).map((rule: BreachLawRule): BreachLawId => {
   return rule.id;
@@ -341,12 +385,16 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
     now: "2026-11-18T09:00:00.000Z",
     expect: {
       isAssessedOnItsOwn: true,
+      /*
+       * Not HIPAA's notice from a business associate, nor Texas's to the
+       * data's owner: nobody said the clinic holds the records for another
+       * (#11427). us-patient-records-texas-for-a-clinic says so.
+       */
       mayApplyKnown: [
         BreachLawId.TexasAttorneyGeneral,
         BreachLawId.HipaaPeople,
         BreachLawId.HipaaMedia,
         BreachLawId.HipaaSecretaryLarge,
-        BreachLawId.HipaaBusinessAssociate,
         BreachLawId.TexasIndividuals,
         BreachLawId.HipaaSecretarySmall,
         BreachLawId.TexasConsumerReportingAgencies,
@@ -476,7 +524,8 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
         BreachLawId.UkGdprPeople,
         BreachLawId.LgpdAuthority,
         BreachLawId.LgpdPeople,
-        ...OTHER_GOVERNMENT_ID_STATES,
+        // Found in June 2027: Vermont's text from 1 January 2027 applies (#11425).
+        ...OTHER_GOVERNMENT_ID_STATES_FROM_2027,
       ],
       notYetInForce: [],
       mostUrgent: BreachLawId.CertIn,
@@ -932,6 +981,176 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
       isPlaceUnknown: false,
     },
   },
+  /*
+   * ---- An organization that holds the data for another (#11427) ----
+   *
+   * A person said so on the Was It a Breach? card: the notices the law asks
+   * a vendor or service provider to send the data's owner are added.
+   */
+  {
+    id: "us-patient-records-texas-for-a-clinic",
+    title:
+      "Patient records a claims processor holds for the clinics that own them, shared outside, about people in Texas",
+    store: store({
+      name: "claims-processing-archive",
+      region: "us-east-2",
+      sensitivity: DataSensitivity.Restricted,
+      exposure: DataStoreExposure.OtherAccounts,
+      dataTypeIds: [
+        "medical-record-number",
+        "health-plan-id",
+        "person-name",
+        "us-ssn",
+      ],
+      estimatedRecords: 12000,
+      subjectCountries: ["US"],
+      accessLogging: true,
+    }),
+    issues: [
+      issue({
+        id: "a1b2c3d4-0018-4000-8000-000000000018",
+        checkId: "shared-with-external-accounts",
+        title: "An account outside your company can read it",
+        foundAt: "2026-11-16T15:30:00.000Z",
+      }),
+    ],
+    grants: [
+      {
+        principal: "arn:aws:iam::999999999999:root",
+        isExternal: true,
+        lastUsedAt: "2026-11-17T08:00:00.000Z",
+      },
+    ],
+    placesNamed: [BreachPlace.Texas],
+    holdsForAnother: true,
+    now: "2026-11-18T09:00:00.000Z",
+    expect: {
+      isAssessedOnItsOwn: true,
+      mayApplyKnown: [
+        BreachLawId.TexasAttorneyGeneral,
+        BreachLawId.HipaaPeople,
+        BreachLawId.HipaaMedia,
+        BreachLawId.HipaaSecretaryLarge,
+        BreachLawId.TexasIndividuals,
+        BreachLawId.HipaaSecretarySmall,
+        BreachLawId.TexasConsumerReportingAgencies,
+        // A business associate tells the covered entity; Texas asks a holder to tell the owner.
+        BreachLawId.HipaaBusinessAssociate,
+        BreachLawId.TexasDataOwner,
+      ],
+      mayApplyIfPlace: [],
+      notYetInForce: NOT_YET_FOR_HOLDERS,
+      /*
+       * Texas asks for the owner's notice immediately after the breach is
+       * discovered: due before the attorney general's 30 days, at no moment
+       * of its own.
+       */
+      mostUrgent: BreachLawId.TexasDataOwner,
+      readsTreatedAsRead: false,
+      isPlaceUnknown: false,
+    },
+  },
+  {
+    id: "eu-and-uk-emails-for-a-client",
+    title:
+      "Emails and names a marketing agency holds for a client, public, about people in Germany and the UK",
+    store: store({
+      name: "client-campaign-lists",
+      region: "eu-central-1",
+      dataTypeIds: ["email-address", "person-name"],
+      estimatedRecords: 6500,
+      subjectCountries: ["DE", "GB"],
+      accessLogging: false,
+    }),
+    issues: [
+      issue({
+        id: "a1b2c3d4-0019-4000-8000-000000000019",
+        checkId: "public-read",
+        title: "Anyone on the internet can read it",
+        foundAt: "2026-11-23T14:00:00.000Z",
+      }),
+    ],
+    holdsForAnother: true,
+    now: "2026-11-24T09:00:00.000Z",
+    expect: {
+      isAssessedOnItsOwn: true,
+      // A processor tells its controller under GDPR and UK GDPR: without undue delay.
+      mayApplyKnown: [
+        BreachLawId.GdprAuthority,
+        BreachLawId.GdprPeople,
+        BreachLawId.GdprProcessor,
+        BreachLawId.UkGdprAuthority,
+        BreachLawId.UkGdprPeople,
+        BreachLawId.UkGdprProcessor,
+      ],
+      mayApplyIfPlace: [
+        BreachLawId.LgpdAuthority,
+        BreachLawId.LgpdPeople,
+        BreachLawId.CertIn,
+      ],
+      notYetInForce: NOT_YET_FOR_HOLDERS,
+      // The controller's 72 hours, GDPR's first in the table; the processor's notice has no length.
+      mostUrgent: BreachLawId.GdprAuthority,
+      mostUrgentDueAt: "2026-11-26T14:00:00.000Z",
+      readsTreatedAsRead: true,
+      isPlaceUnknown: false,
+    },
+  },
+  /*
+   * Puerto Rico, Guam and the US Virgin Islands have country codes of their
+   * own (#11424, #11426): the data's says where the people live, with no
+   * state named.
+   */
+  {
+    id: "territories-ssn-by-country-code",
+    title:
+      "Social Security numbers with names, about people in Puerto Rico, Guam and the US Virgin Islands, by the data's country codes",
+    store: store({
+      name: "territory-benefits-export",
+      region: "us-east-1",
+      sensitivity: DataSensitivity.Restricted,
+      dataTypeIds: ["us-ssn", "person-name"],
+      estimatedRecords: 900,
+      subjectCountries: ["PR", "GU", "VI"],
+      accessLogging: false,
+    }),
+    issues: [
+      issue({
+        id: "a1b2c3d4-0020-4000-8000-000000000020",
+        checkId: "public-read",
+        title: "Anyone on the internet can read it",
+        foundAt: "2026-11-24T16:00:00.000Z",
+      }),
+    ],
+    now: "2026-11-25T09:00:00.000Z",
+    expect: {
+      isAssessedOnItsOwn: true,
+      mayApplyKnown: [
+        BreachLawId.PuertoRicoResidents,
+        BreachLawId.PuertoRicoConsumerAffairs,
+        BreachLawId.GuamResidents,
+        BreachLawId.UsVirginIslandsResidents,
+      ],
+      // The rest of the world's and every state's, as wherever personal data's people may live.
+      mayApplyIfPlace: [
+        ...PERSONAL_DATA_IF_PLACE,
+        ...EVERY_US_STATE_ROW.filter((id: BreachLawId): boolean => {
+          return ![
+            BreachLawId.PuertoRicoResidents,
+            BreachLawId.PuertoRicoConsumerAffairs,
+            BreachLawId.GuamResidents,
+            BreachLawId.UsVirginIslandsResidents,
+          ].includes(id);
+        }),
+      ],
+      notYetInForce: NOT_YET,
+      // The Department of Consumer Affairs' ten days; the others have no length of time.
+      mostUrgent: BreachLawId.PuertoRicoConsumerAffairs,
+      mostUrgentDueAt: "2026-12-04T16:00:00.000Z",
+      readsTreatedAsRead: true,
+      isPlaceUnknown: false,
+    },
+  },
 ];
 
 // An exposure as the product's plain code works it out (ExposureAssessmentReader's view).
@@ -1006,6 +1225,7 @@ export function getExposureEvalView(
     }),
     secretsToRotate: exposure.secrets || [],
     hasMoreSecrets: false,
+    holdsForAnother: exposure.holdsForAnother,
     now,
   });
 }

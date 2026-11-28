@@ -43,6 +43,8 @@ Os modelos, pela categoria em que o seletor os lista:
 
 **Recomendados** reúne Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard e Metrics Dashboard. Um modelo é um ponto de partida, não um vínculo: depois de criado o painel, mude-o como quiser. O modelo não o atualiza mais depois.
 
+Cada modelo de infraestrutura mostra apenas os recursos do seu próprio tipo, pelo [Tipo de recurso](/docs/dashboards/variables#telemetry-attribute) da sua variável: um Docker Swarm Dashboard em um projeto sem swarm fica vazio, e diz isso, em vez de mostrar os contêineres e os logs de todo o resto.
+
 ## Editar e salvar
 
 Um painel abre no modo de leitura. Para alterá-lo, abra o menu **⋯** da barra de ferramentas dele e escolha **Editar painel**. A barra de ferramentas mostra **Editando** ao lado do nome e troca o intervalo de tempo e os outros controles por **Adicionar widget**, **Variáveis**, **Cancelar** e **Salvar alterações**, com uma linha abaixo para o **Período padrão** e a **Atualização automática padrão** do painel.

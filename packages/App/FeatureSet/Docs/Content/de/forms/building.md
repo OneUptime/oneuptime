@@ -256,6 +256,7 @@ Eine Einreichung, die eine Grenze überschreitet, eine erforderliche Antwort aus
 
 :::cards
 - [Was eine Einreichung erstellt](/docs/forms/on-submit): Wie die Antworten und die Einstellungen Beim Absenden zu einem Vorfall oder einem Wartungsereignis werden.
+- [Eine Einreichung nachverfolgen](/docs/forms/follow-ups): Wer sendet, verfolgt die eigene Anfrage, schreibt Ihrem Team und fügt andere hinzu.
 - [Teilen & Sicherheit](/docs/forms/sharing-and-security): Den Link teilen, ein Link für jede Vorlage und was sie schützt.
 - [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings): Benutzerdefinierte Vorfallfelder und Vorlagen.
 :::

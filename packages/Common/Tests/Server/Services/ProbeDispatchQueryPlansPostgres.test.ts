@@ -29,7 +29,9 @@ import { DataSource, QueryRunner } from "typeorm";
  * BUFFERS) on copies of the migrated tables, filled to that scale:
  *
  *   - the monitor claim reads its probe's due rows by the (probeId,
- *     isEnabled, nextPingAt) index in its order, locks what it claims and
+ *     isEnabled, nextPingAt, lastPingAt) index in its order - rows due at
+ *     the same moment by when each was last handed out, sorting nothing
+ *     (#11386) - locks what it claims and
  *     reads a few hundred pages for a batch, never a table - also while
  *     other claims hold the oldest rows, which its check for stepped-over
  *     rows reads by index lookups, not by a scan of Monitor. It hands back
@@ -87,6 +89,9 @@ interface PlanNode {
   "Node Type": string;
   "Relation Name"?: string;
   "Index Name"?: string;
+  // A CTE's plan: "CTE claimable".
+  "Subplan Name"?: string;
+  "Sort Key"?: Array<string>;
   "Actual Loops"?: number;
   "Actual Rows"?: number;
   "Shared Hit Blocks"?: number;
@@ -422,7 +427,7 @@ describePostgres(
 
       expectNoTableReadWhole(plan);
       expect(indexesOf(plan)).toContain(
-        "MonitorProbe:MonitorProbe_probeId_isEnabled_nextPingAt_idx",
+        "MonitorProbe:MonitorProbe_probeId_isEnabled_nextPingAt_lastPingAt_idx",
       );
       expect(
         nodesOf(plan.Plan).some((node: PlanNode): boolean => {
@@ -430,6 +435,76 @@ describePostgres(
         }),
       ).toBe(true);
       expect(buffersOf(plan)).toBeLessThan(CLAIM_BUFFER_BOUND);
+    });
+
+    /*
+     * #11386: of the rows due at the same moment, the claim hands out the one
+     * handed out longest ago first. Every one-minute monitor a probe claims
+     * is stamped with the same next minute, so on a running server most of
+     * a probe's rows are due at the same instant. The index holds them in
+     * the claim's order, so the read takes them as the index has them and
+     * stops at its batch: no Sort under the read, which would read and sort
+     * every row due at that minute - here 10,000 of a probe's - to hand out
+     * ten.
+     */
+    test("the monitor claim takes the rows due at the same moment in its index's order, longest ago handed out first, and sorts nothing to do so (#11386)", async () => {
+      const probeId: string = ObjectID.generate().toString();
+
+      // A fifth probe with 10,000 rows due at the same whole minute, each last handed out at its own moment.
+      await database.query(
+        `INSERT INTO "${schema}"."MonitorProbe"
+           ("_id", "projectId", "probeId", "monitorId", "isEnabled", "nextPingAt", "lastPingAt", "version")
+         SELECT gen_random_uuid(), m."projectId", $1, m."_id", true,
+           date_trunc('minute', now()) - INTERVAL '1 minute',
+           date_trunc('minute', now()) - INTERVAL '2 minutes' + random() * INTERVAL '50 seconds', 1
+         FROM (SELECT "_id", "projectId" FROM "${schema}"."Monitor" ORDER BY "_id" LIMIT 10000) m`,
+        [probeId],
+      );
+      await database.query(`ANALYZE "${schema}"."MonitorProbe"`);
+
+      try {
+        const plan: ExplainedPlan = await explain(
+          await claimStatement(probeId, 10),
+        );
+
+        const claimable: PlanNode | undefined = nodesOf(plan.Plan).find(
+          (node: PlanNode): boolean => {
+            return node["Subplan Name"] === "CTE claimable";
+          },
+        );
+        expect(claimable).toBeDefined();
+
+        const read: Array<PlanNode> = nodesOf(claimable!);
+        expect(
+          read
+            .filter((node: PlanNode): boolean => {
+              return node["Node Type"] === "Sort";
+            })
+            .map((node: PlanNode): Array<string> => {
+              return node["Sort Key"] || [];
+            }),
+        ).toEqual([]);
+        expect(
+          read
+            .filter((node: PlanNode): boolean => {
+              return (
+                node["Index Name"] ===
+                "MonitorProbe_probeId_isEnabled_nextPingAt_lastPingAt_idx"
+              );
+            })
+            .map((node: PlanNode): boolean => {
+              // The batch, and the few it steps over: never the minute's 10,000.
+              return (node["Actual Rows"] || 0) < 100;
+            }),
+        ).toEqual([true]);
+        expectNoTableReadWhole(plan);
+        expect(buffersOf(plan)).toBeLessThan(CLAIM_BUFFER_BOUND);
+      } finally {
+        await database.query(
+          `DELETE FROM "${schema}"."MonitorProbe" WHERE "probeId" = $1`,
+          [probeId],
+        );
+      }
     });
 
     test("a bigger batch reads in proportion, not the probe's backlog", async () => {
@@ -681,11 +756,25 @@ describePostgres(
       return rows[0]!.indexname;
     }
 
+    /*
+     * A quarter of MonitorProbe is the probe's, all of it due, and some of
+     * its rows are on every page: Postgres reads them by the claim's index
+     * range and then every page they are on, or by reading the table,
+     * whichever it costs less. Here the two are within 2% of each other in
+     * its costs, so which it takes changes from one seed to the next, and
+     * either reads every page of MonitorProbe once (the table itself, the
+     * fewer pages). What #11119 was about is the other side of the join:
+     * the monitors, read by their ids alone, never the whole of Monitor -
+     * as ProbeDispatchTwoProbesAtScalePostgres holds at half the table.
+     */
     test("a probe's pending count joins its due rows to the monitors it may check by their own index, not the whole Monitor table (#11119)", async () => {
       const statement: CapturedStatement = await countStatement(probeIds[1]!);
       const plan: ExplainedPlan = await explain(statement);
 
-      expectNoTableReadWhole(plan);
+      expect({
+        monitorReadWhole: seqScansOf(plan).includes("Monitor"),
+        plan: summaryOf(plan),
+      }).toEqual({ monitorReadWhole: false, plan: summaryOf(plan) });
       expect(indexesOf(plan)).toContain(
         `Monitor:${await probeableIndexName()}`,
       );

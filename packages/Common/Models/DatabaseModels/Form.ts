@@ -419,6 +419,37 @@ export default class Form extends BaseModel {
   })
   public successMessage?: string = undefined;
 
+  /*
+   * Follow-ups (Common/Types/Form/FormFollowUp): the person who submits the
+   * form is emailed a private link to what they sent, reads its state and
+   * its conversation with the team on the form's page, writes to the team
+   * there and adds others to follow it; a responder answers from the
+   * record's page. On for a new form; the forms made before follow-ups
+   * existed were left off by the migration that added them, since their
+   * submitters were told nothing would be sent to them.
+   */
+  @ColumnAccessControl({
+    create: [...CREATE_PERMISSIONS],
+    read: [...READ_PERMISSIONS],
+    update: [...UPDATE_PERMISSIONS],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Follow-Ups",
+    description:
+      "Whether the people who submit the form can follow what they sent: they are emailed a private link to it, can read its state and write to your team there, and can add others; your team replies from the record's page.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public enableFollowUps?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [...CREATE_PERMISSIONS],
     read: [...READ_PERMISSIONS],

@@ -1230,6 +1230,8 @@ import { AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260 } from "./
 import { AddProjectCallVoice1809187801300 } from "./1809187801300-AddProjectCallVoice";
 import { AddVMwareHealthSettingsAndSwapRates1809187811157 } from "./1809187811157-AddVMwareHealthSettingsAndSwapRates";
 import { AddProjectSecurityTrustPrivateAddresses1809187811240 } from "./1809187811240-AddProjectSecurityTrustPrivateAddresses";
+import { SwapMonitorProbeClaimIndexForClaimOrder1809187821386 } from "./1809187821386-SwapMonitorProbeClaimIndexForClaimOrder";
+import { AddFormFollowUps1809188000000 } from "./1809188000000-AddFormFollowUps";
 
 export default [
   InitialMigration,
@@ -2464,4 +2466,6 @@ export default [
   AddProjectCallVoice1809187801300,
   AddVMwareHealthSettingsAndSwapRates1809187811157,
   AddProjectSecurityTrustPrivateAddresses1809187811240,
+  SwapMonitorProbeClaimIndexForClaimOrder1809187821386,
+  AddFormFollowUps1809188000000,
 ];

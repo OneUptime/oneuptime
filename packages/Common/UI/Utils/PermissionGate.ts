@@ -24,10 +24,11 @@ import { joinSentences } from "./SentenceSeparator";
 import PrivateRecordHeld from "../../Types/PrivateRecord/PrivateRecordHeld";
 import LabelAccess, {
   LabelGrant,
-  LabelReach,
   LabelRuleRows,
-  LabelVerdict,
 } from "../../Types/LabelAccess/LabelAccess";
+import KindsWithOwners, {
+  OwnedKindModel,
+} from "../../Types/Database/AccessControl/KindsWithOwners";
 import TeamOwnedRuleHeld from "../../Types/TeamOwnedRule/TeamOwnedRuleHeld";
 import {
   getRecordAccessGateOptions,
@@ -241,29 +242,14 @@ export interface LabelledGateModel extends PermissionCheckableModel {
   getAccessControlColumn?: (() => string | null) | undefined;
 }
 
-// The writes a record's own labels can lock (PermissionGate.getLabelLock).
-export type LabelLockAction = ModelAction.Update | ModelAction.Delete;
-
 /*
- * WHAT A RECORD'S OWN LABELS LET THE READER DO TO IT, for one model
- * (PermissionGate.getLabelLock, #11259): the reach of the reader's read,
- * update and delete by labels, as the server weighs them
- * (Types/LabelAccess/LabelAccess), and the labels a refusal may name.
+ * Where a column whose read is granted limited to labels is read: on the
+ * records carrying one of `labelIds` alone, while the model itself is read
+ * further (PermissionGate.getColumnKeptToLabels, #11437).
  */
-export interface ModelLabelLock {
-  // The model's records' label column: "labels".
-  labelsColumn: string;
-  reaches: Record<ModelAction.Read | LabelLockAction, LabelReach>;
-  /*
-   * Every label the reach is limited to or blocked on, in lower case: the
-   * names a lock's reason reads (Utils/RecordLabelLock).
-   */
+export interface ColumnKeptToLabelsOnClient {
+  column: string;
   labelIds: Array<string>;
-  // What the labels leave the reader of a record carrying `recordLabelIds`.
-  weigh: (
-    action: LabelLockAction,
-    recordLabelIds: ReadonlyArray<unknown>,
-  ) => LabelVerdict;
 }
 
 /*
@@ -499,9 +485,10 @@ export default class PermissionGate {
   /*
    * Whether `held` is a snapshot at all (HeldPermissionsUtil.isLoaded):
    * anything in it, a block included - a member whose every row is a block
-   * has a snapshot, and it refuses. An empty one has not landed yet.
+   * has a snapshot, and it refuses. An empty one has not landed yet. Read by
+   * the record locks too (RecordLocks).
    */
-  private static isLoaded(held: HeldPermissions): boolean {
+  public static isLoaded(held: HeldPermissions): boolean {
     return HeldPermissionsUtil.isLoaded(held);
   }
 
@@ -664,7 +651,14 @@ export default class PermissionGate {
       return { isAllowed: true };
     }
 
-    if (access.isHeldBack) {
+    /*
+     * Held back - the whole answer while it is read, or one operation while
+     * who owns the record is (#11436): not offered, nothing said.
+     */
+    if (
+      access.isHeldBack ||
+      access.heldBackOperations?.includes(data.action as RecordGateOperation)
+    ) {
       return { isAllowed: false };
     }
 
@@ -975,46 +969,35 @@ export default class PermissionGate {
   }
 
   /*
-   * WHAT A RECORD'S OWN LABELS LET THE READER DO TO IT (#11259), by the
-   * rule the server refuses by (Types/LabelAccess/LabelAccess, which
-   * AccessControlPermission decides with too).
-   *
-   * check says whether the reader holds what an operation asks somewhere in
-   * the project. A grant limited to labels holds it only on the records
-   * carrying one of them: a Viewer over the whole project who is a Project
-   * Member on the monitors labelled X was offered Edit and Delete on every
-   * monitor, and refused by the server on each one outside X. This reads
-   * the reader's rows - allow and block, with their labels and scopes, as
-   * the server's request carries them - into the reach of their read, update
-   * and delete of the model, and weighs a record's labels against it:
-   * a change or a delete outside the labels a grant is limited to, or on a
-   * label a team's block takes away, is refused (LabelVerdict). A grant
-   * scoped to Owned beside the labels leaves a record outside them to its
-   * owners, which the record's labels cannot tell: it is not refused here,
+   * WHETHER THE READER READS ONE COLUMN ON FEWER OF A LABELLED MODEL'S
+   * RECORDS THAN THE MODEL ITSELF (#11437) - a monitor's secret keys, a
+   * runner's key, for a Viewer over the whole project who is a Project
+   * Member on one label - by the rule the server leaves such a column out of
+   * the other records by, and refuses an order by it
+   * (AccessControlPermission.getColumnsKeptToLabels,
+   * checkSortOnColumnsKeptToLabels): the column's read granted limited to
+   * labels alone, and the model's read not kept to those labels already.
+   * The labels it is read on, or null. A grant scoped to Owned beside the
+   * column's labels leaves where it is read to the records' owners: null,
    * and the server keeps the last word.
-   *
-   * Null when the labels lock nothing: a master admin, a model that carries
-   * no labels, a snapshot not landed yet, or a reader none of whose grants
-   * of the model's read, update and delete is limited to labels or blocked
-   * on some.
    */
-  public static getLabelLock(model: LabelledGateModel): ModelLabelLock | null {
-    if (User.isMasterAdmin()) {
+  public static getColumnKeptToLabels(
+    model: ColumnPermissionCheckableModel & LabelledGateModel,
+    column: string,
+  ): ColumnKeptToLabelsOnClient | null {
+    if (User.isMasterAdmin() || !model.getAccessControlColumn?.()) {
       return null;
     }
 
-    const labelsColumn: string | null =
-      model.getAccessControlColumn?.() || null;
+    const readPermissions: Array<Permission> =
+      model.getColumnAccessControlForAllColumns()[column]?.read || [];
 
-    if (!labelsColumn) {
+    if (readPermissions.length === 0 || !this.canReadColumn(model, column)) {
       return null;
     }
 
     const rows: Array<UserPermission> = this.getSnapshotRows();
-
-    const held: HeldPermissions = HeldPermissionsUtil.fromRows({
-      rows: rows,
-    });
+    const held: HeldPermissions = HeldPermissionsUtil.fromRows({ rows: rows });
 
     if (!this.isLoaded(held)) {
       return null;
@@ -1022,119 +1005,8 @@ export default class PermissionGate {
 
     const labelRows: LabelRuleRows = LabelAccess.readRows(rows);
 
-    const reachOf: (action: ModelAction) => LabelReach = (
-      action: ModelAction,
-    ): LabelReach => {
-      const modelPermissions: Array<Permission> = this.getModelPermissions(
-        model,
-        action,
-      );
-      const wildcard: Permission | null = HeldPermissionsUtil.getModelWildcard({
-        isOperationalResource: model.isOperationalResource,
-        operation: action,
-      });
-
-      return LabelAccess.getReach({
-        rows: labelRows,
-        grantingPermissions: HeldPermissionsUtil.getGrantingPermissions(held, {
-          modelPermissions: modelPermissions,
-          wildcard: wildcard,
-        }),
-        blockingPermissions: HeldPermissionsUtil.getLabelBlockingPermissions(
-          held,
-          { modelPermissions: modelPermissions, wildcard: wildcard },
-        ),
-        /*
-         * Whether the Owned scope narrows the model is the server's to know
-         * (its owner tables): taken as narrowing, an Owned grant beside the
-         * labels leaves a record outside them to its owners - never
-         * refused here - as it does where the scope narrows nothing.
-         */
-        ownedScopeNarrows: (): boolean => {
-          return true;
-        },
-      });
-    };
-
-    const reaches: Record<ModelAction.Read | LabelLockAction, LabelReach> = {
-      [ModelAction.Read]: reachOf(ModelAction.Read),
-      [ModelAction.Update]: reachOf(ModelAction.Update),
-      [ModelAction.Delete]: reachOf(ModelAction.Delete),
-    };
-
-    const labelIds: Array<string> = [];
-
-    for (const reach of Object.values(reaches)) {
-      for (const labelId of [
-        ...reach.grant.labelIds,
-        ...reach.blockedLabelIds,
-      ]) {
-        const id: string = LabelAccess.readId(labelId);
-
-        if (id && !labelIds.includes(id)) {
-          labelIds.push(id);
-        }
-      }
-    }
-
-    if (labelIds.length === 0) {
-      return null;
-    }
-
-    return {
-      labelsColumn: labelsColumn,
-      reaches: reaches,
-      labelIds: labelIds,
-      weigh: (
-        action: LabelLockAction,
-        recordLabelIds: ReadonlyArray<unknown>,
-      ): LabelVerdict => {
-        return LabelAccess.weighLabelledRecord({
-          recordLabelIds: recordLabelIds,
-          read: reaches[ModelAction.Read],
-          operation: reaches[action],
-        });
-      },
-    };
-  }
-
-  /*
-   * WHETHER THE READER MAY READ ONE COLUMN OF A RECORD CARRYING
-   * `recordLabelIds` (#11259): the column's read (canReadColumn) and, for a
-   * column whose read is granted limited to labels - a monitor's secret
-   * keys, for a Viewer who is a Project Member on one label - the record's
-   * labels, by the rule the server leaves the column out of the records
-   * outside them by (AccessControlPermission.getColumnsKeptToLabels). For a
-   * page that shows what a column holds, to say it is hidden rather than
-   * empty. Records read without their labels (null), and a grant scoped to
-   * Owned beside the labels, which the record's owners decide, are taken as
-   * read: the server keeps the last word.
-   */
-  public static mayReadColumnOnRecord(
-    model: ColumnPermissionCheckableModel & LabelledGateModel,
-    column: string,
-    recordLabelIds: ReadonlyArray<unknown> | null,
-  ): boolean {
-    if (!this.canReadColumn(model, column)) {
-      return false;
-    }
-
-    if (User.isMasterAdmin() || !recordLabelIds) {
-      return true;
-    }
-
-    const readPermissions: Array<Permission> =
-      model.getColumnAccessControlForAllColumns()[column]?.read || [];
-
-    if (readPermissions.length === 0 || !model.getAccessControlColumn?.()) {
-      return true;
-    }
-
-    const rows: Array<UserPermission> = this.getSnapshotRows();
-    const held: HeldPermissions = HeldPermissionsUtil.fromRows({ rows: rows });
-
-    const grant: LabelGrant = LabelAccess.getGrant({
-      rows: LabelAccess.readRows(rows),
+    const columnGrant: LabelGrant = LabelAccess.getGrant({
+      rows: labelRows,
       permissions: HeldPermissionsUtil.getGrantingPermissions(held, {
         modelPermissions: readPermissions,
         wildcard: HeldPermissionsUtil.getColumnWildcard({
@@ -1149,19 +1021,149 @@ export default class PermissionGate {
       },
     });
 
-    return (
-      grant.labelIds.length === 0 ||
-      grant.ownedTeamIds !== null ||
-      LabelAccess.carriesAny(recordLabelIds, grant.labelIds)
+    if (columnGrant.labelIds.length === 0 || columnGrant.ownedTeamIds) {
+      return null;
+    }
+
+    const tableReadPermissions: Array<Permission> = this.getTablePermissions(
+      model,
+      "read",
     );
+
+    const readGrant: LabelGrant = LabelAccess.getGrant({
+      rows: labelRows,
+      permissions: HeldPermissionsUtil.getGrantingPermissions(held, {
+        modelPermissions: tableReadPermissions,
+        wildcard: HeldPermissionsUtil.getModelWildcard({
+          isOperationalResource: model.isOperationalResource,
+          operation: ModelAction.Read,
+        }),
+      }),
+      ownedScopeNarrows: (): boolean => {
+        return true;
+      },
+    });
+
+    if (
+      readGrant.labelIds.length > 0 &&
+      LabelAccess.isGrantWithin(readGrant, columnGrant)
+    ) {
+      return null;
+    }
+
+    return {
+      column: column,
+      labelIds: columnGrant.labelIds.map((labelId: ObjectID): string => {
+        return LabelAccess.readId(labelId);
+      }),
+    };
+  }
+
+  /*
+   * WHETHER THE READER READS ONE COLUMN ONLY ON THE RECORDS THEY OR THEIR
+   * TEAMS OWN (#11437), however far their read of the model reaches - a
+   * runner's key, for a Viewer over the whole project who is a Runbook
+   * Admin scoped to Owned - by the rule the server leaves such a column out
+   * of the other records by, and refuses an order or a filter by it
+   * (OwnedScopePermission.getColumnsKeptToOwners): a kind with owners, a
+   * column only those who may change the kind read, every grant that lets
+   * the reader read it scoped to Owned, and the model's read not kept to
+   * those grants' teams' records already.
+   */
+  public static isColumnKeptToOwners(
+    model: ColumnPermissionCheckableModel & LabelledGateModel & OwnedKindModel,
+    column: string,
+  ): boolean {
+    if (User.isMasterAdmin() || !KindsWithOwners.hasOwners(model)) {
+      return false;
+    }
+
+    const readPermissions: Array<Permission> =
+      model.getColumnAccessControlForAllColumns()[column]?.read || [];
+    const changePermissions: Array<Permission> =
+      model.getUpdatePermissions() || [];
+
+    if (
+      readPermissions.length === 0 ||
+      !readPermissions.every((permission: Permission): boolean => {
+        return changePermissions.includes(permission);
+      }) ||
+      !this.canReadColumn(model, column)
+    ) {
+      return false;
+    }
+
+    const rows: Array<UserPermission> = this.getSnapshotRows();
+    const grantingRows: Array<UserPermission> = rows.filter(
+      (row: UserPermission): boolean => {
+        return (
+          Boolean(row && row.permission) &&
+          !HeldPermissionsUtil.isBlockRow(row) &&
+          readPermissions.includes(row.permission)
+        );
+      },
+    );
+
+    if (
+      grantingRows.length === 0 ||
+      !grantingRows.every((row: UserPermission): boolean => {
+        return (
+          PermissionHelper.isScopeApplicable(row.permission) &&
+          row.scope === PermissionScope.Owned
+        );
+      })
+    ) {
+      return false;
+    }
+
+    // The read keeps to owned records already, of teams that are all the column's.
+    if (!KindsWithOwners.leavesReadsAlone(model)) {
+      const held: HeldPermissions = HeldPermissionsUtil.fromRows({
+        rows: rows,
+      });
+      const readOnlyOwned: Array<UserPermission> | null =
+        LabelAccess.getOwnedOnlyRows(
+          LabelAccess.readRows(rows),
+          HeldPermissionsUtil.getGrantingPermissions(held, {
+            modelPermissions: this.getTablePermissions(model, "read"),
+            wildcard: HeldPermissionsUtil.getModelWildcard({
+              isOperationalResource: model.isOperationalResource,
+              operation: ModelAction.Read,
+            }),
+          }),
+        );
+
+      if (readOnlyOwned) {
+        const columnTeams: Set<string> = new Set<string>(
+          HeldPermissionsUtil.getTeamIdsOfRows(grantingRows).map(
+            (teamId: ObjectID): string => {
+              return LabelAccess.readId(teamId);
+            },
+          ),
+        );
+
+        if (
+          HeldPermissionsUtil.getTeamIdsOfRows(readOnlyOwned).every(
+            (teamId: ObjectID): boolean => {
+              return columnTeams.has(LabelAccess.readId(teamId));
+            },
+          )
+        ) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   /*
    * The reader's rows in the project this tab shows, allow and block, with
    * their global permissions as rows with no labels - the rows the server's
    * request carries (DatabaseCommonInteractionPropsUtil.getPermissionRows).
+   * What the record locks weigh as well (RecordLocks).
    */
-  private static getSnapshotRows(): Array<UserPermission> {
+  public static getSnapshotRows(): Array<UserPermission> {
     return [
       ...(PermissionUtil.getProjectPermissions()?.permissions || []),
       ...(PermissionUtil.getGlobalPermissions()?.globalPermissions || []).map(
@@ -1927,9 +1929,9 @@ export default class PermissionGate {
    * The table's own list for an operation, which decides whether a column
    * that lets in everyone it does accepts the table's operational-resource
    * wildcard (HeldPermissionsUtil.getColumnWildcard), as the server's column
-   * check reads it.
+   * check reads it - here and in a record's column lock (RecordLocks).
    */
-  private static getTablePermissions(
+  public static getTablePermissions(
     model: ColumnPermissionCheckableModel,
     operation: ColumnOperation,
   ): Array<Permission> {

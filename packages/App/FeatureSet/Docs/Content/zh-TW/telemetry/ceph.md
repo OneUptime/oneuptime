@@ -80,6 +80,8 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 CEPH_CLUSTER_NAME=my-ceph-cluster
 CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]
+CEPH_AGENT_CONTAINER_NAME=oneuptime-ceph-agent
+CEPH_AI_AGENT_CONTAINER_NAME=oneuptime-ceph-ai-agent
 ```
 
 列出每個 mgr 常駐程式，包括作用中的和待命的，以逗號分隔並放在方括號中：方括號會讓 Collector 將該值讀作抓取目標清單。啟動代理程式：
@@ -119,6 +121,8 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 是 | 來自 **專案設定 → 遙測與 APM → 擷取金鑰** 的擷取金鑰。 |
 | `CEPH_CLUSTER_NAME` | 否 | 叢集在 OneUptime 中的名稱，會作為 `ceph.cluster.name` 資源屬性加到每個指標上。請保持不變：之後變更它會註冊另一個叢集。預設為 `ceph`。 |
 | `CEPH_MGR_ENDPOINTS` | 是 | 每個 mgr 常駐程式，寫成放在方括號中、以逗號分隔的 `host:port` 清單，例如 `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`。安裝指令碼會為你加上方括號。 |
+| `CEPH_AGENT_CONTAINER_NAME` | 否 | Collector 的容器名稱。預設為 `oneuptime-ceph-agent`。同一台機器上第二個叢集的代理程式需要自己的容器名稱：請參閱 [監控多個叢集](#監控多個叢集)。除非你自行設定，否則安裝指令碼會依新代理程式的資料夾為其容器命名，並在你再次執行指令碼時保留這些名稱。 |
+| `CEPH_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理程式的容器名稱。預設為 `oneuptime-ceph-ai-agent`，第二個代理程式則預設使用與其 Collector 名稱並列的名稱，例如 `oneuptime-ceph-ai-agent-cluster2`。 |
 
 AI 代理程式自己的設定請見 [AI 代理程式](#ai-代理程式)。
 
@@ -206,6 +210,18 @@ processors:
 
 Collector 只在啟動時讀取其設定：請執行 `docker compose restart oneuptime-ceph-agent`。之後叢集會顯示標籤 `team:storage` 和 `env:production`。標籤比對不區分大小寫，因此現有的 `Production` 標籤會被重複使用而不是重複建立，而且代理程式絕不會移除別人在 OneUptime 中新增的標籤。
 
+## 監控多個叢集
+
+一個代理程式讀取一個叢集。要從同一台機器監控多個叢集，請把每個代理程式安裝到各自的資料夾中，並使用各自的 `.env` 和各自的容器名稱，因為兩個容器不能同名：
+
+```bash
+INSTALL_DIR=/opt/oneuptime-ceph-agent-cluster2 bash install.sh
+```
+
+指令碼會依資料夾為代理程式的容器命名：`oneuptime-ceph-agent-cluster2` 和 `oneuptime-ceph-ai-agent-cluster2`。若要自行選擇名稱，請在執行指令碼時設定 `CEPH_AGENT_CONTAINER_NAME` 和 `CEPH_AI_AGENT_CONTAINER_NAME`。它會把名稱保存在該代理程式的 `.env` 中，所以再次執行指令碼來升級代理程式時會保留這些名稱；而若代理程式的 `container_name` 曾由你在 `docker-compose.yml` 中編輯過，它也會保留那個名稱。請為每個資料夾取一個獨有的名稱：Docker Compose 只依資料夾為專案命名，因此如果某個資料夾與別處已在執行代理程式的資料夾同名，指令碼會拒絕它。使用 Docker Compose 時，請改為在每個代理程式的 `.env` 中設定這些名稱。
+
+systemd 單元假設代理程式位於 `/opt/oneuptime-ceph-agent`：若使用其他資料夾，請以另一個名稱儲存它，例如 `oneuptime-ceph-agent-cluster2.service`，並修改它的 `WorkingDirectory`。用 `-d` 把資料夾傳給診斷指令碼。
+
 ## 以 systemd 服務執行
 
 若要讓代理程式隨機器啟動，並在失敗時重新啟動，請安裝它的 systemd 單元。它假設代理程式位於 `/opt/oneuptime-ceph-agent`，也就是安裝指令碼放置它的位置：
@@ -220,7 +236,7 @@ sudo systemctl enable --now oneuptime-ceph-agent
 
 代理程式會將其檔案所固定的 Collector 版本回報為它的 **代理程式版本**。當它比此 OneUptime 發行版本所固定的版本舊時，叢集 **概覽** 上它的旁邊會出現警告標誌。選取該標誌即可看到這些指令。在其檔案開始回報版本之前安裝的代理程式，在以這種方式升級之前不會顯示版本。
 
-Collector 映像檔固定在 `docker-compose.yml` 中，其設定是旁邊的一個檔案，因此只提取映像檔並不能讓代理程式升級。請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml` 和 `otel-collector-config.yaml`（你編輯過的檔案會保留為 `<file>.bak.<timestamp>`），提取映像檔並重新建立代理程式，讓 Collector 讀取新的設定。AI 代理程式的 `ceph/` 資料夾會保持原樣。
+Collector 映像檔固定在 `docker-compose.yml` 中，其設定是旁邊的一個檔案，因此只提取映像檔並不能讓代理程式升級。請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml` 和 `otel-collector-config.yaml`（你編輯過的檔案會保留為 `<file>.bak.<timestamp>`），提取映像檔並重新建立代理程式，讓 Collector 讀取新的設定。AI 代理程式的 `ceph/` 資料夾會保持原樣。安裝在 `/opt/oneuptime-ceph-agent` 之外的代理程式需要指定它的資料夾，也就是 `INSTALL_DIR=<folder> bash install.sh`，並會保留它的容器名稱。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/ceph-agent -o install.sh

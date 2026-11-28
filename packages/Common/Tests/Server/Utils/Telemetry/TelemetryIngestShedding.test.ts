@@ -252,7 +252,7 @@ describe("estimating how many batches a project has waiting", () => {
 describe("deciding whom to refuse", () => {
   const estimate: (
     estimated: number,
-    hits: number = 500,
+    hits?: number,
   ) => QueuedBatchesEstimate = (
     estimated: number,
     hits: number = 500,
@@ -531,9 +531,8 @@ describe("when Valkey is nearly full", () => {
         NOW + 1,
       );
 
-      expect(refusal?.kind).toBe(
-        TelemetryIngestionBudgetRefusalKind.QueueBacklogged,
-      );
+      // Not the project's doing: a kind of its own, which is counted apart (#11440).
+      expect(refusal?.kind).toBe(TelemetryIngestionBudgetRefusalKind.QueueFull);
       expect(refusal?.retryAfterSeconds).toBe(30);
     }
 

@@ -43,6 +43,8 @@
 
 **推荐** 包含 Monitor Dashboard、Incident Dashboard、Alert Dashboard、Kubernetes Dashboard、Hosts Dashboard 和 Metrics Dashboard。模板只是起点，而不是关联：仪表板创建后，你可以随意修改。之后模板不会再更新它。
 
+每个基础设施模板都通过其变量的 [资源类型](/docs/dashboards/variables#telemetry-attribute) 只显示自己那一类资源：在没有 swarm 的项目中，Docker Swarm Dashboard 会保持为空并说明这一点，而不是显示其他所有内容的容器和日志。
+
 ## 编辑与保存
 
 仪表板以查看模式打开，供阅读。要修改它，请打开工具栏中的 **⋯** 菜单并选择 **编辑仪表板** 。工具栏会在名称旁显示 **编辑中** ，并把时间范围和其他控件换成 **添加小部件** 、 **变量** 、 **取消** 和 **保存更改** 。下方还有一行，用于设置仪表板的 **默认时间范围** 和 **默认自动刷新** 。
