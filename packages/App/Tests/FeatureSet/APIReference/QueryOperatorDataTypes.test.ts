@@ -160,6 +160,29 @@ describe("InBetween", () => {
     expect(range.startValue).toBe("2024-01-01T00:00:00.000Z");
     expect(range.endValue).toBe("2024-12-31T23:59:59.999Z");
     expect(page.jsonWrapperKeys).toEqual(["startValue", "endValue"]);
+    // The example holds both ends, as a range with no includesEnd does.
+    expect(range.includesEnd).toBe(true);
+  });
+
+  // #11334: a range can leave out its end, as a telemetry check's window does.
+  it("names includesEnd, optional, which InBetween reads: false leaves the end out", async () => {
+    const page: DataTypePage = await dataTypePage("in-between");
+    const includesEnd: { name: string; type: string; required: boolean } =
+      page.properties.find((property: { name: string }) => {
+        return property.name === "includesEnd";
+      })!;
+
+    expect(includesEnd).toEqual(
+      expect.objectContaining({ type: "boolean", required: false }),
+    );
+
+    const range: InBetween<string> = JSONFunctions.deserializeValue({
+      ...(JSON.parse(page.jsonExample) as JSONObject),
+      includesEnd: false,
+    }) as InBetween<string>;
+
+    expect(range.includesEnd).toBe(false);
+    expect(range.endValue).toBe("2024-12-31T23:59:59.999Z");
   });
 });
 

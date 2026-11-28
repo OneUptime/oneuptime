@@ -439,6 +439,14 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  /*
+   * Which of the array's alerts watch a part is the server's answer
+   * (POST /monitor/recommendation-coverage, #11074): this project has no
+   * monitors, so none does.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   rowNumber = 0;
   mockLastParam = "";
   arrangeArray();

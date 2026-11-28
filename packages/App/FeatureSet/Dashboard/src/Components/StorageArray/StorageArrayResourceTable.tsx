@@ -8,11 +8,14 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import Link from "Common/UI/Components/Link/Link";
+import Select from "Common/Types/BaseDatabase/Select";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import StorageArrayResourceUtils from "../../Pages/StorageArray/Utils/StorageArrayResourceUtils";
 
 export interface ComponentProps {
   storageArrayId: ObjectID;
-  kind: StorageArrayResourceKind;
+  // A shared kind, or one only the array's platform has (an aggregate).
+  kind: StorageArrayResourceKind | string;
   // DOM id and the key the viewer's column choices are saved under.
   tableId: string;
   // The table's name in saved views and exports.
@@ -26,6 +29,20 @@ export interface ComponentProps {
   columns: Columns<StorageArrayResource>;
   // The object's own page, when it has one; the name links to it.
   getDetailRoute?: ((item: StorageArrayResource) => Route) | undefined;
+  // The order the list opens in: by name, A to Z, unless it says.
+  sortBy?: keyof StorageArrayResource | undefined;
+  sortOrder?: SortOrder | undefined;
+  /*
+   * Fields to read beyond the columns' own: what a column's rules read
+   * besides the field it sorts by (a platform's list, drawn from its
+   * StorageArrayKindPage, reads the whole row).
+   */
+  selectMoreFields?: Select<StorageArrayResource> | undefined;
+  /*
+   * Only the parts whose componentType is one of these: one kind split
+   * into tables (StorageArrayHardwareTable.componentTypes).
+   */
+  componentTypes?: ReadonlyArray<string> | undefined;
 }
 
 /*
@@ -49,15 +66,19 @@ const StorageArrayResourceTable: FunctionComponent<ComponentProps> = (
       query={{
         storageArrayId: props.storageArrayId,
         kind: props.kind,
+        ...(props.componentTypes && props.componentTypes.length > 0
+          ? { componentType: new Includes([...props.componentTypes]) }
+          : {}),
       }}
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
       isViewable={Boolean(props.getDetailRoute)}
       showRefreshButton={true}
-      sortBy="name"
-      sortOrder={SortOrder.Ascending}
+      sortBy={props.sortBy || "name"}
+      sortOrder={props.sortOrder || SortOrder.Ascending}
       selectMoreFields={{
+        ...(props.selectMoreFields || {}),
         kind: true,
         externalId: true,
         metricsUpdatedAt: true,

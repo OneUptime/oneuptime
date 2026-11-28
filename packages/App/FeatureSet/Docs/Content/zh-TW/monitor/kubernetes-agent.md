@@ -384,6 +384,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `logs.mode` | (來自 `preset`) | `daemonset`、`api` 或 `disabled`。覆寫預設組合。 |
 | `logs.windowsPods.enabled` | `false` | 同時追蹤 Windows 節點上的 Pod。請參閱 [混合作業系統叢集](#混合作業系統叢集windows-節點集區)。 |
 | `logs.api.replicas` | `1` | 在 `api` 模式下日誌追蹤器的副本數。 |
+| `logs.extraOperators` | `[]` | 你自己的 Collector operators，用於代理程式讀取不了的日誌格式，在 `daemonset` 模式下生效。請參閱 [讀取自訂日誌格式](/docs/telemetry/kubernetes-agent#讀取自訂日誌格式)。 |
 | `ebpf.enabled` | `true` | eBPF 追蹤和請求指標。請參閱 [使用 eBPF 的應用程式追蹤](#使用-ebpf-的應用程式追蹤)。 |
 | `profiling.enabled` | `false` | CPU 火焰圖。請參閱 [持續 CPU 剖析](#持續-cpu-剖析)。 |
 | `kubeStateMetrics.enabled` | `false` | 來自 kube-state-metrics 的叢集狀態。 |

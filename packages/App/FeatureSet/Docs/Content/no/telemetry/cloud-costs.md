@@ -1,6 +1,6 @@
 # Skykostnader og besparelser
 
-En tilkoblet skykonto sier også hva den koster, og hvordan den kunne kostet mindre. OneUptime leser kostnadene for hver dag fra skyens egen fakturering og anbefalingene fra skyens egen anbefalingstjeneste, viser dem under **Sky → Forbruk → Kostnader** og **Sky → Forbruk → Besparelser**, viser Savings Plans, reservasjoner og rabatter for forpliktet bruk under **Sky → Forbruk → Forpliktelser**, og varsler før en måned koster mer enn budsjettet under **Sky → Forbruk → Budsjetter**. Når du tillater det, gjennomfører den også besparelsene en eier godkjenner, stopper ressurser som ikke er produksjon, utenfor arbeidstid, og kontrollerer hver endring mot regningen.
+En tilkoblet skykonto sier også hva den koster, og hvordan den kunne kostet mindre. OneUptime leser kostnadene for hver dag fra skyens egen fakturering og anbefalingene fra skyens egen anbefalingstjeneste, viser dem under **Sky → Forbruk → Kostnader** og **Sky → Forbruk → Besparelser**, viser Savings Plans, reservasjoner og rabatter for forpliktet bruk under **Sky → Forbruk → Forpliktelser**, gir deg beskjed under **Sky → Forbruk → Budsjetter** før en måned, et kvartal eller et år koster mer enn budsjettet, og forutsier de kommende månedene under **Sky → Forbruk → Prognose**. Når du tillater det, gjennomfører den også besparelsene en eier godkjenner, stopper ressurser som ikke er produksjon, utenfor arbeidstid, og kontrollerer hver endring mot regningen.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer og Cost Optimization Hub, hver slått på én gang.
@@ -11,7 +11,8 @@ En tilkoblet skykonto sier også hva den koster, og hvordan den kunne kostet min
 - [Gjennomfør besparelser](#gjennomfør-besparelser): Bruk en besparelse med eierens godkjenning, og angre den.
 - [Tidsplaner utenfor arbeidstid](#tidsplaner-utenfor-arbeidstid): Stopp ressurser som ikke er produksjon, om natten og i helgene.
 - [AI-regler for besparelser](#ai-regler-for-besparelser): Forslag til eiere, eller endringer innenfor en grense.
-- [Budsjetter](#budsjetter): Et varsel når forbruket i en måned passerer en andel av budsjettet.
+- [Budsjetter](#budsjetter): En måneds, et kvartals eller et års budsjett for hvilken som helst konto, kostnadsgruppe eller tjeneste.
+- [Prognoser](#prognoser): Hva de neste 12 månedene ligger an til å koste, og hvor sikkert det er.
 - [Påkrevde tagger](#påkrevde-tagger): Hvor mye av forbruket ditt som har taggene du krever, og nye ressurser uten dem.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Skyens fakturering,<br/>lest to ganger om dagen"] --> costs["Kostnader"]
     rec["Skyens anbefalinger,<br/>lest én gang om dagen"] --> savings["Besparelser"]
     costs --> budgets["Budsjetter som varsler"]
+    costs --> forecast["Prognoser"]
+    forecast --> budgets
     costs --> overview["Oversikten i Sky"]
     savings --> overview
 ```
@@ -222,30 +225,41 @@ Når arbeidstiden slutter, stopper en tidsplan gjennom kontoens tilkobling hver 
 En tidsplan stopper aldri produksjon, og aldri en ressurs der ingenting sier hvilket miljø den er i. En ressurs er kjent for ikke å være produksjon når:
 
 - en av taggene sier det, under en nøkkel som `environment`, `env`, `stage`, `tier` eller `deployment.environment`, med et ord som `dev`, `test`, `qa`, `staging` eller `sandbox`;
-- kontoen er merket som **Ikke-produksjon** under **Miljø** i kontoens **Innstillinger**;
-- eller en av etikettene sier det, for eksempel `Staging` eller `env: dev`.
+- eller kontoen er merket som **Ikke-produksjon** under **Miljø** i kontoens **Innstillinger**.
 
-Produksjon vinner: En tagg som sier `prod`, `production` eller `live`, eller en konto merket som **Produksjon**, holder en ressurs kjørende uansett hva annet sier. Navnet på en ressurs leses aldri for dette. Slår du av en tidsplan, stopper den ingenting mer og starter det den stoppet når arbeidstiden begynner; sletter du den, startes det den stoppet, med en gang.
+En OneUptime-etikett gjør aldri en ressurs til ikke-produksjon for en tidsplan. Får en etikett nytt navn, endres hver ressurs som har den, på én gang, så en etikett som `Staging` eller `env: dev` leses bare der en person godkjenner endringen, slik som ved **Bruk**. Produksjon vinner: En tagg som sier `prod`, `production` eller `live`, en konto merket som **Produksjon**, eller en etikett som `Production` eller `env: prod` holder en ressurs kjørende uansett hva annet sier. Navnet på en ressurs leses aldri for dette. Hvert stopp leser ressursen på nytt rett før det gjøres. Slår du av en tidsplan, stopper den ingenting mer og starter det den stoppet når arbeidstiden begynner; sletter du den, startes det den stoppet, med en gang.
 
 ## AI-regler for besparelser
 
 Med **Aktiver AI** slått på foreslår OneUptime AI etter hver lesing av kontoens besparelser hver besparelse den kan gjennomføre, for ressursens eiere, og de godkjenner eller avviser den under **Venter på godkjenning**. Under **Sky → Innstillinger → AI-regler for besparelser** sier en regel hva OneUptime AI gjør med besparelsene den passer på, etter type endring, ressursens miljø og skyen: **Av**, **Foreslå for eieren** eller **Handle uten å spørre**, opp til en månedlig grense. Uten regel foreslås hver besparelse, og ingen gjennomføres; med regler bare det en regel passer på, og mellom regler som passer, vinner den mest forsiktige.
 
-En regel handler bare uten å spørre på en ressurs som er kjent for ikke å være produksjon, bare for en endring som kan angres, bare opp til den laveste grensen blant reglene som passer, og høyst 10 ganger i timen i et prosjekt: Alt annet foreslås. En endring gjort uten å spørre står på tidslinjene med regelen som gjorde den, og eierne kan angre den. En avvist eller angret besparelse foreslås ikke igjen på 30 dager.
+En regel handler bare uten å spørre på en ressurs som er kjent for ikke å være produksjon slik en tidsplan leser det, ut fra taggene eller kontoen og aldri ut fra etikettene alene, bare for en endring som kan angres, bare opp til den laveste grensen blant reglene som passer, og høyst 10 ganger i timen i et prosjekt: Alt annet foreslås. Ressursen leses på nytt rett før endringen gjøres, og en som innen da ikke lenger er kjent for ikke å være produksjon, foreslås i stedet. En endring gjort uten å spørre står på tidslinjene med regelen som gjorde den, og eierne kan angre den. En avvist eller angret besparelse foreslås ikke igjen på 30 dager.
 
 ## Budsjetter
 
 :::steps
 ### Opprett et budsjett
 
-Under **Sky → Forbruk → Budsjetter** oppretter du et budsjett: dets **Månedlig beløp**, den **Konto** det gjelder, eller ingen for alle kontoer, og det **Kostnadsgrunnlag** det teller, eller ingen for prosjektets.
+Opprett et budsjett under **Sky → Forbruk → Budsjetter**, og velg hva det **Gjelder for**: alle kontoer, én **Konto**, en **Kostnadsgruppe** slik reglene dens fordeler forbruket, eller tjenestene, regionene og taggene et **Filter** nevner, skrevet slik en kostnadsgruppes regler er. La **Kostnadsgrunnlag** stå tomt for å telle prosjektets.
+
+### Si hva det kan koste
+
+**Periode** er en måned, et kvartal eller et år, og **Beløp** er hva én periode kan koste. Kvartaler og år starter i **Årets første måned**: fra april går et år fra april til mars. Et års **Budsjettplan** kan fordele beløpet likt på månedene, eller gi hver måned sitt eget i en **Månedsplan**. Hver måned holdes da til sin egen andel, så en rolig måned aldri får varsel for en travel måneds forbruk.
 
 ### Velg når det varsler
 
-**Varsle ved** tar andelene av budsjettet det skal varsles ved, i prosent: 80 og 100 til å begynne med. **Varsle når det ligger an til overskridelse** varsler også, én gang i måneden, når tempoet den siste uken ville tatt måneden over budsjettet. **Varsle ved uvanlige dager** varsler også dagen etter en dag som kostet langt mer enn vanlig: se [Uvanlige dager](#uvanlige-dager). **Varselsalvor** og **Vaktpolicyer** sier hvor alvorlige varslene er og hvem som tilkalles.
+**Varsle ved** tar andelene av budsjettet det skal handles ved, i prosent: 80 og 100 til å begynne med. **Varsle når det ligger an til overskridelse** varsler også, én gang per periode, når perioden ligger an til å koste mer enn budsjettet. **Varsle ved uvanlige dager** varsler også dagen etter en dag som kostet langt mer enn vanlig: se [Uvanlige dager](#uvanlige-dager). **Varselsalvor** sier hvor alvorlige varslene er.
+
+### Velg hvem som får beskjed
+
+Personene og teamene under **Varsle** får beskjed på e-post og chat når forbruket passerer en andel under 100 %, uten varsel, så ingen blir tilkalt for forbruk innenfor budsjettet. **Gi kostnadsgruppens team beskjed** gir også beskjed til teamet kostnadsgruppen hører til. Fra 100 % opprettes et varsel, de eier det, og **Vaktpolicyer** blir tilkalt. Et budsjett uten noen å gi beskjed oppretter et varsel ved hver andel.
 :::
 
-Et budsjett kontrolleres etter hver lesing av kostnadene og hver time. Når månedens forbruk passerer en terskel, lages det ett varsel for den, den høyeste når en lesing passerer flere på én gang, og en ny måned løser forrige måneds varsler. Et budsjett teller bare kontoene som faktureres i valutaen sin, på sitt grunnlag: et amortisert budsjett utløses ikke av en forhåndskjøpt forpliktelse, som et fakturert budsjett teller den dagen den ble kjøpt.
+Et budsjett kontrolleres etter hver lesing av kostnadene og hver time. Når periodens forbruk passerer en andel, får personene som skal varsles beskjed, eller fra 100 % opprettes et varsel, ett for den høyeste når en lesing passerer flere samtidig, og en ny periode løser forrige periodes varsler. Et år fordelt per måned kontrolleres én måned om gangen, mot den månedens andel. Et budsjett teller bare kontoene som faktureres i valutaen sin, på sitt grunnlag: et amortisert budsjett utløses ikke av en forpliktelse kjøpt på forhånd, som et fakturert budsjett teller den dagen den ble kjøpt.
+
+En periode ligger an til å bli overskredet når det den har kostet så langt, resten av denne måneden i siste hele ukes tempo og de senere månedene i et kvartal eller et år etter [prognosen](#prognoser) til sammen blir mer enn budsjettet.
+
+Raden for hvert budsjett viser hva det teller, perioden og perioden så langt: for et år fordelt per måned denne måneden mot sin andel, med året ved siden av. Siden viser perioden måned for måned mot hver måneds andel, denne måneden dag for dag, hva som kostet mest, og hvem som får beskjed. Siden for et årsbudsjett kan lagre prognosen som plan.
 
 AI-agenter kan opprette og endre budsjetter via [MCP-serveren](/docs/ai/mcp-server), og skript med CLI-ens kommando `oneuptime cloud-budget`: se [Ressursoperasjoner](/docs/cli/resource-operations).
 
@@ -253,7 +267,41 @@ AI-agenter kan opprette og endre budsjetter via [MCP-serveren](/docs/ai/mcp-serv
 
 Etter hver lesing holdes hver av en kontos siste 14 hele dager opp mot de 14 dagene før. En dag er uvanlig når en tjeneste kostet det dobbelte av sin vanlige dag eller mer, eller hele kontoen halvannen gang sin vanlige dag eller mer. I begge tilfeller må det være minst 10 mer enn vanlig i kontoens valuta og minst 5 % av kontoens vanlige dag, så noen få øre aldri teller som en topp. En dags vanlige verdi er medianen av de 14 dagene før, så én topp flytter den lite, og en konto vurderes først når den har en ukes kostnader.
 
-**Sky → Forbruk → Kostnader** markerer de uvanlige dagene på det daglige forbruket, over søylene deres, og viser dem under. På tvers av alle kontoer åpner hver markering **Kostnader** for kontoen sin. Et budsjett som regner med kontoen, lager ett varsel for hver konto og dag, dagen etter, og nevner hver tjeneste som lå høyt. En topp som varer i flere dager, varsles den dagen den begynte, og en dag som er mer enn en uke gammel, varsles ikke. Et budsjett som ble opprettet før disse varslene fantes, lager dem ikke før du redigerer det og slår dem på.
+**Sky → Forbruk → Kostnader** markerer de uvanlige dagene i det daglige forbruket, over søylene, og lister dem under. På tvers av alle kontoer åpner hver markering kontoens **Kostnader**. Et månedsbudsjett for alle kontoer eller én konto oppretter ett varsel for hver konto og dag, dagen etter, og nevner hver tjeneste som lå høyt. Ethvert annet budsjett holder det det teller mot sin egen vanlige dag på samme måte. En topp som varer i flere dager, rapporteres den dagen den begynte, og en dag som er mer enn en uke gammel, rapporteres ikke. Et budsjett som ble opprettet før disse varslene, oppretter dem først når du redigerer det og slår dem på.
+
+## Prognoser
+
+**Sky → Forbruk → Prognose** sier hva forbruket ligger an til å koste i hver av de neste 12 månedene, for alt, en konto, en kostnadsgruppe eller en tjeneste, på kostnadsgrunnlaget du velger. Den sier hvordan hver prognose lages, fra de hele månedene med kostnader OneUptime lagrer, et år eller litt mer:
+
+- **Denne måneden** er det den har kostet så langt, med hver dag som gjenstår på gjennomsnittet av de siste sju hele dagene, slik et budsjett fremskriver den.
+- **Med færre enn 3 hele måneder** fører hver kommende måned det tempoet videre, uten sannsynlig spenn: det er lest for lite til å skille en trend fra et enkeltutslag.
+- **Fra 3 hele måneder** går en trend gjennom hver måneds gjennomsnittsdag: medianen av stigningene mellom hver to måneder, så én avvikende måned knapt flytter den.
+- **Fra 12 hele måneder** husker hver kalendermåned også hvor langt den lå over eller under trenden i fjor, så en desembertopp også forutsies for neste desember.
+
+Hver kommende måned har et sannsynlig spenn, der den bør lande 8 av 10 ganger, ut fra hvor langt tidligere måneder falt fra trenden sin, og aldri smalere enn 5 % hver vei. Det blir bredere jo lenger frem en måned ligger, og jo færre måneder prognosen bygger på. Fra 12 hele måneder er hvert spenn enda bredere, fordi et år bare viser hver kalendermåned én gang. En prognose er ikke et løfte: en ny tjeneste, en migrering eller en prisendring flytter de kommende månedene på måter ingen tidligere måned viser.
+
+**Hva om** lar hver kommende måned vokse eller krympe fra måneden du velger, med andelen du skriver, for eksempel 20 % fra januar. **Lagre som budsjettplan** gjør de neste tolv månedene til planen for et årsbudsjett, i et nytt budsjett eller et du har, med hver måned holdt til sin forventede andel.
+
+## Budsjetter og prognoser i API-et
+
+Budsjetter er en API-ressurs (`cloud-budget`), med CLI-kommandoer og MCP-verktøy som enhver ressurs. Et budsjetts `scope` er `allAccounts`, `account` (med `cloudAccountId`), `costGroup` (med `cloudCostGroupId`) eller `filter` (med `filterRules`, skrevet slik en kostnadsgruppes regler er). Dets `period` er `month`, `quarter` eller `year`, fra `fiscalYearStartMonth`, 1 til 12. Et års `planSplit` er `none`, `equal` eller `byMonth`, med de tolv månedene i `monthlyPlan`, i regnskapsårets rekkefølge.
+
+Slik leser du et budsjetts periode måned for måned, denne månedens dager og hva som kostet mest, slik siden gjør:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+Slik forutsier du et omfang 1 til 24 måneder frem, med et valgfritt hva-om:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+Svarets `forecast` har sin `method` (`pace`, `trend` eller `trendAndSeason`), månedene den ble laget fra og hver måned med sitt `amount` og, for de kommende, sitt `low` og `high`. Send `basis` som `billed`, `amortized` eller `net` for å forutsi på det grunnlaget; uten det ligger prognosen på prosjektets, og svarets `basis` sier hvilket. Et budsjetts forbruk ligger på dets eget grunnlag.
 
 ## Hvor pengene går
 
@@ -332,7 +380,7 @@ En Slack- eller Microsoft Teams-kanal får en kort melding: summen og endringen,
 
 - Personer og team i prosjektet får den på e-post, gjennom varslingsinnstillingene sine, der hver person kan slå av skykostnadsrapporter. Hver person får tallene de kan lese: den som har tilgang begrenset av etiketter, får bare sine kontoer, og den som ikke lenger kan lese prosjektets skykostnader, utelates.
 - **E-postadresser** utenfor prosjektet, for eksempel regnskapsførerens, og Slack- og Microsoft Teams-kanaler krever tillatelsen Skyadministrator, eller Prosjektadministrator eller Prosjekteier, fordi OneUptime ikke kan vite hvem som leser dem. De får rapporten slik personen som la dem til, kan lese den, og slutter å få den hvis personen mister tillatelsen. En API-nøkkel kan ikke angi dem.
-- Den som kan opprette de andre Sky-postene, fra Skymedlem og opp, kan opprette, endre og slette rapporter. En Skyleser kan lese dem.
+- Den som kan opprette de andre Sky-postene, fra Skymedlem og opp, kan opprette, endre og slette rapporter. Den som har Sky på nivået Leser, kan lese dem.
 
 En rapport går til høyst 200 personer, 25 adresser og 10 kanaler av hvert slag. **Siste utsendelse** viser når den sist ble sendt, og hvem den utelot og hvorfor.
 
@@ -389,6 +437,8 @@ Widgeten **Skykostnad** setter en sum, en oppdeling eller en trend for forbruket
 - **Kostnadene til en konto.** **Kostnader** for en konto viser det samme for kontoen alene, med forpliktelsene og måtene den kan bruke mindre på.
 - **Påkrevde tagger.** **Sky → Forbruk → Tagger** viser hvor mye av forbruket og ressursene som har de påkrevde taggene dine, og **Tagger** for en konto viser det samme for kontoen alene.
 - **Kostnaden til en ressurs.** Siden til en ressurs viser hva den har kostet denne måneden og de siste 30 dagene når skyen fakturerer den ved navn, med måtene den kan bruke mindre på og størrelsestilpasningen sin.
+- **Hvert budsjett.** **Sky → Forbruk → Budsjetter** lister hvert budsjett med hva det teller, perioden og perioden så langt, og hvert åpner siden sin.
+- **De kommende månedene.** **Sky → Forbruk → Prognose** tegner månedene en prognose ble laget fra, denne måneden slik den ligger an og de neste 12, med hvordan den ble laget.
 - **Hva som ble spart.** **Sky → Forbruk → Besparelser** åpner med hva de gjennomførte endringene har spart denne måneden ifølge regningen, endringene som venter på godkjenning, og de gjennomførte, og timene tidsplaner har stoppet ressurser.
 
 ## Feilsøking
@@ -430,7 +480,19 @@ OneUptime gjør bare endringer i ett trinn: En forpliktelse, eller en anbefaling
 :::
 
 :::details En tidsplan lar en ressurs kjøre
-**Se ressurser** sier hvorfor: Den er produksjon, ingenting sier at den ikke er produksjon, eller kontoens tilkobling tillater ikke besparelseshandlinger. Tagg den, for eksempel `environment` = `dev`, eller merk kontoen som **Ikke-produksjon**.
+**Se ressurser** sier hvorfor: Den er produksjon, ingenting sier at den ikke er produksjon, bare etikettene sier det, eller kontoens tilkobling tillater ikke besparelseshandlinger. Tagg den i skyen din, for eksempel `environment` = `dev`, eller merk kontoen som **Ikke-produksjon**.
+:::
+
+:::details En regel foreslår en endring den tidligere gjorde uten å spørre
+Kortet sier hvorfor. En regel gjør bare en endring uten å spørre på en ressurs som taggene eller kontoen sier ikke er produksjon: En som bare etikettene kaller ikke-produksjon, foreslås for eierne i stedet. Tagg den i skyen din, for eksempel `environment` = `dev`, eller merk kontoen som **Ikke-produksjon**.
+:::
+
+:::details En prognose har ikke noe sannsynlig spenn
+Den ble laget fra færre enn 3 hele måneder med kostnader, så hver kommende måned fører siste hele ukes tempo videre, og det oppgis ikke noe spenn. Spennet kommer så snart den tredje hele måneden er lest. En tilkoblings første lesing går tilbake til starten av måneden før forrige måned.
+:::
+
+:::details Noen fikk beskjed om et budsjett, men det kom ikke noe varsel
+Under 100 % gir et budsjett som nevner personer eller team som skal varsles, dem beskjed og oppretter ikke noe varsel, så ingen blir tilkalt. Fra 100 % oppretter det et varsel, og vaktpolicyene blir tilkalt. Et budsjett uten noen å gi beskjed oppretter et varsel ved hver andel.
 :::
 
 :::details Denne måneden er lavere enn i skyens konsoll

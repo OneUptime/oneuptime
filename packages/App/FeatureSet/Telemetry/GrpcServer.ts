@@ -28,10 +28,13 @@ import TelemetryIngestionBudget, {
   TelemetryIngestionBudgetAdmission,
   TelemetryIngestionBudgetAdmissionMode,
   TelemetryIngestionBudgetRefusal,
-  TelemetryIngestionBudgetRefusalKind,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestionBudget";
 import { encodeGoogleRpcStatus } from "Common/Server/Utils/Telemetry/GoogleRpcStatus";
-import { isTelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import {
+  isRetryableTelemetryIngestionBudgetRefusal,
+  isTelemetryIngestionBudgetSignal,
+} from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import TelemetryIngestShedding from "Common/Server/Utils/Telemetry/TelemetryIngestShedding";
 import { getTelemetryIngestRefusalReasonForBudget } from "Common/Types/Telemetry/TelemetryIngestRefusal";
 import TelemetryIngestRefusalRecorder, {
   recordTelemetryIngestBillingRefusal,
@@ -367,7 +370,9 @@ export async function authenticateGrpcRequestWithPolicy(
  * the status details carry a RetryInfo:
  *
  *   - over a per-second rate, it carries one, with the delay to come back
- *     after, so the exporter retries the batch then;
+ *     after, so the exporter retries the batch then - as for a project with
+ *     too much already waiting in the telemetry queue
+ *     (TelemetryIngestShedding);
  *   - over a used-up daily budget, it carries none, so the exporter drops
  *     the batch and logs the message rather than retrying until the reset.
  *
@@ -377,10 +382,11 @@ export function buildIngestionBudgetServiceError(
   refusal: TelemetryIngestionBudgetRefusal,
 ): grpc.ServiceError {
   const metadata: grpc.Metadata = new grpc.Metadata();
-  const isRateLimited: boolean =
-    refusal.kind === TelemetryIngestionBudgetRefusalKind.RateLimited;
 
-  if (isRateLimited && refusal.retryAfterSeconds) {
+  if (
+    isRetryableTelemetryIngestionBudgetRefusal(refusal.kind) &&
+    refusal.retryAfterSeconds
+  ) {
     metadata.set(
       "grpc-status-details-bin",
       encodeGoogleRpcStatus({
@@ -513,6 +519,22 @@ export async function handleExport(
      * a budget or a rate is in force.
      */
     if (isTelemetryIngestionBudgetSignal(productType)) {
+      /*
+       * A project far ahead of the workers, or a queue nearly full for
+       * everyone (TelemetryIngestShedding): refused with a RetryInfo before
+       * its budget is asked, decided in memory.
+       */
+      const shed: TelemetryIngestionBudgetRefusal | null =
+        TelemetryIngestShedding.getRefusal({
+          projectId: projectId,
+          signal: productType,
+        });
+
+      if (shed) {
+        callback(buildIngestionBudgetServiceError(shed));
+        return;
+      }
+
       const admission: TelemetryIngestionBudgetAdmission =
         await TelemetryIngestionBudget.admit({
           projectId: projectId,

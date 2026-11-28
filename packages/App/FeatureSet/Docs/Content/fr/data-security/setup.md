@@ -1,11 +1,12 @@
 # Configurer la Sécurité des données
 
-Sécurité des données ne lit que ce que vous lui permettez. Chaque connexion cloud est lue à l'un de trois niveaux, une base de données que vous exploitez est lue avec une chaîne de connexion que vous lui donnez, et la télémétrie ne demande rien. Cette page indique ce que chaque choix permet à OneUptime de lire, les autorisations exactes qu'il accorde, et ce que OneUptime conserve de ce qu'il lit.
+Sécurité des données ne lit que ce que vous lui permettez. Chaque connexion cloud est lue à l'un de trois niveaux, une base de données ou un cluster de recherche que vous exploitez est lu avec une chaîne de connexion que vous lui donnez, et la télémétrie ne demande rien. Cette page indique ce que chaque choix permet à OneUptime de lire, les autorisations exactes qu'il accorde, et ce que OneUptime conserve de ce qu'il lit.
 
 :::cards
 - [Choisir un niveau](#choisir-un-niveau-pour-chaque-connexion): Désactivé, Configuration uniquement, ou Configuration et échantillons de contenu.
 - [Ce qu'accorde chaque niveau](#ce-quaccorde-chaque-niveau): Les actions AWS, et les rôles Azure et Google Cloud.
-- [Analyser une base de données que vous exploitez](#analyser-une-base-de-données-que-vous-exploitez): Une chaîne de connexion en lecture seule, ou une sonde dans votre réseau.
+- [Analyser un magasin de données que vous exploitez](#analyser-un-magasin-de-données-que-vous-exploitez): Une chaîne de connexion en lecture seule, ou une sonde dans votre réseau.
+- [Ce que OneUptime vérifie sur un magasin de données que vous exploitez](#ce-que-oneuptime-vérifie-sur-un-magasin-de-données-que-vous-exploitez): S'il répond sans identifiants, demandé depuis l'endroit où son analyse s'exécute.
 - [Ce que conserve OneUptime](#ce-que-conserve-oneuptime): Des comptages, des emplacements et des échantillons masqués, jamais une valeur.
 - [Laisser Sécurité des données fermer une exposition](#laisser-sécurité-des-données-fermer-une-exposition): Les seules écritures qu'une connexion peut recevoir, désactivées jusqu'à ce que vous les activiez.
 :::
@@ -173,17 +174,75 @@ Une analyse lit un peu d'un magasin de données, dans les limites du projet, et 
 - **Les buckets et les conteneurs** sont échantillonnés par sorte, pas par nombre. Les noms des objets sont d'abord listés, au plus dix fois autant que l'analyse peut en lire et jamais plus de 200 000. Chaque nom devient son motif, les dates, UUID, longues suites hexadécimales et nombres étant remplacés par `*`, donc `exports/2026-10-27/users-0001.csv` devient `exports/*/users-*.csv`. Les objets les plus récents de chaque motif sont lus, un de chaque avant un deuxième de n'importe lequel, et au plus 5 d'un même motif. Chaque objet est lu depuis son début : au plus **Octets par objet** de celui-ci, et **Octets par analyse** au total. Une analyse échantillonne au plus 10 conteneurs d'un compte de stockage Azure.
 - **Les fichiers sont lus selon ce qu'ils sont.** CSV et TSV par colonne, JSON et JSON Lines par chemin, `.env`, `.ini`, `.properties`, TOML et YAML par clé, XML et HTML par leur texte, les fichiers Word, Excel et PowerPoint par leur texte et leurs cellules, et tout le reste comme du texte libre. Un fichier gzip est d'abord décompressé. Les images, Parquet, Avro, PDF et autres formats binaires ne sont pas lus, et l'analyse le signale.
 - **Les jeux de données et les bases de données** sont lus table par table : au plus **Tables par analyse** tables, et **Lignes par table** lignes de chacune.
+- **Les clusters de recherche** sont lus index par index, comme une base de données l'est table par table : au plus **Tables par analyse** index, et **Lignes par table** documents de chacun, les plus récents d'abord quand l'index a un `@timestamp`. Un flux de données est lu comme un seul index, et les index dont les noms ne diffèrent que par des dates ou des nombres, comme `logs-2026.11.26` et `logs-2026.11.27`, comme un seul, au plus récent qui contient des documents. Les index propres au cluster, dont le nom commence par un point, ne sont pas lus. Chaque requête est un GET : l'analyse ne peut donc pas écrire dans le cluster, quoi que son utilisateur puisse faire.
 
 Chaque analyse garde une trace de ce qu'elle a lu, par nom : les objets, tables ou services, jamais leur contenu. Ce qu'elle n'a pas pu lire - une requête que le cloud a refusée, le délai, le budget d'octets - devient un avertissement sur l'analyse, et l'analyse est marquée **Partiellement réussi**.
 
 La **Vue d'ensemble** d'un magasin de données indique quand son contenu est analysé la prochaine fois. **Prochaine analyse du contenu** donne l'heure à laquelle quelque chose l'analyse, **Prévu maintenant** tant qu'il attend son tour, et **En retard** dès qu'il est en attente depuis une heure. Sinon, elle dit pourquoi rien ne l'analysera : **Désactivé** tant que **Analyser le contenu** est désactivé pour le magasin de données ou le projet, ou tant que le magasin de données n'est plus trouvé ; **Non analysé** quand OneUptime ne peut pas échantillonner ce type de magasin de données, ou que sa sonde ne peut pas l'analyser ; et **En attente** tant que sa sonde est déconnectée. La télémétrie d'un service est analysée **Toutes les heures**, avec l'analyse de télémétrie du projet. **Analyser maintenant** est désactivé, avec la raison, pour un magasin de données que rien n'analyserait. Une analyse en cours au moment où l'analyse du contenu est désactivée, ou où le projet est suspendu, ne garde rien de ce qu'elle a trouvé.
 
-## Analyser une base de données que vous exploitez
+## Analyser un magasin de données que vous exploitez
 
-Sécurité des données échantillonne les bases de données PostgreSQL, MySQL et SQL Server, de l'une de deux façons. Une base de données que surveille le produit Bases de données, ou avec laquelle vos services communiquent sur la carte des services, est déjà un magasin de données. Une base de données qu'aucune analyse ne trouve, ajoutez-la vous-même comme magasin de données.
+Sécurité des données échantillonne les bases de données PostgreSQL, MySQL et SQL Server, ainsi que les clusters Elasticsearch et OpenSearch, de l'une de deux façons. Une base de données que surveille le produit Bases de données, ou avec laquelle vos services communiquent sur la carte des services, est déjà un magasin de données. Ajoutez vous-même tout autre magasin, avec **Ajouter un magasin de données que vous gérez** sous **Magasins de données** : dès que vous choisissez son **Type**, le formulaire indique ce que OneUptime y vérifiera et ce qu'il ne peut pas vérifier, et ne demande que ce que ce type lit. Un type que OneUptime n'échantillonne pas, comme MongoDB ou Redis, ne prend pas de chaîne de connexion : il est répertorié avec ses propriétaires, ses étiquettes et sa sensibilité, et son exposition indique **Impossible à vérifier**.
 
-- **Depuis les workers de OneUptime.** Dans les **Paramètres** du magasin de données, réglez **Chaîne de connexion** sur une chaîne qui ne peut que lire, comme `postgresql://reader:password@db.internal:5432/app`. Elle est chiffrée au repos et jamais renvoyée par l'API. Donnez-lui un utilisateur de base de données qui peut lire et rien d'autre.
-- **Depuis une sonde dans votre réseau.** Choisissez la sonde sous **Analyser depuis la sonde**, et saisissez dans **Variable de connexion de la sonde** le nom de la variable d'environnement de cette sonde qui contient la chaîne de connexion. La sonde lit la base de données depuis votre réseau et ne renvoie que ce qu'elle a trouvé : la chaîne de connexion n'atteint jamais OneUptime. Voir [Sondes personnalisées](/docs/probe/custom-probe) pour exécuter une sonde.
+- **Depuis les workers de OneUptime.** Dans les **Paramètres** du magasin de données, réglez **Chaîne de connexion** sur une chaîne qui ne peut que lire, comme `postgresql://reader:password@db.internal:5432/app`, ou `https://reader:password@search.internal:9200` pour un cluster de recherche. Elle est chiffrée au repos et jamais renvoyée par l'API. Donnez-lui un utilisateur qui peut lire et rien d'autre. Sur OneUptime Cloud, les workers n'atteignent que des adresses sur Internet.
+- **Depuis une sonde dans votre réseau.** Choisissez la sonde sous **Analyser depuis la sonde**, et saisissez dans **Variable de connexion de la sonde** le nom de la variable d'environnement de cette sonde qui contient la chaîne de connexion. La sonde lit le magasin de données depuis votre réseau et ne renvoie que ce qu'elle a trouvé : la chaîne de connexion n'atteint jamais OneUptime. Voir [Sondes personnalisées](/docs/probe/custom-probe) pour exécuter une sonde. Une sonde d'une version antérieure ne reçoit que des bases de données : mettez-la à jour pour qu'elle analyse un cluster de recherche.
+
+### La chaîne de connexion d'un cluster de recherche
+
+Elasticsearch et OpenSearch n'ont pas de chaîne de connexion propre : OneUptime prend donc l'adresse du cluster, telle que curl l'atteint, avec un utilisateur en lecture seule dedans, ou une clé API Elasticsearch après elle, écrite `id:key` ou sous la valeur encodée que fournit Elasticsearch :
+
+```text
+https://reader:password@search.internal:9200
+https://search.internal:9200?api_key=<id>:<key>
+https://reader:password@search.internal:9200?verify_certificate=false
+```
+
+`verify_certificate=false` accepte un certificat qu'aucune autorité n'a signé, comme celui qu'Elasticsearch crée à son premier démarrage : ne l'utilisez que sur un réseau de confiance. Rien d'autre ne peut suivre l'adresse. Pour un cluster dont le certificat a été signé par votre propre autorité, donnez l'adresse en JSON, avec le certificat de cette autorité :
+
+```json
+{
+  "url": "https://search.internal:9200",
+  "username": "reader",
+  "password": "password",
+  "caCertificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+}
+```
+
+`apiKey` remplace `username` et `password`, et `"verifyCertificate": false` remplace le certificat.
+
+Donnez à l'utilisateur un rôle qui peut lire et rien d'autre. Sur Elasticsearch :
+
+```bash
+curl -u elastic -X PUT "https://search.internal:9200/_security/role/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster":["monitor"],"indices":[{"names":["*"],"privileges":["read","view_index_metadata","monitor"]}]}'
+```
+
+Sur OpenSearch, avec son plugin de sécurité :
+
+```bash
+curl -u admin -X PUT "https://search.internal:9200/_plugins/_security/api/roles/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster_permissions":["cluster_monitor"],"index_permissions":[{"index_patterns":["*"],"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]}]}'
+```
+
+Donnez ensuite ce rôle, et seulement ce rôle, à un utilisateur. Restreignez `*` aux index à analyser.
+
+### Ce que OneUptime vérifie sur un magasin de données que vous exploitez
+
+Un magasin de données d'un compte cloud est contrôlé d'après les paramètres que tient son cloud. Un magasin de données que vous exploitez n'en a aucun que OneUptime puisse lire : un cluster Elasticsearch ou OpenSearch est donc contrôlé d'après ce qu'il répond à sa propre adresse. À chaque analyse du contenu, depuis l'endroit où l'analyse s'exécute, il est interrogé sans identifiants :
+
+| Demandé | Ce que cela indique |
+| --- | --- |
+| Qui demande : `/_security/_authenticate` sur Elasticsearch, `/_plugins/_security/authinfo` sur OpenSearch | S'il demande des identifiants |
+| Une recherche qui ne renvoie aucun document, seulement s'il y en a | Si quiconque l'atteint peut lire ses documents |
+| Son adresse en HTTP simple, quand sa chaîne de connexion est en HTTPS | S'il accepte des connexions sans TLS |
+
+Rien n'y est écrit : on ne peut donc pas demander à un cluster doté d'utilisateurs et de rôles si son utilisateur anonyme peut écrire, et cette ligne de sa **Configuration** indique **Impossible à vérifier**. Un cluster sans aucun contrôle d'accès accepte toutes les requêtes, les écritures aussi. Un cluster qui répond à n'importe qui échoue au contrôle [Quiconque y accède peut le lire sans identifiants](/docs/data-security/checks-and-issues#exposition).
+
+L'endroit où l'analyse s'exécute décide de ce qu'on peut savoir d'autre. Les workers de OneUptime Cloud n'atteignent que des adresses sur Internet : un cluster qu'ils analysent est donc accessible depuis Internet, et son exposition le dit. Depuis une sonde, ou depuis un OneUptime que vous hébergez, l'analyse s'exécute à l'intérieur d'un réseau, et on ne peut pas savoir de là si Internet atteint le cluster : son exposition indique **Inconnu**, et sa **Vue d'ensemble** dit pourquoi. Son chiffrement au repos, ses sauvegardes et sa journalisation des accès sont ceux de ses serveurs, invisibles depuis son adresse, et ne sont pas contrôlés.
+
+Une base de données que vous exploitez est échantillonnée, pas interrogée, et la façon dont on peut l'atteindre n'est pas contrôlée : son exposition indique **Impossible à vérifier**, comme celle d'un type que OneUptime n'échantillonne pas. Tant qu'un magasin de données n'a pas été contrôlé une première fois, son exposition indique **Pas encore vérifié** : un magasin qui attend son premier contrôle n'est jamais pris pour un magasin qu'on ne peut pas contrôler.
 
 ## Ce que conserve OneUptime
 
@@ -244,11 +303,15 @@ Les paramètres de Sécurité des données forment un seul ensemble par projet, 
 ## Dépannage
 
 :::details Un magasin de données indique que son contenu n'a pas été analysé
-L'analyse indique pourquoi : « L'analyse du contenu nécessite l'autorisation de contenu de la connexion, ou une chaîne de connexion pour une base de données. » Réglez la connexion du magasin de données sur **Configuration et échantillons de contenu** et exécutez à nouveau sa commande, ou donnez une chaîne de connexion à la base de données. Vérifiez aussi que **Analyser le contenu** est activé pour le magasin de données et dans les paramètres du projet.
+L'analyse indique pourquoi : « L'analyse du contenu nécessite l'autorisation de contenu de la connexion, ou une chaîne de connexion pour un magasin de données que vous exploitez. » Réglez la connexion du magasin de données sur **Configuration et échantillons de contenu** et exécutez à nouveau sa commande, ou donnez une chaîne de connexion au magasin de données que vous exploitez. Vérifiez aussi que **Analyser le contenu** est activé pour le magasin de données et dans les paramètres du projet.
 :::
 
 :::details Un contrôle indique qu'il ne peut pas trancher
 Un fait que le lecteur n'a pas pu lire - une autorisation que le rôle n'a pas, une API qui n'est pas activée - est inconnu, jamais deviné. Son contrôle signale qu'il ne peut pas trancher, et un problème qu'il a ouvert reste ouvert : personne ne peut conclure qu'un problème est corrigé parce que OneUptime n'a pas pu regarder. Les avertissements de la lecture de la configuration indiquent ce qu'elle n'a pas pu lire. Exécutez à nouveau la commande de la connexion pour accorder ce qui manque.
+:::
+
+:::details L'exposition d'un magasin de données indique Impossible à vérifier
+OneUptime n'a aucun moyen de lire comment un magasin de données de ce type peut être atteint : une base de données que vous exploitez, ou un type qu'il n'échantillonne pas. Ce n'est pas un échec, et aucun problème ne s'ouvre pour cela. Ses **Paramètres** indiquent ce qui est vérifié sur lui, sous **Ce que vérifie OneUptime**. Un magasin de données dont l'exposition indique **Pas encore vérifié** est un magasin que OneUptime peut vérifier et n'a pas encore vérifié : un cluster de recherche avant sa première analyse du contenu, ou un magasin de données d'un compte cloud avant la première lecture de la configuration de sa connexion.
 :::
 
 :::details Aucun bucket S3 ni jeu de données BigQuery n'apparaît

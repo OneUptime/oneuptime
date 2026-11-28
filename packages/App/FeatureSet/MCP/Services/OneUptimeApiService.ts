@@ -25,6 +25,14 @@ import {
   takesOwnersOnCreate,
 } from "Common/Types/Database/OwnersOnCreate";
 import { readDeleteChoices } from "Common/Utils/DeveloperDocs/DeleteChoices";
+import { AlwaysAskWrite } from "Common/Types/AI/AIAlwaysAskChanges";
+import {
+  ApiRead,
+  getWriteOfOperation,
+  readRecordWriteOfRequest,
+  RecordWrite,
+  refuseWriteThatAsksAPerson,
+} from "../Tools/AlwaysAskWrites";
 
 export interface OneUptimeApiConfig {
   url: string;
@@ -99,6 +107,8 @@ export default class OneUptimeApiService {
      * (Common/Types/API/FieldsLeftOut, #10136).
      */
     onAnswerHeaders?: ((headers: Headers) => void) | undefined,
+    // The tool the agent called, as a refusal names it.
+    toolName?: string | undefined,
   ): Promise<JSONValue> {
     /*
      * `arguments` is optional in the MCP CallToolRequest — normalize here so
@@ -118,6 +128,28 @@ export default class OneUptimeApiService {
       tableName,
       modelType,
     );
+
+    /*
+     * A write that makes a change OneUptime asks a person before, in every
+     * mode - an issue's risk accepted, a finding marked not sensitive, a
+     * rule saved - is refused before it is sent, as the Data Security
+     * tools refuse it (Tools/AlwaysAskWrites, #11177).
+     */
+    const write: AlwaysAskWrite | null = getWriteOfOperation(operation);
+
+    if (write && modelType === ModelType.Database) {
+      await refuseWriteThatAsksAPerson({
+        write: {
+          tableName,
+          write,
+          id: args.id,
+          data: (data?.["data"] as JSONObject | undefined) || undefined,
+        },
+        toolName,
+        credential,
+        read: this.readsAs(credential),
+      });
+    }
 
     MCPLogger.info(
       `Executing ${operation} operation for ${tableName} at ${route.toString()}`,
@@ -153,9 +185,31 @@ export default class OneUptimeApiService {
     path: string;
     body?: JSONObject | undefined;
     credential: McpCredentialInput;
+    // The tool the agent called, as a refusal names it.
+    toolName?: string | undefined;
   }): Promise<JSONValue> {
     this.validateInitialization();
     this.validateCredential(data.credential);
+
+    /*
+     * A hand-written tool's request to a record's own route is held to what
+     * a generated tool's is: a write that makes a change OneUptime asks a
+     * person before is refused before it is sent (Tools/AlwaysAskWrites).
+     */
+    const recordWrite: RecordWrite | null = readRecordWriteOfRequest({
+      method: data.method,
+      path: data.path,
+      body: data.body,
+    });
+
+    if (recordWrite) {
+      await refuseWriteThatAsksAPerson({
+        write: recordWrite,
+        toolName: data.toolName,
+        credential: data.credential,
+        read: this.readsAs(data.credential),
+      });
+    }
 
     const route: Route = new Route(data.path);
     const headers: Headers = this.buildHeaders(data.credential);
@@ -189,6 +243,22 @@ export default class OneUptimeApiService {
     }
 
     return response.data;
+  }
+
+  /*
+   * Reads of the API as this credential: what a refusal reads - the page
+   * it names, whether a change asks in this project - is read as the
+   * caller, never as more.
+   */
+  private static readsAs(credential: McpCredentialInput): ApiRead {
+    return (path: string, body: JSONObject): Promise<JSONValue> => {
+      return this.makeAuthenticatedApiCall({
+        method: "POST",
+        path,
+        body,
+        credential,
+      });
+    };
   }
 
   /**

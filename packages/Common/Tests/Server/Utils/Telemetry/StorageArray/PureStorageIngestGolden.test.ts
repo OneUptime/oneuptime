@@ -391,7 +391,7 @@ function computeGolden(): Omit<GoldenFile, "note"> {
     ["a FlashArray batch with no declaration", "purestorage.flasharray", null],
     ["no Pure series, declared FlashArray", null, "purestorage.flasharray"],
     ["no Pure series, declared FlashBlade", null, "purestorage.flashblade"],
-    ["no Pure series, another platform declared", null, "netapp.ontap"],
+    ["no Pure series, another platform declared", null, "hitachi.vsp"],
     ["no Pure series, nothing declared", null, null],
   ];
   const systemResolution: Record<string, string | null> = {};

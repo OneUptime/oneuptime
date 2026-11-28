@@ -211,7 +211,7 @@ OneUptime AI 也會依照您的 AI 規則，自動處理每個新問題：請參
 
 [Terraform 提供者](/docs/terraform/index) 為你建立的每種記錄（你自己新增的資料儲存區、自訂資料類型、檢查設定、合規設定、資料落地規則、擁有者規則和標籤規則）都提供一個以該記錄命名的資源，例如 `oneuptime_residency_rule`。
 
-[MCP 伺服器](/docs/ai/mcp-server) 為這些記錄提供建立、取得、列出、更新、刪除和計數工具：Data Store、Data Store Finding、Data Store Access Entry、Data Security Identity、Data Flow、Data Security Issue、Data Security Scan、Custom Data Type、Check Setting、Compliance Setting、Residency Rule 和 Data Security Setting。如此一來，AI 助理就能以你的權限詢問哪些資料儲存區保存卡號，或某個儲存貯體上有哪些未解決的問題。 它也提供 [詢問 AI 的操作](#詢問-ai)，每項一次呼叫，每項都以你的身分進行與其按鈕完全相同的變更。MCP 伺服器無法向任何人顯示卡片，因此詢問 AI 在每種模式下都會詢問的操作會在那裡被拒絕：回答會說明原因，並指出你在 OneUptime 中進行變更的頁面。
+[MCP 伺服器](/docs/ai/mcp-server) 為這些記錄提供建立、取得、列出、更新、刪除和計數工具：Data Store、Data Store Finding、Data Store Access Entry、Data Security Identity、Data Flow、Data Security Issue、Data Security Scan、Custom Data Type、Check Setting、Compliance Setting、Residency Rule 和 Data Security Setting。如此一來，AI 助理就能以你的權限詢問哪些資料儲存區保存卡號，或某個儲存貯體上有哪些未解決的問題。 它也提供 [詢問 AI 的操作](#詢問-ai)，每項一次呼叫，每項都以你的身分進行與其按鈕完全相同的變更。MCP 伺服器無法向任何人顯示卡片，因此詢問 AI 在每種模式下都會詢問的操作會在那裡被拒絕：回答會說明原因，並指出你在 OneUptime 中進行變更的頁面。對這些記錄之一進行相同變更的寫入也會被拒絕，例如透過 `update_data_security_issue` 將問題的 `status` 設為 `Accepted`、關閉資料類型，或將某個位置排除在資料儲存區的掃描之外；其他所有欄位都照常變更。
 
 ## 後續步驟
 

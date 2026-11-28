@@ -485,6 +485,53 @@ Händelser över flera rader sätts ihop igen före filtreringen i båda lägena
 > [!IMPORTANT]
 > Kubernetes-händelser och resursspecifikationer filtreras aldrig av detta. De kommer från Kubernetes-API:t utan egen allvarlighetsgrad, så en tröskel skulle ta bort hela flödet, inklusive varningarna `FailedScheduling`, `BackOff` och `OOMKilling` som du helst vill ha. De är få och värdefulla, så agenten skickar dem alltid; för att glesa ut dem använder du **Loggar → Inställningar → Drop-filter** i OneUptime.
 
+### Läsa ditt eget loggformat
+
+Agenten läser nivåerna i de format som de flesta program skriver. För ett format som den inte läser, till exempel ett internt, lägger du till egna collector-operatorer med `logs.extraOperators`. De körs på varje poddloggrad i `daemonset`-läge, efter att agenten har satt ihop raden igen och läst dess podd och ström, och innan den läser radens nivå.
+
+För att sätta en rads nivå skriver du den till `attributes.severity_text` som ett ord agenten läser, till exempel `ERROR`, `warn`, `critical` eller en klog-bokstav. Agenten läser det före alla sina egna läsare och lagrar det så som OneUptime lagrar det ordet överallt annars. Skicka sedan raden vidare till `severity-router`, agentens första steg, eller låt den fortsätta till din nästa operator.
+
+För rader som `<<E>> payment failed` och `SEV1 checkout is down`:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+Chartet kontrollerar operatorerna när du installerar eller uppgraderar. Ett värde som collectorn skulle avvisa gör att `helm install` misslyckas med ett meddelande som namnger operatorn, i stället för att lämna kvar ett DaemonSet som startar om gång på gång: en typ som collectorn i `image.tag` inte har, en inställning som typen kräver, ett fält, ett id som redan är taget, en `output` som inte pekar på något, ett regex eller en sträng i ett uttryck. I en sträng i ett uttryck skrivs backslashen i ett regex två gånger, som i `"^\\d+ "`, eller så läggs regexet i en rå sträng, mellan backticks. Resten av ett uttryck kompileras av collectorn när den startar.
+
+Chartet avvisar också tre sorters operatorer som collectorn skulle köra, och säger varför:
+
+- En som själv sätter radens allvarlighetsgrad, till exempel en `severity_parser`, en `syslog_parser` eller en parsers `severity`-block. Agenten läser varje rads nivå efter dina operatorer och skulle skriva över den, så skriv i stället nivån till `attributes.severity_text`.
+- En router utan `default`, eller en rutt utan `output`. De rader som den inte lämnar vidare till någon operator släpps.
+- Parsern `container`. Agenten har redan läst containerkörtidens format, så dina operatorer ser programmets egen rad.
+
+`logs.extraOperators` kräver `daemonset`-läge. Loggläsaren i `api`-läge kör inga collector-operatorer, så chartet avvisar inställningen där, och Windows-poddarna i en hybridinstallation (`logs.windowsPods.enabled`) får den inte.
+
 ### Inkludera eller utesluta mätvärden efter namn
 
 `filters.metrics` avgör vilka mätvärden som lämnar klustret, för alla receivers.
@@ -789,7 +836,7 @@ Att injicera huvudet innebär att skriva om trafik som redan är på väg: HTTP-
 
 När en incident eller ett larm uppstår på det här klustret undersöker OneUptime AI det. **Kubernetes-AI-agenten** i chartet ger den en terminal: den kör skrivskyddad `kubectl` som en jourhavande ingenjör skulle göra (beskriver den felande podden, läser dess händelser, följer loggarna från containern som kraschar, kontrollerar nodkapaciteten) och citerar varje kommando på incidentsidan.
 
-Agenten är **på som standard** och **skrivskyddad**: en liten Deployment (`kubernetes-agent-ai-agent`, poddetiketten `component=ai-agent`, imagen `oneuptime/kubernetes-ai-agent`) vars ServiceAccount bara får läsa. Den registrerar sig med samma `oneuptime.apiKey` och `clusterName` som collectorn använder, så det finns inget att ställa in i instrumentpanelen: klustrets sida **AI-agent** (Kubernetes → kluster → AI → Agent) visar den som ansluten inom en minut, och **Testa anslutningen**, i menyn **⋯** bredvid den statusen, kör `kubectl version` och `kubectl auth can-i --list` genom den. Allt AI har gjort med den finns på klustrets sida **AI-loggar** (AI → Loggar), och det som är värt att veta om klustret — de problem som hela tiden återkommer och varför, noden eller arbetsbelastningen bakom de flesta av dem, vad AI har åtgärdat — på sidan **AI-insikter** (AI → Insights). Agenten levereras med en låst kubectl (v1.36.6). Den är ingen Runner och visas aldrig under Runbooks → Runners: OneUptime ger den aldrig inloggningsuppgifter, kör aldrig runbooks på den, och den godtas aldrig som kommando-Runner för en AI-regel.
+Agenten är **på som standard** och **skrivskyddad**: en liten Deployment (`kubernetes-agent-ai-agent`, poddetiketten `component=ai-agent`, imagen `oneuptime/kubernetes-ai-agent`) vars ServiceAccount bara får läsa. Den registrerar sig med samma `oneuptime.apiKey` och `clusterName` som collectorn använder, så det finns inget att ställa in i instrumentpanelen: klustrets sida **AI-agent** (Kubernetes → kluster → AI → Agent) visar den som ansluten inom en minut, och **Testa anslutningen**, i menyn **⋯** bredvid den statusen, kör `kubectl version` och `kubectl auth can-i --list` genom den. Allt AI har gjort med den finns på klustrets sida **AI-loggar** (AI → Loggar), och det som är värt att veta om klustret — de problem som hela tiden återkommer och varför, noden eller arbetsbelastningen bakom de flesta av dem, vad AI har åtgärdat — på sidan **AI-insikter** (AI → Insights). Agenten levereras med en låst kubectl (v1.36.7). Den är ingen Runner och visas aldrig under Runbooks → Runners: OneUptime ger den aldrig inloggningsuppgifter, kör aldrig runbooks på den, och den godtas aldrig som kommando-Runner för en AI-regel.
 
 På en agent som installerades innan AI-agenten fanns uppdaterar du först ditt chart-index och uppgraderar sedan (på en självhostad OneUptime uppgraderar du OneUptime först — se [Uppgradera agenten](#uppgradera-agenten)):
 

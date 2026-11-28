@@ -198,6 +198,21 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
     '"disableActiveMonitoring" = true AND "isArchived" = false AND "deletedAt" IS NULL',
 })
 /*
+ * The monitors a probe may check now: not archived, not paused by anyone,
+ * a manual incident or a maintenance event, not deleted - the monitor's
+ * half of MonitorProbeService.getProbeableSql. A probe's pending count, which
+ * its KEDA autoscaler reads every 30 seconds, joins thousands of due monitor
+ * probes to these: without the index Postgres read the whole of "Monitor" to
+ * do it (#11119, 10,689 pages at 39,700 monitors), with it the monitors' ids
+ * alone (155 pages), and fewer still when one probe has more due than the
+ * count's cap. It names no column a frequent write moves; only a pause,
+ * resume, archive or delete writes its entry.
+ */
+@Index(["_id"], {
+  where:
+    '"isArchived" = false AND "disableActiveMonitoring" = false AND "disableActiveMonitoringBecauseOfManualIncident" = false AND "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false AND "deletedAt" IS NULL',
+})
+/*
  * Serves the lookup of a name the project requires to be one of its kind
  * (RequiredUniqueNames, #10761): the project and the name as it reads, an
  * expression index built by migration 1809187640010-AddUniqueNameIndexes
@@ -2786,7 +2801,7 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     isDefaultValueColumn: true,
-    canReadOnRelationQuery: true,
+    // Read on the monitor itself (its settings, the pause): no relation's label.
     title: "Keep Monitoring During Incidents",
     description:
       "Keep checking this monitor while an incident declared by hand is open on it. Off, such an incident pauses its checks until the incident is resolved.",

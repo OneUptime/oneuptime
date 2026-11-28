@@ -299,6 +299,12 @@ beforeEach(() => {
     isTakenByUnreadable: false,
   });
 
+  // The list asks which keys share a name, to mark them (#11021): none do here.
+  getJestSpyOn(UniqueNamesApi, "readSharedNames").mockResolvedValue({
+    groups: [],
+    createdAt: {},
+  });
+
   getListMock.mockImplementation(async (): Promise<any> => {
     // A project with no keys yet.
     return { data: [], count: 0, skip: 0, limit: 10 };

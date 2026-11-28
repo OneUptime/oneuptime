@@ -1,6 +1,6 @@
 # Coûts et économies du cloud
 
-Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coûter moins. OneUptime lit les coûts de chaque jour dans la facturation de votre cloud et les recommandations du propre moteur de recommandation de votre cloud, les affiche dans **Cloud → Dépenses → Coûts** et **Cloud → Dépenses → Économies**, liste vos Savings Plans, réservations et remises sur engagement d'utilisation dans **Cloud → Dépenses → Engagements**, et alerte avant qu'un mois ne coûte plus que son budget dans **Cloud → Dépenses → Budgets**. Si vous le lui permettez, il réalise aussi les économies qu'un propriétaire approuve, arrête les ressources hors production en dehors des heures de travail et vérifie chaque modification sur la facture.
+Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coûter moins. OneUptime lit les coûts de chaque jour dans la facturation de votre cloud et les recommandations du propre moteur de recommandation de votre cloud, les affiche dans **Cloud → Dépenses → Coûts** et **Cloud → Dépenses → Économies**, liste vos Savings Plans, réservations et remises sur engagement d'utilisation dans **Cloud → Dépenses → Engagements**, vous prévient dans **Cloud → Dépenses → Budgets** avant qu'un mois, un trimestre ou une année coûte plus que son budget, et prévoit les mois à venir dans **Cloud → Dépenses → Prévision**. Si vous le lui permettez, il réalise aussi les économies qu'un propriétaire approuve, arrête les ressources hors production en dehors des heures de travail et vérifie chaque modification sur la facture.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer et Cost Optimization Hub, chacun activé une fois.
@@ -11,7 +11,8 @@ Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coût
 - [Appliquer des économies](#appliquer-des-économies): Appliquer une économie avec l'approbation de son propriétaire, et l'annuler.
 - [Plannings hors heures](#plannings-hors-heures): Arrêter les ressources hors production la nuit et le week-end.
 - [Règles IA d'économies](#règles-ia-déconomies): Des propositions aux propriétaires, ou des modifications dans une limite.
-- [Budgets](#budgets): Une alerte quand les dépenses d'un mois dépassent une part de son budget.
+- [Budgets](#budgets): Le budget d'un mois, d'un trimestre ou d'une année pour n'importe quel compte, groupe de coûts ou service.
+- [Prévisions](#prévisions): Ce que les 12 prochains mois sont en route pour coûter, et avec quelle certitude.
 - [Étiquettes obligatoires](#étiquettes-obligatoires): Quelle part de vos dépenses porte les étiquettes que vous exigez, et les nouvelles ressources qui ne les ont pas.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Facturation du cloud,<br/>lue deux fois par jour"] --> costs["Coûts"]
     rec["Recommandations du cloud,<br/>lues une fois par jour"] --> savings["Économies"]
     costs --> budgets["Budgets qui alertent"]
+    costs --> forecast["Prévisions"]
+    forecast --> budgets
     costs --> overview["Vue d'ensemble de Cloud"]
     savings --> overview
 ```
@@ -222,30 +225,41 @@ Choisissez les jours ouvrés, l'heure à laquelle elles démarrent et celle à l
 Un planning n'arrête jamais la production, ni une ressource dont rien n'indique l'environnement. Une ressource est connue comme hors production quand :
 
 - l'une de ses balises le dit, sous une clé comme `environment`, `env`, `stage`, `tier` ou `deployment.environment`, avec un mot comme `dev`, `test`, `qa`, `staging` ou `sandbox` ;
-- son compte est marqué **Hors production** dans **Environnement** des **Paramètres** du compte ;
-- ou l'une de ses étiquettes le dit, par exemple `Staging` ou `env: dev`.
+- ou son compte est marqué **Hors production** dans **Environnement** des **Paramètres** du compte.
 
-La production l'emporte : une balise qui dit `prod`, `production` ou `live`, ou un compte marqué **Production**, garde une ressource en marche, quoi que dise le reste. Le nom d'une ressource n'est jamais lu pour cela. Désactivez un planning et il n'arrête plus rien, et redémarre ce qu'il a arrêté au début de ses heures de travail ; supprimez-le et ce qu'il a arrêté est redémarré aussitôt.
+Une étiquette OneUptime ne rend jamais une ressource hors production pour un planning. Renommer une étiquette change d'un coup chaque ressource qui la porte, donc une étiquette comme `Staging` ou `env: dev` n'est lue que là où une personne approuve la modification, comme avec **Appliquer**. La production l'emporte : une balise qui dit `prod`, `production` ou `live`, un compte marqué **Production**, ou une étiquette comme `Production` ou `env: prod` garde une ressource en marche, quoi que dise le reste. Le nom d'une ressource n'est jamais lu pour cela. Chaque arrêt relit la ressource juste avant d'être effectué. Désactivez un planning et il n'arrête plus rien, et redémarre ce qu'il a arrêté au début de ses heures de travail ; supprimez-le et ce qu'il a arrêté est redémarré aussitôt.
 
 ## Règles IA d'économies
 
 Avec **Activer l'IA** activé, OneUptime AI propose aux propriétaires de la ressource chaque économie qu'il peut réaliser, après chaque lecture des économies du compte, et ils l'approuvent ou la refusent dans **En attente d'approbation**. Dans **Cloud → Paramètres → Règles IA d'économies**, une règle dit ce que OneUptime AI fait des économies auxquelles elle correspond, selon le type de modification, l'environnement de la ressource et son cloud : **Désactivé**, **Proposer au propriétaire** ou **Agir sans demander**, jusqu'à une limite mensuelle. Sans règle, chaque économie est proposée et aucune n'est effectuée ; avec des règles, seulement ce à quoi une règle correspond, et entre les règles qui correspondent, la plus prudente l'emporte.
 
-Une règle n'agit sans demander que sur une ressource connue comme hors production, que pour une modification qui peut être annulée, que jusqu'à la plus petite limite des règles qui correspondent, et au plus 10 fois par heure dans un projet : tout le reste est proposé. Une modification effectuée sans demander figure dans les chronologies avec la règle qui l'a effectuée, et ses propriétaires peuvent l'annuler. Une économie refusée ou annulée n'est plus proposée pendant 30 jours.
+Une règle n'agit sans demander que sur une ressource connue comme hors production telle qu'un planning la lit, d'après ses balises ou son compte et jamais d'après ses seules étiquettes, que pour une modification qui peut être annulée, que jusqu'à la plus petite limite des règles qui correspondent, et au plus 10 fois par heure dans un projet : tout le reste est proposé. La ressource est relue juste avant que la modification soit effectuée, et une ressource qui n'est plus connue comme hors production d'ici là est proposée à la place. Une modification effectuée sans demander figure dans les chronologies avec la règle qui l'a effectuée, et ses propriétaires peuvent l'annuler. Une économie refusée ou annulée n'est plus proposée pendant 30 jours.
 
 ## Budgets
 
 :::steps
 ### Créer un budget
 
-Dans **Cloud → Dépenses → Budgets**, créez un budget : son **Montant mensuel**, le **Compte** concerné, ou aucun pour tous les comptes, et la **Base de coût** qu'il compte, ou aucune pour celle du projet.
+Dans **Cloud → Dépenses → Budgets**, créez un budget et choisissez à quoi il **S'applique à** : tous les comptes, un **Compte**, un **Groupe de coûts** tel que ses règles répartissent les dépenses, ou les services, régions et étiquettes qu'un **Filtre** nomme, écrit comme les règles d'un groupe de coûts. Laissez sa **Base de coût** vide pour compter celle du projet.
+
+### Dire ce qu'il peut coûter
+
+Sa **Période** est un mois, un trimestre ou une année, et son **Montant** est ce qu'une période peut coûter. Les trimestres et les années commencent au **Premier mois de l'année** : à partir d'avril, une année va d'avril à mars. Le **Plan budgétaire** d'une année peut répartir son montant également sur ses mois, ou donner à chaque mois le sien dans un **Plan mensuel**. Chaque mois est alors tenu à sa propre part : un mois calme n'est jamais alerté pour les dépenses d'un mois chargé.
 
 ### Choisir quand il alerte
 
-**Alerter à** prend les parts du budget auxquelles alerter, en pourcentage : 80 et 100 pour commencer. **Alerter si un dépassement se profile** alerte aussi, une fois par mois, quand le rythme de la dernière semaine ferait dépasser le budget au mois. **Alerter en cas de jour inhabituel** alerte aussi le lendemain d'un jour qui a coûté bien plus que d'habitude : voir [Jours inhabituels](#jours-inhabituels). **Gravité de l'alerte** et **Politiques d'astreinte** disent la gravité des alertes et qui est prévenu.
+**Alerter à** prend les parts du budget auxquelles agir, en pourcentage : 80 et 100 pour commencer. **Alerter si un dépassement se profile** alerte aussi, une fois par période, quand la période est en route pour coûter plus que le budget. **Alerter en cas de jour inhabituel** alerte aussi le lendemain d'une journée qui a coûté bien plus que d'habitude : voir [Jours inhabituels](#jours-inhabituels). **Gravité de l'alerte** dit la gravité de ses alertes.
+
+### Choisir qui est prévenu
+
+Les personnes et équipes à **Notifier** sont prévenues par e-mail et par chat quand les dépenses franchissent une part en dessous de 100 %, sans alerte : personne n'est alerté pour des dépenses dans le budget. **Prévenir l'équipe du groupe de coûts** prévient aussi l'équipe à laquelle appartient le groupe de coûts. À partir de 100 %, une alerte est créée, elles en sont propriétaires, et les **Politiques d'astreinte** sont alertées. Un budget sans personne à prévenir crée une alerte à chaque part.
 :::
 
-Un budget est vérifié après chaque lecture des coûts et toutes les heures. Quand les dépenses du mois franchissent un seuil, une alerte est levée pour lui, la plus haute si une lecture en franchit plusieurs à la fois, et un nouveau mois résout les alertes du mois précédent. Un budget ne compte que les comptes facturés dans sa devise, sur sa base : un budget amorti n'est pas déclenché par un engagement acheté d'avance, qu'un budget facturé compte le jour de son achat.
+Un budget est vérifié après chaque lecture des coûts et toutes les heures. Quand les dépenses de la période franchissent une part, les personnes à prévenir sont prévenues, ou à partir de 100 % une alerte est créée, une fois pour la plus haute quand une lecture en franchit plusieurs à la fois, et une nouvelle période résout les alertes de la précédente. Une année répartie par mois est vérifiée un mois à la fois, par rapport à la part de ce mois. Un budget ne compte que les comptes facturés dans sa devise, sur sa base : un budget amorti n'est pas déclenché par un engagement acheté d'avance, qu'un budget facturé compte le jour de son achat.
+
+Une période est en route pour dépasser le budget quand ce qu'elle a coûté jusqu'ici, le reste de ce mois au rythme de la dernière semaine complète, et les mois suivants d'un trimestre ou d'une année selon la [prévision](#prévisions) dépassent ensemble le budget.
+
+La ligne de chaque budget dit ce qu'il compte, sa période et la période jusqu'ici : pour une année répartie par mois, ce mois-ci par rapport à sa part, avec l'année à côté. Sa page montre la période mois par mois par rapport à la part de chaque mois, ce mois-ci jour par jour, ce qui a le plus coûté, et qui est prévenu. La page d'un budget annuel peut enregistrer sa prévision comme son plan.
 
 Les agents d'IA peuvent créer et modifier des budgets via le [serveur MCP](/docs/ai/mcp-server), et les scripts avec la commande `oneuptime cloud-budget` de la CLI : voir [Opérations sur les ressources](/docs/cli/resource-operations).
 
@@ -253,7 +267,41 @@ Les agents d'IA peuvent créer et modifier des budgets via le [serveur MCP](/doc
 
 Après chaque lecture, chacun des 14 derniers jours complets d'un compte est comparé aux 14 jours qui le précèdent. Un jour est inhabituel quand un service a coûté le double de sa journée habituelle ou plus, ou le compte entier une fois et demie sa journée habituelle ou plus. Dans les deux cas, il faut au moins 10 de plus que d'habitude, dans la devise du compte, et au moins 5 % de la journée habituelle du compte, pour que quelques centimes ne passent jamais pour un pic. La valeur habituelle d'un jour est la médiane des 14 jours qui le précèdent, si bien qu'un pic isolé la fait peu bouger, et un compte n'est jugé qu'une fois qu'il a une semaine de coûts.
 
-**Cloud → Dépenses → Coûts** marque les jours inhabituels sur les dépenses quotidiennes, au-dessus de leurs barres, et les liste en dessous. Sur tous les comptes, chaque marque ouvre les **Coûts** de son compte. Un budget qui inclut le compte lève une alerte pour chaque compte et chaque jour, le lendemain, en nommant chaque service qui a coûté trop. Un pic qui dure plusieurs jours est signalé le jour où il a commencé, et un jour vieux de plus d'une semaine n'est pas signalé. Un budget créé avant ces alertes ne les lève pas tant que vous ne le modifiez pas pour les activer.
+**Cloud → Dépenses → Coûts** marque les jours inhabituels sur les dépenses quotidiennes, au-dessus de leurs barres, et les liste en dessous. Sur tous les comptes, chaque marque ouvre les **Coûts** de son compte. Un budget mensuel pour tous les comptes ou un seul crée une alerte pour chaque compte et chaque jour, le lendemain, en nommant chaque service qui a dépassé. Tout autre budget tient ce qu'il compte à sa propre journée habituelle de la même façon. Une hausse qui dure plusieurs jours est signalée le jour où elle a commencé, et un jour de plus d'une semaine n'est pas signalé. Un budget créé avant ces alertes ne les crée pas tant que vous ne le modifiez pas pour les activer.
+
+## Prévisions
+
+**Cloud → Dépenses → Prévision** dit ce que les dépenses sont en route pour coûter dans chacun des 12 prochains mois, pour tout, un compte, un groupe de coûts ou un service, sur la base de coût que vous choisissez. Elle dit comment chaque prévision est établie, à partir des mois complets de coûts que OneUptime conserve, un an ou un peu plus :
+
+- **Ce mois-ci**, c'est ce qu'il a coûté jusqu'ici, avec chaque jour restant à la moyenne des sept derniers jours complets, comme un budget le projette.
+- **Avec moins de 3 mois complets**, chaque mois à venir prolonge ce rythme, sans fourchette probable : trop peu a été lu pour distinguer une tendance d'un accident.
+- **À partir de 3 mois complets**, une tendance passe par la journée moyenne de chaque mois : la médiane des pentes entre chaque paire de mois, si bien qu'un mois atypique la bouge à peine.
+- **À partir de 12 mois complets**, chaque mois du calendrier garde aussi son écart au-dessus ou en dessous de la tendance l'an dernier, si bien qu'un pic de décembre est aussi prévu pour le décembre suivant.
+
+Chaque mois à venir a une fourchette probable, où il devrait tomber 8 fois sur 10, tirée de l'écart des mois passés à leur tendance, et jamais plus étroite que 5 % de part et d'autre. Elle s'élargit à mesure qu'un mois est lointain, et que la prévision repose sur peu de mois. À partir de 12 mois complets, chaque fourchette est encore plus large, car une année ne montre chaque mois du calendrier qu'une fois. Une prévision n'est pas une promesse : un nouveau service, une migration ou un changement de prix fait bouger les mois à venir d'une façon qu'aucun mois passé ne montre.
+
+**Simulation** fait croître ou décroître chaque mois à venir à partir du mois choisi, de la part que vous saisissez, par exemple 20 % dès janvier. **Enregistrer comme plan budgétaire** fait des douze prochains mois le plan d'un budget annuel, dans un nouveau budget ou un budget existant, chaque mois tenu à sa part prévue.
+
+## Budgets et prévisions dans l'API
+
+Les budgets sont une ressource de l'API (`cloud-budget`), avec des commandes CLI et des outils MCP comme toute ressource. Le `scope` d'un budget est `allAccounts`, `account` (avec `cloudAccountId`), `costGroup` (avec `cloudCostGroupId`) ou `filter` (avec `filterRules`, écrit comme les règles d'un groupe de coûts). Sa `period` est `month`, `quarter` ou `year`, à partir de `fiscalYearStartMonth`, de 1 à 12. Le `planSplit` d'une année est `none`, `equal` ou `byMonth`, avec ses douze mois dans `monthlyPlan`, dans l'ordre de l'exercice.
+
+Pour lire la période d'un budget mois par mois, les jours de ce mois-ci et ce qui a le plus coûté, comme sa page :
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+Pour prévoir une portée, de 1 à 24 mois à l'avance, avec une simulation facultative :
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+Le `forecast` de la réponse contient sa `method` (`pace`, `trend` ou `trendAndSeason`), les mois dont elle est tirée, et chaque mois avec son `amount` et, pour les mois à venir, son `low` et son `high`. Envoyez `basis` en `billed`, `amortized` ou `net` pour prévoir sur cette base ; sans lui, la prévision est sur celle du projet, et le `basis` de la réponse dit laquelle. Les dépenses d'un budget sont sur sa propre base.
 
 ## Où va l'argent
 
@@ -272,7 +320,7 @@ Les dépenses ne sont bien réparties que si elles portent les bonnes étiquette
 :::steps
 ### Exiger une étiquette
 
-Choisissez **Exiger une étiquette** et saisissez sa **Clé d'étiquette**. Sous **Valeurs autorisées**, listez les valeurs qu'elle peut prendre, séparées par des virgules, ou laissez vide pour accepter n'importe quelle valeur. Choisissez un **Compte** pour n'exiger l'étiquette que dans ce compte. Une **Description**, sous **Plus de champs**, dit dans les e-mails à quoi sert l'étiquette.
+Choisissez **Exiger une étiquette** et saisissez sa **Clé de balise**. Sous **Valeurs autorisées**, listez les valeurs qu'elle peut prendre, séparées par des virgules, ou laissez vide pour accepter n'importe quelle valeur. Choisissez un **Compte** pour n'exiger l'étiquette que dans ce compte. Une **Description**, sous **Plus de champs**, dit dans les e-mails à quoi sert l'étiquette.
 
 ### Lire la couverture
 
@@ -389,6 +437,8 @@ Le widget **Coût cloud** place un total, une répartition ou une tendance des d
 - **Les coûts d'un compte.** Les **Coûts** d'un compte montrent la même chose pour ce seul compte, avec ses engagements et ses moyens de dépenser moins.
 - **Étiquettes obligatoires.** **Cloud → Dépenses → Étiquettes** montre quelle part des dépenses et des ressources porte vos étiquettes obligatoires, et les **Étiquettes** d'un compte montrent la même chose pour ce seul compte.
 - **Le coût d'une ressource.** La page d'une ressource montre ce qu'elle a coûté ce mois-ci et sur les 30 derniers jours quand son cloud la facture par son nom, avec ses moyens de dépenser moins et son redimensionnement.
+- **Chaque budget.** **Cloud → Dépenses → Budgets** liste chaque budget avec ce qu'il compte, sa période et la période jusqu'ici, et chacun ouvre sa page.
+- **Les mois à venir.** **Cloud → Dépenses → Prévision** trace les mois dont une prévision est tirée, ce mois-ci en route et les 12 prochains, avec la façon dont elle est établie.
 - **Ce qui a été économisé.** **Cloud → Dépenses → Économies** s'ouvre sur ce que les modifications effectuées ont économisé ce mois-ci, selon la facture, les modifications en attente d'approbation et celles effectuées, et les heures pendant lesquelles les plannings ont arrêté des ressources.
 
 ## Dépannage
@@ -430,7 +480,19 @@ OneUptime ne fait que des modifications en une étape : un engagement, ou une re
 :::
 
 :::details Un planning laisse une ressource en marche
-**Voir les ressources** dit pourquoi : c'est de la production, rien n'indique que ce n'est pas de la production, ou la connexion de son compte ne permet pas les actions d'économie. Balisez-la, par exemple `environment` = `dev`, ou marquez son compte **Hors production**.
+**Voir les ressources** dit pourquoi : c'est de la production, rien n'indique que ce n'est pas de la production, seules ses étiquettes l'indiquent, ou la connexion de son compte ne permet pas les actions d'économie. Balisez-la dans votre cloud, par exemple `environment` = `dev`, ou marquez son compte **Hors production**.
+:::
+
+:::details Une règle propose une modification qu'elle effectuait sans demander
+Sa carte dit pourquoi. Une règle n'effectue une modification sans demander que sur une ressource que ses balises ou son compte disent hors production : une ressource que seules ses étiquettes disent hors production est proposée à ses propriétaires à la place. Balisez-la dans votre cloud, par exemple `environment` = `dev`, ou marquez son compte **Hors production**.
+:::
+
+:::details Une prévision n'a pas de fourchette probable
+Elle a été établie à partir de moins de 3 mois complets de coûts : chaque mois à venir prolonge le rythme de la dernière semaine complète, et aucune fourchette n'est donnée. La fourchette arrive dès que le troisième mois complet est lu. La première lecture d'une connexion remonte au début de l'avant-dernier mois.
+:::
+
+:::details Quelqu'un a été prévenu d'un budget mais aucune alerte n'est venue
+En dessous de 100 %, un budget qui nomme des personnes ou des équipes à prévenir les prévient et ne crée pas d'alerte : personne n'est alerté. À partir de 100 %, il crée une alerte, et ses politiques d'astreinte sont alertées. Un budget sans personne à prévenir crée une alerte à chaque part.
 :::
 
 :::details Ce mois est plus bas que dans la console de votre cloud

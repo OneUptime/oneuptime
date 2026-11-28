@@ -843,6 +843,69 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
         : PASS;
     },
   },
+  /*
+   * A self-managed search cluster, asked without credentials from where
+   * its scan runs (#11140, SearchEndpointCheck). From inside your network
+   * whether the internet reaches it cannot be told, so Public is never
+   * claimed from there: this says what was seen - that whatever reaches it
+   * reads it, or changes it too - and its exposure says the rest.
+   */
+  {
+    id: "readable-without-credentials",
+    group: G.Exposure,
+    title: "Anyone who reaches it can read it without credentials",
+    description:
+      "It answered OneUptime without credentials: whoever can reach its address can read its data, and change it when it has no access control at all.",
+    whyItMatters:
+      "Search clusters and databases left open are found and copied, or wiped and held for ransom, soon after anything can reach them.",
+    severityBySensitivity: severities(S.Critical, S.High, S.Medium, S.Low),
+    families: [FAM.Search],
+    requirements: ACCESS_REQUIREMENTS,
+    remediation: {
+      [K.Elasticsearch]: {
+        steps: [
+          "Turn security on: set xpack.security.enabled: true in elasticsearch.yml on every node, restart them, and set the built-in users' passwords with elasticsearch-reset-password.",
+          "If anonymous access is on, remove xpack.security.authc.anonymous.roles, or give the anonymous user a role with no index privileges.",
+          "Give each application its own user or API key, with only the roles it needs.",
+        ],
+      },
+      [K.OpenSearch]: {
+        steps: [
+          "Turn the security plugin on: remove plugins.security.disabled: true from opensearch.yml and DISABLE_SECURITY_PLUGIN from the nodes' environment, then restart every node.",
+          "If anonymous authentication is on, set anonymous_auth_enabled: false in the security plugin's config.yml and apply it with securityadmin.sh.",
+          "Give each application its own internal user, mapped to a role with only the permissions it needs.",
+        ],
+      },
+      default: {
+        steps: [
+          "Require credentials for every request, and give each application its own read-only user.",
+        ],
+      },
+    },
+    evaluate: (input: DataStoreCheckInput): DataSecurityCheckResult => {
+      // Anyone can change it: whatever it holds can be wiped and held for ransom.
+      if (input.posture.anonymousWrite === true) {
+        return fail(
+          "It answered without credentials and has no access control of its own: anyone who reaches it can read, change and delete its data.",
+          input.sensitivity === DataSensitivity.Restricted ||
+            input.sensitivity === DataSensitivity.Confidential
+            ? S.Critical
+            : S.High,
+        );
+      }
+
+      // A public search index - a website's - is meant to be read by anyone.
+      if (input.isPublicByDesign && input.posture.anonymousRead !== undefined) {
+        return PASS;
+      }
+
+      return factIs(
+        input.posture.anonymousRead,
+        true,
+        "It answered a search without credentials: anyone who reaches it can read its documents.",
+      );
+    },
+  },
 
   // Encryption.
   {
@@ -1338,7 +1401,10 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
         return PASS;
       }
 
-      const exposure: DataStoreExposure = getDataStoreExposure(input.posture);
+      const exposure: DataStoreExposure = getDataStoreExposure(
+        input.posture,
+        input.kind,
+      );
       const exposed: boolean =
         exposure === DataStoreExposure.Public ||
         exposure === DataStoreExposure.OtherAccounts;

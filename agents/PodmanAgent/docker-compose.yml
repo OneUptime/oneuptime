@@ -6,19 +6,48 @@ services:
     volumes:
       - /run/podman/podman.sock:/run/podman/podman.sock:ro
       - /var/lib/containers/storage:/var/lib/containers/storage:ro
-    environment:
+    environment: &collector-environment
       - ONEUPTIME_URL=${ONEUPTIME_URL}
       - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
       - PODMAN_HOST_NAME=${PODMAN_HOST_NAME:-podman-host}
       # Empty: the collector negotiates the Docker API version with Podman's
       # socket. Set it only to pin a version (see README, Troubleshooting).
       - DOCKER_API_VERSION=${DOCKER_API_VERSION:-}
+      # Log operators of your own, for a format the agent does not read: one
+      # collector (stanza) operator each, as JSON, set in .env. Named without
+      # a value, each is passed only when set, as an empty one would stop the
+      # collector. The config check below runs them through the collector's
+      # validate before the agent starts.
+      - ONEUPTIME_LOG_OPERATOR_1
+      - ONEUPTIME_LOG_OPERATOR_2
+      - ONEUPTIME_LOG_OPERATOR_3
+      - ONEUPTIME_LOG_OPERATOR_4
+      - ONEUPTIME_LOG_OPERATOR_5
+    depends_on:
+      oneuptime-podman-agent-config-check:
+        condition: service_completed_successfully
     restart: unless-stopped
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+
+  # The agent's config, with your log operators (ONEUPTIME_LOG_OPERATOR_1 to
+  # ONEUPTIME_LOG_OPERATOR_5), checked by the collector's own validate before
+  # the agent starts: a bad operator stops `podman compose up` here, with the
+  # collector's message in `podman compose logs
+  # oneuptime-podman-agent-config-check`, rather than leaving the agent to
+  # restart forever. It runs once and exits. That is so when `podman compose`
+  # runs Docker Compose; podman-compose (1.6.0, the latest release) runs the
+  # check but starts the agent whatever its exit code, so with it read the
+  # check's log, or run install.sh, which stops on a refusal itself.
+  oneuptime-podman-agent-config-check:
+    image: oneuptime/podman-agent:release
+    container_name: oneuptime-podman-agent-config-check
+    command: ["validate", "--config=/etc/otelcol-contrib/config.yaml"]
+    environment: *collector-environment
+    restart: "no"
 
   # The OneUptime AI agent for this Podman host. While OneUptime AI
   # investigates an incident or alert it runs read-only docker commands here

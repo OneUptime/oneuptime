@@ -182,6 +182,15 @@ ENV_ARGS=(
   -e "STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true"
   # A PowerStore's address names the cluster in every path its config scrapes.
   -e "POWERSTORE_ENDPOINT=powerstore.example.com"
+  # Dell PowerScale (the snmp receiver, one per node): the endpoint parses as
+  # udp://host:161, and the pipeline runs the receivers install.sh lists -
+  # here the cluster's, the quotas' and three nodes'.
+  -e "POWERSCALE_ENDPOINT=10.20.0.11"
+  -e "POWERSCALE_SNMP_COMMUNITY=validate-only"
+  -e "POWERSCALE_NODE_1=10.20.0.11"
+  -e "POWERSCALE_NODE_2=10.20.0.12"
+  -e "POWERSCALE_NODE_3=[fd00::13]"
+  -e "POWERSCALE_SNMP_RECEIVERS=[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]"
   # The XCP-ng Agent (a prometheus receiver scraping Xen Orchestra's
   # OpenMetrics plugin). The scheme has to be http or https and the target
   # parse as host:port - so give them the shapes install.sh writes. Its
@@ -368,12 +377,14 @@ fi
 
 # The Storage Array Agent ships one config per way of reading an array:
 # docker-compose.yml mounts the one STORAGE_ARRAY_COLLECTOR_CONFIG names (the
-# FlashArray's native endpoint, or Pure's FlashArray / FlashBlade exporter).
-# Every one of them is validated.
+# FlashArray's native endpoint, Pure's FlashArray / FlashBlade exporter, or
+# NetApp Harvest for an ONTAP cluster). Every one of them is validated.
 STORAGE_ARRAY_AGENT_CONFIGS=(
   otel-collector-config.yaml
   otel-collector-config.flasharray-exporter.yaml
   otel-collector-config.flashblade.yaml
+  otel-collector-config.netapp-ontap.yaml
+  otel-collector-config.powerscale.yaml
 )
 
 for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do
@@ -694,6 +705,194 @@ fs.writeFileSync(out, config);
 validate "kubernetes-agent / node collector DaemonSet, logs.openStack.cloudName" \
   "${WORK_DIR}/k8s-daemonset-openstack-logs.yaml"
 
+# logs.extraOperators (issue #11225): collector operators of the user's own,
+# which the chart renders into the DaemonSet's pod log receiver, after a line
+# is put back together and its pod and stream are read and before the agent's
+# severity chain, and checks at install time
+# (templates/extra-log-operators-check.yaml). Held here, where the collector
+# runs:
+#
+#   1. the chart's verdict on each of a table of operators, beside this
+#      collector's own (Utils/extra-log-operators-agreement.js);
+#   2. the agent's config with operators of every type the chart takes in it,
+#      so each is built beside the agent's own (and on the collector
+#      --reuse-values keeps, below, with the types that one has);
+#   3. why the chart keeps the agent's ids, and move, the name the collector
+#      gives the first of the agent's moves: in that config, one of the
+#      user's operators named so is the duplicate the collector refuses;
+#   4. what values.schema.json refuses, with Helm's own message, which
+#      helm-unittest 0.5.1 cannot read.
+echo "==> logs.extraOperators: the chart's verdicts beside ${COLLECTOR_IMAGE}'s"
+if node "${REPO_ROOT}/Tests/Ops/Utils/extra-log-operators-agreement.js" \
+  "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+  "${WORK_DIR}/extra-log-operators-agreement" \
+  "${COLLECTOR_IMAGE}"; then
+  echo "    ok"
+else
+  echo "    FAILED: logs.extraOperators: the chart's verdicts beside the collector's"
+  failures=$((failures + 1))
+fi
+
+# extra_operators <set>...: the operator sets of Utils/ExtraLogOperatorExamples.js
+# named, one after the other, as JSON.
+extra_operators() {
+  node -e '
+const examples = require(process.argv[1]);
+process.stdout.write(JSON.stringify(process.argv.slice(2).flatMap((name) => {
+  return examples[name];
+})));
+' "${REPO_ROOT}/Tests/Ops/Utils/ExtraLogOperatorExamples.js" "$@"
+}
+
+# render_extra_operators <name> <operators JSON> [helm flags...]: the chart
+# rendered with those operators, and the DaemonSet's collector config lifted
+# to ${WORK_DIR}/<name>.yaml, once the operators are found as given, in their
+# order, between the agent's last move and its severity router.
+render_extra_operators() {
+  local name="$1"
+  local operators="$2"
+  shift 2
+  helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+    --set clusterName=validate-only \
+    --set oneuptime.url=https://oneuptime.example.com \
+    --set oneuptime.apiKey=validate-only \
+    --set logs.enabled=true \
+    --set logs.mode=daemonset \
+    --set-json "logs.extraOperators=${operators}" \
+    "$@" \
+    >"${WORK_DIR}/${name}.rendered.yaml"
+  node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [rendered, out, given] = process.argv.slice(1);
+// Key order aside: the chart writes an operator with its keys sorted.
+const canonical = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(canonical);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => {
+      return [key, canonical(value[key])];
+    }));
+  }
+  return value;
+};
+const wanted = JSON.parse(given);
+const configMap = yaml.loadAll(fs.readFileSync(rendered, "utf8")).find((doc) => {
+  return doc && doc.kind === "ConfigMap" && doc.metadata.name === "validate-kubernetes-agent-daemonset";
+});
+const config = configMap.data["otel-collector-config.yaml"];
+const receivers = yaml.load(config).receivers;
+const operators = (receivers.file_log || receivers.filelog).operators;
+const router = operators.findIndex((operator) => {
+  return operator.id === "severity-router";
+});
+const theirs = operators.slice(router - wanted.length, router);
+const before = operators[router - wanted.length - 1];
+if (JSON.stringify(canonical(theirs)) !== JSON.stringify(canonical(wanted))) {
+  throw new Error(`${rendered}: the operators before severity-router are not the ones given:\n${JSON.stringify(theirs)}`);
+}
+if (!before || before.type !== "move" || before.to !== "resource[\"k8s.pod.uid\"]") {
+  throw new Error(`${rendered}: the operators given do not come right after the agent moves the pod uid: ${JSON.stringify(before)}`);
+}
+fs.writeFileSync(out, config);
+' "${WORK_DIR}/${name}.rendered.yaml" "${WORK_DIR}/${name}.yaml" "${operators}"
+}
+
+echo "==> rendering kubernetes-agent chart with logs.extraOperators of every type it takes"
+render_extra_operators k8s-daemonset-extra-operators \
+  "$(extra_operators ONE_OF_EACH DOCUMENTED_EXAMPLE)"
+validate "kubernetes-agent / node collector DaemonSet, logs.extraOperators of every type the chart takes" \
+  "${WORK_DIR}/k8s-daemonset-extra-operators.yaml"
+
+# validate_refused <label> <config> <what the collector says>: the collector
+# must refuse the config, saying so.
+validate_refused() {
+  local label="$1"
+  local config="$2"
+  local says="$3"
+  local output
+
+  echo "==> ${label}"
+  chmod 0644 "${config}"
+  if output="$(docker run --rm \
+    "${ENV_ARGS[@]}" \
+    "${STUB_MOUNTS[@]}" \
+    -v "$(dirname "${config}")":/validate:ro \
+    "${VALIDATE_IMAGE}" \
+    validate --config "/validate/$(basename "${config}")" 2>&1)"; then
+    echo "    FAILED: ${label}: the collector took it"
+    failures=$((failures + 1))
+  elif ! printf '%s\n' "${output}" | grep -qF -- "${says}"; then
+    echo "    FAILED: ${label}: the collector refused it, but did not say: ${says}"
+    printf '%s\n' "${output}" | tail -n 3 | sed 's/^/      /'
+    failures=$((failures + 1))
+  else
+    echo "    ok, refused: ${says}"
+  fi
+}
+
+# The documented example's first operator, renamed in the rendered config to
+# what the chart refuses as an id: one of the agent's own, or move. Renamed
+# move1, which the chart takes, the collector steps around it.
+for id in move-stream severity-router severity-parser parse-klog-severity move; do
+  sed "s/- id: inhouse-level\$/- id: ${id}/" \
+    "${WORK_DIR}/k8s-daemonset-extra-operators.yaml" \
+    >"${WORK_DIR}/k8s-daemonset-extra-operators-as-${id}.yaml"
+  if ! grep -q -- "- id: ${id}\$" "${WORK_DIR}/k8s-daemonset-extra-operators-as-${id}.yaml"; then
+    echo "    FAILED: no operator of the user's renamed ${id}"
+    failures=$((failures + 1))
+  fi
+  validate_refused "kubernetes-agent / a user's operator named ${id}, as the chart refuses" \
+    "${WORK_DIR}/k8s-daemonset-extra-operators-as-${id}.yaml" \
+    "operator with id '${id}' already exists in pipeline"
+done
+sed "s/- id: inhouse-level\$/- id: move1/" \
+  "${WORK_DIR}/k8s-daemonset-extra-operators.yaml" \
+  >"${WORK_DIR}/k8s-daemonset-extra-operators-as-move1.yaml"
+validate "kubernetes-agent / a user's operator named move1, as the chart takes" \
+  "${WORK_DIR}/k8s-daemonset-extra-operators-as-move1.yaml"
+
+# schema_refuses <label> <operators JSON> <pattern>: Helm refuses the value by
+# values.schema.json, with a message that matches the pattern, which says
+# where (Helm 3.18 on writes /logs/extraOperators/0/type, before it
+# logs.extraOperators.0.type).
+schema_refuses() {
+  local label="$1"
+  local operators="$2"
+  local pattern="$3"
+  local output
+
+  echo "==> logs.extraOperators: the schema refuses ${label}"
+  if output="$(helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+    --set clusterName=validate-only \
+    --set oneuptime.url=https://oneuptime.example.com \
+    --set oneuptime.apiKey=validate-only \
+    --set-json "logs.extraOperators=${operators}" 2>&1 >/dev/null)"; then
+    echo "    FAILED: Helm took it"
+    failures=$((failures + 1))
+  elif ! printf '%s\n' "${output}" | grep -q "don't meet the specifications of the schema"; then
+    echo "    FAILED: refused, but not by the schema:"
+    printf '%s\n' "${output}" | sed 's/^/      /'
+    failures=$((failures + 1))
+  elif ! printf '%s\n' "${output}" | grep -Eq -- "${pattern}"; then
+    echo "    FAILED: the schema's message does not match ${pattern}:"
+    printf '%s\n' "${output}" | sed 's/^/      /'
+    failures=$((failures + 1))
+  else
+    echo "    ok"
+  fi
+}
+schema_refuses "a value that is not a list" '"inhouse"' "logs[./]extraOperators('|:).*array"
+schema_refuses "an item that is not a map" '["regex_parser"]' "logs[./]extraOperators[./]0('|:).*object"
+schema_refuses "an operator with no type" '[{"id":"inhouse"}]' "logs[./]extraOperators[./]0('|:).*type"
+schema_refuses "a type the collector has no operator for" '[{"type":"regex_parse"}]' "logs[./]extraOperators[./]0[./]type('|:).*one of"
+schema_refuses "an input operator" '[{"type":"file_input"}]' "logs[./]extraOperators[./]0[./]type('|:).*one of"
+schema_refuses "an output operator" '[{"type":"stdout"}]' "logs[./]extraOperators[./]0[./]type('|:).*one of"
+schema_refuses "an id that is not a string" '[{"type":"noop","id":7}]' "logs[./]extraOperators[./]0[./]id('|:).*string"
+schema_refuses "an empty id" '[{"type":"noop","id":""}]' "logs[./]extraOperators[./]0[./]id('|:)"
+
 # The OpenShift presets run the collector's openshift resource detector right
 # after the resource processor in both collectors' pipelines
 # (kubernetes-agent.openshiftDetector), which the renders above leave out. A
@@ -880,6 +1079,13 @@ for (const role of ["deployment", "daemonset"]) {
 VALIDATE_IMAGE="${REUSE_VALUES_COLLECTOR_IMAGE}"
 validate "kubernetes-agent / collector DaemonSet on ${REUSE_VALUES_COLLECTOR_IMAGE}" \
   "${WORK_DIR}/k8s-reuse-values-daemonset.yaml"
+# And with logs.extraOperators of every type this collector has, which the
+# chart takes for that image.tag (it refuses the newer ones there).
+render_extra_operators k8s-reuse-values-daemonset-extra-operators \
+  "$(extra_operators ONE_OF_EACH_ON_0_96_0 DOCUMENTED_EXAMPLE)" \
+  --set image.tag="${REUSE_VALUES_COLLECTOR_IMAGE##*:}"
+validate "kubernetes-agent / collector DaemonSet on ${REUSE_VALUES_COLLECTOR_IMAGE}, logs.extraOperators of every type it has" \
+  "${WORK_DIR}/k8s-reuse-values-daemonset-extra-operators.yaml"
 validate "kubernetes-agent / collector Deployment on ${REUSE_VALUES_COLLECTOR_IMAGE}, without k8sobjects" \
   "${WORK_DIR}/k8s-reuse-values-deployment.yaml"
 VALIDATE_IMAGE="${COLLECTOR_IMAGE}"

@@ -11,6 +11,10 @@ import BUILT_IN_DETECTORS, {
 import { QUERY_NAME_DATA_TYPE_ID } from "../../../Utils/DataSecurity/QueryStringNames";
 import { sha256 } from "../../../Utils/DataSecurity/Sha256";
 import {
+  findDetectorRanges,
+  TextRange,
+} from "../../../Utils/DataSecurity/TextReadings";
+import {
   findSensitiveValues,
   TextMatch,
   TextScanOptions,
@@ -1181,7 +1185,11 @@ const CORPUS: Record<string, CorpusEntry> = buildCorpus(CORPUS_SEED);
  * link-local address after a key, an image asset's name encoded, an
  * address with no top-level domain, a card a check digit off, a decimal, a
  * count, a time zone beside a date, an SSN's area no one is issued or a
- * longer chain of groups. Labelled apart from the corpus, which draws two
+ * longer chain of groups. And a phone or Social Security number typed
+ * wholly in fullwidth, its signs and separators too (#11115), and a
+ * national number or nine digits beside the words that name them, with
+ * the same digits beside no such word as their near misses (#11114).
+ * Labelled apart from the corpus, which draws two
  * values of each type from its detectors' shapes, and held to a precision
  * and a recall of 1: every value found as its type, and nothing else found.
  * Each case draws from a stream of its own, so the corpus draws as before.
@@ -1198,6 +1206,86 @@ function inScript(digits: string, zero: number): string {
   return digits.replace(/[0-9]/g, (digit: string): string => {
     return String.fromCharCode(zero + Number(digit));
   });
+}
+
+const IDEOGRAPHIC_SPACE: string = "　";
+
+// The characters a number is typed with in fullwidth: its digits, signs and separators.
+const NUMBER_CHARACTERS: string = "0123456789+-()./";
+
+// Whether a run of a number's characters holds a digit: is a number.
+const HOLDS_A_DIGIT: RegExp = /[0-9]/;
+
+// A character as an input method in fullwidth mode types it (#11115).
+function fullwidthOf(character: string): string {
+  return character === " "
+    ? IDEOGRAPHIC_SPACE
+    : NUMBER_CHARACTERS.includes(character)
+      ? String.fromCharCode(character.charCodeAt(0) - 0x20 + 0xff00)
+      : character;
+}
+
+// A number typed wholly in fullwidth: every digit, sign, separator and space of it.
+function toFullwidth(number: string): string {
+  return Array.from(number).map(fullwidthOf).join("");
+}
+
+// Whether a value holds a number's fullwidth sign or separator, an ideographic space among them.
+function holdsFullwidthSeparator(value: string): boolean {
+  return Array.from(value).some((character: string): boolean => {
+    return (
+      character === IDEOGRAPHIC_SPACE ||
+      (character.charCodeAt(0) >= 0xff08 && character.charCodeAt(0) <= 0xff0f)
+    );
+  });
+}
+
+/*
+ * A text with every number in it typed wholly in fullwidth, and every
+ * other character as it was (#11115): each run of digits, signs,
+ * separators and spaces that holds a digit, its spaces at either end left
+ * as they were - so a log line's words keep their ASCII spaces, as they
+ * do in Japanese text a number is typed into in fullwidth mode. One
+ * character for one, so a value is where it was.
+ */
+function numbersInFullwidth(text: string): string {
+  let written: string = "";
+  let index: number = 0;
+
+  while (index < text.length) {
+    let end: number = index;
+
+    while (
+      end < text.length &&
+      (NUMBER_CHARACTERS.includes(text[end]!) || text[end] === " ")
+    ) {
+      end++;
+    }
+
+    if (end === index) {
+      written += text[index]!;
+      index++;
+      continue;
+    }
+
+    const run: string = text.slice(index, end);
+    const inner: string = run.trim();
+
+    if (!HOLDS_A_DIGIT.test(inner)) {
+      written += run;
+    } else {
+      const leading: number = run.indexOf(inner);
+
+      written +=
+        run.slice(0, leading) +
+        toFullwidth(inner) +
+        run.slice(leading + inner.length);
+    }
+
+    index = end;
+  }
+
+  return written;
 }
 
 // A Visa number that passes the Luhn check, no test number nor placeholder.
@@ -1282,9 +1370,400 @@ function drawnSsn(): string {
   return `${String(area).padStart(3, "0")}-${String(group).padStart(2, "0")}-${String(serial).padStart(4, "0")}`;
 }
 
+/*
+ * A value drawn again until the near miss written of it is no other
+ * type's value either (isTakenByAnotherType): eleven digits beside no
+ * phone word can be a Greek AMKA, a birth date and a check digit that
+ * happen to hold.
+ */
+function drawnUntaken(
+  dataTypeId: string,
+  draw: () => string,
+  nearMissOf: (drawn: string) => string,
+): string {
+  for (let attempt: number = 0; attempt < BUILD_ATTEMPTS; attempt++) {
+    const drawn: string = draw();
+
+    if (!isTakenByAnotherType(dataTypeId, nearMissOf(drawn))) {
+      return drawn;
+    }
+  }
+
+  return draw();
+}
+
+// A Visa number's sixteen digits in its four groups, apart by `separator`.
+function inGroupsOfFour(card: string, separator: string): string {
+  return card.replace(/([0-9]{4})(?=[0-9])/g, `$1${separator}`);
+}
+
+// The last digit of a number one more: a check digit off.
+function checkDigitOff(number: string): string {
+  return number.slice(0, -1) + String((Number(number.slice(-1)) + 1) % 10);
+}
+
+// An IBAN of a country whose BBAN is all digits, drawn, in its groups of four apart by `separator`.
+function drawnIban(): string {
+  const country: string = ["DE", "BE", "PL", "HU"][random(4)]!;
+  const lengths: Readonly<Record<string, number>> = {
+    DE: 18,
+    BE: 12,
+    PL: 24,
+    HU: 24,
+  };
+
+  return iban(country, drawnDigitsOf(lengths[country]!));
+}
+
+function ibanInGroups(value: string, separator: string): string {
+  return value.replace(/(.{4})(?=.)/g, `$1${separator}`);
+}
+
+// A plausible birth date's parts: a year from 1950 to 2000, a month, a day every month has.
+function drawnBirthDate(): { year: string; month: string; day: string } {
+  return {
+    year: String(1950 + random(51)),
+    month: String(1 + random(12)).padStart(2, "0"),
+    day: String(1 + random(28)).padStart(2, "0"),
+  };
+}
+
+// A UK postcode: an area, a district digit, a space, a digit and two of the letters an inward code takes.
+function drawnUkPostcode(): string {
+  return `${fake("ABCDEFGHKLMNOPRSTUWYZ", 1 + random(2))}${random(10)} ${random(10)}${fake("ABDEFGHJLNPQRSTUWXYZ", 2)}`;
+}
+
+const MONTH_NAMES: ReadonlyArray<string> = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 const READING_CASES_OF: Readonly<
   Record<string, (corpus: Record<string, CorpusEntry>) => CorpusEntry>
 > = {
+  /*
+   * #11199, #11200: a date of birth in a URL - its slashes escaped, its
+   * words before it typed into a form, its month's name and spaces "+" -
+   * and in Arabic-Indic digits typed into one; and what is none written
+   * so: no real date, a date with no word that says it is a birth.
+   */
+  "date-of-birth: in a URL, its slashes escaped or its words typed into a form":
+    (): CorpusEntry => {
+      const first: { year: string; month: string; day: string } =
+        drawnBirthDate();
+      const second: { year: string; month: string; day: string } =
+        drawnBirthDate();
+      const third: { year: string; month: string; day: string } =
+        drawnBirthDate();
+      const escaped: string = `${first.day}%2F${first.month}%2F${first.year}`;
+      const iso: string = `${second.year}-${second.month}-${second.day}`;
+      const written: string = `${Number(third.day)}+${MONTH_NAMES[Number(third.month) - 1]}+${third.year}`;
+      // The date's own digits in Arabic-Indic ones, its escaped slashes as a URL writes them.
+      const arabic: string = [third.day, third.month, third.year]
+        .map((part: string): string => {
+          return inScript(part, ARABIC_INDIC_ZERO);
+        })
+        .join("%2F");
+
+      return {
+        positives: [
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /verify?dob=${escaped}&step=2 HTTP/1.1 200`,
+            escaped,
+          ),
+          labelled(
+            "date-of-birth",
+            `{"url": "/apply?date+of+birth=${iso}&source=form", "batch": "nightly"}`,
+            iso,
+          ),
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /signup?born=${written}&step=2 HTTP/1.1 200`,
+            written,
+          ),
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /verify?dob=${arabic}&step=2 HTTP/1.1 200`,
+            arabic,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /verify?dob=31%2F02%2F${first.year}&step=2 HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "date-of-birth",
+            `{"url": "/search?q=${iso}&source=form", "batch": "nightly"}`,
+            "",
+          ),
+        ],
+      };
+    },
+  // #11199, #11200: a UK postcode typed into a form, and with %20 for its space.
+  "postal-code: typed into a form, or with %20 for its space":
+    (): CorpusEntry => {
+      const typed: string = drawnUkPostcode().split(" ").join("+");
+      const escaped: string = drawnUkPostcode().split(" ").join("%20");
+
+      return {
+        positives: [
+          labelled(
+            "postal-code",
+            `2026-10-27T10:15:02Z INFO GET /lookup?postcode=${typed}&step=2 HTTP/1.1 200`,
+            typed,
+          ),
+          labelled(
+            "postal-code",
+            `{"url": "/stores?near=${escaped}&radius=5", "batch": "nightly"}`,
+            escaped,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "postal-code",
+            `2026-10-27T10:15:02Z INFO GET /lookup?postcode=${typed.slice(0, -1)}C&step=2 HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "postal-code",
+            `{"url": "/stores?near=${escaped.slice(0, -1)}&radius=5", "batch": "nightly"}`,
+            "",
+          ),
+        ],
+      };
+    },
+  // #11199: a street address a form wrote, its words apart by "+" or %20.
+  "postal-address: typed into a form, or with %20 between its words":
+    (): CorpusEntry => {
+      const name: string = `${fake(UPPER, 1)}${fake(LOWER, 4 + random(5))}`;
+      const typed: string = `${10 + random(900)}+${name}+Street`;
+      const escaped: string = `${10 + random(900)}%20${fake(UPPER, 1)}${fake(LOWER, 5)}%20Avenue`;
+
+      return {
+        positives: [
+          labelled(
+            "postal-address",
+            `2026-10-27T10:15:02Z INFO GET /delivery?address=${typed}&step=2 HTTP/1.1 200`,
+            typed,
+          ),
+          labelled(
+            "postal-address",
+            `{"url": "/checkout?ship_to=${escaped}&step=3", "batch": "nightly"}`,
+            escaped,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "postal-address",
+            `2026-10-27T10:15:02Z INFO GET /search?q=${10 + random(90)}+apples+on+${name}+shelves HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "postal-address",
+            `{"url": "/checkout?ship_to=${10 + random(900)}%20${name.toLowerCase()}%20street&step=3", "batch": "nightly"}`,
+            "",
+          ),
+        ],
+      };
+    },
+  /*
+   * #11199: a card in a URL's query string, its groups apart by an
+   * escaped space, by the "+" a form writes a space as, or by that "+"
+   * escaped again in a URL inside a query string - and in another
+   * script's digits typed into a form.
+   */
+  "credit-card-number: in a URL, %20 or '+' between its groups":
+    (): CorpusEntry => {
+      const card: string = drawnCard();
+      const encoded: string = inGroupsOfFour(card, "%20");
+      const typed: string = inGroupsOfFour(card, "+");
+      const nested: string = inGroupsOfFour(card, "%2B");
+      const arabic: string = inScript(typed, ARABIC_INDIC_ZERO);
+
+      return {
+        positives: [
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO GET /pay?card=${encoded}&step=2 HTTP/1.1 200`,
+            encoded,
+          ),
+          labelled(
+            "credit-card-number",
+            `{"url": "/checkout?number=${typed}&cvc_check=pass", "batch": "nightly"}`,
+            typed,
+          ),
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO GET /login?next=%2Fpay%3Fcard%3D${nested} HTTP/1.1 302`,
+            nested,
+          ),
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO GET /pay?card=${arabic}&step=2 HTTP/1.1 200`,
+            arabic,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO GET /pay?card=${inGroupsOfFour(checkDigitOff(card), "%20")}&step=2 HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "credit-card-number",
+            `{"url": "/checkout?number=${inGroupsOfFour(checkDigitOff(card), "+")}&cvc_check=pass", "batch": "nightly"}`,
+            "",
+          ),
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO GET /pay?card=${inGroupsOfFour(card, "+")}${random(10)}&step=2 HTTP/1.1 200`,
+            "",
+          ),
+        ],
+      };
+    },
+  /*
+   * #11199: an IBAN in a URL's query string, its groups apart as a card's
+   * are - each drawn again while its near miss is another type's value: a
+   * BBAN's sixteen digits in four groups pass a card's Luhn check one time
+   * in ten, and an IBAN a digit off is that card.
+   */
+  "iban: in a URL, %20 or '+' between its groups": (): CorpusEntry => {
+    const drawn: (separator: string) => [string, string] = (
+      separator: string,
+    ): [string, string] => {
+      for (;;) {
+        const value: string = drawnIban();
+        const nearMiss: string = ibanInGroups(checkDigitOff(value), separator);
+
+        if (
+          !isTakenByAnotherType("iban", `iban=${nearMiss}`) &&
+          !isTakenByAnotherType(
+            "iban",
+            `iban=${ibanInGroups(value, separator)}`,
+          )
+        ) {
+          return [ibanInGroups(value, separator), nearMiss];
+        }
+      }
+    };
+    const [encoded, encodedOff] = drawn("%20");
+    const [typed, typedOff] = drawn("+");
+
+    return {
+      positives: [
+        labelled(
+          "iban",
+          `2026-10-27T10:15:02Z INFO GET /payout?iban=${encoded}&step=2 HTTP/1.1 200`,
+          encoded,
+        ),
+        labelled(
+          "iban",
+          `{"url": "/sepa/mandate?account=${typed}&source=form", "batch": "nightly"}`,
+          typed,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "iban",
+          `2026-10-27T10:15:02Z INFO GET /payout?iban=${encodedOff}&step=2 HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "iban",
+          `{"url": "/sepa/mandate?account=${typedOff}&source=form", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  /*
+   * #11199: a phone number a form wrote - its spaces "+", its own "+"
+   * escaped, or written as it is before its digits - and what only looks
+   * like one written so: a count, a decimal.
+   */
+  "phone-number: as a form writes it": (): CorpusEntry => {
+    const berlin: string = `%2B49+30+${drawnDigitsOf(8, "2")}`;
+    const paris: string = `+33+6+${drawnDigitsOf(2)}+${drawnDigitsOf(2)}+${drawnDigitsOf(2)}+${drawnDigitsOf(2)}`;
+    const sanFrancisco: string = `%28415%29+${drawnExchange()}-${drawnDigitsOf(4)}`;
+
+    return {
+      positives: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO GET /callback?phone=${berlin} HTTP/1.1 200`,
+          berlin,
+        ),
+        labelled(
+          "phone-number",
+          `{"url": "/notify?mobile=${paris}&step=2", "batch": "nightly"}`,
+          paris,
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO POST /contact body=name%3Dx%26tel%3D${sanFrancisco} HTTP/1.1 200`,
+          sanFrancisco,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO GET /search?q=%2B1+2+3+4+5+6+7+8 HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `{"url": "/search?delta=%2B${10 + random(80)}.${drawnDigitsOf(6)}+units&step=2", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11199: a Social Security number in a URL, its groups apart by %20 or "+".
+  "us-ssn: in a URL, %20 or '+' between its groups": (): CorpusEntry => {
+    const encoded: string = drawnSsn().split("-").join("%20");
+    const typed: string = drawnSsn().split("-").join("+");
+
+    return {
+      positives: [
+        labelled(
+          "us-ssn",
+          `2026-10-27T10:15:02Z INFO GET /verify?ssn=${encoded}&step=2 HTTP/1.1 200`,
+          encoded,
+        ),
+        labelled(
+          "us-ssn",
+          `{"url": "/apply?ssn=${typed}&source=form", "batch": "nightly"}`,
+          typed,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "us-ssn",
+          `2026-10-27T10:15:02Z INFO GET /verify?ssn=666%20${drawnSsn().slice(4).split("-").join("%20")}&step=2 HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "us-ssn",
+          `{"url": "/apply?ssn=${drawnSsn().split("-").join("+")}+${drawnDigitsOf(2)}&source=form", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
   // #11030
   "phone-number: in a percent-encoded URL": (): CorpusEntry => {
     const berlin: string = `%2B49%2030%20${drawnDigitsOf(8, "2")}`;
@@ -1421,6 +1900,211 @@ const READING_CASES_OF: Readonly<
         labelled(
           "us-ssn",
           `SSN: ${inScript(`${drawnSsn()}-${drawnDigitsOf(2)}`, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+      ],
+    };
+  },
+  /*
+   * #11115: a phone number typed wholly in fullwidth, as Japanese and
+   * Chinese text writes one - its plus sign, hyphens, parentheses and
+   * ideographic spaces too, or its digits in ASCII and its signs in
+   * fullwidth - and what only looks like one typed so: a decimal, a time
+   * zone's offset beside a date, a count.
+   */
+  "phone-number: typed wholly in fullwidth": (): CorpusEntry => {
+    const tokyo: string = toFullwidth(
+      `+81 3-${drawnDigitsOf(4, "2")}-${drawnDigitsOf(4)}`,
+    );
+    const beijing: string = toFullwidth(
+      `+86 138 ${drawnDigitsOf(4)} ${drawnDigitsOf(4)}`,
+    );
+    const sanFrancisco: string = toFullwidth(
+      `(415) ${drawnExchange()}-${drawnDigitsOf(4)}`,
+    );
+    const mixed: string = `＋81 3－${drawnDigitsOf(4, "2")}－${drawnDigitsOf(4)}`;
+
+    return {
+      positives: [
+        labelled("phone-number", `電話番号：${tokyo} まで`, tokyo),
+        labelled(
+          "phone-number",
+          `{"contact": "${beijing}", "batch": "nightly"}`,
+          beijing,
+        ),
+        labelled("phone-number", `連絡先 ${sanFrancisco} まで`, sanFrancisco),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO sms sent to ${mixed} ok`,
+          mixed,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `差分 ${toFullwidth(`+${10 + random(80)}.${drawnDigitsOf(6)}`)} の範囲外`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `時刻 UTC ${toFullwidth(`+1 2026-11-${10 + random(18)}`)} 10:15:00`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `件数 ${toFullwidth("+1 2 3 4 5 6 7 8")} 件`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11115: a Social Security number typed wholly in fullwidth, and what is none typed so.
+  "us-ssn: typed wholly in fullwidth": (): CorpusEntry => {
+    const dashed: string = toFullwidth(drawnSsn());
+    const dotted: string = toFullwidth(drawnSsn().split("-").join("."));
+    const spaced: string = toFullwidth(drawnSsn().split("-").join(" "));
+
+    return {
+      positives: [
+        labelled("us-ssn", `SSN：${dashed}`, dashed),
+        labelled("us-ssn", `{"ssn": "${dotted}", "batch": "nightly"}`, dotted),
+        labelled(
+          "us-ssn",
+          `2026-10-27T10:15:02Z INFO verified ssn ${spaced} ok`,
+          spaced,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "us-ssn",
+          `SSN：${toFullwidth(`666.${drawnSsn().slice(4).split("-").join(".")}`)}`,
+          "",
+        ),
+        labelled(
+          "us-ssn",
+          `SSN：${toFullwidth(`${drawnSsn().split("-").join(".")}.${drawnDigitsOf(2)}`)}`,
+          "",
+        ),
+      ],
+    };
+  },
+  /*
+   * #11114: a national phone number of no other shape beside the word that
+   * names it - as written, in a URL with its "=" escaped, in fullwidth
+   * digits - and the same digits beside no such word, or a word that only
+   * holds one.
+   */
+  "phone-number: a national number beside the word that names it":
+    (): CorpusEntry => {
+      const london: string = drawnUntaken(
+        "phone-number",
+        (): string => {
+          return `020${drawnDigitsOf(8, "7")}`;
+        },
+        (drawn: string): string => {
+          return `2026-10-27T10:15:02Z INFO order ${drawn} shipped ok`;
+        },
+      );
+      const paris: string = drawnUntaken(
+        "phone-number",
+        (): string => {
+          return drawnDigitsOf(9, "6");
+        },
+        (drawn: string): string => {
+          return `{"telemetry": "${drawn}", "batch": "nightly"}`;
+        },
+      );
+      const encoded: string = `0${drawnDigitsOf(10, "3")}`;
+      const fullwidth: string = toFullwidth(`0${drawnDigitsOf(10, "8")}`);
+
+      return {
+        positives: [
+          labelled(
+            "phone-number",
+            `2026-10-27T10:15:02Z INFO callback queued tel ${london} ok`,
+            london,
+          ),
+          labelled(
+            "phone-number",
+            `{"mobile": "${paris}", "batch": "nightly"}`,
+            paris,
+          ),
+          labelled(
+            "phone-number",
+            `2026-10-27T10:15:02Z INFO GET /contact?phone%3D${encoded} HTTP/1.1 200`,
+            encoded,
+          ),
+          labelled("phone-number", `連絡先 tel：${fullwidth}`, fullwidth),
+        ],
+        nearMisses: [
+          labelled(
+            "phone-number",
+            `2026-10-27T10:15:02Z INFO order ${london} shipped ok`,
+            "",
+          ),
+          labelled(
+            "phone-number",
+            `{"telemetry": "${paris}", "batch": "nightly"}`,
+            "",
+          ),
+        ],
+      };
+    },
+  /*
+   * #11114: nine digits in a row beside the words that name a Social
+   * Security number - as written, typed into a form, in fullwidth digits -
+   * and nine digits no such word names, or an area no one is issued.
+   */
+  "us-ssn: nine digits beside the word that names them": (): CorpusEntry => {
+    const first: string = drawnUntaken(
+      "us-ssn",
+      (): string => {
+        return drawnSsn().split("-").join("");
+      },
+      (drawn: string): string => {
+        return `{"ssn": "666${drawn.slice(3)}", "batch": "nightly"}`;
+      },
+    );
+    const second: string = drawnUntaken(
+      "us-ssn",
+      (): string => {
+        return drawnSsn().split("-").join("");
+      },
+      (drawn: string): string => {
+        return `2026-10-27T10:15:02Z INFO applicant ref ${drawn} verified`;
+      },
+    );
+    const third: string = drawnSsn().split("-").join("");
+    const fullwidth: string = toFullwidth(drawnSsn().split("-").join(""));
+
+    return {
+      positives: [
+        labelled(
+          "us-ssn",
+          `2026-10-27T10:15:02Z INFO applicant ssn ${first} verified`,
+          first,
+        ),
+        labelled(
+          "us-ssn",
+          `{"social security number": "${second}", "batch": "nightly"}`,
+          second,
+        ),
+        labelled(
+          "us-ssn",
+          `2026-10-27T10:15:02Z INFO GET /apply?social+security+number=${third} HTTP/1.1 200`,
+          third,
+        ),
+        labelled("us-ssn", `SSN：${fullwidth}`, fullwidth),
+      ],
+      nearMisses: [
+        labelled(
+          "us-ssn",
+          `2026-10-27T10:15:02Z INFO applicant ref ${second} verified`,
+          "",
+        ),
+        labelled(
+          "us-ssn",
+          `{"ssn": "666${first.slice(3)}", "batch": "nightly"}`,
           "",
         ),
       ],
@@ -1785,6 +2469,158 @@ function everyScriptCases(
   return cases;
 }
 
+/*
+ * #11199: every type whose detectors read a text as a URL's query string
+ * writes it - a "+" for each space - its own drawn values and near misses
+ * as a URL holds them: the log line or the JSON text each is written in,
+ * sent as a query parameter's value, percent-encoded as encodeURIComponent
+ * writes it (a space %20, a colon %3A) and as a form writes it
+ * (URLSearchParams: a space "+", a "+" %2B). A value is the same value
+ * however a URL writes it - its check digit and the words around it prove
+ * it the same way - so each is found as its type, on the characters the
+ * URL writes it with, and each near miss refused, as when written plainly.
+ */
+const PLUS_AS_SPACE_TYPES: ReadonlyArray<string> = Array.from(
+  new Set(
+    BUILT_IN_DETECTORS.filter((detector: DataTypeDetector): boolean => {
+      return detector.readsPlusAsSpace === true;
+    }).map((detector: DataTypeDetector): string => {
+      return detector.dataTypeId;
+    }),
+  ),
+).sort();
+
+// A text as a form writes it into a query string: a space "+", a "+" %2B, the rest escaped.
+function asAFormWritesIt(text: string): string {
+  return new URLSearchParams({ line: text }).toString().slice("line=".length);
+}
+
+// The ways a URL writes a text: each value's two, in turn.
+const URL_WRITINGS: ReadonlyArray<(text: string) => string> = [
+  encodeURIComponent,
+  asAFormWritesIt,
+];
+
+function inAUrl(text: string, write: (text: string) => string): string {
+  return `2026-10-27T10:15:02Z INFO GET /records?line=${write(text)}&page=2 HTTP/1.1 200`;
+}
+
+/*
+ * Each value and each near miss written both ways. A near miss whose URL
+ * writing is another type's value as written is left out, as the corpus
+ * leaves out such a near miss of its own (isTakenByAnotherType): a form's
+ * "+" for a space can spell another type's own writing - a South African
+ * ID's 051214 2647 143 is 051214+2647+143, and 051214+2647 is a Swedish
+ * personnummer as a centenarian's is written.
+ */
+function inAUrlCases(
+  corpus: Record<string, CorpusEntry>,
+): Record<string, CorpusEntry> {
+  const cases: Record<string, CorpusEntry> = {};
+
+  for (const dataTypeId of PLUS_AS_SPACE_TYPES) {
+    const entry: CorpusEntry | undefined = corpus[dataTypeId];
+
+    if (!entry) {
+      continue;
+    }
+
+    const positives: Array<Labelled> = [];
+    const nearMisses: Array<Labelled> = [];
+
+    for (const write of URL_WRITINGS) {
+      for (const positive of entry.positives) {
+        positives.push(
+          labelled(
+            positive.dataTypeId,
+            inAUrl(positive.text, write),
+            write(positive.value),
+          ),
+        );
+      }
+
+      for (const nearMiss of entry.nearMisses) {
+        const text: string = inAUrl(nearMiss.text, write);
+
+        if (!isTakenByAnotherType(dataTypeId, text)) {
+          nearMisses.push(labelled(nearMiss.dataTypeId, text, ""));
+        }
+      }
+    }
+
+    cases[`${dataTypeId}: its values in a URL's query string`] = {
+      positives,
+      nearMisses,
+    };
+  }
+
+  return cases;
+}
+
+/*
+ * #11115: every type whose detectors read a number's fullwidth forms - as
+ * every one of every script's digits does - its own drawn values and near
+ * misses with their numbers typed wholly in fullwidth (numbersInFullwidth):
+ * the digits, the plus signs, hyphens, parentheses, full stops and solidi,
+ * the spaces between a number's groups ideographic ones, the words around
+ * them as they were. A number is the same number however it is typed, so
+ * each value is found as its type, and each near miss refused, as in
+ * ASCII.
+ */
+const FULLWIDTH_TYPES: ReadonlyArray<string> = Array.from(
+  new Set(
+    BUILT_IN_DETECTORS.filter((detector: DataTypeDetector): boolean => {
+      return detector.readsFullwidthForms === true;
+    }).map((detector: DataTypeDetector): string => {
+      return detector.dataTypeId;
+    }),
+  ),
+).sort();
+
+function fullwidthCases(
+  corpus: Record<string, CorpusEntry>,
+): Record<string, CorpusEntry> {
+  const cases: Record<string, CorpusEntry> = {};
+
+  for (const dataTypeId of FULLWIDTH_TYPES) {
+    const entry: CorpusEntry | undefined = corpus[dataTypeId];
+
+    if (!entry) {
+      continue;
+    }
+
+    const positives: Array<Labelled> = entry.positives.map(
+      (positive: Labelled): Labelled => {
+        const text: string = numbersInFullwidth(positive.text);
+        const start: number = positive.text.indexOf(positive.value);
+
+        // One character for one: the value is where it was, typed in fullwidth.
+        return labelled(
+          positive.dataTypeId,
+          text,
+          text.slice(start, start + positive.value.length),
+        );
+      },
+    );
+    const nearMisses: Array<Labelled> = [];
+
+    for (const nearMiss of entry.nearMisses) {
+      const text: string = numbersInFullwidth(nearMiss.text);
+
+      if (!isTakenByAnotherType(dataTypeId, text)) {
+        nearMisses.push(labelled(nearMiss.dataTypeId, text, ""));
+      }
+    }
+
+    cases[`${dataTypeId}: its values typed wholly in fullwidth`] = {
+      positives,
+      nearMisses,
+    };
+  }
+
+  return cases;
+}
+
 function buildReadingCases(corpusSeed: number): Record<string, CorpusEntry> {
   const cases: Record<string, CorpusEntry> = {};
   // The corpus of this seed: what the cases built from its values read.
@@ -1796,8 +2632,16 @@ function buildReadingCases(corpusSeed: number): Record<string, CorpusEntry> {
     cases[name] = build(corpus);
   }
 
-  return { ...cases, ...everyScriptCases(corpus) };
+  return {
+    ...cases,
+    ...everyScriptCases(corpus),
+    ...inAUrlCases(corpus),
+    ...fullwidthCases(corpus),
+  };
 }
+
+// The seeds besides the corpus's own the reading cases are held to (#11199, #11200).
+const OTHER_READING_SEEDS: ReadonlyArray<number> = [1, 2, 3, 50, 77];
 
 const READING_CASES: Record<string, CorpusEntry> =
   buildReadingCases(CORPUS_SEED);
@@ -2072,7 +2916,7 @@ describe("values written the ways the detectors now read them too", () => {
    * A precision and a recall of 1: every labelled value found as its type,
    * and nothing else - no near miss, no other type - found in any of them.
    */
-  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960, #11025, #11030 to #11034)", () => {
+  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960, #11025, #11030 to #11034, #11114, #11115, #11199, #11200)", () => {
     const readingScores: Scores = score(READING_CASES);
     const wrong: Array<string> = [];
 
@@ -2087,7 +2931,91 @@ describe("values written the ways the detectors now read them too", () => {
     expect(readingScores.found).toBe(readingScores.positives);
   });
 
-  test("writes every type read in every script's digits in another script's digits (#11033)", () => {
+  /*
+   * The same at other seeds: every case drawn again - its values, its near
+   * misses, the corpus its every-script and URL cases are written from -
+   * and still every value found as its type and nothing else.
+   */
+  test.each(
+    OTHER_READING_SEEDS.map((seed: number): [number] => {
+      return [seed];
+    }),
+  )(
+    "finds every value, and nothing else, at seed %i too (#11114, #11115, #11199, #11200)",
+    (seed: number) => {
+      const cases: Record<string, CorpusEntry> = buildReadingCases(seed);
+      const readingScores: Scores = score(cases);
+      const wrong: Array<string> = [];
+
+      for (const tally of readingScores.byType.values()) {
+        wrong.push(...tally.wrong);
+      }
+
+      expect({ seed, wrong, missed: readingScores.missed }).toEqual({
+        seed,
+        wrong: [],
+        missed: [],
+      });
+      expect(readingScores.found).toBe(readingScores.positives);
+      expect(Object.keys(cases)).toEqual(Object.keys(READING_CASES));
+    },
+  );
+
+  test("writes every type read as a query string writes it in a URL, its values in a URL (#11199)", () => {
+    expect(PLUS_AS_SPACE_TYPES).toEqual(
+      expect.arrayContaining([
+        "credit-card-number",
+        "iban",
+        "us-bank-routing-number",
+        "us-ssn",
+        "phone-number",
+        "br-cpf",
+        "in-aadhaar",
+        "uk-nhs-number",
+        "passport-number",
+        "date-of-birth",
+        "postal-code",
+        "postal-address",
+        "bank-account-number",
+        "uk-sort-code",
+        "card-verification-code",
+        "card-expiration-date",
+      ]),
+    );
+
+    const written: Array<string> = PLUS_AS_SPACE_TYPES.filter(
+      (dataTypeId: string): boolean => {
+        return Boolean(CORPUS[dataTypeId]);
+      },
+    );
+
+    expect(written.length).toBeGreaterThan(60);
+
+    for (const dataTypeId of written) {
+      const entry: CorpusEntry =
+        READING_CASES[`${dataTypeId}: its values in a URL's query string`]!;
+
+      expect([dataTypeId, entry.positives.length]).toEqual([dataTypeId, 4]);
+
+      // In a URL indeed: each value's text percent-encoded, then as a form writes it.
+      for (const positive of entry.positives.slice(0, 2)) {
+        expect([dataTypeId, positive.text]).toEqual([
+          dataTypeId,
+          expect.stringContaining("%20"),
+        ]);
+      }
+
+      for (const positive of entry.positives.slice(2)) {
+        expect([
+          dataTypeId,
+          positive.text.includes("%20"),
+          positive.text.includes("+"),
+        ]).toEqual([dataTypeId, false, true]);
+      }
+    }
+  });
+
+  test("writes every type read in every script's digits in another script's digits (#11033, #11200)", () => {
     expect(EVERY_SCRIPT_TYPES).toEqual(
       expect.arrayContaining([
         "iban",
@@ -2102,6 +3030,16 @@ describe("values written the ways the detectors now read them too", () => {
         "uk-nhs-number",
         "us-npi",
         "passport-number",
+        // #11200
+        "date-of-birth",
+        "postal-code",
+        "bank-account-number",
+        "uk-sort-code",
+        "au-bsb",
+        "swift-bic",
+        "in-ifsc",
+        "card-verification-code",
+        "card-expiration-date",
       ]),
     );
 
@@ -2129,6 +3067,124 @@ describe("values written the ways the detectors now read them too", () => {
         ]);
       }
     }
+  });
+
+  test("writes every type read in fullwidth with its numbers typed wholly in fullwidth (#11115)", () => {
+    // Every detector of every script's digits reads a number's fullwidth forms too.
+    expect(FULLWIDTH_TYPES).toEqual(EVERY_SCRIPT_TYPES);
+
+    const written: Array<string> = FULLWIDTH_TYPES.filter(
+      (dataTypeId: string): boolean => {
+        return Boolean(CORPUS[dataTypeId]);
+      },
+    );
+
+    expect(written.length).toBeGreaterThan(60);
+
+    let withAForm: number = 0;
+
+    for (const dataTypeId of written) {
+      const entry: CorpusEntry =
+        READING_CASES[`${dataTypeId}: its values typed wholly in fullwidth`]!;
+
+      expect([dataTypeId, entry.positives.length >= 2]).toEqual([
+        dataTypeId,
+        true,
+      ]);
+
+      for (let index: number = 0; index < entry.positives.length; index++) {
+        const positive: Labelled = entry.positives[index]!;
+        const asWritten: Labelled = CORPUS[dataTypeId]!.positives[index]!;
+
+        // Typed in fullwidth indeed: no ASCII digit is left in a value.
+        expect([dataTypeId, ASCII_DIGIT.test(positive.value)]).toEqual([
+          dataTypeId,
+          false,
+        ]);
+        // One character for one: as long as the text and the value it was written from.
+        expect([
+          dataTypeId,
+          positive.text.length,
+          positive.value.length,
+        ]).toEqual([dataTypeId, asWritten.text.length, asWritten.value.length]);
+
+        if (holdsFullwidthSeparator(positive.value)) {
+          withAForm++;
+        }
+      }
+    }
+
+    // Values set apart by a fullwidth hyphen, full stop, solidus or ideographic space.
+    expect(withAForm).toBeGreaterThan(20);
+  });
+
+  /*
+   * #11114, #11115: a Phone Number or SSN rule hides what Data Security
+   * finds (TextReadings.findDetectorRanges): over every case written for
+   * those types - in fullwidth, beside the words that name them, in a URL,
+   * in any script's digits - each finding of the type is hidden, and
+   * nothing the type's detectors do not find, near misses included.
+   */
+  test("a Phone Number or SSN rule hides exactly what Data Security finds of its type, in every case of it", () => {
+    let texts: number = 0;
+
+    for (const [name, entry] of Object.entries(READING_CASES)) {
+      for (const labelled of [...entry.positives, ...entry.nearMisses]) {
+        if (
+          labelled.dataTypeId !== "phone-number" &&
+          labelled.dataTypeId !== "us-ssn"
+        ) {
+          continue;
+        }
+
+        const detectors: ReadonlyArray<DataTypeDetector> =
+          getBuiltInDetectorsOf(labelled.dataTypeId);
+        const ranges: Array<TextRange> = findDetectorRanges(
+          detectors,
+          labelled.text,
+        );
+        const found: Array<TextMatch> = findSensitiveValues(labelled.text, {
+          detectors,
+        });
+
+        texts++;
+
+        for (const match of found) {
+          expect([
+            name,
+            labelled.text.slice(match.start, match.end),
+            ranges.some(([start, end]: TextRange): boolean => {
+              return start <= match.start && match.end <= end;
+            }),
+          ]).toEqual([name, labelled.text.slice(match.start, match.end), true]);
+        }
+
+        for (const [start, end] of ranges) {
+          expect([
+            name,
+            labelled.text.slice(start, end),
+            found.some((match: TextMatch): boolean => {
+              return start <= match.start && match.end <= end;
+            }),
+          ]).toEqual([name, labelled.text.slice(start, end), true]);
+        }
+
+        // A value Data Security calls its type is hidden by the type's rule.
+        if (labelled.value) {
+          const at: number = labelled.text.indexOf(labelled.value);
+
+          expect([
+            name,
+            labelled.value,
+            ranges.some(([start, end]: TextRange): boolean => {
+              return start < at + labelled.value.length && at < end;
+            }),
+          ]).toEqual([name, labelled.value, true]);
+        }
+      }
+    }
+
+    expect(texts).toBeGreaterThan(60);
   });
 
   test("draws each case from a stream of its own, the same for the same seed", () => {

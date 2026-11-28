@@ -20,6 +20,7 @@ import {
   STORAGE_ARRAY_READ_ONLY_USER,
   STORAGE_ARRAY_SYSLOG_PORT,
   StorageArrayPlatform,
+  StorageArrayWholeConfigPlatform,
   getStorageArrayAgentDownloadCommand,
   getStorageArrayAgentUpgradeCommand,
   getStorageArrayEnvFile,
@@ -76,11 +77,23 @@ const KEY: string = "tik_secret_123";
  */
 const SERVED: string = `${URL}/install/storage-array-agent`;
 
-const PLATFORMS: Array<StorageArrayPlatform> = STORAGE_ARRAY_PLATFORMS.map(
-  (option: SetupGuideOption<StorageArrayPlatform>): StorageArrayPlatform => {
-    return option.key;
-  },
-);
+/*
+ * Pure Storage's options, whose steps and whole collector configs this file
+ * holds the guide to. A Dell PowerScale's guide is its own
+ * (PowerScaleSetupGuide.test.ts).
+ */
+const PLATFORMS: Array<StorageArrayWholeConfigPlatform> =
+  STORAGE_ARRAY_PLATFORMS.map(
+    (option: SetupGuideOption<StorageArrayPlatform>): StorageArrayPlatform => {
+      return option.key;
+    },
+  ).filter(
+    (
+      platform: StorageArrayPlatform,
+    ): platform is StorageArrayWholeConfigPlatform => {
+      return platform !== "powerscale";
+    },
+  );
 
 interface GuideOverrides {
   oneuptimeUrl?: string;
@@ -249,7 +262,19 @@ const compose: () => Record<string, any> = (): Record<string, any> => {
 };
 
 describe("the platform picker", () => {
-  test("offers the native FlashArray endpoint first, then the older FlashArray, then FlashBlade", () => {
+  test("offers the native FlashArray endpoint first, then the older FlashArray, then FlashBlade, then PowerScale", () => {
+    expect(
+      STORAGE_ARRAY_PLATFORMS.map(
+        (option: SetupGuideOption<StorageArrayPlatform>): string => {
+          return option.key;
+        },
+      ),
+    ).toEqual([
+      "flasharray",
+      "flasharray-exporter",
+      "flashblade",
+      "powerscale",
+    ]);
     expect(PLATFORMS).toEqual([
       "flasharray",
       "flasharray-exporter",
@@ -289,7 +314,7 @@ describe("the platform picker", () => {
     expect(DEFAULT_STORAGE_ARRAY_PLATFORM).toBe("flasharray");
     expect(resolveStorageArrayPlatform(undefined)).toBe("flasharray");
     expect(resolveStorageArrayPlatform(null)).toBe("flasharray");
-    expect(resolveStorageArrayPlatform("netapp")).toBe("flasharray");
+    expect(resolveStorageArrayPlatform("hitachi")).toBe("flasharray");
     expect(resolveStorageArrayPlatform("flashblade")).toBe("flashblade");
     expect(resolveStorageArrayPlatform("flasharray-exporter")).toBe(
       "flasharray-exporter",
@@ -304,7 +329,7 @@ describe("the platform picker", () => {
       getStorageArrayPlatformForSystem(StorageSystem.PureStorageFlashArray),
     ).toBe("flasharray");
     expect(getStorageArrayPlatformForSystem(undefined)).toBeUndefined();
-    expect(getStorageArrayPlatformForSystem("netapp.ontap")).toBeUndefined();
+    expect(getStorageArrayPlatformForSystem("hitachi.vsp")).toBeUndefined();
   });
 
   test("every platform is one shipped config, one storage.system value and one compose profile", () => {
@@ -331,178 +356,181 @@ describe("the platform picker", () => {
   });
 });
 
-describe.each(PLATFORMS)("the %s guide", (platform: StorageArrayPlatform) => {
-  const guide: SetupGuideContent = guideFor(platform);
+describe.each(PLATFORMS)(
+  "the %s guide",
+  (platform: StorageArrayWholeConfigPlatform) => {
+    const guide: SetupGuideContent = guideFor(platform);
 
-  test("starts with the read-only user, then (native only) the endpoint check, install and verify", () => {
-    const titles: Array<string> = guide.steps.map(
-      (step: SetupGuideStep): string => {
-        return step.title;
-      },
-    );
-    expect(titles).toEqual(
-      platform === "flasharray"
-        ? [
-            "Create a read-only user and API token",
-            "Check the array serves its own metrics",
-            "Install the agent",
-            "Verify the installation",
-          ]
-        : [
-            "Create a read-only user and API token",
-            "Install the agent",
-            "Verify the installation",
-          ],
-    );
-  });
-
-  test("every step has a plain one-sentence description", () => {
-    for (const step of guide.steps) {
-      expect(step.description).toBeTruthy();
-      expect(step.description).not.toContain("\n");
-      expect(step.description).not.toContain("`");
-    }
-  });
-
-  test("the install step offers the install script and Docker Compose as tabs", () => {
-    expect(
-      (stepTitled(guide, "Install the agent").variants || []).map(
-        (variant: SetupGuideStepVariant): string => {
-          return variant.label;
+    test("starts with the read-only user, then (native only) the endpoint check, install and verify", () => {
+      const titles: Array<string> = guide.steps.map(
+        (step: SetupGuideStep): string => {
+          return step.title;
         },
-      ),
-    ).toEqual(["Install script", "Docker Compose"]);
-  });
-
-  test("lists what must be in place first", () => {
-    const prerequisites: string = (guide.prerequisites || []).join("\n");
-    expect(prerequisites).toContain("Docker Engine 20.10+");
-    expect(prerequisites).toContain("Docker Compose v2");
-    expect(prerequisites).toContain("TCP 443");
-    expect(prerequisites).toContain("administrator account");
-    // Only the exporter platforms pull Pure's image.
-    expect(
-      prerequisites.includes(
-        "Access from that machine to `quay.io`, where Docker pulls Pure's exporter image",
-      ),
-    ).toBe(platform !== "flasharray");
-  });
-
-  test("the read-only user gets the readonly role and a token without an expiry", () => {
-    const step: SetupGuideStep = stepTitled(
-      guide,
-      "Create a read-only user and API token",
-    );
-    const text: string = [
-      step.markdown || "",
-      ...(step.variants || []).map((variant: SetupGuideStepVariant) => {
-        return variant.markdown;
-      }),
-    ].join("\n");
-    expect(text).toContain("readonly");
-    expect(text).toContain("without an expiry");
-    if (platform === "flashblade") {
-      expect(text).toContain("`T-`");
-      expect(text).toContain("Purity//FB");
-    } else {
-      expect(text).toContain(
-        `pureadmin create --role readonly ${STORAGE_ARRAY_READ_ONLY_USER}`,
       );
-      expect(text).toContain(
-        `pureadmin create --api-token ${STORAGE_ARRAY_READ_ONLY_USER}`,
+      expect(titles).toEqual(
+        platform === "flasharray"
+          ? [
+              "Create a read-only user and API token",
+              "Check the array serves its own metrics",
+              "Install the agent",
+              "Verify the installation",
+            ]
+          : [
+              "Create a read-only user and API token",
+              "Install the agent",
+              "Verify the installation",
+            ],
       );
-      expect(text).toContain("Settings → Users and Policies");
-    }
-  });
+    });
 
-  test("the verify step checks the collector container and its ready line", () => {
-    const step: string =
-      stepTitled(guide, "Verify the installation").markdown || "";
-    expect(step).toContain(
-      `docker ps --filter name=${STORAGE_ARRAY_AGENT_CONTAINER}`,
-    );
-    expect(step).toContain(`docker logs -f ${STORAGE_ARRAY_AGENT_CONTAINER}`);
-    expect(step).toContain(
-      "Everything is ready. Begin running and processing data.",
-    );
-    const exporter: string | null =
-      STORAGE_ARRAY_PLATFORM_SETTINGS[platform].exporterService;
-    if (exporter) {
-      expect(step).toContain(exporter);
-    }
-  });
-
-  test("has Advanced topics for settings, config, syslog, labels, data, several arrays, systemd and upgrades", () => {
-    expect(topicTitles(guide.advanced)).toEqual([
-      "Environment variables",
-      "How the agent scrapes, and its collector config",
-      "Ship the array's syslog",
-      "Tag the array with project labels",
-      "What the agent collects",
-      "Monitor several arrays",
-      "Run as a systemd service",
-      "Upgrade or uninstall the agent",
-    ]);
-    for (const topic of guide.advanced || []) {
-      expect(topic.summary).toBeTruthy();
-      expect(topic.summary).not.toContain("\n");
-    }
-  });
-
-  test("troubleshooting starts with the diagnostic script and covers the known problems", () => {
-    const titles: Array<string> = topicTitles(guide.troubleshooting);
-    expect(titles[0]).toBe("Run the diagnostic script first");
-    for (const title of [
-      "No array appears in OneUptime",
-      "The array refuses the API token",
-      "x509 or TLS errors",
-      "The exporter does not resolve",
-      'Array shows as "Disconnected"',
-      "Array appears under the wrong name",
-    ]) {
-      expect(titles).toContain(title);
-    }
-    // Only a FlashArray can answer 404 for a missing native endpoint.
-    expect(titles.includes("The FlashArray answers 404")).toBe(
-      platform !== "flashblade",
-    );
-  });
-
-  test("shows its own shipped collector config verbatim", () => {
-    const topic: string = topicTitled(
-      guide.advanced,
-      "How the agent scrapes, and its collector config",
-    ).markdown;
-    expect(topic).toContain(
-      `This is the full \`${STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile}\``,
-    );
-    expect(topic).toContain(STORAGE_ARRAY_COLLECTOR_CONFIGS[platform]);
-    for (const other of PLATFORMS) {
-      if (other !== platform) {
-        expect(topic).not.toContain(STORAGE_ARRAY_COLLECTOR_CONFIGS[other]);
+    test("every step has a plain one-sentence description", () => {
+      for (const step of guide.steps) {
+        expect(step.description).toBeTruthy();
+        expect(step.description).not.toContain("\n");
+        expect(step.description).not.toContain("`");
       }
-    }
-  });
+    });
 
-  test("the environment table carries the reader's URL", () => {
-    expect(envTableRows(guide).get("ONEUPTIME_URL")?.description).toContain(
-      URL,
-    );
-  });
+    test("the install step offers the install script and Docker Compose as tabs", () => {
+      expect(
+        (stepTitled(guide, "Install the agent").variants || []).map(
+          (variant: SetupGuideStepVariant): string => {
+            return variant.label;
+          },
+        ),
+      ).toEqual(["Install script", "Docker Compose"]);
+    });
 
-  test("links to the storage array agent and monitor documentation", () => {
-    expect(guide.links).toEqual([
-      {
-        title: "Storage Array Agent documentation",
-        url: "/docs/telemetry/storage-arrays",
-      },
-      {
-        title: "Storage array monitors and alerts",
-        url: "/docs/monitor/storage-array-monitor",
-      },
-    ]);
-  });
-});
+    test("lists what must be in place first", () => {
+      const prerequisites: string = (guide.prerequisites || []).join("\n");
+      expect(prerequisites).toContain("Docker Engine 20.10+");
+      expect(prerequisites).toContain("Docker Compose v2");
+      expect(prerequisites).toContain("TCP 443");
+      expect(prerequisites).toContain("administrator account");
+      // Only the exporter platforms pull Pure's image.
+      expect(
+        prerequisites.includes(
+          "Access from that machine to `quay.io`, where Docker pulls Pure's exporter image",
+        ),
+      ).toBe(platform !== "flasharray");
+    });
+
+    test("the read-only user gets the readonly role and a token without an expiry", () => {
+      const step: SetupGuideStep = stepTitled(
+        guide,
+        "Create a read-only user and API token",
+      );
+      const text: string = [
+        step.markdown || "",
+        ...(step.variants || []).map((variant: SetupGuideStepVariant) => {
+          return variant.markdown;
+        }),
+      ].join("\n");
+      expect(text).toContain("readonly");
+      expect(text).toContain("without an expiry");
+      if (platform === "flashblade") {
+        expect(text).toContain("`T-`");
+        expect(text).toContain("Purity//FB");
+      } else {
+        expect(text).toContain(
+          `pureadmin create --role readonly ${STORAGE_ARRAY_READ_ONLY_USER}`,
+        );
+        expect(text).toContain(
+          `pureadmin create --api-token ${STORAGE_ARRAY_READ_ONLY_USER}`,
+        );
+        expect(text).toContain("Settings → Users and Policies");
+      }
+    });
+
+    test("the verify step checks the collector container and its ready line", () => {
+      const step: string =
+        stepTitled(guide, "Verify the installation").markdown || "";
+      expect(step).toContain(
+        `docker ps --filter name=${STORAGE_ARRAY_AGENT_CONTAINER}`,
+      );
+      expect(step).toContain(`docker logs -f ${STORAGE_ARRAY_AGENT_CONTAINER}`);
+      expect(step).toContain(
+        "Everything is ready. Begin running and processing data.",
+      );
+      const exporter: string | null =
+        STORAGE_ARRAY_PLATFORM_SETTINGS[platform].exporterService;
+      if (exporter) {
+        expect(step).toContain(exporter);
+      }
+    });
+
+    test("has Advanced topics for settings, config, syslog, labels, data, several arrays, systemd and upgrades", () => {
+      expect(topicTitles(guide.advanced)).toEqual([
+        "Environment variables",
+        "How the agent scrapes, and its collector config",
+        "Ship the array's syslog",
+        "Tag the array with project labels",
+        "What the agent collects",
+        "Monitor several arrays",
+        "Run as a systemd service",
+        "Upgrade or uninstall the agent",
+      ]);
+      for (const topic of guide.advanced || []) {
+        expect(topic.summary).toBeTruthy();
+        expect(topic.summary).not.toContain("\n");
+      }
+    });
+
+    test("troubleshooting starts with the diagnostic script and covers the known problems", () => {
+      const titles: Array<string> = topicTitles(guide.troubleshooting);
+      expect(titles[0]).toBe("Run the diagnostic script first");
+      for (const title of [
+        "No array appears in OneUptime",
+        "The array refuses the API token",
+        "x509 or TLS errors",
+        "The exporter does not resolve",
+        'Array shows as "Disconnected"',
+        "Array appears under the wrong name",
+      ]) {
+        expect(titles).toContain(title);
+      }
+      // Only a FlashArray can answer 404 for a missing native endpoint.
+      expect(titles.includes("The FlashArray answers 404")).toBe(
+        platform !== "flashblade",
+      );
+    });
+
+    test("shows its own shipped collector config verbatim", () => {
+      const topic: string = topicTitled(
+        guide.advanced,
+        "How the agent scrapes, and its collector config",
+      ).markdown;
+      expect(topic).toContain(
+        `This is the full \`${STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile}\``,
+      );
+      expect(topic).toContain(STORAGE_ARRAY_COLLECTOR_CONFIGS[platform]);
+      for (const other of PLATFORMS) {
+        if (other !== platform) {
+          expect(topic).not.toContain(STORAGE_ARRAY_COLLECTOR_CONFIGS[other]);
+        }
+      }
+    });
+
+    test("the environment table carries the reader's URL", () => {
+      expect(envTableRows(guide).get("ONEUPTIME_URL")?.description).toContain(
+        URL,
+      );
+    });
+
+    test("links to the storage array agent and monitor documentation", () => {
+      expect(guide.links).toEqual([
+        {
+          title: "Storage Array Agent documentation",
+          url: "/docs/telemetry/storage-arrays",
+        },
+        {
+          title: "Storage array monitors and alerts",
+          url: "/docs/monitor/storage-array-monitor",
+        },
+      ]);
+    });
+  },
+);
 
 describe("the native FlashArray endpoint check", () => {
   const step: string =
@@ -529,7 +557,7 @@ describe("the native FlashArray endpoint check", () => {
 describe("the install script", () => {
   test.each(PLATFORMS)(
     "carries the reader's URL, key and the %s config on the command line",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const command: string = getStorageArrayInstallScriptCommand({
         oneuptimeUrl: URL,
         apiKey: KEY,
@@ -682,7 +710,7 @@ describe("the install script", () => {
 describe("the Docker Compose install", () => {
   test.each(PLATFORMS)(
     "the %s tab downloads the compose file and every config, writes .env, then starts the agent",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const variant: string = variantOf(
         guideFor(platform),
         "Docker Compose",
@@ -691,7 +719,7 @@ describe("the Docker Compose install", () => {
         expect(variant).toContain(`curl -fsSLO ${SERVED}/${file}`);
       }
       expect(variant).toContain(
-        "Download the compose file and the three collector configs from this OneUptime into a new folder:",
+        "Download the compose file and the collector configs from this OneUptime into a new folder:",
       );
       expect(variant).not.toContain("github.com/OneUptime");
       expect(STORAGE_ARRAY_AGENT_INSTALL_NAME).toBe("storage-array-agent");
@@ -702,7 +730,7 @@ describe("the Docker Compose install", () => {
 
   test.each(PLATFORMS)(
     "the %s .env file carries the reader's URL and key and the platform's settings",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const variables: Map<string, string> = envVariablesOf(
         envFileOf(guideFor(platform)),
       );
@@ -817,7 +845,7 @@ describe("the array name", () => {
  */
 describe.each(PLATFORMS)(
   "the %s guide's upgrade",
-  (platform: StorageArrayPlatform) => {
+  (platform: StorageArrayWholeConfigPlatform) => {
     const upgrade: SetupGuideTopic = topicTitled(
       guideFor(platform).advanced,
       "Upgrade or uninstall the agent",
@@ -893,7 +921,7 @@ describe.each(PLATFORMS)(
 describe("the whole guide reads as one document", () => {
   test.each(PLATFORMS)(
     "the %s guide renders to markdown with every step numbered after the key",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const markdown: string = getSetupGuideMarkdown(guideFor(platform));
       expect(markdown).toContain(
         "## Step 2: Create a read-only user and API token",
@@ -907,7 +935,7 @@ describe("the whole guide reads as one document", () => {
 describe("drift guards against agents/StorageArrayAgent", () => {
   test.each(PLATFORMS)(
     "the %s collector config is the shipped file, byte for byte",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       expect(STORAGE_ARRAY_COLLECTOR_CONFIGS[platform]).toBe(
         readAgentFile(
           STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile,
@@ -918,7 +946,7 @@ describe("drift guards against agents/StorageArrayAgent", () => {
 
   test.each(PLATFORMS)(
     "the %s config stamps storage.array.name and storage.system and drops service.name",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const config: Record<string, any> = yaml.load(
         STORAGE_ARRAY_COLLECTOR_CONFIGS[platform],
       ) as Record<string, any>;
@@ -957,8 +985,10 @@ describe("drift guards against agents/StorageArrayAgent", () => {
   );
 
   test("the scrape intervals the guide describes are the configs'", () => {
-    const intervals: (platform: StorageArrayPlatform) => Map<string, string> = (
-      platform: StorageArrayPlatform,
+    const intervals: (
+      platform: StorageArrayWholeConfigPlatform,
+    ) => Map<string, string> = (
+      platform: StorageArrayWholeConfigPlatform,
     ): Map<string, string> => {
       const config: Record<string, any> = yaml.load(
         STORAGE_ARRAY_COLLECTOR_CONFIGS[platform],
@@ -1155,7 +1185,7 @@ describe("drift guards against agents/StorageArrayAgent", () => {
    */
   test.each(PLATFORMS)(
     "the compose file runs the pinned collector, and the %s config reports the pin",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const image: string =
         compose()["services"][STORAGE_ARRAY_AGENT_CONTAINER]["image"];
       expect(image).toMatch(

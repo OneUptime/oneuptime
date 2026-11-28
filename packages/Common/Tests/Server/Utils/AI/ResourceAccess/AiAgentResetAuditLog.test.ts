@@ -243,6 +243,7 @@ describe("the column every resource with an AI agent records a reset in", () => 
         "PodmanHost",
         "ProxmoxCluster",
         "VMwareVCenter",
+        "XcpNgPool",
       ].sort(),
     );
     expect(AI_AGENT_RESET_AUDIT_COLUMNS).toEqual(["aiAgentResetAt"]);

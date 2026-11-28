@@ -485,6 +485,53 @@ Kubernetes イベントは、エージェントで namespace によってフィ�
 > [!IMPORTANT]
 > Kubernetes イベントとリソースの仕様は、これでフィルタリングされることはありません。これらは独自の重大度なしで Kubernetes API から届くため、しきい値を適用するとフィード全体が削除されてしまい、最も欲しい `FailedScheduling`、`BackOff`、`OOMKilling` の警告まで失われます。数が少なく価値が高いため、エージェントは常に送信します。量を減らすには、OneUptime の **ログ → 設定 → 破棄フィルター** を使ってください。
 
+### 独自のログ形式を読み取る
+
+エージェントは、ほとんどのプログラムが書き出す形式のレベルを読み取ります。社内独自の形式など、エージェントが読み取らない形式には、`logs.extraOperators` で独自の Collector の operators を追加します。operators は `daemonset` モードで Pod のすべてのログ行に対して実行されます。実行されるのは、エージェントが行を組み立て直し、その Pod とストリームを読み取った後、行のレベルを読み取る前です。
+
+行のレベルを設定するには、`ERROR`、`warn`、`critical`、klog の文字など、エージェントが読み取る単語として `attributes.severity_text` に書き込みます。エージェントは自身のどの読み取り処理よりも先にこれを読み取り、OneUptime が他のすべての場所でその単語を保存するのと同じように保存します。その後、エージェントの最初のステップである `severity-router` に行を渡すか、次の operator にそのまま進めます。
+
+`<<E>> payment failed` や `SEV1 checkout is down` のような行の場合:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+チャートは、インストール時とアップグレード時に operators をチェックします。Collector が拒否する値があると、再起動を繰り返す DaemonSet を残す代わりに、その operator を示すメッセージとともに `helm install` が失敗します。対象は、`image.tag` のバージョンの Collector にないタイプ、タイプに必要な設定、フィールド、使用済みの id、何も指していない `output`、正規表現、式の中の文字列です。式の文字列の中では、`"^\\d+ "` のように正規表現のバックスラッシュを 2 つ重ねて書くか、正規表現をバッククォートで囲んだ raw 文字列に入れます。式のそれ以外の部分は、Collector が起動時にコンパイルします。
+
+チャートは、Collector なら実行してしまう 3 種類の operator も拒否し、その理由を示します:
+
+- 行の重大度を自分で設定するもの。`severity_parser`、`syslog_parser`、パーサーの `severity` ブロックなどです。エージェントは operators の後ですべての行のレベルを読み取るため、それを上書きしてしまいます。代わりにレベルを `attributes.severity_text` に書き込んでください。
+- `default` のないルーター、または `output` のないルート。どの operator にも渡されない行は破棄されます。
+- `container` パーサー。エージェントはすでにコンテナランタイムの形式を読み取っているため、operators にはプログラム自身が書いた行が渡されます。
+
+`logs.extraOperators` には `daemonset` モードが必要です。`api` モードのログテーラーは Collector の operators を実行しないため、チャートはこのモードでこの設定を拒否します。また、ハイブリッド構成 (`logs.windowsPods.enabled`) の Windows Pod には適用されません。
+
 ### 名前によるメトリクスの包含と除外
 
 `filters.metrics` は、すべてのレシーバーを通して、どのメトリクスがクラスターから出ていくかを決めます。
@@ -789,7 +836,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 このクラスターでインシデントやアラートが発生すると、OneUptime AI がそれを調査します。チャートの **Kubernetes AI エージェント** は AI に端末を与えます。オンコールのエンジニアと同じように読み取り専用の `kubectl` を実行し (失敗している Pod を describe し、そのイベントを読み、クラッシュしているコンテナのログを追い、ノードの容量を確認します)、実行したすべてのコマンドをインシデントのページに示します。
 
-エージェントは **デフォルトで有効** で、**読み取り専用** です。小さな Deployment が 1 つ (`kubernetes-agent-ai-agent`、Pod のラベルは `component=ai-agent`、イメージは `oneuptime/kubernetes-ai-agent`) で、その ServiceAccount は読み取りしかできません。Collector と同じ `oneuptime.apiKey` と `clusterName` で自身を登録するため、ダッシュボードで設定することはありません。クラスターの **AI エージェント** ページ (Kubernetes → クラスター → AI → エージェント) に 1 分以内に接続済みと表示され、その状態の横にある **⋯** メニューの **接続をテスト** で、エージェント経由で `kubectl version` と `kubectl auth can-i --list` を実行できます。AI がエージェントで行ったことはすべてクラスターの **AI ログ** ページ (AI → ログ) にあり、クラスターについて知っておくべきこと (繰り返し発生する問題とその理由、その大半の背後にあるノードやワークロード、AI が修正したもの) は **AI インサイト** ページ (AI → インサイト) にあります。エージェントには固定版の kubectl (v1.36.6) が同梱されています。これは Runner ではなく、Runbooks → Runners の下に表示されることもありません。OneUptime がエージェントに認証情報を渡すことも、Runbook を実行させることもなく、AI ルールのコマンド用 Runner として受け付けられることもありません。
+エージェントは **デフォルトで有効** で、**読み取り専用** です。小さな Deployment が 1 つ (`kubernetes-agent-ai-agent`、Pod のラベルは `component=ai-agent`、イメージは `oneuptime/kubernetes-ai-agent`) で、その ServiceAccount は読み取りしかできません。Collector と同じ `oneuptime.apiKey` と `clusterName` で自身を登録するため、ダッシュボードで設定することはありません。クラスターの **AI エージェント** ページ (Kubernetes → クラスター → AI → エージェント) に 1 分以内に接続済みと表示され、その状態の横にある **⋯** メニューの **接続をテスト** で、エージェント経由で `kubectl version` と `kubectl auth can-i --list` を実行できます。AI がエージェントで行ったことはすべてクラスターの **AI ログ** ページ (AI → ログ) にあり、クラスターについて知っておくべきこと (繰り返し発生する問題とその理由、その大半の背後にあるノードやワークロード、AI が修正したもの) は **AI インサイト** ページ (AI → インサイト) にあります。エージェントには固定版の kubectl (v1.36.7) が同梱されています。これは Runner ではなく、Runbooks → Runners の下に表示されることもありません。OneUptime がエージェントに認証情報を渡すことも、Runbook を実行させることもなく、AI ルールのコマンド用 Runner として受け付けられることもありません。
 
 AI エージェントが登場する前にインストールしたエージェントでは、まずチャートのインデックスを更新してからアップグレードしてください (セルフホストの OneUptime では、先に OneUptime をアップグレードします。[エージェントのアップグレード](#エージェントのアップグレード) を参照):
 

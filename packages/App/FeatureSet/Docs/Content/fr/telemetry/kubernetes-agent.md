@@ -485,6 +485,53 @@ Les événements sur plusieurs lignes sont reconstitués avant le filtrage dans 
 > [!IMPORTANT]
 > Les événements Kubernetes et les spécifications de ressources ne sont jamais filtrés par ce réglage. Ils arrivent de l'API Kubernetes sans gravité propre : un seuil supprimerait donc tout le flux, y compris les avertissements `FailedScheduling`, `BackOff` et `OOMKilling` dont vous avez le plus besoin. Ils sont peu nombreux et précieux, l'agent les envoie donc toujours ; pour les réduire, utilisez **Journaux → Paramètres → Filtres de suppression** dans OneUptime.
 
+### Lire votre propre format de journal
+
+L'agent lit les niveaux des formats qu'écrivent la plupart des programmes. Pour un format qu'il ne lit pas, comme un format maison, ajoutez vos propres operators de collecteur avec `logs.extraOperators`. Ils s'exécutent sur chaque ligne de journal de pod en mode `daemonset`, après que l'agent a reconstitué la ligne et lu son pod et son flux, et avant qu'il lise le niveau de la ligne.
+
+Pour définir le niveau d'une ligne, écrivez-le dans `attributes.severity_text` sous la forme d'un mot que l'agent lit, comme `ERROR`, `warn`, `critical` ou une lettre klog. L'agent le lit avant tous ses propres lecteurs, et l'enregistre comme OneUptime enregistre ce mot partout ailleurs. Passez ensuite la ligne à `severity-router`, la première étape de l'agent, ou laissez-la continuer vers votre operator suivant.
+
+Pour des lignes comme `<<E>> payment failed` et `SEV1 checkout is down` :
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+Le chart vérifie les operators quand vous installez ou mettez à jour. Une valeur que le collecteur refuserait fait échouer `helm install` avec un message qui nomme l'operator, au lieu de laisser un DaemonSet qui redémarre sans cesse : un type que le collecteur de `image.tag` n'a pas, un paramètre dont le type a besoin, un champ, un id déjà pris, un `output` qui ne désigne rien, une regex, ou une chaîne dans une expression. Dans la chaîne d'une expression, la barre oblique inverse d'une regex s'écrit deux fois, comme dans `"^\\d+ "`, ou la regex se met dans une chaîne brute, entre accents graves. Le reste d'une expression est compilé par le collecteur à son démarrage.
+
+Le chart refuse aussi trois sortes d'operators que le collecteur exécuterait, et dit pourquoi :
+
+- Un operator qui définit lui-même la gravité de la ligne, comme un `severity_parser`, un `syslog_parser` ou le bloc `severity` d'un parser. L'agent lit le niveau de chaque ligne après vos operators et l'écraserait : écrivez donc plutôt le niveau dans `attributes.severity_text`.
+- Un routeur sans `default`, ou une route sans `output`. Les lignes qu'il ne transmet à aucun operator sont supprimées.
+- Le parser `container`. L'agent a déjà lu le format du runtime de conteneurs, donc vos operators voient la ligne telle que le programme l'a écrite.
+
+`logs.extraOperators` nécessite le mode `daemonset`. Le lecteur de journaux du mode `api` n'exécute aucun operator de collecteur : le chart refuse donc ce paramètre dans ce mode, et les pods Windows d'une installation hybride (`logs.windowsPods.enabled`) ne le reçoivent pas.
+
 ### Inclure ou exclure des métriques par nom
 
 `filters.metrics` décide quelles métriques quittent le cluster, pour tous les receivers.
@@ -789,7 +836,7 @@ Injecter l'en-tête signifie réécrire du trafic déjà en transit : les requê
 
 Lorsqu'un incident ou une alerte survient sur ce cluster, OneUptime AI enquête. L'**Agent IA Kubernetes** du chart lui donne un terminal : il exécute `kubectl` en lecture seule comme le ferait un ingénieur d'astreinte (décrire le pod défaillant, lire ses événements, suivre les journaux du conteneur qui plante, vérifier la capacité des nœuds) et cite chaque commande sur la page de l'incident.
 
-L'agent est **activé par défaut** et **en lecture seule** : un petit Deployment (`kubernetes-agent-ai-agent`, étiquette de pod `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) dont le ServiceAccount ne peut que lire. Il s'enregistre avec les mêmes `oneuptime.apiKey` et `clusterName` que le collecteur : il n'y a donc rien à configurer dans le tableau de bord. La page **Agent IA** du cluster (Kubernetes → cluster → IA → Agent) l'affiche comme connecté en une minute, et **Tester la connexion**, dans le menu **⋯** à côté de cet état, exécute `kubectl version` et `kubectl auth can-i --list` à travers lui. Tout ce que l'IA a fait avec lui figure sur la page **Journaux IA** du cluster (IA → Journaux), et ce qu'il faut savoir du cluster — les problèmes qui reviennent sans cesse et pourquoi, le nœud ou la charge de travail derrière la plupart d'entre eux, ce que l'IA a corrigé — sur la page **Analyses IA** (IA → Analyses). L'agent embarque un kubectl épinglé (v1.36.6). Ce n'est pas un Runner et il n'apparaît jamais sous Runbooks → Runners : OneUptime ne lui transmet jamais d'identifiants, n'exécute jamais de runbooks sur lui, et il n'est jamais accepté comme Runner de commandes d'une règle IA.
+L'agent est **activé par défaut** et **en lecture seule** : un petit Deployment (`kubernetes-agent-ai-agent`, étiquette de pod `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) dont le ServiceAccount ne peut que lire. Il s'enregistre avec les mêmes `oneuptime.apiKey` et `clusterName` que le collecteur : il n'y a donc rien à configurer dans le tableau de bord. La page **Agent IA** du cluster (Kubernetes → cluster → IA → Agent) l'affiche comme connecté en une minute, et **Tester la connexion**, dans le menu **⋯** à côté de cet état, exécute `kubectl version` et `kubectl auth can-i --list` à travers lui. Tout ce que l'IA a fait avec lui figure sur la page **Journaux IA** du cluster (IA → Journaux), et ce qu'il faut savoir du cluster — les problèmes qui reviennent sans cesse et pourquoi, le nœud ou la charge de travail derrière la plupart d'entre eux, ce que l'IA a corrigé — sur la page **Analyses IA** (IA → Analyses). L'agent embarque un kubectl épinglé (v1.36.7). Ce n'est pas un Runner et il n'apparaît jamais sous Runbooks → Runners : OneUptime ne lui transmet jamais d'identifiants, n'exécute jamais de runbooks sur lui, et il n'est jamais accepté comme Runner de commandes d'une règle IA.
 
 Sur un agent installé avant l'existence de l'agent IA, actualisez d'abord votre index de charts, puis mettez à jour (sur un OneUptime auto-hébergé, mettez d'abord OneUptime à jour — voir [Mettre à jour l'agent](#mettre-à-jour-lagent)) :
 

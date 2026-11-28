@@ -90,6 +90,8 @@ export function getTableHealthCollectableSql(parameters: {
   return [
     `ds."deletedAt" IS NULL`,
     `ds."isTableHealthEnabled" = true`,
+    // Read by its Database Agent (#11148), even where a probe scans its content.
+    `ds."tableHealthDatabaseServerId" IS NULL`,
     `ds."isArchived" = false`,
     `ds."provider" = ${parameters.providerParameter}`,
     `ds."kind" = ANY(${parameters.kindsParameter}::text[])`,
@@ -158,10 +160,20 @@ export async function setAsideUncollectableTableHealthStores(data: {
       table: "DataStore",
       alias: "ds",
       dueColumn: "nextTableHealthCollectionAt",
-      sources: [{ from: `"DataStore" ds`, where: `ds."scanProbeId" = $1` }],
+      /*
+       * A store a Database Agent reads (#11148) is never the probe's to set
+       * aside, even where the probe scans its content: the agent's claim
+       * reads the same due time.
+       */
+      sources: [
+        {
+          from: `"DataStore" ds`,
+          where: `ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL`,
+        },
+      ],
       joins: `LEFT JOIN "Project" p ON ds."projectId" = p."_id"
         LEFT JOIN "Probe" pr ON ds."scanProbeId" = pr."_id"`,
-      isProbesRow: `ds."scanProbeId" = $1`,
+      isProbesRow: `ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL`,
       claimable: getTableHealthCollectableSql({
         providerParameter: "$6",
         kindsParameter: "$7",

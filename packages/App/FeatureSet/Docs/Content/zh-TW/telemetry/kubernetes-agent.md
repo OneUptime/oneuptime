@@ -485,6 +485,53 @@ Kubernetes 事件不會在代理程式端依命名空間篩選：代理程式會
 > [!IMPORTANT]
 > Kubernetes 事件和資源規格永遠不會被它篩選。它們來自 Kubernetes API，沒有自己的嚴重性，因此臨界值會刪除整個資料流，包括你最需要的 `FailedScheduling`、`BackOff` 和 `OOMKilling` 警告。它們數量少而價值高，所以代理程式一律會傳送它們；若要精簡它們，請在 OneUptime 中使用 **日誌 → 設定 → 捨棄過濾器**。
 
+### 讀取自訂日誌格式
+
+代理程式能讀取大多數程式所寫格式中的等級。對於它讀取不了的格式，例如公司內部的格式，請用 `logs.extraOperators` 新增你自己的 Collector operators。在 `daemonset` 模式下，它們會作用於每一行 Pod 日誌，時機是在代理程式將該行重新組合、讀取其 Pod 和串流之後，在讀取該行的等級之前。
+
+若要設定某一行的等級，請將它以代理程式能讀取的字詞寫入 `attributes.severity_text`，例如 `ERROR`、`warn`、`critical` 或 klog 字母。代理程式會先於它自己的任何讀取器讀取該值，並依 OneUptime 在其他所有地方儲存該字詞的方式儲存它。接著把該行交給代理程式的第一步 `severity-router`，或讓它繼續流向你的下一個 operator。
+
+對於 `<<E>> payment failed` 和 `SEV1 checkout is down` 這樣的行：
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+該 chart 會在你安裝或升級時檢查這些 operators。如果某個值會被 Collector 拒絕，`helm install` 會失敗，並提供指出該 operator 的訊息，而不是留下一個不斷重新啟動的 DaemonSet：`image.tag` 對應的 Collector 沒有的類型、該類型需要的設定、欄位、已被使用的 id、沒有指向任何對象的 `output`、正規表示式，或運算式中的字串。在運算式的字串中，正規表示式的反斜線要寫兩次，如 `"^\\d+ "`，或者把正規表示式放進原始字串，用反引號括起來。運算式的其餘部分由 Collector 在啟動時編譯。
+
+該 chart 還會拒絕三種 Collector 原本會執行的 operator，並說明原因：
+
+- 自行設定該行嚴重性的 operator，例如 `severity_parser`、`syslog_parser` 或剖析器的 `severity` 區塊。代理程式會在你的 operators 之後讀取每一行的等級，並會覆寫它，因此請改為將等級寫入 `attributes.severity_text`。
+- 沒有 `default` 的路由器，或沒有 `output` 的路由。它沒有交給任何 operator 的行會被捨棄。
+- `container` 剖析器。代理程式已經讀取了容器執行階段的格式，因此你的 operators 看到的是程式自己寫出的行。
+
+`logs.extraOperators` 需要 `daemonset` 模式。`api` 模式的日誌追蹤器不會執行 Collector operators，因此 chart 在該模式下會拒絕此設定，混合安裝（`logs.windowsPods.enabled`）中的 Windows Pod 也不會取得它。
+
 ### 依名稱包含或排除指標
 
 `filters.metrics` 決定哪些指標會離開叢集，作用於所有接收器。
@@ -789,7 +836,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 當此叢集上出現事件或警示時，OneUptime AI 會進行調查。chart 中的 **Kubernetes AI 代理程式** 會為它提供一個終端機：它會像值班工程師那樣執行唯讀的 `kubectl`（describe 出問題的 Pod、讀取其事件、查看當機容器的日誌、檢查節點容量），並在事件頁面上引用它執行的每一個指令。
 
-該代理程式 **預設為開啟** 且 **唯讀**：一個小型 Deployment（`kubernetes-agent-ai-agent`，Pod 標籤 `component=ai-agent`，映像檔 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能讀取。它會使用與 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行註冊，因此不需要在儀表板中進行任何設定：叢集的 **AI 代理程式** 頁面（Kubernetes → 叢集 → 人工智慧 → 代理程式）會在一分鐘內顯示其為已連線，而該狀態旁邊 **⋯** 選單中的 **測試連線** 會透過它執行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做過的一切都在叢集的 **AI 日誌** 頁面（人工智慧 → 日誌）上，而關於該叢集值得了解的內容——反覆出現的問題及其原因、造成其中大多數問題的節點或工作負載、AI 修正了什麼——則在 **AI 洞察** 頁面（人工智慧 → Insights）上。該代理程式內建一個固定版本的 kubectl（v1.36.6）。它不是 Runner，也永遠不會出現在 Runbooks → Runners 下：OneUptime 從不提供它認證資料，從不在它上面執行 runbook，它也永遠不會被接受為 AI 規則的指令 Runner。
+該代理程式 **預設為開啟** 且 **唯讀**：一個小型 Deployment（`kubernetes-agent-ai-agent`，Pod 標籤 `component=ai-agent`，映像檔 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能讀取。它會使用與 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行註冊，因此不需要在儀表板中進行任何設定：叢集的 **AI 代理程式** 頁面（Kubernetes → 叢集 → 人工智慧 → 代理程式）會在一分鐘內顯示其為已連線，而該狀態旁邊 **⋯** 選單中的 **測試連線** 會透過它執行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做過的一切都在叢集的 **AI 日誌** 頁面（人工智慧 → 日誌）上，而關於該叢集值得了解的內容——反覆出現的問題及其原因、造成其中大多數問題的節點或工作負載、AI 修正了什麼——則在 **AI 洞察** 頁面（人工智慧 → Insights）上。該代理程式內建一個固定版本的 kubectl（v1.36.7）。它不是 Runner，也永遠不會出現在 Runbooks → Runners 下：OneUptime 從不提供它認證資料，從不在它上面執行 runbook，它也永遠不會被接受為 AI 規則的指令 Runner。
 
 對於在 AI 代理程式出現之前安裝的代理程式，請先重新整理 chart 索引，然後升級（在自行託管的 OneUptime 上，請先升級 OneUptime——請參閱 [升級代理程式](#升級代理程式)）：
 

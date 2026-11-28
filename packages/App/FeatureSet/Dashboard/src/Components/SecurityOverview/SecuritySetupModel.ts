@@ -31,6 +31,12 @@ import {
   RefusedTelemetry,
   readRefusedTelemetryList,
 } from "Common/Utils/SecurityEvent/RefusedTelemetry";
+import { DetectionRuleLibraryEntry } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import {
+  SecurityRuleAddedByOneUptime,
+  readRecommendedRulesNotAdded,
+  readRulesAddedByOneUptime,
+} from "Common/Utils/SecurityEvent/RecommendedDetectionRules";
 
 /*
  * How Security is set up in a project, as the Overview draws it: the
@@ -68,6 +74,17 @@ export interface SecuritySetupStatus {
    * nothing was.
    */
   refusedTelemetry?: Array<RefusedTelemetry> | undefined;
+  /*
+   * The recommended rules the project has no rule of yet (#11037), in the
+   * library's order: the Overview names each, with what it catches and
+   * Turn On. Absent when there are none, or the server could not tell.
+   */
+  recommendedRulesNotAdded?: Array<DetectionRuleLibraryEntry> | undefined;
+  /*
+   * The recommended rules OneUptime added itself, on upgrade, this last
+   * month, still on (#11037). Absent when there are none.
+   */
+  rulesAddedByOneUptime?: Array<SecurityRuleAddedByOneUptime> | undefined;
 }
 
 export type { TurnOnRecommendedProblem, TurnOnRecommendedResult };
@@ -107,10 +124,18 @@ export function parseSecuritySetupStatus(
   const refusedTelemetry: Array<RefusedTelemetry> = readRefusedTelemetryList(
     body["refusedTelemetry"],
   );
+  const recommendedRulesNotAdded: Array<DetectionRuleLibraryEntry> =
+    readRecommendedRulesNotAdded(body["recommendedRulesNotAdded"]);
+  const rulesAddedByOneUptime: Array<SecurityRuleAddedByOneUptime> =
+    readRulesAddedByOneUptime(body["rulesAddedByOneUptime"]);
 
   return {
     ...(addressScrubRules.length > 0 ? { addressScrubRules } : {}),
     ...(refusedTelemetry.length > 0 ? { refusedTelemetry } : {}),
+    ...(recommendedRulesNotAdded.length > 0
+      ? { recommendedRulesNotAdded }
+      : {}),
+    ...(rulesAddedByOneUptime.length > 0 ? { rulesAddedByOneUptime } : {}),
     connections: readNumber(body["connections"]),
     logsSourceEnabled: body["logsSourceEnabled"] === true,
     telemetrySourcesEnabled: readNumber(body["telemetrySourcesEnabled"]),

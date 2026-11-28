@@ -43,13 +43,17 @@ import type StorageSystem from "./StorageSystem";
  *   4. Its row in the supported platforms table of
  *      Docs/Content/<lang>/telemetry/storage-arrays.md.
  *
- * Still Pure Storage's alone, each a follow-up of #11000: the words and
- * charts of the shared kinds' pages (VolumeDetail and the rest chart Pure's
- * catalog ids, #11122), the Dashboard's setup guide steps
- * (Pages/StorageArray/Utils/DocumentationMarkdown.ts offers an agent config
- * once its steps and collector config are there, #11123), troubleshoot.sh's
- * probes (#11124), the storage array dashboard template (#11125), and a
- * platform's own kinds in Ask AI's page context and the topology (#11126).
+ * What a kind's pages say and chart is the platform's too (kindPages,
+ * #11122): the shared kinds' lists and part pages read their words, their
+ * columns and their charts from the array's platform, and a kind only one
+ * platform has is listed and drawn from its kindPages alone.
+ *
+ * Still Pure Storage's alone, each a follow-up of #11000: the Dashboard's
+ * setup guide steps (Pages/StorageArray/Utils/DocumentationMarkdown.ts
+ * offers an agent config once its steps and collector config are there,
+ * #11123), troubleshoot.sh's probes (#11124), the storage array dashboard
+ * template (#11125), and a platform's own kinds in Ask AI's page context
+ * and the topology (#11126).
  *
  * Everything that reads a platform - ingest, the metric catalog, alert
  * templates, Recommendations, the criteria evaluator, the pages, the setup
@@ -84,6 +88,10 @@ import type StorageSystem from "./StorageSystem";
 export interface StorageArrayComponentStatuses {
   critical: ReadonlyArray<string>;
   warning: ReadonlyArray<string>;
+  /*
+   * The words that mean all is well (green on the pages), beside the
+   * shared ones (ok, healthy, ready, enabled, online, replicating).
+   */
   healthy?: ReadonlyArray<string> | undefined;
 }
 
@@ -139,6 +147,18 @@ export interface StorageArrayMetricDefinition {
 }
 
 /*
+ * The unit of a platform's series whose exporter declares none (NetApp
+ * Harvest writes no UNIT lines): a regular expression over the metric's
+ * name and the unit it means, spelled as the catalogs spell units. The
+ * first rule whose pattern matches wins; "" means a number with no unit
+ * (a state, a label series). StorageArrayMetricUnitUtil reads them.
+ */
+export interface StorageArrayUnitRule {
+  pattern: string;
+  unit: string;
+}
+
+/*
  * The kinds whose status decides the array's hardware health, unless a
  * platform names its own: physical parts, not their network ports.
  */
@@ -147,6 +167,15 @@ export const STORAGE_ARRAY_HARDWARE_KINDS: ReadonlyArray<string> = [
   StorageArrayResourceKind.Drive,
   StorageArrayResourceKind.Controller,
 ];
+
+// The fields a kind's list may open sorted by.
+export type StorageArrayKindSortField =
+  | "name"
+  | "status"
+  | "usedBytes"
+  | "capacityBytes"
+  | "readBytesPerSec"
+  | "writeBytesPerSec";
 
 /*
  * A kind of object only this platform has (StorageArrayResourceKind lists
@@ -163,6 +192,10 @@ export interface StorageArrayKindDefinition {
   // What its tab's table lists, and what it says while it lists nothing.
   description: string;
   noItemsMessage: string;
+  // The order its list opens in (by name, A to Z, unless it says).
+  sortBy?:
+    | { field: StorageArrayKindSortField; descending?: boolean | undefined }
+    | undefined;
   /*
    * The columns its Inventory page shows (View/Inventory.tsx). Without
    * them the page shows every column a volume has, in a volume's words:
@@ -257,9 +290,26 @@ export interface StorageArrayAlertTemplateSpec {
   metricName: string;
   attributes?: Record<string, string> | undefined;
   groupByAttributeKey?: string | undefined;
+  /*
+   * The labels that scope the object's name, where it is unique only
+   * within them: an ONTAP volume within its svm (two SVMs can each have a
+   * vol1), a port within its node. Grouped by after groupByAttributeKey,
+   * so each is one incident.
+   */
+  scopeAttributeKeys?: ReadonlyArray<string> | undefined;
   aggregationType: MetricsAggregationType;
   rollingTime: RollingTime;
-  fire: { filterType: FilterType; value: number };
+  fire: {
+    filterType: FilterType;
+    value: number;
+    /*
+     * Fire on any reading of the window past the line, for an event that is
+     * a series for a moment only (an ONTAP EMS event, exported for the one
+     * poll that collected it). Otherwise every reading of the window must
+     * be past it, which waits for the series to cover the window.
+     */
+    onAnyReading?: boolean | undefined;
+  };
   recover: {
     filterType: FilterType;
     value: number;
@@ -270,6 +320,26 @@ export interface StorageArrayAlertTemplateSpec {
   incidentDescription: string;
   criteriaName: string;
   criteriaDescription: string;
+  /*
+   * A template whose line is relative to another series of the same
+   * object, not a number: a NetApp SnapMirror relationship's lag against
+   * its schedule. The monitor reads this second series too, grouped like
+   * the first, and its criteria read the quotient (the first query's value
+   * over this one's, per object) under `formulaAlias`; fire and recover
+   * are its lines.
+   */
+  ratioTo?: StorageArrayAlertTemplateRatio | undefined;
+}
+
+export interface StorageArrayAlertTemplateRatio {
+  metricAlias: string;
+  metricName: string;
+  attributes?: Record<string, string> | undefined;
+  aggregationType: MetricsAggregationType;
+  // The quotient's alias: what the criteria and the incident's figure name.
+  formulaAlias: string;
+  // Its unit, for the criteria's figures ("" for a plain ratio).
+  unit?: string | undefined;
 }
 
 /*
@@ -329,6 +399,15 @@ export const STORAGE_ARRAY_RECOVER_WHEN_ABSENT: StorageArrayAlertTemplateSpec["r
 export interface StorageArrayHeartbeat {
   templateId: string;
   metricName: string;
+  /*
+   * What Array Stopped Reporting says in this platform's words, when an
+   * API token and a scrape of every endpoint are not how the agent reads
+   * it (a PowerScale's SNMP community, and the one poll that sends its
+   * health): the template's description, and the incident's checklist.
+   * Left out, the template says what a Pure Storage array's says.
+   */
+  description?: string | undefined;
+  incidentDescription?: string | undefined;
 }
 
 /*
@@ -342,6 +421,12 @@ export interface StorageArrayInsightsSection {
   icon: IconProp;
   metricIds: Array<string>;
   groupByObject?: boolean | undefined;
+  /*
+   * The label to split every chart of the card by, for series of the whole
+   * array that are still told apart by one (a PowerScale protocol's
+   * `protocol`): what groupByObject does by each metric's object label.
+   */
+  groupByLabel?: string | undefined;
 }
 
 /*
@@ -368,13 +453,47 @@ export interface StorageArrayGoldenCharts {
  * has no such alert.
  */
 export interface StorageArrayLatencyReading {
-  metricName: string;
+  /*
+   * Read and write latency on one metric, told apart by a label (Pure's
+   * dimension label): the newest reading per value of `dimensionLabel`.
+   */
+  metricName?: string | undefined;
   attributes?: Record<string, string> | undefined;
-  dimensionLabel: string;
-  readDimension: string;
-  writeDimension: string;
+  dimensionLabel?: string | undefined;
+  readDimension?: string | undefined;
+  writeDimension?: string | undefined;
+  /*
+   * Or each on a metric of its own (NetApp's cluster read and write
+   * latency): the newest reading of each.
+   */
+  readMetricName?: string | undefined;
+  writeMetricName?: string | undefined;
   readWarningUsec: number;
   writeWarningUsec: number | null;
+}
+
+/*
+ * A series whose every datapoint at 1 is a problem the platform reports
+ * open, worded by its labels (NetApp's broken disks alerts series: one
+ * series per broken disk, while it is broken). The ingest counts them as
+ * the array's open alerts, by severity, and the Overview's Active Alerts
+ * card lists them. A platform whose open alerts are one series with a
+ * summary label each (Pure's) uses overview.alertMetricName instead.
+ */
+export interface StorageArrayOpenProblemSeries {
+  metricName: string;
+  /*
+   * What the card says about one: a translation key whose {{slots}} are
+   * labels of the series ("Disk {{disk}} is broken").
+   */
+  summary: string;
+  // The labels that make one problem one row, however many scrapes carry it.
+  keyLabels: ReadonlyArray<string>;
+  // The label naming the part it is about, shown beside it.
+  componentLabel?: string | undefined;
+  // The label holding its severity, and the values that make it critical.
+  severityLabel?: string | undefined;
+  criticalSeverities: ReadonlyArray<string>;
 }
 
 /*
@@ -388,10 +507,38 @@ export interface StorageArrayLatestReading {
   labelAttribute: string;
 }
 
+/*
+ * One panel of the Overview's charts, for a platform whose figures are not
+ * read and write pairs (StorageArrayGoldenCharts): its catalog metrics drawn
+ * together, each line split by a label when it says one (a PowerScale
+ * protocol's `protocol`, its nodes' `node`), so the busiest show first.
+ * Words are translation keys.
+ */
+export interface StorageArrayOverviewChart {
+  title: string;
+  description: string;
+  lines: ReadonlyArray<{
+    metricId: string;
+    legend?: string | undefined;
+    groupByLabel?: string | undefined;
+  }>;
+}
+
 export interface StorageArrayOverview {
   goldenCharts?: StorageArrayGoldenCharts | undefined;
+  /*
+   * The Overview's charts in panels of the platform's own, in place of the
+   * golden charts, with what the card says about them (a translation key).
+   */
+  charts?: ReadonlyArray<StorageArrayOverviewChart> | undefined;
+  chartsDescription?: string | undefined;
   // One series per open alert the array raised (value 1), with labels.
   alertMetricName?: string | undefined;
+  /*
+   * Or the open problems the platform reports on series of their own, each
+   * worded by its labels (StorageArrayOpenProblemSeries).
+   */
+  openProblems?: ReadonlyArray<StorageArrayOpenProblemSeries> | undefined;
   /*
    * What the Active Alerts card says when the alert details cannot be read
    * (where the vendor's own console lists them): a translation key.
@@ -420,9 +567,15 @@ export interface StorageArrayOverview {
  * One table of an array's Hardware tab. The Dashboard draws a kind's
  * columns; `layout` picks another set for a kind a platform reports
  * differently (a FlashBlade's parts carry a slot and a health, not a
- * temperature). Words are translation keys.
+ * temperature; a PowerScale's sensors a reading and no health: `readings`
+ * shows each part's latest reading in its unit - a temperature, a fan's
+ * speed in its details' `rpm`, or its details' `reading` in their `unit` -
+ * and the part it belongs to, its groupName). Words are translation keys.
  */
-export type StorageArrayHardwareTableLayout = "default" | "slot-and-health";
+export type StorageArrayHardwareTableLayout =
+  | "default"
+  | "slot-and-health"
+  | "readings";
 
 export interface StorageArrayHardwareTable {
   kind: string;
@@ -438,6 +591,232 @@ export interface StorageArrayHardwareTable {
    * parts of one name read apart. A translation key.
    */
   groupColumnTitle?: string | undefined;
+  /*
+   * What the table is called, where the kind's own words do not fit this
+   * platform's parts (a NetApp controller is a node). Translation keys.
+   */
+  words?:
+    | { title: string; singularName: string; pluralName: string }
+    | undefined;
+  /*
+   * Only the parts whose componentType is one of these: one kind split
+   * into tables (a NetApp cluster's shelves apart from their sensors).
+   */
+  componentTypes?: ReadonlyArray<string> | undefined;
+  /*
+   * The table's columns, where the Dashboard's for the kind do not fit
+   * what this platform reports about it (StorageArrayKindColumn).
+   */
+  columns?: ReadonlyArray<StorageArrayKindColumn> | undefined;
+}
+
+/*
+ * A deployment of this platform that runs on hardware its vendor or cloud
+ * runs for it (Amazon FSx for NetApp ONTAP), named by the osName its
+ * extractor writes: it reports none of `kinds`, so its Hardware tab leaves
+ * their tables out and says `note` instead. A translation key.
+ */
+export interface StorageArrayManagedDeployment {
+  osName: string;
+  kinds: ReadonlyArray<string>;
+  note: string;
+}
+
+/*
+ * ---------------------------------------------------------------------
+ * WHAT A KIND'S PAGES SAY AND DRAW ON THIS PLATFORM (#11122).
+ *
+ * The pages of the kinds platforms share (Volumes, Hosts, Replication,
+ * Directories, File Systems, Buckets and their part pages) are shared
+ * code; what they say about a platform's objects, and which of its metrics
+ * they chart, are the platform's (StorageArrayPlatform.kindPages). A kind
+ * only one platform has (NetApp's aggregates) is listed and drawn from its
+ * kindPages entry alone: the list's columns, the part page's details and
+ * charts. Every word is a translation key.
+ * ---------------------------------------------------------------------
+ */
+
+// The columns of an inventory row a page can show.
+export type StorageArrayRowColumn =
+  | "name"
+  | "status"
+  | "statusDetail"
+  | "componentType"
+  | "model"
+  | "firmwareVersion"
+  | "groupName"
+  | "capacityBytes"
+  | "usedBytes"
+  | "dataReductionRatio"
+  | "readLatencyUsec"
+  | "writeLatencyUsec"
+  | "readIops"
+  | "writeIops"
+  | "readBytesPerSec"
+  | "writeBytesPerSec"
+  | "temperatureCelsius"
+  | "replicationLagMs"
+  | "connectionCount";
+
+// How a value reads (StorageArrayResourceUtils formats each).
+export type StorageArrayValueFormat =
+  | "text"
+  | "status"
+  | "bytes"
+  | "bytesPerSec"
+  | "percent"
+  | "ratio"
+  | "latencyUsec"
+  | "iops"
+  | "perSec"
+  | "durationMs"
+  | "durationSeconds"
+  | "count"
+  | "celsius"
+  | "speedMbps"
+  | "boolean";
+
+/*
+ * One value of an inventory row: one of its columns, or a key of its
+ * details (what the extractor keeps that has no column).
+ */
+export interface StorageArrayRowValue {
+  column?: StorageArrayRowColumn | undefined;
+  detail?: string | undefined;
+  format: StorageArrayValueFormat;
+}
+
+/*
+ * One column of a list a platform draws itself (after the name, which
+ * every list starts with):
+ *   - status: the part's state by the rules, coloured, with why;
+ *   - usage: how full it is, the shared storage bar of capacityBytes and
+ *     usedBytes, amber and red at the platform's capacity lines;
+ *   - lag: its replication lag, amber past its rule;
+ *   - latency / iops / bandwidth / performance: the shared tables' read
+ *     and write columns of each;
+ *   - value: any other value of the row;
+ *   - lastSeen: when the row was last reported (hidden at first).
+ */
+export type StorageArrayKindColumn =
+  | { type: "status"; title: string; description?: string | undefined }
+  | {
+      type: "usage";
+      title: string;
+      description: string;
+      /*
+       * Where its bar turns amber and red, in percent used: the lines of
+       * the platform's alerts for the kind (default 80 and 90, the
+       * array's capacity lines).
+       */
+      warningPercent?: number | undefined;
+      criticalPercent?: number | undefined;
+    }
+  | { type: "lag"; title: string; description: string }
+  | { type: "latency" }
+  | { type: "iops" }
+  | { type: "bandwidth" }
+  | { type: "performance" }
+  | {
+      type: "value";
+      // Unique among the list's columns: it keys the viewer's choices.
+      id: string;
+      title: string;
+      description?: string | undefined;
+      value: StorageArrayRowValue;
+      hiddenByDefault?: boolean | undefined;
+    }
+  | { type: "lastSeen" };
+
+// One fact of a part page's Details card, shown once the array reported it.
+export interface StorageArrayKindField {
+  title: string;
+  description?: string | undefined;
+  value: StorageArrayRowValue;
+}
+
+/*
+ * One chart of a part page's Metrics tab: a metric of the platform's
+ * catalog, scoped to the part (StorageArrayKindPart.labels).
+ */
+export interface StorageArrayPartChart {
+  metricId: string;
+  // What its line is called ("Read"); the metric's own name when absent.
+  legend?: string | undefined;
+  // Drawn on the chart before it (read and write latency on one panel).
+  overlayWithPreviousQuery?: boolean | undefined;
+}
+
+/*
+ * A datapoint label that names the part on the platform's series, and
+ * which of the row's values it carries: a FlashArray volume's `name` is
+ * its externalId; a NetApp volume is its `volume` (its name) in its `svm`
+ * (its groupName), since two SVMs can each have a vol1; a NetApp LUN's
+ * `lun` is a key of its details.
+ */
+export interface StorageArrayPartLabel {
+  label: string;
+  from: "externalId" | "name" | "groupName" | { detail: string };
+}
+
+// The part page of a kind: what it charts and says.
+export interface StorageArrayKindPart {
+  labels: ReadonlyArray<StorageArrayPartLabel>;
+  charts: ReadonlyArray<StorageArrayPartChart>;
+  // The Metrics card's description, and the Details card's.
+  metricsDescription: string;
+  detailsDescription: string;
+  /*
+   * What the page says while the inventory has no such part, a template
+   * with {{name}}; the page's own words when absent.
+   */
+  notReportedMessage?: string | undefined;
+  // The Storage card's description, for a kind whose page draws one.
+  storageDescription?: string | undefined;
+  /*
+   * The Details card's facts, for a kind the platform draws itself; a
+   * shared kind's page has facts of its own when this is absent.
+   */
+  fields?: ReadonlyArray<StorageArrayKindField> | undefined;
+  /*
+   * The platform's alert templates that watch parts of this kind, which
+   * the part page offers to turn on: their card's words and the ids.
+   */
+  alerts?:
+    | {
+        title: string;
+        description: string;
+        templateIds: ReadonlyArray<string>;
+      }
+    | undefined;
+}
+
+export interface StorageArrayKindPage {
+  /*
+   * What the kind's list holds, and what it says while it holds nothing. A
+   * kind only this platform has says it in its kindDefinition instead.
+   */
+  description?: string | undefined;
+  noItemsMessage?: string | undefined;
+  /*
+   * The list's columns, for a kind the platform draws itself; a shared
+   * kind's page has columns of its own when this is absent.
+   */
+  columns?: ReadonlyArray<StorageArrayKindColumn> | undefined;
+  // Its parts' own page, when it has one.
+  part?: StorageArrayKindPart | undefined;
+  /*
+   * What the Overview's inventory tile of this kind says, and its Largest
+   * list, where the shared words do not fit the platform (a NetApp
+   * volume's size is not flash after data reduction).
+   */
+  tileDescription?: string | undefined;
+  topLists?:
+    | {
+        largestDescription: string;
+        largestTooltip: string;
+      }
+    | undefined;
 }
 
 /*
@@ -468,15 +847,23 @@ export interface StorageArrayAgentConfig {
   endpointVariable: string;
   /*
    * For an exporter that logs in to the array itself with a user and a
-   * password (Dell's PowerStore exporter): the variable holding the user's
-   * name. tokenVariable then holds the password, which only the exporter
-   * reads. Unset for a read-only API token the collector sends.
+   * password (Dell's PowerStore exporter, NetApp Harvest): the variable
+   * holding the user's name. tokenVariable then holds the password, which
+   * only the exporter reads. Unset for a read-only API token the collector
+   * sends.
    */
   userVariable?: string | undefined;
   tokenVariable: string;
   exampleEndpoint: string;
   // The exporter sidecar it needs; null for an endpoint the array serves.
   exporterService: string | null;
+  /*
+   * Whether the collector itself talks TLS to the array, so the setup asks
+   * whether to verify its certificate. Left out, that is whenever there is
+   * no exporter (the collector scrapes the array's own HTTPS endpoint);
+   * false for a platform read another way, such as over SNMP.
+   */
+  talksTlsToArray?: boolean | undefined;
   // The array kind in sentences ("FlashArray").
   arrayNoun: string;
   /*
@@ -484,6 +871,15 @@ export interface StorageArrayAgentConfig {
    * next to it (an exporter's Dockerfile, a sidecar's config).
    */
   otherFiles?: ReadonlyArray<string> | undefined;
+  // The name the guide and install.sh suggest for that user.
+  exampleUser?: string | undefined;
+  /*
+   * An exporter that talks TLS to the array and checks its certificate
+   * unless STORAGE_ARRAY_INSECURE_SKIP_VERIFY says not to (NetApp
+   * Harvest), so install.sh asks about the certificate as it does for the
+   * collector's own endpoint. Pure's and Dell's exporters never check it.
+   */
+  exporterChecksCertificate?: boolean | undefined;
 }
 
 export interface StorageArrayPlatform {
@@ -516,6 +912,12 @@ export interface StorageArrayPlatform {
    */
   snapshotMetricNames: ReadonlyArray<string>;
   /*
+   * The units of its series, for an exporter that declares none
+   * (StorageArrayUnitRule): the ingest records them, so every chart and
+   * monitor of one of its series reads it in its unit.
+   */
+  unitRules?: ReadonlyArray<StorageArrayUnitRule> | undefined;
+  /*
    * The agent's scrape jobs label their series `scrape_endpoint: <job>`. A
    * batch from one of these jobs is the complete list of its kinds, so a
    * kind whose last object was deleted counts 0. `all` and `metrics` (one
@@ -523,6 +925,13 @@ export interface StorageArrayPlatform {
    * array's own endpoint) completes its list of open alerts.
    */
   scrapeEndpoints: Readonly<Record<string, ReadonlyArray<string>>>;
+  /*
+   * Or the kinds whose complete list its exporter itself says a batch
+   * carries, object by object (NetApp Harvest's metadata series), which
+   * its extractor marks complete: a platform whose one scrape job holds
+   * every object, read or not.
+   */
+  exporterCompletedKinds?: ReadonlyArray<string> | undefined;
 
   // ---------------- Inventory ----------------
 
@@ -540,6 +949,11 @@ export interface StorageArrayPlatform {
    * per-object template groups by (getStorageArrayObjectLabel).
    */
   objectLabels: Readonly<Partial<Record<StorageArrayResourceScope, string>>>;
+  /*
+   * Its deployments that run on hardware their vendor or cloud runs
+   * (StorageArrayManagedDeployment): Amazon FSx for NetApp ONTAP.
+   */
+  managedDeployments?: ReadonlyArray<StorageArrayManagedDeployment> | undefined;
 
   // ---------------- Monitoring ----------------
 
@@ -567,6 +981,15 @@ export interface StorageArrayPlatform {
   overview: StorageArrayOverview;
   insightsSections: ReadonlyArray<StorageArrayInsightsSection>;
   hardwareTables: ReadonlyArray<StorageArrayHardwareTable>;
+  /*
+   * What each kind's pages say and chart on this platform, by kind
+   * (StorageArrayKindPage, #11122). A shared kind without one reads its
+   * pages' own words and charts; a kind only this platform has without one
+   * is listed with the inventory's generic columns and has no part page.
+   */
+  kindPages?:
+    | Readonly<Partial<Record<string, StorageArrayKindPage>>>
+    | undefined;
 
   // ---------------- Agent ----------------
 

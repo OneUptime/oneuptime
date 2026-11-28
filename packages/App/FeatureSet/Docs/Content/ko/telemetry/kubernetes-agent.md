@@ -485,6 +485,53 @@ Kubernetes 이벤트는 에이전트에서 네임스페이스로 필터링되지
 > [!IMPORTANT]
 > Kubernetes 이벤트와 리소스 사양은 이것으로 필터링되지 않습니다. 이들은 자체 심각도 없이 Kubernetes API에서 도착하므로, 임계값을 적용하면 가장 원하는 `FailedScheduling`, `BackOff`, `OOMKilling` 경고를 포함한 피드 전체가 삭제됩니다. 양이 적고 가치가 높으므로 에이전트는 항상 이들을 보냅니다. 줄이려면 OneUptime에서 **로그 → 설정 → 드롭 필터**를 사용하세요.
 
+### 자체 로그 형식 읽기
+
+에이전트는 대부분의 프로그램이 쓰는 형식의 레벨을 읽습니다. 사내 형식처럼 에이전트가 읽지 못하는 형식에는 `logs.extraOperators`로 직접 만든 Collector 오퍼레이터를 추가하세요. 이 오퍼레이터는 `daemonset` 모드에서 모든 Pod 로그 줄에 대해 실행되며, 에이전트가 줄을 다시 이어 붙이고 Pod와 스트림을 읽은 뒤, 줄의 레벨을 읽기 전에 실행됩니다.
+
+줄의 레벨을 정하려면 `attributes.severity_text`에 에이전트가 읽는 단어(예: `ERROR`, `warn`, `critical` 또는 klog 문자)로 쓰세요. 에이전트는 자체 리더보다 먼저 이 값을 읽고, OneUptime이 다른 모든 곳에서 그 단어를 저장하는 방식 그대로 저장합니다. 그런 다음 줄을 에이전트의 첫 단계인 `severity-router`로 넘기거나, 다음 오퍼레이터로 계속 보내세요.
+
+`<<E>> payment failed`, `SEV1 checkout is down` 같은 줄의 경우:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+차트는 설치하거나 업그레이드할 때 오퍼레이터를 검사합니다. Collector가 거부할 값은 계속 재시작하는 DaemonSet을 남기는 대신, 해당 오퍼레이터를 지목하는 메시지와 함께 `helm install`을 실패시킵니다: `image.tag`의 Collector에 없는 타입, 그 타입에 필요한 설정, 필드, 이미 쓰인 id, 아무것도 가리키지 않는 `output`, regex, 또는 표현식 안의 문자열입니다. 표현식의 문자열 안에서는 regex의 백슬래시를 `"^\\d+ "`처럼 두 번 쓰거나, regex를 백쿼트로 감싼 원시 문자열에 넣으세요. 표현식의 나머지 부분은 Collector가 시작할 때 컴파일합니다.
+
+차트는 Collector라면 실행할 세 종류의 오퍼레이터도 거부하며, 그 이유를 알려 줍니다:
+
+- `severity_parser`, `syslog_parser` 또는 파서의 `severity` 블록처럼 줄의 심각도를 직접 정하는 오퍼레이터. 에이전트는 직접 만든 오퍼레이터가 실행된 뒤 모든 줄의 레벨을 읽어 그 값을 덮어쓰므로, 대신 레벨을 `attributes.severity_text`에 쓰세요.
+- `default`가 없는 router, 또는 `output`이 없는 route. 어떤 오퍼레이터에도 넘겨지지 않는 줄은 버려집니다.
+- `container` 파서. 에이전트가 이미 컨테이너 런타임의 형식을 읽었으므로, 직접 만든 오퍼레이터에는 프로그램이 쓴 줄 그대로가 전달됩니다.
+
+`logs.extraOperators`에는 `daemonset` 모드가 필요합니다. `api` 모드의 로그 테일러는 Collector 오퍼레이터를 실행하지 않으므로 차트는 그 모드에서 이 설정을 거부하며, 하이브리드 설치(`logs.windowsPods.enabled`)의 Windows Pod에는 적용되지 않습니다.
+
 ### 이름으로 메트릭 포함 또는 제외
 
 `filters.metrics`는 모든 리시버에 걸쳐 어떤 메트릭이 클러스터를 떠날지 결정합니다.
@@ -789,7 +836,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 이 클러스터에서 인시던트나 경고가 발생하면 OneUptime AI가 조사합니다. 차트의 **Kubernetes AI 에이전트**는 AI에게 터미널을 줍니다. 온콜 엔지니어처럼 읽기 전용 `kubectl`을 실행하고(실패하는 Pod를 describe하고, 이벤트를 읽고, 크래시하는 컨테이너의 로그를 tail하고, 노드 용량을 확인), 실행한 모든 명령을 인시던트 페이지에 인용합니다.
 
-에이전트는 **기본적으로 켜져** 있고 **읽기 전용**입니다. 작은 Deployment 하나(`kubernetes-agent-ai-agent`, Pod 레이블 `component=ai-agent`, 이미지 `oneuptime/kubernetes-ai-agent`)이며, 그 ServiceAccount는 읽기만 할 수 있습니다. Collector와 같은 `oneuptime.apiKey`와 `clusterName`으로 스스로 등록하므로 대시보드에서 설정할 것이 없습니다. 클러스터의 **AI 에이전트** 페이지(Kubernetes → 클러스터 → AI → 에이전트)에 1분 안에 연결됨으로 표시되며, 그 상태 옆 **⋯** 메뉴의 **연결 테스트**는 에이전트를 통해 `kubectl version`과 `kubectl auth can-i --list`를 실행합니다. AI가 에이전트로 한 모든 작업은 클러스터의 **AI 로그** 페이지(AI → 로그)에 있고, 클러스터에 대해 알아 둘 만한 것(계속 반복되는 문제와 그 이유, 그 대부분의 원인인 노드나 워크로드, AI가 고친 것)은 **AI 인사이트** 페이지(AI → Insights)에 있습니다. 에이전트에는 고정된 kubectl(v1.36.6)이 포함되어 있습니다. Runner가 아니며 Runbooks → Runners 아래에 나타나지 않습니다. OneUptime은 에이전트에 자격 증명을 넘기지 않고, 런북을 실행하지 않으며, AI 규칙의 명령 Runner로도 받아들이지 않습니다.
+에이전트는 **기본적으로 켜져** 있고 **읽기 전용**입니다. 작은 Deployment 하나(`kubernetes-agent-ai-agent`, Pod 레이블 `component=ai-agent`, 이미지 `oneuptime/kubernetes-ai-agent`)이며, 그 ServiceAccount는 읽기만 할 수 있습니다. Collector와 같은 `oneuptime.apiKey`와 `clusterName`으로 스스로 등록하므로 대시보드에서 설정할 것이 없습니다. 클러스터의 **AI 에이전트** 페이지(Kubernetes → 클러스터 → AI → 에이전트)에 1분 안에 연결됨으로 표시되며, 그 상태 옆 **⋯** 메뉴의 **연결 테스트**는 에이전트를 통해 `kubectl version`과 `kubectl auth can-i --list`를 실행합니다. AI가 에이전트로 한 모든 작업은 클러스터의 **AI 로그** 페이지(AI → 로그)에 있고, 클러스터에 대해 알아 둘 만한 것(계속 반복되는 문제와 그 이유, 그 대부분의 원인인 노드나 워크로드, AI가 고친 것)은 **AI 인사이트** 페이지(AI → Insights)에 있습니다. 에이전트에는 고정된 kubectl(v1.36.7)이 포함되어 있습니다. Runner가 아니며 Runbooks → Runners 아래에 나타나지 않습니다. OneUptime은 에이전트에 자격 증명을 넘기지 않고, 런북을 실행하지 않으며, AI 규칙의 명령 Runner로도 받아들이지 않습니다.
 
 AI 에이전트가 생기기 전에 설치한 에이전트에서는 먼저 차트 인덱스를 새로 고친 다음 업그레이드하세요(자체 호스팅 OneUptime에서는 OneUptime을 먼저 업그레이드하세요. [에이전트 업그레이드](#에이전트-업그레이드) 참조):
 

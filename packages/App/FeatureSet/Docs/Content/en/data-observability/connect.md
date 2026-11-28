@@ -1,6 +1,6 @@
 # Connect a Database
 
-Data Observability reads each database with a login that only reads its catalog: which tables and views it holds, their columns, rows and size, and when they changed. This page gives the least each engine needs, and how to keep the connection string inside your network with a probe.
+Data Observability reads each database with a login that only reads its catalog: which tables and views it holds, their columns, rows and size, and when they changed. This page gives the least each engine needs, how to keep the connection string inside your network with a probe or the Database Agent you already run, and how to change, remove or delete a database later.
 
 ## Before you begin
 
@@ -13,12 +13,21 @@ On **Data Observability > Databases**, choose **Connect a Database**, then:
 
 - **OneUptime connects**: paste a connection string. It is stored encrypted, used only by OneUptime's workers, and never shown again.
 - **A probe in my network connects**: pick one of your probes and name the environment variable on the probe that holds the connection string, such as `ORDERS_DB_URL`. The connection string never leaves your network. See [Custom Probes](/docs/probe/custom-probe).
+- **My Database Agent connects**: pick the database server whose [Database Agent](/docs/telemetry/databases) already runs beside it, and name the database on it to read. The agent reads it with logins of its own environment, so no login is saved in OneUptime. See [Through a Database Agent](#through-a-database-agent).
 
 A database already connected for Data Security is watched too, with nothing to connect, and so is every BigQuery dataset your [cloud connection](/docs/telemetry/cloud-accounts) found.
 
 ## Databases you could connect
 
 **Databases You Could Connect**, under **Databases**, lists what your project already knows of and nobody has connected: databases your traces talk to, ones in your cloud accounts, and ones Database Monitoring watches. **Connect** starts the form from what is known of each, with a connection string to fill in. **Dismiss** keeps one from coming back. Nothing is read until you connect it.
+
+## Through a Database Agent
+
+A Database Agent already reaches its database server and sends its metrics. It can read that server's PostgreSQL, MySQL and MariaDB databases for Data Observability too, once its owner turns it on: add `ONEUPTIME_DATA_OBSERVABILITY=true` to the agent's `.env` and run `docker compose up -d`. Until then, the agent is listed with **Data Observability off**, and a database connected through it says what to do.
+
+OneUptime tells the agent which database to read and which checks are due, each as its type and the table and columns it reads. It never sends a statement or a login. The agent builds every statement itself, from the same fixed shapes OneUptime's own collectors use, and runs each in a read-only transaction with a 30-second limit. It runs a check only when every table and column it names is in the catalog it has just read, binds every value the check compares with, and sends back one number per check, never a row. **Custom SQL** and **Failing Rows** checks run only where the agent's owner sets `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true`; elsewhere they say so, and every other check runs.
+
+The agent reads the catalog with `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME`, or the collector's login, and runs checks with `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME`, or the catalog's login: give each only what the tabs below list for it. The agent's README lists every variable.
 
 ## A read-only login, per engine
 
@@ -162,6 +171,18 @@ Checks run as read-only SQL on the environment's TDS endpoint, on port 1433 or 5
 
 Every statement runs read-only, with a statement and lock timeout where the engine has them. A request that Snowflake, Databricks, BigQuery, Athena, ClickHouse or Dataverse turns away or fails for a moment, with a 429, a 503 or its own answer that it is too busy, is sent again, twice at most and within a minute of waiting per collection, and never in a way that could run a statement twice. The connection string is never logged and is taken out of every error. A statistic the login may not read is left out with a warning on the database, never a failed collection. Connections to private addresses are refused on OneUptime Cloud: use a probe.
 
+## Manage a database
+
+Each database has a **Settings** page: choose **Settings** on its row under **Databases**, or in its menu.
+
+- **Edit Details** renames it. Data Security shows the same name.
+- **Change Connection** gives it a new login, another probe, or a Database Agent. A saved connection string is never shown again: leave the field empty to keep it. Moving a database to a Database Agent deletes its saved connection string, unless Data Security samples the database's content with it.
+- **Stop Watching**, on its **Overview**, stops reading it for a while and keeps its tables and their history. **Watch Again** starts again.
+- **Remove from Data Observability** stops reading it and forgets its tables, their checks and their history. Data Security keeps the database, its connection and what its scans found, and it is offered again under **Databases You Could Connect**.
+- **Delete Database** deletes it from OneUptime, with what Data Observability and Data Security keep of it. The confirmation lists what goes first.
+
+A database here is also Data Security's data store. While Data Security relies on it (it found the database, someone added it there, or it holds findings, issues, scans, owners or a record of processing of it), only someone who may delete Data Security's data stores can delete it, and only someone who may edit them can change the connection Data Security samples content with. Settings says so where its button is. Monitors that watch a database are kept when it goes: delete them in **Monitors**.
+
 ## Read replicas
 
 A PostgreSQL or SQL Server read replica does not move its write counters, so a table there can look unchanged while it changes. OneUptime sees that it is a replica, leaves the counters out, says so on the database, and falls back to the table's size and rows. Connect the primary where you can, or name a [freshness column](/docs/data-observability/table-health) for the tables that matter.
@@ -174,6 +195,7 @@ Each path then shows under **Tables**: its newest object is when it last changed
 
 ## Troubleshooting
 
+- **The database shows Database Agent not ready.** The agent cannot read it now, and the database's page says why: its server has no Database Agent connected, or the agent is off for Data Observability (`ONEUPTIME_DATA_OBSERVABILITY=true` turns it on), not heard from, too old (run its `install.sh` again), or on a server that is not PostgreSQL or MySQL.
 - **The database shows Failed.** Its message says why: a host OneUptime cannot reach, a login refused, a TLS mode the server does not accept. For a database inside your network, connect it through a probe. For Snowflake, Databricks, BigQuery, Athena, ClickHouse and Dataverse, it names what was being read, the service's own error code and message, and the request or query ID its support can trace, where it gives one. **Collect Now** tries again at once, and the page shows how it went.
 - **Tables show no last change.** The login cannot read the engine's statistics: grant what your engine's tab lists, or wait for a table's rows to change twice.
 - **A table is missing.** It is in a schema the login cannot use, or it is excluded on the database. Grant `USAGE` on its schema, or remove the exclusion.

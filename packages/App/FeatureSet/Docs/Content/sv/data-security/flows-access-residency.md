@@ -60,7 +60,9 @@ Utifrån det som läses får varje datalager en exponering:
 | **Andra konton** | Konton utanför dina anslutna konton kan nå det. |
 | **Nåbar från internet** | Dess nätverksslutpunkt tar emot anslutningar från internet. |
 | **Privat** | Bara dina egna konton och nätverk når det. |
-| **Okänd** | OneUptime kunde inte läsa tillräckligt av dess konfiguration för att avgöra det. |
+| **Okänd** | OneUptime kontrollerade det, men kunde inte avgöra det utifrån det som gick att läsa. |
+| **Inte kontrollerad ännu** | OneUptime har inte kontrollerat hur det kan nås än. |
+| **Kan inte kontrolleras** | OneUptime har inget sätt att kontrollera hur denna typ av datalager kan nås. |
 
 Public går före delad, och delad går före nåbar: en offentlig bucket som också delas med ett annat konto får exponeringen Public. Exponeringen höjer ett problems [riskpoäng](/docs/data-security/checks-and-issues#riskpoäng).
 

@@ -119,6 +119,8 @@ import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
 import StorageArrayService from "./StorageArrayService";
 import StorageArrayResourceService from "./StorageArrayResourceService";
+import StorageArrayConnectionService from "./StorageArrayConnectionService";
+import StorageArrayConnectionTestService from "./StorageArrayConnectionTestService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
 import OpenStackCloudLabelRuleService from "./OpenStackCloudLabelRuleService";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
@@ -563,6 +565,7 @@ import ServiceLevelObjectiveErrorBudgetPolicyTierService from "./ServiceLevelObj
 import LlmCostBudgetService from "./LlmCostBudgetService";
 import LlmObservabilityConnectionService from "./LlmObservabilityConnectionService";
 import ExternalMcpServerService from "./ExternalMcpServerService";
+import ExternalMcpToolReadOnlyMarkService from "./ExternalMcpToolReadOnlyMarkService";
 import LlmModelPriceService from "./LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
@@ -820,6 +823,8 @@ const services: Array<BaseService> = [
   CephResourceService,
   StorageArrayService,
   StorageArrayResourceService,
+  StorageArrayConnectionService,
+  StorageArrayConnectionTestService,
   ProxmoxClusterLabelRuleService,
   OpenStackCloudLabelRuleService,
   DockerSwarmClusterLabelRuleService,
@@ -1219,6 +1224,7 @@ const services: Array<BaseService> = [
   LlmCostBudgetService,
   LlmObservabilityConnectionService,
   ExternalMcpServerService,
+  ExternalMcpToolReadOnlyMarkService,
   LlmModelPriceService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,

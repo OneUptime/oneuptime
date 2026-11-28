@@ -211,7 +211,7 @@ AI에게 질문 은 데이터 보안의 버튼이 하는 일을 하며, 각 작�
 
 [Terraform 프로바이더](/docs/terraform/index)에는 직접 만드는 레코드의 종류마다 리소스가 있으며(직접 추가하는 데이터 저장소, 사용자 지정 데이터 유형, 검사 설정, 규정 준수 설정, 데이터 상주 규칙, 소유자 규칙과 레이블 규칙), 리소스 이름은 `oneuptime_residency_rule` 처럼 레코드의 이름을 따릅니다.
 
-[MCP 서버](/docs/ai/mcp-server)에는 다음 데이터 보안 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구가 있습니다: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule, Data Security Setting. 그러면 AI 어시스턴트가 사용자의 권한으로 어떤 저장소에 카드 번호가 있는지, 버킷에 무엇이 열려 있는지 물어볼 수 있습니다. 또한 [AI에게 질문 의 작업](#ai에게-질문) 도 작업마다 호출 한 번으로 사용할 수 있으며, 각 작업은 해당 버튼과 똑같은 변경을 본인으로서 수행합니다. MCP 서버는 누구에게도 카드를 보여 줄 수 없으므로, AI에게 질문 이 모든 모드에서 묻는 작업은 그곳에서 거부됩니다: 응답은 이유와 변경을 하는 OneUptime 페이지를 알려 줍니다.
+[MCP 서버](/docs/ai/mcp-server)에는 다음 데이터 보안 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구가 있습니다: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule, Data Security Setting. 그러면 AI 어시스턴트가 사용자의 권한으로 어떤 저장소에 카드 번호가 있는지, 버킷에 무엇이 열려 있는지 물어볼 수 있습니다. 또한 [AI에게 질문 의 작업](#ai에게-질문) 도 작업마다 호출 한 번으로 사용할 수 있으며, 각 작업은 해당 버튼과 똑같은 변경을 본인으로서 수행합니다. MCP 서버는 누구에게도 카드를 보여 줄 수 없으므로, AI에게 질문 이 모든 모드에서 묻는 작업은 그곳에서 거부됩니다: 응답은 이유와 변경을 하는 OneUptime 페이지를 알려 줍니다. 이 레코드 중 하나에 대한 쓰기가 같은 변경을 하는 경우에도 마찬가지로 거부됩니다. 예를 들어 `update_data_security_issue` 로 이슈의 `status` 를 `Accepted` 로 설정하거나, 데이터 유형을 끄거나, 저장소의 스캔에서 위치를 제외하는 경우입니다. 다른 모든 필드는 이전과 같이 바뀝니다.
 
 ## 다음 단계
 

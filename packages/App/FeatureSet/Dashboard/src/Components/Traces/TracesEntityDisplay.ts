@@ -35,8 +35,10 @@ import {
   DEFAULT_TELEMETRY_ENTITY_LABEL,
   ResolvedTelemetryEntity,
   TelemetryEntityNameMap,
+  getTelemetryEntityChipMarks,
   getTelemetryEntityDisplay,
   getTelemetryEntityTypeLabel,
+  withTelemetryEntityChipMarks,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -292,6 +294,14 @@ export interface TraceChipDisplayContext {
   scopeEntityId?: string | undefined;
   // The table that id lives in, when the host knows it.
   scopeEntityType?: ServiceType | undefined;
+  /*
+   * The ids every read of them answered nothing for - deleted since a link
+   * or a saved view named them, or out of the reader's reach - so a chip
+   * naming one reads "No longer available" (#11213).
+   */
+  notFoundEntityIds?: ReadonlySet<string> | undefined;
+  // The ids of the services read so far that are archived (#11213).
+  archivedEntityIds?: ReadonlySet<string> | undefined;
 }
 
 type GetReadOnlyAttributeChipDisplayKeyFunction = (data: {
@@ -423,7 +433,22 @@ export const resolveTraceChipDisplay: ResolveTraceChipDisplayFunction = (
       scopeEntityType: context.scopeEntityType,
     });
 
-    return { ...chip, displayKey: display.key, displayValue: display.value };
+    /*
+     * Gone once every read of its id answered nothing, archived when its
+     * record is (#11213): the chip keeps its id, and still filters by it.
+     */
+    return withTelemetryEntityChipMarks(
+      { ...chip, displayKey: display.key, displayValue: display.value },
+      getTelemetryEntityChipMarks({
+        id: chip.value,
+        knownName: knownName,
+        isKnownArchived: Boolean(
+          context.archivedEntityIds?.has(chip.value.trim().toLowerCase()),
+        ),
+        names: context.entityNames,
+        notFound: context.notFoundEntityIds,
+      }),
+    );
   }
 
   /*

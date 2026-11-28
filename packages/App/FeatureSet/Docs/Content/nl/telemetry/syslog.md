@@ -206,8 +206,8 @@ Het bericht zelf blijft in de inhoud van de log. Een bericht in het formaat van 
 
 | Syslog-niveau | Code | Niveau in OneUptime |
 | --- | --- | --- |
-| Emergency, Alert | `0`, `1` | `Fatal` |
-| Critical, Error | `2`, `3` | `Error` |
+| Emergency | `0` | `Fatal` |
+| Alert, Critical, Error | `1`, `2`, `3` | `Error` |
 | Warning | `4` | `Warning` |
 | Notice, Informational | `5`, `6` | `Information` |
 | Debug | `7` | `Debug` |

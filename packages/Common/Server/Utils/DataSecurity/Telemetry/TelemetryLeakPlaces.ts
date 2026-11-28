@@ -669,8 +669,9 @@ function withProvenWords(
  * The places a leak's records name, each once - counted by how many of
  * its records named it, the most named first - with the templates of one
  * place read from several records aligned, so a word that differs between
- * them is masked as the value it is, and every word no record proves is
- * the code's masked (#11098). At most MAX_PLACES_PER_TELEMETRY_LEAK.
+ * them is masked as the value it is, and every word that is not one code
+ * writes log lines with masked however many records share it (#11098,
+ * #11204). At most MAX_PLACES_PER_TELEMETRY_LEAK.
  */
 export function readLeakPlaces(data: {
   source: TelemetrySampleSource;
@@ -711,15 +712,9 @@ export function readLeakPlaces(data: {
   }
 
   const aligned: Map<string, Map<string, string>> = new Map();
-  // The lines read with different words: what their reads share is proven the code's.
-  const alignedLines: Set<string> = new Set();
 
   for (const [line, templates] of byLine) {
     aligned.set(line, alignTelemetryLeakTemplates(templates));
-
-    if (new Set(templates).size >= 2) {
-      alignedLines.add(line);
-    }
   }
 
   const merged: Map<string, TelemetryLeakPlace> = new Map();
@@ -730,24 +725,19 @@ export function readLeakPlaces(data: {
         ? `${place.filePath}:${place.lineNumber}`
         : "";
     /*
-     * Every word the records do not prove is the code's, masked (#11098):
-     * a line read once - or always alike - keeps only the words code
-     * writes log lines with; a span's name, a page and a metric's name are
-     * never aligned, so they are read so too.
+     * Every word no record can prove is the code's, masked (#11098,
+     * #11204): a line keeps only the words code writes log lines with,
+     * however many of its records share a word - and, aligned, none that
+     * differs between them. A span's name and a page are read so too.
      */
     const kept: TelemetryLeakPlace = withProvenWords(place, {
       template: place.template
         ? maskUnprovenWords(
             aligned.get(line)?.get(place.template) || place.template,
-            { isAligned: alignedLines.has(line) },
           )
         : undefined,
-      spanName: place.spanName
-        ? maskUnprovenWords(place.spanName, { isAligned: false })
-        : undefined,
-      page: place.page
-        ? maskUnprovenWords(place.page, { isAligned: false })
-        : undefined,
+      spanName: place.spanName ? maskUnprovenWords(place.spanName) : undefined,
+      page: place.page ? maskUnprovenWords(place.page) : undefined,
       metricName: place.metricName
         ? maskUnprovenNameParts(place.metricName)
         : undefined,

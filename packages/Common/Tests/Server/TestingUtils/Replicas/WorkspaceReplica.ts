@@ -1,4 +1,5 @@
 import Redis from "../../../../Server/Infrastructure/Redis";
+import WorkspaceNotificationRuleService from "../../../../Server/Services/WorkspaceNotificationRuleService";
 import logger from "../../../../Server/Utils/Logger";
 import WorkspaceCreatedMessageFirst from "../../../../Server/Utils/Workspace/WorkspaceCreatedMessageFirst";
 import type WorkspaceCreatedMessageLineType from "../../../../Server/Utils/Workspace/WorkspaceCreatedMessageLine";
@@ -10,13 +11,18 @@ import NotificationRuleEventType from "../../../../Types/Workspace/NotificationR
 import API from "../../../../Utils/API";
 import CreatedRecordWorld, {
   EXISTING_CHANNEL,
+  ON_CALL_POLICY_ID,
   PLATFORM_TEAM,
 } from "../../Services/WorkspaceRules/CreatedRecordWorld";
 import {
   COMMANDER,
   INCIDENT_ID,
   makeRule,
+  OWNER,
+  RULE_USER,
+  SCHEDULED_MAINTENANCE_ID,
 } from "../../Services/WorkspaceRules/WorkspaceRuleWorld";
+import PendingInviteeProfiles from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import { jest } from "@jest/globals";
 
 /*
@@ -25,12 +31,17 @@ import { jest } from "@jest/globals";
  * Started by WorkspaceCreatedMessageFirstReplicas.test.ts through
  * ReplicaProcess.js, as many times as it needs servers. Each is a project
  * with Slack connected and one rule - every incident posted to the existing
- * channel #platform-alerts - driven through the real services
- * (CreatedRecordWorld: the real IncidentService create chain, the real
- * Incident Commander role, rule matching and posting), with the database in
+ * channel #platform-alerts, or every maintenance event or on-call policy
+ * (#11223, #11224) - driven through the real services (CreatedRecordWorld:
+ * the real IncidentService, ScheduledMaintenanceService and
+ * OnCallDutyPolicyService create chains, the real Incident Commander role,
+ * the real owner services, rule matching and posting), with the database in
  * this process's memory, as each App server has its own connections. The
  * hold every server shares is the real one, in the Valkey the test names
- * (VALKEY_HOST, VALKEY_PORT), as App servers share it.
+ * (VALKEY_HOST, VALKEY_PORT), as App servers share it. And each one posts
+ * the messages of a server that was killed before posting them, from what
+ * that server stored in Valkey, as App/Index.ts starts every App server to
+ * (#11235).
  *
  * Every message posted to Slack is told to the test as it is posted, and
  * answered once the test has it, so the test hears the posts of all its
@@ -45,13 +56,34 @@ export interface ReplicaCommand {
   command:
     | "setUp"
     | "createIncident"
+    | "createScheduledMaintenance"
+    | "createOnCallPolicy"
     | "resume"
     | "assignCommander"
     | "postAboutIncident"
+    | "addOwner"
     | "drained"
     | "shutDown";
   args?: JSONObject | undefined;
 }
+
+/*
+ * The kinds of record these servers create besides incidents: a
+ * maintenance event (SM-5), whose owner lines are posted since #11223, and
+ * an on-call policy (Platform on-call), announced once its create has
+ * returned since #11224.
+ */
+export type ReplicaRecordKind = "scheduledMaintenance" | "onCallPolicy";
+
+/*
+ * The record each kind's line in Valkey is keyed by. Not exported: the test
+ * imports this module's types only, so it never loads the services.
+ */
+const REPLICA_RECORD_KEYS: Record<ReplicaRecordKind | "incident", string> = {
+  incident: `incidentId:${INCIDENT_ID.toString().toLowerCase()}`,
+  scheduledMaintenance: `scheduledMaintenanceId:${SCHEDULED_MAINTENANCE_ID.toString().toLowerCase()}`,
+  onCallPolicy: `onCallDutyPolicyId:${ON_CALL_POLICY_ID.toString().toLowerCase()}`,
+};
 
 export interface ReplicaAnswer {
   id: number;
@@ -103,6 +135,23 @@ function sharedLine(): typeof WorkspaceCreatedMessageLineType | null {
 // What the code before the shared line had of the hold: no shutdown of its own.
 interface HoldOnShutdown {
   postEverythingHeldHere?: (() => Promise<void>) | undefined;
+}
+
+/*
+ * What the code before #11235 had of the hold: no server posted another's
+ * messages. These servers run that code too, to show what it fixed.
+ */
+interface HoldTakingOver {
+  takeOverForStoppedServers?:
+    | ((post: (stored: JSONObject) => Promise<void>) => void)
+    | undefined;
+}
+
+// What a stored message is posted with on this server, when the code has it.
+interface StoredMessagePoster {
+  postStoredWorkspaceMarkdownNotification?:
+    | ((stored: JSONObject) => Promise<void>)
+    | undefined;
 }
 
 let world: CreatedRecordWorld | null = null;
@@ -189,17 +238,30 @@ async function setUp(args: JSONObject): Promise<JSONObject> {
   jest.restoreAllMocks();
   logToTheTest();
 
+  /*
+   * One rule: every record of the kind the test names - an incident unless
+   * it says otherwise - posted to the existing channel #platform-alerts.
+   */
+  const eventType: NotificationRuleEventType =
+    (args["eventType"] as NotificationRuleEventType | undefined) ||
+    NotificationRuleEventType.Incident;
+
   world = new CreatedRecordWorld();
   world.install();
   world.addSlackChannel(EXISTING_CHANNEL);
   world.rules = [
     makeRule({
-      name: "Every incident",
-      eventType: NotificationRuleEventType.Incident,
+      name: `Every ${eventType}`,
+      eventType: eventType,
       createsChannel: false,
       existingChannels: EXISTING_CHANNEL.name,
     }),
   ];
+
+  // Nobody here is only invited: an owner is named by their name.
+  jest
+    .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+    .mockResolvedValue(new Map() as never);
 
   tellTheTestOfEachPost();
 
@@ -214,8 +276,18 @@ async function setUp(args: JSONObject): Promise<JSONObject> {
   if (line) {
     tune(line, "RELEASED_FOR_AT_MOST_MS", args["releasedForAtMostMs"]);
     tune(line, "STALLED_AFTER_MS", args["stalledAfterMs"]);
-    tune(line, "ASKED_EVERY_MS", 20);
-    tune(line, "KEPT_EVERY_MS", 300);
+
+    /*
+     * How often a server asks, says it still posts or holds, and looks
+     * after the lines: quick here, unless the test asks for the times
+     * every App server runs with (realTimes, #11314).
+     */
+    if (!args["realTimes"]) {
+      tune(line, "ASKED_EVERY_MS", 20);
+      tune(line, "KEPT_EVERY_MS", 300);
+      tune(line, "LOOKED_AFTER_EVERY_MS", 200);
+    }
+
     tune(line, "KEY_PREFIX", args["keyPrefix"]);
   }
 
@@ -223,12 +295,53 @@ async function setUp(args: JSONObject): Promise<JSONObject> {
     await Redis.connect();
   }
 
-  return { replica: NAME };
+  /*
+   * As App/Index.ts starts every App server: posting the messages of a
+   * server that was killed before posting them (#11235), when the code has
+   * it.
+   */
+  const takingOver: HoldTakingOver =
+    WorkspaceCreatedMessageFirst as unknown as HoldTakingOver;
+  const poster: StoredMessagePoster =
+    WorkspaceNotificationRuleService as unknown as StoredMessagePoster;
+
+  if (
+    takingOver.takeOverForStoppedServers &&
+    poster.postStoredWorkspaceMarkdownNotification
+  ) {
+    takingOver.takeOverForStoppedServers(
+      (stored: JSONObject): Promise<void> => {
+        return poster.postStoredWorkspaceMarkdownNotification!.call(
+          WorkspaceNotificationRuleService,
+          stored,
+        );
+      },
+    );
+  }
+
+  return {
+    replica: NAME,
+    takesOver: Boolean(takingOver.takeOverForStoppedServers),
+    // The times this server runs with, as set up.
+    times: line
+      ? {
+          heldForAtMostMs: WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS,
+          stalledAfterMs: line.STALLED_AFTER_MS,
+          keptEveryMs: line.KEPT_EVERY_MS,
+          lookedAfterEveryMs: line.LOOKED_AFTER_EVERY_MS,
+          askedEveryMs: line.ASKED_EVERY_MS,
+        }
+      : null,
+  };
 }
 
-async function createIncident(args: JSONObject): Promise<JSONObject> {
-  const current: CreatedRecordWorld = world!;
-
+/*
+ * Where a create chain pauses, as the test asks: at its first state
+ * (pauseAtFirstState), or once it has added the owners it adds itself and
+ * waits for those added outside it (pauseBeforeCreated) - before its Created
+ * message either way - until the test tells it to go on.
+ */
+function pauseWhereAsked(current: CreatedRecordWorld, args: JSONObject): void {
   current.onFirstState = args["pauseAtFirstState"]
     ? async (): Promise<void> => {
         await new Promise<void>((resolve: () => void) => {
@@ -237,6 +350,61 @@ async function createIncident(args: JSONObject): Promise<JSONObject> {
         });
       }
     : null;
+
+  if (args["pauseBeforeCreated"]) {
+    /*
+     * The chain has added the owners picked on create - "Added team
+     * Platform to the Incident as the owner" waits in the line - and waits
+     * for the owners added outside it: it pauses there, before "Incident
+     * Created", until it is told to go on.
+     */
+    jest
+      .spyOn(WorkspaceRuleOwnersOnCreate, "waitForOwnersOfCreate")
+      .mockImplementation((async (): Promise<void> => {
+        await new Promise<void>((resolve: () => void) => {
+          resumeChain = resolve;
+          send({ event: "paused", replica: NAME });
+        });
+      }) as never);
+  }
+}
+
+/*
+ * SM-5 is created here, with Platform picked as its owner on the form
+ * (#11223): its owner line waits for "Scheduled Maintenance Created". Or
+ * Platform on-call, with Ana as the person who creates it, made its owner
+ * as the create returns (#11224): her line waits for "On-Call Policy
+ * Created", which waits for her. Answers once the record's chain has run.
+ */
+async function createRecordOf(
+  kind: ReplicaRecordKind,
+  args: JSONObject,
+): Promise<JSONObject> {
+  const current: CreatedRecordWorld = world!;
+
+  pauseWhereAsked(current, args);
+
+  if (kind === "scheduledMaintenance") {
+    await current.createScheduledMaintenance({
+      ownersPicked: { teams: [PLATFORM_TEAM] },
+    });
+  } else {
+    await current.createOnCallPolicy({ creator: OWNER });
+  }
+
+  return {
+    held: WorkspaceCreatedMessageFirst.isHeld(
+      kind === "scheduledMaintenance"
+        ? { scheduledMaintenanceId: SCHEDULED_MAINTENANCE_ID }
+        : { onCallDutyPolicyId: ON_CALL_POLICY_ID },
+    ),
+  };
+}
+
+async function createIncident(args: JSONObject): Promise<JSONObject> {
+  const current: CreatedRecordWorld = world!;
+
+  pauseWhereAsked(current, args);
 
   if (args["failBeforeCreated"]) {
     // The chain stops short of "Incident Created": its .catch lets the held messages go.
@@ -275,6 +443,21 @@ async function run(command: ReplicaCommand): Promise<JSONObject> {
       return await setUp(args);
     case "createIncident":
       return await createIncident(args);
+    case "createScheduledMaintenance":
+      return await createRecordOf("scheduledMaintenance", args);
+    case "createOnCallPolicy":
+      return await createRecordOf("onCallPolicy", args);
+    case "addOwner": {
+      /*
+       * Someone makes Ravi an owner of the record on this server - the
+       * Dashboard's Add Owner, as the record's page opens: his line is said
+       * on this server, while the record may be created on another.
+       */
+      const kind: ReplicaRecordKind = args["kind"] as ReplicaRecordKind;
+      await world!.addOwnersOf(kind, { users: [RULE_USER] });
+      await world!.settle();
+      return {};
+    }
     case "resume": {
       const resume: (() => void) | null = resumeChain;
       resumeChain = null;
@@ -289,8 +472,11 @@ async function run(command: ReplicaCommand): Promise<JSONObject> {
       await world!.postAboutIncident(String(args["markdown"] || ""));
       return {};
     case "drained":
+      // The line of the record the test names: the incident's unless it says.
       await sharedLine()?.drained(
-        `incidentId:${INCIDENT_ID.toString().toLowerCase()}`,
+        REPLICA_RECORD_KEYS[
+          (args["kind"] as ReplicaRecordKind | undefined) || "incident"
+        ],
       );
       return {};
     case "shutDown":

@@ -111,7 +111,7 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a store's free space, a mobile app's screen, a Pod Security control's Linux capabilities, a machine's model, the compliance paperwork's words and the US state of Georgia, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a store's free space, a mobile app's screen, a Pod Security control's Linux capabilities, a machine's model and the compliance paperwork's words, a cloud budget's period, an ONTAP aggregate, its unowned disk and its port's link, and the US state of Georgia, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
@@ -151,6 +151,16 @@ describe("the keys that name their meaning", () => {
         "Waiting (device manager connection)",
         "What it is (store identity)",
         "Write (own words)",
+        // A cloud budget's period (#11008).
+        "Monthly (budget period)",
+        "Quarterly (budget period)",
+        "Yearly (budget period)",
+        // A NetApp ONTAP aggregate, a disk no node owns, a port's link (#11001).
+        "Aggregate (disk aggregate)",
+        "Aggregates (disk aggregates)",
+        "Unassigned (disk not owned by a node)",
+        "Up (port link)",
+        "Down (port link)",
       ].sort(),
     );
     expect(getWordOfMeaningKey(VIEW)).toBe("View");

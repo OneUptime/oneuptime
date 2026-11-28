@@ -17,6 +17,24 @@ import { JSONObject } from "../JSON";
  * GET /shared-names/:kind answers, for the request's project, the groups of
  * records the reader may read whose names read as one name. React-free and
  * server-safe: the server answers with these, the Dashboard reads them.
+ *
+ * EVERY KIND REQUIRE UNIQUE NAMES HOLDS (#11021). The kinds a model marks
+ * @UniqueNameWhenRequired - monitors, templates, API keys, pipelines and
+ * the rest - are asked for by their table's name: GET
+ * /shared-names/Monitor. Every list of them marks its twins from that
+ * answer (Common/UI/Components/ModelTable/SharedNameMarks), so a kind
+ * marked tomorrow is marked in its list without a line of its own. Their
+ * answer differs from the four kinds' in two ways:
+ *
+ *   - a group holds two records the reader may read, or more: a mark never
+ *     says that a record the reader may not read has the name. (The four
+ *     kinds' names are one record's always, so a create onto one says as
+ *     much, and their group may hold the one record the reader sees.)
+ *   - it says when each record was made (createdAt), by which a list tells
+ *     twins apart.
+ *
+ * A kind with an archive counts its records in service and its archived
+ * ones apart, as each list shows the one or the other.
  */
 
 // The kinds whose names are one record's in a project, as the route names them.
@@ -36,6 +54,16 @@ export const getSharedNamesRoute: (kind: SharedNameKind) => string = (
   return `${SHARED_NAMES_ROUTE}/${kind}`;
 };
 
+/*
+ * The route for a kind Require Unique Names holds, by its table's name:
+ * "/shared-names/Monitor" (#11021).
+ */
+export const getSharedNamesRouteOfTable: (tableName: string) => string = (
+  tableName: string,
+): string => {
+  return `${SHARED_NAMES_ROUTE}/${encodeURIComponent(tableName)}`;
+};
+
 export const isSharedNameKind: (value: unknown) => value is SharedNameKind = (
   value: unknown,
 ): value is SharedNameKind => {
@@ -49,26 +77,59 @@ export const isSharedNameKind: (value: unknown) => value is SharedNameKind = (
  */
 export interface SharedNamesAnswer {
   groups: Array<Array<string>>;
+  /*
+   * When each record of the groups was made, by its id in lower case, as
+   * the API writes a date: for a kind Require Unique Names holds, whose
+   * list tells twins apart by it (#11021). Left out for the four kinds.
+   */
+  createdAt?: Record<string, string> | undefined;
 }
 
 export const toSharedNamesAnswerJSON: (
   answer: SharedNamesAnswer,
 ) => JSONObject = (answer: SharedNamesAnswer): JSONObject => {
-  return { groups: answer.groups };
+  return {
+    groups: answer.groups,
+    ...(answer.createdAt ? { createdAt: answer.createdAt } : {}),
+  };
+};
+
+// When each record was made, as an answer writes it: only ids and dates as text.
+const readCreatedAt: (value: unknown) => Record<string, string> | undefined = (
+  value: unknown,
+): Record<string, string> | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const createdAt: Record<string, string> = {};
+
+  for (const [id, date] of Object.entries(value as Record<string, unknown>)) {
+    if (id && typeof date === "string" && date) {
+      createdAt[id.toLowerCase()] = date;
+    }
+  }
+
+  return createdAt;
 };
 
 // Reads an answer back; anything that is not one reads as no groups.
 export const readSharedNamesAnswer: (value: unknown) => SharedNamesAnswer = (
   value: unknown,
 ): SharedNamesAnswer => {
-  const groups: unknown =
+  const answer: Record<string, unknown> | undefined =
     value && typeof value === "object"
-      ? (value as Record<string, unknown>)["groups"]
+      ? (value as Record<string, unknown>)
       : undefined;
+  const groups: unknown = answer ? answer["groups"] : undefined;
 
   if (!Array.isArray(groups)) {
     return { groups: [] };
   }
+
+  const createdAt: Record<string, string> | undefined = readCreatedAt(
+    answer?.["createdAt"],
+  );
 
   return {
     groups: groups
@@ -87,6 +148,7 @@ export const readSharedNamesAnswer: (value: unknown) => SharedNamesAnswer = (
       .filter((group: Array<string>): boolean => {
         return group.length > 0;
       }),
+    ...(createdAt ? { createdAt: createdAt } : {}),
   };
 };
 

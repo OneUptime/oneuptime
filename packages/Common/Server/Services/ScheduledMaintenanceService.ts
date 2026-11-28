@@ -2320,7 +2320,10 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
      * owner" - waits for "Scheduled Maintenance Created" until then, on every
      * App server, and follows it in the order it was made
      * (WorkspaceCreatedMessageFirst): its channels hear of the event first,
-     * then of what happened to it.
+     * then of what happened to it. Held since the event was written
+     * (DatabaseService.create, before even a creator whose role creates only
+     * what they own is made its owner, #11352): this chain takes the hold
+     * over here, and lets it go below.
      */
     await WorkspaceCreatedMessageFirst.hold({
       scheduledMaintenanceId: createdItem.id!,
@@ -4144,6 +4147,38 @@ ${FeedMarkdown.join(
       numberWithPrefix:
         scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || null,
     };
+  }
+
+  /*
+   * The event as a line of its feed names it - "[Scheduled Maintenance
+   * SM-5](its page)", by its number with the project's prefix - which is
+   * the line its Slack, Microsoft Teams and Mattermost channels read too,
+   * a channel shared by every event among them (#11223).
+   */
+  @CaptureSpan()
+  public async getScheduledMaintenanceMarkdownLink(data: {
+    projectId: ObjectID;
+    scheduledMaintenanceId: ObjectID;
+  }): Promise<MarkdownText> {
+    const numbered: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await this.getScheduledMaintenanceNumber({
+      scheduledMaintenanceId: data.scheduledMaintenanceId,
+    });
+
+    const link: URL = await this.getScheduledMaintenanceLinkInDashboard(
+      data.projectId,
+      data.scheduledMaintenanceId,
+    );
+
+    const number: string =
+      numbered.numberWithPrefix ||
+      (numbered.number !== null ? `#${numbered.number}` : "");
+
+    return number
+      ? mdText`[Scheduled Maintenance ${number}](${link.toString()})`
+      : mdText`[Scheduled Maintenance](${link.toString()})`;
   }
 
   /*

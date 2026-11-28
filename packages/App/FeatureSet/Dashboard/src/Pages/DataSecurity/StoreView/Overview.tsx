@@ -45,7 +45,16 @@ import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DataCategory from "Common/Types/DataSecurity/DataCategory";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
-import { isDeclaredDataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreExposureCheck,
+  getDataStoreExposureCheck,
+  isDeclaredDataStoreKind,
+} from "Common/Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreExposure,
+  DataStorePostureReadFrom,
+  isPostureFactUnknowable,
+} from "Common/Types/DataSecurity/DataStorePosture";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import SecuritySeverity from "Common/Types/SecuritySeverity";
@@ -97,6 +106,12 @@ import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
  * Scan Now samples its content again, and Check Now reads its configuration
  * again and runs its checks; each says what it started, and the page reads
  * the store again.
+ *
+ * Where OneUptime does not know how exposed a store is, it says why (#11140):
+ * not checked yet - and what will check it - or not checkable for a store of
+ * its kind, or not knowable from inside your network, where a store you run
+ * was asked. Its Configuration card says the same, never that a cloud
+ * connection will read a store no cloud lists.
  */
 
 const SEVERITY_BAR_COLORS: Readonly<Record<SecuritySeverity, string>> = {
@@ -435,6 +450,10 @@ const ScannedDataStoreOverview: FunctionComponent<
 
     // A probe's store waits for the probe to ask for work: nothing starts now.
     const isScannedFromProbe: boolean = Boolean(data?.store?.scanProbeId);
+    // What Check Now reads again for its kind: a cloud's settings, or nothing (#11140).
+    const checkOfKind: DataStoreExposureCheck = getDataStoreExposureCheck(
+      data?.store?.kind,
+    );
 
     try {
       if (kind === "scan") {
@@ -459,9 +478,17 @@ const ScannedDataStoreOverview: FunctionComponent<
               : translator.translateText(
                   "A scan of this store's content has started. What it finds shows on What's Inside when it is done.",
                 ) || ""
-            : translator.translateText(
-                "This store's configuration is being read again and its checks run. Its issues update in a minute or two.",
-              ) || "",
+            : checkOfKind === DataStoreExposureCheck.CloudApi
+              ? translator.translateText(
+                  "This store's configuration is being read again and its checks run. Its issues update in a minute or two.",
+                ) || ""
+              : checkOfKind === DataStoreExposureCheck.Endpoint
+                ? translator.translateText(
+                    "Its checks run again now. Whether it answers without credentials is asked again with its next content scan: Scan Now runs one.",
+                  ) || ""
+                : translator.translateText(
+                    "Its checks run again on what OneUptime knows of it. Its issues update in a minute or two.",
+                  ) || "",
       });
       readAgain();
     } catch (err) {
@@ -508,6 +535,75 @@ const ScannedDataStoreOverview: FunctionComponent<
   const hasConfiguration: boolean =
     Boolean(store.posture?.readAt) &&
     getPostureFactLines(store.posture).length > 0;
+  // How OneUptime learns how exposed a store of its kind is (#11140).
+  const exposureCheck: DataStoreExposureCheck = getDataStoreExposureCheck(
+    store.kind,
+  );
+
+  // What the Exposure tile says under its pill: where it was read, or why it was not.
+  const exposureDescription: string =
+    (store.isPublicByDesign
+      ? translator.translateText("Public by design")
+      : store.exposure === DataStoreExposure.CannotBeChecked
+        ? translator.translateText(
+            "OneUptime has no way to check this kind of store",
+          )
+        : store.exposure === DataStoreExposure.NotChecked
+          ? exposureCheck === DataStoreExposureCheck.Endpoint
+            ? scanStop
+              ? translator.translateText(
+                  "Asked with its content scans, which don't run now",
+                )
+              : translator.translateText("Asked with its next content scan")
+            : translator.translateText(
+                "Read from a cloud connection with Data Security on",
+              )
+          : store.exposure === DataStoreExposure.Unknown &&
+              isPostureFactUnknowable(store.posture, "publicNetworkAccess")
+            ? translator.translateText(
+                "Can't be known from inside your network",
+              )
+            : translator.translateText("Who could reach it from outside")) ||
+    "";
+
+  // Where a store you run was asked without credentials, under its checklist.
+  const askedFrom: string | null =
+    store.posture?.readFrom === DataStorePostureReadFrom.Internet
+      ? translator.translateText(
+          "Asked without credentials from OneUptime's servers, over the internet, with its last content scan.",
+        ) || null
+      : store.posture?.readFrom === DataStorePostureReadFrom.Network
+        ? scanProbe?.name
+          ? translator.translateTemplate(
+              "Asked without credentials from {{probe}} in your network, with its last content scan.",
+              { probe: scanProbe.name },
+            )
+          : translator.translateText(
+              "Asked without credentials from OneUptime's servers in your network, with its last content scan.",
+            ) || null
+        : null;
+
+  // What the Configuration card says while it has nothing read to list.
+  const configurationNotRead: string =
+    (kindFacts.isTelemetry
+      ? translator.translateText(
+          "A service's telemetry has no configuration of its own to read. What is found in it is on What's Inside.",
+        )
+      : exposureCheck === DataStoreExposureCheck.Endpoint
+        ? scanStop
+          ? translator.translateText(
+              "Not checked: whether it answers without credentials, and whether it requires TLS, is asked with its content scans, and none runs now.",
+            )
+          : translator.translateText(
+              "Not checked yet: whether it answers without credentials, and whether it requires TLS, is asked with its first content scan.",
+            )
+        : exposureCheck === DataStoreExposureCheck.CloudApi
+          ? translator.translateText(
+              "OneUptime has not read this store's configuration yet. It is read from a cloud connection with Data Security turned on.",
+            )
+          : translator.translateText(
+              "OneUptime has no way to read this kind of store's configuration, so its exposure reads Can't be checked. Its Settings say what is checked.",
+            )) || "";
 
   // Scan Now and Check Now change the store: they need the right to edit it.
   const gate: (button: CardButtonSchema) => Array<CardButtonSchema> = (
@@ -621,11 +717,7 @@ const ScannedDataStoreOverview: FunctionComponent<
           icon={IconProp.Globe}
           label="Exposure"
           value={<ExposurePill exposure={store.exposure} />}
-          description={
-            store.isPublicByDesign
-              ? translator.translateText("Public by design")
-              : translator.translateText("Who could reach it from outside")
-          }
+          description={exposureDescription}
         />
         <EventStatTile
           variant="segment"
@@ -738,20 +830,29 @@ const ScannedDataStoreOverview: FunctionComponent<
         <Card
           headerLayout="stacked"
           title="Configuration"
-          description="What its configuration says about its safety. A line says Unknown when OneUptime could not read it."
+          description="What its configuration says about its safety: Unknown where OneUptime could not read it, Can't be checked where nothing could from there."
           buttons={checkButtons}
         >
           {hasConfiguration ? (
-            <StorePostureChecklist facts={store.posture} />
+            <div className="space-y-3">
+              <StorePostureChecklist facts={store.posture} />
+              {askedFrom ? (
+                <p
+                  className="text-xs text-gray-500"
+                  data-testid="data-store-posture-asked-from"
+                >
+                  {askedFrom}
+                </p>
+              ) : (
+                <></>
+              )}
+            </div>
           ) : (
-            <p className="text-sm text-gray-500">
-              {kindFacts.isTelemetry
-                ? translator.translateText(
-                    "A service's telemetry has no configuration of its own to read. What is found in it is on What's Inside.",
-                  )
-                : translator.translateText(
-                    "OneUptime has not read this store's configuration yet. It is read from a cloud connection with Data Security turned on.",
-                  )}
+            <p
+              className="text-sm text-gray-500"
+              data-testid="data-store-configuration-not-read"
+            >
+              {configurationNotRead}
             </p>
           )}
         </Card>

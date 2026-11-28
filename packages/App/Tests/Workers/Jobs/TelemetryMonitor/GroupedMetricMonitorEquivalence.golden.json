@@ -3,12 +3,14 @@
   "changedOnPurpose": [
     "#10108: a change of a grouped monitor's status keeps its series as the monitor log does - those the evaluation acted on first, at most STORED_CHECK_MAX_SIZE_IN_BYTES, and how many there were (MonitorStoredCheck.boundSeries) - so statusChangeLogHash of both cases was rewritten. Before: 1a066f523b96fac2b91ebaf3 and 419fd5aeeb97621b690b9d59. Nothing else changed.",
     "#10704 changed what the monitor summary of a grouped monitor's alert keeps and what a change of its status keeps, and did not rewrite this file: monitorSummaryHash of every created alert (before: fbf2102e7ea779d0d16842c1) and statusChangeLogHash of both cases have been what it made them since. Rewritten with #10841's change, below.",
-    "#10841: an event a grouped monitor's alert or incident adds about one series names it (seriesFingerprint), and a record about one series keeps the events about the whole monitor and its own series, never another series' (EvaluationEventSeries). So the events of both cases name their series, and the checks the records keep were rewritten: createdStateLogHash of every created alert, stateChangeLogHash of every resolved one, statusChangeLogHash of both cases. Nothing a check decides changed: its verdict, the alerts it opened and resolved - titles, descriptions, root causes, severities, states - its status, its criteria results, and its events' types, titles and messages are as before."
+    "#10841: an event a grouped monitor's alert or incident adds about one series names it (seriesFingerprint), and a record about one series keeps the events about the whole monitor and its own series, never another series' (EvaluationEventSeries). So the events of both cases name their series, and the checks the records keep were rewritten: createdStateLogHash of every created alert, stateChangeLogHash of every resolved one, statusChangeLogHash of both cases. Nothing a check decides changed: its verdict, the alerts it opened and resolved - titles, descriptions, root causes, severities, states - its status, its criteria results, and its events' types, titles and messages are as before.",
+    "#11248: a telemetry check judges the window it was due to, however late it runs, and says which: its evaluation summary keeps the window (judgedWindow) and the root cause of what it opens ends with it. So every root cause here - the matched criteria's, each series', each created alert's - ends with \"**Window Judged**: 2026-11-17 10:00:00 to 10:05:00 UTC\", the window the harness plans (evaluateUntil 10:05:00, a 5-minute window), and the checks the records keep hold the summary with it, so monitorSummaryHash and createdStateLogHash of every created alert, stateChangeLogHash of every resolved one and statusChangeLogHash of both cases were rewritten. Nothing a check decides changed: its verdict, the alerts it opened and resolved - titles, descriptions, severities, states - its status, its criteria results and its events are as before.",
+    "#11334: a telemetry check's window holds its start and not its end, so a record stamped where one window ends and the next begins is counted by one check, and the window a check judged says so (judgedWindow.includesEnd). So every root cause here - the matched criteria's, each series', each created alert's - ends with \"**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC\", and the checks the records keep hold the summary and the query with it, so monitorSummaryHash, createdStateLogHash and telemetryQueryHash of every created alert, stateChangeLogHash of every resolved one and statusChangeLogHash of both cases were rewritten. Nothing a check decides changed: its verdict, the alerts it opened and resolved - titles, descriptions, severities, states - its status, its criteria results and its events are as before."
   ],
   "cases": {
     "a fleet where series breach every criteria, with alerts open": {
       "criteriaMetId": "criteria-container-too-many-tasks",
-      "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container holds too many tasks\n\n**Metric Details**\n- Metric: `container.pids.count`\n- Alias: `d`\n- Aggregation: Max\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n2 of 2 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` \u2014 **2391**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n2. `2026-11-17T10:04:00.000Z` \u2014 **2412**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.pids.count%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0004.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22inventory-sync-4-15%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0004.prod.fleet.internal+%40resource.container.name%3Ainventory-sync-4-15&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n",
+      "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container holds too many tasks\n\n**Metric Details**\n- Metric: `container.pids.count`\n- Alias: `d`\n- Aggregation: Max\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n2 of 2 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` \u2014 **2391**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n2. `2026-11-17T10:04:00.000Z` \u2014 **2412**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.pids.count%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0004.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22inventory-sync-4-15%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0004.prod.fleet.internal+%40resource.container.name%3Ainventory-sync-4-15&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC\n",
       "evaluatedCriteriaIds": [
         "criteria-container-too-many-tasks",
         "criteria-container-restarted",
@@ -17,7 +19,7 @@
       "matchedCriteria": [
         {
           "criteriaId": "criteria-container-too-many-tasks",
-          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container holds too many tasks\n\n**Metric Details**\n- Metric: `container.pids.count`\n- Alias: `d`\n- Aggregation: Max\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n2 of 2 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` \u2014 **2391**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n2. `2026-11-17T10:04:00.000Z` \u2014 **2412**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.pids.count%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0004.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22inventory-sync-4-15%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0004.prod.fleet.internal+%40resource.container.name%3Ainventory-sync-4-15&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n",
+          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container holds too many tasks\n\n**Metric Details**\n- Metric: `container.pids.count`\n- Alias: `d`\n- Aggregation: Max\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n2 of 2 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` \u2014 **2391**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n2. `2026-11-17T10:04:00.000Z` \u2014 **2412**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.pids.count%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0004.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22inventory-sync-4-15%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0004.prod.fleet.internal+%40resource.container.name%3Ainventory-sync-4-15&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC\n",
           "series": [
             {
               "fingerprint": "aa5792ea1ae23f52",
@@ -25,7 +27,7 @@
                 "resource.host.name": "docker-host-0004.prod.fleet.internal",
                 "resource.container.name": "inventory-sync-4-15"
               },
-              "rootCause": "- Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.",
+              "rootCause": "- Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "69bffaf4b8331091d21d820b"
             },
             {
@@ -34,7 +36,7 @@
                 "resource.host.name": "docker-host-0011.prod.fleet.internal",
                 "resource.container.name": "metrics-collector-4-7"
               },
-              "rootCause": "- Tasks ranged from 2349 to 2355 across all 2 readings, above the 2000 threshold.",
+              "rootCause": "- Tasks ranged from 2349 to 2355 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "19ae7bc6783f97bcbab5853d"
             },
             {
@@ -43,7 +45,7 @@
                 "resource.host.name": "docker-host-0014.prod.fleet.internal",
                 "resource.container.name": "catalog-search-0-26"
               },
-              "rootCause": "- Tasks ranged from 2482 to 2485 across all 2 readings, above the 2000 threshold.",
+              "rootCause": "- Tasks ranged from 2482 to 2485 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "226315f8392928f0a7179118"
             },
             {
@@ -52,7 +54,7 @@
                 "resource.host.name": "docker-host-0023.prod.fleet.internal",
                 "resource.container.name": "notification-dispatcher-2-18"
               },
-              "rootCause": "- Tasks ranged from 2286 to 2309 across all 3 readings, above the 2000 threshold.",
+              "rootCause": "- Tasks ranged from 2286 to 2309 across all 3 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "561676b957723491b64b0b74"
             },
             {
@@ -61,7 +63,7 @@
                 "resource.host.name": "docker-host-0049.prod.fleet.internal",
                 "resource.container.name": "redis-cache-0-32"
               },
-              "rootCause": "- Tasks ranged from 2235 to 2241 across all 3 readings, above the 2000 threshold.",
+              "rootCause": "- Tasks ranged from 2235 to 2241 across all 3 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "1a75b9bcd1efab184d317c4f"
             },
             {
@@ -70,7 +72,7 @@
                 "resource.host.name": "docker-host-0053.prod.fleet.internal",
                 "resource.container.name": "checkout-api-4-12"
               },
-              "rootCause": "- Tasks ranged from 2181 to 2194 across all 3 readings, above the 2000 threshold.",
+              "rootCause": "- Tasks ranged from 2181 to 2194 across all 3 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "64fae341931072fd9905c04a"
             },
             {
@@ -79,7 +81,7 @@
                 "resource.host.name": "docker-host-0008.prod.fleet.internal",
                 "resource.container.name": "nginx-edge-1-10"
               },
-              "rootCause": "- Tasks was 2437 in 1 reading, above the 2000 threshold.",
+              "rootCause": "- Tasks was 2437 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "85fcca6da86a7d9bdb46d2d5"
             },
             {
@@ -88,7 +90,7 @@
                 "resource.host.name": "docker-host-0015.prod.fleet.internal",
                 "resource.container.name": "notification-dispatcher-1-30"
               },
-              "rootCause": "- Tasks was 2167 in 1 reading, above the 2000 threshold.",
+              "rootCause": "- Tasks was 2167 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "ac1363268bbcb808bb9522f2"
             },
             {
@@ -97,7 +99,7 @@
                 "resource.host.name": "docker-host-0019.prod.fleet.internal",
                 "resource.container.name": "metrics-collector-5-31"
               },
-              "rootCause": "- Tasks was 2294 in 1 reading, above the 2000 threshold.",
+              "rootCause": "- Tasks was 2294 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "b691bb16bcb2625124aed40f"
             },
             {
@@ -106,7 +108,7 @@
                 "resource.host.name": "docker-host-0029.prod.fleet.internal",
                 "resource.container.name": "postgres-replica-1-21"
               },
-              "rootCause": "- Tasks was 2209 in 1 reading, above the 2000 threshold.",
+              "rootCause": "- Tasks was 2209 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "e8f5f8e047baf29507b1e5fe"
             },
             {
@@ -115,7 +117,7 @@
                 "resource.host.name": "docker-host-0034.prod.fleet.internal",
                 "resource.container.name": "payments-worker-6-1"
               },
-              "rootCause": "- Tasks was 2258 in 1 reading, above the 2000 threshold.",
+              "rootCause": "- Tasks was 2258 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "b100d0436d578cb34d9536bb"
             },
             {
@@ -124,7 +126,7 @@
                 "resource.host.name": "docker-host-0050.prod.fleet.internal",
                 "resource.container.name": "payments-worker-1-1"
               },
-              "rootCause": "- Tasks ranged from 2260 to 2280 across all 2 readings, above the 2000 threshold.",
+              "rootCause": "- Tasks ranged from 2260 to 2280 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "9ba0612451ef84335a712adb"
             },
             {
@@ -133,7 +135,7 @@
                 "resource.host.name": "docker-host-0055.prod.fleet.internal",
                 "resource.container.name": "web-frontend-6-4"
               },
-              "rootCause": "- Tasks was 2206 in 1 reading, above the 2000 threshold.",
+              "rootCause": "- Tasks was 2206 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "5e735d4e9eb7e78ecbf4361a"
             },
             {
@@ -142,7 +144,7 @@
                 "resource.host.name": "docker-host-0055.prod.fleet.internal",
                 "resource.container.name": "notification-dispatcher-6-30"
               },
-              "rootCause": "- Tasks ranged from 2238 to 2240 across all 2 readings, above the 2000 threshold.",
+              "rootCause": "- Tasks ranged from 2238 to 2240 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "ae69a5753a30ea82074990dc"
             },
             {
@@ -151,7 +153,7 @@
                 "resource.host.name": "docker-host-0007.prod.fleet.internal",
                 "resource.container.name": "payments-worker-0-25"
               },
-              "rootCause": "- Tasks ranged from 2460 to 2468 across all 2 readings, above the 2000 threshold.",
+              "rootCause": "- Tasks ranged from 2460 to 2468 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "a1d0741a0f3fbc065e451dcb"
             },
             {
@@ -160,7 +162,7 @@
                 "resource.host.name": "docker-host-0052.prod.fleet.internal",
                 "resource.container.name": "notification-dispatcher-3-18"
               },
-              "rootCause": "- Tasks was 2190 in 1 reading, above the 2000 threshold.",
+              "rootCause": "- Tasks was 2190 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "91ff7c0b770ac8ba69f88f33"
             },
             {
@@ -169,14 +171,14 @@
                 "resource.host.name": "docker-host-0019.prod.fleet.internal",
                 "resource.container.name": "payments-worker-5-13"
               },
-              "rootCause": "- Tasks was 2530 in 1 reading, above the 2000 threshold.",
+              "rootCause": "- Tasks was 2530 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "adbc2f3bdc0153f87f6e0460"
             }
           ]
         },
         {
           "criteriaId": "criteria-container-restarted",
-          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container restarted\n\n**Metric Details**\n- Metric: `a - b`\n- Alias: `e`\n- Formula: `a - b`\n- Components:\n  - `a` = `container.restarts`\n  - `b` = `container.restarts`\n\n\n**Breaching Samples**\n1 of 5 samples breached the threshold.\n\n1. `2026-11-17T10:02:00.000Z` \u2014 **1**\n   - `a`: 4\n   - `b`: 3\n   - `resource.host.name`: `docker-host-0009.prod.fleet.internal`\n   - `resource.container.name`: `payments-worker-2-1`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.restarts%22%2C%22variable%22%3A%22a%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%2C%22alias%22%3A%7B%22title%22%3A%22Restarts+%28highest%29%22%2C%22description%22%3A%22Restarts+%28highest%29%22%2C%22legend%22%3A%22Restarts+%28highest%29%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%2C%7B%22metricName%22%3A%22container.restarts%22%2C%22variable%22%3A%22b%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Min%22%2C%22alias%22%3A%7B%22title%22%3A%22Restarts+%28lowest%29%22%2C%22description%22%3A%22Restarts+%28lowest%29%22%2C%22legend%22%3A%22Restarts+%28lowest%29%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%2C%7B%22metricName%22%3A%22container.uptime%22%2C%22variable%22%3A%22c%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Min%22%2C%22alias%22%3A%7B%22title%22%3A%22Uptime%22%2C%22description%22%3A%22Uptime%22%2C%22legend%22%3A%22Uptime%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%2C%7B%22metricName%22%3A%22container.pids.count%22%2C%22variable%22%3A%22d%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%2C%22alias%22%3A%7B%22title%22%3A%22Tasks%22%2C%22description%22%3A%22Tasks%22%2C%22legend%22%3A%22Tasks%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%5D&metricFormulas=%5B%7B%22formula%22%3A%22a+-+b%22%2C%22variable%22%3A%22e%22%2C%22alias%22%3A%7B%22title%22%3A%22Restarts+in+the+minute%22%2C%22description%22%3A%22Restarts+in+the+minute%22%2C%22legend%22%3A%22Restarts+in+the+minute%22%7D%7D%5D&startTime=2026-11-17T09%3A32%3A00.000Z&endTime=2026-11-17T10%3A17%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0009.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22payments-worker-2-1%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A32%3A00.000Z&end=2026-11-17T10%3A17%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0009.prod.fleet.internal+%40resource.container.name%3Apayments-worker-2-1&range=Custom&start=2026-11-17T09%3A32%3A00.000Z&end=2026-11-17T10%3A17%3A00.000Z)\n\n**Filter Conditions Met**: Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n",
+          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container restarted\n\n**Metric Details**\n- Metric: `a - b`\n- Alias: `e`\n- Formula: `a - b`\n- Components:\n  - `a` = `container.restarts`\n  - `b` = `container.restarts`\n\n\n**Breaching Samples**\n1 of 5 samples breached the threshold.\n\n1. `2026-11-17T10:02:00.000Z` \u2014 **1**\n   - `a`: 4\n   - `b`: 3\n   - `resource.host.name`: `docker-host-0009.prod.fleet.internal`\n   - `resource.container.name`: `payments-worker-2-1`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.restarts%22%2C%22variable%22%3A%22a%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%2C%22alias%22%3A%7B%22title%22%3A%22Restarts+%28highest%29%22%2C%22description%22%3A%22Restarts+%28highest%29%22%2C%22legend%22%3A%22Restarts+%28highest%29%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%2C%7B%22metricName%22%3A%22container.restarts%22%2C%22variable%22%3A%22b%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Min%22%2C%22alias%22%3A%7B%22title%22%3A%22Restarts+%28lowest%29%22%2C%22description%22%3A%22Restarts+%28lowest%29%22%2C%22legend%22%3A%22Restarts+%28lowest%29%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%2C%7B%22metricName%22%3A%22container.uptime%22%2C%22variable%22%3A%22c%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Min%22%2C%22alias%22%3A%7B%22title%22%3A%22Uptime%22%2C%22description%22%3A%22Uptime%22%2C%22legend%22%3A%22Uptime%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%2C%7B%22metricName%22%3A%22container.pids.count%22%2C%22variable%22%3A%22d%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%2C%22alias%22%3A%7B%22title%22%3A%22Tasks%22%2C%22description%22%3A%22Tasks%22%2C%22legend%22%3A%22Tasks%22%7D%2C%22groupByAttributeKeys%22%3A%5B%22resource.host.name%22%2C%22resource.container.name%22%5D%7D%5D&metricFormulas=%5B%7B%22formula%22%3A%22a+-+b%22%2C%22variable%22%3A%22e%22%2C%22alias%22%3A%7B%22title%22%3A%22Restarts+in+the+minute%22%2C%22description%22%3A%22Restarts+in+the+minute%22%2C%22legend%22%3A%22Restarts+in+the+minute%22%7D%7D%5D&startTime=2026-11-17T09%3A32%3A00.000Z&endTime=2026-11-17T10%3A17%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0009.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22payments-worker-2-1%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A32%3A00.000Z&end=2026-11-17T10%3A17%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0009.prod.fleet.internal+%40resource.container.name%3Apayments-worker-2-1&range=Custom&start=2026-11-17T09%3A32%3A00.000Z&end=2026-11-17T10%3A17%3A00.000Z)\n\n**Filter Conditions Met**: Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC\n",
           "series": [
             {
               "fingerprint": "170f1be353af7ff0",
@@ -184,7 +186,7 @@
                 "resource.host.name": "docker-host-0009.prod.fleet.internal",
                 "resource.container.name": "payments-worker-2-1"
               },
-              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "2b87c36b34a5e9016095ec25"
             },
             {
@@ -193,7 +195,7 @@
                 "resource.host.name": "docker-host-0016.prod.fleet.internal",
                 "resource.container.name": "catalog-search-2-2"
               },
-              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "4ff3c25c3093bb1fa511da1e"
             },
             {
@@ -202,7 +204,7 @@
                 "resource.host.name": "docker-host-0019.prod.fleet.internal",
                 "resource.container.name": "auth-gateway-5-5"
               },
-              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "14f3836df70a42c05d1074c9"
             },
             {
@@ -211,14 +213,14 @@
                 "resource.host.name": "docker-host-0038.prod.fleet.internal",
                 "resource.container.name": "payments-worker-3-25"
               },
-              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+              "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "4672acc834045e6f22ff5055"
             }
           ]
         },
         {
           "criteriaId": "criteria-container-just-started",
-          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container just started\n\n**Metric Details**\n- Metric: `container.uptime`\n- Alias: `c`\n- Unit: Seconds\n- Aggregation: Min\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n3 of 3 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` \u2014 **5.57\u00a0min**\n   - `resource.host.name`: `docker-host-0047.prod.fleet.internal`\n   - `resource.container.name`: `auth-gateway-5-17`\n2. `2026-11-17T10:02:00.000Z` \u2014 **7.57\u00a0min**\n   - `resource.host.name`: `docker-host-0047.prod.fleet.internal`\n   - `resource.container.name`: `auth-gateway-5-17`\n3. `2026-11-17T10:04:00.000Z` \u2014 **9.57\u00a0min**\n   - `resource.host.name`: `docker-host-0047.prod.fleet.internal`\n   - `resource.container.name`: `auth-gateway-5-17`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.uptime%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Min%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0047.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22auth-gateway-5-17%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0047.prod.fleet.internal+%40resource.container.name%3Aauth-gateway-5-17&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Uptime ranged from 5.57\u00a0min to 9.57\u00a0min across all 3 readings, below the 15\u00a0min threshold.\n",
+          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container just started\n\n**Metric Details**\n- Metric: `container.uptime`\n- Alias: `c`\n- Unit: Seconds\n- Aggregation: Min\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n3 of 3 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` \u2014 **5.57\u00a0min**\n   - `resource.host.name`: `docker-host-0047.prod.fleet.internal`\n   - `resource.container.name`: `auth-gateway-5-17`\n2. `2026-11-17T10:02:00.000Z` \u2014 **7.57\u00a0min**\n   - `resource.host.name`: `docker-host-0047.prod.fleet.internal`\n   - `resource.container.name`: `auth-gateway-5-17`\n3. `2026-11-17T10:04:00.000Z` \u2014 **9.57\u00a0min**\n   - `resource.host.name`: `docker-host-0047.prod.fleet.internal`\n   - `resource.container.name`: `auth-gateway-5-17`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.uptime%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Min%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0047.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22auth-gateway-5-17%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0047.prod.fleet.internal+%40resource.container.name%3Aauth-gateway-5-17&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Uptime ranged from 5.57\u00a0min to 9.57\u00a0min across all 3 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC\n",
           "series": [
             {
               "fingerprint": "01d701d49cad2223",
@@ -226,7 +228,7 @@
                 "resource.host.name": "docker-host-0047.prod.fleet.internal",
                 "resource.container.name": "auth-gateway-5-17"
               },
-              "rootCause": "- Uptime ranged from 5.57\u00a0min to 9.57\u00a0min across all 3 readings, below the 15\u00a0min threshold.",
+              "rootCause": "- Uptime ranged from 5.57\u00a0min to 9.57\u00a0min across all 3 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "9ecd2f2cb9cf66f9812c1d4f"
             },
             {
@@ -235,7 +237,7 @@
                 "resource.host.name": "docker-host-0049.prod.fleet.internal",
                 "resource.container.name": "catalog-search-0-14"
               },
-              "rootCause": "- Uptime ranged from 8.4\u00a0min to 12.4\u00a0min across all 3 readings, below the 15\u00a0min threshold.",
+              "rootCause": "- Uptime ranged from 8.4\u00a0min to 12.4\u00a0min across all 3 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "5436dd5feeab2a209a6af360"
             },
             {
@@ -244,7 +246,7 @@
                 "resource.host.name": "docker-host-0050.prod.fleet.internal",
                 "resource.container.name": "checkout-api-1-0"
               },
-              "rootCause": "- Uptime ranged from 5.5\u00a0min to 9.5\u00a0min across all 3 readings, below the 15\u00a0min threshold.",
+              "rootCause": "- Uptime ranged from 5.5\u00a0min to 9.5\u00a0min across all 3 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "304a2fd1697fcf06c5a97d33"
             },
             {
@@ -253,7 +255,7 @@
                 "resource.host.name": "docker-host-0033.prod.fleet.internal",
                 "resource.container.name": "inventory-sync-5-15"
               },
-              "rootCause": "- Uptime ranged from 6.47\u00a0min to 8.47\u00a0min across all 2 readings, below the 15\u00a0min threshold.",
+              "rootCause": "- Uptime ranged from 6.47\u00a0min to 8.47\u00a0min across all 2 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "e3073080afd3dc892208a8eb"
             },
             {
@@ -262,7 +264,7 @@
                 "resource.host.name": "docker-host-0049.prod.fleet.internal",
                 "resource.container.name": "payments-worker-0-1"
               },
-              "rootCause": "- Uptime ranged from 9.17\u00a0min to 11.2\u00a0min across all 2 readings, below the 15\u00a0min threshold.",
+              "rootCause": "- Uptime ranged from 9.17\u00a0min to 11.2\u00a0min across all 2 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "fdaab0d23e9c41227f5ef7a5"
             },
             {
@@ -271,7 +273,7 @@
                 "resource.host.name": "docker-host-0056.prod.fleet.internal",
                 "resource.container.name": "postgres-replica-0-9"
               },
-              "rootCause": "- Uptime ranged from 7.75\u00a0min to 9.75\u00a0min across all 2 readings, below the 15\u00a0min threshold.",
+              "rootCause": "- Uptime ranged from 7.75\u00a0min to 9.75\u00a0min across all 2 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
               "metricContextHash": "d600bbc6f202fc0cd089e967"
             }
           ]
@@ -287,14 +289,14 @@
           },
           "title": "docker-host-0004.prod.fleet.internal inventory-sync-4-15 holds too many tasks",
           "description": "inventory-sync-4-15 on docker-host-0004.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.",
+          "rootCause": "- Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "8c3d46ab3048d6c6a3cfa6ce",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "40af5171548d78c23c8fbfeb",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -305,14 +307,14 @@
           },
           "title": "docker-host-0011.prod.fleet.internal metrics-collector-4-7 holds too many tasks",
           "description": "metrics-collector-4-7 on docker-host-0011.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks ranged from 2349 to 2355 across all 2 readings, above the 2000 threshold.",
+          "rootCause": "- Tasks ranged from 2349 to 2355 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "941c0c2bb2b7c0127627b011",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "11988e58fd3be353e4889581",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -323,14 +325,14 @@
           },
           "title": "docker-host-0014.prod.fleet.internal catalog-search-0-26 holds too many tasks",
           "description": "catalog-search-0-26 on docker-host-0014.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks ranged from 2482 to 2485 across all 2 readings, above the 2000 threshold.",
+          "rootCause": "- Tasks ranged from 2482 to 2485 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "46fbac349a73eb4a15b60fdb",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "dce301559097501ade3905c3",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -341,14 +343,14 @@
           },
           "title": "docker-host-0049.prod.fleet.internal redis-cache-0-32 holds too many tasks",
           "description": "redis-cache-0-32 on docker-host-0049.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks ranged from 2235 to 2241 across all 3 readings, above the 2000 threshold.",
+          "rootCause": "- Tasks ranged from 2235 to 2241 across all 3 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "f8c5152d7be52dad8d0a1ddb",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "e64589f3f3743ad4072715a9",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -359,14 +361,14 @@
           },
           "title": "docker-host-0053.prod.fleet.internal checkout-api-4-12 holds too many tasks",
           "description": "checkout-api-4-12 on docker-host-0053.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks ranged from 2181 to 2194 across all 3 readings, above the 2000 threshold.",
+          "rootCause": "- Tasks ranged from 2181 to 2194 across all 3 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "1e21c86c13874a18a8875ccd",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "cc48b8eb2fc755e087622598",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -377,14 +379,14 @@
           },
           "title": "docker-host-0008.prod.fleet.internal nginx-edge-1-10 holds too many tasks",
           "description": "nginx-edge-1-10 on docker-host-0008.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks was 2437 in 1 reading, above the 2000 threshold.",
+          "rootCause": "- Tasks was 2437 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "308c13d4fe78bf7b34ae0165",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "21974f1a649e06ac90963656",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -395,14 +397,14 @@
           },
           "title": "docker-host-0015.prod.fleet.internal notification-dispatcher-1-30 holds too many tasks",
           "description": "notification-dispatcher-1-30 on docker-host-0015.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks was 2167 in 1 reading, above the 2000 threshold.",
+          "rootCause": "- Tasks was 2167 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "4ac2fb34e841b3bc191fe5a7",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "17e26532888850ce6416c50f",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -413,14 +415,14 @@
           },
           "title": "docker-host-0019.prod.fleet.internal metrics-collector-5-31 holds too many tasks",
           "description": "metrics-collector-5-31 on docker-host-0019.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks was 2294 in 1 reading, above the 2000 threshold.",
+          "rootCause": "- Tasks was 2294 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "48c169924d2fe9a557f266cd",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "199073e3a88c60adb0f27a92",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -431,14 +433,14 @@
           },
           "title": "docker-host-0029.prod.fleet.internal postgres-replica-1-21 holds too many tasks",
           "description": "postgres-replica-1-21 on docker-host-0029.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks was 2209 in 1 reading, above the 2000 threshold.",
+          "rootCause": "- Tasks was 2209 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "1245145b5f05651b03912130",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "64c0df8addf4cf17ad4c3a71",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -449,14 +451,14 @@
           },
           "title": "docker-host-0034.prod.fleet.internal payments-worker-6-1 holds too many tasks",
           "description": "payments-worker-6-1 on docker-host-0034.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks was 2258 in 1 reading, above the 2000 threshold.",
+          "rootCause": "- Tasks was 2258 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "2ddabd8fb755edf7355396a0",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "998b55db71dc35d42e50e4c0",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -467,14 +469,14 @@
           },
           "title": "docker-host-0050.prod.fleet.internal payments-worker-1-1 holds too many tasks",
           "description": "payments-worker-1-1 on docker-host-0050.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks ranged from 2260 to 2280 across all 2 readings, above the 2000 threshold.",
+          "rootCause": "- Tasks ranged from 2260 to 2280 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "cf5d8dbf13097a3296e8ebc4",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "1a814d6c43ab50feb453abee",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -485,14 +487,14 @@
           },
           "title": "docker-host-0055.prod.fleet.internal web-frontend-6-4 holds too many tasks",
           "description": "web-frontend-6-4 on docker-host-0055.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks was 2206 in 1 reading, above the 2000 threshold.",
+          "rootCause": "- Tasks was 2206 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "9ac40b540a28413c422fc839",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "c0604af6c11f975a97ab4e98",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -503,14 +505,14 @@
           },
           "title": "docker-host-0055.prod.fleet.internal notification-dispatcher-6-30 holds too many tasks",
           "description": "notification-dispatcher-6-30 on docker-host-0055.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks ranged from 2238 to 2240 across all 2 readings, above the 2000 threshold.",
+          "rootCause": "- Tasks ranged from 2238 to 2240 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "efd87a12cae8f802c2ba5d8e",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "05d367798e269d5cd180301f",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-too-many-tasks",
@@ -521,14 +523,14 @@
           },
           "title": "docker-host-0052.prod.fleet.internal notification-dispatcher-3-18 holds too many tasks",
           "description": "notification-dispatcher-3-18 on docker-host-0052.prod.fleet.internal held more than 2,000 tasks for the whole window.",
-          "rootCause": "- Tasks was 2190 in 1 reading, above the 2000 threshold.",
+          "rootCause": "- Tasks was 2190 in 1 reading, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "d8a932249c940729f5d50120",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "7408ddca41dfefe9cc8880e8",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-restarted",
@@ -539,14 +541,14 @@
           },
           "title": "docker-host-0009.prod.fleet.internal payments-worker-2-1 restarted",
           "description": "payments-worker-2-1 on docker-host-0009.prod.fleet.internal restarted in the last 5 minutes.",
-          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "b09f48c7eee100fcdef5e7cf",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "62662573e9ef39b21fc75ac3",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-restarted",
@@ -557,14 +559,14 @@
           },
           "title": "docker-host-0016.prod.fleet.internal catalog-search-2-2 restarted",
           "description": "catalog-search-2-2 on docker-host-0016.prod.fleet.internal restarted in the last 5 minutes.",
-          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "777502fbd1374199cebec4d3",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "25634917bbb959ec0e97b171",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-restarted",
@@ -575,14 +577,14 @@
           },
           "title": "docker-host-0019.prod.fleet.internal auth-gateway-5-5 restarted",
           "description": "auth-gateway-5-5 on docker-host-0019.prod.fleet.internal restarted in the last 5 minutes.",
-          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "70fffda0749dd95453964c6e",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "232e1c030a3665f8644cd1c2",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-restarted",
@@ -593,14 +595,14 @@
           },
           "title": "docker-host-0038.prod.fleet.internal payments-worker-3-25 restarted",
           "description": "payments-worker-3-25 on docker-host-0038.prod.fleet.internal restarted in the last 5 minutes.",
-          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.",
+          "rootCause": "- Restarts in the minute was 1 in 1 of 5 readings, above the 0 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "00d57f3afcdbf86ac2ec7d5e",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "4fb3be926ac7c00157e93b4a",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-just-started",
@@ -611,14 +613,14 @@
           },
           "title": "docker-host-0047.prod.fleet.internal auth-gateway-5-17 started less than 15 minutes ago",
           "description": "auth-gateway-5-17 on docker-host-0047.prod.fleet.internal has been up for less than 15 minutes.",
-          "rootCause": "- Uptime ranged from 5.57\u00a0min to 9.57\u00a0min across all 3 readings, below the 15\u00a0min threshold.",
+          "rootCause": "- Uptime ranged from 5.57\u00a0min to 9.57\u00a0min across all 3 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "0d38890f70ee5ba39952e417",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "fa2af9783854070e59218f09",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-just-started",
@@ -629,14 +631,14 @@
           },
           "title": "docker-host-0049.prod.fleet.internal catalog-search-0-14 started less than 15 minutes ago",
           "description": "catalog-search-0-14 on docker-host-0049.prod.fleet.internal has been up for less than 15 minutes.",
-          "rootCause": "- Uptime ranged from 8.4\u00a0min to 12.4\u00a0min across all 3 readings, below the 15\u00a0min threshold.",
+          "rootCause": "- Uptime ranged from 8.4\u00a0min to 12.4\u00a0min across all 3 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "998bfeec34c5faf9065c1c57",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "293f31cb281b9d091c789f34",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-just-started",
@@ -647,14 +649,14 @@
           },
           "title": "docker-host-0050.prod.fleet.internal checkout-api-1-0 started less than 15 minutes ago",
           "description": "checkout-api-1-0 on docker-host-0050.prod.fleet.internal has been up for less than 15 minutes.",
-          "rootCause": "- Uptime ranged from 5.5\u00a0min to 9.5\u00a0min across all 3 readings, below the 15\u00a0min threshold.",
+          "rootCause": "- Uptime ranged from 5.5\u00a0min to 9.5\u00a0min across all 3 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "3b5c95b25e0701400d31ef00",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "539ba7d547ee397bef55e137",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-just-started",
@@ -665,14 +667,14 @@
           },
           "title": "docker-host-0049.prod.fleet.internal payments-worker-0-1 started less than 15 minutes ago",
           "description": "payments-worker-0-1 on docker-host-0049.prod.fleet.internal has been up for less than 15 minutes.",
-          "rootCause": "- Uptime ranged from 9.17\u00a0min to 11.2\u00a0min across all 2 readings, below the 15\u00a0min threshold.",
+          "rootCause": "- Uptime ranged from 9.17\u00a0min to 11.2\u00a0min across all 2 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "4f985ecc524f639bfcf131dc",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "80d9470e669805978f1e0da9",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         },
         {
           "createdCriteriaId": "criteria-container-just-started",
@@ -683,14 +685,14 @@
           },
           "title": "docker-host-0056.prod.fleet.internal postgres-replica-0-9 started less than 15 minutes ago",
           "description": "postgres-replica-0-9 on docker-host-0056.prod.fleet.internal has been up for less than 15 minutes.",
-          "rootCause": "- Uptime ranged from 7.75\u00a0min to 9.75\u00a0min across all 2 readings, below the 15\u00a0min threshold.",
+          "rootCause": "- Uptime ranged from 7.75\u00a0min to 9.75\u00a0min across all 2 readings, below the 15\u00a0min threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC",
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "9d91a6a6b551ee37bee9c6c7",
-          "monitorSummaryHash": "adc4952662341115896939eb",
+          "createdStateLogHash": "e8173a674a8e876d61c6a1f5",
+          "monitorSummaryHash": "64c7f87da58e69eabb33c9a9",
           "evaluationDetailsHash": "none",
-          "telemetryQueryHash": "54a373619e45291e9f9b0419"
+          "telemetryQueryHash": "c2adf0ee8ea97d147b457a9f"
         }
       ],
       "resolvedAlerts": [
@@ -698,56 +700,56 @@
           "alertId": "10108000-0000-4000-9000-000000000003",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: notification-dispatcher-1-18 | Host: docker-host-0001.prod.fleet.internal\" no longer satisfies criteria \"Container restarted\".",
-          "stateChangeLogHash": "52ce8cfa2baad03ff7ff01f1"
+          "stateChangeLogHash": "32ed9e0b0311937bba728d8b"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000006",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: checkout-api-0-0 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
-          "stateChangeLogHash": "2e7dc63d5c3f38c433f43fa5"
+          "stateChangeLogHash": "68259d8b923d8af2733762e5"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000007",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: payments-worker-0-1 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
-          "stateChangeLogHash": "dd42d0d8b20e95d82ddbbf51"
+          "stateChangeLogHash": "d748a7d7bcfec6702b6ee161"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000008",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: catalog-search-0-2 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
-          "stateChangeLogHash": "ac217ebc5805e52eb3b1a61c"
+          "stateChangeLogHash": "fe4a6a9c0cbbf8aca62baa5e"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000009",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: inventory-sync-0-3 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container restarted\".",
-          "stateChangeLogHash": "cb8329e18cfbed14018fde9d"
+          "stateChangeLogHash": "162e16b7d487915718f0c92e"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000010",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: web-frontend-0-4 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container restarted\".",
-          "stateChangeLogHash": "2af596f86b109a235426c71c"
+          "stateChangeLogHash": "86d47f7bc295946dedaf33d8"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000011",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: auth-gateway-0-5 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container just started\".",
-          "stateChangeLogHash": "7fd9c6566f8f8b2a25a18546"
+          "stateChangeLogHash": "93645bf5c3fc3a216a6ab4c0"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000012",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: decommissioned-batch-job | Host: docker-host-9999.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
-          "stateChangeLogHash": "8d63b88bd45e712bc06edf23"
+          "stateChangeLogHash": "6a7192eeb5cf41dd128e9632"
         }
       ],
       "statusChanges": [
         {
           "monitorStatusId": "10108000-0000-4000-8000-000000000004",
-          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container holds too many tasks\n\n**Metric Details**\n- Metric: `container.pids.count`\n- Alias: `d`\n- Aggregation: Max\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n2 of 2 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` \u2014 **2391**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n2. `2026-11-17T10:04:00.000Z` \u2014 **2412**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.pids.count%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0004.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22inventory-sync-4-15%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0004.prod.fleet.internal+%40resource.container.name%3Ainventory-sync-4-15&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n",
-          "statusChangeLogHash": "2b3bf1233a46f0ba55566291"
+          "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container holds too many tasks\n\n**Metric Details**\n- Metric: `container.pids.count`\n- Alias: `d`\n- Aggregation: Max\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n2 of 2 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` \u2014 **2391**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n2. `2026-11-17T10:04:00.000Z` \u2014 **2412**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.pids.count%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0004.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22inventory-sync-4-15%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0004.prod.fleet.internal+%40resource.container.name%3Ainventory-sync-4-15&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n\n**Window Judged**: 2026-11-17 10:00:00 up to, but not including, 10:05:00 UTC\n",
+          "statusChangeLogHash": "e5073216ba0876437fa0981c"
         }
       ],
       "criteriaResults": [
@@ -1688,50 +1690,50 @@
           "alertId": "10108000-0000-4000-9000-000000000001",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "9a7ff56bba75a0a4fe354e9a"
+          "stateChangeLogHash": "7e72d0c5c3507d363eadaa40"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000002",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "ce5de32edf8b5d7f89a2c09b"
+          "stateChangeLogHash": "eaa3850235d5ff653ad94c40"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000003",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "23d21510e5ee90eb94982cef"
+          "stateChangeLogHash": "651dc78a9a838e3b311c4a4d"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000004",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "19e9ac17ccc902fec8cf851f"
+          "stateChangeLogHash": "58594cac3635bc2f51ef76db"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000005",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "3841d6404efbcb242465eba3"
+          "stateChangeLogHash": "131de7f3f434086b6ec99c0e"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000006",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "22c7732c83b71d762d59e949"
+          "stateChangeLogHash": "84c0460f2e1ee7dea4214efc"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000007",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "a408a3b72c26904cba36f8e7"
+          "stateChangeLogHash": "6d87e5edd62ebcf643114e95"
         }
       ],
       "statusChanges": [
         {
           "monitorStatusId": "10108000-0000-4000-8000-000000000003",
           "rootCause": "No monitoring criteria met. Change to default status. ",
-          "statusChangeLogHash": "0ab9edd14dc5e81636fd6175"
+          "statusChangeLogHash": "092a3ffe1cb7e5532df467f0"
         }
       ],
       "criteriaResults": [

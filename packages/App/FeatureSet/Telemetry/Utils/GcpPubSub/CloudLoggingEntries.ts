@@ -290,9 +290,16 @@ export function readCloudLoggingEntry(
 
 /*
  * Cloud Logging's severities in OpenTelemetry's numbers and OneUptime's
- * words, as the OpenTelemetry Collector's Google Cloud exporter maps them
- * the other way: NOTICE is INFO2, CRITICAL ERROR2, ALERT FATAL, EMERGENCY
- * FATAL2. DEFAULT says nothing.
+ * words, as Google's own exporter (opentelemetry-operations-go's
+ * exporter/collector, the Collector's googlecloud exporter) maps them the
+ * other way: 1-8 to DEBUG, 9-10 INFO, 11-12 NOTICE, 13-16 WARNING, 17-20
+ * ERROR, 21-22 CRITICAL, 23 ALERT and 24 EMERGENCY. Each is read back as the
+ * number of the level its range is named for (DEBUG 5, INFO 9, WARNING 13,
+ * ERROR 17), or as its range's first: NOTICE is INFO3 (11), CRITICAL FATAL
+ * (21), ALERT FATAL3 (23), EMERGENCY FATAL4 (24). CRITICAL is a Fatal then,
+ * as the word critical is wherever OneUptime reads one (LogSeverity.ts,
+ * issue #11228); an older mapping of the exporter's read it as ERROR2, and
+ * ALERT and EMERGENCY as FATAL and FATAL2. DEFAULT says nothing.
  */
 export const CLOUD_LOGGING_SEVERITIES: ReadonlyMap<
   string,
@@ -300,12 +307,12 @@ export const CLOUD_LOGGING_SEVERITIES: ReadonlyMap<
 > = new Map<string, { number: number; text: string }>([
   ["DEBUG", { number: 5, text: "DEBUG" }],
   ["INFO", { number: 9, text: "INFO" }],
-  ["NOTICE", { number: 10, text: "INFO" }],
+  ["NOTICE", { number: 11, text: "INFO" }],
   ["WARNING", { number: 13, text: "WARN" }],
   ["ERROR", { number: 17, text: "ERROR" }],
-  ["CRITICAL", { number: 18, text: "ERROR" }],
-  ["ALERT", { number: 21, text: "FATAL" }],
-  ["EMERGENCY", { number: 22, text: "FATAL" }],
+  ["CRITICAL", { number: 21, text: "FATAL" }],
+  ["ALERT", { number: 23, text: "FATAL" }],
+  ["EMERGENCY", { number: 24, text: "FATAL" }],
 ]);
 
 function stringAttribute(key: string, value: string): OtlpAttribute {

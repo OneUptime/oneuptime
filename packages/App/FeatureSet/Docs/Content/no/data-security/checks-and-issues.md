@@ -1,10 +1,10 @@
 # Kontroller og problemer i Datasikkerhet
 
-Datasikkerhet kjører 34 kontroller på hvert datalager, i ni grupper. En kontroll leser det som er kjent om ett datalager – hvordan det er konfigurert, hva som er funnet i det, hvem som kan nå det, hvor det befinner seg – og består, feiler eller kan ikke avgjøre. En kontroll som feiler, åpner ett problem på datalageret, og problemet lukkes av seg selv når kontrollen består. Denne siden viser hver kontroll, hvordan alvorlighetsgraden og risikoscoren til et problem beregnes, og hva som skjer med et problem gjennom livsløpet. Sikkerhetshendelser, Network Flows og sikkerhetsadressehvelvet er OneUptimes egne, oppbevart for sikkerheten din: oppgitt, aldri skannet eller kontrollert (se [Datalagre OneUptime oppbevarer for sikkerheten din](/docs/data-security/compliance#datalagre-oneuptime-oppbevarer-for-sikkerheten-din)).
+Datasikkerhet kjører 35 kontroller på hvert datalager, i ni grupper. En kontroll leser det som er kjent om ett datalager – hvordan det er konfigurert, hva som er funnet i det, hvem som kan nå det, hvor det befinner seg – og består, feiler eller kan ikke avgjøre. En kontroll som feiler, åpner ett problem på datalageret, og problemet lukkes av seg selv når kontrollen består. Denne siden viser hver kontroll, hvordan alvorlighetsgraden og risikoscoren til et problem beregnes, og hva som skjer med et problem gjennom livsløpet. Sikkerhetshendelser, Network Flows og sikkerhetsadressehvelvet er OneUptimes egne, oppbevart for sikkerheten din: oppgitt, aldri skannet eller kontrollert (se [Datalagre OneUptime oppbevarer for sikkerheten din](/docs/data-security/compliance#datalagre-oneuptime-oppbevarer-for-sikkerheten-din)).
 
 :::cards
 - [Hvordan en kontroll avgjør](#hvordan-en-kontroll-avgjør): Bestått, feilet eller kan ikke avgjøre, og hvor alvorlig en feil er.
-- [Hver kontroll](#hver-kontroll): Alle 34, med hva hver av dem kontrollerer og hvordan det fikses.
+- [Hver kontroll](#hver-kontroll): Alle 35, med hva hver av dem kontrollerer og hvordan det fikses.
 - [Risikoscore](#risikoscore): Hvordan problemer ordnes innenfor en alvorlighetsgrad.
 - [Hva som skjer med et problem](#hva-som-skjer-med-et-problem): Åpent, løst, godtatt, ikke et problem, hvordan hvert ble løst, og rettelser som følges helt til produksjon.
 - [Analysen fra OneUptime AI](#analysen-fra-oneuptime-ai): Om et problem er reelt, hva det setter i fare, hva fiksen ville ødelegge og den korteste veien til fikset.
@@ -22,6 +22,8 @@ Hver kontroll leser fakta om et datalager og svarer på én av fire måter:
 | Feilet | Kontrollen finner problemet, og sier hva den så i én setning: problemets bevis. | Et problem åpnes, eller det åpne oppdateres. |
 | Kan ikke avgjøre | En opplysning kunne ikke leses: en tillatelse rollen ikke har, et kall som feilet. | Ingenting endres: et åpent problem forblir åpent, fordi ingen kan slutte at et problem er løst når OneUptime ikke kunne se. |
 | Gjelder ikke | Datalagerets type har ingen slik innstilling. | Et åpent problem blir løst. |
+
+Et faktum som ikke kan vites fra der det ble lest, gjettes heller aldri: om internett når et datalager som ble spurt fra innsiden av nettverket ditt, eller om den anonyme brukeren til en klynge kan skrive, noe bare en skriving ville vise. Kontrollen kan ikke avgjøre det, og den linjen i **Konfigurasjon** for datalageret viser **Kan ikke kontrolleres**.
 
 ### Alvorlighetsgraden følger dataene
 
@@ -45,6 +47,7 @@ Alvorlighetsgraden er oppgitt for data som er Begrenset, Konfidensiell, Intern o
 | Et øyeblikksbilde av det kan gjenopprettes av hvem som helst (`snapshot-public`) | Database, øyeblikksbilde | Et øyeblikksbilde av databasen er delt offentlig, så enhver skykonto kan gjenopprette en full kopi. | Kritisk / Kritisk / Kritisk / Høy | Gjør øyeblikksbildet privat. |
 | Et øyeblikksbilde av det er delt med andre kontoer (`snapshot-shared-externally`) | Database, øyeblikksbilde | Et øyeblikksbilde av databasen er delt med kontoer utenfor de tilkoblede. | Høy / Høy / Middels / Lav | Slutt å dele øyeblikksbildet med kontoene som ikke skal ha det. |
 | Kontoer utenfor organisasjonen din kan nå det (`shared-with-external-accounts`) | Alle datalagre unntatt telemetri | Datalagerets policy gir tilgang til kontoer, leietakere eller prosjekter som ikke er koblet til OneUptime. | Høy / Høy / Middels / Lav | Gå gjennom hver ekstern prinsipal, og fjern dem som ikke trenger tilgang. |
+| Alle som når det, kan lese det uten påloggingsinformasjon (`readable-without-credentials`) | søk | Det svarte OneUptime uten påloggingsinformasjon: alle som kan nå adressen, kan lese dataene og endre dem hvis det ikke har noen tilgangskontroll i det hele tatt. | Kritisk / Høy / Middels / Lav | Slå på sikkerheten i klyngen, ta alle roller fra den anonyme brukeren, og gi hver applikasjon sin egen skrivebeskyttede bruker. En klynge som tar imot skrivinger uten påloggingsinformasjon, er Kritisk for data som er Begrenset og Konfidensiell, og Høy for alle andre. |
 
 ### Kryptering
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Faktor | Poeng |
 | --- | --- |
 | Alvorlighetsgrad | 75 for Kritisk, 50 for Høy, 25 for Middels, 0 for Lav |
-| Eksponering | 10 for Offentlig, 8 for Andre kontoer, 6 for Tilgjengelig fra internett, 3 for Ukjent, 0 for Privat |
+| Eksponering | 10 for Offentlig, 8 for Andre kontoer, 6 for Tilgjengelig fra internett, 3 for Ukjent, Ikke kontrollert ennå eller Kan ikke kontrolleres, 0 for Privat |
 | Volum | Opptil 6, etter datalagerets anslåtte antall sensitive poster på en logaritmisk skala: 1 for 10 poster, 3 for 1 000, 5 for en million, 6 for ti millioner eller mer |
 | Aktivitet | 5 når Security Operations har sett deteksjoner på datalageret den siste uken |
 | Produksjon | 4 for et datalager i produksjon |

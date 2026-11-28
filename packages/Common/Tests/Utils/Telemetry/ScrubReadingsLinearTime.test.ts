@@ -1,11 +1,13 @@
 import { describe, expect, test } from "@jest/globals";
 import LogScrubPatternType from "../../../Types/Log/LogScrubPatternType";
 import { ScrubRegExp } from "../../../Types/Telemetry/ScrubRule";
+import { DataTypeDetector } from "../../../Utils/DataSecurity/Detector";
 import { DIGIT_ZEROS } from "../../../Utils/DataSecurity/DigitReadings";
 import {
   EMAIL_ADDRESS_DETECTORS,
   PHONE_NUMBER_DETECTORS,
 } from "../../../Utils/DataSecurity/Detectors/ContactDetectors";
+import { getBuiltInDetectorsOf } from "../../../Utils/DataSecurity/Detectors/Index";
 import { CARD_NUMBER_DETECTORS } from "../../../Utils/DataSecurity/Detectors/FinancialDetectors";
 import { US_SSN_DETECTORS } from "../../../Utils/DataSecurity/Detectors/GovernmentIdDetectors";
 import {
@@ -50,6 +52,11 @@ const EVERY_SCRIPT_RUNS: string = DIGIT_ZEROS.map((zero: number): string => {
   return String.fromCharCode(zero + 4).repeat(12) + " ";
 }).join("");
 
+const IDEOGRAPHIC_SPACE: string = "　";
+
+// Every fullwidth form a number is read with, beside no digit, then a letter: CJK prose.
+const FORMS_BESIDE_NO_DIGIT: string = `（）－＋．／${IDEOGRAPHIC_SPACE}あ`;
+
 const EMAIL_CASES: Array<[string, string]> = [
   ["at signs without end", repeat("@", LENGTH)],
   ["letters and at signs", repeat("a@", LENGTH)],
@@ -86,6 +93,40 @@ const CARD_CASES: Array<[string, string]> = [
     "cards in fullwidth digits back to back",
     repeat("４５３２ ０１５１ １２８３ ０３６６ ", LENGTH),
   ],
+  // #11199: as a URL's query string writes a card's spaces.
+  ["'+'s for spaces between digits without end", repeat("4+", LENGTH)],
+  [
+    "cards typed into a form back to back",
+    repeat("4532+0151+1283+0366&", LENGTH),
+  ],
+  [
+    "cards with %20 between their groups back to back",
+    repeat("4532%200151%201283%200366&", LENGTH),
+  ],
+  ["escaped '+'s between digits without end", repeat("4%2B", LENGTH)],
+  ["escapes glued to digits without end", repeat("%2212", LENGTH)],
+  ["'+' runs between digits without end", repeat("4++", LENGTH)],
+  ["Arabic-Indic digits typed into a form", repeat("٤+", LENGTH)],
+  // #11115: a number's fullwidth forms, read as ASCII beside a digit.
+  [
+    "fullwidth hyphens between fullwidth digits without end",
+    repeat("４－", LENGTH),
+  ],
+  [
+    "ideographic spaces between digits without end",
+    repeat(`4${IDEOGRAPHIC_SPACE}`, LENGTH),
+  ],
+  [
+    "cards typed wholly in fullwidth back to back",
+    repeat(
+      `４５３２－０１５１－１２８３－０３６６${IDEOGRAPHIC_SPACE}`,
+      LENGTH,
+    ),
+  ],
+  [
+    "fullwidth forms beside no digit without end",
+    repeat(FORMS_BESIDE_NO_DIGIT, LENGTH),
+  ],
 ];
 
 const PHONE_CASES: Array<[string, string]> = [
@@ -113,6 +154,59 @@ const PHONE_CASES: Array<[string, string]> = [
     repeat("٤١٥-٥٥٥-٢٦٧١ ", LENGTH),
   ],
   ["UK mobiles back to back", repeat("07911 123456 ", LENGTH)],
+  // #11199: as a form writes a phone number, its own "+" escaped or not.
+  ["a form's '+'s and escaped plus signs", repeat("%2B44+20+", LENGTH)],
+  ["'+' runs before digits", repeat("++4", LENGTH)],
+  ["a form's spaces after numbers' signs", repeat("=+4+", LENGTH)],
+  [
+    "numbers a form wrote back to back",
+    repeat("phone=%2B44+20+7946+0958&", LENGTH),
+  ],
+  // #11115: a number typed wholly in fullwidth, its signs and separators too.
+  ["fullwidth plus signs before digits without end", repeat("＋４", LENGTH)],
+  ["fullwidth hyphens between digits without end", repeat("４－", LENGTH)],
+  ["digits in fullwidth parentheses without end", repeat("（４）", LENGTH)],
+  [
+    "a fullwidth plus sign and groups without end",
+    "＋４４" + repeat(`${IDEOGRAPHIC_SPACE}１２`, LENGTH),
+  ],
+  [
+    "numbers typed wholly in fullwidth back to back",
+    repeat(
+      `＋８１${IDEOGRAPHIC_SPACE}３－１２３４－５６７８${IDEOGRAPHIC_SPACE}`,
+      LENGTH,
+    ),
+  ],
+  [
+    "fullwidth signs escaped in a URL without end",
+    repeat("%EF%BC%8B%EF%BC%94%EF%BC%8D", LENGTH),
+  ],
+  [
+    "fullwidth forms beside no digit without end",
+    repeat(FORMS_BESIDE_NO_DIGIT, LENGTH),
+  ],
+  // #11114: a national number, judged by the words beside it.
+  [
+    "phone words and national numbers back to back",
+    repeat("tel 02012345678 ", LENGTH),
+  ],
+  [
+    "phone words without end, then a number",
+    repeat("tel ", LENGTH) + "02012345678",
+  ],
+  ["a phone word, then digits without end", "tel " + repeat("2", LENGTH)],
+  [
+    "words that hold a phone word, and national numbers, back to back",
+    repeat("telemetry 02012345678 callback ", LENGTH),
+  ],
+  [
+    "national numbers back to back beside no phone word",
+    repeat("order 02012345678 ", LENGTH),
+  ],
+  [
+    "phone words escaped in a URL, and numbers, back to back",
+    repeat("%74%65%6C%3D02012345678&", LENGTH),
+  ],
 ];
 
 const SSN_CASES: Array<[string, string]> = [
@@ -126,7 +220,134 @@ const SSN_CASES: Array<[string, string]> = [
     "Social Security numbers back to back in Arabic-Indic digits",
     repeat("٥٣٦-٢٢-٨٧٣١ ", LENGTH),
   ],
+  // #11199
+  ["groups typed into a form without end", repeat("123+", LENGTH)],
+  [
+    "Social Security numbers typed into a form back to back",
+    repeat("536+22+8731&", LENGTH),
+  ],
+  [
+    "Social Security numbers with %20 back to back",
+    repeat("536%2022%208731&", LENGTH),
+  ],
+  // #11115
+  ["fullwidth groups and hyphens without end", repeat("５３６－", LENGTH)],
+  [
+    "Social Security numbers typed wholly in fullwidth back to back",
+    repeat(`５３６－２２－８７３１${IDEOGRAPHIC_SPACE}`, LENGTH),
+  ],
+  [
+    "fullwidth forms beside no digit without end",
+    repeat(FORMS_BESIDE_NO_DIGIT, LENGTH),
+  ],
+  // #11114: nine digits in a row, judged by the words beside them.
+  ["SSN words and nine digits back to back", repeat("SSN 536221234 ", LENGTH)],
+  ["an SSN word, then digits without end", "ssn " + repeat("5", LENGTH)],
+  [
+    "SSN words without end, then nine digits",
+    repeat("ssn ", LENGTH) + "536221234",
+  ],
+  [
+    "words of an SSN apart by ideographic spaces, and nine digits, back to back",
+    repeat(
+      `social${IDEOGRAPHIC_SPACE}security${IDEOGRAPHIC_SPACE}５３６２２１２３４${IDEOGRAPHIC_SPACE}`,
+      LENGTH,
+    ),
+  ],
+  [
+    "nine digits back to back beside no SSN word",
+    repeat("ref 536221234 ", LENGTH),
+  ],
 ];
+
+/*
+ * #11200, #11199: a date of birth, a postcode, an address and a bank's
+ * or a card's code, read in every script's digits and as a URL's query
+ * string writes them - by the scanner, every detector of their types.
+ */
+const CODE_TYPES: ReadonlyArray<string> = [
+  "date-of-birth",
+  "postal-code",
+  "postal-address",
+  "card-verification-code",
+  "card-expiration-date",
+  "bank-account-number",
+  "uk-sort-code",
+  "au-bsb",
+  "swift-bic",
+  "in-ifsc",
+];
+
+const CODE_CASES: Array<[string, string]> = [
+  [
+    "dates of birth with escaped slashes back to back",
+    repeat("dob=12%2F03%2F1985&", LENGTH),
+  ],
+  [
+    "birth's words typed into a form without end",
+    repeat("date+of+birth=", LENGTH),
+  ],
+  [
+    "dates of birth in Arabic-Indic digits back to back",
+    repeat("dob ١٢/٠٣/١٩٨٥ ", LENGTH),
+  ],
+  [
+    "written dates typed into a form back to back",
+    repeat("born=12+Mar+1985&", LENGTH),
+  ],
+  [
+    "postcodes typed into a form back to back",
+    repeat("postcode=SW1A+2AA&", LENGTH),
+  ],
+  [
+    "addresses typed into a form back to back",
+    repeat("address=10+Downing+Street&", LENGTH),
+  ],
+  [
+    "a street's words typed into a form without end",
+    "12+" + repeat("Main+", LENGTH),
+  ],
+  [
+    "security codes typed into a form back to back",
+    repeat("security+code=123&", LENGTH),
+  ],
+  ["expiry dates in a URL back to back", repeat("exp=04%2F27&", LENGTH)],
+  [
+    "account numbers after their words in a URL",
+    repeat("account%20number%3D12345679&", LENGTH),
+  ],
+  [
+    "sort codes in Persian digits back to back",
+    repeat("sort code ۴۰-۴۷-۸۴ ", LENGTH),
+  ],
+  [
+    "BICs before Arabic-Indic digits back to back",
+    repeat("swift DEUTDEFF٥٠٠ ", LENGTH),
+  ],
+  ["letters and digits of another script in turn", repeat("A٥", LENGTH)],
+];
+
+describe("Data Security's scanner, reading dates, postcodes, addresses and codes every way (#11199, #11200)", () => {
+  const detectors: Array<DataTypeDetector> = CODE_TYPES.flatMap(
+    (dataTypeId: string): Array<DataTypeDetector> => {
+      return [...getBuiltInDetectorsOf(dataTypeId)];
+    },
+  );
+
+  test.each(CODE_CASES)(
+    "reads %s in time in line with its length",
+    (_label: string, text: string) => {
+      const timed: FastestRun<number> = fastestRun({
+        run: (): number => {
+          return findSensitiveValues(text, { detectors }).length;
+        },
+        limitInMs: LIMIT_IN_MS,
+      });
+
+      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
+    },
+  );
+});
 
 describe("an Email Address rule", () => {
   const regex: ScrubRegExp = compileBuiltInScrubPattern(
@@ -233,6 +454,38 @@ describe("a Phone Number and an SSN rule over a long text of them", () => {
     const left: string = "to [P] and [P], ssn [S] at +51.507217; ";
 
     expect(scrubbed).toBe(repeat(left, left.length * 1000));
+  });
+});
+
+describe("a Phone Number and an SSN rule over a long text of numbers typed in fullwidth or beside their words (#11114, #11115)", () => {
+  test("hide every one, and keep the rest", () => {
+    // Further apart than any word's reach (32 or 64 characters before, 8 or 32 after).
+    const apart: string = ` ${"x".repeat(70)} `;
+    const unit: string = `電話：＋８１${IDEOGRAPHIC_SPACE}３－１２３４－５６７８ tel 02012345678${apart}order 02012345678${apart}SSN 536221234${apart}ref 536221234${apart}ssn ５３６－２２－８７３１${apart}`;
+    const text: string = repeat(unit, unit.length * 1000);
+    const phone: ScrubRegExp = compileBuiltInScrubPattern(
+      LogScrubPatternType.PhoneNumber,
+    )!;
+    const ssn: ScrubRegExp = compileBuiltInScrubPattern(
+      LogScrubPatternType.SSN,
+    )!;
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return ssn.replace(
+          phone.replace(text, (): string => {
+            return "[P]";
+          }),
+          (): string => {
+            return "[S]";
+          },
+        );
+      },
+      limitInMs: LIMIT_IN_MS,
+    });
+    const left: string = `電話：[P] tel [P]${apart}order 02012345678${apart}SSN [S]${apart}ref 536221234${apart}ssn [S]${apart}`;
+
+    expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
+    expect(timed.result).toBe(repeat(left, left.length * 1000));
   });
 });
 

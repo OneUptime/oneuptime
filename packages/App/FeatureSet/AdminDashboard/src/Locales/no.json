@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "Når du sletter en IoT-flåte, slettes også enhetsregisteret, så registrerte enheter ikke lenger kan logge på.",
   "Deleting a database also deletes the endpoints it is reached at.": "Når du sletter en database, slettes også endepunktene den nås på.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Når du sletter en skytilkobling, slutter OneUptime å lese kontoen. Ressursene blir værende, med målingene sine.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "Når du sletter en lagringsarraytilkobling, slutter OneUptime å lese arrayene bak den, og det lagrede passordet og tilkoblingstestene slettes. Arrayene blir værende, med målingene sine.",
   "True": "Sann",
   "False": "Usann",
   "Key": "Nøkkel",
@@ -4622,5 +4623,19 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Denne monitormalen har ingen monitortype, så monitorene dens kan ikke synkroniseres. Opprett malen på nytt med en monitortype.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Innstillingene for malsynkronisering trenger malens monitortype. Velg monitortypen først, og velg så synkroniseringsinnstillingene på nytt.",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "En monitormal kan ikke synkronisere \"{{field}}\". Velg blant innstillingene for malsynkronisering som malen tilbyr, og lagre så på nytt.",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Ingen nye kan logge på ennå. Knytt til et prosjekt, med teamene de blir med i, under «Tilknyttede prosjekter»."
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Ingen nye kan logge på ennå. Knytt til et prosjekt, med teamene de blir med i, under «Tilknyttede prosjekter».",
+  "This issue does not exist, or you cannot read it.": "Dette problemet finnes ikke, eller du har ikke tilgang til å lese det.",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "Dette problemet har allerede 10 tilkoblede pull-forespørsler. Fjern én før du kobler til en ny.",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Dette problemet er lagt til side: risikoen er akseptert, eller det er ikke et problem. Åpne det igjen for å koble til pull-forespørselen som fikser det.",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} er allerede koblet til dette problemet.",
+  "All XCP-ng pools": "Alle XCP-ng-pooler",
+  "Only XCP-ng pools that match conditions": "Bare XCP-ng-pooler som oppfyller betingelsene",
+  "All savings": "Alle besparelser",
+  "Only savings that match conditions": "Bare besparelser som oppfyller betingelsene",
+  "XCP-ng Pool": "XCP-ng-pool",
+  "Same name as another {{kind}}": "Samme navn som en annen post av typen {{kind}}",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "En annen post av typen {{kind}} i dette prosjektet har dette navnet, så de to kan ikke skilles fra hverandre i velgere. Åpne hver av dem for å se hvilken som er hvilken, og gi så den ene nytt navn.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} har samme navn som en annen post av typen {{kind}}, og de to kan ikke skilles fra hverandre i velgere. Åpne hver av dem for å se hvilken som er hvilken, og gi så den ene nytt navn.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} har samme navn som en annen post av typen {{kind}} og kan ikke skilles fra hverandre i velgere. Åpne hver av dem for å se hvilken som er hvilken, og gi så én av dem nytt navn.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} har samme navn som en annen post av typen {{kind}}, og de to kan ikke skilles fra hverandre i velgere. Åpne hver av dem for å se hvilken som er hvilken, og gi så den ene nytt navn."
 }

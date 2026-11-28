@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import CloudAccount from "../../../../../Models/DatabaseModels/CloudAccount";
 import CloudConnection from "../../../../../Models/DatabaseModels/CloudConnection";
+import CloudAccountService from "../../../../../Server/Services/CloudAccountService";
 import CloudConnectionService from "../../../../../Server/Services/CloudConnectionService";
 import {
   AwsIamCallOptions,
@@ -25,6 +27,7 @@ import {
   AccountChange,
   AccountChangeKind,
   AccountChangeProvider,
+  AccountChangeSubject,
 } from "../../../../../Utils/SecurityCase/AttackAccountChanges";
 
 /*
@@ -34,8 +37,13 @@ import {
  * role in it, an access key of it - and only while its Security case
  * checks are on. A connection known to reach the account with them off
  * makes the change one to grant; none that reaches it, one to connect.
- * AWS itself is out of these tests: sessions and reads are the reader's
- * seams, and each one opened is recorded.
+ * The project's Cloud Accounts say which connection found an account - an
+ * organization's member account, an access key's own - so that connection
+ * reaches it too, its checks on or off (#11039). Each answer names the
+ * connection that reaches the account, and whether its checks are on: the
+ * one the step's line links to, to edit. AWS itself is out of these tests:
+ * sessions and reads are the reader's seams, and each one opened is
+ * recorded.
  */
 
 const ACCOUNT: string = "123456789012";
@@ -87,6 +95,7 @@ function change(data: Partial<AccountChange> = {}): AccountChange {
   return {
     provider: AccountChangeProvider.Aws,
     kind: AccountChangeKind.Group,
+    subject: AccountChangeSubject.Account,
     account: "deploy-bot",
     accountId: "",
     objectId: "",
@@ -95,6 +104,7 @@ function change(data: Partial<AccountChange> = {}): AccountChange {
     ownerType: "",
     cloudAccountId: ACCOUNT,
     cloudConnectionId: "",
+    trustPolicies: [],
     eventName: "AddUserToGroup",
     eventUid: "cloudtrail:1",
     time: "2026-11-17T19:30:00.000Z",
@@ -114,12 +124,18 @@ function given(data: {
   failsToSignIn?: Array<string> | undefined;
   keyAccount?: string | undefined;
   readFails?: boolean | undefined;
+  // The project's Cloud Accounts: which connection found each account (#11039).
+  cloudAccounts?:
+    | Array<{ accountId: string; connection: CloudConnection }>
+    | undefined;
+  cloudAccountsFail?: boolean | undefined;
 }): {
   options: AwsAccountChangesOptions;
   opened: Array<Opened>;
   read: Array<string>;
   keyAsked: Array<string>;
   findBy: ReturnType<typeof jest.spyOn>;
+  accountsFindBy: ReturnType<typeof jest.spyOn>;
 } {
   const opened: Array<Opened> = [];
   const read: Array<string> = [];
@@ -127,6 +143,25 @@ function given(data: {
   const findBy: ReturnType<typeof jest.spyOn> = jest
     .spyOn(CloudConnectionService, "findBy")
     .mockResolvedValue(data.connections);
+  const accountsFindBy: ReturnType<typeof jest.spyOn> = jest
+    .spyOn(CloudAccountService, "findBy")
+    .mockImplementation(async (): Promise<Array<CloudAccount>> => {
+      if (data.cloudAccountsFail) {
+        throw new Error("the database is down");
+      }
+
+      return (data.cloudAccounts || []).map(
+        (found: {
+          accountId: string;
+          connection: CloudConnection;
+        }): CloudAccount => {
+          const row: CloudAccount = new CloudAccount();
+          row.accountId = found.accountId;
+          row.cloudConnectionId = found.connection.id!;
+          return row;
+        },
+      );
+    });
 
   jest
     .spyOn(CloudConnectionService, "getConnectorSettings")
@@ -200,7 +235,7 @@ function given(data: {
     },
   };
 
-  return { options, opened, read, keyAsked, findBy };
+  return { options, opened, read, keyAsked, findBy, accountsFindBy };
 }
 
 async function answer(
@@ -219,12 +254,17 @@ afterEach(() => {
 });
 
 describe("a connection whose role is in the account", () => {
-  test("reads the change through its role there", async () => {
+  test("reads the change through its role there, and names it as the reader", async () => {
     const own: CloudConnection = role(ACCOUNT);
     const seams: ReturnType<typeof given> = given({ connections: [own] });
 
     expect(await answer(seams.options)).toEqual([
-      { change: change(), facts: STILL_THERE, hasConnection: true },
+      {
+        change: change(),
+        facts: STILL_THERE,
+        hasConnection: true,
+        reader: { connectionId: own.id!.toString(), isChecking: true },
+      },
     ]);
     expect(seams.opened).toEqual([
       { connection: own.id!.toString(), accountId: ACCOUNT },
@@ -232,10 +272,9 @@ describe("a connection whose role is in the account", () => {
     expect(seams.read).toEqual([`${ACCOUNT} Admins`]);
   });
 
-  test("with its Security case checks off, asks IAM nothing, and the change is one to grant", async () => {
-    const seams: ReturnType<typeof given> = given({
-      connections: [role(ACCOUNT, { checks: "off" })],
-    });
+  test("with its Security case checks off, asks IAM nothing, and the change is one to grant on that connection", async () => {
+    const off: CloudConnection = role(ACCOUNT, { checks: "off" });
+    const seams: ReturnType<typeof given> = given({ connections: [off] });
 
     expect(await answer(seams.options)).toEqual([
       {
@@ -246,6 +285,7 @@ describe("a connection whose role is in the account", () => {
           reason: AccountChangeUnknownReason.NotGranted,
         },
         hasConnection: true,
+        reader: { connectionId: off.id!.toString(), isChecking: false },
       },
     ]);
     expect(seams.opened).toEqual([]);
@@ -546,5 +586,231 @@ describe("over a case's changes", () => {
       ]),
     ).toEqual([]);
     expect(seams.findBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("the connection each answer names (#11039)", () => {
+  const NOT_GRANTED: AccountChangeFacts = {
+    provider: "AWS",
+    state: AccountChangeState.Unknown,
+    reason: AccountChangeUnknownReason.NotGranted,
+  };
+
+  test("the one that read it, its checks on: a refusal from it is one to run its command again for", async () => {
+    const own: CloudConnection = role(ACCOUNT);
+    const seams: ReturnType<typeof given> = given({
+      connections: [own],
+      facts: NOT_GRANTED,
+    });
+
+    expect((await answer(seams.options))[0]).toEqual({
+      change: change(),
+      facts: NOT_GRANTED,
+      hasConnection: true,
+      reader: { connectionId: own.id!.toString(), isChecking: true },
+    });
+  });
+
+  test("of several known to reach the account with their checks off, the event's own first, then a role in it", async () => {
+    const roleIn: CloudConnection = role(ACCOUNT, { checks: "off" });
+    const events: CloudConnection = role(ELSEWHERE, {
+      organization: true,
+      checks: "off",
+    });
+    const seams: ReturnType<typeof given> = given({
+      connections: [roleIn, events],
+    });
+
+    expect(
+      (
+        await answer(seams.options, [
+          change({ cloudConnectionId: events.id!.toString() }),
+        ])
+      )[0]!.reader,
+    ).toEqual({ connectionId: events.id!.toString(), isChecking: false });
+
+    jest.restoreAllMocks();
+
+    expect(
+      (await answer(given({ connections: [roleIn, events] }).options))[0]!
+        .reader,
+    ).toEqual({ connectionId: roleIn.id!.toString(), isChecking: false });
+  });
+
+  test("an answer no connection reaches, or one a read failed for, names none", async () => {
+    expect(
+      (await answer(given({ connections: [role(ELSEWHERE)] }).options))[0]!
+        .reader,
+    ).toBeUndefined();
+
+    jest.restoreAllMocks();
+
+    const own: CloudConnection = role(ACCOUNT);
+
+    expect(
+      (await answer(given({ connections: [own], readFails: true }).options))[0]!
+        .reader,
+    ).toBeUndefined();
+  });
+});
+
+describe("the project's Cloud Accounts say which connection found an account (#11039)", () => {
+  test("an organization that found the member account, its checks off: the change is one to grant on it, not one to connect", async () => {
+    const organization: CloudConnection = role(ELSEWHERE, {
+      organization: true,
+      checks: "off",
+    });
+    const seams: ReturnType<typeof given> = given({
+      connections: [organization],
+      cloudAccounts: [{ accountId: MEMBER, connection: organization }],
+    });
+
+    expect(
+      (await answer(seams.options, [change({ cloudAccountId: MEMBER })]))[0],
+    ).toEqual({
+      change: change({ cloudAccountId: MEMBER }),
+      facts: {
+        provider: "AWS",
+        state: AccountChangeState.Unknown,
+        reason: AccountChangeUnknownReason.NotGranted,
+      },
+      hasConnection: true,
+      reader: { connectionId: organization.id!.toString(), isChecking: false },
+    });
+    // Off: asked nothing, not even to sign in.
+    expect(seams.opened).toEqual([]);
+  });
+
+  test("an organization that found it, its checks on, reads it; one that can no longer sign in to it (the account left) does not reach it", async () => {
+    const organization: CloudConnection = role(ELSEWHERE, {
+      organization: true,
+    });
+    const seams: ReturnType<typeof given> = given({
+      connections: [organization],
+      cloudAccounts: [{ accountId: MEMBER, connection: organization }],
+    });
+
+    expect(
+      (await answer(seams.options, [change({ cloudAccountId: MEMBER })]))[0],
+    ).toMatchObject({
+      facts: STILL_THERE,
+      reader: { connectionId: organization.id!.toString(), isChecking: true },
+    });
+
+    jest.restoreAllMocks();
+
+    const left: ReturnType<typeof given> = given({
+      connections: [organization],
+      cloudAccounts: [{ accountId: MEMBER, connection: organization }],
+      failsToSignIn: [organization.id!.toString()],
+    });
+
+    expect(
+      (await answer(left.options, [change({ cloudAccountId: MEMBER })]))[0],
+    ).toEqual({
+      change: change({ cloudAccountId: MEMBER }),
+      facts: null,
+      hasConnection: false,
+    });
+    expect(left.read).toEqual([]);
+  });
+
+  test("an access key's connection that found its own account reads it without asking STS whose it is", async () => {
+    const key: CloudConnection = accessKey();
+    const seams: ReturnType<typeof given> = given({
+      connections: [key],
+      cloudAccounts: [{ accountId: ACCOUNT, connection: key }],
+      keyAccount: ELSEWHERE,
+    });
+
+    expect((await answer(seams.options))[0]).toMatchObject({
+      facts: STILL_THERE,
+      reader: { connectionId: key.id!.toString(), isChecking: true },
+    });
+    expect(seams.keyAsked).toEqual([]);
+  });
+
+  test("an access key's that found it, its checks off, is one to grant on it", async () => {
+    const key: CloudConnection = accessKey({ checks: "off" });
+    const seams: ReturnType<typeof given> = given({
+      connections: [key],
+      cloudAccounts: [{ accountId: ACCOUNT, connection: key }],
+    });
+
+    expect((await answer(seams.options))[0]).toMatchObject({
+      facts: { reason: AccountChangeUnknownReason.NotGranted },
+      reader: { connectionId: key.id!.toString(), isChecking: false },
+    });
+  });
+
+  test("an account another connection found is not this one's: a connection is never read in an account it did not find", async () => {
+    const organization: CloudConnection = role(ELSEWHERE, {
+      organization: true,
+      checks: "off",
+    });
+    const other: CloudConnection = role(MEMBER);
+    const seams: ReturnType<typeof given> = given({
+      connections: [organization, other],
+      cloudAccounts: [{ accountId: MEMBER, connection: other }],
+    });
+
+    // The member account's own role reads it; the organization, off and not the finder, is left alone.
+    expect(
+      (await answer(seams.options, [change({ cloudAccountId: MEMBER })]))[0],
+    ).toMatchObject({
+      facts: STILL_THERE,
+      reader: { connectionId: other.id!.toString(), isChecking: true },
+    });
+    expect(seams.opened).toEqual([
+      { connection: other.id!.toString(), accountId: MEMBER },
+    ]);
+  });
+
+  test("looked up once a read, for the accounts the AWS changes name, as the system", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const seams: ReturnType<typeof given> = given({
+      connections: [role(ACCOUNT)],
+    });
+
+    await AwsAccountChanges.read({
+      projectId,
+      changes: [
+        change(),
+        change({ objectName: "Ops", cloudAccountId: MEMBER }),
+        change({ objectName: "Billing" }),
+        change({ provider: AccountChangeProvider.Okta, cloudAccountId: "" }),
+      ],
+      options: seams.options,
+    });
+
+    expect(seams.accountsFindBy).toHaveBeenCalledTimes(1);
+    expect(seams.accountsFindBy.mock.calls[0]![0]).toMatchObject({
+      query: { projectId, provider: CloudProvider.AWS },
+      select: { _id: true, accountId: true, cloudConnectionId: true },
+      props: { isRoot: true },
+    });
+  });
+
+  test("a project with no AWS connection, or a lookup that fails, leaves the other ways to reach an account", async () => {
+    const none: ReturnType<typeof given> = given({ connections: [] });
+
+    expect((await answer(none.options))[0]).toMatchObject({
+      facts: null,
+      hasConnection: false,
+    });
+    expect(none.accountsFindBy).not.toHaveBeenCalled();
+
+    jest.restoreAllMocks();
+
+    const own: CloudConnection = role(ACCOUNT);
+    const failing: ReturnType<typeof given> = given({
+      connections: [own],
+      cloudAccountsFail: true,
+    });
+
+    expect((await answer(failing.options))[0]).toMatchObject({
+      facts: STILL_THERE,
+      reader: { connectionId: own.id!.toString(), isChecking: true },
+    });
   });
 });

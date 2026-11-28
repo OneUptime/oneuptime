@@ -1,7 +1,16 @@
+import { randomUUID } from "crypto";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
 import logger from "../Logger";
-import WorkspaceCreatedMessageLine from "./WorkspaceCreatedMessageLine";
-import { WorkspaceRecord } from "./WorkspaceRecordPeople";
+import WorkspaceCreatedMessageLine, {
+  StoredLinePost,
+} from "./WorkspaceCreatedMessageLine";
+/*
+ * A type only: WorkspaceRecordPeople reads through services that extend
+ * DatabaseService, which holds records through this (holdAsWritten).
+ */
+import type { WorkspaceRecord } from "./WorkspaceRecordPeople";
 
 /*
  * A RECORD'S CREATED MESSAGE IS THE FIRST THING ITS CHANNELS HEAR OF IT
@@ -27,6 +36,17 @@ import { WorkspaceRecord } from "./WorkspaceRecordPeople";
  * record's rules send it by then. The Created message says it announces the
  * record (announcesRecord) and is never kept.
  *
+ * The hold starts as the record is written (#11352): DatabaseService.create
+ * holds a record of these kinds right after its INSERT (holdAsWritten),
+ * before anything else is written about it. A creator whose role creates
+ * only what they own is made the record's owner right then, before its
+ * create chain runs (makeCreatorOwnerOrUndo), and "Added Ana Lee to the
+ * Incident INC-42 as the owner" reached chat before "Incident Created". The
+ * chain takes the hold over as it begins (hold) and lets it go once its
+ * Created message is out; a create that ends before any chain took it - the
+ * creator could not be made the owner, and the record was taken out again -
+ * lets it go as it ends (letGoIfNotTaken).
+ *
  * A message about the record can be made on any App server while its chain
  * runs on one: the Incident Commander role the Dashboard gives the declarer
  * as the incident's page opens, a note, a monitor's first probe result. So
@@ -41,14 +61,36 @@ import { WorkspaceRecord } from "./WorkspaceRecordPeople";
  * messages go as it stops, and a hold is let go after HELD_FOR_AT_MOST_MS
  * whatever happens, on every server, so no message waits for good. A server
  * shutting down posts what still waits on it rather than losing it.
+ *
+ * And a server that is killed outright - an OOM kill, a lost node - loses
+ * none of it (#11235): each message waits in the line with what it says,
+ * as its server would post it (keep's `stored`), and another App server
+ * posts it from there, in its turn and once, when its own server's turn
+ * stalls (takeOverForStoppedServers). A server holding a record says it
+ * still holds its line every few seconds, so when the server running the
+ * record's create chain is the one killed, before its Created message, the
+ * others move its line on once it has said nothing for STALLED_AFTER_MS -
+ * about 15 seconds, not the five minutes of HELD_FOR_AT_MOST_MS (#11314).
  */
 
 // A message kept back, posted when it is let go.
 export type KeptPost = () => Promise<void>;
 
+/*
+ * What another App server posts a kept message from, should the server
+ * that made it stop before its turn: the message as JSON, which
+ * takeOverForStoppedServers's `post` reads back.
+ */
+export type StoredMessage = () => JSONObject;
+
 interface Hold {
   // The record's line is in Valkey, for every server; else this server's alone.
   isShared: boolean;
+  /*
+   * Valkey was asked to open the record's line. One that did not answer may
+   * have opened it all the same: it is let go there too (#11314).
+   */
+  isLineAsked: boolean;
   // Settles once Valkey has said whether it keeps the line (hold).
   isReady: Promise<void>;
   /*
@@ -63,6 +105,13 @@ interface Hold {
   posting: Promise<void> | null;
   // Lets the hold go after HELD_FOR_AT_MOST_MS, should nothing else.
   timer: ReturnType<typeof setTimeout>;
+  /*
+   * The record's create chain has it (hold), and lets it go once its
+   * Created message is out. A hold its create set as it wrote the record
+   * (holdAsWritten) is the create's until a chain takes it, and goes with
+   * the create should none (letGoIfNotTaken).
+   */
+  isTaken: boolean;
 }
 
 /*
@@ -78,6 +127,27 @@ const RECORD_KEYS: ReadonlyArray<keyof WorkspaceRecord> = [
   "monitorId",
   "onCallDutyPolicyId",
 ];
+
+/*
+ * The kinds of record whose create chain posts a Created message, by the
+ * table each is kept in, with the field a message names one by
+ * (RECORD_KEYS): what DatabaseService.create holds as soon as it has
+ * written one (holdAsWritten). Each kind's service takes the hold over in
+ * its create hook (onCreateSuccess) and lets it go once its Created message
+ * is out.
+ */
+const RECORD_KEY_OF_TABLE: ReadonlyMap<string, keyof WorkspaceRecord> = new Map<
+  string,
+  keyof WorkspaceRecord
+>([
+  ["Incident", "incidentId"],
+  ["Alert", "alertId"],
+  ["IncidentEpisode", "incidentEpisodeId"],
+  ["AlertEpisode", "alertEpisodeId"],
+  ["ScheduledMaintenance", "scheduledMaintenanceId"],
+  ["Monitor", "monitorId"],
+  ["OnCallDutyPolicy", "onCallDutyPolicyId"],
+]);
 
 // The records this server holds, by keyOf.
 const HOLDS: Map<string, Hold> = new Map<string, Hold>();
@@ -101,11 +171,21 @@ export default class WorkspaceCreatedMessageFirst {
   public static readonly SHUTDOWN_WAITS_AT_MOST_MS: number = 5 * 1000;
 
   /*
+   * The most a kept message is stored with in Valkey, as JSON. What a
+   * message about a record says is a few hundred bytes, and Slack takes
+   * 40,000 characters of text at most; a larger one - a note with a
+   * screenshot in it - waits on its own server, as every message did
+   * before #11235, and is passed over should that server stop.
+   */
+  public static readonly MAX_STORED_MESSAGE_BYTES: number = 512 * 1024;
+
+  /*
    * The record's create chain begins: every other message about it, on
-   * every server, waits for its Created message. Settles once that is so,
-   * which the chain's create waits for, so nothing can know of the record
-   * before. Nothing for a message about no record, or for a record already
-   * held. Never throws.
+   * every server, waits for its Created message, and the chain lets them go
+   * once that is out (postHeld). A hold the record's create set as it wrote
+   * it (holdAsWritten) is the chain's from now on. Settles once the record
+   * is held, which the chain's create waits for, so nothing can know of the
+   * record before. Nothing for a message about no record. Never throws.
    */
   public static async hold(record: WorkspaceRecord): Promise<void> {
     const key: string | null = this.keyOf(record);
@@ -117,52 +197,74 @@ export default class WorkspaceCreatedMessageFirst {
     const heldAlready: Hold | undefined = HOLDS.get(key);
 
     if (heldAlready) {
+      // The chain's now: the create that set it no longer lets it go.
+      heldAlready.isTaken = true;
       await heldAlready.isReady;
       return;
     }
 
-    let markReady: () => void = (): void => {
-      // replaced below
-    };
+    await this.startHold(key, record, true);
+  }
 
-    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-      this.postHeld(record).catch((error: unknown) => {
-        logger.error(
-          `Posting the messages held for a record's Created message failed: ${error}`,
-        );
-      });
-    }, this.HELD_FOR_AT_MOST_MS);
+  /*
+   * DatabaseService.create has just written a record (#11352). When it is
+   * of a kind whose create chain posts a Created message
+   * (RECORD_KEY_OF_TABLE), every other message about it waits for that
+   * message from this moment, on every server: before anything else is
+   * written about the record - its creator's owner row, for a creator whose
+   * role creates only what they own, first of all - and before the create
+   * returns. Settles once that is so. The record, when this set its hold,
+   * for the create to let go should no chain take it (letGoIfNotTaken);
+   * null for a record of another kind, or one held already. Never throws.
+   */
+  public static async holdAsWritten(data: {
+    tableName: string | null | undefined;
+    id: ObjectID | null | undefined;
+  }): Promise<WorkspaceRecord | null> {
+    const field: keyof WorkspaceRecord | undefined = data.tableName
+      ? RECORD_KEY_OF_TABLE.get(data.tableName)
+      : undefined;
 
-    // Never what keeps a process running.
-    timer.unref?.();
-
-    const hold: Hold = {
-      isShared: false,
-      isReady: new Promise<void>((resolve: () => void) => {
-        markReady = resolve;
-      }),
-      kept: [],
-      isReleased: false,
-      posting: null,
-      timer: timer,
-    };
-
-    HOLDS.set(key, hold);
-
-    try {
-      if (WorkspaceCreatedMessageLine.isAvailable()) {
-        hold.isShared = await WorkspaceCreatedMessageLine.start({
-          recordKey: key,
-          heldForAtMostMs: this.HELD_FOR_AT_MOST_MS,
-        });
-      }
-
-      if (hold.isShared) {
-        this.registerShutdownHandler();
-      }
-    } finally {
-      markReady();
+    if (!field || !data.id) {
+      return null;
     }
+
+    const record: WorkspaceRecord = {};
+    record[field] = data.id;
+
+    const key: string | null = this.keyOf(record);
+
+    // Another hold of the record is not this create's to let go.
+    if (!key || HOLDS.has(key)) {
+      return null;
+    }
+
+    await this.startHold(key, record, false);
+
+    return record;
+  }
+
+  /*
+   * The create that wrote `record` and held it (holdAsWritten) is over. A
+   * hold no create chain took goes now - the create stopped before its
+   * chain began, or took the record out again - rather than once it has
+   * lasted HELD_FOR_AT_MOST_MS; a hold a chain took is the chain's to let
+   * go. Settles once what it kept is posted. Never throws.
+   */
+  public static async letGoIfNotTaken(record: WorkspaceRecord): Promise<void> {
+    const key: string | null = this.keyOf(record);
+    const hold: Hold | undefined = key ? HOLDS.get(key) : undefined;
+
+    if (!key || !hold || hold.isTaken) {
+      return;
+    }
+
+    await this.letGo(key);
+  }
+
+  // The tables whose records DatabaseService.create holds as it writes them.
+  public static tablesHeldAsWritten(): Array<string> {
+    return Array.from(RECORD_KEY_OF_TABLE.keys());
   }
 
   // Whether this server holds the record's messages now, or is posting them.
@@ -178,10 +280,18 @@ export default class WorkspaceCreatedMessageFirst {
    * otherwise, for the caller to post it now. Kept in the order this is
    * called in, which is the order the messages were made: the first thing
    * it does is take its place in the record's line. Never throws.
+   *
+   * `stored` is the message as another App server would post it, should
+   * this one stop before its turn: it waits in the line with it, and is
+   * read only once the message has a place in a line in Valkey - so the
+   * many messages about records nobody is creating cost nothing more.
+   * Without it - or when it is larger than MAX_STORED_MESSAGE_BYTES - the
+   * message waits on this server alone.
    */
   public static async keep(data: {
     record: WorkspaceRecord;
     post: KeptPost;
+    stored?: StoredMessage | undefined;
   }): Promise<boolean> {
     const key: string | null = this.keyOf(data.record);
 
@@ -200,9 +310,12 @@ export default class WorkspaceCreatedMessageFirst {
       }
     }
 
+    // Its own id: the one server that claims it is the one that posts it.
+    const messageId: string = randomUUID();
+
     // The record's line in Valkey, whichever server holds it.
     const ticket: number | null = WorkspaceCreatedMessageLine.isAvailable()
-      ? await WorkspaceCreatedMessageLine.take(key)
+      ? await WorkspaceCreatedMessageLine.take(key, { messageId: messageId })
       : null;
 
     if (ticket === null || (ticket === 0 && hold && !hold.isReleased)) {
@@ -224,9 +337,21 @@ export default class WorkspaceCreatedMessageFirst {
       return false;
     }
 
+    // What another App server posts it from, should this one stop before its turn.
+    const stored: string | null = this.storedText(data.stored);
+    const isStored: boolean = stored
+      ? await WorkspaceCreatedMessageLine.store(key, {
+          ticket: ticket,
+          messageId: messageId,
+          stored: stored,
+        })
+      : false;
+
     WorkspaceCreatedMessageLine.wait({
       recordKey: key,
       ticket: ticket,
+      messageId: messageId,
+      isStored: isStored,
       post: data.post,
       isHeldHere: (): boolean => {
         return this.isHoldingLineHere(key);
@@ -256,12 +381,36 @@ export default class WorkspaceCreatedMessageFirst {
   }
 
   /*
+   * From now on this server also posts the messages another App server
+   * kept and was killed before posting - an OOM kill, a lost node, SIGKILL
+   * (#11235) - each in its turn and once, with `post`, from what that
+   * server stored of it (keep's `stored`). Started as the App starts
+   * (App/Index.ts), on every App server: the lines are looked after
+   * whether or not this server has a message waiting in them. Nothing
+   * without Valkey. A server shutting down stops.
+   */
+  public static takeOverForStoppedServers(post: StoredLinePost): void {
+    WorkspaceCreatedMessageLine.lookAfterStoppedServers({
+      post: post,
+      heldForAtMostMs: (): number => {
+        return this.HELD_FOR_AT_MOST_MS;
+      },
+    });
+
+    this.registerShutdownHandler();
+  }
+
+  /*
    * This server shuts down. Its holds and lines go on by themselves for up
    * to SHUTDOWN_WAITS_AT_MOST_MS; then its holds are let go - their chains
    * stop with the server - and what still waits on it is posted now, out of
-   * turn if need be, rather than lost with it.
+   * turn if need be, rather than lost with it. It takes over no other
+   * server's messages from then on.
    */
   public static async postEverythingHeldHere(): Promise<void> {
+    // A server shutting down takes over no other server's messages from now on.
+    WorkspaceCreatedMessageLine.stopLookingAfterStoppedServers();
+
     const deadline: number = Date.now() + this.SHUTDOWN_WAITS_AT_MOST_MS;
 
     while (
@@ -281,6 +430,64 @@ export default class WorkspaceCreatedMessageFirst {
 
     await WorkspaceCreatedMessageLine.postEverythingNow();
     await Promise.all(holdsLetGo);
+  }
+
+  /*
+   * A new hold of the record `key` names, by its create chain (`isTaken`)
+   * or by the create that wrote it: its line opened in Valkey when Valkey
+   * can be asked, this server's alone otherwise. Settles once Valkey has
+   * answered. Never throws.
+   */
+  private static async startHold(
+    key: string,
+    record: WorkspaceRecord,
+    isTaken: boolean,
+  ): Promise<void> {
+    let markReady: () => void = (): void => {
+      // replaced below
+    };
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      this.postHeld(record).catch((error: unknown) => {
+        logger.error(
+          `Posting the messages held for a record's Created message failed: ${error}`,
+        );
+      });
+    }, this.HELD_FOR_AT_MOST_MS);
+
+    // Never what keeps a process running.
+    timer.unref?.();
+
+    const hold: Hold = {
+      isShared: false,
+      isLineAsked: false,
+      isReady: new Promise<void>((resolve: () => void) => {
+        markReady = resolve;
+      }),
+      kept: [],
+      isReleased: false,
+      posting: null,
+      timer: timer,
+      isTaken: isTaken,
+    };
+
+    HOLDS.set(key, hold);
+
+    try {
+      if (WorkspaceCreatedMessageLine.isAvailable()) {
+        hold.isLineAsked = true;
+        hold.isShared = await WorkspaceCreatedMessageLine.start({
+          recordKey: key,
+          heldForAtMostMs: this.HELD_FOR_AT_MOST_MS,
+        });
+      }
+
+      if (hold.isShared) {
+        this.registerShutdownHandler();
+      }
+    } finally {
+      markReady();
+    }
   }
 
   // postHeld, for the record `key` names.
@@ -303,6 +510,13 @@ export default class WorkspaceCreatedMessageFirst {
           hold.isReleased = true;
           WorkspaceCreatedMessageLine.wake(key);
           await WorkspaceCreatedMessageLine.drained(key);
+        } else if (hold.isLineAsked) {
+          /*
+           * Valkey's answer to opening the line was lost: it may have opened
+           * it all the same, for other servers' messages to wait in, and
+           * this server has said it holds it since. Let go there too.
+           */
+          await WorkspaceCreatedMessageLine.release(key);
         }
 
         hold.isReleased = true;
@@ -327,6 +541,35 @@ export default class WorkspaceCreatedMessageFirst {
     await hold.posting;
   }
 
+  /*
+   * What a kept message waits in the line with, as text: null when there is
+   * nothing to store, it cannot be written, or it is larger than
+   * MAX_STORED_MESSAGE_BYTES. Never throws.
+   */
+  private static storedText(stored: StoredMessage | undefined): string | null {
+    if (!stored) {
+      return null;
+    }
+
+    try {
+      const text: string = JSON.stringify(stored());
+
+      if (Buffer.byteLength(text, "utf8") > this.MAX_STORED_MESSAGE_BYTES) {
+        logger.debug(
+          "A message held for a record's Created message is too large to store: it waits on this server alone.",
+        );
+        return null;
+      }
+
+      return text;
+    } catch (error) {
+      logger.error(
+        `A message held for a record's Created message could not be stored: ${error}. It waits on this server alone.`,
+      );
+      return null;
+    }
+  }
+
   // Whether this server holds the record's line in Valkey, not let go yet.
   private static isHoldingLineHere(key: string): boolean {
     const hold: Hold | undefined = HOLDS.get(key);
@@ -335,8 +578,9 @@ export default class WorkspaceCreatedMessageFirst {
   }
 
   /*
-   * Once this server keeps a line in Valkey: what waits on it is posted as
-   * it shuts down, rather than lost with it.
+   * Once this server keeps a line in Valkey, or takes over other servers'
+   * messages: what waits on it is posted as it shuts down, rather than lost
+   * with it, and it takes over nothing more.
    */
   private static registerShutdownHandler(): void {
     if (isShutdownHandlerRegistered) {

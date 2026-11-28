@@ -24,7 +24,13 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
+import { ResourceAiRemediationMode } from "../../Types/ResourceAiAgent/ResourceAiAccess";
 import XcpNgCollectionMethod from "../../Types/XcpNg/XcpNgCollectionMethod";
+import {
+  XcpNgPoolBackupJob,
+  XcpNgPoolEventReadStatus,
+  XcpNgPoolEventState,
+} from "../../Types/XcpNg/XcpNgPoolEventState";
 import {
   Column,
   Entity,
@@ -68,7 +74,9 @@ import {
  *     API returns.
  *   - #10998 (OneUptime AI): the AI access columns every other resource
  *     with an AI agent has (isAiInvestigationEnabled, aiRemediationMode,
- *     ...), with AiResourceType.XcpNgPool.
+ *     ..., at the end of this model), with AiResourceType.XcpNgPool: the
+ *     XCP-ng AI agent reads the pool through Xen Orchestra with a read-only
+ *     token, and fixes it only with a second one.
  * ------------------------------------------------------------------
  */
 @AccessControlColumn("labels")
@@ -571,7 +579,7 @@ export default class XcpNgPool extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
-    canReadOnRelationQuery: true,
+    // Read on the pool itself, as a vCenter's collection probe is: no relation's label.
     title: "XCP-ng Connection ID",
     description:
       "ID of the XCP-ng connection a probe reads this pool through. Empty for a pool the XCP-ng Agent reads.",
@@ -1070,6 +1078,321 @@ export default class XcpNgPool extends BaseModel {
   })
   public storageUsedBytes?: number = undefined;
 
+  /*
+   * ---- #10997: high availability, the master, alarms, patches, backups ----
+   *
+   * Read by a probe - through Xen Orchestra's REST API with a Read only
+   * token, or straight from the pool's XAPI - never by the XCP-ng Agent,
+   * whose OpenMetrics plugin carries none of it: every column below stays
+   * empty for a pool only the agent reads, and the pool's pages say so.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "HA Enabled",
+    description:
+      "Whether the pool's high availability is on, as a probe last read it from Xen Orchestra or XAPI. Empty until read.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isHaEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "HA Host Failures To Tolerate",
+    description:
+      "How many host failures HA is set to tolerate (ha_host_failures_to_tolerate). Read straight from XAPI only: Xen Orchestra's REST API does not report it.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public haHostFailuresToTolerate?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "HA Plan Exists For",
+    description:
+      "How many host failures HA's current plan can still survive with every protected VM restarted (ha_plan_exists_for). Read straight from XAPI only.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public haPlanExistsFor?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "HA Overcommitted",
+    description:
+      "Whether HA can no longer guarantee to restart the protected VMs after the host failures it is set to tolerate (ha_overcommitted). Read straight from XAPI only.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isHaOvercommitted?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Pool Master UUID",
+    description:
+      "The XAPI UUID of the host that is the pool master, as a probe last read it. A change of master lands on the pool's feed.",
+    example: "b61a5c92-700e-4966-a13b-00633f03eea8",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public masterHostExternalId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Alarms Read At",
+    description:
+      "When a probe last read the pool's alarms, HA and master. Empty while nothing reads them (the XCP-ng Agent cannot).",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public eventsReadAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Backups Read At",
+    description:
+      "When a probe last read Xen Orchestra's backup logs for the pool. Empty while nothing reads them: XAPI knows nothing of Xen Orchestra's backups.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public backupsReadAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Patches Checked At",
+    description:
+      "When a probe last asked Xen Orchestra which patches the pool's hosts miss, every six hours.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public patchesCheckedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Event Read Status",
+    description:
+      "How the pool's alarms and backups are read (Xen Orchestra or XAPI) and what the last read could not read, in words.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public eventReadStatus?: XcpNgPoolEventReadStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Backup Jobs",
+    description:
+      "Each Xen Orchestra backup job that backs up this pool's VMs, with how often it runs and its last runs for this pool: succeeded, failed, skipped or interrupted, and the VMs that failed and why.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public backupJobs?: Array<XcpNgPoolBackupJob> = undefined;
+
+  /*
+   * Where reading the pool's events stands - the watermarks a probe starts
+   * from, the messages whose alerts are open - kept by the server so a
+   * probe that restarts neither loses nor repeats one. Never served.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    // Not "Event State": that was a maintenance event's state, now Maintenance State.
+    title: "Alarm and Backup Reading Progress",
+    description:
+      "Internal: where reading the pool's alarms and backups stands. Written and read by OneUptime only.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public eventState?: XcpNgPoolEventState = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -1426,4 +1749,257 @@ export default class XcpNgPool extends BaseModel {
     create: PlanType.Scale,
   })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
+
+  /*
+   * OneUptime AI access to this XCP-ng pool through its XCP-ng AI agent (a
+   * resource AI agent, ResourceAiAgent), which reads the pool through Xen
+   * Orchestra with a read-only token and changes it only with a second one.
+   * The settings are plain columns written through ordinary CRUD, so they
+   * exist before any agent registers. The columns keep the pool's own update
+   * ACL: anyone who may edit the XCP-ng pool may make AI do LESS; making it
+   * do MORE is refused by the service unless the caller may author a
+   * FullAuto auto-remediation rule. The aiAccess* columns are written only by
+   * the server.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditXcpNgPool,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Let AI Investigate With Read-Only Commands",
+    description:
+      "When on, OneUptime AI runs read-only commands (xo-cli rest get on the pool's hosts, VMs, storage repositories, alarms, tasks and backup logs) on this XCP-ng pool, through its XCP-ng AI agent and Xen Orchestra, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the XCP-ng pool can turn it on or off.",
+    defaultValue: true,
+    serverOwned: ServerOwned.Shared,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isAiInvestigationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditXcpNgPool,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(ResourceAiRemediationMode),
+    title: "AI Remediation Mode",
+    /*
+     * The API and Terraform docs for the mode: the same semantics as the
+     * ResourceAiRemediationMode doc comment in
+     * Types/ResourceAiAgent/ResourceAiAccess.ts (the canonical text).
+     */
+    description:
+      "Disabled: AI never proposes or runs a change on this XCP-ng pool. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the XCP-ng pool's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). The XCP-ng AI agent also makes changes only with a Xen Orchestra token of its own for them (ONEUPTIME_AI_XO_WRITE_TOKEN). Anyone who may edit the XCP-ng pool can lower the mode; raising it needs Project Owner, Project Admin or Edit AI Rule.",
+    defaultValue: ResourceAiRemediationMode.Disabled,
+    example: ResourceAiRemediationMode.RequireApproval,
+    serverOwned: ServerOwned.Shared,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: ResourceAiRemediationMode.Disabled,
+  })
+  public aiRemediationMode?: ResourceAiRemediationMode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditXcpNgPool,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "AI Command Allowlist",
+    description:
+      "Optional JSON array of command patterns that Automatic mode may run on this XCP-ng pool without approval even though they are riskier changes. Each pattern is one command line for this XCP-ng pool's agent (xo-cli rest post) and is compared with the command word by word: * stands for exactly one word (a path, a value), never for extra words, and every name=value the command uses must be written out in the pattern. At most 50 patterns of at most 500 characters each; a pattern that is not one valid write command for this XCP-ng pool is refused, and so is one for a change that always needs a human. Destructive commands (Denied tier) never run regardless. Adding a pattern needs Project Owner, Project Admin or Edit AI Rule; anyone who may edit the XCP-ng pool can remove patterns or clear the list.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiCommandAllowlist?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Last Verified At",
+    description:
+      "When a command from OneUptime AI last succeeded on this XCP-ng pool through its XCP-ng AI agent. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessLastVerifiedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "AI Access Last Error",
+    description:
+      "The most recent failure OneUptime AI hit while running a command on this XCP-ng pool, kept until the next successful command. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public aiAccessLastError?: string = undefined;
+
+  /*
+   * When this XCP-ng pool's AI access was first configured - by anyone
+   * writing an AI access setting. Only the server writes it, and nothing
+   * ever clears it. A registering XCP-ng AI agent reads it to tell "never
+   * configured" (it may apply its first-connection defaults) from "an
+   * operator chose settings, perhaps before installing the agent" (every
+   * setting stays as chosen).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Configured At",
+    description:
+      "When OneUptime AI access to this XCP-ng pool was first configured by anyone saving an AI access setting. Set by the server; never cleared, so an XCP-ng AI agent that registers later never overwrites a setting an operator chose.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessConfiguredAt?: Date = undefined;
+
+  /*
+   * When someone last reset this XCP-ng pool's AI agent (Reset agent, on its
+   * AI agent page): the agent's key stopped working at once, and the agent
+   * registers again by itself. Only the server writes it, as the reset is
+   * made, and the reset's audit log entry names it (issue #6302): the
+   * agent's own row is what the agent reports, which the audit log leaves
+   * out.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Agent Reset At",
+    description:
+      "When this XCP-ng pool's AI agent was last reset: its key stopped working at once, and it registers again by itself. Set by the server.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAgentResetAt?: Date = undefined;
 }

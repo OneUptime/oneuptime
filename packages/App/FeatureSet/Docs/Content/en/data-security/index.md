@@ -6,7 +6,7 @@ It answers four questions:
 
 :::cards
 - [Where is our sensitive data?](/docs/data-security/data-types): 143 data types, from card numbers and national IDs to API keys, found in buckets, tables and telemetry.
-- [Is it exposed?](/docs/data-security/checks-and-issues): 34 checks of each store: public access, encryption, backups, logging, secrets and copies.
+- [Is it exposed?](/docs/data-security/checks-and-issues): 35 checks of each store: public access, encryption, backups, logging, secrets and copies.
 - [Who can reach it, and where does it go?](/docs/data-security/flows-access-residency): Every identity that can reach each store, the riskiest first, which services use it, and which AI providers and hosts its data reaches.
 - [Does it meet our rules?](/docs/data-security/compliance): Residency rules, and nine frameworks scored from what the scans found.
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## Before you begin
 
 - **A role that can set it up.** Project Owners, Project Admins and Security Admins change Data Security's settings. Security Members work issues and scan stores, and Security Viewers read what it found. Other roles see none of it unless their team is given its permissions: which buckets hold card numbers is exactly what an attacker wants to know. See [Roles](/docs/permissions/reference#roles).
-- **A cloud account to read, or a database.** Data Security reads a cloud account through a [cloud connection](/docs/telemetry/cloud-accounts), and a database you run through a read-only connection string. Telemetry needs nothing: it is scanned every hour.
+- **A cloud account to read, or a store you run.** Data Security reads a cloud account through a [cloud connection](/docs/telemetry/cloud-accounts), and a database or search cluster you run through a read-only connection string. Telemetry needs nothing: it is scanned every hour.
 
 ## Quick start
 
@@ -69,10 +69,10 @@ Open **Data Security**. Stores appear under **Data Stores** as discovery finds t
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Databases you run | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
+| Stores you run | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, OpenSearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server, Elasticsearch, OpenSearch |
 | OneUptime | Logs, Traces, Exceptions, Session Replays, AI Conversations, Metrics, Security Events, Network Flows, Security Address Vault, Security User Vault | Logs, Traces, Exceptions, Session Replays, AI Conversations, Metrics |
 
-Every store gets the checks that apply to its kind. A store whose content cannot be sampled is still checked: a public bucket or an unencrypted database is a problem whatever it holds. Security Events, Network Flows and Security Address Vault are OneUptime's own, kept for your security: declared, never scanned or checked (see [Stores OneUptime keeps for your security](/docs/data-security/compliance#stores-oneuptime-keeps-for-your-security)).
+Every store gets the checks that apply to its kind, from what OneUptime can read of it. A store in a cloud account is read from its cloud's own settings, so it is checked whether or not its content can be sampled: a public bucket or an unencrypted database is a problem whatever it holds. A store you run has no such settings for OneUptime to read: an Elasticsearch or OpenSearch cluster is asked at its own address, with each content scan, whether it answers without credentials, and how the other kinds can be reached is not checked (see [What OneUptime checks on a store you run](/docs/data-security/setup#what-oneuptime-checks-on-a-store-you-run)). Each store's **Settings** say what is checked on it, and what is not, under **What OneUptime Checks**. Security Events, Network Flows and Security Address Vault are OneUptime's own, kept for your security: declared, never scanned or checked (see [Stores OneUptime keeps for your security](/docs/data-security/compliance#stores-oneuptime-keeps-for-your-security)).
 
 A store is archived, with its history, once its source no longer lists it, and its open issues are resolved: **Archived Stores**, at the end of Data Security's menu, keeps it. It comes back by itself if its source lists it again, and an issue whose check still fails opens again.
 
@@ -86,9 +86,10 @@ A store's **Timeline** says what happened to it, and who did it: when it was fou
 | Read a cloud connection's configuration | Once a day, and within the hour after CloudTrail records a change to an AWS store's access, encryption, backups or sharing |
 | Sample a store's content | Every 24 hours, or as often as **Scan Every (Hours)** says |
 | Sample each service's telemetry | Every hour, the last hour of it |
+| Ask a search cluster you run whether it answers without credentials | With each of its content scans |
 | Check every store again | After every read and scan, after you change anything a check depends on, and once a day |
 
-**Scan Now** on a store samples its content at once, and **Check Now** reads its configuration again.
+**Scan Now** on a store samples its content at once, and asks a search cluster you run again whether it answers without credentials. **Check Now** reads the configuration of a store in a cloud account again, and runs the store's checks again.
 
 ## Next steps
 

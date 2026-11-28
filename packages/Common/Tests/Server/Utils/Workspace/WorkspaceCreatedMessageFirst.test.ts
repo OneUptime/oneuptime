@@ -1,8 +1,14 @@
+import Redis from "../../../../Server/Infrastructure/Redis";
 import WorkspaceCreatedMessageFirst, {
   KeptPost,
 } from "../../../../Server/Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceCreatedMessageLine from "../../../../Server/Utils/Workspace/WorkspaceCreatedMessageLine";
 import { WorkspaceRecord } from "../../../../Server/Utils/Workspace/WorkspaceRecordPeople";
+import GracefulShutdown, {
+  ShutdownPriority,
+} from "../../../../Server/Utils/GracefulShutdown";
 import logger from "../../../../Server/Utils/Logger";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   afterEach,
@@ -467,5 +473,556 @@ describe("nothing waits for good", () => {
     expect(unref).toHaveBeenCalledTimes(1);
 
     await WorkspaceCreatedMessageFirst.postHeld(alert);
+  });
+});
+
+describe("what another App server would post a kept message from (#11235)", () => {
+  test("is never read on a server without Valkey: the hold is this server's own, and what was kept is posted", async () => {
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
+    const posted: Array<string> = [];
+    const stored: Mock<() => JSONObject> = jest.fn<() => JSONObject>(() => {
+      return { name: "Added team Platform" };
+    });
+
+    expect(
+      await WorkspaceCreatedMessageFirst.keep({
+        record: alert,
+        post: message(posted, "Added team Platform"),
+        stored: stored,
+      }),
+    ).toBe(true);
+
+    await WorkspaceCreatedMessageFirst.postHeld(alert);
+
+    expect(posted).toEqual(["Added team Platform"]);
+    expect(stored).not.toHaveBeenCalled();
+  });
+
+  test("is never read for a message about a record nobody is creating, on a server without Valkey", async () => {
+    const stored: Mock<() => JSONObject> = jest.fn<() => JSONObject>(() => {
+      return {};
+    });
+
+    expect(
+      await WorkspaceCreatedMessageFirst.keep({
+        record: { incidentId: ObjectID.generate() },
+        post: message([], "posted at once"),
+        stored: stored,
+      }),
+    ).toBe(false);
+
+    expect(stored).not.toHaveBeenCalled();
+  });
+
+  test("a message kept with no stored form is kept just the same", async () => {
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
+    const posted: Array<string> = [];
+
+    expect(
+      await WorkspaceCreatedMessageFirst.keep({
+        record: alert,
+        post: message(posted, "Added Jane"),
+      }),
+    ).toBe(true);
+
+    await WorkspaceCreatedMessageFirst.postHeld(alert);
+
+    expect(posted).toEqual(["Added Jane"]);
+  });
+
+  test("what is stored of a message is at most half a megabyte", () => {
+    expect(WorkspaceCreatedMessageFirst.MAX_STORED_MESSAGE_BYTES).toBe(
+      512 * 1024,
+    );
+  });
+
+  test("taking over for stopped servers looks after the lines on a timer that never keeps the process running, stops as the server shuts down, and starts once", async () => {
+    const unref: Mock<() => void> = jest.fn<() => void>();
+    const delays: Array<number | undefined> = [];
+    const cleared: Array<unknown> = [];
+    const timer: { unref: Mock<() => void> } = { unref: unref };
+
+    jest.spyOn(global, "setTimeout").mockImplementation(((
+      _handler: () => void,
+      delay?: number,
+    ) => {
+      delays.push(delay);
+      return timer;
+    }) as never);
+    jest.spyOn(global, "clearTimeout").mockImplementation(((
+      clearedTimer: unknown,
+    ) => {
+      cleared.push(clearedTimer);
+    }) as never);
+    const registered: SpyInstance<typeof GracefulShutdown.registerHandler> =
+      jest
+        .spyOn(GracefulShutdown, "registerHandler")
+        .mockImplementation((() => {
+          // not a real shutdown
+        }) as never);
+
+    WorkspaceCreatedMessageFirst.takeOverForStoppedServers(
+      async (): Promise<void> => {
+        // nothing is taken over here
+      },
+    );
+
+    expect(delays).toEqual([WorkspaceCreatedMessageLine.LOOKED_AFTER_EVERY_MS]);
+    expect(unref).toHaveBeenCalledTimes(1);
+    expect(registered).toHaveBeenCalledWith(
+      "WorkspaceCreatedMessageFirst",
+      ShutdownPriority.Buffers,
+      expect.any(Function),
+    );
+
+    // Started again, it starts no second timer.
+    WorkspaceCreatedMessageFirst.takeOverForStoppedServers(
+      async (): Promise<void> => {
+        // nor here
+      },
+    );
+
+    expect(delays).toHaveLength(1);
+
+    // The server shuts down: it looks after no line any more.
+    await WorkspaceCreatedMessageFirst.postEverythingHeldHere();
+
+    expect(cleared).toContain(timer);
+  });
+
+  test("the lines are looked after every five seconds: a stopped server's message waits its stalled turn and at most that much more", () => {
+    expect(WorkspaceCreatedMessageLine.LOOKED_AFTER_EVERY_MS).toBe(5 * 1000);
+    expect(WorkspaceCreatedMessageLine.STALLED_AFTER_MS).toBe(15 * 1000);
+    expect(WorkspaceCreatedMessageLine.LOOKED_AFTER_EVERY_MS).toBeLessThan(
+      WorkspaceCreatedMessageLine.STALLED_AFTER_MS,
+    );
+  });
+
+  test("a message taken over is claimed for an hour, far longer than any line lives", () => {
+    expect(WorkspaceCreatedMessageLine.TAKEN_OVER_CLAIMED_FOR_MS).toBe(
+      60 * 60 * 1000,
+    );
+    expect(
+      WorkspaceCreatedMessageLine.TAKEN_OVER_CLAIMED_FOR_MS,
+    ).toBeGreaterThan(
+      WorkspaceCreatedMessageLine.livesAtMostMs(
+        WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS,
+      ) * 5,
+    );
+  });
+
+  test("each server is told apart in the lines by an id of its own", () => {
+    expect(WorkspaceCreatedMessageLine.SERVER_ID).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+  });
+});
+
+/*
+ * A RECORD HELD AS IT IS WRITTEN (#11352): DatabaseService.create holds a
+ * new record's messages right after its INSERT (holdAsWritten), before its
+ * creator is made its owner; its create hook takes the hold over (hold),
+ * and a create that ends before that lets it go (letGoIfNotTaken).
+ */
+describe("a record held as it is written (#11352)", () => {
+  const KINDS: Array<[string, keyof WorkspaceRecord]> = [
+    ["Incident", "incidentId"],
+    ["Alert", "alertId"],
+    ["IncidentEpisode", "incidentEpisodeId"],
+    ["AlertEpisode", "alertEpisodeId"],
+    ["ScheduledMaintenance", "scheduledMaintenanceId"],
+    ["Monitor", "monitorId"],
+    ["OnCallDutyPolicy", "onCallDutyPolicyId"],
+  ];
+
+  // A record named by `field`, as a message names it, let go after the test.
+  function recordWith(
+    field: keyof WorkspaceRecord,
+    id: ObjectID,
+  ): WorkspaceRecord {
+    const record: WorkspaceRecord = {};
+    record[field] = id;
+    held.push(record);
+    return record;
+  }
+
+  test("the tables held as they are written are the seven kinds whose create posts a Created message", () => {
+    expect(WorkspaceCreatedMessageFirst.tablesHeldAsWritten().sort()).toEqual(
+      KINDS.map(([table]: [string, keyof WorkspaceRecord]): string => {
+        return table;
+      }).sort(),
+    );
+  });
+
+  test.each(KINDS)(
+    "a record of %s is held under %s, and its messages are kept",
+    async (table: string, field: keyof WorkspaceRecord) => {
+      const id: ObjectID = ObjectID.generate();
+      const record: WorkspaceRecord = recordWith(field, id);
+      const posted: Array<string> = [];
+
+      expect(
+        await WorkspaceCreatedMessageFirst.holdAsWritten({
+          tableName: table,
+          id: id,
+        }),
+      ).toEqual(record);
+      expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(true);
+      expect(
+        await WorkspaceCreatedMessageFirst.keep({
+          record: record,
+          post: message(posted, "Ana Lee added"),
+        }),
+      ).toBe(true);
+
+      await turns();
+      expect(posted).toEqual([]);
+    },
+  );
+
+  test.each([
+    ["a table whose create posts no Created message", "IncidentInternalNote"],
+    ["a team", "Team"],
+    ["no table", undefined],
+    ["a table named in another case", "incident"],
+  ])("%s is not held", async (_name: string, table: string | undefined) => {
+    expect(
+      await WorkspaceCreatedMessageFirst.holdAsWritten({
+        tableName: table,
+        id: ObjectID.generate(),
+      }),
+    ).toBeNull();
+  });
+
+  test("a record written with no id is not held", async () => {
+    expect(
+      await WorkspaceCreatedMessageFirst.holdAsWritten({
+        tableName: "Incident",
+        id: null,
+      }),
+    ).toBeNull();
+  });
+
+  test("a record held already is not the create's: it is not held again, nor let go by the create", async () => {
+    const id: ObjectID = ObjectID.generate();
+    const record: WorkspaceRecord = recordWith("incidentId", id);
+    const posted: Array<string> = [];
+
+    await WorkspaceCreatedMessageFirst.hold(record);
+    await WorkspaceCreatedMessageFirst.keep({
+      record: record,
+      post: message(posted, "kept"),
+    });
+
+    expect(
+      await WorkspaceCreatedMessageFirst.holdAsWritten({
+        tableName: "Incident",
+        id: id,
+      }),
+    ).toBeNull();
+
+    await WorkspaceCreatedMessageFirst.letGoIfNotTaken(record);
+
+    expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(true);
+    expect(posted).toEqual([]);
+  });
+
+  test("a create that ends before its create chain took the hold lets it go: what it kept goes, once, in the order it was made", async () => {
+    const id: ObjectID = ObjectID.generate();
+    const record: WorkspaceRecord = recordWith("monitorId", id);
+    const posted: Array<string> = [];
+
+    await WorkspaceCreatedMessageFirst.holdAsWritten({
+      tableName: "Monitor",
+      id: id,
+    });
+
+    for (const name of ["Ana Lee added", "a note"]) {
+      await WorkspaceCreatedMessageFirst.keep({
+        record: record,
+        post: message(posted, name),
+      });
+    }
+
+    await WorkspaceCreatedMessageFirst.letGoIfNotTaken(record);
+
+    expect(posted).toEqual(["Ana Lee added", "a note"]);
+    expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(false);
+
+    // Twice is once.
+    await WorkspaceCreatedMessageFirst.letGoIfNotTaken(record);
+    expect(posted).toEqual(["Ana Lee added", "a note"]);
+  });
+
+  test("its create chain takes the hold over: the create no longer lets it go, and the chain does once its Created message is out", async () => {
+    const id: ObjectID = ObjectID.generate();
+    const record: WorkspaceRecord = recordWith("alertEpisodeId", id);
+    const posted: Array<string> = [];
+
+    await WorkspaceCreatedMessageFirst.holdAsWritten({
+      tableName: "AlertEpisode",
+      id: id,
+    });
+    await WorkspaceCreatedMessageFirst.keep({
+      record: record,
+      post: message(posted, "Ana Lee added"),
+    });
+
+    // The chain begins: its hold call is the same hold, now the chain's.
+    await WorkspaceCreatedMessageFirst.hold(record);
+    await WorkspaceCreatedMessageFirst.letGoIfNotTaken(record);
+
+    expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(true);
+    expect(posted).toEqual([]);
+
+    posted.push("Episode Created");
+    await WorkspaceCreatedMessageFirst.postHeld(record);
+
+    expect(posted).toEqual(["Episode Created", "Ana Lee added"]);
+  });
+
+  test("letting go a record nobody holds does nothing", async () => {
+    await expect(
+      WorkspaceCreatedMessageFirst.letGoIfNotTaken({
+        incidentId: ObjectID.generate(),
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      WorkspaceCreatedMessageFirst.letGoIfNotTaken({}),
+    ).resolves.toBeUndefined();
+  });
+
+  test("a hold set as the record was written, that nobody lets go, is let go after five minutes as any is", async () => {
+    jest.useFakeTimers();
+
+    const id: ObjectID = ObjectID.generate();
+    const record: WorkspaceRecord = recordWith("onCallDutyPolicyId", id);
+    const posted: Array<string> = [];
+
+    await WorkspaceCreatedMessageFirst.holdAsWritten({
+      tableName: "OnCallDutyPolicy",
+      id: id,
+    });
+    await WorkspaceCreatedMessageFirst.keep({
+      record: record,
+      post: message(posted, "kept"),
+    });
+
+    jest.advanceTimersByTime(
+      WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS - 1,
+    );
+    await settleMicrotasks();
+    expect(posted).toEqual([]);
+
+    jest.advanceTimersByTime(1);
+    await settleMicrotasks();
+    expect(posted).toEqual(["kept"]);
+    expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(false);
+  });
+});
+
+/*
+ * THE HOLDER'S HEARTBEAT (#11314): a server holding a record's line in
+ * Valkey says it still holds it, on a timer of its own, so the other
+ * servers can tell once it has stopped. Its timing and its timer here;
+ * what Valkey does with it in WorkspaceCreatedMessageTakeOver.test.ts, and
+ * two real processes, one killed, in WorkspaceCreatedMessageFirstReplicas.
+ */
+describe("the server holding a line says it still holds it (#11314)", () => {
+  /*
+   * A Valkey that answers every script with 1 - for each line, to one
+   * that says this server still holds its lines - and what it was sent.
+   */
+  function valkeyAnsweringOne(): Array<Array<unknown>> {
+    const sent: Array<Array<unknown>> = [];
+
+    jest.spyOn(Redis, "getClient").mockReturnValue({
+      eval: async (
+        ...args: Array<unknown>
+      ): Promise<number | Array<number>> => {
+        sent.push(args);
+
+        if (String(args[0]).includes("kept[i - 1] = 1")) {
+          // Its keys: the index, then each line.
+          return new Array<number>(Number(args[1]) - 1).fill(1);
+        }
+
+        return 1;
+      },
+    } as never);
+    jest.spyOn(Redis, "isConnected").mockReturnValue(true);
+    jest.spyOn(GracefulShutdown, "registerHandler").mockImplementation((() => {
+      // not a real shutdown
+    }) as never);
+
+    return sent;
+  }
+
+  test("every five seconds, and taken for stopped after fifteen without a word: three chances to say so before its line moves on", () => {
+    expect(WorkspaceCreatedMessageLine.KEPT_EVERY_MS).toBe(5 * 1000);
+    expect(WorkspaceCreatedMessageLine.STALLED_AFTER_MS).toBe(15 * 1000);
+    expect(WorkspaceCreatedMessageLine.STALLED_AFTER_MS).toBeGreaterThanOrEqual(
+      WorkspaceCreatedMessageLine.KEPT_EVERY_MS * 3,
+    );
+
+    // Long before a hold has lasted its longest.
+    expect(WorkspaceCreatedMessageLine.STALLED_AFTER_MS).toBeLessThan(
+      WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS / 10,
+    );
+  });
+
+  test("a hundred lines a server holds are said held in one ask", () => {
+    expect(WorkspaceCreatedMessageLine.LINES_KEPT_AT_A_TIME).toBe(100);
+  });
+
+  test("its timer starts with the first line it holds, never keeps the process running, and stops once it holds none", async () => {
+    valkeyAnsweringOne();
+
+    const unref: Mock<() => void> = jest.fn<() => void>();
+    const timers: Array<{
+      delay: number | undefined;
+      unref: Mock<() => void>;
+    }> = [];
+    const cleared: Array<unknown> = [];
+
+    jest.spyOn(global, "setTimeout").mockImplementation(((
+      _handler: () => void,
+      delay?: number,
+    ) => {
+      const timer: { delay: number | undefined; unref: Mock<() => void> } = {
+        delay: delay,
+        unref: unref,
+      };
+      timers.push(timer);
+      return timer;
+    }) as never);
+    jest.spyOn(global, "clearTimeout").mockImplementation(((timer: unknown) => {
+      cleared.push(timer);
+    }) as never);
+
+    const first: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
+    const second: WorkspaceRecord = await hold({
+      incidentId: ObjectID.generate(),
+    });
+
+    const keepTimers: Array<{ delay: number | undefined }> = timers.filter(
+      (timer: { delay: number | undefined }): boolean => {
+        return timer.delay === WorkspaceCreatedMessageLine.KEPT_EVERY_MS;
+      },
+    );
+
+    // One timer for both lines, unref'd as each of the hold's timers is.
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(2);
+    expect(keepTimers).toHaveLength(1);
+    expect(unref).toHaveBeenCalledTimes(timers.length);
+
+    await WorkspaceCreatedMessageFirst.postHeld(first);
+
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(1);
+    expect(cleared).not.toContain(keepTimers[0]);
+
+    await WorkspaceCreatedMessageFirst.postHeld(second);
+
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(0);
+    expect(cleared).toContain(keepTimers[0]);
+  });
+
+  test("each time, it says so of every line it holds, a hundred in each ask, with the index first", async () => {
+    const sent: Array<Array<unknown>> = valkeyAnsweringOne();
+    const records: Array<WorkspaceRecord> = [];
+
+    for (let i: number = 0; i < 3; i++) {
+      records.push(await hold({ monitorId: ObjectID.generate() }));
+    }
+
+    const asked: number = sent.length;
+    await WorkspaceCreatedMessageLine.keepHeld();
+
+    const ask: Array<unknown> = sent[asked]!;
+
+    expect(sent).toHaveLength(asked + 1);
+    // eval(script, keys, the index, the three lines, ...ARGV)
+    expect(ask[1]).toBe(4);
+    expect(ask[2]).toBe(WorkspaceCreatedMessageLine.indexKey());
+    expect(ask.slice(3, 6)).toEqual(
+      records.map((record: WorkspaceRecord): string => {
+        return WorkspaceCreatedMessageLine.lineKeyOf(
+          `monitorId:${record.monitorId!.toString().toLowerCase()}`,
+        );
+      }),
+    );
+    expect(ask.slice(6)).toEqual([
+      String(WorkspaceCreatedMessageLine.STALLED_AFTER_MS),
+      String(WorkspaceCreatedMessageLine.RELEASED_FOR_AT_MOST_MS),
+      WorkspaceCreatedMessageLine.SERVER_ID,
+    ]);
+  });
+
+  test("a line opened by this server names it as its holder, with how long its holder may say nothing", async () => {
+    const sent: Array<Array<unknown>> = valkeyAnsweringOne();
+    const record: WorkspaceRecord = await hold({
+      scheduledMaintenanceId: ObjectID.generate(),
+    });
+    const lineKey: string = WorkspaceCreatedMessageLine.lineKeyOf(
+      `scheduledMaintenanceId:${record.scheduledMaintenanceId!.toString().toLowerCase()}`,
+    );
+
+    const start: Array<unknown> | undefined = sent.find(
+      (args: Array<unknown>): boolean => {
+        return args[2] === lineKey;
+      },
+    );
+
+    expect(start!.slice(1)).toEqual([
+      2,
+      lineKey,
+      WorkspaceCreatedMessageLine.indexKey(),
+      String(
+        WorkspaceCreatedMessageLine.livesAtMostMs(
+          WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS,
+        ),
+      ),
+      String(WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS),
+      String(WorkspaceCreatedMessageLine.STALLED_AFTER_MS),
+      WorkspaceCreatedMessageLine.SERVER_ID,
+    ]);
+  });
+
+  test("without Valkey nothing is said, and no timer starts: the hold is this server's own", async () => {
+    const timers: Array<number | undefined> = [];
+
+    jest.spyOn(global, "setTimeout").mockImplementation(((
+      _handler: () => void,
+      delay?: number,
+    ) => {
+      timers.push(delay);
+      return { unref: (): void => {} };
+    }) as never);
+    jest.spyOn(global, "clearTimeout").mockImplementation((() => {
+      // nothing to clear
+    }) as never);
+
+    await hold({ alertEpisodeId: ObjectID.generate() });
+
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(0);
+    expect(timers).toEqual([WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS]);
+  });
+
+  test("a round Valkey cannot answer is asked again the next time, the lines still held", async () => {
+    valkeyAnsweringOne();
+
+    const record: WorkspaceRecord = await hold({
+      onCallDutyPolicyId: ObjectID.generate(),
+    });
+
+    jest.spyOn(Redis, "getClient").mockReturnValue(null);
+    await WorkspaceCreatedMessageLine.keepHeld();
+
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(1);
+
+    valkeyAnsweringOne();
+    await WorkspaceCreatedMessageFirst.postHeld(record);
+
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(0);
   });
 });

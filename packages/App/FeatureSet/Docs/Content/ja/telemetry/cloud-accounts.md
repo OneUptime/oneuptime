@@ -275,9 +275,9 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ## セキュリティケースのチェック
 
-AWS では、同じ接続で、攻撃が IAM ユーザーに加えた変更が元に戻されたことを [セキュリティケース](/docs/telemetry/security-cases#oneuptime-によるステップのチェック) がチェックできるようにもできます。攻撃が作成したアクセス キー、設定したコンソールのパスワード、アタッチまたは作成したポリシー、ユーザーを追加したグループ、有効にした MFA デバイス、作成したユーザーです。**その他の項目** の **セキュリティケースのチェック** は、オンにするまで **オフ** で、フォームに表示されるコマンドはその値に合わせて変わります。どのアクションも読み取るだけで、シークレットは読み取りません。アクセス キーの ID と有効かどうかは読み取りますがキーそのものは読み取らず、コンソールのパスワードが設定されていることは読み取りますがパスワードそのものは読み取りません。
+AWS では、同じ接続で、攻撃が IAM ユーザーまたはロールに加えた変更が元に戻されたことを [セキュリティケース](/docs/telemetry/security-cases#oneuptime-によるステップのチェック) がチェックできるようにもできます。攻撃が作成したアクセス キー、設定したコンソールのパスワード、アタッチまたは作成したポリシー、ユーザーを追加したグループ、有効にした MFA デバイス、作成したユーザーまたはロール、ロールに設定した信頼ポリシーです。**その他の項目** の **セキュリティケースのチェック** は、オンにするまで **オフ** で、フォームに表示されるコマンドはその値に合わせて変わります。どのアクションも読み取るだけで、シークレットは読み取りません。アクセス キーの ID と有効かどうかは読み取りますがキーそのものは読み取らず、コンソールのパスワードが設定されていることは読み取りますがパスワードそのものは読み取りません。
 
-| ケースが CloudTrail イベントに挙がった各ユーザーについて読み取るもの | アクション |
+| ケースが CloudTrail イベントに挙がった各ユーザーと各ロールについて読み取るもの | アクション |
 | --- | --- |
 | ユーザー、またはユーザーがもういないこと | `iam:GetUser` |
 | アクセス キーと、それぞれが有効かどうか | `iam:ListAccessKeys` |
@@ -285,11 +285,13 @@ AWS では、同じ接続で、攻撃が IAM ユーザーに加えた変更が�
 | 管理ポリシーと、インラインポリシーの名前 | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | ユーザーが所属するグループ | `iam:ListGroupsForUser` |
 | MFA デバイス | `iam:ListMFADevices` |
+| ロール、その信頼ポリシーが信頼する相手、またはロールがもう存在しないこと | `iam:GetRole` |
+| ロールの管理ポリシーと、インラインポリシーの名前 | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 ロールのコマンドには一行加わり、専用のインラインポリシー `OneUptimeSecurityCaseChecks` を追加します。組織の StackSet は、それを各アカウントのロールに付けます。
 
 ```bash
-aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 ```
 
 **アクセス キー** の場合、ポリシーはユーザーが参加する同名のグループ `OneUptimeSecurityCaseChecks` に付けられます。
@@ -298,12 +300,12 @@ aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseC
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
 aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
-aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-ケースは、変更が行われたアカウントに届く接続からのみ変更を読み取り、**セキュリティケースのチェック** が **オフ** の接続を通じて IAM に問い合わせることはありません。その場合はそうした変更を挙げてあなたが確認し、オンにするよう案内します。**オフ** は何も追加しないため、以前のコマンドが付与したものは、`aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` で削除するまでそのまま残ります。
+ケースは、変更が行われたアカウントに届く接続からのみ変更を読み取り、**セキュリティケースのチェック** が **オフ** の接続を通じて IAM に問い合わせることはありません。その場合はそうした変更を挙げてあなたが確認し、オンにするよう案内します。**オフ** は何も追加しないため、以前のコマンドが付与したものは、`aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` で削除するまでそのまま残ります。設定がロールを読み取るようになる前に実行されたコマンドは、ユーザーの読み取りしか許可しません。接続のコマンドをもう一度実行してください。それまでは、ケースがロールの変更を挙げてあなたが確認し、コマンドを実行するよう案内します。
 
 ## OneUptime が読み取るもの
 
@@ -352,7 +354,7 @@ Compute Engine の VM のメモリとディスクの使用率は Google Cloud �
 - **インシデントとアラート。** モニター、インシデント、アラートのリンクされたリソースでクラウド リソースをリンクすると、そのインシデントとアラートがリソースのページに一覧表示されます。ホストがリソースのエンドポイントに (直接、または DNS を通じて) つながる Web サイト、API、SSL、ping、ポートのモニターでは、**リンクされたリソース** カードの **おすすめのクラウドリソース** にそのリソースが表示されます。**リソースをリンク** を選んでリンクします。
 - **リソースの状態。** 各読み取りはリソースの主要なメトリクスの最新値を保持して判定します。リソースには **正常**、**機能低下**、**異常** が理由とともに表示されます (ステータス チェックの失敗、ストレージの残りわずかなど)。メトリクスが止まると **報告なし** になります。**クラウド → 概要** とアカウントの概要には、対応が必要なものが緊急度の高い順に表示されます。リソースのページは、仮想マシンの CPU、メモリ、ネットワーク、ディスクのように、その種類を読む数値から始まり、前回の読み取りで届かなかった数値には **報告されていません** と表示されます。
 - **推奨モニター。** アカウントの **推奨事項** には、OneUptime がそのリソースに推奨するモニターが、リソースのタイプごとに、それぞれの対象リソースと設定済みの数とともに一覧表示されます。あるリソースに追加することも、同じタイプのすべてのリソースに一度に追加することもでき、サイドメニューはまだセットアップされていないものを数えます。リソースの **推奨事項** タブには、そのリソース向けのモニターが表示されます。各モニターは、接続が読み取る主要なメトリクスを 5 分ごとに、AWS では直近 30 分、Azure と Google Cloud では直近 15 分にわたって読み取り、対象のリソースにリンクされます。読み取り間隔が長い接続では、各モニターは 1 回の読み取りで届くすべての値を評価できるよう、より長い時間枠を読み取ります。1 時間ごとに読み取る場合は直近 2 時間です。間隔を変更する前に作成したモニターは、その時間枠をそのまま保持します。エラーやスロットリングされたリクエストのような件数はそのウィンドウ全体で合計されるため、[メトリクスをストリーミングする](/docs/telemetry/cloud-streaming)アカウントと読み取られるアカウントは同じようにアラートを出し、ストリーミングするアカウントのほうが早く出します。ACM が 1 日 2 回公開する証明書の有効期限までの日数は 1 時間ごとに読み取られます。そのモニターは直近 2 日間を読み取り、証明書の残りが 30 日以下になったとき、または証明書が期限切れになって ACM が公開をやめたときにアラートを出します。RDS インスタンスの接続数は、そのクラスとエンジンの接続上限の 90% と比較されます。[メンテナンスイベント](/docs/scheduled-maintenance/creating-events)がリソースを含んでいる間は、そのモニターはインシデントもアラートも作成しません。ヘルスチェックを設定した App Service アプリには、さらに二つが提案され、Azure Monitor がそのメトリクスを五分単位で保持するため直近 30 分を読み取ります: インスタンスがヘルスチェックに失敗したときのものと、半数未満のインスタンスしか合格しないときのものです。各インシデントには、失敗しているインスタンスを示す Azure Cloud Shell 用のコマンドが付きます。
-- **アカウントのコスト。** **クラウド → 支出 → コスト** は毎日の支出とその内訳を描き、**クラウド → 支出 → 節約** は支出を減らす方法を一覧にし、**クラウド → 支出 → 予算** は月のコストが想定を超える前にアラートを出します。[クラウドのコストと節約](/docs/telemetry/cloud-costs) を参照してください。
+- **アカウントのコスト。** **クラウド → 支出 → コスト** は毎日の支出とその内訳を描き、**クラウド → 支出 → 節約** は支出を減らす方法を一覧にし、**クラウド → 支出 → 予算** は月、四半期、年のコストが想定を超える前に知らせ、**クラウド → 支出 → 予測** は今後の月のコストの見込みを示します。[クラウドのコストと節約](/docs/telemetry/cloud-costs) を参照してください。
 
 ## 節約アクション
 

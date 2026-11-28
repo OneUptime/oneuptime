@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "IoT 플릿을 삭제하면 해당 장치 레지스트리도 삭제되어 등록된 장치가 더 이상 로그인할 수 없습니다.",
   "Deleting a database also deletes the endpoints it is reached at.": "데이터베이스를 삭제하면 해당 데이터베이스에 연결하는 엔드포인트도 삭제됩니다.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "클라우드 연결을 삭제하면 OneUptime이 해당 계정 읽기를 중지합니다. 리소스는 메트릭과 함께 유지됩니다.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "스토리지 어레이 연결을 삭제하면 OneUptime이 그 뒤의 어레이를 더 이상 읽지 않으며, 저장된 비밀번호와 연결 테스트도 삭제됩니다. 어레이와 해당 메트릭은 그대로 유지됩니다.",
   "True": "참",
   "False": "거짓",
   "Key": "키",
@@ -4622,5 +4623,19 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "이 모니터 템플릿에는 모니터 유형이 없어 해당 모니터를 동기화할 수 없습니다. 모니터 유형을 지정해 템플릿을 다시 만드세요.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "템플릿 동기화 설정에는 템플릿의 모니터 유형이 필요합니다. 먼저 모니터 유형을 선택한 다음 동기화 설정을 다시 선택하세요.",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "모니터 템플릿은 \"{{field}}\"을(를) 동기화할 수 없습니다. 템플릿이 제공하는 템플릿 동기화 설정 중에서 선택한 다음 다시 저장하세요.",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "아직 새 사용자는 로그인할 수 없습니다. 연결된 프로젝트에서 참여할 팀과 함께 프로젝트를 연결하세요."
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "아직 새 사용자는 로그인할 수 없습니다. 연결된 프로젝트에서 참여할 팀과 함께 프로젝트를 연결하세요.",
+  "This issue does not exist, or you cannot read it.": "이 이슈가 존재하지 않거나 읽을 권한이 없습니다.",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "이 이슈에는 이미 풀 리퀘스트 10개가 연결되어 있습니다. 다른 풀 리퀘스트를 연결하려면 먼저 하나를 연결 해제하세요.",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "이 이슈는 보류되었습니다. 위험이 수락되었거나 이슈가 아닌 것으로 처리되었습니다. 이 이슈를 수정하는 풀 리퀘스트를 연결하려면 다시 여세요.",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}}은(는) 이미 이 이슈에 연결되어 있습니다.",
+  "All XCP-ng pools": "모든 XCP-ng 풀",
+  "Only XCP-ng pools that match conditions": "조건과 일치하는 XCP-ng 풀만",
+  "All savings": "모든 절감",
+  "Only savings that match conditions": "조건과 일치하는 절감만",
+  "XCP-ng Pool": "XCP-ng 풀",
+  "Same name as another {{kind}}": "다른 항목({{kind}})과 같은 이름",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "이 프로젝트에 이름이 같은 다른 항목({{kind}})이 있어 선택기에서 둘을 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kinds}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요."
 }

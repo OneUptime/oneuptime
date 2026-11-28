@@ -15,8 +15,10 @@ import {
 import {
   DEFAULT_TELEMETRY_ENTITY_LABEL,
   TelemetryEntityNameMap,
+  getTelemetryEntityChipMarks,
   getTelemetryEntityDisplay,
   getTelemetryEntityTypeLabel,
+  withTelemetryEntityChipMarks,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 
 /*
@@ -260,6 +262,8 @@ export type ApplyLogsEntityChipDisplayFunction = (
     scopeIds?: Array<ObjectID | string> | undefined;
     scopeEntityType?: ServiceType | undefined;
     knownNames?: Record<string, string> | undefined;
+    // The ids every read answered nothing for (#11213).
+    notFound?: ReadonlySet<string> | undefined;
   },
 ) => Array<ActiveFilter>;
 
@@ -267,7 +271,10 @@ export type ApplyLogsEntityChipDisplayFunction = (
  * Re-label the user-removable entity chips (facet clicks, search bar,
  * URL- and saved-view-restored filters). A chip for the same id the page is
  * scoped to takes the page's entity type; any other id takes the type the
- * resolver found. Every other chip passes through untouched.
+ * resolver found. A chip whose record every read answered nothing for is
+ * marked gone, and reads "No longer available"; one naming an archived
+ * record is marked archived (#11213). Every other chip passes through
+ * untouched.
  */
 export const applyLogsEntityChipDisplay: ApplyLogsEntityChipDisplayFunction = (
   filters: Array<ActiveFilter>,
@@ -276,6 +283,7 @@ export const applyLogsEntityChipDisplay: ApplyLogsEntityChipDisplayFunction = (
     scopeIds?: Array<ObjectID | string> | undefined;
     scopeEntityType?: ServiceType | undefined;
     knownNames?: Record<string, string> | undefined;
+    notFound?: ReadonlySet<string> | undefined;
   },
 ): Array<ActiveFilter> => {
   const scopeIdSet: Set<string> = new Set<string>(
@@ -306,10 +314,18 @@ export const applyLogsEntityChipDisplay: ApplyLogsEntityChipDisplayFunction = (
       knownName: data.knownNames?.[id],
     });
 
-    return {
-      ...filter,
-      displayKey: display.displayKey,
-      displayValue: display.displayValue,
-    };
+    return withTelemetryEntityChipMarks(
+      {
+        ...filter,
+        displayKey: display.displayKey,
+        displayValue: display.displayValue,
+      },
+      getTelemetryEntityChipMarks({
+        id,
+        knownName: data.knownNames?.[id],
+        names: data.nameMap,
+        notFound: data.notFound,
+      }),
+    );
   });
 };

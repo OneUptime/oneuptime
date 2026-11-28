@@ -283,6 +283,71 @@ describePostgres("the telemetry scheduler's stamps against Postgres", () => {
     expect(Array.from(stamped)).toEqual([id]);
   });
 
+  /*
+   * Issue #11248: a check queued late - the run that should have queued it
+   * died, the queue refused its job - is stamped against the moment it was
+   * due, not the run's start, so its job carries that moment and its window
+   * is the one it was due to.
+   */
+  test("a late check is stamped against the moment it was due: once, however many runs race it, and made due again at that moment when refused", async () => {
+    // Due 7 seconds before the run that reads it starts, stored in microseconds.
+    const late: string = await insert({
+      nextMonitorAt: null,
+      nextMonitorAtSql: `'2026-11-26T10:00:00.250400Z'::timestamptz`,
+    });
+    const slot: Date = (await read(late)).nextMonitorAt!;
+    const next: Date = new Date(slot.getTime() + MINUTE_MS);
+
+    expect(slot.toISOString()).toBe("2026-11-26T10:00:00.250Z");
+    expect(NOW.getTime() - slot.getTime()).toBe(7 * SECOND_MS);
+
+    repositories = [
+      database.getRepository(Monitor),
+      otherDatabase.getRepository(Monitor),
+    ];
+
+    const stamp: () => Promise<Set<string>> = (): Promise<Set<string>> => {
+      return stampTelemetryMonitorsScheduled({
+        lastMonitorAt: NOW,
+        monitors: [stampOf({ id: late, dueAt: slot, nextMonitorAt: next })],
+      });
+    };
+
+    // Two runs read it due at its moment: one stamps it.
+    const [first, second]: [Set<string>, Set<string>] = await Promise.all([
+      stamp(),
+      stamp(),
+    ]);
+
+    expect(first.size + second.size).toBe(1);
+    expect((await read(late)).nextMonitorAt!.toISOString()).toBe(
+      next.toISOString(),
+    );
+
+    // Its job was refused: due again at the moment it was due, not the run's start.
+    await returnTelemetryMonitorsNotQueued([
+      stampOf({ id: late, dueAt: slot, nextMonitorAt: next }),
+    ]);
+
+    expect((await read(late)).nextMonitorAt!.toISOString()).toBe(
+      slot.toISOString(),
+    );
+
+    // The next run, 10 seconds on, stamps it again against that same moment.
+    expect(
+      await stampTelemetryMonitorsScheduled({
+        lastMonitorAt: new Date(NOW.getTime() + 10 * SECOND_MS),
+        monitors: [stampOf({ id: late, dueAt: slot, nextMonitorAt: next })],
+      }),
+    ).toEqual(new Set([late]));
+
+    // And a run that read it before then finds it stamped, and leaves it.
+    expect(await stamp()).toEqual(new Set());
+    expect((await read(late)).nextMonitorAt!.toISOString()).toBe(
+      next.toISOString(),
+    );
+  });
+
   test("stamps a page of monitors, each its own next due time, in one statement", async () => {
     const ids: Array<string> = [];
 

@@ -1,11 +1,14 @@
 {
   "commonPolicyDirectories": [
     "Types/ResourceAiAgent",
-    "Utils/AiRemediation/Resource"
+    "Utils/AiRemediation/Resource",
+    "Utils/DataObservability/DatabaseAgent"
   ],
   "commonPolicyFiles": [
     "Types/AI/AgentAiSettings.ts",
     "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
+    "Types/DataObservability/DataAssetKind.ts",
+    "Types/DataObservability/DataCheckType.ts",
     "Types/Runbook/RunnerJobOrigin.ts",
     "Utils/RetryAfter.ts",
     "Utils/Proxmox/ProxmoxGuestPowerTask.ts"

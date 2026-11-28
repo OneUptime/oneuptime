@@ -326,7 +326,21 @@ const WITH_A_HEARTBEAT: Partial<Record<MonitorType, HeartbeatCase>> = {
         rollingTime: ROLLING_TIME,
       });
     },
-    metricNames: ["purefa_info", "purefb_info"],
+    /*
+     * Each platform's heartbeat series, in the order the platforms are
+     * registered: Pure's FlashArray and FlashBlade, Dell PowerStore's
+     * cluster (#11227), NetApp ONTAP's cluster status (#11189), Dell
+     * PowerMax's array (#11242) and Dell PowerScale's cluster health
+     * (#11233).
+     */
+    metricNames: [
+      "purefa_info",
+      "purefb_info",
+      "powerstore_cluster",
+      "netapp_cluster_new_status",
+      "powermax_array_info",
+      "powerscale_cluster_health",
+    ],
     scope: { "resource.storage.array.name": "array-01" },
   },
   [MonitorType.XcpNg]: {
@@ -464,9 +478,12 @@ beforeEach(() => {
   metricAggregateBy.mockReset().mockResolvedValue({ data: [] });
   metricFindBy.mockReset().mockResolvedValue([]);
   metricTypeFindBy.mockReset().mockResolvedValue([]);
-  jest
-    .spyOn(ReceivingCoverage, "planTelemetryEvaluation")
-    .mockResolvedValue({ evaluate: true, isIngestBehind: false } as never);
+  jest.spyOn(ReceivingCoverage, "planTelemetryEvaluation").mockResolvedValue({
+    evaluate: true,
+    // The window ends where the real plan ends it: now, or when the check was due.
+    evaluateUntil: new Date(),
+    isIngestBehind: false,
+  });
   jest
     .spyOn(InfrastructureResourceBinding, "resolveForEvaluation")
     .mockImplementation(async (data: unknown) => {

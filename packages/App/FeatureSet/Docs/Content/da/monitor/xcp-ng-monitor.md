@@ -99,7 +99,7 @@ Selve poolen er den ressource, serierne ankommer på, så dens attributter får 
 
 ## Færdige advarselsskabeloner
 
-Listen under **Hvad der skal advares om** tilbyder 10 skabeloner. Hver bygger en komplet monitor – forespørgsler, attributfiltre, en gruppering, et kriterium, der udløses, og et, der genopretter. De fleste grupperer efter `xcp_ng.id`, så hver vært, VM eller hvert lagerdepot får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
+Listen under **Hvad der skal advares om** tilbyder 12 skabeloner. Hver bygger en komplet monitor – forespørgsler, attributfiltre, en gruppering, et kriterium, der udløses, og et, der genopretter. De fleste grupperer efter `xcp_ng.id`, så hver vært, VM eller hvert lagerdepot får sin egen hændelse og sin egen advarsel. Tærsklerne er udgangspunkter, du kan redigere.
 
 Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue, og et tærskelkriterium genopretter 10 % forbi sin tærskel, så en værdi, der svæver ved grænsen, ikke blafrer. En 0/1-serie genopretter ved den anden værdi.
 
@@ -107,7 +107,9 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 | --- | --- | --- | --- | --- | --- |
 | Pool Disconnected | Tilgængelighed | Kritisk | `xcp_pool_connected`, Count over hele poolen, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | Host Offline | Tilgængelighed | Kritisk | `xcp_ng.host.running` for `xcp_ng.scope = host`, Min pr. `xcp_ng.id`, seneste 5 minutter | Under 1 | Ved 1 |
+| HA Cannot Tolerate a Host Failure | Tilgængelighed | Kritisk | `xcp_ng.pool.ha.can_tolerate_host_failure` for `xcp_ng.scope = pool`, Max over hele poolen, seneste 5 minutter | Under 1 | Ved 1 |
 | VM Stopped | VM | Advarsel | `xcp_ng.vm.stopped_after_running` for `xcp_ng.scope = vm`, Min pr. `xcp_ng.id`, seneste 5 minutter | Over 0 | Ved 0 |
+| VM Not Backed Up | VM | Advarsel | `xcp_ng.vm.backup_overdue` for `xcp_ng.scope = vm`, Min pr. `xcp_ng.id`, seneste 10 minutter | Over 0 | Ved 0 |
 | Storage Repository Near Full | Lagerplads | Kritisk | `xcp_sr_physical_usage_bytes` ÷ `xcp_sr_physical_size_bytes` × 100 for `xcp_ng.scope = sr` (begge Sum), pr. `xcp_ng.id`, seneste 5 minutter | Over 90 % | Ved eller under 81 % |
 | Host Disabled | Vært | Advarsel | `xcp_ng.host.enabled` for `xcp_ng.scope = host`, Max pr. `xcp_ng.id`, seneste 30 minutter | Under 1 | Ved 1 |
 | Host Restarted | Vært | Advarsel | `xcp_host_uptime_seconds` og `xcp_ng.host.running` for `xcp_ng.scope = host`, Min pr. `xcp_ng.id`, seneste 5 minutter | `xcp_host_uptime_seconds` er under 900 (15 minutter), mens `xcp_ng.host.running` er 1 | `xcp_host_uptime_seconds` er på 990 eller mere, eller `xcp_ng.host.running` er 0 |
@@ -120,18 +122,20 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 
 - **Pool Disconnected** udløses, når `xcp_pool_connected` holder op med at komme i ti minutter. Xen Orchestra sender den ved hver indsamling, så længe den er forbundet til poolen, og holder op med at sende den, i stedet for at sende 0, når den mister poolens master; den stopper også, når Xen Orchestra, dens plugin eller XCP-ng-agenten stopper, eller agenten mister sin rute til OneUptime. Den løser sig selv, når serien kommer tilbage. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne, der siger det til dig.
 - **Host Offline** læser `xcp_ng.host.running`, som OneUptime udleder af `xcp_host_status`: 0, mens Xen Orchestra rapporterer værten som Halted, eller dens tilstand som Unknown, fordi pool-masteren mistede kontakten med den. De VM'er, der kørte på værten, er også nede, medmindre HA genstartede dem et andet sted.
+- **HA Cannot Tolerate a Host Failure** læser `xcp_ng.pool.ha.can_tolerate_host_failure`. Læst direkte fra XAPI er det HA's egen plan: overbooket, eller dækkende færre værtsnedbrud, end den er sat til at tåle. Læst via Xen Orchestra, hvis REST-API ikke rapporterer planen, er det færre end to værter, der er oppe og aktiveret til at genstarte VM'er på, så det er nok at deaktivere én vært i en HA-pool med to værter. Den udløses aldrig, mens HA er slået fra.
 - **VM Stopped** læser `xcp_ng.vm.stopped_after_running`: 1, mens en VM, der kørte inden for de sidste 24 timer, er Halted eller Paused. En VM, der har været slukket i mere end et døgn, tæller som slukket med vilje og holder op med at advare, en suspenderet VM advarer aldrig, og kontroldomæner og VM-skabeloner udelades.
+- **VM Not Backed Up** læser `xcp_ng.vm.backup_overdue`, ud fra Xen Orchestras backuplogfiler: 1, mens en VM, som et planlagt backupjob omfatter, ikke har haft en vellykket backup inden for sit interval, det længste mellemrum mellem to kørsler i dens jobs tidsplaner, plus en fjerdedel af det, mindst en time. En VM i et natligt job udløser den efter 30 timer, og en VM, som intet planlagt job omfatter, udløser den aldrig.
 - **Host Disabled** udløses for en vært, der forbliver deaktiveret i 30 minutter: i vedligeholdelsestilstand eller efterladt deaktiveret af en evakuering. XAPI starter ingen VM på den, og HA kan ikke flytte noget over til den. Tredive minutter lader en planlagt genstart eller opdatering passere uden at tilkalde nogen.
 - **Host Restarted** udløses for en vært, der er oppe, men har kørt i mindre end 15 minutter: den er genstartet, eller den er gået ned og kommet tilbage. Den løser sig selv, når værten har været oppe i 16,5 minutter, 10 % forbi tærsklen; en vært, der er nede, udløser i stedet **Host Offline**.
 - **Forholdsformler** tager **Sum** af begge sider. Begge kommer fra den samme indsamling, så resultatet er en ægte procent. Et lagerdepot, der rapporterer en størrelse på 0, som nogle ISO-biblioteker og flytbare medier gør, udløser aldrig.
 - **VM Starved of CPU** læser den fulde konkurrence: den andel af tiden, hvor alle en VM's vCPU'er var klar til at køre, men ventede på en fysisk CPU. Dens vært har flere kørbare vCPU'er end CPU-tråde, så VM'en kører langsommere, end dens eget CPU-forbrug antyder.
 - **Storage Repository Slow** grupperer efter `sr`, Xen Orchestras korte id for et lagerdepot på hver værts diskserier, så hvert lagerdepot får én hændelse med sin latens som gennemsnit over de værter, der læser og skriver på det.
 
-Pluginet rapporterer ingen alarmer ud over XOSTOR's, ingen HA-tilstand, ingen pool-master, ingen manglende patches og ingen backups, så ingen skabelon overvåger dem endnu: se [Hvad pluginet ikke dækker endnu](/docs/telemetry/xcp-ng#hvad-pluginet-ikke-dækker-endnu).
+**HA Cannot Tolerate a Host Failure** og **VM Not Backed Up** læser serier, som en sondes læsning af poolen tilføjer, så de kræver, at poolen er forbundet fra en sonde: det plugin, XCP-ng-agenten læser, rapporterer ingen HA-tilstand og ingen backups. En pool, som en sonde læser, kan også advare om sine XAPI-beskeder og alarmer, som en VM, der gik ned, eller en vært, som HA mistede, og om mislykkede backupjob: slå de skabeloner til fra poolens **Anbefalinger**, som [XCP-ng uden agent](/docs/telemetry/xcp-ng-agentless) forklarer.
 
 ## Indsamlede metrikker
 
-Agenten læser hver serie fra Xen Orchestras OpenMetrics-plugin hvert 60. sekund; serierne nedenfor er det katalog, monitorformularen tilbyder. Xen Orchestra omregner allerede XAPI's KiB, MiB/s og mikrosekunder til bytes, bytes pr. sekund og sekunder. Otte serier, som den kalder `_total` og typer som tællere, indeholder rater pr. sekund, og OneUptime gemmer dem som de rater, de er, som [vejledningen til XCP-ng-agenten](/docs/telemetry/xcp-ng#hvad-agenten-indsamler) forklarer. De fire serier `xcp_ng.*` er OneUptimes egne, udledt af Xen Orchestras statusserier, når de ankommer.
+Agenten læser hver serie fra Xen Orchestras OpenMetrics-plugin hvert 60. sekund; serierne nedenfor er det katalog, monitorformularen tilbyder. Xen Orchestra omregner allerede XAPI's KiB, MiB/s og mikrosekunder til bytes, bytes pr. sekund og sekunder. Otte serier, som den kalder `_total` og typer som tællere, indeholder rater pr. sekund, og OneUptime gemmer dem som de rater, de er, som [vejledningen til XCP-ng-agenten](/docs/telemetry/xcp-ng#hvad-agenten-indsamler) forklarer. Serierne `xcp_ng.*` er OneUptimes egne: fire udledt af Xen Orchestras statusserier, når de ankommer, og seks af det, en sonde læser ud over metrikkerne, som en pool, kun XCP-ng-agenten læser, ikke har.
 
 ### Tilgængelighed
 
@@ -142,6 +146,10 @@ Agenten læser hver serie fra Xen Orchestras OpenMetrics-plugin hvert 60. sekund
 | `xcp_ng.host.enabled` | — | 1, mens en vært er aktiveret, 0, mens den er i vedligeholdelsestilstand eller under evakuering, hvor XAPI ikke starter nogen VM på den. Udledt af OneUptime af værtens status. |
 | `xcp_ng.vm.running` | — | 1, mens en VM er Running, 0, mens den er Halted, Paused eller Suspended. Kontroldomæner udelades. Udledt af OneUptime af VM'ens status. |
 | `xcp_ng.vm.stopped_after_running` | — | 1, mens en VM, der kørte inden for de sidste 24 timer, er Halted eller Paused, ellers 0. En VM, ingen har set køre i et døgn, tæller som slukket med vilje, og en suspenderet VM tæller aldrig. Udledt af OneUptime. |
+| `xcp_ng.pool.ha.enabled` | — | 1, så længe poolens høje tilgængelighed er slået til, ellers 0. Læses af en sonde via Xen Orchestras REST-API eller direkte fra XAPI; XCP-ng-agenten læser det ikke. |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | — | Mens HA er slået til: 1, så længe den stadig kan klare et værtsnedbrud, 0, så snart den ikke kan. Direkte fra XAPI er det HA's egen plan; via Xen Orchestra, som ikke rapporterer planen, om der er en vært oppe og aktiveret ud over den, der går ned. Afledt af OneUptime. |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | — | Hvor mange værtsnedbrud HA skal tåle. Læses kun direkte fra XAPI: Xen Orchestras REST-API rapporterer det ikke. |
+| `xcp_ng.pool.ha.plan_exists_for` | — | Hvor mange værtsnedbrud HA-planen stadig kan klare med hver beskyttet VM genstartet. Læses kun direkte fra XAPI. |
 | `xcp_host_status` | count | Altid 1 for hver vært, kørende eller ej; værtens tilstand står i etiketterne `power_state` (Running, Halted, Unknown) og `enabled`. |
 | `xcp_vm_status` | count | Altid 1 for hver VM undtagen kontroldomæner og VM-skabeloner; VM'ens tilstand står i etiketten `power_state` (Running, Halted, Paused, Suspended). |
 | `xcp_host_uptime_seconds` | seconds | Hvor længe en vært har været oppe, siden den startede. |
@@ -151,6 +159,7 @@ Agenten læser hver serie fra Xen Orchestras OpenMetrics-plugin hvert 60. sekund
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |
+| `xcp_ng.host.missing_patches` | — | Hvor mange patches en vært mangler, som Xen Orchestra senest oplistede dem (tjekket hver sjette time). |
 | `xcp_host_cpu_average` | ratio | En værts CPU-forbrug som gennemsnit over dens kerner, som et forhold fra 0 til 1. |
 | `xcp_host_cpu_core_usage` | ratio | Én CPU-tråds forbrug på en vært, som et forhold fra 0 til 1; etiketten `core` siger hvilken. |
 | `xcp_host_load` | — | De vCPU'er, der kører eller venter på at køre på en vært, pr. fysisk CPU. Over 1 venter VM'er på en CPU. |
@@ -166,6 +175,7 @@ Agenten læser hver serie fra Xen Orchestras OpenMetrics-plugin hvert 60. sekund
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |
+| `xcp_ng.vm.backup_overdue` | — | For en VM i et planlagt backupjob i Xen Orchestra: 1, så længe den ikke har haft nogen vellykket backup inden for sine jobs interval plus en fjerdedel af det (mindst en time), ellers 0. Afledt af OneUptime fra backuplogfilerne. |
 | `xcp_vm_cpu_usage` | ratio | En VM's CPU-forbrug som gennemsnit over dens vCPU'er, som et forhold fra 0 til 1. |
 | `xcp_vm_cpu_core_usage` | ratio | Én vCPU's forbrug, som et forhold fra 0 til 1; etiketten `core` siger hvilken. |
 | `xcp_vm_runstate_full_contention` | ratio | Den andel af tiden, hvor alle en VM's vCPU'er var klar til at køre, men ventede på en fysisk CPU, fra 0 til 1. En høj værdi betyder, at VM'en mangler CPU på grund af sine naboer. |

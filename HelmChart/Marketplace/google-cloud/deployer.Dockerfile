@@ -22,8 +22,23 @@ ARG MARKETPLACE_TOOLS_TAG=latest
 FROM debian:12-slim AS build
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gettext \
+    && apt-get install -y --no-install-recommends ca-certificates curl gettext \
     && rm -rf /var/lib/apt/lists/*
+
+# The kubectl the deployer runs, in place of the one Google's deployer_helm
+# ships. 13.0.18, the newest, ships kubectl v1.37.2, built with Go 1.26.10:
+# Google's vulnerability scan refuses it (CVE-2026-97040, fixed in Go 1.26.11),
+# in the deployer as in every other image. v1.37.3 is built with Go 1.26.11.
+# Pinned by version and sha256 (dl.k8s.io publishes kubectl.sha256 next to the
+# binary). Drop this, and the COPY below, once deployer_helm's own kubectl is
+# built with a Go the scan accepts; move it to a newer patch when the scan
+# flags this one.
+ARG KUBECTL_VERSION=v1.37.3
+ARG KUBECTL_SHA256=9a1b55af2795b25dd288dbef62387db9b5530087ab918d28c6ad067f2e3cb07c
+RUN curl -fsSL --retry 6 --retry-all-errors -o /tmp/kubectl \
+        "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+    && echo "${KUBECTL_SHA256}  /tmp/kubectl" | sha256sum -c - \
+    && chmod 0755 /tmp/kubectl
 
 ADD chart/oneuptime /tmp/chart
 RUN cd /tmp && tar -czf /tmp/oneuptime.tar.gz chart
@@ -48,6 +63,14 @@ COPY --from=build /tmp/oneuptime.tar.gz /data/chart/
 COPY --from=build /tmp/test/oneuptime.tar.gz /data-test/chart/
 COPY --from=build /tmp/apptest/schema.yaml /data-test/
 COPY --from=build /tmp/schema.yaml /data/
+
+# Over deployer_helm's own kubectl, which /opt/kubectl/default points to. The
+# test stops the build if that kubectl moved (a deployer_helm on another
+# Kubernetes minor): then this one replaces nothing, and the pin above needs a
+# look.
+RUN test "$(readlink -f /opt/kubectl/default)" = /opt/kubectl/v1.37 \
+    && test -x /opt/kubectl/v1.37/kubectl
+COPY --from=build /tmp/kubectl /opt/kubectl/v1.37/kubectl
 
 # OneUptime migrates its database on first start, which takes a few minutes.
 ENV WAIT_FOR_READY_TIMEOUT=1800

@@ -1,10 +1,9 @@
 import Span, { SpanStatus } from "../../Models/AnalyticsModels/Span";
 import GreaterThanOrEqual from "../BaseDatabase/GreaterThanOrEqual";
-import InBetween from "../BaseDatabase/InBetween";
 import Includes from "../BaseDatabase/Includes";
 import Query from "../BaseDatabase/Query";
 import Search from "../BaseDatabase/Search";
-import OneUptimeDate from "../Date";
+import TelemetryCheckWindow from "./TelemetryCheckWindow";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
@@ -114,13 +113,12 @@ export class MonitorStepTraceMonitorUtil {
       );
     }
 
+    // Its start and not its end, as every check's window (TelemetryCheckWindow).
     if (monitorStepTraceMonitor.lastXSecondsOfSpans) {
-      const endDate: Date = evaluateUntil || OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveSeconds(
-        endDate,
-        monitorStepTraceMonitor.lastXSecondsOfSpans * -1,
+      query.startTime = TelemetryCheckWindow.ofSeconds(
+        monitorStepTraceMonitor.lastXSecondsOfSpans,
+        evaluateUntil,
       );
-      query.startTime = new InBetween(startDate, endDate);
     }
 
     return query;

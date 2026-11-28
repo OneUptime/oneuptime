@@ -1,10 +1,10 @@
 # Controlli e problemi di Sicurezza dei dati
 
-Sicurezza dei dati esegue 34 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita. Eventi di sicurezza, Network Flows e Cassaforte indirizzi di sicurezza sono di OneUptime, che li conserva per la tua sicurezza: dichiarati, mai scansionati né controllati (vedi [Archivi che OneUptime conserva per la tua sicurezza](/docs/data-security/compliance#archivi-che-oneuptime-conserva-per-la-tua-sicurezza)).
+Sicurezza dei dati esegue 35 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita. Eventi di sicurezza, Network Flows e Cassaforte indirizzi di sicurezza sono di OneUptime, che li conserva per la tua sicurezza: dichiarati, mai scansionati né controllati (vedi [Archivi che OneUptime conserva per la tua sicurezza](/docs/data-security/compliance#archivi-che-oneuptime-conserva-per-la-tua-sicurezza)).
 
 :::cards
 - [Come decide un controllo](#come-decide-un-controllo): Superato, non superato o non può stabilirlo, e quanto è grave un fallimento.
-- [Tutti i controlli](#tutti-i-controlli): Tutti i 34, con cosa verifica ciascuno e come correggerlo.
+- [Tutti i controlli](#tutti-i-controlli): Tutti i 35, con cosa verifica ciascuno e come correggerlo.
 - [Punteggio di rischio](#punteggio-di-rischio): Come vengono ordinati i problemi all'interno di una gravità.
 - [Cosa succede a un problema](#cosa-succede-a-un-problema): Aperto, risolto, accettato, non è un problema, come è stato risolto ciascuno e le correzioni seguite fino in produzione.
 - [L'analisi di OneUptime AI](#lanalisi-di-oneuptime-ai): Se un problema è reale, cosa mette a rischio, cosa romperebbe la correzione e la via più breve verso la correzione.
@@ -22,6 +22,8 @@ Ogni controllo legge delle informazioni su un archivio e risponde in uno di quat
 | Non superato | Il controllo trova il problema, e dice in una frase cosa ha visto: la prova del problema. | Si apre un problema, oppure quello aperto viene aggiornato. |
 | Non può stabilirlo | Non è stato possibile leggere un'informazione: un permesso che il ruolo non ha, una chiamata non riuscita. | Non cambia nulla: un problema aperto resta aperto, perché nessuno può concludere che un problema sia risolto quando OneUptime non ha potuto guardare. |
 | Non si applica | Il tipo di archivio non ha un'impostazione del genere. | Un problema aperto viene risolto. |
+
+Un fatto che non si può conoscere da dove è stato letto non viene nemmeno indovinato: se Internet raggiunge un archivio interrogato dall'interno della tua rete, o se l'utente anonimo di un cluster può scrivere, cosa che solo una scrittura direbbe. Il suo controllo non può stabilirlo, e quella riga della **Configurazione** dell'archivio indica **Non verificabile**.
 
 ### La gravità segue i dati
 
@@ -45,6 +47,7 @@ La gravità è indicata per i dati di livello Ristretto, Confidenziale, Interno 
 | Un suo snapshot può essere ripristinato da chiunque (`snapshot-public`) | Database, Snapshot | Uno snapshot del database è condiviso pubblicamente, quindi qualsiasi account cloud può ripristinarne una copia completa. | Critico / Critico / Critico / Alto | Rendi privato lo snapshot. |
 | Un suo snapshot è condiviso con altri account (`snapshot-shared-externally`) | Database, Snapshot | Uno snapshot del database è condiviso con account esterni a quelli collegati. | Alto / Alto / Medio / Basso | Interrompi la condivisione dello snapshot con gli account che non dovrebbero averlo. |
 | Account esterni alla tua organizzazione possono raggiungerlo (`shared-with-external-accounts`) | Ogni archivio tranne la telemetria | La policy dell'archivio concede l'accesso ad account, tenant o progetti che non sono collegati a OneUptime. | Alto / Alto / Medio / Basso | Esamina ogni principal esterno, e rimuovi quelli che non hanno bisogno di accesso. |
+| Chiunque lo raggiunga può leggerlo senza credenziali (`readable-without-credentials`) | Ricerca | Ha risposto a OneUptime senza credenziali: chiunque possa raggiungere il suo indirizzo può leggerne i dati, e modificarli se non ha alcun controllo degli accessi. | Critico / Alto / Medio / Basso | Attiva la sicurezza del cluster, togli ogni ruolo al suo utente anonimo e dai a ogni applicazione il suo utente in sola lettura. Un cluster che accetta scritture senza credenziali è Critico su dati Ristretto e Confidenziale, e Alto su qualsiasi altro. |
 
 ### Cifratura
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Fattore | Punti |
 | --- | --- |
 | Gravità | 75 per Critico, 50 per Alto, 25 per Medio, 0 per Basso |
-| Esposizione | 10 per Pubblico, 8 per Altri account, 6 per Raggiungibile da Internet, 3 per Sconosciuto, 0 per Privato |
+| Esposizione | 10 per Pubblico, 8 per Altri account, 6 per Raggiungibile da Internet, 3 per Sconosciuto, Non ancora verificato o Non verificabile, 0 per Privato |
 | Volume | Fino a 6, in base ai record sensibili stimati dell'archivio su scala logaritmica: 1 per 10 record, 3 per 1.000, 5 per un milione, 6 per dieci milioni o più |
 | Attività | 5 quando Security Operations ha visto rilevamenti sull'archivio nell'ultima settimana |
 | Produzione | 4 per un archivio in produzione |

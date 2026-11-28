@@ -2,7 +2,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
 import StorageArrayResourceKindUtil from "Common/Types/StorageArray/StorageArrayResourceKindUtil";
 import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
-import { StorageArrayKindDefinition } from "Common/Types/StorageArray/StorageArrayPlatform";
+import {
+  StorageArrayKindDefinition,
+  StorageArrayKindPage,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import { PluralTemplate } from "Common/UI/Utils/TranslateTemplate";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
@@ -16,7 +19,10 @@ import PageMap from "../../../Utils/PageMap";
  * tile, the kind its Slowest and Largest lists rank); the words are the
  * pages'. The kinds platforms share have theirs here; a kind only one
  * platform has brings its own (StorageArrayPlatform.kindDefinitions), so a
- * new platform's pages need no change here.
+ * new platform's pages need no change here. Where the shared words do not
+ * fit a platform's objects (a NetApp volume's size is not flash after
+ * data reduction), the platform says its own (StorageArrayKindPage's
+ * tileDescription and topLists, #11122).
  */
 
 export interface StorageArrayKindWords {
@@ -115,17 +121,24 @@ function ownKey<T>(table: Record<string, T>, kind: string): T | undefined {
  * kind's from its definition, and for a kind nobody describes, its label
  * as a plain count.
  */
-export function getStorageArrayKindWords(kind: string): StorageArrayKindWords {
+export function getStorageArrayKindWords(
+  kind: string,
+  // The array's platform, where the caller has it: its definition wins.
+  storageSystem?: string | null | undefined,
+): StorageArrayKindWords {
   const shared: StorageArrayKindWords | undefined = ownKey(KIND_WORDS, kind);
   if (shared) {
     return shared;
   }
   const definition: StorageArrayKindDefinition | null =
-    StorageArrayPlatformRegistry.getKindDefinition(kind);
+    StorageArrayPlatformRegistry.getKindDefinition(kind, storageSystem);
   if (definition) {
     return { count: definition.countLabel, icon: definition.icon };
   }
-  const label: string = StorageArrayResourceKindUtil.getPluralLabel(kind);
+  const label: string = StorageArrayResourceKindUtil.getPluralLabel(
+    kind,
+    storageSystem,
+  );
   return {
     count: { one: `{{count}} ${label}`, other: `{{count}} ${label}` },
     icon: IconProp.Squares,
@@ -134,20 +147,37 @@ export function getStorageArrayKindWords(kind: string): StorageArrayKindWords {
 
 export function getStorageArrayInventoryTileWords(
   kind: string,
+  storageSystem?: string | null | undefined,
 ): StorageArrayInventoryTileWords {
-  return (
-    ownKey(INVENTORY_TILE_WORDS, kind) || {
-      title: StorageArrayResourceKindUtil.getPluralLabel(kind),
-      description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.inventoryCounts,
-    }
-  );
+  const words: StorageArrayInventoryTileWords = ownKey(
+    INVENTORY_TILE_WORDS,
+    kind,
+  ) || {
+    title: StorageArrayResourceKindUtil.getPluralLabel(kind, storageSystem),
+    description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.inventoryCounts,
+  };
+  const page: StorageArrayKindPage | null =
+    StorageArrayPlatformRegistry.getKindPage(storageSystem, kind);
+  return page?.tileDescription
+    ? { ...words, description: page.tileDescription }
+    : words;
 }
 
 // Null for a kind the Overview has no ranked lists for.
 export function getStorageArrayTopListWords(
   kind: string,
+  storageSystem?: string | null | undefined,
 ): StorageArrayTopListWords | null {
-  return ownKey(TOP_LIST_WORDS, kind) || null;
+  const words: StorageArrayTopListWords | undefined = ownKey(
+    TOP_LIST_WORDS,
+    kind,
+  );
+  if (!words) {
+    return null;
+  }
+  const page: StorageArrayKindPage | null =
+    StorageArrayPlatformRegistry.getKindPage(storageSystem, kind);
+  return page?.topLists ? { ...words, ...page.topLists } : words;
 }
 
 /*

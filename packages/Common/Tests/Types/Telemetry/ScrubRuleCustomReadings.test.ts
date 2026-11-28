@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
+import { buildScrubPatternForDataType } from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import {
   compileScrubRuleCustomRegex,
+  mayReadOtherwise,
   ScrubRegExp,
 } from "../../../Types/Telemetry/ScrubRule";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
@@ -131,6 +133,124 @@ describe("a value with every script's digits read (#11033)", () => {
   });
 });
 
+/*
+ * #11199: a value written in groups, typed into a form - its spaces "+" in
+ * the URL's query string - or with %20 between its groups. Before this,
+ * the escaped form was found and the "+" one was not: no reading read a
+ * "+" as the space a query string writes it for, so a Custom Regex rule's
+ * pattern, which sets a value's groups apart by spaces, slipped past it.
+ */
+describe("a value as a URL's query string writes it, a '+' for a space (#11199)", () => {
+  // The custom pattern "Scrub it" makes for an IBAN (TelemetryScrubCoverage).
+  const SCRUB_IT_IBAN_PATTERN: string =
+    "(?<![A-Za-z0-9])[A-Z]{2}[0-9]{2}(?:[ ]?[A-Z0-9]{4}){2,7}(?:[ ]?[A-Z0-9]{1,4})?(?![A-Za-z0-9])";
+
+  test("an IBAN with '+' or %20 between its groups is hidden whole, the rest of the URL kept", () => {
+    for (const pattern of [IBAN_PATTERN, SCRUB_IT_IBAN_PATTERN]) {
+      const regex: ScrubRegExp = compiled(pattern);
+
+      for (const written of [
+        "DE89+3704+0044+0532+0130+00",
+        "DE89%203704%200044%200532%200130%2000",
+        "DE89+3704%200044+0532%200130+00",
+      ]) {
+        const text: string = `GET /pay?iban=${written}&step=2`;
+
+        expect(regex.test(text)).toBe(true);
+        expect(matchedTexts(regex, text)).toEqual([written]);
+        expect(hidden(regex, text)).toBe("GET /pay?iban=[REDACTED]&step=2");
+      }
+    }
+  });
+
+  test("a card in a URL inside a query string, its '+'s escaped again, is hidden whole", () => {
+    const regex: ScrubRegExp = compiled("\\b[0-9]{4}(?: [0-9]{4}){3}\\b");
+    const text: string =
+      "GET /login?next=%2Fpay%3Fcard%3D4539%2B1488%2B0343%2B6467%26step%3D2";
+
+    expect(matchedTexts(regex, text)).toEqual(["4539%2B1488%2B0343%2B6467"]);
+  });
+
+  test("an IBAN in another script's digits, its groups joined by '+', is hidden whole", () => {
+    const regex: ScrubRegExp = compiled(IBAN_PATTERN);
+    const written: string = "DE٨٩+٣٧٠٤+٠٠٤٤+٠٥٣٢+٠١٣٠+٠٠";
+
+    expect(matchedTexts(regex, `iban=${written}&x=1`)).toEqual([written]);
+  });
+
+  test("a '+' that is no space - in a key, between spaces, at a value's start - is read as written", () => {
+    const regex: ScrubRegExp = compiled("[A-Za-z0-9+/]{12}");
+    const key: string = "ab+cd/ef+gh1";
+
+    // The pattern takes the "+": its match is the key as written, whole.
+    expect(matchedTexts(regex, `key=${key}&x=1`)).toEqual([key]);
+    expect(matchedTexts(compiled("2 \\+ 2"), "sum 2 + 2 ok")).toEqual([
+      "2 + 2",
+    ]);
+  });
+
+  test("a text with a '+' but no value in it is read as before", () => {
+    const regex: ScrubRegExp = compiled("EMP-[0-9]{6}");
+
+    expect(matchedTexts(regex, "C++ and a+b and EMP-004211")).toEqual([
+      "EMP-004211",
+    ]);
+    expect(regex.test("C++ and a+b")).toBe(false);
+  });
+});
+
+/*
+ * What Mask and Hash read of a match (#11199): as the reading that found
+ * it reads it, so a value typed into a form has the token and the mask of
+ * the value written plainly - and a "+" the pattern takes as written is
+ * the value's own, never read away.
+ */
+describe("a match as the reading that found it reads it", () => {
+  test("a value the pattern finds only with its '+'s read as spaces reads with spaces", () => {
+    const regex: ScrubRegExp = compiled(IBAN_PATTERN);
+
+    expect(regex.readMatch!("DE89+3704+0044+0532+0130+00")).toBe(
+      "DE89 3704 0044 0532 0130 00",
+    );
+    expect(regex.readMatch!("DE89+3704%200044+0532%200130+00")).toBe(
+      "DE89 3704 0044 0532 0130 00",
+    );
+    // Its "+"s escaped again, as a URL inside a query string writes them.
+    expect(regex.readMatch!("DE89%2B3704%2B0044%2B0532%2B0130%2B00")).toBe(
+      "DE89 3704 0044 0532 0130 00",
+    );
+    // In another script's digits too: as it reads with spaces, its digits ScrubAction's to fold.
+    expect(regex.readMatch!("DE٨٩+٣٧٠٤+٠٠٤٤+٠٥٣٢+٠١٣٠+٠٠")).toBe(
+      "DE٨٩ ٣٧٠٤ ٠٠٤٤ ٠٥٣٢ ٠١٣٠ ٠٠",
+    );
+  });
+
+  test("a match the pattern finds as written keeps its '+'s: they are the value's own", () => {
+    expect(compiled("[A-Za-z0-9+/]{12}").readMatch!("ab+cd/ef+gh1")).toBe(
+      "ab+cd/ef+gh1",
+    );
+    expect(
+      compiled("[a-z+]{1,20}@[a-z]{1,20}\\.com").readMatch!(
+        "jane+news@example.com",
+      ),
+    ).toBe("jane+news@example.com");
+    expect(compiled("\\+[0-9]{2}").readMatch!("+44")).toBe("+44");
+  });
+
+  test("a match with no '+', or one no reading makes whole, is as written", () => {
+    const regex: ScrubRegExp = compiled(IBAN_PATTERN);
+
+    expect(regex.readMatch!("DE89%203704%200044%200532%200130%2000")).toBe(
+      "DE89%203704%200044%200532%200130%2000",
+    );
+    expect(regex.readMatch!("DE89 3704 0044 0532 0130 00")).toBe(
+      "DE89 3704 0044 0532 0130 00",
+    );
+    // Part of a match two readings shared: no one reading makes it whole.
+    expect(regex.readMatch!("x+DE89+3704")).toBe("x+DE89+3704");
+  });
+});
+
 describe("a value with no other reading", () => {
   test("is read exactly as before: matches, replacements and tests", () => {
     const regex: ScrubRegExp = compiled("EMP-[0-9]{6}");
@@ -178,6 +298,80 @@ describe("a value with no other reading", () => {
   });
 });
 
+/*
+ * #11115: a value typed wholly in fullwidth, as Japanese and Chinese text
+ * writes one - its digits, and the plus sign, hyphens, parentheses, full
+ * stops, solidi and ideographic spaces it is written with - is read with
+ * those forms as ASCII too, its digits by their values, so the pattern
+ * finds it there and hides it as written.
+ */
+describe("a value typed wholly in fullwidth (#11115)", () => {
+  const IDEOGRAPHIC_SPACE: string = "　";
+
+  test("an IBAN, its groups apart by ideographic spaces, is hidden whole", () => {
+    const regex: ScrubRegExp = compiled(IBAN_PATTERN);
+    const iban: string = [
+      "DE８９",
+      "３７０４",
+      "００４４",
+      "０５３２",
+      "０１３０",
+      "００",
+    ].join(IDEOGRAPHIC_SPACE);
+
+    expect(hidden(regex, `IBAN：${iban} ok`)).toBe("IBAN：[REDACTED] ok");
+    expect(regex.test(`IBAN：${iban} ok`)).toBe(true);
+  });
+
+  test("a phone number's own pattern finds one typed in fullwidth, its plus sign and hyphens too", () => {
+    const regex: ScrubRegExp = compiled("\\+81 [0-9]-[0-9]{4}-[0-9]{4}");
+
+    for (const written of [
+      "＋８１ ３－１２３４－５６７８",
+      `＋８１${IDEOGRAPHIC_SPACE}３－１２３４－５６７８`,
+      "＋81 3－1234－5678",
+    ]) {
+      expect(matchedTexts(regex, `電話：${written} 自宅`)).toEqual([written]);
+    }
+  });
+
+  test("the pattern Scrub It makes for a CPF hides one typed in fullwidth, and reads it as the CPF it is", () => {
+    const regex: ScrubRegExp = compiled(
+      buildScrubPatternForDataType("br-cpf")!,
+    );
+    const written: string = "４７１．３９２．８６５－８２";
+
+    expect(hidden(regex, `CPF ${written}`)).toBe("CPF [REDACTED]");
+    // Read as written: Mask and Hash read its forms as they read its digits (ScrubAction).
+    expect(regex.readMatch!(written)).toBe(written);
+  });
+
+  test("a fullwidth form beside no digit gives no other reading: CJK prose is read as written", () => {
+    const regex: ScrubRegExp = compiled("\\(注\\)");
+    const prose: string = "（注）設定を確認してください。";
+
+    expect(mayReadOtherwise(prose)).toBe(false);
+    expect(regex.test(prose)).toBe(false);
+    expect(hidden(regex, prose)).toBe(prose);
+  });
+
+  test("says which texts may read otherwise, and every other is read as written alone", () => {
+    for (const [text, may] of [
+      ["a%3Db", true],
+      ["a+b", true],
+      ["call ٤", true],
+      ["＋81", true],
+      [`１２${IDEOGRAPHIC_SPACE}３４`, true],
+      ["plain text 123", false],
+      ["（注）", false],
+      [`東京${IDEOGRAPHIC_SPACE}大阪`, false],
+      ["", false],
+    ] as Array<[string, boolean]>) {
+      expect([text, mayReadOtherwise(text)]).toEqual([text, may]);
+    }
+  });
+});
+
 describe("in time in line with the value's length", () => {
   const LIMIT_IN_MS: number = 2000;
   const LENGTH: number = 400_000;
@@ -192,6 +386,28 @@ describe("in time in line with the value's length", () => {
     ["digits of another script without end", repeat("٣")],
     ["digits of many scripts without end", repeat("٣۴५৬੭૮୯௦")],
     ["escaped tokens without end", repeat(`%3D${TOKEN.replace(/_/g, "%5F")}`)],
+    // #11199
+    ["'+'s for spaces without end", repeat("4+")],
+    [
+      "IBANs typed into a form without end",
+      repeat("DE89+3704+0044+0532+0130+00&"),
+    ],
+    ["escaped '+'s for spaces without end", repeat("DE89%2B3704%2B")],
+    ["'+'s between digits of another script without end", repeat("٣+")],
+    // #11115: a number's fullwidth forms beside digits, the reading's every case.
+    ["fullwidth hyphens between digits without end", repeat("４－")],
+    ["fullwidth plus signs before digits without end", repeat("＋４")],
+    ["digits in fullwidth parentheses without end", repeat("（４）")],
+    ["ideographic spaces between ASCII digits without end", repeat("4　")],
+    ["fullwidth forms beside no digit without end", repeat("（）－＋．／　")],
+    [
+      "IBANs typed wholly in fullwidth without end",
+      repeat("DE８９　３７０４　００４４　０５３２　０１３０　００；"),
+    ],
+    [
+      "fullwidth forms escaped in a URL without end",
+      repeat("%EF%BC%8B%EF%BC%94%EF%BC%8D"),
+    ],
   ])("reads %s", (_label: string, text: string) => {
     for (const pattern of [TOKEN_PATTERN, IBAN_PATTERN]) {
       const regex: ScrubRegExp = compiled(pattern);
@@ -204,5 +420,30 @@ describe("in time in line with the value's length", () => {
 
       expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
     }
+  });
+
+  // #11199: what Mask and Hash read of a match as long as a value can be.
+  test.each([
+    [
+      "a match of '+'s for spaces without end",
+      "[0-9]+(?: [0-9]+)*",
+      repeat("4+"),
+    ],
+    ["a match of '+'s the pattern takes without end", "[0-9+]+", repeat("4+")],
+    [
+      "a match of escaped '+'s without end",
+      "[0-9]+(?: [0-9]+)*",
+      repeat("4%2B"),
+    ],
+  ])("reads %s", (_label: string, pattern: string, match: string) => {
+    const regex: ScrubRegExp = compiled(pattern);
+    const timed: FastestRun<number> = fastestRun({
+      run: (): number => {
+        return regex.readMatch!(match).length;
+      },
+      limitInMs: LIMIT_IN_MS,
+    });
+
+    expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
   });
 });

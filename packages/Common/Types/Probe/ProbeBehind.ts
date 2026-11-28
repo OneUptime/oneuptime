@@ -14,12 +14,16 @@
  *     waiting more than CHECK_LATE_AFTER_MS;
  *   - checksLastLateAt: the latest reading that found one.
  *
+ *   - checksLastLateDueAt: when the longest-waiting check was due, at that
+ *     latest reading - so a page can say how far behind the probe is
+ *     ("Behind by 15 minutes", getBehindByMs), not only since when.
+ *
  * A probe is behind once checks have been found late at readings at least
  * BEHIND_AFTER_MS apart - a probe that has just restarted, or a monitor
  * created just after the probe last asked, waits one reading at most - and
  * stays behind until no check has been late for ON_TIME_AFTER_MS, so a
- * probe that keeps falling behind does not flicker between the two. Both
- * times are cleared then, and while the probe is not connected:
+ * probe that keeps falling behind does not flicker between the two. All
+ * three times are cleared then, and while the probe is not connected:
  * Disconnected says more.
  *
  * A probe that keeps up asks for monitors at least once a minute and is
@@ -50,24 +54,46 @@ export const ON_TIME_AFTER_MS: number = 2 * 60 * 1000;
 export interface ProbeLateChecks {
   checksLateSince: Date | null;
   checksLastLateAt: Date | null;
+  checksLastLateDueAt: Date | null;
 }
 
 // The same, as a page or the API reads it: dates, or their strings.
 export interface ProbeLateChecksRead {
   checksLateSince?: Date | string | null | undefined;
   checksLastLateAt?: Date | string | null | undefined;
+  checksLastLateDueAt?: Date | string | null | undefined;
 }
 
 // What OneUptime keeps on the probe of the network devices it polls.
 export interface ProbeLateDevicePolls {
   devicePollsLateSince: Date | null;
   devicePollsLastLateAt: Date | null;
+  devicePollsLastLateDueAt: Date | null;
 }
 
 export interface ProbeLateDevicePollsRead {
   devicePollsLateSince?: Date | string | null | undefined;
   devicePollsLastLateAt?: Date | string | null | undefined;
+  devicePollsLastLateDueAt?: Date | string | null | undefined;
 }
+
+/*
+ * How far behind a probe is, in the largest whole unit that fits - "15
+ * minutes", "11 hours", "3 days" - as a probe's silence is read
+ * (ProbeStatusMonitorUtil.getSilence): minutes under an hour, hours under
+ * two days, days after.
+ */
+export type ProbeBehindByUnit = "minute" | "hour" | "day";
+
+export interface ProbeBehindBy {
+  unit: ProbeBehindByUnit;
+  count: number;
+}
+
+const MINUTE_MS: number = 60 * 1000;
+const MINUTES_PER_HOUR: number = 60;
+const MINUTES_PER_DAY: number = 24 * MINUTES_PER_HOUR;
+const BEHIND_BY_IN_HOURS_UNTIL_MINUTES: number = 2 * MINUTES_PER_DAY;
 
 // Everything that says whether a probe is behind: its monitors and its devices.
 export type ProbeBehindRead = ProbeLateChecksRead & ProbeLateDevicePollsRead;
@@ -109,11 +135,17 @@ export default class ProbeBehindUtil {
     return data.now.getTime() - oldestDueAt.getTime() > CHECK_LATE_AFTER_MS;
   }
 
-  // What to keep after a reading at `now` that found a late check or none.
+  /*
+   * What to keep after a reading at `now` that found a late check or none.
+   * `oldestDueAt` is when that reading's longest-waiting check was due
+   * (isCheckLate's), kept with a late reading so a page can say how far
+   * behind the probe is.
+   */
   public static next(data: {
     state: ProbeLateChecksRead;
     isLate: boolean;
     now: Date;
+    oldestDueAt?: Date | string | null | undefined;
   }): ProbeLateChecks {
     const lateSince: Date | null = toDate(data.state.checksLateSince);
     const lastLateAt: Date | null = toDate(data.state.checksLastLateAt);
@@ -122,6 +154,7 @@ export default class ProbeBehindUtil {
       return {
         checksLateSince: lateSince || data.now,
         checksLastLateAt: data.now,
+        checksLastLateDueAt: toDate(data.oldestDueAt),
       };
     }
 
@@ -131,15 +164,23 @@ export default class ProbeBehindUtil {
       lastLateAt &&
       data.now.getTime() - lastLateAt.getTime() < ON_TIME_AFTER_MS
     ) {
-      return { checksLateSince: lateSince, checksLastLateAt: lastLateAt };
+      return {
+        checksLateSince: lateSince,
+        checksLastLateAt: lastLateAt,
+        checksLastLateDueAt: toDate(data.state.checksLastLateDueAt),
+      };
     }
 
-    return { checksLateSince: null, checksLastLateAt: null };
+    return ProbeBehindUtil.cleared();
   }
 
   // What to keep for a probe that is not connected: nothing.
   public static cleared(): ProbeLateChecks {
-    return { checksLateSince: null, checksLastLateAt: null };
+    return {
+      checksLateSince: null,
+      checksLastLateAt: null,
+      checksLastLateDueAt: null,
+    };
   }
 
   // Whether two states differ, so the job writes only what changed.
@@ -159,7 +200,8 @@ export default class ProbeBehindUtil {
 
     return !(
       same(before.checksLateSince, after.checksLateSince) &&
-      same(before.checksLastLateAt, after.checksLastLateAt)
+      same(before.checksLastLateAt, after.checksLastLateAt) &&
+      same(before.checksLastLateDueAt, after.checksLastLateDueAt)
     );
   }
 
@@ -186,8 +228,52 @@ export default class ProbeBehindUtil {
   }
 
   /*
-   * The device polls' two times in the shape the rules above read, so
-   * next, hasChanged and getBehindSince judge them as they judge checks.
+   * How far behind the probe's checks run, in milliseconds: how long its
+   * longest-waiting check had waited past its check time at the latest
+   * reading that found one late. Null when the probe is not behind, or its
+   * latest late reading was kept before OneUptime kept the due time. Read
+   * from what is kept alone, as getBehindSince is.
+   */
+  public static getBehindByMs(state: ProbeLateChecksRead): number | null {
+    if (!ProbeBehindUtil.isBehind(state)) {
+      return null;
+    }
+
+    const lastLateAt: Date | null = toDate(state.checksLastLateAt);
+    const lastLateDueAt: Date | null = toDate(state.checksLastLateDueAt);
+
+    if (!lastLateAt || !lastLateDueAt) {
+      return null;
+    }
+
+    const behindByMs: number = lastLateAt.getTime() - lastLateDueAt.getTime();
+
+    return behindByMs > 0 ? behindByMs : null;
+  }
+
+  /*
+   * A lateness in the largest whole unit that fits (ProbeBehindBy): a
+   * check late by 61 seconds reads "1 minute", by 11 hours 50 minutes "11
+   * hours", by 47 hours "47 hours", by 50 hours "2 days".
+   */
+  public static getBehindByAmount(behindByMs: number): ProbeBehindBy {
+    const minutes: number = Math.floor(behindByMs / MINUTE_MS);
+
+    if (minutes < MINUTES_PER_HOUR) {
+      return { unit: "minute", count: Math.max(1, minutes) };
+    }
+
+    if (minutes < BEHIND_BY_IN_HOURS_UNTIL_MINUTES) {
+      return { unit: "hour", count: Math.floor(minutes / MINUTES_PER_HOUR) };
+    }
+
+    return { unit: "day", count: Math.floor(minutes / MINUTES_PER_DAY) };
+  }
+
+  /*
+   * The device polls' three times in the shape the rules above read, so
+   * next, hasChanged, getBehindSince and getBehindByMs judge them as they
+   * judge checks.
    */
   public static devicePollsAsLateChecks(
     state: ProbeLateDevicePollsRead,
@@ -195,6 +281,7 @@ export default class ProbeBehindUtil {
     return {
       checksLateSince: state.devicePollsLateSince,
       checksLastLateAt: state.devicePollsLastLateAt,
+      checksLastLateDueAt: state.devicePollsLastLateDueAt,
     };
   }
 
@@ -205,12 +292,13 @@ export default class ProbeBehindUtil {
     return {
       devicePollsLateSince: lateChecks.checksLateSince,
       devicePollsLastLateAt: lateChecks.checksLastLateAt,
+      devicePollsLastLateDueAt: lateChecks.checksLastLateDueAt,
     };
   }
 
   // What to keep of the device polls for a probe that is not connected.
   public static clearedDevicePolls(): ProbeLateDevicePolls {
-    return { devicePollsLateSince: null, devicePollsLastLateAt: null };
+    return ProbeBehindUtil.lateChecksAsDevicePolls(ProbeBehindUtil.cleared());
   }
 
   // Whether the device polls' two times differ, as hasChanged for checks.
@@ -223,8 +311,34 @@ export default class ProbeBehindUtil {
       {
         checksLateSince: after.devicePollsLateSince,
         checksLastLateAt: after.devicePollsLastLateAt,
+        checksLastLateDueAt: after.devicePollsLastLateDueAt,
       },
     );
+  }
+
+  // How far behind the probe's network device polls run, as getBehindByMs.
+  public static getDevicePollsBehindByMs(
+    state: ProbeLateDevicePollsRead,
+  ): number | null {
+    return ProbeBehindUtil.getBehindByMs(
+      ProbeBehindUtil.devicePollsAsLateChecks(state),
+    );
+  }
+
+  /*
+   * How far behind the probe is on anything - its monitors or its network
+   * devices, whichever is further behind - or null when it keeps up with
+   * both, or no due time is kept yet.
+   */
+  public static getProbeBehindByMs(state: ProbeBehindRead): number | null {
+    const amounts: Array<number> = [
+      ProbeBehindUtil.getBehindByMs(state),
+      ProbeBehindUtil.getDevicePollsBehindByMs(state),
+    ].filter((amount: number | null): amount is number => {
+      return amount !== null;
+    });
+
+    return amounts.length > 0 ? Math.max(...amounts) : null;
   }
 
   /*

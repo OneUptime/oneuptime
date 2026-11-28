@@ -63,7 +63,9 @@ flowchart LR
 
 Está activado en un proyecto nuevo. Un proyecto que ya existía antes lo mantiene desactivado, porque los clientes de la API y las configuraciones de Terraform del proyecto pueden depender de nombres que se repiten: actívelo cuando esté listo.
 
-Debajo del interruptor, la tarjeta enumera cada nombre que el proyecto ya tiene más de una vez, tipo por tipo, con un enlace a cada registro y el día en que se creó. Activar el interruptor no rechaza nada de lo que existe: esos registros siguen funcionando hasta que alguien les cambie el nombre, y solo un registro nuevo o un cambio de nombre necesita un nombre propio. Guardar un registro de nuevo con su propio nombre, con cualquier combinación de mayúsculas, no es un cambio de nombre.
+Debajo del interruptor, la tarjeta enumera cada nombre que el proyecto ya tiene más de una vez, tipo por tipo, con un enlace a cada registro y el día en que se creó. Un presupuesto de OpenStack se abre en la página **Gasto** de su nube, y un resumen de espacio de trabajo en la pestaña **Resumen** de su página de Slack, Microsoft Teams o Mattermost. Los agentes de IA no tienen página en el panel, así que la tarjeta los nombra sin enlace y lo indica. Activar el interruptor no rechaza nada de lo que existe: esos registros siguen funcionando hasta que alguien les cambie el nombre, y solo un registro nuevo o un cambio de nombre necesita un nombre propio. Guardar un registro de nuevo con su propio nombre, con cualquier combinación de mayúsculas, no es un cambio de nombre.
+
+La propia lista de cada tipo también marca esos registros, con **Mismo nombre que otro elemento de tipo monitor** (o plantilla, clave, etc.) y el día en que se creó cada uno, y dice encima de la lista cuántos hay. Una lista solo marca los registros que usted puede abrir.
 
 Diga lo que diga el interruptor, un formulario avisa mientras escribe un nombre que ya tiene otro registro de su tipo, y enlaza a ese registro. Mientras el interruptor está activado, el aviso también dice que guardar se rechazaría.
 

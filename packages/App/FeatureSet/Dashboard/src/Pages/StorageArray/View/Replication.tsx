@@ -2,6 +2,14 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
+import { StorageArrayKindPage } from "Common/Types/StorageArray/StorageArrayPlatform";
+import {
+  StorageArrayPlatformState,
+  getKindPageFor,
+  useStorageArrayPlatform,
+} from "../Utils/UseStorageArrayPlatform";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
@@ -30,10 +38,28 @@ function textCell(text: string): ReactElement {
   return <span className="text-sm text-gray-700">{text}</span>;
 }
 
+// What the list says on a platform that says nothing of the kind.
+const PODS_DESCRIPTION: string = translationKey(
+  "What this array replicates and to where: how far each remote copy is behind, and the status of its link.",
+);
+const PODS_NO_ITEMS: string = translationKey(
+  "Nothing replicated in the inventory yet. Replication appears here a few minutes after the Storage Array Agent first reads an array that replicates.",
+);
+
 const StorageArrayReplication: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const platform: StorageArrayPlatformState = useStorageArrayPlatform(modelId);
+
+  if (platform.isLoading) {
+    return <PageSkeleton shape="table" />;
+  }
+
+  const kindPage: StorageArrayKindPage | null = getKindPageFor(
+    platform.storageSystem,
+    StorageArrayResourceKind.Pod,
+  );
 
   return (
     <StorageArrayResourceTable
@@ -44,8 +70,8 @@ const StorageArrayReplication: FunctionComponent<
       singularName="Pod"
       pluralName="Pods"
       title="Replication"
-      description="Pods on this FlashArray and their replica links: how far each remote copy is behind, the link's status, and whether stretched pods reach their mediator."
-      noItemsMessage="No pods in the inventory yet. Pods appear here a few minutes after the Storage Array Agent starts scraping the array, if the array has any."
+      description={kindPage?.description || PODS_DESCRIPTION}
+      noItemsMessage={kindPage?.noItemsMessage || PODS_NO_ITEMS}
       columns={[
         // By the rules: a link more than a minute behind is amber, with why.
         StorageArrayResourceColumns.getRulesStatusColumn({

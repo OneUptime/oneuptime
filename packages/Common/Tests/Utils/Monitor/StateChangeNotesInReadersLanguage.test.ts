@@ -476,12 +476,13 @@ const WRITTEN: ReadonlyArray<Written> = [
     stored:
       mdText`The SLO no longer has ${1440} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`.toString(),
   },
-  // A budget's month.
-  {
-    writer: "CloudBudgetEvaluator",
-    stored:
-      "Resolved by OneUptime: the month this cloud budget alert was raised in is over.",
-  },
+  // A budget's month, or a cloud budget's quarter or year (#11008).
+  ...["month", "quarter", "year"].map((window: string): Written => {
+    return {
+      writer: `CloudBudgetEvaluator (its ${window})`,
+      stored: `Resolved by OneUptime: the ${window} this cloud budget alert was raised in is over.`,
+    };
+  }),
   {
     writer: "OpenStackBudgetEvaluator",
     stored:
@@ -857,6 +858,7 @@ const MONITOR_STATUS_TEMPLATES: ReadonlyArray<string> = [
   "Status was changed because Incident {{incident}} was updated.",
   "Changed because of maintenance event: {{maintenanceEventId}}",
   "No monitoring criteria met. Change to default status.",
+  "No monitoring criteria that changes the status met. Change to default status.",
   "This status was created when the monitor was created.",
   "This status was changed when the monitor was updated.",
   "Monitoring is off. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
@@ -1506,10 +1508,12 @@ describe("the server still writes each note as it is read (#9959)", () => {
       "packages/App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
       "mdText`The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`",
     ],
-    [
-      "packages/Common/Server/Utils/CloudConnection/CloudBudgetEvaluator.ts",
-      '"Resolved by OneUptime: the month this cloud budget alert was raised in is over."',
-    ],
+    ...["month", "quarter", "year"].map((window: string): [string, string] => {
+      return [
+        "packages/Common/Server/Utils/CloudConnection/CloudBudgetEvaluator.ts",
+        `"Resolved by OneUptime: the ${window} this cloud budget alert was raised in is over."`,
+      ];
+    }),
     [
       "packages/Common/Server/Utils/OpenStack/OpenStackBudgetEvaluator.ts",
       '"Resolved by OneUptime: the month this OpenStack budget alert was raised in is over."',

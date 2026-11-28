@@ -586,7 +586,7 @@ describe("charts are built from the metric catalog", () => {
       getGoldenChartQueries({ storageSystem: undefined, arrayName: "a" }),
     ).toEqual([]);
     expect(
-      getGoldenChartQueries({ storageSystem: "netapp.ontap", arrayName: "a" }),
+      getGoldenChartQueries({ storageSystem: "hitachi.vsp", arrayName: "a" }),
     ).toEqual([]);
   });
 
@@ -597,9 +597,14 @@ describe("charts are built from the metric catalog", () => {
     expect(getAlertMetricNames(StorageSystem.PureStorageFlashBlade)).toEqual([
       "purefb_alerts_open",
     ]);
+    expect(getAlertMetricNames(StorageSystem.DellPowerMax)).toEqual([
+      "powermax_alert_open",
+    ]);
+    // An array whose platform is not known yet: every platform's (#11004).
     expect(getAlertMetricNames(undefined)).toEqual([
       "purefa_alerts_open",
       "purefb_alerts_open",
+      "powermax_alert_open",
     ]);
   });
 });
@@ -706,7 +711,7 @@ describe("the array side menu", () => {
   test("an array without a known platform lists no inventory page", () => {
     expect(pagesFor(undefined)).toEqual([]);
     expect(pagesFor("")).toEqual([]);
-    expect(pagesFor("netapp.ontap")).toEqual([]);
+    expect(pagesFor("hitachi.vsp")).toEqual([]);
   });
 
   test("every inventory page appears once", () => {

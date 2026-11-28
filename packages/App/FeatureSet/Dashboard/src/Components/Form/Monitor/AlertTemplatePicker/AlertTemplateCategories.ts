@@ -309,6 +309,27 @@ export const XCP_NG_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   },
 ];
 
+/*
+ * An XCP-ng pool's Recommendations: Quick Setup's headings, then what a
+ * probe reads from Xen Orchestra (#10997) - XAPI's alarms and Xen
+ * Orchestra's backups, Logs monitors over the pool's event records
+ * (XcpNgEventAlertTemplates), which an XCP-ng monitor's Quick Setup cannot
+ * build and so never lists.
+ */
+export const XCP_NG_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> = [
+  ...XCP_NG_TEMPLATE_CATEGORIES,
+  {
+    category: "Alarms",
+    label: "XCP-ng alarms",
+    icon: IconProp.Bell,
+  },
+  {
+    category: "Backups",
+    label: "Backups",
+    icon: IconProp.Archive,
+  },
+];
+
 // Ceph.
 export const CEPH_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   {
@@ -538,7 +559,7 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   [MonitorRecommendationResourceType.OpenStack]:
     OPENSTACK_RECOMMENDATION_CATEGORIES,
   [MonitorRecommendationResourceType.VMware]: VMWARE_TEMPLATE_CATEGORIES,
-  [MonitorRecommendationResourceType.XcpNg]: XCP_NG_TEMPLATE_CATEGORIES,
+  [MonitorRecommendationResourceType.XcpNg]: XCP_NG_RECOMMENDATION_CATEGORIES,
   [MonitorRecommendationResourceType.Ceph]: CEPH_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.StorageArray]:
     STORAGE_ARRAY_RECOMMENDATION_CATEGORIES,
