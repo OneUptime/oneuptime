@@ -534,6 +534,7 @@ describePostgres(
     }): Promise<void> => {
       await MonitorTemplateService.updateOneById({
         id: data.template.id!,
+        // Cast: the template's partial type is too deep for tsc to infer here.
         data: {
           monitorSteps: websiteSteps({
             prefix: data.prefix,
@@ -541,7 +542,7 @@ describePostgres(
             criteria: data.keep,
             doNotSyncDestination: data.doNotSyncDestination,
           }),
-        },
+        } as never,
         props: personProps,
       });
     };
@@ -1002,7 +1003,7 @@ describePostgres(
 
       await MonitorService.updateOneById({
         id: monitor!.monitorId,
-        data: { monitorSteps: steps },
+        data: { monitorSteps: steps } as never,
         props: personProps,
       });
 
@@ -1040,7 +1041,7 @@ describePostgres(
 
       await MonitorService.updateOneById({
         id: monitor!.monitorId,
-        data: { monitorSteps: steps },
+        data: { monitorSteps: steps } as never,
         props: apiKeyProps,
       });
 
@@ -1101,7 +1102,7 @@ describePostgres(
           monitorSteps: MonitorSteps.fromJSON(
             resend(["offline", "paged", "online"]),
           ),
-        },
+        } as never,
         props: apiKeyProps,
       });
 
@@ -1120,7 +1121,7 @@ describePostgres(
           monitorSteps: MonitorSteps.fromJSON(
             resend(["offline", "paged", "online"]),
           ),
-        },
+        } as never,
         props: apiKeyProps,
       });
 
@@ -1147,7 +1148,7 @@ describePostgres(
       // Saving the form as it is: every criteria kept.
       await MonitorService.updateOneById({
         id: monitor!.monitorId,
-        data: { monitorSteps: await stepsOf(monitor!.monitorId) },
+        data: { monitorSteps: await stepsOf(monitor!.monitorId) } as never,
         props: personProps,
       });
 
@@ -1163,7 +1164,7 @@ describePostgres(
             url: monitor!.url,
             criteria: ["online"],
           }),
-        },
+        } as never,
         props: personProps,
       });
 
