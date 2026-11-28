@@ -734,6 +734,149 @@ const EXCEPTIONS: Array<PullRequestEvalDiff> = [
   },
 ];
 
+/*
+ * A web application's front end (#11395): who it tells its session
+ * recorder or product analytics SDK the session's user is, and what its
+ * browser logs. An email as the user, or among the user's traits, is a
+ * point; an opaque id - the user's id, a hash - is none.
+ */
+const FRONT_END: Array<PullRequestEvalDiff> = [
+  {
+    id: "session-identified-by-email",
+    title: "Identify recorded sessions",
+    files: [
+      changedFile("web/src/session.ts", 12, [
+        " export function startSession(customer: Customer): void {",
+        "+  OneUptimeReplay.identify(customer.email, { plan: customer.plan });",
+        " }",
+      ]),
+    ],
+    points: [
+      {
+        subject: "customer.email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
+  {
+    id: "session-identified-by-user-id",
+    title: "Identify recorded sessions by the user's id",
+    files: [
+      changedFile("web/src/session.ts", 12, [
+        " export function startSession(customer: Customer): void {",
+        "+  OneUptimeReplay.identify(customer.id, { plan: customer.plan });",
+        " }",
+      ]),
+    ],
+    points: [],
+  },
+  {
+    id: "datadog-rum-user-with-email",
+    title: "Tell Datadog RUM who the user is",
+    files: [
+      addedFile("web/src/rum.ts", [
+        'import { datadogRum } from "@datadog/browser-rum";',
+        "",
+        "export function identifyUser(user: User): void {",
+        "  datadogRum.setUser({ id: user.id, name: user.name, email: user.email });",
+        "}",
+      ]),
+    ],
+    points: [
+      {
+        subject: "email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
+  {
+    id: "fullstory-identity-with-email",
+    title: "Identify FullStory sessions",
+    files: [
+      addedFile("web/src/fullstory.js", [
+        "export function identifyForFullStory(user) {",
+        '  FS("setIdentity", { uid: user.id, properties: { displayName: user.name, email: user.email } });',
+        "}",
+      ]),
+    ],
+    points: [
+      {
+        subject: "email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
+  {
+    id: "replay-queue-identified-by-email",
+    title: "Identify the session before the recorder loads",
+    files: [
+      addedFile("web/public/identify.js", [
+        "(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([",
+        '  "identify",',
+        "  window.currentUser.email,",
+        "  { plan: window.currentUser.plan },",
+        "]);",
+      ]),
+    ],
+    points: [
+      {
+        subject: "window.currentUser.email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
+  {
+    id: "posthog-identified-by-a-hash",
+    title: "Identify product analytics users by a hash",
+    files: [
+      changedFile("web/src/analytics.ts", 30, [
+        "   if (user) {",
+        "+    posthog.identify(sha256(user.email), { plan: user.plan });",
+        "   }",
+      ]),
+    ],
+    points: [],
+  },
+  {
+    id: "react-state-named-like-an-identify",
+    title: "Keep the signed-in user's id in state",
+    files: [
+      changedFile("web/src/profile/Account.tsx", 8, [
+        "   const [userId, setUserId] = useState<string | null>(null);",
+        "+  useEffect(() => setUserId(account.email), [account]);",
+      ]),
+    ],
+    points: [],
+  },
+  {
+    id: "browser-log-with-email",
+    title: "Log declined payments in the browser",
+    files: [
+      changedFile("web/src/checkout/payment.js", 6, [
+        "   if (cart.total > customer.limit) {",
+        '+    logger.warn("Payment declined", { "user.email": customer.email, "cart.total": cart.total });',
+        "     return { paid: false };",
+      ]),
+    ],
+    points: [
+      {
+        subject: "user.email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Log,
+      },
+    ],
+  },
+];
+
 const MIGRATIONS: Array<PullRequestEvalDiff> = [
   {
     id: "migration-customer-ssn",
@@ -1047,6 +1190,7 @@ const MIGRATIONS: Array<PullRequestEvalDiff> = [
 export const PULL_REQUEST_EVAL_DIFFS: ReadonlyArray<PullRequestEvalDiff> = [
   ...TELEMETRY,
   ...EXCEPTIONS,
+  ...FRONT_END,
   ...INFRASTRUCTURE,
   ...MIGRATIONS,
 ];

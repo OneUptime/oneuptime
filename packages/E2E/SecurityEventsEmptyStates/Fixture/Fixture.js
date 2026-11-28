@@ -73,6 +73,13 @@
  * (POST /security-trusted-proxies/automatic): a new project's settings, and
  * nothing trusted beyond the private addresses.
  *
+ * Check a log line has the server read a pasted line (POST
+ * /security-log-lines/check, #11046): answered by the server's own reading
+ * (checkSecurityLogLines) with those trusted proxies. The security tools'
+ * and the SIEMs' tables ask which of their rows share a name (GET
+ * /shared-names/<Table>, #11021), answered from the rows as the server
+ * finds them (SuiteHelpers/SharedNameAnswers.js).
+ *
  * Every read is recorded on window.__securityEventsEmptyStatesFixture:
  * listRequests (analytics lists carry analytics: true), countRequests,
  * itemRequests, aggregateRequests, apiRequests, creates, and unhandled:
@@ -133,6 +140,13 @@ import {
   automaticTrustedProxiesToJSON,
   NO_AUTOMATIC_TRUSTED_PROXIES,
 } from "Common/Types/SecurityEvent/AutomaticTrustedProxies";
+import {
+  MAX_CHECKED_TEXT_LENGTH,
+  SECURITY_LOG_LINE_CHECK_PATH,
+  securityLogLineCheckResultToJSON,
+} from "Common/Types/SecurityEvent/SecurityLogLineCheck";
+import { checkSecurityLogLines } from "Common/Utils/SecurityEvent/SecurityLogLineCheck";
+import { NO_TRUSTED_PROXY_SOURCES } from "Common/Utils/SecurityEvent/TrustedProxySources";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -140,6 +154,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
+import { answerSharedNames } from "../../SuiteHelpers/SharedNameAnswers";
 import { createConnectionsFixture } from "../../SecurityOperations/Fixture/ConnectionsFixture.js";
 import { createTelemetryMentionsFixture } from "../../SecurityOperations/Fixture/TelemetryMentionsFixture.js";
 import {
@@ -1088,6 +1103,63 @@ async function handleApi(method, options) {
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+
+  /*
+   * Check a log line (#11046): the pasted lines, read as the scans read the
+   * project's logs (Server/Utils/SecurityEvent/SecurityLogLineCheck), with
+   * the project's trusted proxies. A new project's are only the private
+   * addresses: Trusted Proxies lists none, it connected no edge, its cloud
+   * accounts list no load balancer of its own (the automatic answer above)
+   * and its access logs are not read for X-Forwarded-For.
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith(SECURITY_LOG_LINE_CHECK_PATH)
+  ) {
+    return new HTTPResponse(
+      200,
+      securityLogLineCheckResultToJSON(
+        checkSecurityLogLines({
+          text: String(options.data?.text ?? "").slice(
+            0,
+            MAX_CHECKED_TEXT_LENGTH,
+          ),
+          sources: NO_TRUSTED_PROXY_SOURCES,
+          now: NOW,
+        }),
+      ),
+      {},
+    );
+  }
+
+  /*
+   * Which security tools, and which SIEMs, share a name (#11021): each table
+   * asks with every read of its rows, to mark them. None here: each has a
+   * name of its own.
+   */
+  const twins =
+    method === "GET"
+      ? answerSharedNames({
+          url,
+          kinds: [
+            {
+              modelType: SecurityEventConnection,
+              records: () => {
+                return toolRows;
+              },
+            },
+            {
+              modelType: SecurityEventDestination,
+              records: () => {
+                return siem === "rows" ? DESTINATIONS : [];
+              },
+            },
+          ],
+        })
+      : null;
+  if (twins) {
+    return new HTTPResponse(200, twins, {});
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

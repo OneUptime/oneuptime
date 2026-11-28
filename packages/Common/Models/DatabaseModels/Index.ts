@@ -20,6 +20,7 @@ import NetworkAlertPolicy from "./NetworkAlertPolicy";
 import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkDeviceDiscoveryImport from "./NetworkDeviceDiscoveryImport";
+import MonitorTemplateChange from "./MonitorTemplateChange";
 import NetworkDeviceDiagnostic from "./NetworkDeviceDiagnostic";
 import PacketCapture from "./PacketCapture";
 import NetworkInterface from "./NetworkInterface";
@@ -661,6 +662,7 @@ import XcpNgPoolOwnerRule from "./XcpNgPoolOwnerRule";
 import XcpNgPoolLabelRule from "./XcpNgPoolLabelRule";
 import VMwareVCenterOwnerRule from "./VMwareVCenterOwnerRule";
 import VMwareVCenterLabelRule from "./VMwareVCenterLabelRule";
+import VMwareHealthSetting from "./VMwareHealthSetting";
 import RunbookOwnerRule from "./RunbookOwnerRule";
 import RunbookLabelRule from "./RunbookLabelRule";
 import WorkflowOwnerRule from "./WorkflowOwnerRule";
@@ -1021,6 +1023,7 @@ const AllModelTypes: Array<{
   XcpNgPoolLabelRule,
   VMwareVCenterOwnerRule,
   VMwareVCenterLabelRule,
+  VMwareHealthSetting,
   RunbookOwnerRule,
   RunbookLabelRule,
   WorkflowOwnerRule,
@@ -1326,6 +1329,7 @@ const AllModelTypes: Array<{
   NetworkSnmpCredentialProfile,
   NetworkDeviceDiscoveryScan,
   NetworkDeviceDiscoveryImport,
+  MonitorTemplateChange,
   NetworkDeviceDiagnostic,
   PacketCapture,
   NetworkInterface,

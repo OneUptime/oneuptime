@@ -35,12 +35,12 @@ En **Dell PowerScale**-klynge læses på en anden måde: agenten aflæser hver a
 ```mermaid title="Fra arrayet til OneUptime"
 flowchart TB
     collector["Collector"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["Arrayet,<br/>port 443"]
-    collector -->|"ældre FlashArray,<br/>FlashBlade"| exporter["Pures exporter"]
+    collector -->|"ældre FlashArray,<br/>FlashBlade"| exporter["Pures<br/>exporter"]
     exporter -->|"API-token"| array
-    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    collector -->|"ONTAP"| harvest["NetApp<br/>Harvest"]
     harvest -->|"skrivebeskyttet bruger,<br/>REST-API"| cluster["Klyngen,<br/>port 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    collector -->|"PowerStore"| dell["Dell's exporter"]
+    collector -->|"PowerStore"| dell["Dell's<br/>exporter"]
     dell -->|"user and password"| array
     array -->|"syslog, port 5514"| syslog["Syslog collector"]
     syslog -->|"OTLP"| oneuptime
@@ -160,6 +160,7 @@ POWERSTORE_BULK_METRICS=
 POWERSTORE_API_VERSION=
 POWERSTORE_REQUEST_LIMIT=
 POWERSTORE_SYSLOG_PORT=
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 Til en Dell PowerStore skal du også downloade `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` og `powerstore-syslog.yaml`, sætte `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` og `COMPOSE_PROFILES=powerstore` og udfylde `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` og `POWERSTORE_PASSWORD`, adgangskoden i enkelte anførselstegn.
@@ -189,6 +190,7 @@ NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
 NETAPP_ONTAP_USERNAME=oneuptime
 NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 Start agenten:
@@ -265,6 +267,7 @@ Installationsscriptet skriver disse til `/opt/oneuptime-storage-array-agent/.env
 | `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | Nej | `DES`, `AES`, `AES192`, `AES256`, `AES192C` eller `AES256C`. Standard er `AES`. |
 | `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3-brugerens privacy-adgangskode på niveauet `auth_priv`. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Nej | `true` accepterer arrayets selvsignerede certifikat på det native endpoint og i Harvest; `false` verificerer det. Standard er `true`. Pures exportere verificerer aldrig arrayets certifikat, så det gælder ikke for dem. |
+| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | Nej | Agentens containernavn. Standard er `oneuptime-storage-array-agent`. Et andet arrays agent på samme maskine skal have sit eget: se [Overvågning af flere arrays](#overvågning-af-flere-arrays). Installationsscriptet navngiver en ny agent efter dens mappe, medmindre du angiver det, og beholder det, når du kører scriptet igen. |
 
 ## Sådan scraper agenten
 
@@ -364,7 +367,7 @@ Collectoren læser kun sin konfiguration, når den starter: Kør `docker compose
 
 ## Overvågning af flere arrays
 
-Én agent læser ét array. For at overvåge flere fra den samme maskine skal du installere hver i sin egen mappe med sin egen `.env`, fx `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, og give hver sit eget `container_name` i dens `docker-compose.yml` (fx `oneuptime-storage-array-agent-fa02`): To containere kan ikke dele et navn. Giv mappen til diagnosescriptet med `-d`.
+Én agent læser ét array. For at overvåge flere fra den samme maskine skal du installere hver i sin egen mappe med sin egen `.env` og sit eget containernavn, for to containere kan ikke dele et navn: `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`. Uden `STORAGE_ARRAY_AGENT_CONTAINER_NAME` navngiver scriptet containeren efter mappen, hvilket her giver det samme navn. Det gemmer navnet i den agents `.env`, så når du kører scriptet igen for at opgradere agenten, beholdes navnet også, og en agent, hvis `container_name` du engang redigerede i `docker-compose.yml`, beholder det navn. Med Docker Compose sætter du i stedet `STORAGE_ARRAY_AGENT_CONTAINER_NAME` i hver agents `.env`. Giv mappen til diagnosescriptet med `-d`.
 
 En anden PowerStore-agent skal også have sin egen syslog-port: sæt `POWERSTORE_SYSLOG_PORT`, for eksempel `5515`, i dens `.env`.
 
@@ -382,7 +385,7 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 Agenten rapporterer den collector-version, dens filer fastlåser, som sin **Agentversion**. Når den er ældre end den version, denne OneUptime-udgivelse fastlåser, vises et advarselstegn ved siden af den på arrayets side **Oversigt**. Vælg det for at se disse kommandoer. En agent, der blev installeret, før dens filer rapporterede en version, viser ingen, før den er opgraderet på denne måde.
 
-Collector-imaget er fastlåst i `docker-compose.yml`, og dens konfigurationer er filer ved siden af, så et pull alene flytter ikke agenten frem. Kør `install.sh` igen: det genbruger hver værdi i din eksisterende `.env` (der spørges ikke om noget igen), fornyer `docker-compose.yml`, alle collector-konfigurationer og Harvests filer (en fil, du har redigeret, beholdes som `<file>.bak.<timestamp>`) og genopretter agenten, så collectoren læser sin nye konfiguration. En agent, der er installeret uden for `/opt/oneuptime-storage-array-agent`, skal have sin mappe: `INSTALL_DIR=<folder> bash install.sh`.
+Collector-imaget er fastlåst i `docker-compose.yml`, og dens konfigurationer er filer ved siden af, så et pull alene flytter ikke agenten frem. Kør `install.sh` igen: det genbruger hver værdi i din eksisterende `.env` (der spørges ikke om noget igen), fornyer `docker-compose.yml`, alle collector-konfigurationer og Harvests filer (en fil, du har redigeret, beholdes som `<file>.bak.<timestamp>`) og genopretter agenten, så collectoren læser sin nye konfiguration. En agent, der er installeret uden for `/opt/oneuptime-storage-array-agent`, skal have sin mappe: `INSTALL_DIR=<folder> bash install.sh`. Den beholder sit containernavn.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh

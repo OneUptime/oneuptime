@@ -45,6 +45,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import SwarmLayout from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Layout";
 import SwarmOverview from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Index";
@@ -578,7 +579,10 @@ const store = {
   Incident: [],
   Alert: openAlerts,
   ScheduledMaintenance: [],
-  // What the Recommendations menu item reads: no monitors, nothing dismissed.
+  /*
+   * What the Recommendations menu item and the part alerts cards weigh: no
+   * monitors (the coverage they ask the server for), nothing dismissed.
+   */
   Monitor: [],
   RecommendationDismissal: [],
   // The services the metrics list names beside a metric: none here.
@@ -849,6 +853,17 @@ async function handleApi(method, options) {
       isInvestigationReady: false,
       isRemediationReady: false,
     });
+  }
+
+  // Which recommended alerts a monitor covers, from the project's monitors.
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

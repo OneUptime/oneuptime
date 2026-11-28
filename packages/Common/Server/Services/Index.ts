@@ -141,6 +141,7 @@ import CephClusterOwnerTeamService from "./CephClusterOwnerTeamService";
 import VMwareVCenterService from "./VMwareVCenterService";
 import VMwareResourceService from "./VMwareResourceService";
 import VMwareVCenterLabelRuleService from "./VMwareVCenterLabelRuleService";
+import VMwareHealthSettingService from "./VMwareHealthSettingService";
 import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
 import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
@@ -861,6 +862,7 @@ const services: Array<BaseService> = [
   VMwareVCenterService,
   VMwareResourceService,
   VMwareVCenterLabelRuleService,
+  VMwareHealthSettingService,
   VMwareVCenterOwnerRuleService,
   VMwareVCenterOwnerTeamService,
   VMwareVCenterOwnerUserService,

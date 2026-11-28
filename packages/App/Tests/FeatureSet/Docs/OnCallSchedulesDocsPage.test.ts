@@ -587,7 +587,12 @@ describe("the On-Call Schedules docs page", () => {
         "`rotation`",
         ROTATION_EXAMPLE,
         "Terraform's schedule resource does not send them",
-        "hands off daily",
+        // As OnCallDutyPolicyScheduleLayerService gives a layer sent without one.
+        "hands off every week",
+        // A layer's active hours, under either spelling of its type (#11269).
+        "`restrictionType`",
+        "`restictionType`",
+        "is refused with a `400` that names the key",
       ]) {
         expect({ fact, found: api.includes(fact) }).toEqual({
           fact,

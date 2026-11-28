@@ -851,7 +851,7 @@ export default class VMwareResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Memory Swapped Bytes",
     description:
-      "vcenter.vm.memory.swapped or vcenter.resource_pool.memory.swapped converted from MiB — guest memory swapped to disk by the hypervisor. Any non-zero value is a critical memory-pressure signal.",
+      "vcenter.vm.memory.swapped or vcenter.resource_pool.memory.swapped converted from MiB — guest memory that sits in the host's swap file. ESXi leaves swapped pages there until the guest touches them, so an amount left from earlier memory pressure is no swapping by itself: the swap rates say whether the host is swapping now.",
   })
   @Column({
     nullable: true,
@@ -873,6 +873,88 @@ export default class VMwareResource extends BaseModel {
     },
   })
   public memorySwappedBytes?: number = undefined;
+
+  /*
+   * Whether the host is swapping now (#11157). Neither collector sends a
+   * swap rate - the vcenter receiver has none, and the probe sends what it
+   * sends - so ingest works both out from Memory Swapped Bytes: how much it
+   * grew (swapped out) or shrank (read back in) since the row's previous
+   * report, per second. NULL until two reports can be compared: the first,
+   * and one more than VMWARE_SWAP_RATE_MAX_GAP_SECONDS after the one before.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Memory Swap Out Bytes Per Second",
+    description:
+      "How fast the host swapped this VM's or resource pool's memory out to disk between its last two reports: the growth of its swapped memory, per second. 0 while nothing is swapped out.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public memorySwapOutBytesPerSecond?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Memory Swap In Bytes Per Second",
+    description:
+      "How fast the guest read this VM's or resource pool's swapped memory back from the host's swap file between its last two reports, per second. 0 while nothing is read back.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: {
+      to: (value: number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return value;
+      },
+      from: (value: string | number | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        if (typeof value === "number") {
+          return value;
+        }
+        const parsed: number = parseFloat(value);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public memorySwapInBytesPerSecond?: number = undefined;
 
   @ColumnAccessControl({
     create: [],

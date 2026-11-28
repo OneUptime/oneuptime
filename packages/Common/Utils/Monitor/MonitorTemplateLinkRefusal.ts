@@ -49,6 +49,34 @@ export const MONITOR_TYPE_MISMATCH_REFUSAL: RefusalWithValues = {
   terms: ["monitorType", "templateType"],
 };
 
+/*
+ * A monitor made for a network device, linked to a template the device
+ * already has a monitor of (issues #11260, #11266): a device has one
+ * monitor from each template, which Monitor's unique (device, template)
+ * index holds. The other monitor is named, as written, so the person can
+ * find it and decide which of the two to keep.
+ */
+export const DEVICE_HAS_MONITOR_OF_TEMPLATE_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.",
+  ),
+  terms: [],
+};
+
+export const getDeviceHasMonitorOfTemplateRefusal: (
+  monitorName: string,
+) => string = (monitorName: string): string => {
+  return getRefusalText(DEVICE_HAS_MONITOR_OF_TEMPLATE_REFUSAL, {
+    monitorName: monitorName,
+  });
+};
+
+// The same, when that monitor is one the person may not read: not named.
+export const DEVICE_HAS_HIDDEN_MONITOR_OF_TEMPLATE_REFUSAL: string =
+  translationKey(
+    "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.",
+  );
+
 // The type mismatch as the server answers it: in English, with the two types.
 export const getMonitorTypeMismatchRefusal: (data: {
   monitorType: string;

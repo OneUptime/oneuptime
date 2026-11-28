@@ -66,6 +66,10 @@ Every read organization has a pair of WANs and a cellular line that carries noth
 all the same, so the page's uplinks compare and a standby line shows; its traffic stops five minutes
 short of now, as the reads do.
 
+The connections card asks which connections share a name with every read of them
+(`GET /shared-names/NetworkControllerConnection`, #11021), answered from the connections as the
+server finds them (`../SuiteHelpers/SharedNameAnswers.js`): none, the project has one at most.
+
 Every read and write is recorded on `window.__merakiTrafficFixture` (`usageRequests`,
 `flowRequests`, `tests`, `readNows`, `creates`, `updates`, `deletes`, `deviceAdds`, `probeAsks`,
 `listRequests`, `applianceAsks`, `links`, `unlinks`) with `unhandled` for anything the fixture does

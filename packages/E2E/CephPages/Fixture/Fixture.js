@@ -40,6 +40,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import CephLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Layout";
 import CephOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Index";
@@ -475,7 +476,10 @@ const store = {
   Incident: openIncidents,
   Alert: openAlerts,
   ScheduledMaintenance: [],
-  // The part alerts cards read which monitors exist: none yet.
+  /*
+   * The monitors the project has, which the part alerts cards ask the
+   * server covers their alerts (POST /monitor/recommendation-coverage): none yet.
+   */
   Monitor: [],
   // The golden charts read the metrics' units: none recorded yet.
   MetricType: [],
@@ -859,6 +863,17 @@ async function handleApi(method, options) {
       isInvestigationReady: false,
       isRemediationReady: false,
     });
+  }
+
+  // Which of the part alerts cards' alerts a monitor covers, from the project's monitors.
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

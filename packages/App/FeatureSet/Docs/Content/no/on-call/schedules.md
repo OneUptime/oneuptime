@@ -69,7 +69,9 @@ flowchart TB
 | **Rotasjonen starter** | Datoen og klokkeslettet lagets rotasjon begynner. |
 | **Bytt hver** | Hvor ofte vakten går videre til neste person i laget. |
 | **Tidspunkt for første overlevering** | Den første overleveringen til neste person, ved eller etter starten. Senere overleveringer følger hvert rotasjonsintervall. |
-| **Begrensninger** | Timene laget har vakt: **Ingen begrensninger**, **Bestemte tidspunkter på dagen** eller **Bestemte tidspunkter i uken**, i vaktplanens tidssone. Utenfor dem tar lavere lag over. |
+| **Begrensninger** | Timene laget har vakt (**Aktive timer**): **Ingen begrensninger**, **Bestemte tidspunkter på dagen** eller **Bestemte tidspunkter i uken**, i vaktplanens tidssone. Utenfor dem tar lavere lag over. |
+
+Med aktive timer er hvert tidsrom en vakt for seg. Fra 17:00 til 07:00 er én vakt, som slutter klokken 07:00 neste morgen: i **Tidslinje for vaktplaner**, i e-postene, i mobilappen og i Slack og Microsoft Teams likt, i vaktplanens tidssone og også de nettene klokken stilles om. Turen til en person er alle tidsrommene vedkommende har frem til neste overlevering, og vedkommende får beskjed én gang hver vei: "You are now on-call" når det første tidsrommet i turen begynner, med når det tidsrommet slutter og når turen gjør det, og "You are no longer on-call" når det siste tidsrommet slutter, ikke ved hvert tidsrom. Vil du bli påminnet før hvert tidsrom, velger du et tidspunkt under **Påminn meg før vakter**, slik [Kalenderfeeder](/docs/on-call/calendar-feeds#påminnelser-og-meldinger-om-ny-tildeling) beskriver. Har noen andre vakt mellom to av tidsrommene, gjennom en overstyring eller et lavere lag, eller gir en endring av lagene det neste tidsrommet til noen andre, er det en overlevering og meldes som en. Vakttiden registreres fortsatt tidsrom for tidsrom, og kanalene og feeden til vaktpolicyen sier fortsatt hver gang hvem som har vakt.
 
 For å endre hvilket lag som kommer først, bruker du pilene på kortet til et lag: **Flytt lag opp (høyere prioritet)** eller **Flytt lag ned (lavere prioritet)**.
 
@@ -111,7 +113,10 @@ Vaktplaner er ressursen `/api/on-call-duty-policy-schedule`; lagene deres og per
 
 - Å opprette en vaktplan med `firstLayerUsers` (en liste med bruker-ID-er, i den rekkefølgen de bytter på) i `miscDataProps` gir den det første laget, slik dashbordet gjør: **Layer 1**, på vakt fra nå, døgnet rundt. `firstLayerRotation` sier hvor lenge hver vakt varer, som en rotasjon som `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; uten den en uke. Hver bruker må være medlem av prosjektet, og den som kaller, må ha lov til å opprette lag, ellers blir ikke vaktplanen opprettet.
 - En vaktplan som opprettes uten dem, har ingen lag, som før; Terraforms ressurs for vaktplaner sender dem ikke.
-- Et lag som opprettes uten `rotation`, overleverer daglig, slik det alltid har gjort.
+- Et lag som opprettes uten `rotation`, overleverer hver uke, og et lag uten `restrictionTimes` har vakt døgnet rundt, slik et nytt lag i dashbordet begynner.
+- `restrictionTimes` for et lag, de aktive timene, angir typen under `restrictionType`: `None` (vakt døgnet rundt), `Daily` eller `Weekly`. `restictionType`, den eldre stavemåten uten den andre "r"-en, leses også, og hvert svar har typen under begge, så en klient eller en Terraform-konfigurasjon skrevet med en av dem fortsatt virker; laget lagres med `restrictionType`.
+- En skriving som ville gi et lag vakt på intet tidspunkt, avvises med en `400` som nevner nøkkelen: en type som mangler, er ukjent eller er forskjellig under de to stavemåtene (en oppdatering tar den som avviker fra lagets nåværende type); et `Daily`-tidsrom der `startTime` og `endTime` ikke er datoer og klokkeslett (`"09:00"` alene avvises); en `Weekly`-begrensning uten `weeklyRestrictionTimes`; eller et tidsrom som åpner og lukker på samme tidspunkt. En `rotation` der `intervalType` ikke er `Hour`, `Day`, `Week`, `Month` eller `Year`, avvises på samme måte.
+- Et lag som ble lagret før disse skrivingene ble avvist, uten en type som ble lest, hadde aldri vakt. En oppgradering av OneUptime leser hvert slikt lag etter timene det inneholder, lagrer det slik og finner på nytt ut hvem som har vakt i vaktplanen, så personene i det varsles fra da av og får beskjed om det.
 - En endring i lagene i en vaktplan og personene i dem, gjort med API-et eller Terraform, meldes som én endring: Hvem som har vakt, regnes ut når lagene ikke er endret på et halvt minutt, og den som går på eller av vakt, eller er neste, får beskjed én gang, ikke én gang per lag eller person som skrives. Varsler går til den lagene setter på vakt så snart hver endring er lagret.
 - For å endre på én gang hvem som tar vakter i lagene i en vaktplan, slik **Lagre endringer** på siden **Lag** gjør, leser du lagene med `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` og sender dem tilbake, endret, til `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. De nevner hvert lag vaktplanen beholder, det med høyest prioritet først, hvert med personene sine i vaktrekkefølge: den som allerede er i et lag, med sin `layerUserId`, den som legges til, bare med `userId`. `deletedLayerIds` nevner lagene som skal slettes.
 - En lagring skrives helt eller ikke i det hele tatt, og hvem som har vakt, regnes ut én gang, med en gang. En som gjøres etter at noen andre har endret lagene, avvises med 409, fordi `basedOnVersion` ikke lenger er lagenes: les lagene på nytt, og gjør endringen på det som er der nå. Terraform-ressursen `oneuptime_on_call_schedule_layers` lagrer lagene i en vaktplan på denne måten.
@@ -129,6 +134,28 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
     }
   }'
 ```

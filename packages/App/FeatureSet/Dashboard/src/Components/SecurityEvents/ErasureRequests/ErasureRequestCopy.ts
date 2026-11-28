@@ -1,5 +1,6 @@
 import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import { SecurityUserErasureRequestStatus } from "Common/Types/SecurityEvent/SecurityUserErasure";
+import { SecurityUserErasureProgressLine } from "Common/Types/SecurityEvent/SecurityUserErasureProgressLine";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
   PluralTemplate,
@@ -106,6 +107,40 @@ export const QUEUED_LINE: string = translationKey(
 export const ERASING_LINE: string = translationKey(
   "Waiting for the last of it to be applied.",
 );
+
+/*
+ * Under Erasing, how far a request has got (#11232), as the server says it
+ * (Types/SecurityEvent/SecurityUserErasureProgressLine): taking the person
+ * out of Postgres, waiting for the changes to apply (ERASING_LINE), a pass
+ * of the Detection Findings - read from the project's first to its last, so
+ * the time of the last one read says how far - the wait before the final
+ * check, the final check itself, and a run that failed and tries again.
+ * Never a finding's id, and nothing of the person.
+ */
+export const STARTING_LINE: string = translationKey(
+  "Taking them out of cases, detections and events.",
+);
+export const READING_FINDINGS_LINE: string = translationKey(
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.",
+);
+export const READING_FINDINGS_STARTED_LINE: string = translationKey(
+  "Reading the Detection Findings: pass {{pass}}.",
+);
+export const FINAL_CHECK_LINE: string = translationKey(
+  "Checking that nothing is left, up to {{date}}.",
+);
+export const FINAL_CHECK_STARTED_LINE: string = translationKey(
+  "Checking that nothing is left.",
+);
+export const FINAL_CHECK_STARTS_LINE: string = translationKey(
+  "The final check starts {{time}}.",
+);
+export const RETRYING_LINE: string = translationKey(
+  "{{reason}} It tries again {{time}}.",
+);
+export const RETRYING_WITHOUT_REASON_LINE: string = translationKey(
+  "Its last run failed. It tries again {{time}}.",
+);
 export const ERASED_AT: string = translationKey("Erased {{time}}");
 export const FAILED_LINE: string = translationKey(
   "{{reason}} Security Events still refuses to name them. File the request again to retry.",
@@ -201,4 +236,66 @@ export function getErasureStatus(
   )
     ? (status as SecurityUserErasureRequestStatus)
     : SecurityUserErasureRequestStatus.Pending;
+}
+
+/*
+ * How often the page reads how far its open requests have got (#11232),
+ * while one is open and the page is in view: the worker moves a request on
+ * once a minute.
+ */
+export const ERASURE_PROGRESS_REFRESH_IN_MS: number = 30 * 1000;
+
+// The states a request is open in, whose line says how far it has got: Queued, or Erasing.
+export const OPEN_ERASURE_STATUSES: ReadonlyArray<SecurityUserErasureRequestStatus> =
+  [
+    SecurityUserErasureRequestStatus.Pending,
+    SecurityUserErasureRequestStatus.InProgress,
+  ];
+
+// The open requests a page of the list shows, by id, in the state it shows them in.
+export function getShownOpenRequests(
+  requests: ReadonlyArray<SecurityUserErasureRequest>,
+): Map<string, SecurityUserErasureRequestStatus> {
+  const open: Map<string, SecurityUserErasureRequestStatus> = new Map();
+
+  for (const request of requests) {
+    const status: SecurityUserErasureRequestStatus = getErasureStatus(request);
+
+    if (request.id && OPEN_ERASURE_STATUSES.includes(status)) {
+      open.set(request.id.toString(), status);
+    }
+  }
+
+  return open;
+}
+
+// The server's lines (#11232), by the request each is about.
+export function getProgressById(
+  lines: ReadonlyArray<SecurityUserErasureProgressLine>,
+): Map<string, SecurityUserErasureProgressLine> {
+  const byId: Map<string, SecurityUserErasureProgressLine> = new Map();
+
+  for (const line of lines) {
+    byId.set(line.requestId, line);
+  }
+
+  return byId;
+}
+
+/*
+ * Whether a request the list shows as open has moved on since: the server
+ * says another state for it, or none, as it does once the request is over.
+ * The list is then read again, for its state and what it changed.
+ */
+export function hasShownRequestMovedOn(
+  shown: ReadonlyMap<string, SecurityUserErasureRequestStatus>,
+  progress: ReadonlyMap<string, SecurityUserErasureProgressLine>,
+): boolean {
+  for (const [requestId, status] of shown) {
+    if (progress.get(requestId)?.status !== status) {
+      return true;
+    }
+  }
+
+  return false;
 }

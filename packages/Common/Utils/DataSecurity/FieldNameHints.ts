@@ -164,9 +164,12 @@ const GENERIC_LAST_SEGMENTS: ReadonlySet<string> = new Set([
 const PATH_SEPARATOR: RegExp = /[.[\]/]/;
 const ARRAY_INDEX: RegExp = /^\d{1,9}$/;
 
+// The most of a field's path read: its name is read from these characters alone.
+export const MAX_FIELD_PATH_LENGTH: number = 1_024;
+
 export function getFieldNameWords(fieldPath: string): Array<string> {
   const segments: Array<string> = fieldPath
-    .slice(0, 1024)
+    .slice(0, MAX_FIELD_PATH_LENGTH)
     .split(PATH_SEPARATOR)
     .filter((segment: string) => {
       return segment.length > 0 && !ARRAY_INDEX.test(segment);

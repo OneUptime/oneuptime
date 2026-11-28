@@ -396,6 +396,7 @@ const SHARED: ReadonlyArray<{ column: string; why: string }> = [
     "ProxmoxCluster",
     "CephCluster",
     "VMwareVCenter",
+    "XcpNgPool",
     "OpenStackCloud",
     "DatabaseServer",
     "CloudAccount",

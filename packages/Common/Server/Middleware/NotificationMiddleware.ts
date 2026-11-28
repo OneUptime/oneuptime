@@ -15,10 +15,10 @@ import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import {
   CALL_KEYPAD_FINISH_ON_KEY,
-  CALL_WRONG_KEY_SENTENCE,
   CallKeypadPrompt,
 } from "../../Utils/Call/CallKeypad";
 import { CallSpeechOptions, sayInto } from "../Utils/Call/CallTwimlSpeech";
+import { getCallAnswerWrongKeySentence } from "../Utils/OnCall/OnCallPageCallAnswers";
 
 /*
  * How a key's answer speaks: in the call's voice (OnCallKeypadToken), and
@@ -73,7 +73,9 @@ export default class NotificationMiddleware {
    * keypad address, which counts the wrong keys asked again for
    * (OnCallPageLinks.getCallAskAgainUrl). Silence after it ends the call as
    * silence always does: its no-input words, then it hangs up, the page left
-   * as it was. In the call's voice.
+   * as it was. In the call's voice, and its language (#11066): the prompt
+   * and its no-input words are the call's own, and "That key does nothing."
+   * is said in the language of its voice (OnCallPageCallAnswers).
    */
   @CaptureSpan()
   public static async sendAskAgain(
@@ -110,7 +112,8 @@ export default class NotificationMiddleware {
       finishOnKey: CALL_KEYPAD_FINISH_ON_KEY,
     });
 
-    sayInto(gather, CALL_WRONG_KEY_SENTENCE, speech);
+    // In the call's language: the language of its voice (#11066).
+    sayInto(gather, getCallAnswerWrongKeySentence(data.voice), speech);
     sayInto(gather, data.prompt.sayMessage, speech);
 
     if (data.prompt.noInputMessage) {

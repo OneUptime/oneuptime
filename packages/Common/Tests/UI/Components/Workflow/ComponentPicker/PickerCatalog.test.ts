@@ -169,6 +169,7 @@ describe("what the picker leads with", () => {
       "Update Zabbix Problem",
       "Execute Workflow",
       "Sleep",
+      "Get Files From Markdown",
     ]);
 
     for (const title of titlesOf(ACTIONS.popular)) {

@@ -566,6 +566,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   ],
   [ProductKey.StorageArrays]: [
     "StorageArray",
+    "StorageArrayConnection",
+    "StorageArrayConnectionTest",
     "StorageArrayFeed",
     "StorageArrayLabelRule",
     "StorageArrayOwnerRule",

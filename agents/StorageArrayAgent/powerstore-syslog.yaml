@@ -221,7 +221,7 @@ processors:
         action: upsert
       # Keep it in step with the collector image docker-compose.yml pins.
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # OneUptime routes batches by service.name first: none may reach it.
       - key: service.name

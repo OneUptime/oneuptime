@@ -284,6 +284,7 @@ beforeEach(() => {
         disableUserProjectCreation: false,
         disablePushNotifications: false,
         canSendEmail: true,
+        canProjectsChooseCallVoice: false,
       };
     });
   navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(() => {

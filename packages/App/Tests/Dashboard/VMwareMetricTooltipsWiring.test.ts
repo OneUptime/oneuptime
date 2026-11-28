@@ -814,6 +814,7 @@ describe("VMware part pages: tiles and details", () => {
       ["Inventory Path", null],
       ["Memory Ballooned", "vmMemoryBallooned"],
       ["Memory Swapped", "vmMemorySwapped"],
+      ["Swapping Now", "vmMemorySwapping"],
       ["vCenter ID", null],
       ["Last report", null],
     ]);
