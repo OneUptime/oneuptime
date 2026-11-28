@@ -36,7 +36,6 @@ import CallLogService from "Common/Server/Services/CallLogService";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
-import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import ProjectCallVoice from "Common/Types/Call/ProjectCallVoice";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
@@ -1167,13 +1166,15 @@ export default class CallService {
   /*
    * The voice a call through the server's own Twilio account speaks with
    * (#11065, Types/Call/ProjectCallVoice): the project's own, while the
-   * server's master admin lets projects choose one
-   * (GlobalConfig.letProjectsChooseCallVoice) - never on OneUptime Cloud,
-   * whose account OneUptime pays for - else the server's (GLOBAL_TWILIO_
-   * CALL_VOICE, or the one chosen in the Admin Dashboard). The switch is
-   * read only for a project that chose a voice. A voice never stops a
-   * call: should the switch not be read, the call speaks with the server's
-   * voice, as it would with the switch off.
+   * server lets projects choose one - its master admin's switch
+   * (GlobalConfig.letProjectsChooseCallVoice), or GLOBAL_TWILIO_LET_
+   * PROJECTS_CHOOSE_CALL_VOICE once it is set (#11462,
+   * GlobalConfigService.canProjectsChooseCallVoice) - never on OneUptime
+   * Cloud, whose account OneUptime pays for; else the server's
+   * (GLOBAL_TWILIO_CALL_VOICE, or the one chosen in the Admin Dashboard).
+   * The switch is read only for a project that chose a voice. A voice never
+   * stops a call: should the switch not be read, the call speaks with the
+   * server's voice, as it would with the switch off.
    */
   public static async getServerAccountCallVoice(data: {
     serverVoice: unknown;
@@ -1187,18 +1188,10 @@ export default class CallService {
       return toCallVoiceValue(data.serverVoice);
     }
 
-    let letProjectsChooseCallVoice: boolean | undefined = undefined;
+    let areOffered: boolean = false;
 
     try {
-      const config: GlobalConfig | null = await GlobalConfigService.findOneById(
-        {
-          id: ObjectID.getZeroObjectID(),
-          select: { letProjectsChooseCallVoice: true },
-          props: { isRoot: true },
-        },
-      );
-
-      letProjectsChooseCallVoice = config?.letProjectsChooseCallVoice;
+      areOffered = await GlobalConfigService.canProjectsChooseCallVoice();
     } catch (err) {
       logger.error(err);
     }
@@ -1206,10 +1199,7 @@ export default class CallService {
     return ProjectCallVoice.getVoiceOnServerAccount({
       serverVoice: data.serverVoice,
       projectVoice: projectVoice,
-      areOffered: ProjectCallVoice.areOffered({
-        isBillingEnabled: IsBillingEnabled,
-        letProjectsChooseCallVoice: letProjectsChooseCallVoice,
-      }),
+      areOffered: areOffered,
     });
   }
 
