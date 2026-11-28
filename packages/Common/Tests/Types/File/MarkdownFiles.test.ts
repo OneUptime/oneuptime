@@ -146,7 +146,7 @@ describe("the limits", () => {
       );
     }
 
-    // The figure keeps its unit on its line (a no-break space, #8303).
+    // The figure keeps its unit on its line (NumbersKeepTheirUnitsInCodeGuard).
     expect(
       MARKDOWN_FILE_LEFT_OUT_MESSAGES[MarkdownFileLeftOutReason.TooLarge],
     ).toContain("10\u00A0MB");
