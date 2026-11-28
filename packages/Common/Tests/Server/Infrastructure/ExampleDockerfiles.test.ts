@@ -34,6 +34,17 @@ const SNMP_SIMULATOR_DOCKERFILE: string = path.join(
   "Dockerfile",
 );
 
+// The quick start's compose file, and the PowerScale cluster's in its own folder.
+const SNMP_SIMULATOR_COMPOSE_FILE: string = path.join(
+  SNMP_SIMULATOR_DIR,
+  "docker-compose.yml",
+);
+const SNMP_SIMULATOR_POWERSCALE_COMPOSE_FILE: string = path.join(
+  SNMP_SIMULATOR_DIR,
+  "powerscale",
+  "docker-compose.yml",
+);
+
 /*
  * The dev stack's compose file lives in Scripts/Dev but is always run from the
  * repo root with `--project-directory .`, so compose resolves its build paths
@@ -344,9 +355,10 @@ describe("Every Dockerfile a compose file builds survives a fresh clone", () => 
   });
 
   test("the snmp-simulator quick start builds all eight of its containers", () => {
+    // The quick start's own file: the PowerScale cluster beside it is another (below).
     const builds: Array<ImageBuild> = imageBuilds.filter(
       (build: ImageBuild): boolean => {
-        return build.composeFile.startsWith(`${EXAMPLES_DIR}/snmp-simulator/`);
+        return build.composeFile === SNMP_SIMULATOR_COMPOSE_FILE;
       },
     );
 
@@ -402,6 +414,27 @@ describe("Every Dockerfile a compose file builds survives a fresh clone", () => 
         return build.service === "router-v3";
       })?.dockerfile,
     ).toBe(path.join(SNMP_SIMULATOR_DIR, "Dockerfile.snmpd"));
+  });
+
+  /*
+   * A Dell PowerScale cluster of its own (#11003), started from its own
+   * folder: the three nodes that answer (node 3 is offline on purpose)
+   * replay their walks through the quick start's snmpsim Dockerfile.
+   */
+  test("the PowerScale cluster beside it builds its three answering nodes from the same Dockerfile", () => {
+    expect(
+      imageBuilds
+        .filter((build: ImageBuild): boolean => {
+          return build.composeFile === SNMP_SIMULATOR_POWERSCALE_COMPOSE_FILE;
+        })
+        .map((build: ImageBuild): Array<string> => {
+          return [build.service, build.dockerfile];
+        }),
+    ).toEqual([
+      ["powerscale-node-1", SNMP_SIMULATOR_DOCKERFILE],
+      ["powerscale-node-2", SNMP_SIMULATOR_DOCKERFILE],
+      ["powerscale-node-4", SNMP_SIMULATOR_DOCKERFILE],
+    ]);
   });
 
   test("the file that started this is committed, not just present locally", () => {
