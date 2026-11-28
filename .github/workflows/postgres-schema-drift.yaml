@@ -4581,6 +4581,34 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddCustomFieldsAndRemindersToUpdatesToPostPostgres.test.ts
           --forceExit
 
+      # The markdown files a workflow reads, through their API on the migrated
+      # tables (df53e546db8).
+      - name: Test the markdown files API against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MARKDOWN_FILES_TESTS: "true"
+          MARKDOWN_FILES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MARKDOWN_FILES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MARKDOWN_FILES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/MarkdownFilesPostgres.test.ts --forceExit
+
+      # An on-call roster's active hours, from layers written with either
+      # spelling of their restriction type (0d27ac34175).
+      - name: Test the on-call roster's active hours against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ON_CALL_ROSTER_TESTS: "true"
+          ON_CALL_ROSTER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ON_CALL_ROSTER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ON_CALL_ROSTER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OnCallRosterActiveHoursPostgres.test.ts --forceExit
+
       # App installs serve the suites below: the probe ones (App) and the
       # Enterprise one, whose jest resolves Common and App from their own
       # installs.
@@ -4609,6 +4637,34 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeIngestReportsAsItselfPostgres.test.ts --forceExit
+
+      # Get Files From Markdown, end to end: a workflow's component run by the
+      # real runner against the migrated tables (df53e546db8).
+      - name: Test a workflow's Get Files From Markdown against Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_WORKFLOW_MARKDOWN_FILES_TESTS: "true"
+          WORKFLOW_MARKDOWN_FILES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_MARKDOWN_FILES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_MARKDOWN_FILES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/FeatureSet/Workflow/RunWorkflowGetFilesFromMarkdownPostgres.test.ts --forceExit
+
+      # The data migration that tells the schedules of on-call layers already
+      # stored under restrictionType (aa67ad78c04), on the migrated tables.
+      - name: Test the on-call layer restriction type repair against Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_LAYER_RESTRICTION_REPAIR_TESTS: "true"
+          LAYER_RESTRICTION_REPAIR_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LAYER_RESTRICTION_REPAIR_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LAYER_RESTRICTION_REPAIR_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RepairScheduleLayerRestrictionTypesPostgres.test.ts --forceExit
 
       # #11138: an SMS moves from Sent to Delivered, Undelivered or Failed as
       # Twilio reports it, end to end: the real SmsService sends on a
