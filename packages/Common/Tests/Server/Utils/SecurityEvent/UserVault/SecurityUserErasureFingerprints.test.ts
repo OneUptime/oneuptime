@@ -397,10 +397,14 @@ describe("rewriteFingerprints", () => {
     );
     const ERASED_ID: string = `[INDICATOR:${keyedTokenIntel}]`;
 
-    function description(stixId: string = STIX_ID): string {
+    // An alert's description, as the matcher writes it - with the indicator's score, or (#11447) without.
+    function description(
+      stixId: string = STIX_ID,
+      scored: boolean = true,
+    ): string {
       return [
         "Phishing sender",
-        `Indicator ${ALICE} (email-addr, confidence 80) matched 2 security events between A and B.`,
+        `Indicator ${ALICE} (email-addr${scored ? ", confidence 80" : ""}) matched 2 security events between A and B.`,
         `STIX indicator: ${stixId}`,
         `Observables: ${ALICE}`,
       ].join("\n\n");
@@ -474,7 +478,12 @@ describe("rewriteFingerprints", () => {
           ]),
         );
         expect(read.parameters[3]).toBe("STIX indicator: indicator--");
+        // And a description that still states the indicator's score (#11447).
+        expect(read.parameters[4]).toBe(", confidence ");
 
+        const feeds: Array<Sent> = sent.filter((one: Sent): boolean => {
+          return one.sql.startsWith('UPDATE "AlertFeed"');
+        });
         const feed: number = sent.findIndex((one: Sent): boolean => {
           return one.sql.startsWith('UPDATE "AlertFeed"');
         });
@@ -484,17 +493,30 @@ describe("rewriteFingerprints", () => {
 
         expect(feed).toBeGreaterThan(-1);
         expect(own).toBeGreaterThan(feed);
-        expect(sent[feed]!.parameters).toEqual([
-          PROJECT_ID.toString(),
-          "a1",
-          `STIX indicator: ${STIX_ID}`,
-          `STIX indicator: ${ERASED_ID}`,
+        // The STIX id, then the score, each replaced where the feed item copied it.
+        expect(
+          feeds.map((one: Sent): Array<unknown> => {
+            return one.parameters;
+          }),
+        ).toEqual([
+          [
+            PROJECT_ID.toString(),
+            "a1",
+            `STIX indicator: ${STIX_ID}`,
+            `STIX indicator: ${ERASED_ID}`,
+          ],
+          [
+            PROJECT_ID.toString(),
+            "a1",
+            "(email-addr, confidence 80)",
+            "(email-addr)",
+          ],
         ]);
         expect(sent[feed]!.sql).toContain('"alertId" = $2');
         expect(sent[own]!.parameters).toEqual([
           "a1",
           PROJECT_ID.toString(),
-          description(ERASED_ID),
+          description(ERASED_ID, false),
           description(),
         ]);
         expect(sent[own]!.sql).toContain(
@@ -529,10 +551,70 @@ describe("rewriteFingerprints", () => {
         sent.find((one: Sent): boolean => {
           return one.sql.startsWith('UPDATE "Incident" SET "description"');
         })?.parameters[2],
-      ).toBe(description(ERASED_ID));
+      ).toBe(description(ERASED_ID, false));
     });
 
-    test("a record whose fingerprint is another match's, or whose description names no STIX indicator, is left", async () => {
+    test("a list feed's alert, with no STIX id, loses the indicator's score (#11447)", async () => {
+      const listed: string = [
+        `Indicator ${ALICE} (email-addr, confidence 65) matched 1 security event between A and B.`,
+        `Observables: ${ALICE}`,
+      ].join("\n\n");
+      const sent: Array<Sent> = answerRecords("Alert", [
+        {
+          _id: "a1",
+          description: listed,
+          seriesFingerprint: `threat-intel:${FEED_ID}:${keyedAliceIntel}`,
+        },
+      ]);
+
+      await SecurityUserErasureRecords.rewriteFingerprints({
+        projectId: PROJECT_ID,
+        groupValues: [{ named: ALICE, hashed: TOKEN }],
+      });
+
+      expect(
+        sent
+          .filter((one: Sent): boolean => {
+            return one.sql.startsWith('UPDATE "AlertFeed"');
+          })
+          .map((one: Sent): Array<unknown> => {
+            return one.parameters.slice(2);
+          }),
+      ).toEqual([["(email-addr, confidence 65)", "(email-addr)"]]);
+      expect(
+        sent.find((one: Sent): boolean => {
+          return one.sql.startsWith('UPDATE "Alert" SET "description"');
+        })?.parameters[2],
+      ).toBe(
+        [
+          `Indicator ${ALICE} (email-addr) matched 1 security event between A and B.`,
+          `Observables: ${ALICE}`,
+        ].join("\n\n"),
+      );
+    });
+
+    test("an alert an earlier erasure cut the STIX id from, its score left, loses the score - filed again, the request finishes it (#11447)", async () => {
+      const sent: Array<Sent> = answerRecords("Alert", [
+        {
+          _id: "a1",
+          description: description(ERASED_ID),
+          seriesFingerprint: `threat-intel:${FEED_ID}:${keyedTokenIntel}`,
+        },
+      ]);
+
+      await SecurityUserErasureRecords.rewriteFingerprints({
+        projectId: PROJECT_ID,
+        groupValues: [{ named: ALICE, hashed: TOKEN }],
+      });
+
+      expect(
+        sent.find((one: Sent): boolean => {
+          return one.sql.startsWith('UPDATE "Alert" SET "description"');
+        })?.parameters.slice(2),
+      ).toEqual([description(ERASED_ID, false), description(ERASED_ID)]);
+    });
+
+    test("a record whose fingerprint is another match's, or whose description names no STIX indicator and no score, is left", async () => {
       const sent: Array<Sent> = answerRecords("Alert", [
         {
           _id: "a1",
@@ -546,7 +628,7 @@ describe("rewriteFingerprints", () => {
         },
         {
           _id: "a3",
-          description: description(ERASED_ID),
+          description: description(ERASED_ID, false),
           seriesFingerprint: `threat-intel:${FEED_ID}:${keyedTokenIntel}`,
         },
       ]);

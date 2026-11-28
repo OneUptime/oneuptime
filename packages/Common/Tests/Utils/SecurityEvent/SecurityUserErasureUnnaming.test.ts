@@ -18,8 +18,10 @@ import {
   getDescriptionNameTexts,
   getErasedRiskKeys,
   getGroupValueCandidates,
+  getIndicatorConfidenceTexts,
   getStixIndicatorIdOf,
   getTitleValueCandidates,
+  isThreatIntelMatchOf,
   namesAnyone,
   unnameDescription,
   unnameGroupValue,
@@ -31,6 +33,7 @@ import {
   unnameTitle,
   unnameValue,
   withErasedStixIndicator,
+  withoutIndicatorConfidence,
 } from "../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
 import { describe, expect, test } from "@jest/globals";
 
@@ -769,7 +772,7 @@ describe("the feed's indicator, out of what was written about a match on the per
     ].join("\n\n");
   }
 
-  test("a detection's description: the erased indicator id for the STIX id, and the indicator's name gone", () => {
+  test("a detection's description: the erased indicator id for the STIX id, the indicator's name gone, and its score (#11447)", () => {
     const unnamed: string = unnameThreatIntelDescription(
       unnameDescription(match(), NAMES),
       { names: NAMES, erasedIndicatorIdOf },
@@ -777,7 +780,7 @@ describe("the feed's indicator, out of what was written about a match on the per
 
     expect(unnamed).toBe(
       [
-        `Indicator \`${TOKEN}\` (email-addr, confidence 80) from the threat intel feed **Acme Phishing Senders** matched 2 security events between 2026-11-24T09:00:00Z and 2026-11-24T09:15:00Z.`,
+        `Indicator \`${TOKEN}\` (email-addr) from the threat intel feed **Acme Phishing Senders** matched 2 security events between 2026-11-24T09:00:00Z and 2026-11-24T09:15:00Z.`,
         `STIX indicator: \`${ERASED_ID}\``,
         "Sample event: `Sign-in from 203.0.113.7`",
       ].join("\n\n"),
@@ -940,7 +943,7 @@ describe("the feed's indicator, out of what was written about a match on the per
     ).toBeUndefined();
   });
 
-  test("the events a detection kept: a stamp about the person says the token and the erased indicator id", () => {
+  test("the events a detection kept: a stamp about the person says the token and the erased indicator id, and no score (#11447)", () => {
     const kept: JSONObject = {
       events: [
         {
@@ -950,6 +953,7 @@ describe("the feed's indicator, out of what was written about a match on the per
             "threat.indicator_id": STIX_ID,
             "threat.feed": "Acme Phishing Senders",
             "threat.indicator_type": "email-addr",
+            "threat.confidence": "80",
           },
         },
         {
@@ -958,6 +962,7 @@ describe("the feed's indicator, out of what was written about a match on the per
             "threat.indicator_value": "198.51.100.4",
             "threat.indicator_id":
               "indicator--11111111-1111-4111-8111-111111111111",
+            "threat.confidence": "95",
           },
         },
         { message: "No stamp", attributes: { "http.route": "/login" } },
@@ -1069,6 +1074,110 @@ describe("the feed's indicator, out of what was written about a match on the per
       true,
     );
     expect(Object.getPrototypeOf(stamped)).toBe(Object.prototype);
+  });
+
+  test("a stamp an earlier erasure gave the token and the erased id, its score left, loses the score (#11447)", () => {
+    const left: JSONObject = {
+      events: [
+        {
+          attributes: {
+            "threat.indicator_value": TOKEN,
+            "threat.indicator_id": ERASED_ID,
+            "threat.indicator_type": "email-addr",
+            "threat.confidence": "80",
+          },
+        },
+      ],
+    };
+    const result: { value: JSONObject; changed: boolean } =
+      unnameKeptEventStamps(left, { names: NAMES, erasedIndicatorIdOf });
+
+    expect(result.changed).toBe(true);
+    expect(
+      (result.value["events"] as Array<JSONObject>)[0]!["attributes"],
+    ).toEqual({
+      "threat.indicator_value": TOKEN,
+      "threat.indicator_id": ERASED_ID,
+      "threat.indicator_type": "email-addr",
+    });
+    // And then nothing more.
+    expect(
+      unnameKeptEventStamps(result.value, {
+        names: NAMES,
+        erasedIndicatorIdOf,
+      }).changed,
+    ).toBe(false);
+  });
+
+  test("an indicator's score, out of a match's text, wherever its sentence states one (#11447)", () => {
+    expect(withoutIndicatorConfidence(alertText())).toBe(
+      alertText().replace(
+        "(email-addr, confidence 80)",
+        "(email-addr)",
+      ),
+    );
+    expect(withoutIndicatorConfidence(match())).toContain(
+      "(email-addr) from the threat intel feed",
+    );
+
+    // Every type a feed's indicator has, and one with none.
+    for (const type of [
+      "ipv4-addr",
+      "ipv6-addr",
+      "domain-name",
+      "url",
+      "email-addr",
+      "file-hash-sha256",
+      "file-hash-sha1",
+      "file-hash-md5",
+      "indicator",
+    ]) {
+      expect(withoutIndicatorConfidence(`x (${type}, confidence 7) y`)).toBe(
+        `x (${type}) y`,
+      );
+    }
+
+    // What has no score, or is no type's, is left as it is.
+    for (const text of [
+      "Indicator `x` (email-addr) from the threat intel feed",
+      "with high confidence, this is it",
+      "(mood, confidence 99)",
+      "(email-addr, confidence high)",
+    ]) {
+      expect(withoutIndicatorConfidence(text)).toBe(text);
+    }
+
+    expect(withoutIndicatorConfidence(undefined)).toBeUndefined();
+    expect(withoutIndicatorConfidence(null)).toBeNull();
+    expect(withoutIndicatorConfidence("")).toBe("");
+  });
+
+  test("the scores a text states, each once, as a copy of it holds them", () => {
+    expect(getIndicatorConfidenceTexts(alertText())).toEqual([
+      "(email-addr, confidence 80)",
+    ]);
+    expect(
+      getIndicatorConfidenceTexts(
+        "a (url, confidence 5) b (url, confidence 5) c (ipv4-addr, confidence 60)",
+      ),
+    ).toEqual(["(url, confidence 5)", "(ipv4-addr, confidence 60)"]);
+    expect(getIndicatorConfidenceTexts("none here")).toEqual([]);
+    expect(getIndicatorConfidenceTexts(undefined)).toEqual([]);
+  });
+
+  test("a description is a threat intel match on the person, as written or as an erasure left it", () => {
+    expect(isThreatIntelMatchOf(match(), NAMES)).toBe(true);
+    expect(
+      isThreatIntelMatchOf(unnameDescription(match(), NAMES), NAMES),
+    ).toBe(true);
+    expect(
+      isThreatIntelMatchOf(
+        match({ indicatorValue: "198.51.100.4" }),
+        NAMES,
+      ),
+    ).toBe(false);
+    expect(isThreatIntelMatchOf("A person wrote this.", NAMES)).toBe(false);
+    expect(isThreatIntelMatchOf(undefined, NAMES)).toBe(false);
   });
 
   test("the lines it reads are the ones SecurityCaseMarkdown writes", () => {
