@@ -909,7 +909,13 @@ describePostgres("required tags and host links on migrated Postgres", () => {
       expect(result.found).toBe(2);
       expect(result.creatorsFound).toBe(1);
       expect(result.emailsSent).toBe(1);
-      expect(result.daysCounted).toBe(1);
+      /*
+       * Each of the project's accounts has its day counted: this one, and
+       * "keys-account" of the required tags' keys above, whose connection
+       * listed nothing. 0 is a count (CloudTagCoverageDayService), so its
+       * day is kept as 0 of 0, not refused as missing.
+       */
+      expect(result.daysCounted).toBe(2);
 
       const rows: Array<Record<string, unknown>> = await findings();
       expect(rows).toHaveLength(2);
@@ -965,6 +971,16 @@ describePostgres("required tags and host links on migrated Postgres", () => {
       expect(Number(days[0]!["resourceCount"])).toBe(4);
       expect(Number(days[0]!["coveredCount"])).toBe(1);
       expect(days[0]!["keyCounts"]).toEqual({ team: 2, env: 2 });
+
+      // The project's other account listed nothing: 0 of 0, each tag on none.
+      const emptyDays: Array<Record<string, unknown>> = (await harness.query(
+        `SELECT "resourceCount", "coveredCount", "keyCounts" FROM "${harness.schema}"."CloudTagCoverageDay" WHERE "projectId" = $1 AND "cloudAccountId" <> $2`,
+        [PROJECT.toString(), ACCOUNT_ROW.toString()],
+      )) as Array<Record<string, unknown>>;
+      expect(emptyDays).toHaveLength(1);
+      expect(Number(emptyDays[0]!["resourceCount"])).toBe(0);
+      expect(Number(emptyDays[0]!["coveredCount"])).toBe(0);
+      expect(emptyDays[0]!["keyCounts"]).toEqual({ team: 0, env: 0 });
 
       // What the watcher keeps: the account's first listing, the email's hour, the day.
       const settings: Array<Record<string, unknown>> = (await harness.query(
