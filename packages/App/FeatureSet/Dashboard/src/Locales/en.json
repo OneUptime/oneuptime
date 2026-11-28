@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.",
-  "{{tool}} marked read-only": "{{tool}} marked read-only"
+  "{{tool}} marked read-only": "{{tool}} marked read-only",
+  "Checking that nothing is left, up to {{date}}.": "Checking that nothing is left, up to {{date}}.",
+  "Checking that nothing is left.": "Checking that nothing is left.",
+  "Its last run failed. It tries again {{time}}.": "Its last run failed. It tries again {{time}}.",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "Reading the Detection Findings: pass {{pass}}, up to {{date}}.",
+  "Reading the Detection Findings: pass {{pass}}.": "Reading the Detection Findings: pass {{pass}}.",
+  "Taking them out of cases, detections and events.": "Taking them out of cases, detections and events.",
+  "The final check starts {{time}}.": "The final check starts {{time}}.",
+  "{{reason}} It tries again {{time}}.": "{{reason}} It tries again {{time}}."
 }
