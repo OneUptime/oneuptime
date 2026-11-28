@@ -30,6 +30,11 @@ enum ComponentID {
   Switch = "switch",
   WorkflowRun = "workflow-run",
   Sleep = "sleep",
+  /*
+   * The pictures a record's Markdown shows, with their bytes, ready to attach
+   * to an email (Components/MarkdownFiles, #11256).
+   */
+  GetFilesFromMarkdown = "get-files-from-markdown",
   AIGenerateText = "ai-generate-text",
   OpenStackProposeFix = "openstack-propose-fix",
   /*

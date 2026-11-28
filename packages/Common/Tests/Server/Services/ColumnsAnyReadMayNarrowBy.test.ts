@@ -9,6 +9,7 @@ import SecurityCaseTaskService from "../../../Server/Services/SecurityCaseTaskSe
 import SecurityCaseStepCheckService from "../../../Server/Services/SecurityCaseStepCheckService";
 import SecurityCaseAiActionService from "../../../Server/Services/SecurityCaseAiActionService";
 import SecurityCasePullRequestService from "../../../Server/Services/SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService from "../../../Server/Services/DataSecurityIssuePullRequestService";
 import SecurityPlaybookRunService from "../../../Server/Services/SecurityPlaybookRunService";
 import IncidentPostmortemActionItemService from "../../../Server/Services/IncidentPostmortemActionItemService";
 import AIRunService from "../../../Server/Services/AIRunService";
@@ -198,6 +199,8 @@ const SERVICES: Array<DatabaseService<BaseModel>> = [
    */
   SecurityCaseAiActionService,
   SecurityCasePullRequestService,
+  // And one a person linked to a Data Security issue (#10831): on the issue at once.
+  DataSecurityIssuePullRequestService,
   IncidentPostmortemActionItemService,
   SecurityPlaybookRunService,
   AIRunService,

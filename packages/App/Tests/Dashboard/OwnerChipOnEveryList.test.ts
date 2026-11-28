@@ -102,6 +102,8 @@ const NO_OWNER_CHIP: Record<string, string> = {
     "The sites directly under one site; the Sites list has the Parent Site and Owner chips side by side.",
   "Pages/Host/CollectorConfigView.tsx#host-collector-config-hosts-table":
     "The hosts a collector config runs on; the Hosts list filters them by owner.",
+  "Pages/XcpNg/ConnectionView.tsx#xcp-ng-connection-pools-table":
+    "The pools one Xen Orchestra connection reads; the XCP-ng Pools list filters them by owner.",
   "Pages/Rum/Settings/SessionReplay.tsx#rum-application-session-replay-roster-table":
     "Each application's session replay settings, not a list to find applications in.",
   "Components/TelemetryService/TelemetryServiceTable.tsx#services-table":

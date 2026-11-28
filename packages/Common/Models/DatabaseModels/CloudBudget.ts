@@ -23,19 +23,12 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import {
-  CLOUD_BUDGET_PERIODS,
-  CLOUD_BUDGET_PLAN_SPLITS,
-  CLOUD_BUDGET_SCOPES,
-  CLOUD_BUDGET_UNUSUAL_DAY_UNITS,
   CloudBudgetPeriod,
   CloudBudgetPlanSplit,
   CloudBudgetScope,
   CloudBudgetUnusualDayUnit,
 } from "../../Types/Cloud/CloudBudget";
-import {
-  CLOUD_COST_BASES,
-  CloudCostBasis,
-} from "../../Types/Cloud/CloudCostBasis";
+import { CloudCostBasis } from "../../Types/Cloud/CloudCostBasis";
 import { CloudCostRule } from "../../Types/Cloud/CloudCostRules";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
@@ -356,7 +349,7 @@ export default class CloudBudget extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
-    allowedValues: [...CLOUD_BUDGET_SCOPES],
+    allowedValues: Object.values(CloudBudgetScope),
     title: "Scope",
     description:
       "What the budget counts: allAccounts (every account), account (the Cloud Account ID's), costGroup (the Cloud Cost Group ID's, as its rules sort the spend now) or filter (the costs the Filter's rules match).",
@@ -508,7 +501,7 @@ export default class CloudBudget extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
-    allowedValues: [...CLOUD_COST_BASES],
+    allowedValues: Object.values(CloudCostBasis),
     title: "Cost Basis",
     description:
       "The cost the budget watches: billed, amortized or net. Empty follows the project's cost basis, set in Cloud settings.",
@@ -529,7 +522,7 @@ export default class CloudBudget extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
-    allowedValues: [...CLOUD_BUDGET_PERIODS],
+    allowedValues: Object.values(CloudBudgetPeriod),
     title: "Period",
     description:
       "How long the amount is for: month (a calendar month), quarter or year. Quarters and years start in the Fiscal Year Start Month. All in UTC, as the clouds bill.",
@@ -580,7 +573,7 @@ export default class CloudBudget extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
-    allowedValues: [...CLOUD_BUDGET_PLAN_SPLITS],
+    allowedValues: Object.values(CloudBudgetPlanSplit),
     title: "Plan",
     description:
       "How a yearly budget's amount is spread: none (the whole year), equal (twelve equal months) or byMonth (the Monthly Plan's amounts). A split budget is checked month by month against each month's share.",
@@ -720,7 +713,7 @@ export default class CloudBudget extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
-    allowedValues: [...CLOUD_BUDGET_UNUSUAL_DAY_UNITS],
+    allowedValues: Object.values(CloudBudgetUnusualDayUnit),
     title: "Unusual Day Threshold Unit",
     description:
       "What the Unusual Day Threshold is: amount (in the budget's currency) or percent (of the usual day, with at least 10 more than usual).",

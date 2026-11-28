@@ -43,10 +43,12 @@
  *              click would queue; none by default
  *   ?repo=pick several repositories are connected and none was found to
  *              hold the trace's code for certain: the suggestion lists
- *              them to pick from, and the create route wants the pick
+ *              them to pick from, the picker searches them through Code's
+ *              routes (POST /code-task/repositories), and the create route
+ *              wants the pick
  *   ?repo=pick-gone as pick, but acme/checkout-api is disconnected right
  *              before the click: the create route refuses that pick, and
- *              the suggestion no longer lists it
+ *              neither the suggestion nor the picker's search lists it
  *
  * POST /ai-investigation/performance-fix-suggestion is answered by the real
  * span-tree analysis and suggestion rule (Common/Utils/Traces and
@@ -97,6 +99,7 @@ import {
   getTracePerformanceFixOffer,
   tracePerformanceFixSuggestionToJSON,
 } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
+import { answerCodeRepositoryChoices } from "../../SuiteHelpers/CodeRepositoryChoiceAnswers";
 
 const params = new URLSearchParams(window.location.search);
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -134,6 +137,27 @@ function pickRepositories() {
         return repository.id !== GONE_PICK_ID;
       })
     : PICK_REPOSITORIES;
+}
+/*
+ * The project's repositories in Code, as its routes read them for the
+ * reader (#10921): with ?repo=pick the three to pick from, on GitHub, each
+ * connected while pickRepositories() lists it. The fix's picker searches
+ * the connected ones the reader may ask in.
+ */
+function codeRepositories() {
+  if (!isRepositoryPick) {
+    return [];
+  }
+  const connected = pickRepositories();
+  return PICK_REPOSITORIES.map((repository) => {
+    const [organizationName, repositoryName] = repository.name.split("/");
+    return {
+      ...repository,
+      organizationName,
+      repositoryName,
+      isConnected: connected.includes(repository),
+    };
+  });
 }
 // Set once the create route has refused a click for want of a repository.
 let isRepositoryGone = false;
@@ -1271,9 +1295,9 @@ AnalyticsModelAPI.getList = async (options) => {
     const isOpenStackLook = Boolean(options.query && options.query.attributes);
     const isTraceRead = Boolean(
       options.query &&
-      options.query.traceId &&
-      !options.query.spanId &&
-      !isOpenStackLook,
+        options.query.traceId &&
+        !options.query.spanId &&
+        !isOpenStackLook,
     );
     if (isTraceRead && firstSpanRead) {
       firstSpanRead = false;
@@ -1593,6 +1617,17 @@ async function handleApi(method, options) {
 
   if (url.includes("/telemetry/logs/facets")) {
     return ok({ facets: {} });
+  }
+
+  // Fix performance with AI's picker: the repositories it may be asked in, searched.
+  const choices = answerCodeRepositoryChoices({
+    method,
+    url,
+    body,
+    repositories: codeRepositories(),
+  });
+  if (choices) {
+    return choices;
   }
 
   return ok({ data: [], count: 0 });

@@ -1,6 +1,6 @@
 import { DIGIT_ZEROS } from "./DigitReadings";
 import { getBuiltInDetectorsOf } from "./Detectors/Index";
-import { FULLWIDTH_FORMS } from "./FullwidthForms";
+import { FULLWIDTH_FORMS, NUMBER_DASHES } from "./FullwidthForms";
 import { ScanDetector } from "./TextScanner";
 import CharacterSet from "../LinearRegExp/CharacterSet";
 import { parsePattern, PatternFlags } from "../LinearRegExp/Parser";
@@ -78,8 +78,9 @@ export const DIGIT_OF_EVERY_SCRIPT_PREFILTER: string = `[${DIGIT_ZEROS.filter(
  * What a detector that reads a number's fullwidth forms also finds in
  * (readsFullwidthForms, #11115): a text holding one of those forms - the
  * plus sign, the hyphen, a parenthesis, the full stop, the solidus or the
- * ideographic space - right beside a digit of any script, since only such
- * a text is read so (FullwidthForms), and what that reading finds and the
+ * ideographic space - right beside a digit of any script, or another dash
+ * between two digits (#11385: ー, ‐, ‑, ‒, –, −), since only such a text
+ * is read so (FullwidthForms), and what that reading finds and the
  * text as written does not, it finds because of one. A form beside an
  * escape the text as its escapes read places beside a digit is a text
  * holding an escape, which PERCENT_ESCAPE_PREFILTER takes: every such
@@ -97,7 +98,35 @@ const FULLWIDTH_FORM_CLASS: string = `[${FULLWIDTH_FORMS.map(
   },
 ).join("")}]`;
 
-export const FULLWIDTH_FORM_PREFILTER: string = `${FULLWIDTH_FORM_CLASS}${ANY_DIGIT_CLASS}|${ANY_DIGIT_CLASS}${FULLWIDTH_FORM_CLASS}`;
+// The other dashes a number's groups are set apart by, read between two digits (#11385).
+const NUMBER_DASH_CLASS: string = `[${NUMBER_DASHES.map(
+  (dash: number): string => {
+    return `\\x{${dash.toString(16).toUpperCase()}}`;
+  },
+).join("")}]`;
+
+export const FULLWIDTH_FORM_PREFILTER: string = `${FULLWIDTH_FORM_CLASS}${ANY_DIGIT_CLASS}|${ANY_DIGIT_CLASS}${FULLWIDTH_FORM_CLASS}|${ANY_DIGIT_CLASS}${NUMBER_DASH_CLASS}${ANY_DIGIT_CLASS}`;
+
+/*
+ * What a detector that reads a value typed in fullwidth letters also finds
+ * in (readsFullwidthLetters, #11385): a text holding some of such a value
+ * - a fullwidth Latin letter beside another, beside a fullwidth digit or
+ * beside the fullwidth "@", or that "@" beside a letter or a digit of
+ * either width - since only such a text is read so (FullwidthForms'
+ * holdsFullwidthLettersOfAValue). More is fine, never less.
+ */
+const FULLWIDTH_LETTER_CLASS: string =
+  "[\\x{FF21}-\\x{FF3A}\\x{FF41}-\\x{FF5A}]";
+const FULLWIDTH_DIGIT_OR_AT_CLASS: string = "[\\x{FF10}-\\x{FF19}\\x{FF20}]";
+const LETTER_OR_DIGIT_OF_EITHER_WIDTH_CLASS: string =
+  "[0-9A-Za-z\\x{FF10}-\\x{FF19}]";
+
+export const FULLWIDTH_LETTERS_PREFILTER: string = [
+  `${FULLWIDTH_LETTER_CLASS}[\\x{FF10}-\\x{FF19}\\x{FF20}-\\x{FF3A}\\x{FF41}-\\x{FF5A}]`,
+  `${FULLWIDTH_DIGIT_OR_AT_CLASS}${FULLWIDTH_LETTER_CLASS}`,
+  `\\x{FF20}${LETTER_OR_DIGIT_OF_EITHER_WIDTH_CLASS}`,
+  `${LETTER_OR_DIGIT_OF_EITHER_WIDTH_CLASS}\\x{FF20}`,
+].join("|");
 
 /*
  * What a detector that reads a text as a URL's query string reads it also
@@ -808,6 +837,14 @@ export function getDataTypePrefilter(data: {
       !expressions.includes(FULLWIDTH_FORM_PREFILTER)
     ) {
       expressions.push(FULLWIDTH_FORM_PREFILTER);
+    }
+
+    // A value typed in fullwidth letters, and the words beside one (#11385).
+    if (
+      detector.readsFullwidthLetters &&
+      !expressions.includes(FULLWIDTH_LETTERS_PREFILTER)
+    ) {
+      expressions.push(FULLWIDTH_LETTERS_PREFILTER);
     }
   }
 

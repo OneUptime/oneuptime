@@ -40,6 +40,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import DockerLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Layout";
 import DockerOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Overview";
@@ -388,7 +389,11 @@ const store = {
   Incident: [],
   Alert: openAlerts,
   ScheduledMaintenance: [],
-  // The container alerts card reads which monitors exist: none yet.
+  /*
+   * The monitors the project has, which the container alerts card asks the
+   * server covers its alerts (POST /monitor/recommendation-coverage): none
+   * yet.
+   */
   Monitor: [],
   RecommendationDismissal: [],
   // The database badge on a container's page: no database discovered.
@@ -749,6 +754,17 @@ async function handleApi(method, options) {
       openCases: null,
       risk: null,
     });
+  }
+
+  // Which of the container alerts card's alerts a monitor covers, from the project's monitors.
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

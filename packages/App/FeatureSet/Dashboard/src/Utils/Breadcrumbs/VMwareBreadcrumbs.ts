@@ -199,6 +199,12 @@ export function getVMwareBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Rule Audit Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.VMWARE_SETTINGS_HEALTH_RULES, [
+      "Project",
+      "VMware",
+      "Settings",
+      "Health Rules",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.VMWARE_SETTINGS_LABEL_RULE_VIEW, [
       "Project",
       "VMware",

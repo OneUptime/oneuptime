@@ -1,4 +1,10 @@
 import { OnCallInputRequest, Say } from "../../Types/Call/CallRequest";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "../../Types/Translator";
 
 /*
  * HOW A CALL ASKS FOR A KEY, AND HOW OFTEN.
@@ -42,7 +48,28 @@ export const CALL_PROMPT_REPEAT_PAUSE_IN_SECONDS: number = 5;
 export const CALL_WRONG_KEY_ASKS: number = CALL_PROMPT_REPEATS + 1;
 
 // What the call says to a wrong key, before it asks again.
-export const CALL_WRONG_KEY_SENTENCE: string = "That key does nothing.";
+export const CALL_WRONG_KEY_SENTENCE: string = translationKey(
+  "That key does nothing.",
+);
+
+// The translator of a call nobody asked to hear in another language: English.
+let englishTranslator: Translator | null = null;
+
+/*
+ * The same in the call's language (#11066): the keypad route says it in the
+ * language of the voice the call speaks with, as it says every answer.
+ */
+export function getCallWrongKeySentence(translator?: Translator): string {
+  if (!englishTranslator) {
+    englishTranslator = createTranslator(undefined, DEFAULT_LANGUAGE);
+  }
+
+  const sentence: Translator = translator || englishTranslator;
+
+  return (
+    sentence.translateText(CALL_WRONG_KEY_SENTENCE) || CALL_WRONG_KEY_SENTENCE
+  );
+}
 
 /*
  * The key that ends a call's prompt early: none. Twilio's default is "#",

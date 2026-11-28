@@ -71,6 +71,7 @@ import DeviceMonitorTemplateUtil, {
 import {
   DeviceMonitorFacts,
   findDuplicateDeviceMonitor,
+  getTemplatesOfDeviceMonitor,
   toDeviceMonitorCandidate,
 } from "../../Utils/Monitor/DeviceMonitorDuplicates";
 import DeviceMonitorDuplicateCheck from "../Utils/NetworkDevice/DeviceMonitorDuplicateCheck";
@@ -2022,6 +2023,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           monitorType: true,
           monitorSteps: true,
           monitorTemplateId: true,
+          createdFromMonitorTemplateId: true,
           autoProvisionedNetworkDeviceId: true,
         },
         sort: {
@@ -2045,12 +2047,15 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   }
 
   /*
-   * Record one stored monitor's (device, template) pair from its queryable
-   * provenance. Provenance is trusted only while the monitor still watches
-   * the device it was provisioned for: a drifted row settles nothing here,
-   * and the device's own monitors are read before anything is made for it
-   * (DeviceMonitorDuplicateCheck), where the unique (device, template) index
-   * keeps the rest.
+   * Record one stored monitor's (device, template) pairs from its queryable
+   * provenance: the template it is linked to, and the one it was created
+   * from when a person has linked it to another since or unlinked it - it is
+   * that template's monitor too, and the rule never makes it again (issues
+   * #11260, #11266, getTemplatesOfDeviceMonitor). Provenance is trusted
+   * only while the monitor still watches the device it was provisioned for:
+   * a drifted row settles nothing here, and the device's own monitors are
+   * read before anything is made for it (DeviceMonitorDuplicateCheck), where
+   * the unique (device, template) index keeps the rest.
    */
   private recordExistingMonitor(
     state: ExistingMonitorProvisioningState,
@@ -2063,15 +2068,22 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       monitor.autoProvisionedNetworkDeviceId?.toString() || "";
 
     if (
-      provenanceDeviceId &&
-      monitor.monitorTemplateId &&
-      referencedDeviceIds.size === 1 &&
-      referencedDeviceIds.has(provenanceDeviceId)
+      !provenanceDeviceId ||
+      referencedDeviceIds.size !== 1 ||
+      !referencedDeviceIds.has(provenanceDeviceId)
     ) {
+      return;
+    }
+
+    for (const templateId of getTemplatesOfDeviceMonitor({
+      monitorTemplateId: monitor.monitorTemplateId?.toString(),
+      createdFromMonitorTemplateId:
+        monitor.createdFromMonitorTemplateId?.toString(),
+    })) {
       state.autoProvisionedKeys.add(
         NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
           provenanceDeviceId,
-          monitor.monitorTemplateId,
+          templateId,
         ),
       );
     }

@@ -549,8 +549,47 @@ export default class SecurityPlaybookEngine {
         }
       }
 
+      /*
+       * A block of an address the case's requests reached through a proxy
+       * the project does not vouch for (#11389) - one trusted only because
+       * it is private, which may be a TCP proxy that passed on what the
+       * client wrote - is never made with nobody's approval: unless the
+       * person who picked the address started this run themselves, it
+       * waits for one, and its targets say why.
+       */
+      let waitsForPerson: boolean = false;
+
       if (
-        doesStepNeedApproval(step) &&
+        step.action === SecurityPlaybookActionType.BlockAddress &&
+        results[index]!.targets &&
+        results[index]!.approval?.decision !==
+          SecurityPlaybookApprovalDecision.Approved
+      ) {
+        const marked: Array<SecurityPlaybookTarget> =
+          await SecurityPlaybookTargets.markUnvouchedAddresses({
+            projectId,
+            securityCaseId,
+            targets: results[index]!.targets!,
+          });
+        const isPersonsOwnPick: boolean =
+          isOneStepRun &&
+          !isOneUptimeAi &&
+          !run.securityAutomaticResponsePolicyId &&
+          Boolean(run.triggeredByUserId);
+
+        results[index] = { ...results[index]!, targets: marked };
+        waitsForPerson =
+          !isPersonsOwnPick &&
+          marked.some((target: SecurityPlaybookTarget): boolean => {
+            return (
+              target.state === SecurityPlaybookTargetState.Proposed &&
+              target.unvouchedProxy !== undefined
+            );
+          });
+      }
+
+      if (
+        (doesStepNeedApproval(step) || waitsForPerson) &&
         results[index]!.approval?.decision !==
           SecurityPlaybookApprovalDecision.Approved
       ) {

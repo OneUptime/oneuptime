@@ -93,6 +93,7 @@ const MONITOR_FAMILIES: ReadonlyMap<string, MonitorFamily> = new Map<
   ["Proxmox", "Infrastructure"],
   ["OpenStack", "Infrastructure"],
   ["VMware", "Infrastructure"],
+  ["XCP-ng", "Infrastructure"],
   ["Ceph", "Infrastructure"],
   ["Storage Array", "Infrastructure"],
   ["IoT Device", "Infrastructure"],

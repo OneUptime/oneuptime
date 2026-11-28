@@ -254,8 +254,15 @@ describe("inventory MAC, firmware and network devices are wired end to end (issu
           "telemetry",
           "host-otel-collector.md",
         );
-        const blocks: number = (doc.match(/ {6}resource_attributes:\n/g) || [])
-          .length;
+        /*
+         * The system detector's blocks, whose attributes host.mac and
+         * os.version are. A cloud detector's (ec2, gcp, azure: the VM a
+         * host is) stamps neither.
+         */
+        const blocks: number = (
+          doc.match(/ {4}system:\n(?: {6}.*\n)*? {6}resource_attributes:\n/g) ||
+          []
+        ).length;
         expect(blocks).toBeGreaterThan(0);
 
         for (const key of ["host.mac", "os.version"]) {

@@ -486,8 +486,12 @@ describe("a forged X-Forwarded-For", () => {
 });
 
 describe("a project that cannot be read", () => {
-  test("both trust only private addresses", async () => {
-    useProject({});
+  /*
+   * #11389: not even a private address - the project may have turned
+   * those off - so both name the proxy, and what it forwarded is a claim.
+   */
+  test("both trust no proxy, not even a private one", async () => {
+    useProject({ project: { securityReadAccessLogForwardedFor: true } });
     getJestSpyOn(ProjectService, "findOneById").mockRejectedValue(
       new Error("database down") as never,
     );
@@ -495,6 +499,52 @@ describe("a project that cannot be read", () => {
     const { stored } = await bothName(combinedLine(LISTED_PROXY));
 
     expect(stored.principalIp).toBe(LISTED_PROXY);
+
+    const behindPrivate: { stored: { principalIp: string; trust: string } } =
+      await bothName(combinedLine(PRIVATE_PROXY, `${INNOCENT}, ${CLIENT}`));
+
+    expect(behindPrivate.stored.principalIp).toBe(PRIVATE_PROXY);
+    expect(behindPrivate.stored.trust).toBe("peer");
+  });
+});
+
+/*
+ * #11389: a project that turned Private Addresses off - where a new one
+ * starts - trusts a private proxy only when it lists it, and both say so.
+ */
+describe("a project that does not trust private addresses", () => {
+  test("both name the unlisted private proxy, and what it forwarded is a claim", async () => {
+    useProject({
+      project: {
+        securityReadAccessLogForwardedFor: true,
+        securityTrustPrivateAddresses: false,
+      },
+    });
+
+    const { stored, checked } = await bothName(
+      combinedLine(PRIVATE_PROXY, `${INNOCENT}, ${CLIENT}`),
+    );
+
+    expect(stored.principalIp).toBe(PRIVATE_PROXY);
+    expect(stored.trust).toBe("peer");
+    expect(checked.trustedProxies).toEqual([]);
+  });
+
+  test("both name the client a listed private proxy forwarded, listed as the reason", async () => {
+    useProject({
+      project: {
+        securityReadAccessLogForwardedFor: true,
+        securityTrustPrivateAddresses: false,
+        securityTrustedProxies: `${PRIVATE_PROXY}/32`,
+      },
+    });
+
+    const { stored, checked } = await bothName(
+      combinedLine(PRIVATE_PROXY, `${INNOCENT}, ${CLIENT}`),
+    );
+
+    expect(stored.principalIp).toBe(CLIENT);
+    expect(checked.trustedProxies[0]?.source).toBe(TrustedProxySource.Listed);
   });
 });
 

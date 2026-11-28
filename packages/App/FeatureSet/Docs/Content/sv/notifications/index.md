@@ -107,7 +107,8 @@ Dina larm skrivs på ditt språk: det du väljer i språkmenyn längst ned på v
 | --- | --- |
 | E-post, sms, pushnotiser och Telegram | Ditt språk |
 | Dina egna meddelanden i Slack, Microsoft Teams och Mattermost | Ditt språk |
-| Telefonsamtal och WhatsApp | Engelska |
+| Telefonsamtal | Ditt språk, när Twilio-kontot som ringer talar med en av OneUptimes röster; annars engelska. Se [Vad ett samtal säger](/docs/notifications/on-call-rules#vad-ett-samtal-säger) |
+| WhatsApp | Engelska |
 
 Det som ändras är OneUptimes egna ord: ämnesrader, rubriker, knappar och meningar, och namnen som varje nytt projekt startar med, som Identifierad och Kritisk incident. Det ditt team skrev står kvar som det skrevs: titlar, beskrivningar, rotorsaker och namnen på projekt, team och statusar som ditt projekt själv har namngett. Ett sms på ett språk med egen skrift, som ryska, japanska eller persiska, tar fler delar än ett på engelska.
 
@@ -122,7 +123,7 @@ Du äger saken, direkt eller via ett team, eller så har saken inga ägare och d
 :::
 
 :::details Mina larm är på engelska, fast instrumentpanelen inte är det
-Instrumentpanelen följer din webbläsare tills du väljer ett språk. Välj det i språkmenyn längst ned på varje sida, eller under **Språk** i **Användarprofil**. Telefonsamtal och WhatsApp-meddelanden förblir på engelska.
+Instrumentpanelen följer din webbläsare tills du väljer ett språk. Välj det i språkmenyn längst ned på varje sida, eller under **Språk** i **Användarprofil**. WhatsApp-meddelanden förblir på engelska, och det gör även telefonsamtal via ett Twilio-konto som behåller sin standardröst.
 :::
 
 :::details Jag lade till ett telefonnummer, men det finns inte i mina regler

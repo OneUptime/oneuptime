@@ -185,7 +185,7 @@ Everything is ready. Begin running and processing data.
 
 ### Finn vCenter-et i OneUptime
 
-Ingenting sendes før den første fullstendige gjennomgangen av inventaret er ferdig, så gi det ett innsamlingsintervall (2 minutter som standard). Åpne deretter **Produkter → Infrastruktur → VMware → Alle vCenter**: vCenter-et er der, med datasentrene, klyngene, ESXi-vertene, de virtuelle maskinene, datastorene og ressurspoolene sine. Siden **Topologi** tegner alt på ett kart og markerer det som krever oppmerksomhet: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
+Ingenting sendes før den første fullstendige gjennomgangen av inventaret er ferdig, så gi det ett innsamlingsintervall (2 minutter som standard). Åpne deretter **Produkter → Infrastruktur → VMware → Alle vCenter**: vCenter-et er der, med datasentrene, klyngene, ESXi-vertene, de virtuelle maskinene, datastorene og ressurspoolene sine. Siden **Topologi** tegner alt på ett kart og markerer det som krever oppmerksomhet: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart). I **Inventar** er hver VM, ESXi-vert, klynge og datastore et element med navnet vCenter gir det, med hvor det befinner seg under navnet: for en VM verten og klyngen, for en vert klyngen og datasenteret.
 :::
 
 ## Miljøvariabler
@@ -246,7 +246,7 @@ Mottakeren sender ingen måling for strømtilstanden til en VM. Den sender `vcen
 
 Siden **Oversikt** svarer først på "er dette vCenter-et friskt". Topptekstet viser om data kommer fram og hvordan det står til med vCenter-et: **Feilfri**, **Redusert** mens noe trenger en titt, **Ikke feilfri** mens noe trenger noen nå, eller **Tilstand ukjent** mens vCenter-et er frakoblet, siden den siste rapporten da ikke lenger er sannheten. Brikkene teller datasentrene, klyngene, ESXi-vertene vCenter når av alle, de påslåtte VM-ene av alle, malene og datastorene, og alle unntatt datasentrene åpner listen sin.
 
-Deretter kommer **Krever oppmerksomhet**: alt som trenger noen, det mest presserende først, hver med årsaken og ett steg fra siden sin. En ESXi-vert som vCenter ikke når, en datastore som er mer enn 90 % full, og en VM der verten swapper minnet til disk, er kritiske. En vert som er mer enn 90 % opptatt, en datastore som er mer enn 80 % full, en VM som venter på en ledig CPU eller der verten tar tilbake minne, en klynge med verter som ikke er effektive eller uten minnet til å miste én av dem, og alarmene vCenter teller i hvert datasenter, trenger en titt. Hver terskel er den som [varslingsmalen](/docs/monitor/vmware-monitor#ferdige-varslingsmaler) utløses ved. Når ingenting krever oppmerksomhet, vises ikke noe kort.
+Deretter kommer **Krever oppmerksomhet**: alt som trenger noen, det mest presserende først, hver med årsaken og ett steg fra siden sin. En ESXi-vert som vCenter ikke når, en datastore som er mer enn 90 % full, og en VM der verten swapper ut minnet akkurat nå, er kritiske. En vert som er mer enn 90 % opptatt, en datastore som er mer enn 80 % full, en VM som venter på en ledig CPU, der verten tar tilbake minne, eller som leser swappet minne tilbake eller beholder mer enn 1 GiB av det, en klynge med verter som ikke er effektive eller uten minnet til å miste én av dem, og alarmene vCenter teller i hvert datasenter, trenger en titt. Hver terskel er en som prosjektet ditt kan endre eller slå av: se [Helseregler](#helseregler). Når ingenting krever oppmerksomhet, vises ikke noe kort.
 
 Under det står de effektive vertene, vertenes CPU og minne vektet etter kapasitet, den fulleste datastoren og den verste CPU ready-tiden for en VM, med diagrammene sine; **ESXi-verter**, status og last for hver vert ett steg fra siden dens; og de største forbrukerne.
 
@@ -263,6 +263,37 @@ vCenter rapporterer en verts CPU- og minnebruk bare mens verten er tilkoblet og 
 | **Slått av eller i standby** | Den rapporterer ingen bruk, og datasenteret har verter som er slått av, og andre i standby. |
 | **Ingen bruk rapportert** | Den rapporterer ingen bruk, og det datasenteret teller, sier ikke hvorfor. Den trenger en titt. |
 | **Rapporterer ikke** | vCenter har ikke rapportert den på mer enn 15 minutter. |
+
+### Swappet minne betyr ikke at det swappes
+
+`vcenter.vm.memory.swapped` er hvor mye av minnet til en VM som ligger i swapfilen til verten. ESXi lar en swappet side ligge der til VM-en bruker den igjen, så en VM kan beholde noen få MiB swappet i ukevis etter at minnepresset som la dem der, er borte. Minne som er igjen fra tidligere, er ikke et problem i seg selv: at verten swapper ut minne akkurat nå, er det.
+
+Verken agentens `vcenter`-mottaker eller en sonde sender en swaprate, så OneUptime regner den ut fra hvordan det swappede minnet til en VM endrer seg mellom to rapporter. Siden til en VM viser under **Swapping nå** hvilken vei det går. Med standardreglene:
+
+| Swappet minne for en VM | Det Krever oppmerksomhet sier |
+| --- | --- |
+| Vokser: verten swapper det ut akkurat nå | Kritisk |
+| Krymper raskere enn 1 MiB/s: VM-en leser swappet minne tilbake | Trenger en titt |
+| Holder seg likt, mer enn 1 GiB | Trenger en titt, som swappet tidligere |
+| Holder seg likt, 1 GiB eller mindre | Ingenting |
+
+En rate trenger to rapporter med mindre enn 15 minutters mellomrom, så den første rapporten for en VM, eller en etter et opphold, sier bare hvor mye som er swappet. En ressurspool trenger bare en titt mens minnet dens swappes ut.
+
+### Helseregler
+
+Hver terskel ovenfor er en regel prosjektet ditt kan endre: Åpne **Produkter → Infrastruktur → VMware**, deretter **Innstillinger → Helseregler**. Reglene gjelder for hvert vCenter i prosjektet: **Krever oppmerksomhet**, siden til hvert objekt, Status-kolonnen og utnyttelseslinjene i listene, og Topologi. Flisene i Oversikt som tar gjennomsnittet over verter eller VM-er, har sine egne terskler. La en terskel stå tom for å slå av regelen dens. Det som ikke har noen terskel, vises alltid: en vert som vCenter ikke når, en klynge uten minnet til å miste en vert, og alarmene vCenter teller.
+
+| Kort | Regel | Standard |
+| --- | --- | --- |
+| **Travle ESXi-verter** | CPU, minne | En advarsel over 90 % for hver |
+| **Fulle datalagre** | Brukt plass | En advarsel over 80 %, kritisk over 90 % |
+| **Swapping i VM-er** | Swapping ut nå | Kritisk over 0 KiB/s: all swapping ut |
+| **Swapping i VM-er** | Leser swappet minne tilbake | En advarsel over 1024 KiB/s |
+| **Swapping i VM-er** | Swappet tidligere, ingen swapping nå | En advarsel over 1024 MiB |
+| **Ballooning og CPU Ready for VM-er** | Minne tatt tilbake ved ballooning, CPU ready | En advarsel over 0 MiB (all ballooning), over 10 % |
+| **Swapping i ressurspooler** | Swapping ut nå | En advarsel over 0 KiB/s: all swapping ut |
+
+Standardverdiene er tersklene [varslingsmalene](/docs/monitor/vmware-monitor#ferdige-varslingsmaler) utløses ved, unntatt for swapping: malen VM Memory Swapping utløses ved alt swappet minne. Å endre en regel endrer hva sidene markerer, ikke monitorene dine, som beholder sine egne kriterier.
 
 ### ESXi-verter
 
@@ -285,7 +316,7 @@ De seks vertsvarslene (en vert som ikke svarer, CPU- og minnemetning, høy diskl
 
 Avslåtte virtuelle maskiner og maler vises også. vCenter rapporterer CPU-tellere bare for påslåtte VM-er, så CPU-kolonnene deres viser N/A i stedet for en villedende null.
 
-Siden til en VM sier hva den gjør (**Kjører**, **Slått av**, **Mal**, eller **Frakoblet** mens vCenter ikke når verten dens) og hvor den kjører, med verten og klyngen ett steg unna. **Oversikt** har **Krever oppmerksomhet** for VM-en, CPU, CPU ready, minne og disk, hendelsene og varslene som er åpne på den, hvilke av de sju VM-varslene som er slått på, og detaljene. **Målinger** har diagrammene.
+Siden til en VM sier hva den gjør (**Kjører**, **Slått av**, **Mal**, eller **Frakoblet** mens vCenter ikke når verten dens) og hvor den kjører, med verten og klyngen ett steg unna. **Oversikt** har **Krever oppmerksomhet** for VM-en, CPU, CPU ready, minne og disk, hendelsene og varslene som er åpne på den, hvilke av de sju VM-varslene som er slått på, og detaljene, med hvor mye av minnet som er swappet, og om verten flytter det akkurat nå (**Swapping nå**). **Målinger** har diagrammene.
 
 ### Datastores
 

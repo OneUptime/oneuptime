@@ -257,3 +257,100 @@ describe("MonitorAutoResolveTemplates.isEmpty", () => {
     ).toBe(false);
   });
 });
+
+/*
+ * WHAT THE CRITERIA A WRITE TOOK OFF A MONITOR RESOLVED ON THEIR OWN
+ * (issues #11260, #11266): a template's criteria replace the monitor's on a
+ * link that brings its settings, and are cleared on an unlink that clears
+ * them. What the removed criteria opened, nothing can resolve once they are
+ * gone - a check matches records by their criteria's id - so the write
+ * resolves it itself (MonitorCriteriaReplaced).
+ */
+describe("MonitorAutoResolveTemplates.ofCriteriaRemoved", () => {
+  const before: MonitorSteps = steps(
+    [
+      criteria({
+        id: "offline",
+        incidents: [{ id: "offline-incident", autoResolve: true }],
+        alerts: [{ id: "offline-alert", autoResolve: true }],
+      }),
+      criteria({
+        id: "degraded",
+        alerts: [{ id: "degraded-alert", autoResolve: true }],
+      }),
+    ],
+    [
+      criteria({
+        id: "slow",
+        incidents: [{ id: "slow-incident", autoResolve: true }],
+      }),
+    ],
+  );
+
+  test("lists every criteria of before when after has none: an unlink that clears them", () => {
+    expect(
+      MonitorAutoResolveTemplates.ofCriteriaRemoved({
+        before: before,
+        after: steps([], []),
+      }),
+    ).toEqual({
+      incidents: {
+        offline: ["offline-incident"],
+        slow: ["slow-incident"],
+      },
+      alerts: {
+        offline: ["offline-alert"],
+        degraded: ["degraded-alert"],
+      },
+    });
+  });
+
+  test("leaves out a criteria after keeps by its id, in any step: it goes on resolving its own records", () => {
+    expect(
+      MonitorAutoResolveTemplates.ofCriteriaRemoved({
+        before: before,
+        after: steps(
+          [criteria({ id: "brand-new" })],
+          [criteria({ id: "offline" })],
+        ),
+      }),
+    ).toEqual({
+      incidents: { slow: ["slow-incident"] },
+      alerts: { degraded: ["degraded-alert"] },
+    });
+  });
+
+  test("is empty when after keeps every criteria, or before had none that resolve on their own", () => {
+    expect(
+      MonitorAutoResolveTemplates.isEmpty(
+        MonitorAutoResolveTemplates.ofCriteriaRemoved({
+          before: before,
+          after: before,
+        }),
+      ),
+    ).toBe(true);
+
+    expect(
+      MonitorAutoResolveTemplates.isEmpty(
+        MonitorAutoResolveTemplates.ofCriteriaRemoved({
+          before: steps([
+            criteria({ id: "by-hand", incidents: [{ id: "x" }] }),
+          ]),
+          after: undefined,
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test("lists everything before resolved when after is missing", () => {
+    expect(
+      MonitorAutoResolveTemplates.ofCriteriaRemoved({
+        before: before,
+        after: null,
+      }).incidents,
+    ).toEqual({
+      offline: ["offline-incident"],
+      slow: ["slow-incident"],
+    });
+  });
+});

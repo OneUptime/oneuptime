@@ -429,6 +429,44 @@ Incident not found.
 
 پیش‌تر با بدنه‌ای خالی `200` پاسخ می‌داد. فهرست (`get-list`) و شمارش همچنان با `200` و رکوردهایی که می‌توانید بخوانید پاسخ می‌دهند، و اگر هیچ نباشد، هیچ. فراهم‌کننده Terraform یک `404` هنگام تازه‌سازی را منبعی رفته می‌خواند و آن را از state برمی‌دارد، پس plan بعدی دوباره آن را می‌سازد: به کلید API‌ای که به کار می‌برد مجوزها و برچسب‌هایی بدهید که بتواند هر منبعی را که مدیریت می‌کند بخواند. ابزارهای MCP به یک `404` با خطایی پاسخ می‌دهند که به ابزار فهرست متناظر اشاره می‌کند، و CLI با کد `3` خارج می‌شود.
 
+### تصویرهای Markdown یک رکورد
+
+تصویری که در Markdown چسبانده شده، مثل یک نماگرفت در توضیحات یک حادثه، یک فیلد سفارشی Markdown یا یک یادداشت، یک فایل خصوصی است. نشانی‌اش (`/file/image/access-token/...`) آن را فقط برای کسی باز می‌کند که به پروژه وارد شده است، برای همین یک کلید API آن را از راه رکوردی می‌خواند که نشانش می‌دهد:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+رکورد به‌عنوان کلید خوانده می‌شود، همان‌طور که `get-item` می‌خواندش: کلید به مجوز خواندن آن و برچسب‌هایش نیاز دارد. پاسخ هر تصویری را که Markdown رکورد نشان می‌دهد، به همان ترتیب، در خود دارد: `name`، `mimeType`، `sizeInBytes`، داده‌اش به `base64`، یک `contentId` برای پیوست درون‌خطی ایمیل، `urls` که Markdown آن را با آن‌ها نشان می‌دهد و `fields` که در آن‌هاست. زیر `leftOut` فایل‌هایی هستند که Markdown نشان می‌دهد ولی داده نمی‌شوند، هر کدام با یک `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+فقط عکس‌هایی داده می‌شوند که در پروژهٔ خود رکورد بارگذاری شده‌اند، حداکثر 20 تا و روی هم 10 MB، و هرگز یک SVG. هر نوع رکوردی که Markdown دارد همین درخواست را دارد، مثل `/api/incident-public-note/<id>/markdown-files` یا `/api/alert/<id>/markdown-files`. رکوردی که وجود ندارد، یا کلید اجازهٔ خواندنش را ندارد، مثل `get-item` با `404` پاسخ می‌دهد، و با `422` وقتی کلید اصلاً اجازهٔ خواندن آن نوع رکورد را ندارد. یک گردش کاری همین تصویرها را با [دریافت فایل‌ها از Markdown](/docs/workflows/components#get-files-from-markdown) می‌خواند.
+
 ## مرجع کامل نقطه‌های پایانی
 
 هر منبع، نقطه پایانی و فیلد در [مرجع API OneUptime](/reference) فهرست شده است. این مرجع به چند زبان در دسترس است: زبان شما از مرورگرتان برگزیده می‌شود، و هر وقت بخواهید می‌توانید با انتخابگر بالای صفحه آن را عوض کنید.

@@ -668,9 +668,14 @@ describe("Get from Zoom", () => {
   });
 
   test("a request that fails is said as an error", async () => {
+    /*
+     * A provider that does not answer is an APIException, which the server
+     * answers as a 500 with its words (Response.sendErrorResponse). A 502
+     * is a gateway's own, said as the server not answering (#8413).
+     */
     postAnswer = (): HTTPErrorResponse => {
       return new HTTPErrorResponse(
-        502,
+        500,
         { message: "Zoom did not answer in time." },
         {},
       );

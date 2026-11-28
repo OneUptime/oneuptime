@@ -199,7 +199,12 @@ const PROJECT_FORMS: Array<ProjectForm> = SOURCES.flatMap(
           attributeExpression(element, "modelType") === "Project";
 
         if (name === "ModelFormModal") {
-          return isProject;
+          /*
+           * A modal that edits the project it is given creates none: the
+           * Security Events access log format saves one column of the
+           * current project (modelIdToEdit).
+           */
+          return isProject && !attribute(element, "modelIdToEdit");
         }
 
         if (name === "ModelTable") {

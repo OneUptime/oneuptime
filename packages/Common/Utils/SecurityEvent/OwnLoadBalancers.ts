@@ -54,9 +54,15 @@ import { readAddressText } from "./ClientAddressTrust";
  * inside the cluster forwards from a private address, which every project
  * trusts already.
  *
- * Only public addresses are kept: a private one is trusted anyway. What is
- * read here is what the inventory recorded: an AWS load balancer is listed
- * by its DNS name alone, which the server resolves
+ * Their public and private addresses are both kept: a project may trust no
+ * private address it was not told of (#11389), and an internal load
+ * balancer's - an internal AWS Application Load Balancer's, a Google Cloud
+ * internal Application Load Balancer's forwarding rule - is then trusted
+ * because it is the load balancer's. So is a Google Cloud proxy-only
+ * subnet that only the project's Application Load Balancers connect from
+ * (PassOnLoadBalancers.readGoogleProxyOnlySubnetUses): nothing else can be
+ * put in one. What is read here is what the inventory recorded: an AWS
+ * load balancer is listed by its DNS name alone, which the server resolves
  * (Server/Utils/SecurityEvent/SecurityOwnLoadBalancers). Pure, so a test
  * holds every rule to its record.
  */
@@ -83,6 +89,11 @@ export enum OwnLoadBalancerKind {
   AwsClassicLoadBalancer = "aws-classic-load-balancer",
   GoogleCloudApplicationLoadBalancer = "google-cloud-application-load-balancer",
   AzureApplicationGateway = "azure-application-gateway",
+  /*
+   * A Google Cloud proxy-only subnet only the project's Application Load
+   * Balancers connect from (#11389): listed by its range.
+   */
+  GoogleCloudProxyOnlySubnet = "google-cloud-proxy-only-subnet",
 }
 
 /*
@@ -98,6 +109,8 @@ export const OWN_LOAD_BALANCER_PRODUCT_NAMES: Readonly<
   [OwnLoadBalancerKind.GoogleCloudApplicationLoadBalancer]:
     "Google Cloud Application Load Balancer",
   [OwnLoadBalancerKind.AzureApplicationGateway]: "Azure Application Gateway",
+  [OwnLoadBalancerKind.GoogleCloudProxyOnlySubnet]:
+    "Google Cloud proxy-only subnet",
 };
 
 export function isOwnLoadBalancerKind(
@@ -123,7 +136,7 @@ export interface OwnLoadBalancerReading {
   kind: OwnLoadBalancerKind;
   // The name it goes by: the load balancer's, the forwarding rule's, the gateway's.
   name: string;
-  // Its public addresses as the record names them, each once.
+  // Its addresses, public and private, as the record names them, each once.
   addresses: Array<string>;
   // The DNS names its addresses are behind, to resolve: an AWS load balancer's.
   hostNames: Array<string>;
@@ -167,23 +180,28 @@ function readText(value: unknown): string {
 }
 
 /*
- * A record's addresses that are on the internet, each once however it is
- * written, as written (an IPv4 address an IPv6 one maps as the IPv4 one): a
- * private one is trusted without being listed.
+ * A record's addresses a connection can come from - on the internet or in
+ * a private network - each once however it is written, as written (an IPv4
+ * address an IPv6 one maps as the IPv4 one). A private one is kept too
+ * (#11389): a project may trust no private address it was not told of.
+ * Never a loopback, link-local or reserved one, which is nobody's load
+ * balancer.
  */
-function keepPublic(values: ReadonlyArray<string>): Array<string> {
+function keepConnectable(values: ReadonlyArray<string>): Array<string> {
   const kept: Array<string> = [];
   const seen: Set<string> = new Set<string>();
 
   for (const value of values) {
     const address: string = readAddressText(value);
     const canonical: string | null = canonicalAddress(address);
+    const scope: SecurityAddressScope | null = getSecurityAddressScope(address);
 
     if (
       !address ||
       !canonical ||
       seen.has(canonical) ||
-      getSecurityAddressScope(address) !== SecurityAddressScope.Public
+      (scope !== SecurityAddressScope.Public &&
+        scope !== SecurityAddressScope.Private)
     ) {
       continue;
     }
@@ -367,6 +385,43 @@ export const GOOGLE_FRONT_END_RANGES_SOURCE: string =
   "https://cloud.google.com/load-balancing/docs/firewall-rules";
 export const GOOGLE_FRONT_END_RANGES_CHECKED_ON: string = "2026-11-27";
 
+/*
+ * The ranges Google's health checks of a load balancer's backends come from
+ * (#11388), beside the front ends' own (35.191.0.0/16 is both): the IPv6
+ * probes of most load balancers, and the probes of the external passthrough
+ * Network Load Balancers, regional and global. Google publishes them on its
+ * health checks page (GOOGLE_HEALTH_CHECK_RANGES_SOURCE). Checked there on
+ * GOOGLE_HEALTH_CHECK_RANGES_CHECKED_ON, and against that day's goog.json
+ * and cloud.json: each is in Google's own ranges and in none a Google Cloud
+ * customer can hold. Never trusted as a proxy - a health check forwards
+ * nobody - and never blocked (SecurityProtectedAddresses): a block of one
+ * fails the checks and takes the backends out of service.
+ */
+export const GOOGLE_HEALTH_CHECK_RANGES: ReadonlyArray<string> = [
+  "2600:2d00:1:b029::/64",
+  "209.85.152.0/22",
+  "209.85.204.0/22",
+  "2600:1901:8001::/48",
+  "136.124.104.0/22",
+  "136.124.108.0/22",
+  "2600:1904:7::/48",
+  "2600:1904:8::/48",
+];
+
+export const GOOGLE_HEALTH_CHECK_RANGES_SOURCE: string =
+  "https://cloud.google.com/load-balancing/docs/health-check-concepts";
+export const GOOGLE_HEALTH_CHECK_RANGES_CHECKED_ON: string = "2026-11-28";
+
+/*
+ * Every range Google's load balancers connect to a project's backends from:
+ * their front ends and their health checks, which no block may cover
+ * (#11388).
+ */
+export const GOOGLE_LOAD_BALANCER_SOURCE_RANGES: ReadonlyArray<string> = [
+  ...GOOGLE_FRONT_END_RANGES,
+  ...GOOGLE_HEALTH_CHECK_RANGES,
+];
+
 // How a Google Cloud forwarding rule's load balancer uses Google's front ends.
 export enum GoogleFrontEndUse {
   // An Application Load Balancer: its front ends add the client to X-Forwarded-For.
@@ -423,9 +478,9 @@ function routesOn(record: OwnLoadBalancerRecord): boolean {
  * Only an external one does: the scheme EXTERNAL (a classic load balancer,
  * global in the Premium Tier and regional in the Standard) or a global
  * EXTERNAL_MANAGED (a global external load balancer). A regional
- * EXTERNAL_MANAGED one connects from its region's proxy-only subnet, an
- * internal one from inside the network - private addresses, trusted
- * anyway - and a passthrough one passes the client's own connection on.
+ * EXTERNAL_MANAGED one and an internal one connect from a proxy-only
+ * subnet (PassOnLoadBalancers, #11389), and a passthrough one passes the
+ * client's own connection on.
  *
  * Of those, one that routes to a URL map, through an HTTP or HTTPS proxy,
  * forwards; one that routes through a TCP or SSL proxy passes on. A global
@@ -512,7 +567,7 @@ export function readOwnLoadBalancer(
   ) {
     const endpoints: { addresses: Array<string>; hostNames: Array<string> } =
       splitEndpoints(record.cloudEndpoints);
-    const addresses: Array<string> = keepPublic(endpoints.addresses);
+    const addresses: Array<string> = keepConnectable(endpoints.addresses);
 
     if (addresses.length === 0 && endpoints.hostNames.length === 0) {
       return null;
@@ -529,7 +584,7 @@ export function readOwnLoadBalancer(
   }
 
   if (isGoogleCloudApplicationForwardingRule(record)) {
-    const addresses: Array<string> = keepPublic([
+    const addresses: Array<string> = keepConnectable([
       readText(readProperties(record.cloudProperties)["IPAddress"]),
       ...splitEndpoints(record.cloudEndpoints).addresses,
     ]);
@@ -548,7 +603,7 @@ export function readOwnLoadBalancer(
     getAzureApplicationGatewayOf(record);
 
   if (gateway) {
-    const addresses: Array<string> = keepPublic(
+    const addresses: Array<string> = keepConnectable(
       splitEndpoints(record.cloudEndpoints).addresses,
     );
 
@@ -567,11 +622,12 @@ export function readOwnLoadBalancer(
 
 /*
  * The addresses a name resolved to that may join a load balancer's: public
- * ones only, each once, beside the ones it already holds.
+ * and private ones (an internal load balancer's name resolves to these),
+ * each once, beside the ones it already holds.
  */
 export function addResolvedAddresses(
   reading: OwnLoadBalancerReading,
   resolved: ReadonlyArray<string>,
 ): Array<string> {
-  return keepPublic([...reading.addresses, ...resolved]);
+  return keepConnectable([...reading.addresses, ...resolved]);
 }

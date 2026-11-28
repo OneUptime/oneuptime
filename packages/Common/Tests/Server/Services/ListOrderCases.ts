@@ -6,6 +6,7 @@ import AlertMeasurementService from "../../../Server/Services/AlertMeasurementSe
 import AlertReminderRuleService from "../../../Server/Services/AlertReminderRuleService";
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import AlertStateService from "../../../Server/Services/AlertStateService";
+import CloudCostGroupService from "../../../Server/Services/CloudCostGroupService";
 import HostCollectorConfigService from "../../../Server/Services/HostCollectorConfigService";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
 import IncidentGroupingRuleService from "../../../Server/Services/IncidentGroupingRuleService";
@@ -125,6 +126,9 @@ const SERVICES: Record<string, DatabaseService<BaseModel>> = {
     AlertReminderRuleService as unknown as DatabaseService<BaseModel>,
   AlertSeverity: AlertSeverityService as unknown as DatabaseService<BaseModel>,
   AlertState: AlertStateService as unknown as DatabaseService<BaseModel>,
+  // A cost view's groups: a list of the view's, not of the project's (#11006).
+  CloudCostGroup:
+    CloudCostGroupService as unknown as DatabaseService<BaseModel>,
   HostCollectorConfig:
     HostCollectorConfigService as unknown as DatabaseService<BaseModel>,
   IncidentCustomField:

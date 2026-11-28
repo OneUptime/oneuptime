@@ -147,6 +147,7 @@ app:
 | `queueDepth` | Probe requests waiting for a slot now, on every app pod. Above 0 for minutes: add app pods. |
 | `slotWaitP95Ms` | How long requests waited for a slot, on the busiest app pod. |
 | `refusalsPerMinute` | Probe requests answered busy. |
+| `reconnectsAskedPerMinute` | Answers that asked a probe's connection to reconnect, so its next request can go to another app pod: a few a second while an app pod is backed up. Above 0 for minutes: add app pods. |
 | `dispatchLagP95Seconds` | How late monitors were handed out, past the moment their interval made them due. Close to your shortest interval while no request waits: add probe replicas. |
 | `monitorsLateByAnIntervalPerMinute` | Monitors handed out a whole interval late: checks that were skipped. |
 | `monitorTestWaitP95Seconds` | How long Test Monitor runs waited for a probe. |

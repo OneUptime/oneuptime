@@ -429,6 +429,44 @@ Incident not found.
 
 Den brukade svara `200` med en tom kropp. En lista (`get-list`) och en räkning svarar fortfarande `200` med de poster du får läsa, inga när det inte finns några. Terraform-providern läser en `404` vid en refresh som en resurs som är borta och tar bort den från sitt state, så att nästa plan skapar den igen: ge API-nyckeln som den använder behörigheterna, och etiketterna, för att läsa varje resurs som den hanterar. MCP-verktygen svarar på en `404` med ett fel som pekar på motsvarande listverktyg, och CLI:t avslutas med koden `3`.
 
+### Bilder i en posts Markdown
+
+En bild som klistrats in i Markdown, som en skärmbild i en incidents beskrivning, ett anpassat Markdown-fält eller en anteckning, är en privat fil. Dess adress (`/file/image/access-token/...`) öppnar den bara för en person som är inloggad i projektet, så en API-nyckel läser den i stället genom posten som visar den:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Posten läses som nyckeln, så som `get-item` läser den: nyckeln behöver behörighet att läsa den, och dess etiketter. Svaret innehåller varje bild som postens Markdown visar, i den ordning den visar dem: dess `name`, `mimeType`, `sizeInBytes`, dess data i `base64`, ett `contentId` för en inbäddad bilaga i ett e-postmeddelande, de `urls` som Markdown visar den med och de `fields` den står i. Under `leftOut` står filerna som Markdown visar men som inte lämnas ut, var och en med en `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+Bara bilder som laddats upp till postens eget projekt lämnas ut, upp till 20 och 10 MB totalt, och aldrig en SVG. Varje sorts post med Markdown har samma begäran, som `/api/incident-public-note/<id>/markdown-files` eller `/api/alert/<id>/markdown-files`. En post som inte finns, eller som nyckeln inte får läsa, svarar `404` som `get-item` gör, och `422` när nyckeln inte får läsa den sortens post alls. Ett arbetsflöde läser samma bilder med [Hämta filer från Markdown](/docs/workflows/components#get-files-from-markdown).
+
 ## Den fullständiga referensen över slutpunkter
 
 Varje resurs, slutpunkt och fält finns i [OneUptimes API-referens](/reference). Den finns på flera språk: ditt språk väljs utifrån din webbläsare, och du kan byta när som helst med väljaren högst upp på sidan.

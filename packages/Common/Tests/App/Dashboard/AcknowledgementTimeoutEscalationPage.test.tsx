@@ -32,7 +32,10 @@ import Permission from "../../../Types/Permission";
  * page opens, that names what it holds - and, while the policy pages again,
  * after how long - so nobody has to open it to know.
  *
- * The page, the fold and the card are the real ones; the escalation rules
+ * The fold also holds the Incident Role card, the role the policy gives the
+ * people it pages, beside the timeout's: it names both, the timeout first.
+ *
+ * The page, the fold and the cards are the real ones; the escalation rules
  * and the Repeat Policy above them are stood in for, and the network and the
  * permission snapshot are stubbed.
  */
@@ -230,6 +233,41 @@ function body(fold: HTMLElement): HTMLElement {
   return within(fold).getByTestId("folded-section-body");
 }
 
+// The keys of the cards the folded header names, in its order.
+function itemKeys(fold: HTMLElement): Array<string | null> {
+  return within(fold)
+    .getAllByTestId("folded-section-item")
+    .map((item: HTMLElement): string | null => {
+      return item.getAttribute("data-item-key");
+    });
+}
+
+// What the folded header says of the timeout, beside the Incident Role.
+function timeoutItem(fold: HTMLElement): HTMLElement {
+  const item: HTMLElement | undefined = within(fold)
+    .getAllByTestId("folded-section-item")
+    .find((candidate: HTMLElement): boolean => {
+      return (
+        candidate.getAttribute("data-item-key") === "acknowledgement-timeout"
+      );
+    });
+
+  expect(item).toBeDefined();
+
+  return item as HTMLElement;
+}
+
+// The timeout's card, at its place in the fold: its Edit is not the role's.
+function timeoutCard(fold: HTMLElement): HTMLElement {
+  const card: HTMLElement | null = fold.querySelector<HTMLElement>(
+    "#acknowledgement-timeout",
+  );
+
+  expect(card).not.toBeNull();
+
+  return card as HTMLElement;
+}
+
 describe("a policy's Escalation Rules page", () => {
   test("shows the rules and the Repeat Policy first, and the timeout only under More settings", async () => {
     const fold: HTMLElement = await renderPage({});
@@ -263,7 +301,12 @@ describe("a policy's Escalation Rules page", () => {
       acknowledgementTimeoutInMinutes: null,
     });
 
-    const item: HTMLElement = within(fold).getByTestId("folded-section-item");
+    expect(itemKeys(fold)).toEqual([
+      "acknowledgement-timeout",
+      "incident-role",
+    ]);
+
+    const item: HTMLElement = timeoutItem(fold);
 
     expect(item).toHaveTextContent(/^Acknowledgement Timeout$/);
     expect(item).toHaveAttribute("data-item-set", "false");
@@ -275,13 +318,10 @@ describe("a policy's Escalation Rules page", () => {
     });
 
     await waitFor(() => {
-      expect(within(fold).getByTestId("folded-section-item")).toHaveAttribute(
-        "data-item-set",
-        "true",
-      );
+      expect(timeoutItem(fold)).toHaveAttribute("data-item-set", "true");
     });
 
-    expect(within(fold).getByTestId("folded-section-item")).toHaveTextContent(
+    expect(timeoutItem(fold)).toHaveTextContent(
       "Acknowledgement Timeout: 30 min",
     );
     // Still folded: knowing it is on does not need the card open.
@@ -306,7 +346,9 @@ describe("a policy's Escalation Rules page", () => {
     ).toHaveTextContent("Don't page again");
 
     await act(async () => {
-      fireEvent.click(within(body(fold)).getByRole("button", { name: "Edit" }));
+      fireEvent.click(
+        within(timeoutCard(fold)).getByRole("button", { name: "Edit" }),
+      );
     });
     await settle();
 
@@ -337,7 +379,7 @@ describe("a policy's Escalation Rules page", () => {
     await settle();
 
     expect(header(fold)).toHaveAttribute("aria-expanded", "false");
-    expect(within(fold).getByTestId("folded-section-item")).toHaveTextContent(
+    expect(timeoutItem(fold)).toHaveTextContent(
       "Acknowledgement Timeout: 30 min",
     );
   });
@@ -374,7 +416,9 @@ describe("a policy's Escalation Rules page", () => {
     await settle();
 
     await act(async () => {
-      fireEvent.click(within(body(fold)).getByRole("button", { name: "Edit" }));
+      fireEvent.click(
+        within(timeoutCard(fold)).getByRole("button", { name: "Edit" }),
+      );
     });
     await settle();
 
@@ -418,15 +462,16 @@ describe("a link to the Acknowledgement Timeout", () => {
   test("names it at the card's place", async () => {
     const fold: HTMLElement = await renderPage({});
 
-    expect(
-      within(fold)
-        .getByTestId("folded-section-item")
-        .getAttribute("data-item-key"),
-    ).toBe("acknowledgement-timeout");
-    // The card is in the fold, at that place.
+    // Each card at its own place: the timeout's, then the Incident Role's.
+    expect(itemKeys(fold)).toEqual([
+      "acknowledgement-timeout",
+      "incident-role",
+    ]);
+    // Each card is in the fold, at that place.
     expect(fold).toContainElement(
       document.getElementById("acknowledgement-timeout"),
     );
+    expect(fold).toContainElement(document.getElementById("incident-role"));
   });
 
   test("opened at #acknowledgement-timeout, More settings opens there", async () => {
