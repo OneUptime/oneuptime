@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-名前が変わったキーは、以前の名前でも引き続き読み取られます。レイヤーの制限の種類は `restrictionType` 、または以前の綴り `restictionType` に書き、応答には両方が含まれます。
+名前が変わったキーは、以前の名前でも引き続き読み取られます。レイヤーの制限の種類は `restrictionType` 、または以前の綴り `restictionType` に書き、応答には両方が含まれます。古い綴りは応答では非推奨です。応答には 2027 年 6 月 1 日以降にリリースされる最初のメジャーバージョンまで含まれます。書き込みでは常に読み取られます。
+
+値は、それが示す内容どおりであることも求められます。レイヤーの週単位の時間帯は指定した曜日にオンコールになるため、その `startTime` と `endTime` は、スケジュールのタイムゾーンでそれぞれ `startDay` と `endDay` の曜日に当たる必要があります。別の曜日の日付になっている時間帯は、その時間帯を示し、代わりに送れる指定曜日の時刻を示す `400` で拒否されます:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### プロジェクトの購入元
 
@@ -422,6 +428,44 @@ Incident not found.
 ```
 
 以前は、空の本文で `200` を返していました。一覧 (`get-list`) と件数は引き続き、読み取りを許可されたレコードで `200` を返し、なければ何も返しません。Terraform プロバイダーは、リフレッシュ時の `404` を存在しなくなったリソースとして扱い、state から削除するため、次の plan で再び作成されます。プロバイダーが使う API キーには、管理するすべてのリソースを読み取れる権限とラベルを与えてください。MCP ツールは `404` に対して、対応する一覧ツールを案内するエラーを返し、CLI はコード `3` で終了します。
+
+### レコードの Markdown にある画像
+
+Markdown に貼り付けた画像 (インシデントの説明、Markdown のカスタムフィールド、メモにあるスクリーンショットなど) は非公開のファイルです。そのアドレス (`/file/image/access-token/...`) で開けるのはプロジェクトにサインインしている人だけなので、API キーは画像を表示しているレコードを通して読み取ります。
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+レコードは `get-item` と同じように、キーとして読み取られます。キーには、そのレコードを読む権限とそのラベルが必要です。応答には、レコードの Markdown が表示する画像が表示順に入り、それぞれ `name`、`mimeType`、`sizeInBytes`、`base64` のデータ、メールのインライン添付用の `contentId`、Markdown が表示に使う `urls`、画像がある `fields` を持ちます。`leftOut` には、Markdown が表示しているのに渡されなかったファイルが、それぞれ `reason` 付きで入ります。
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+渡されるのは、レコード自身のプロジェクトにアップロードされた画像だけで、最大 20 枚、合計 10 MB までです。SVG は渡されません。Markdown を持つレコードの種類にはどれも同じリクエストがあり、`/api/incident-public-note/<id>/markdown-files` や `/api/alert/<id>/markdown-files` のようになります。存在しないレコードや、キーが読めないレコードには `get-item` と同じく `404` が返り、キーがその種類のレコードをまったく読めないときは `422` が返ります。ワークフローは同じ画像を [Markdown からファイルを取得](/docs/workflows/components#get-files-from-markdown) で読み取ります。
 
 ## エンドポイントのリファレンス全体
 

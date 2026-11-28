@@ -14,6 +14,9 @@ import { AsyncLocalStorage } from "async_hooks";
  * payload re-issues byte-identical tokens and ClickHouse drops the duplicate
  * blocks (on replicated tables; on plain MergeTree the token is ignored
  * unless non_replicated_deduplication_window is set — no harm either way).
+ * Not on an async insert through a Distributed table, which is how OneUptime
+ * inserts: there a flush is deduplicated under its first entry's token
+ * alone (#11441, #11536).
  * The chunk counter is per table because one job inserts into several tables
  * (e.g. Span + ExceptionInstance) in a deterministic order.
  *

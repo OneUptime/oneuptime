@@ -55,9 +55,10 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * apply depends on it. The data may show some of them (the countries its
  * data types are of); a person says the rest, by the places OneUptime's
  * table knows - each region a chip pressed on or off, and the US states,
- * the District of Columbia and Puerto Rico picked from a list of their own
- * that a person types to search (#10952) - and Save Places applies the laws
- * by their answer from then on. Saving none takes it back.
+ * the District of Columbia, Puerto Rico, Guam and the US Virgin Islands
+ * picked from a list of their own that a person types to search (#10952,
+ * #11426) - and Save Places applies the laws by their answer from then on.
+ * Saving none takes it back.
  *
  * While nobody knows, the question is asked first on the card (isAskedFirst):
  * nothing is due first until it is answered.

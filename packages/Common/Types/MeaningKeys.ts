@@ -165,9 +165,11 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   /*
    * Notification Settings' columns for phone calls and push notifications,
    * and the names its switches, its tabs' summaries and its "Channels not
-   * set up yet" give them (#8887). The bare "Call" is a function call in
-   * Chinese (调用) and Korean (호출), and "Push" a payment in Arabic (الدفع),
-   * as the rest of the Dashboard found (#7178).
+   * set up yet" give them (#8887); the Notification Logs' Call and Push
+   * tabs, and Team Compliance's Call channel (#11418). The bare "Call" is a
+   * function call in Chinese (调用), Korean (호출) and Russian (Вызов), and
+   * "Push" a payment in Arabic (الدفع), as the rest of the Dashboard found
+   * (#7178).
    */
   "Call (phone call)",
   "Push (push notification)",

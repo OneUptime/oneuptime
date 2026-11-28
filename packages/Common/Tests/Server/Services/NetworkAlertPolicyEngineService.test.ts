@@ -257,6 +257,15 @@ function matchesQueryValue(actual: unknown, expected: unknown): boolean {
       findOperator.objectLiteralParameters || {},
     ).flat();
 
+    // notEqualsOrNull: another value, or none.
+    if (sql.includes("!=") && sql.includes("OR") && sql.includes("IS NULL")) {
+      return (
+        actual === null ||
+        actual === undefined ||
+        actual.toString() !== String(parameters[0])
+      );
+    }
+
     if (sql.includes("IS NOT NULL")) {
       return actual !== null && actual !== undefined;
     }
@@ -846,6 +855,117 @@ describe("a scope that shrinks", () => {
     expect(actualQuery["autoProvisionedNetworkDeviceId"]?.toString()).toBe(
       DEVICE_ID.toString(),
     );
+  });
+});
+
+/*
+ * A MONITOR A PERSON MOVED OFF THE POLICY'S TEMPLATE (issues #11260,
+ * #11266). Moving a policy's monitor to another template, or unlinking it,
+ * takes it from the policy (MonitorTemplateChangeProvenance) and keeps the
+ * template it was created from. The policy owns it no more, so it never
+ * deletes it for carrying another template; and it is the device's monitor
+ * from the policy's template still, so the policy never makes a second one
+ * beside it, nor takes it back.
+ */
+describe("a monitor a person moved off the policy's template", () => {
+  it("is left to them: the policy makes no second one, and neither deletes nor takes it back (#11260)", async () => {
+    const moved: Monitor = monitorRow({
+      autoProvisionedNetworkDeviceId: DEVICE_ID,
+      monitorTemplateId: OTHER_TEMPLATE_ID,
+      createdFromMonitorTemplateId: TEMPLATE_ID,
+    });
+
+    monitorTable = [moved];
+    deviceTable = [device()];
+    policyTable = [policy()];
+
+    await NetworkAlertPolicyEngineService.reconcileDevice({
+      projectId: PROJECT_ID,
+      deviceId: DEVICE_ID,
+    });
+
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+    expect(monitorsOfDevice()).toEqual([moved]);
+    expect(moved.networkAlertPolicyId).toBeUndefined();
+    expect(moved.monitorTemplateId?.toString()).toBe(
+      OTHER_TEMPLATE_ID.toString(),
+    );
+  });
+
+  it("is left to them once unlinked from every template too (#11266)", async () => {
+    const unlinked: Monitor = monitorRow({
+      autoProvisionedNetworkDeviceId: DEVICE_ID,
+      createdFromMonitorTemplateId: TEMPLATE_ID,
+    });
+
+    monitorTable = [unlinked];
+    deviceTable = [device()];
+    policyTable = [policy()];
+
+    await NetworkAlertPolicyEngineService.reconcileDevice({
+      projectId: PROJECT_ID,
+      deviceId: DEVICE_ID,
+    });
+
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+    expect(monitorsOfDevice()).toEqual([unlinked]);
+    expect(unlinked.networkAlertPolicyId).toBeUndefined();
+  });
+
+  it("settles its device in a sweep without taking the device's lock", async () => {
+    monitorTable = [
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: OTHER_TEMPLATE_ID,
+        createdFromMonitorTemplateId: TEMPLATE_ID,
+      }),
+    ];
+    deviceTable = [device()];
+    policyTable = [policy()];
+
+    await NetworkAlertPolicyEngineService.syncPolicy({ policyId: POLICY_ID });
+
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+    expect(semaphoreLockMock).not.toHaveBeenCalled();
+    expect(monitorTable).toHaveLength(1);
+  });
+
+  it("still adopts a monitor an import made from its template that is still on it", async () => {
+    const importsMonitor: Monitor = monitorRow({
+      autoProvisionedNetworkDeviceId: DEVICE_ID,
+      monitorTemplateId: TEMPLATE_ID,
+      createdFromMonitorTemplateId: TEMPLATE_ID,
+    });
+
+    monitorTable = [importsMonitor];
+    deviceTable = [device()];
+    policyTable = [policy()];
+
+    await NetworkAlertPolicyEngineService.syncPolicy({ policyId: POLICY_ID });
+
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+    expect(importsMonitor.networkAlertPolicyId?.toString()).toBe(
+      POLICY_ID.toString(),
+    );
+  });
+
+  it("still gives the device the policy's monitor when the one a person moved was created from another template", async () => {
+    monitorTable = [
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: OTHER_TEMPLATE_ID,
+        createdFromMonitorTemplateId: OTHER_TEMPLATE_ID,
+      }),
+    ];
+    deviceTable = [device()];
+    policyTable = [policy()];
+
+    await NetworkAlertPolicyEngineService.reconcileDevice({
+      projectId: PROJECT_ID,
+      deviceId: DEVICE_ID,
+    });
+
+    expect(monitorCreateMock).toHaveBeenCalledTimes(1);
   });
 });
 

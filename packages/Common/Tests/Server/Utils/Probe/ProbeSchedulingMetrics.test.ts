@@ -8,6 +8,7 @@ import {
   SLOT_WAIT_BUCKETS_IN_MS,
 } from "../../../../Server/Utils/Probe/ProbeSchedulingMetrics";
 import AppMetrics from "../../../../Server/Utils/Telemetry/AppMetrics";
+import Telemetry from "../../../../Server/Utils/Telemetry";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock } from "jest-mock";
 
@@ -268,5 +269,120 @@ describe("ProbeSchedulingMetrics", () => {
     // In ms, as OneUptime's other durations are.
     expect(record).toHaveBeenCalledWith(3000);
     expect(record).toHaveBeenCalledWith(6000);
+  });
+
+  /*
+   * #11392: an answer that asked its probe's connection to reconnect
+   * ("Connection: close", ProbeSchedulingReconnect) - which a replica with
+   * requests waiting for a slot does a few times a second - is counted by
+   * its lane, over the last minute, as a refusal is.
+   */
+  describe("answers that asked their connection to reconnect (#11392)", () => {
+    test("a fresh replica has asked none, in either lane", () => {
+      const snapshot: ProbeSchedulingMetricsSnapshot = metricsAt(
+        clockAt(0),
+      ).snapshot();
+
+      expect(snapshot.lanes[ProbeSchedulingLane.Work]!.reconnectsAsked).toBe(0);
+      expect(
+        snapshot.lanes[ProbeSchedulingLane.MonitorTests]!.reconnectsAsked,
+      ).toBe(0);
+    });
+
+    test("each is counted in its own lane", () => {
+      const metrics: ProbeSchedulingMetrics = metricsAt(clockAt(0));
+
+      for (let asked: number = 0; asked < 7; asked++) {
+        metrics.recordReconnectAsked(ProbeSchedulingLane.Work);
+      }
+      metrics.recordReconnectAsked(ProbeSchedulingLane.MonitorTests);
+      metrics.recordReconnectAsked(ProbeSchedulingLane.MonitorTests);
+
+      const snapshot: ProbeSchedulingMetricsSnapshot = metrics.snapshot();
+      expect(snapshot.lanes[ProbeSchedulingLane.Work]!.reconnectsAsked).toBe(7);
+      expect(
+        snapshot.lanes[ProbeSchedulingLane.MonitorTests]!.reconnectsAsked,
+      ).toBe(2);
+      // Neither a refusal, nor anything handed out.
+      expect(snapshot.lanes[ProbeSchedulingLane.Work]!.refused).toBe(0);
+      expect(snapshot.monitorsHandedOut).toBe(0);
+    });
+
+    test("they are of the last minute: older ones are forgotten", () => {
+      const clock: { now: () => number; move: (ms: number) => void } =
+        clockAt(9_000_000);
+      const metrics: ProbeSchedulingMetrics = metricsAt(clock);
+
+      // Ten a second for 30 s, the most a backed-up lane asks.
+      for (let second: number = 0; second < 30; second++) {
+        for (let asked: number = 0; asked < 10; asked++) {
+          metrics.recordReconnectAsked(ProbeSchedulingLane.Work);
+        }
+        clock.move(1000);
+      }
+
+      expect(
+        metrics.snapshot().lanes[ProbeSchedulingLane.Work]!.reconnectsAsked,
+      ).toBe(300);
+
+      // Past the minute, every one of them has gone out of the window.
+      clock.move(61_000);
+      expect(
+        metrics.snapshot().lanes[ProbeSchedulingLane.Work]!.reconnectsAsked,
+      ).toBe(0);
+    });
+
+    test("the process's own go out as probe.scheduling.reconnect.count, by lane; a view made for a test does not", () => {
+      const add: Mock<(...args: Array<unknown>) => void> = jest.fn();
+      jest
+        .spyOn(AppMetrics, "getProbeSchedulingReconnectCounter")
+        .mockReturnValue({ add } as never);
+
+      metricsAt(clockAt(0)).recordReconnectAsked(ProbeSchedulingLane.Work);
+      expect(add).not.toHaveBeenCalled();
+
+      const exported: ProbeSchedulingMetrics = new ProbeSchedulingMetrics({
+        now: clockAt(0).now,
+        exportTelemetry: true,
+      });
+      exported.recordReconnectAsked(ProbeSchedulingLane.Work);
+      exported.recordReconnectAsked(ProbeSchedulingLane.MonitorTests);
+
+      expect(add.mock.calls).toEqual([
+        [1, { lane: "work" }],
+        [1, { lane: "monitor-tests" }],
+      ]);
+    });
+
+    test("OneUptime's counter is made once, named and described beside the refusals'", () => {
+      (AppMetrics as unknown as Record<string, unknown>)[
+        "probeSchedulingReconnectCounter"
+      ] = null;
+      const made: Array<{ name: string; description: string; unit?: string }> =
+        [];
+      jest
+        .spyOn(Telemetry, "getCounter")
+        .mockImplementation(
+          (data: { name: string; description: string; unit?: string }) => {
+            made.push(data);
+            return { add: jest.fn() } as never;
+          },
+        );
+
+      const counter: unknown = AppMetrics.getProbeSchedulingReconnectCounter();
+      expect(AppMetrics.getProbeSchedulingReconnectCounter()).toBe(counter);
+
+      expect(made).toHaveLength(1);
+      expect(made[0]).toMatchObject({
+        name: "probe.scheduling.reconnect.count",
+        unit: "1",
+      });
+      expect(made[0]!.description).toContain("Connection: close");
+      expect(made[0]!.description).toContain("by lane");
+
+      (AppMetrics as unknown as Record<string, unknown>)[
+        "probeSchedulingReconnectCounter"
+      ] = null;
+    });
   });
 });

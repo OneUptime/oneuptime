@@ -79,6 +79,7 @@ import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerSharedNames } from "../../SuiteHelpers/SharedNameAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import NetworkLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Network/Layout";
 import NetworkTraffic from "../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Traffic";
@@ -1854,6 +1855,28 @@ async function handleApi(method, options) {
     });
 
     return ok({ lastDeviceAdd: found.lastDeviceAdd });
+  }
+
+  /*
+   * Which connections share a name (#11021): the connections card asks with
+   * every read of them, to mark them. None here: the project has one at most.
+   */
+  const twins =
+    method === "GET"
+      ? answerSharedNames({
+          url,
+          kinds: [
+            {
+              modelType: NetworkControllerConnection,
+              records: () => {
+                return connections;
+              },
+            },
+          ],
+        })
+      : null;
+  if (twins) {
+    return ok(twins);
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

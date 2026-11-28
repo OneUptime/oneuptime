@@ -147,6 +147,7 @@ app:
 | `queueDepth` | Sondeverzoeken die nu op een plek wachten, op alle app-pods. Minutenlang boven 0: voeg app-pods toe. |
 | `slotWaitP95Ms` | Hoe lang verzoeken op een plek wachtten, op de drukste app-pod. |
 | `refusalsPerMinute` | Sondeverzoeken die als bezet zijn beantwoord. |
+| `reconnectsAskedPerMinute` | Antwoorden die de verbinding van een sonde vroegen opnieuw te verbinden, zodat haar volgende verzoek naar een andere app-pod kan gaan: een paar per seconde zolang een app-pod achterloopt. Minutenlang boven 0: voeg app-pods toe. |
 | `dispatchLagP95Seconds` | Hoe laat monitors werden uitgedeeld, na het moment waarop hun interval ze aan de beurt maakte. Dicht bij uw kortste interval terwijl geen verzoek wacht: voeg sondereplica's toe. |
 | `monitorsLateByAnIntervalPerMinute` | Monitors die een heel interval te laat werden uitgedeeld: controles die zijn overgeslagen. |
 | `monitorTestWaitP95Seconds` | Hoe lang Test Monitor-runs op een sonde wachtten. |

@@ -4,11 +4,13 @@ import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ServerTwilioEnvironment, {
+  SERVER_TWILIO_CALL_VOICE_VARIABLE,
   SERVER_TWILIO_ENVIRONMENT_VARIABLES,
   SERVER_TWILIO_USED_FOR_VALUES,
   ServerTwilioEnvironmentVariable,
 } from "Common/Types/CallAndSMS/ServerTwilioEnvironment";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import { CALL_VOICE_VALUES } from "Common/Types/Call/CallVoice";
 import TwilioConfigDefaults, {
   TwilioConfigDefaultFlags,
 } from "Common/Types/CallAndSMS/TwilioConfigDefaults";
@@ -2587,7 +2589,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
         return unwrap(cells[0] as string);
       });
 
-    expect(fields).toHaveLength(6);
+    expect(fields).toHaveLength(7);
 
     for (const field of fields) {
       expect({ field, answered: answered.includes(field) }).toEqual({
@@ -3628,12 +3630,16 @@ describe("Twilio Integration, against the notification server and the forms", ()
       );
     });
 
+    // The account's, in their order, then the call voice's of its own (#11064).
     it("lists every variable the server reads, in its order, and no other", () => {
       expect(
         rows.map((row: Array<string>): string => {
           return unwrap(row[0] as string);
         }),
-      ).toEqual([...SERVER_TWILIO_ENVIRONMENT_VARIABLES]);
+      ).toEqual([
+        ...SERVER_TWILIO_ENVIRONMENT_VARIABLES,
+        SERVER_TWILIO_CALL_VOICE_VARIABLE,
+      ]);
     });
 
     it("each variable is set by the chart from the Helm value its row names, which ships empty", () => {
@@ -3675,7 +3681,10 @@ describe("Twilio Integration, against the notification server and the forms", ()
       const compose: string = readSource("baseCompose");
       const settings: Map<string, string> = configExample();
 
-      for (const variable of SERVER_TWILIO_ENVIRONMENT_VARIABLES) {
+      for (const variable of [
+        ...SERVER_TWILIO_ENVIRONMENT_VARIABLES,
+        SERVER_TWILIO_CALL_VOICE_VARIABLE,
+      ]) {
         expect({
           variable,
           passedOn: compose.includes(`  ${variable}: \${${variable}:-}\n`),
@@ -3729,8 +3738,24 @@ describe("Twilio Integration, against the notification server and the forms", ()
       const helpers: string = readSource("chartHelpers");
 
       expect(section).toContain(
-        "The chart also refuses other `twilio` values without `twilio.accountSid`, an Account SID without an auth token, and an auth token given both in `twilio.authToken` and in a Secret.",
+        "The chart also refuses other `twilio` values without `twilio.accountSid` (all but `twilio.callVoice`, which sets the voice whoever sets the account), an Account SID without an auth token, an auth token given both in `twilio.authToken` and in a Secret, and a `twilio.callVoice` that is not one of the voices.",
       );
+      // The voice is never counted among the values nothing reads (#11064)...
+      expect(helpers).toContain(
+        '{{- range $key := list "authToken" "usedFor" "primaryPhoneNumber" "secondaryPhoneNumbers" "smsPhoneNumbers" }}',
+      );
+      // ...and the schema takes only OneUptime's voices.
+      expect(
+        valueAt(
+          JSON.parse(
+            fs.readFileSync(
+              path.join(REPO_DIR, CHART, "values.schema.json"),
+              "utf8",
+            ),
+          ),
+          "properties.twilio.properties.callVoice.enum",
+        ),
+      ).toEqual([null, "", ...CALL_VOICE_VALUES]);
 
       for (const refusal of [
         "twilio.accountSid is empty, so OneUptime reads none of the other twilio values",

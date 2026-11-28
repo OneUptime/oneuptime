@@ -187,7 +187,7 @@ Everything is ready. Begin running and processing data.
 
 ### Das vCenter in OneUptime finden
 
-Es wird nichts gesendet, bis der erste vollständige Durchlauf des Inventars abgeschlossen ist; warten Sie also ein Erfassungsintervall ab (standardmäßig 2 Minuten). Öffnen Sie dann **Produkte → Infrastruktur → VMware → Alle vCenter**: Das vCenter ist da, mit seinen Rechenzentren, Clustern, ESXi-Hosts, virtuellen Maschinen, Datastores und Ressourcenpools. Seine Seite **Topologie** zeichnet alles als eine Karte und markiert, was Aufmerksamkeit erfordert: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
+Es wird nichts gesendet, bis der erste vollständige Durchlauf des Inventars abgeschlossen ist; warten Sie also ein Erfassungsintervall ab (standardmäßig 2 Minuten). Öffnen Sie dann **Produkte → Infrastruktur → VMware → Alle vCenter**: Das vCenter ist da, mit seinen Rechenzentren, Clustern, ESXi-Hosts, virtuellen Maschinen, Datastores und Ressourcenpools. Seine Seite **Topologie** zeichnet alles als eine Karte und markiert, was Aufmerksamkeit erfordert: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen). Im **Inventar** ist jede VM, jeder ESXi-Host, jeder Cluster und jeder Datastore ein Element mit dem Namen, den vCenter ihm gibt, und unter dem Namen steht, wo es sich befindet: bei einer VM ihr Host und ihr Cluster, bei einem Host sein Cluster und sein Rechenzentrum.
 :::
 
 ## Umgebungsvariablen
@@ -250,7 +250,7 @@ Der Receiver sendet keine Metrik für den Betriebszustand einer VM. Er sendet `v
 
 Die **Übersicht** beantwortet zuerst die Frage, ob dieses vCenter gesund ist. Ihr Kopfbereich zeigt, ob Daten ankommen und wie es um das vCenter steht: **Fehlerfrei**, **Beeinträchtigt**, solange etwas einen Blick braucht, **Fehlerhaft**, solange etwas sofort jemanden braucht, oder **Integrität unbekannt**, solange das vCenter getrennt ist, denn seine letzte Meldung ist dann nicht mehr die Wahrheit. Ihre Chips zählen die Rechenzentren, die Cluster, die ESXi-Hosts, die vCenter erreicht, von allen, die eingeschalteten VMs von allen, die Vorlagen und die Datastores, und alle außer den Rechenzentren öffnen ihre Liste.
 
-Danach folgt **Erfordert Aufmerksamkeit**: alles, was jemanden braucht, das Dringendste zuerst, jeweils mit dem Grund und einen Schritt von seiner Seite entfernt. Ein ESXi-Host, den vCenter nicht erreicht, ein Datastore, der zu mehr als 90 % voll ist, und eine VM, deren Arbeitsspeicher ihr Host auf die Festplatte auslagert, sind kritisch. Ein Host, der zu mehr als 90 % ausgelastet ist, ein Datastore, der zu mehr als 80 % voll ist, eine VM, die auf eine freie CPU wartet oder deren Arbeitsspeicher der Host zurückholt, ein Cluster mit Hosts, die nicht effektiv sind, oder ohne den Arbeitsspeicher, um einen davon zu verlieren, und die Alarme, die vCenter in jedem Rechenzentrum zählt, brauchen einen Blick. Jeder Schwellenwert ist der, bei dem seine [Warnungsvorlage](/docs/monitor/vmware-monitor#fertige-warnungsvorlagen) auslöst. Braucht nichts Aufmerksamkeit, gibt es keine Karte.
+Danach folgt **Erfordert Aufmerksamkeit**: alles, was jemanden braucht, das Dringendste zuerst, jeweils mit dem Grund und einen Schritt von seiner Seite entfernt. Ein ESXi-Host, den vCenter nicht erreicht, ein Datastore, der zu mehr als 90 % voll ist, und eine VM, deren Arbeitsspeicher ihr Host gerade auslagert, sind kritisch. Ein Host, der zu mehr als 90 % ausgelastet ist, ein Datastore, der zu mehr als 80 % voll ist, eine VM, die auf eine freie CPU wartet, deren Arbeitsspeicher der Host zurückholt oder die ausgelagerten Arbeitsspeicher zurückliest oder mehr als 1 GiB davon behält, ein Cluster mit Hosts, die nicht effektiv sind, oder ohne den Arbeitsspeicher, um einen davon zu verlieren, und die Alarme, die vCenter in jedem Rechenzentrum zählt, brauchen einen Blick. Jeden dieser Schwellenwerte kann Ihr Projekt ändern oder ausschalten: siehe [Integritätsregeln](#integritätsregeln). Braucht nichts Aufmerksamkeit, gibt es keine Karte.
 
 Darunter stehen die effektiven Hosts, Host-CPU und -Arbeitsspeicher nach Kapazität gewichtet, der vollste Datastore und die schlechteste CPU-Ready-Zeit einer VM, mit ihren Diagrammen; **ESXi-Hosts**, Status und Last jedes Hosts, einen Schritt von seiner Seite entfernt; und die größten Verbraucher.
 
@@ -267,6 +267,37 @@ vCenter meldet die CPU- und Arbeitsspeichernutzung eines Hosts nur, solange der 
 | **Ausgeschaltet oder im Standby** | Er meldet keine Nutzung, und sein Rechenzentrum hat ausgeschaltete Hosts und andere im Standby. |
 | **Keine Nutzung gemeldet** | Er meldet keine Nutzung, und was sein Rechenzentrum zählt, sagt nicht, warum. Er braucht einen Blick. |
 | **Meldet nicht** | vCenter hat ihn seit mehr als 15 Minuten nicht gemeldet. |
+
+### Ausgelagerter Arbeitsspeicher ist keine laufende Auslagerung
+
+`vcenter.vm.memory.swapped` ist, wie viel vom Arbeitsspeicher einer VM in der Swap-Datei ihres Hosts liegt. ESXi lässt eine ausgelagerte Seite dort, bis die VM wieder darauf zugreift, daher kann eine VM ein paar MiB noch wochenlang ausgelagert behalten, nachdem der Speicherdruck vorbei ist, der sie dorthin gebracht hat. Arbeitsspeicher, der von früher übrig ist, ist für sich allein kein Problem: Ein Host, der gerade Arbeitsspeicher auslagert, schon.
+
+Weder der Receiver `vcenter` des Agents noch eine Sonde sendet eine Auslagerungsrate, daher leitet OneUptime sie daraus ab, wie sich der ausgelagerte Arbeitsspeicher einer VM zwischen zwei Meldungen verändert. Die Seite einer VM zeigt unter **Auslagerung jetzt**, in welche Richtung er sich bewegt. Mit den Standardregeln:
+
+| Ausgelagerter Arbeitsspeicher einer VM | Erfordert Aufmerksamkeit zeigt |
+| --- | --- |
+| Wächst: Der Host lagert ihn gerade aus | Kritisch |
+| Schrumpft schneller als 1 MiB/s: Die VM liest ausgelagerten Arbeitsspeicher zurück | Braucht einen Blick |
+| Bleibt gleich, mehr als 1 GiB davon | Braucht einen Blick, als früher ausgelagert |
+| Bleibt gleich, 1 GiB oder weniger | Nichts |
+
+Eine Rate braucht zwei Meldungen, die weniger als 15 Minuten auseinanderliegen, daher sagt die erste Meldung einer VM, oder eine nach einer Lücke, nur, wie viel ausgelagert ist. Ein Ressourcenpool braucht nur einen Blick, solange sein Arbeitsspeicher ausgelagert wird.
+
+### Integritätsregeln
+
+Jeder Schwellenwert oben ist eine Regel, die Ihr Projekt ändern kann: Öffnen Sie **Produkte → Infrastruktur → VMware**, dann **Einstellungen → Integritätsregeln**. Die Regeln gelten für jedes vCenter des Projekts: **Erfordert Aufmerksamkeit**, die Seite jedes Objekts, die Spalte Status und die Balken der Listen sowie die Topologie. Die Kacheln der Übersicht, die über Hosts oder VMs mitteln, behalten eigene Schwellenwerte. Lassen Sie einen Schwellenwert leer, um seine Regel auszuschalten. Was keinen Schwellenwert hat, wird immer angezeigt: ein Host, den vCenter nicht erreicht, ein Cluster ohne den Arbeitsspeicher, um einen Host zu verlieren, und die Alarme, die vCenter zählt.
+
+| Karte | Regel | Standard |
+| --- | --- | --- |
+| **Ausgelastete ESXi-Hosts** | CPU, Arbeitsspeicher | Eine Warnung über jeweils 90 % |
+| **Volle Datenspeicher** | Belegter Speicherplatz | Eine Warnung über 80 %, kritisch über 90 % |
+| **VM-Auslagerung** | Aktuelles Auslagern | Kritisch über 0 KiB/s: jedes Auslagern |
+| **VM-Auslagerung** | Zurücklesen von ausgelagertem Arbeitsspeicher | Eine Warnung über 1024 KiB/s |
+| **VM-Auslagerung** | Früher ausgelagert, derzeit keine Auslagerung | Eine Warnung über 1024 MiB |
+| **VM-Ballooning und CPU Ready** | Per Ballooning zurückgeholter Arbeitsspeicher, CPU Ready | Eine Warnung über 0 MiB (jedes Ballooning), über 10 % |
+| **Auslagerung in Ressourcenpools** | Aktuelles Auslagern | Eine Warnung über 0 KiB/s: jedes Auslagern |
+
+Die Standardwerte sind die Schwellenwerte, bei denen die [Warnungsvorlagen](/docs/monitor/vmware-monitor#fertige-warnungsvorlagen) auslösen, außer beim Auslagern: Die Vorlage VM Memory Swapping löst bei jedem ausgelagerten Arbeitsspeicher aus. Eine Regel zu ändern ändert, was die Seiten markieren, nicht Ihre Monitore, die ihre eigenen Kriterien behalten.
 
 ### ESXi-Hosts
 
@@ -289,7 +320,7 @@ Die sechs Host-Warnungen (ein Host, der nicht reagiert, CPU- und Arbeitsspeicher
 
 Ausgeschaltete virtuelle Maschinen und Vorlagen werden ebenfalls aufgeführt. vCenter meldet CPU-Zähler nur für eingeschaltete VMs, daher zeigen ihre CPU-Spalten N/A statt einer irreführenden Null.
 
-Die Seite einer VM sagt, was sie tut (**Wird ausgeführt**, **Ausgeschaltet**, **Vorlage** oder **Getrennt**, solange vCenter ihren Host nicht erreicht), und wo sie läuft, mit ihrem Host und ihrem Cluster einen Schritt entfernt. Ihre **Übersicht** zeigt **Erfordert Aufmerksamkeit** für die VM, ihre CPU, ihr CPU Ready, ihren Arbeitsspeicher und ihre Festplatte, die offenen Vorfälle und Warnungen der VM, welche der sieben VM-Warnungen eingeschaltet sind, und ihre Details. **Metriken** zeigt ihre Diagramme.
+Die Seite einer VM sagt, was sie tut (**Wird ausgeführt**, **Ausgeschaltet**, **Vorlage** oder **Getrennt**, solange vCenter ihren Host nicht erreicht), und wo sie läuft, mit ihrem Host und ihrem Cluster einen Schritt entfernt. Ihre **Übersicht** zeigt **Erfordert Aufmerksamkeit** für die VM, ihre CPU, ihr CPU Ready, ihren Arbeitsspeicher und ihre Festplatte, die offenen Vorfälle und Warnungen der VM, welche der sieben VM-Warnungen eingeschaltet sind, und ihre Details, mit der Angabe, wie viel ihres Arbeitsspeichers ausgelagert ist und ob der Host ihn gerade verschiebt (**Auslagerung jetzt**). **Metriken** zeigt ihre Diagramme.
 
 ### Datastores
 

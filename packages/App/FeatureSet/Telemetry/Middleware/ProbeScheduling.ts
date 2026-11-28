@@ -22,6 +22,9 @@ import ProbeSchedulingLane from "Common/Server/Utils/Probe/ProbeSchedulingLane";
 import ProbeSchedulingReconnectInstance, {
   ProbeSchedulingReconnect,
 } from "Common/Server/Utils/Probe/ProbeSchedulingReconnect";
+import ProbeSchedulingMetricsInstance, {
+  ProbeSchedulingMetrics,
+} from "Common/Server/Utils/Probe/ProbeSchedulingMetrics";
 
 /*
  * Holds a request a probe makes for work - /monitor/list, /monitor-test/list,
@@ -59,6 +62,9 @@ import ProbeSchedulingReconnectInstance, {
  * kube-proxy may send to a pod KEDA added for the probes, or to one less
  * busy (ProbeSchedulingReconnect, #11121). Kept alive, the probes'
  * connections stayed on the pods that were there when they were opened.
+ * Each answer that asks is counted, by lane, in the probe scheduling
+ * metrics (reconnectsAskedPerMinute on /metrics/probe-scheduling,
+ * probe.scheduling.reconnect.count: #11392).
  */
 
 // The endpoint's answer when it has nothing to hand out.
@@ -92,6 +98,8 @@ export interface ProbeSchedulingLimitOptions {
   maxSlotHoldMs?: number | undefined;
   // What says when an answer asks to reconnect: the process's unless said.
   reconnect?: ProbeSchedulingReconnect | undefined;
+  // Where an answer that asks to reconnect is counted: the process's unless said.
+  metrics?: ProbeSchedulingMetrics | undefined;
 }
 
 interface ResponseEvents {
@@ -270,6 +278,8 @@ export default class ProbeSchedulingMiddleware {
       options.maxSlotHoldMs ?? PROBE_SCHEDULING_MAX_SLOT_HOLD_MS;
     const reconnect: ProbeSchedulingReconnect =
       options.reconnect || ProbeSchedulingReconnectInstance;
+    const metrics: ProbeSchedulingMetrics =
+      options.metrics || ProbeSchedulingMetricsInstance;
     const lane: ProbeSchedulingLane = options.lane || ProbeSchedulingLane.Work;
 
     return async (
@@ -339,6 +349,7 @@ export default class ProbeSchedulingMiddleware {
           })
         ) {
           res.setHeader("Connection", "close");
+          metrics.recordReconnectAsked(lane);
         }
       });
 

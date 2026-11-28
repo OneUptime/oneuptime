@@ -19,6 +19,7 @@ import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import NotificationLogStatusPill from "./NotificationLogStatusPill";
+import SmsErrorCode from "./SmsErrorCode";
 import {
   getNotificationLogStatusFilterOptions,
   NotificationLogKind,
@@ -92,7 +93,14 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
       field: { errorCode: true },
       title: "Error Code",
       type: FieldType.Text,
-      hideOnMobile: true,
+      /*
+       * Twilio's code, a link to Twilio's page for it, and what the common
+       * ones mean in one plain line (#11417): why an SMS failed, which a
+       * phone's card keeps too.
+       */
+      getElement: (item: SmsLog): ReactElement => {
+        return <SmsErrorCode code={item.errorCode} />;
+      },
     },
   ];
 

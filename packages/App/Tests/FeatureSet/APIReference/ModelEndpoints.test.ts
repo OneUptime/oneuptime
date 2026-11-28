@@ -308,7 +308,13 @@ describe("the move of an ordered list's record", () => {
       ).toBe(true);
     }
 
-    expect(LIST_RESOURCES.length).toBe(NUMBERED_LIST_TABLES.length + 39);
+    // The drag-ordered lists: 40 since a cost view's groups (CloudCostGroup) joined them.
+    expect(LIST_RESOURCES.length).toBe(NUMBERED_LIST_TABLES.length + 40);
+    expect(
+      LIST_RESOURCES.some((resource: { model: BaseModel }): boolean => {
+        return resource.model.tableName === "CloudCostGroup";
+      }),
+    ).toBe(true);
   });
 
   it.each(

@@ -15,6 +15,7 @@ import {
   TELEMETRY_INGESTION_BUDGET_SIGNALS,
   TelemetryIngestionBudgetState,
   TelemetryIngestionBudgetStatus,
+  TelemetryIngestionBudgetRefusalKind,
 } from "../../../../Types/Telemetry/TelemetryIngestionBudget";
 import { Translator } from "../../../../Types/Translator";
 import { createTranslator } from "../../../../UI/Utils/TranslateTemplate";
@@ -26,6 +27,7 @@ import {
   LABEL_ID,
   LOGS,
   OTHER_KEY_ID,
+  queueRefusal,
   scope,
   status,
   TEAM_ID,
@@ -572,5 +574,223 @@ describe("an answer that is not a status", () => {
     }
 
     expect(errorsLogged(consoleErrors)).toEqual([]);
+  });
+});
+
+/*
+ * While OneUptime refuses the signal as it catches up on the telemetry
+ * queue (#11440): no budget of the project's refused it, and its senders
+ * retry, so the explorer says that - for as long as the refusals go on.
+ */
+describe("what the banner says of the telemetry queue", () => {
+  const NOW: Date = new Date("2026-11-09T12:00:00.000Z");
+
+  const queueNoticeFor: (
+    data: TelemetryIngestionBudgetStatus,
+    signal?: typeof LOGS,
+  ) => TelemetryIngestionBudgetBannerNotice | null = (
+    data: TelemetryIngestionBudgetStatus,
+    signal: typeof LOGS = LOGS,
+  ): TelemetryIngestionBudgetBannerNotice | null => {
+    return getTelemetryIngestionBudgetBannerNotice({
+      status: data,
+      signal: signal,
+      translator: english,
+      now: NOW,
+    });
+  };
+
+  test("too much of the signal waiting: refused for now and retried, in the warning colour", () => {
+    expect(
+      queueNoticeFor(
+        status({
+          queueRefusals: [
+            queueRefusal({ signal: LOGS, now: NOW, minutesAgo: 2 }),
+          ],
+        }),
+      ),
+    ).toEqual({
+      type: AlertType.WARNING,
+      text: "Logs: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.",
+      linkText: "See what was refused",
+    });
+  });
+
+  test("the queue nearly full for everyone says so", () => {
+    expect(
+      queueNoticeFor(
+        status({
+          queueRefusals: [
+            queueRefusal({
+              signal: TRACES,
+              kind: TelemetryIngestionBudgetRefusalKind.QueueFull,
+              now: NOW,
+              minutesAgo: 1,
+            }),
+          ],
+        }),
+        TRACES,
+      )?.text,
+    ).toBe(
+      "Traces: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.",
+    );
+  });
+
+  test("a refusal that ended, or another signal's, says nothing", () => {
+    expect(
+      queueNoticeFor(
+        status({
+          queueRefusals: [
+            queueRefusal({ signal: TRACES, now: NOW, minutesAgo: 1 }),
+            queueRefusal({ signal: LOGS, now: NOW, minutesAgo: 12 }),
+          ],
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("a used-up budget is told first: nothing is taken until it resets", () => {
+    expect(
+      queueNoticeFor(
+        status({
+          project: [
+            budgeted(LOGS, { state: TelemetryIngestionBudgetState.Exhausted }),
+          ],
+          queueRefusals: [
+            queueRefusal({ signal: LOGS, now: NOW, minutesAgo: 1 }),
+          ],
+        }),
+      )?.type,
+    ).toBe(AlertType.DANGER);
+  });
+
+  test("the queue's refusal is told before a budget past its warning, and before keys that used theirs up", () => {
+    const told: TelemetryIngestionBudgetBannerNotice | null = queueNoticeFor(
+      status({
+        project: [
+          budgeted(LOGS, {
+            percentUsed: 90,
+            state: TelemetryIngestionBudgetState.Warning,
+          }),
+        ],
+        ingestionKeys: [
+          scope(
+            [
+              budgeted(LOGS, {
+                state: TelemetryIngestionBudgetState.Exhausted,
+              }),
+            ],
+            { id: KEY_ID, name: "Collector" },
+          ),
+        ],
+        queueRefusals: [
+          queueRefusal({ signal: LOGS, now: NOW, minutesAgo: 3 }),
+        ],
+      }),
+    );
+
+    expect(told?.linkText).toBe("See what was refused");
+    expect(told?.text).toContain("OneUptime is still storing");
+  });
+
+  test("an answer from an older server, which tells no refusals, says what it said before", () => {
+    const old: Record<string, unknown> = JSON.parse(
+      JSON.stringify(
+        status({
+          project: [
+            budgeted(LOGS, {
+              percentUsed: 90,
+              state: TelemetryIngestionBudgetState.Warning,
+            }),
+          ],
+        }),
+      ),
+    ) as Record<string, unknown>;
+
+    delete old["queueRefusals"];
+
+    expect(
+      queueNoticeFor(readTelemetryIngestionBudgetStatus(old)!)?.linkText,
+    ).toBeUndefined();
+  });
+
+  test("the banner draws it, with a link to what was refused", async () => {
+    const fetchStatus: FetchStatus = jest.fn(
+      async (): Promise<TelemetryIngestionBudgetStatus> => {
+        return status({
+          queueRefusals: [
+            queueRefusal({
+              signal: LOGS,
+              now: OneUptimeDate.getCurrentDate(),
+              minutesAgo: 1,
+            }),
+          ],
+        });
+      },
+    );
+
+    render(
+      <TelemetryIngestionBudgetBanner
+        signal={LOGS}
+        fetchStatus={fetchStatus}
+        budgetsRoute={new Route("/dashboard/project/settings/usage-history")}
+      />,
+    );
+
+    expect(
+      await screen.findByTestId(TELEMETRY_INGESTION_BUDGET_BANNER_TEST_ID),
+    ).toHaveTextContent(
+      "OneUptime is still storing the data this project already sent",
+    );
+    expect(
+      screen.getByTestId("telemetry-ingestion-budget-banner-link"),
+    ).toHaveTextContent("See what was refused");
+  });
+
+  test("whatever the queue's part of an answer holds, what the banner says never throws", () => {
+    const sent: TelemetryIngestionBudgetStatus = status({
+      queueRefusals: [
+        queueRefusal({ signal: LOGS, now: NOW, minutesAgo: 1 }),
+        queueRefusal({
+          signal: TRACES,
+          kind: TelemetryIngestionBudgetRefusalKind.QueueFull,
+          now: NOW,
+          minutesAgo: 2,
+        }),
+      ],
+    });
+    let told: number = 0;
+
+    for (const answer of hostileAnswers({
+      from: JSON.parse(JSON.stringify(sent)) as unknown,
+      seed: 11440,
+      count: 400,
+    })) {
+      const read: TelemetryIngestionBudgetStatus | null =
+        readTelemetryIngestionBudgetStatus(answer);
+
+      if (!read) {
+        continue;
+      }
+
+      for (const signal of TELEMETRY_INGESTION_BUDGET_SIGNALS) {
+        const notice: TelemetryIngestionBudgetBannerNotice | null =
+          getTelemetryIngestionBudgetBannerNotice({
+            status: read,
+            signal: signal,
+            translator: english,
+            now: NOW,
+          });
+
+        if (notice) {
+          told++;
+          expect(notice.text).not.toContain("undefined");
+          expect(notice.text).not.toContain("NaN");
+          expect(notice.text).not.toContain("{{");
+        }
+      }
+    }
+
+    expect(told).toBeGreaterThan(200);
   });
 });

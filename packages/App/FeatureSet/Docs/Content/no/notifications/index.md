@@ -107,7 +107,8 @@ Tilkallingene dine skrives på språket ditt: det du velger i språkmenyen neder
 | --- | --- |
 | E-post, SMS, push-varslinger og Telegram | Språket ditt |
 | Dine egne meldinger i Slack, Microsoft Teams og Mattermost | Språket ditt |
-| Telefonsamtaler og WhatsApp | Engelsk |
+| Telefonsamtaler | Språket ditt, når Twilio-kontoen som ringer, bruker en av OneUptimes stemmer; ellers engelsk. Se [Hva et anrop sier](/docs/notifications/on-call-rules#hva-et-anrop-sier) |
+| WhatsApp | Engelsk |
 
 Det som endres, er OneUptimes egne ord: emnelinjer, overskrifter, knapper og setninger, og navnene hvert nye prosjekt starter med, som Identifisert og Kritisk hendelse. Det teamet ditt har skrevet, står som det ble skrevet: titler, beskrivelser, rotårsaker og navnene på prosjekter, team og statuser prosjektet ditt har gitt navn selv. En SMS på et språk med egen skrift, som russisk, japansk eller persisk, tar flere deler enn en på engelsk.
 
@@ -122,7 +123,7 @@ Du eier tingen, direkte eller gjennom et team, eller tingen har ingen eiere og d
 :::
 
 :::details Tilkallingene mine er på engelsk, selv om dashbordet ikke er det
-Dashbordet følger nettleseren din til du velger et språk. Velg det i språkmenyen nederst på hver side, eller under **Språk** på **Brukerprofil**. Telefonsamtaler og WhatsApp-meldinger forblir på engelsk.
+Dashbordet følger nettleseren din til du velger et språk. Velg det i språkmenyen nederst på hver side, eller under **Språk** på **Brukerprofil**. WhatsApp-meldinger forblir på engelsk, og det gjør også telefonsamtaler gjennom en Twilio-konto som beholder standardstemmen sin.
 :::
 
 :::details Jeg la til et telefonnummer, men det er ikke i reglene mine

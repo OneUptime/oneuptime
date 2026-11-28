@@ -122,6 +122,10 @@ Stubbed:
 - The name check a form asks as a name is typed, `GET /unique-names/check` (#10761) - a hunt
   saved from the Events search, Create Watchlist, a note template's Create: no other record has the
   name (`SuiteHelpers/UniqueNameAnswers.js`).
+- Which records of a list share a name, `GET /shared-names/<Table>` (#11021), which every list of
+  a kind a project can require unique names for asks with every read of its rows - hunts,
+  playbooks, threat intel feeds, note templates: answered from the fixture's own tables as the
+  server finds them (`SuiteHelpers/SharedNameAnswers.js`).
 - Realtime: nothing pushes changes.
 - The menu's other pages (Events, Correlate, Connections, Setup Guide) render a small stub page,
   inside the real layout and its side menu.

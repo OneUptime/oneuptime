@@ -40,7 +40,7 @@ Everything else waits under **More fields**, folded until you open it:
 | Field | What it does |
 | --- | --- |
 | **Each turn lasts** | **1 day**, **1 week**, **2 weeks** or **1 month**, and **1 week** unless you change it. It is asked once somebody takes turns. Each person is on call that long, then the next one takes over, at the time of day the schedule was created. |
-| **Timezone** | The time zone hand-off times and on-call hours are kept in. It starts at yours. Each zone follows its region's current rules: America/Vancouver (British Columbia) stays on UTC-7 all year from 2026. |
+| **Timezone** | The time zone hand-off times and on-call hours are kept in. It starts at yours. Changing it later keeps every time as it reads: a 09:00 hand-off stays at 09:00, and a window on Monday stays on Monday. Each zone follows its region's current rules: America/Vancouver (British Columbia) stays on UTC-7 all year from 2026. |
 | **Description** | Notes about the schedule. |
 | **Labels** | Labels for finding and grouping the schedule. |
 
@@ -70,6 +70,8 @@ flowchart TB
 | **Rotate every** | How often on-call duty passes to the next person in the layer. |
 | **First hand-off time** | The first hand-off to the next person, at or after the start. Later hand-offs follow every rotation interval. |
 | **Restrictions** | The hours the layer is on call, under **Active hours**: **No Restrictions**, **Specific Times of the Day** or **Specific Times of the Week**, in the schedule's time zone. Outside them, lower layers take over. |
+
+A window of **Specific Times of the Week** runs from the day and time under **From:** to the day and time under **To:**, and the days it shows are the days it is on call. A window whose times fall on other days than it was saved with, such as one written through the API with its times dated on other days, or one saved before its schedule's time zone changed, is marked **Active hours to check** on its layer, and says under it which days it was saved as. It stays on call on the days shown, and **Save Layer** keeps it there: pick the days you mean before you save.
 
 With active hours, each window is a shift of its own. From 17:00 to 07:00 is one shift, ending at 07:00 the next morning, on the **Schedule Timeline**, in the emails, in the mobile app and in Slack and Microsoft Teams alike, in the schedule's time zone and on the nights the clocks change. A person's turn is all their windows until the next hand-off, and they are told once each way: "You are now on-call" as the first window of their turn opens, with when that window ends and when their turn does, and "You are no longer on-call" as its last window closes, not at every window. To be reminded before every window, pick a time on **Remind me before shifts**, as [Calendar Feeds](/docs/on-call/calendar-feeds#reminders-and-reassignment-notices) describes. When someone else holds the pager between two of their windows, through an override or a lower layer, or a change to the layers gives the next window to someone else, that is a hand-off, told as one. Their on-call time is still recorded window by window, and the on-call policy's channels and feed still say each time who is on call.
 
@@ -114,7 +116,10 @@ On-call schedules are the `/api/on-call-duty-policy-schedule` resource; their la
 - Creating a schedule with `firstLayerUsers` (a list of user ids, in the order they take turns) in its `miscDataProps` gives it its first layer, as the dashboard does: **Layer 1**, on call from now, around the clock. `firstLayerRotation` says how long each turn lasts, as a rotation such as `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; without it, a week. Every user must be a member of the project and the caller must be allowed to create layers, or the schedule is not created.
 - A schedule created without them has no layers, as before; Terraform's schedule resource does not send them.
 - A layer created without a `rotation` hands off every week, and one without `restrictionTimes` is on call around the clock, as a new layer in the dashboard starts.
-- A layer's `restrictionTimes`, its active hours, names its type under `restrictionType`: `None` (on call around the clock), `Daily` or `Weekly`. `restictionType`, its older spelling without the second "r", is read too, and every answer carries the type under both, so a client or a Terraform configuration written with either keeps working; the layer is stored with `restrictionType`.
+- A layer's `restrictionTimes`, its active hours, names its type under `restrictionType`: `None` (on call around the clock), `Daily` or `Weekly`. `restictionType`, its older spelling without the second "r", is read too, and every answer carries the type under both, so a client or a Terraform configuration written with either keeps working; the layer is stored with `restrictionType`. `restictionType` in answers is deprecated: answers carry it until the first major version released on or after 1 June 2027, and writes will always read it. Write `restrictionType`.
+- A `Weekly` window, `{"startDay", "startTime", "endDay", "endTime"}`, is on call on the days it names: its `startTime` and `endTime` must fall on its `startDay` and `endDay` in the schedule's time zone. A window whose time falls on another day is refused with a `400` that names the window, the day its time falls on, and a time on the named day to send instead. A day left out is the day its time falls on. A window sent back exactly as the layer holds it is not judged again, so a client that reads a layer and writes it back is not refused for it. In a schedule without a time zone, whose times are read in the server's, a time is refused only when it falls on its day in no time zone.
+- Upgrading OneUptime moves each stored window whose times fall on other days than it names, and on those days in no time zone, onto the days it names at the same time of day, and works out who is on call again. A window whose times fall on its days in another time zone, as one set in another zone or saved before its schedule's time zone changed can, is left as it pages and marked **Active hours to check**.
+- Changing a schedule's `timezone` from one zone to another moves its layers' `startsAt`, `handOffTime` and `restrictionTimes` to the new zone's clock: each reads the same date, day and time of day there as before. Giving a schedule its first time zone, or taking it away, keeps the moments as they are.
 - A write that would leave a layer on call at no time is refused with a `400` that names the key: a type that is missing, unknown, or different under the two spellings (an update takes the one that differs from the layer's type now); a `Daily` window whose `startTime` and `endTime` are not dates and times (`"09:00"` alone is refused); a `Weekly` restriction without `weeklyRestrictionTimes`; or a window that opens and closes at the same time. A `rotation` whose `intervalType` is not `Hour`, `Day`, `Week`, `Month` or `Year` is refused the same way.
 - A layer stored before these writes were refused, with no type that was read, was never on call. Upgrading OneUptime reads each such layer for the hours it holds, stores it so, and works out who is on call in its schedule again, so its people are paged from then on and told so.
 - A change to a schedule's layers and the people in them, made through the API or Terraform, is told as one change: who is on call is worked out once the layers have had no change for half a minute, and someone who goes on or off call, or is next, hears it once, not once for each layer or person written. Pages go to whoever the layers put on call as soon as each change is saved.
@@ -155,6 +160,25 @@ curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
           "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
           "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
         }
+      }}
+    }
+  }'
+```
+
+```bash
+curl -X PUT https://oneuptime.com/api/on-call-duty-schedule-layer/<layer-id> \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Weekly",
+        "weeklyRestrictionTimes": [{
+          "startDay": "Monday",
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T09:00:00+01:00"},
+          "endDay": "Friday",
+          "endTime": {"_type": "DateTime", "value": "2026-01-09T17:00:00+01:00"}
+        }]
       }}
     }
   }'

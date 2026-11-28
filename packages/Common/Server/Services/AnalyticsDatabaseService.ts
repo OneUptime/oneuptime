@@ -381,15 +381,21 @@ export default class AnalyticsDatabaseService<
 
     if (dedupToken) {
       /*
-       * Dedup settings ride along in both ack modes. For async inserts
-       * ClickHouse dedups by content hash of the insert body when
-       * async_insert_deduplicate=1 (the explicit token is not yet honored
-       * for async inserts — ClickHouse #52018), so byte-identical queue
-       * retries are still dropped. The ack mode is a separate, deliberate
-       * trade (see shouldWaitForAsyncInsert): by default ClickHouse owns
-       * flushing and an ack means "accepted into the async-insert buffer";
-       * with TELEMETRY_WAIT_FOR_ASYNC_INSERT=true the ack waits for the
-       * durable flush instead.
+       * Dedup settings ride along in both ack modes. What ClickHouse does
+       * with the token on an async insert (#11441, held on the ClickHouse
+       * OneUptime ships by App's InsertDedupTokensAsyncClickhouse): it
+       * leaves the token out of the key async inserts are buffered by, so
+       * inserts under different tokens share one buffer and one part.
+       * Straight into a MergeTree each entry of a flush keeps its own token.
+       * But OneUptime inserts into a Distributed table, and through one a
+       * flush is deduplicated under its FIRST entry's token alone: another
+       * entry retried under its token lands again, and a flush led by a
+       * retry of a stored token is dropped whole, its other entries' rows
+       * with it (#11536). A token dedups by token, not by content. The ack
+       * mode is a separate, deliberate trade (see shouldWaitForAsyncInsert):
+       * by default ClickHouse owns flushing and an ack means "accepted into
+       * the async-insert buffer"; with TELEMETRY_WAIT_FOR_ASYNC_INSERT=true
+       * the ack waits for the durable flush instead.
        */
       clickhouseSettings = {
         async_insert: 1,

@@ -79,6 +79,16 @@ Cada instancia de OneUptime sirve sus propios instaladores, así que una instanc
 El último paso del diálogo indica cuándo se conecta el host, con un enlace a él. En la lista aparece como **Iniciando** hasta que llegan sus primeras métricas, normalmente en menos de un minuto, y después con su salud, **En buen estado** cuando nada en él necesita revisión, y su recolector **En ejecución**. La página **Topología** del host dibuja en un solo mapa lo que se ejecuta en él, lo que lo llama y lo que llama: consulte [Topología](/docs/telemetry/topology#abrir-el-mapa-propio-de-un-recurso).
 :::
 
+## Qué cuenta como host
+
+La lista **Hosts** muestra las máquinas que envían su propia telemetría desde un recolector en la máquina. Otra telemetría también nombra una máquina en `host.name`, pero nunca añade un host:
+
+- la de un host de Docker o Podman, que lleva `container.runtime`: está en **Docker** o **Podman**;
+- la de un clúster, un nodo o un pod de Kubernetes, que lleva `k8s.cluster.name`, `k8s.node.name` o `k8s.pod.name`: está en **Kubernetes**;
+- la propia de un contenedor, que lleva `container.id`, y la de una aplicación, que lleva `telemetry.sdk.name`: está en el servicio de la aplicación.
+
+Las versiones anteriores añadían algunas de estas máquinas como hosts: hosts de Docker y Podman, nodos y pods de Kubernetes, y un host por cada pod de una aplicación que exporta directamente a OneUptime, uno más con cada despliegue. La actualización los archivó, cada uno con una entrada en su feed que explica por qué. Conservó todos los hosts que añadiste tú mismo, todos los hosts cuyo recolector gestiona OneUptime y todos los hosts que enviaron las lecturas propias de un host. Los archivados están en **Avanzado → Archivado** de la lista **Hosts**, donde **Desarchivar** recupera uno.
+
 ## Ver qué hosts requieren atención
 
 La lista **Hosts** empieza con **Requiere atención**: cada host que está roto o necesita revisión, primero lo más urgente, cada uno con el motivo y un paso a su página. Un host que dejó de informar dice cuándo lo hizo por última vez. Cuando nada requiere atención, no hay tarjeta.

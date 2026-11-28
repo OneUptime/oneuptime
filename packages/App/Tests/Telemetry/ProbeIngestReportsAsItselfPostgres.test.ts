@@ -168,6 +168,12 @@ const PROBE_CAPABILITIES: Array<string> = ["networkDevicePing", "snmpTables"];
 // The failure cause that makes the recording evaluator report a criteria met.
 const OUTAGE: string = "Connection refused";
 
+/*
+ * The status the monitor's "Offline" criteria puts it in. Never read: the
+ * recorded status change stops the pipeline before anything looks it up.
+ */
+const OFFLINE_STATUS_ID: ObjectID = ObjectID.generate();
+
 // Thrown by the recorded status change, so the pipeline stops right there.
 class StatusChangeReached extends Error {
   public constructor() {
@@ -260,6 +266,13 @@ describePostgres("a probe reports as itself (Postgres)", () => {
       new MonitorCriteriaInstance();
     criteriaInstance.data!.id = monitor.criteriaId;
     criteriaInstance.data!.name = "Offline";
+    /*
+     * An Offline criteria changes the monitor's status, and only a criteria
+     * that does decides it (#11238): one that changes none leaves the
+     * status where it is and never reaches the status change.
+     */
+    criteriaInstance.data!.changeMonitorStatus = true;
+    criteriaInstance.data!.monitorStatusId = OFFLINE_STATUS_ID;
 
     const monitorCriteria: MonitorCriteria = new MonitorCriteria();
     monitorCriteria.data = {

@@ -1,5 +1,3 @@
-import CallStatus from "../Call/CallStatus";
-import MailStatus from "../Mail/MailStatus";
 import OnCallDutyExecutionLogTimelineStatus from "../OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { OnCallPageChannel } from "../OnCallDutyPolicy/OnCallPageChannel";
 import {
@@ -7,14 +5,17 @@ import {
   OnCallTestPageRecordKind,
   OnCallTestPageStepStatus,
 } from "../OnCallDutyPolicy/OnCallTestPage";
-import PushStatus from "../PushNotification/PushStatus";
-import SmsStatus from "../SmsStatus";
 import StatusPageSubscriberNotificationStatus from "../StatusPage/StatusPageSubscriberNotificationStatus";
-import TelegramStatus from "../TelegramStatus";
-import WebhookStatus from "../WebhookStatus";
-import WhatsAppStatus from "../WhatsAppStatus";
-import WorkspaceNotificationStatus from "../Workspace/WorkspaceNotificationStatus";
 import WorkspaceType from "../Workspace/WorkspaceType";
+import WhoWasToldLogKind from "./NotificationLogKind";
+import {
+  getNotificationLogStatusWords,
+  NotificationLogStatusLine,
+  NotificationLogStatusMeaning,
+  NotificationLogStatusReading,
+  NotificationLogStatusWords,
+  readNotificationLogStatusLine,
+} from "./NotificationLogStatus";
 
 /*
  * WHO WAS TOLD ABOUT AN INCIDENT OR AN ALERT, AS IT HAPPENED (#7075, part 2
@@ -53,17 +54,11 @@ import WorkspaceType from "../Workspace/WorkspaceType";
  * hand it any.
  */
 
-// The kinds of notification log a record's notifications are written to.
-export enum WhoWasToldLogKind {
-  Email = "Email",
-  SMS = "SMS",
-  Call = "Call",
-  Push = "Push",
-  WhatsApp = "WhatsApp",
-  Telegram = "Telegram",
-  Webhook = "Webhook",
-  Workspace = "Workspace",
-}
+/*
+ * The kinds of notification log a record's notifications are written to:
+ * the eight notification logs (NotificationLogKind).
+ */
+export { WhoWasToldLogKind };
 
 export const WHO_WAS_TOLD_LOG_KINDS: ReadonlyArray<WhoWasToldLogKind> = [
   WhoWasToldLogKind.Email,
@@ -110,7 +105,17 @@ export interface WhoWasToldNotification {
   id: string;
   kind: WhoWasToldLogKind;
   channel: OnCallPageChannel;
+  // Where it stands, for whom it reached: sent, delivered, failed and so on.
   status: OnCallTestPageDeliveryStatus;
+  /*
+   * Its log's own status, and what its log's message says that changes
+   * what the status means (#11416): the Dashboard draws it as the log
+   * draws it - a call still ringing is Calling and an answered one
+   * Success, an SMS waiting for its carrier's receipt a blue Sent and one
+   * the server's own gateway took a green one (NotificationLogStatus).
+   * Never the message itself, which can name a provider's id.
+   */
+  logStatus?: NotificationLogStatusReading | undefined;
   /*
    * Why it did not go out, or how a call ended, as its log says it: the
    * provider's or OneUptime's English, which may name an address - so it is
@@ -309,83 +314,47 @@ export interface WhoWasToldStepRow {
   channels: Array<OnCallPageChannel>;
 }
 
-// The statuses each kind of log says went out, and that failed; the rest are on their way.
-const OUT_STATUSES: Readonly<Record<WhoWasToldLogKind, ReadonlyArray<string>>> =
-  {
-    [WhoWasToldLogKind.Email]: [MailStatus.Success],
-    [WhoWasToldLogKind.SMS]: [SmsStatus.Success, SmsStatus.Sent],
-    // Placed - still ringing (Calling) - or answered (Success): it went out.
-    [WhoWasToldLogKind.Call]: [CallStatus.Calling, CallStatus.Success],
-    [WhoWasToldLogKind.Push]: [PushStatus.Success],
-    [WhoWasToldLogKind.WhatsApp]: [WhatsAppStatus.Success, WhatsAppStatus.Sent],
-    [WhoWasToldLogKind.Telegram]: [TelegramStatus.Success, TelegramStatus.Sent],
-    [WhoWasToldLogKind.Webhook]: [WebhookStatus.Success],
-    [WhoWasToldLogKind.Workspace]: [WorkspaceNotificationStatus.Success],
-  };
-
-const DELIVERED_STATUSES: Readonly<
-  Record<WhoWasToldLogKind, ReadonlyArray<string>>
-> = {
-  [WhoWasToldLogKind.Email]: [],
-  [WhoWasToldLogKind.SMS]: [SmsStatus.Delivered],
-  [WhoWasToldLogKind.Call]: [],
-  [WhoWasToldLogKind.Push]: [],
-  [WhoWasToldLogKind.WhatsApp]: [WhatsAppStatus.Delivered, WhatsAppStatus.Read],
-  [WhoWasToldLogKind.Telegram]: [TelegramStatus.Delivered, TelegramStatus.Read],
-  [WhoWasToldLogKind.Webhook]: [],
-  [WhoWasToldLogKind.Workspace]: [],
-};
-
-const SENDING_STATUSES: Readonly<
-  Record<WhoWasToldLogKind, ReadonlyArray<string>>
-> = {
-  [WhoWasToldLogKind.Email]: [],
-  [WhoWasToldLogKind.SMS]: [SmsStatus.Sending],
-  [WhoWasToldLogKind.Call]: [],
-  [WhoWasToldLogKind.Push]: [],
-  [WhoWasToldLogKind.WhatsApp]: [WhatsAppStatus.Queued],
-  [WhoWasToldLogKind.Telegram]: [TelegramStatus.Queued],
-  [WhoWasToldLogKind.Webhook]: [],
-  [WhoWasToldLogKind.Workspace]: [],
-};
-
 /*
- * WHAT BECAME OF ONE NOTIFICATION, from its log's own status, in the words a
- * test page's result says it: sent (its provider took it), delivered (the
- * provider says it reached the phone, or it was read), not answered (a call
- * that rang out, met a busy line or went to voicemail: it reached the
- * phone, so it is no failure), sending, or failed - an error, a low balance, an undelivered
- * SMS, a method not verified. A status this does not know is failed rather
- * than said to have gone out.
+ * WHAT BECAME OF ONE NOTIFICATION, from its log's own status, read as the
+ * notification logs read it (NotificationLogStatus, #11416) and said in a
+ * test page's result's words: sending while it is handed over; sent while
+ * its provider is still to say how it ended, or once it took the message
+ * and will say nothing more; delivered once it reached them - the carrier,
+ * WhatsApp or Telegram said it was delivered or read, or the call was
+ * answered; not answered for a call that rang out, met a busy line or went
+ * to voicemail (it reached the phone, so it is no failure); failed when it
+ * did not reach them. A WhatsApp message sent with a warning went out. A
+ * status this does not know is failed rather than said to have gone out.
+ *
+ * Its log's message tells two meanings of one status apart - a call's
+ * Success that was answered, an SMS's Sent the server's own gateway took
+ * for good - read from it here (`statusMessage`), or handed over as what
+ * it says (`line`).
  */
 export function getWhoWasToldDeliveryStatus(data: {
   kind: WhoWasToldLogKind;
   status: string | null | undefined;
+  statusMessage?: string | null | undefined;
+  line?: NotificationLogStatusLine | null | undefined;
 }): OnCallTestPageDeliveryStatus {
-  const status: string = data.status || "";
+  const words: NotificationLogStatusWords | null =
+    getNotificationLogStatusWords(data);
 
-  if (DELIVERED_STATUSES[data.kind].includes(status)) {
-    return OnCallTestPageDeliveryStatus.Delivered;
+  switch (words?.meaning) {
+    case NotificationLogStatusMeaning.HandedOver:
+      return OnCallTestPageDeliveryStatus.Sending;
+    case NotificationLogStatusMeaning.OnItsWay:
+    case NotificationLogStatusMeaning.Done:
+      return OnCallTestPageDeliveryStatus.Sent;
+    case NotificationLogStatusMeaning.Reached:
+      return OnCallTestPageDeliveryStatus.Delivered;
+    case NotificationLogStatusMeaning.NeedsALook:
+      return data.kind === WhoWasToldLogKind.Call
+        ? OnCallTestPageDeliveryStatus.NotAnswered
+        : OnCallTestPageDeliveryStatus.Sent;
+    default:
+      return OnCallTestPageDeliveryStatus.Failed;
   }
-
-  if (OUT_STATUSES[data.kind].includes(status)) {
-    return OnCallTestPageDeliveryStatus.Sent;
-  }
-
-  if (
-    data.kind === WhoWasToldLogKind.Call &&
-    (status === CallStatus.MissedCall ||
-      status === CallStatus.Busy ||
-      status === CallStatus.Voicemail)
-  ) {
-    return OnCallTestPageDeliveryStatus.NotAnswered;
-  }
-
-  if (SENDING_STATUSES[data.kind].includes(status)) {
-    return OnCallTestPageDeliveryStatus.Sending;
-  }
-
-  return OnCallTestPageDeliveryStatus.Failed;
 }
 
 // Whether a notification reached its person or channel: it went out.
@@ -652,16 +621,32 @@ function getChannelKey(row: WhoWasToldLogRow): string {
 }
 
 function toNotification(row: WhoWasToldLogRow): WhoWasToldNotification {
+  // What its message says that changes what its status means, and never more.
+  const line: NotificationLogStatusLine | null = readNotificationLogStatusLine({
+    kind: row.kind,
+    status: row.status,
+    statusMessage: row.statusMessage,
+  });
   const status: OnCallTestPageDeliveryStatus = getWhoWasToldDeliveryStatus({
     kind: row.kind,
     status: row.status,
+    line: line,
   });
+  const logStatus: NotificationLogStatusReading = {
+    kind: row.kind,
+    status: row.status,
+  };
+
+  if (line) {
+    logStatus.line = line;
+  }
 
   const notification: WhoWasToldNotification = {
     id: row.id,
     kind: row.kind,
     channel: getWhoWasToldChannel(row),
     status: status,
+    logStatus: logStatus,
     sentAt: row.createdAt,
     isOnCallPage: row.isOnCallPage,
   };

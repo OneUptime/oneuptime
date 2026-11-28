@@ -16,6 +16,10 @@ import ContainedErrorBoundary from "../ContainedErrorBoundary/ContainedErrorBoun
 import Link from "../Link/Link";
 import { getTelemetryUsageSignalTitle } from "../TelemetryUsage/TelemetryUsageWords";
 import { formatTelemetryIngestionBudgetBytes } from "./TelemetryIngestionBudgetWords";
+import {
+  getTelemetryQueueRefusalNoticeText,
+  SEE_WHAT_WAS_REFUSED,
+} from "./TelemetryQueueRefusalWords";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -26,10 +30,12 @@ import React, {
 /*
  * The line an explorer (Logs, Traces, Metrics, Profiles, Security Events)
  * shows above its data while the signal's ingestion budget is past its
- * warning or used up - the moment someone wonders why new data stopped
- * arriving. Nothing at all otherwise, and nothing when the status cannot be
- * read (a role that does not read usage, a network error, an answer that is
- * not a status): it is a notice, never a reason for the page to fail.
+ * warning or used up, or while OneUptime refuses the signal as it catches
+ * up on the telemetry queue (#11440) - the moment someone wonders why new
+ * data stopped arriving. Nothing at all otherwise, and nothing when the
+ * status cannot be read (a role that does not read usage, a network error,
+ * an answer that is not a status): it is a notice, never a reason for the
+ * page to fail.
  */
 
 export const BUDGET_USED_UP: string = translationKey(
@@ -60,6 +66,8 @@ export const TELEMETRY_INGESTION_BUDGET_BANNER_TEST_ID: string =
 export interface TelemetryIngestionBudgetBannerNotice {
   type: AlertType;
   text: string;
+  // What the link to the Usage page says: "See budgets" unless set.
+  linkText?: string | undefined;
 }
 
 const findSignal: (
@@ -78,17 +86,22 @@ const findSignal: (
 
 /*
  * What the banner says for a signal, or null for nothing: the project's
- * budget first (used up, then past its warning), else keys of the project
- * that used theirs up. Pure, so a plain test reads it.
+ * budget used up first - nothing more is taken until it resets - then the
+ * telemetry queue refusing the signal still (#11440), then the project's
+ * budget past its warning, else keys, teams and labels of the project that
+ * used theirs up. Pure, so a plain test reads it.
  */
 export const getTelemetryIngestionBudgetBannerNotice: (data: {
   status: TelemetryIngestionBudgetStatus;
   signal: TelemetryIngestionBudgetSignal;
   translator: Translator;
+  // When the banner is drawn: a queue refusal is told while it is recent.
+  now?: Date | undefined;
 }) => TelemetryIngestionBudgetBannerNotice | null = (data: {
   status: TelemetryIngestionBudgetStatus;
   signal: TelemetryIngestionBudgetSignal;
   translator: Translator;
+  now?: Date | undefined;
 }): TelemetryIngestionBudgetBannerNotice | null => {
   const project: TelemetryIngestionBudgetSignalStatus | undefined = findSignal(
     data.status.project,
@@ -102,24 +115,45 @@ export const getTelemetryIngestionBudgetBannerNotice: (data: {
     date: data.status.resetsAt,
     timezone: data.status.timezone,
   });
+  const budget: string | null =
+    project && project.dailyBudgetBytes !== null
+      ? formatTelemetryIngestionBudgetBytes(
+          project.dailyBudgetBytes,
+          data.translator,
+        )
+      : null;
 
-  if (project && project.dailyBudgetBytes !== null) {
-    const budget: string = formatTelemetryIngestionBudgetBytes(
-      project.dailyBudgetBytes,
-      data.translator,
-    );
+  if (
+    project &&
+    budget !== null &&
+    project.state === TelemetryIngestionBudgetState.Exhausted
+  ) {
+    return {
+      type: AlertType.DANGER,
+      text: data.translator.translateTemplate(BUDGET_USED_UP, {
+        signal: signalTitle,
+        budget: budget,
+        resetsAt: resetsAt,
+      }),
+    };
+  }
 
-    if (project.state === TelemetryIngestionBudgetState.Exhausted) {
-      return {
-        type: AlertType.DANGER,
-        text: data.translator.translateTemplate(BUDGET_USED_UP, {
-          signal: signalTitle,
-          budget: budget,
-          resetsAt: resetsAt,
-        }),
-      };
-    }
+  const queueNotice: string | null = getTelemetryQueueRefusalNoticeText({
+    refusals: data.status.queueRefusals || [],
+    signal: data.signal,
+    translator: data.translator,
+    now: data.now || OneUptimeDate.getCurrentDate(),
+  });
 
+  if (queueNotice) {
+    return {
+      type: AlertType.WARNING,
+      text: queueNotice,
+      linkText: SEE_WHAT_WAS_REFUSED,
+    };
+  }
+
+  if (project && budget !== null) {
     if (project.state === TelemetryIngestionBudgetState.Warning) {
       return {
         type: AlertType.WARNING,
@@ -259,7 +293,7 @@ export const UnguardedTelemetryIngestionBudgetBanner: FunctionComponent<
                 className="ml-2 font-medium underline"
                 dataTestId="telemetry-ingestion-budget-banner-link"
               >
-                {translator.translateText(SEE_BUDGETS)}
+                {translator.translateText(notice.linkText || SEE_BUDGETS)}
               </Link>
             ) : (
               <></>

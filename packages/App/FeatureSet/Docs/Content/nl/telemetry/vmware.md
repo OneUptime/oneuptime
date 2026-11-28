@@ -187,7 +187,7 @@ Everything is ready. Begin running and processing data.
 
 ### Het vCenter in OneUptime vinden
 
-Er wordt niets verstuurd totdat de eerste volledige doorloop van de inventaris klaar is, dus wacht één verzamelinterval (standaard 2 minuten). Open daarna **Producten → Infrastructuur → VMware → Alle vCenters**: het vCenter staat er, met zijn datacenters, clusters, ESXi-hosts, virtuele machines, datastores en resourcepools. Zijn pagina **Topologie** tekent ze allemaal op één kaart en markeert wat aandacht vraagt: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen).
+Er wordt niets verstuurd totdat de eerste volledige doorloop van de inventaris klaar is, dus wacht één verzamelinterval (standaard 2 minuten). Open daarna **Producten → Infrastructuur → VMware → Alle vCenters**: het vCenter staat er, met zijn datacenters, clusters, ESXi-hosts, virtuele machines, datastores en resourcepools. Zijn pagina **Topologie** tekent ze allemaal op één kaart en markeert wat aandacht vraagt: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen). In **Inventaris** is elke VM, ESXi-host, cluster en datastore een item met de naam die vCenter het geeft, en onder de naam staat waar het zich bevindt: bij een VM de host en het cluster, bij een host het cluster en het datacenter.
 :::
 
 ## Omgevingsvariabelen
@@ -250,7 +250,7 @@ De receiver stuurt geen metric voor de aan/uit-status van een VM. Hij stuurt `vc
 
 De pagina **Overzicht** beantwoordt eerst de vraag "is dit vCenter gezond". De kop zegt of er gegevens binnenkomen en hoe het met het vCenter gaat: **Gezond**, **Verminderd** zolang iets een blik nodig heeft, **Ongezond** zolang iets nu iemand nodig heeft, of **Gezondheid onbekend** zolang het vCenter niet verbonden is, omdat zijn laatste melding dan niet meer de waarheid is. De chips tellen de datacenters, de clusters, de ESXi-hosts die vCenter bereikt van het totaal, de ingeschakelde VM's van het totaal, de sjablonen en de datastores, en alle behalve de datacenters openen hun lijst.
 
-Daarna komt **Vraagt aandacht**: alles wat iemand nodig heeft, het dringendste eerst, elk met de reden en één stap van zijn pagina. Een ESXi-host die vCenter niet bereikt, een datastore die voor meer dan 90 % vol is en een VM waarvan de host het geheugen naar schijf swapt, zijn kritiek. Een host die voor meer dan 90 % bezet is, een datastore die voor meer dan 80 % vol is, een VM die op een vrije CPU wacht of waarvan de host geheugen terugneemt, een cluster met hosts die niet effectief zijn of zonder het geheugen om er een te verliezen, en de alarmen die vCenter in elk datacenter telt, hebben een blik nodig. Elke drempel is die waarbij zijn [waarschuwingstemplate](/docs/monitor/vmware-monitor#kant-en-klare-waarschuwingstemplates) afgaat. Als niets aandacht vraagt, is er geen kaart.
+Daarna komt **Vraagt aandacht**: alles wat iemand nodig heeft, het dringendste eerst, elk met de reden en één stap van zijn pagina. Een ESXi-host die vCenter niet bereikt, een datastore die voor meer dan 90 % vol is en een VM waarvan de host het geheugen nu uitswapt, zijn kritiek. Een host die voor meer dan 90 % bezet is, een datastore die voor meer dan 80 % vol is, een VM die op een vrije CPU wacht, waarvan de host geheugen terugneemt, of die geswapt geheugen terugleest of er meer dan 1 GiB van houdt, een cluster met hosts die niet effectief zijn of zonder het geheugen om er een te verliezen, en de alarmen die vCenter in elk datacenter telt, hebben een blik nodig. Elke drempel kan je project wijzigen of uitzetten: zie [Gezondheidsregels](#gezondheidsregels). Als niets aandacht vraagt, is er geen kaart.
 
 Daaronder staan de effectieve hosts, host-CPU en -geheugen gewogen naar capaciteit, de volste datastore en de slechtste CPU-ready-tijd van een VM, met hun grafieken; **ESXi-hosts**, de status en belasting van elke host op één stap van zijn pagina; en de grootste verbruikers.
 
@@ -267,6 +267,37 @@ vCenter meldt het CPU- en geheugengebruik van een host alleen zolang de host ver
 | **Uitgeschakeld of in stand-by** | Hij meldt geen gebruik, en zijn datacenter heeft uitgeschakelde hosts en andere in stand-by. |
 | **Geen gebruik gemeld** | Hij meldt geen gebruik, en wat zijn datacenter telt, zegt niet waarom. Hij heeft een blik nodig. |
 | **Rapporteert niet** | vCenter heeft hem al meer dan 15 minuten niet gemeld. |
+
+### Geswapt geheugen betekent niet dat er geswapt wordt
+
+`vcenter.vm.memory.swapped` is hoeveel van het geheugen van een VM in het swapbestand van zijn host staat. ESXi laat een geswapte pagina daar staan tot de VM die weer aanspreekt, dus een VM kan een paar MiB nog weken geswapt houden nadat de geheugendruk die ze daar zette, voorbij is. Geheugen dat van eerder over is, is op zich geen probleem: een host die nu geheugen uitswapt, wel.
+
+Noch de receiver `vcenter` van de agent noch een sonde stuurt een swapsnelheid, dus berekent OneUptime die uit hoe het geswapte geheugen van een VM tussen twee meldingen verandert. De pagina van een VM zegt onder **Swapping nu** welke kant het op gaat. Met de standaardregels:
+
+| Geswapt geheugen van een VM | Wat Vraagt aandacht zegt |
+| --- | --- |
+| Groeit: de host swapt het nu uit | Kritiek |
+| Krimpt sneller dan 1 MiB/s: de VM leest geswapt geheugen terug | Heeft een blik nodig |
+| Blijft gelijk, meer dan 1 GiB | Heeft een blik nodig, als eerder geswapt |
+| Blijft gelijk, 1 GiB of minder | Niets |
+
+Een snelheid heeft twee meldingen nodig die minder dan 15 minuten uit elkaar liggen, dus de eerste melding van een VM, of een na een onderbreking, zegt alleen hoeveel er geswapt is. Een resourcepool heeft alleen een blik nodig zolang zijn geheugen wordt uitgeswapt.
+
+### Gezondheidsregels
+
+Elke drempel hierboven is een regel die je project kan wijzigen: open **Producten → Infrastructuur → VMware**, en daarna **Instellingen → Gezondheidsregels**. De regels gelden voor elk vCenter van het project: **Vraagt aandacht**, de pagina van elk object, de kolom Status en de balken van de lijsten, en de Topologie. De tegels van het Overzicht die over hosts of VM's middelen, houden hun eigen drempels. Laat een drempel leeg om zijn regel uit te zetten. Wat geen drempel heeft, wordt altijd getoond: een host die vCenter niet bereikt, een cluster zonder het geheugen om een host te verliezen, en de alarmen die vCenter telt.
+
+| Kaart | Regel | Standaard |
+| --- | --- | --- |
+| **Drukke ESXi-hosts** | CPU, geheugen | Een waarschuwing boven 90 % voor elk |
+| **Volle datastores** | Gebruikte ruimte | Een waarschuwing boven 80 %, kritiek boven 90 % |
+| **Swapping van VM's** | Nu uitswappen | Kritiek boven 0 KiB/s: elk uitswappen |
+| **Swapping van VM's** | Geswapt geheugen teruglezen | Een waarschuwing boven 1024 KiB/s |
+| **Swapping van VM's** | Eerder geswapt, nu geen swapping | Een waarschuwing boven 1024 MiB |
+| **Ballooning en CPU Ready van VM's** | Door ballooning teruggenomen geheugen, CPU ready | Een waarschuwing boven 0 MiB (elke ballooning), boven 10 % |
+| **Swapping van resourcepools** | Nu uitswappen | Een waarschuwing boven 0 KiB/s: elk uitswappen |
+
+De standaardwaarden zijn de drempels waarbij de [waarschuwingstemplates](/docs/monitor/vmware-monitor#kant-en-klare-waarschuwingstemplates) afgaan, behalve bij swapping: de template VM Memory Swapping gaat af bij elk geswapt geheugen. Een regel wijzigen verandert wat de pagina's markeren, niet je monitors, die hun eigen criteria houden.
 
 ### ESXi-hosts
 
@@ -289,7 +320,7 @@ De zes hostwaarschuwingen (een host die niet reageert, CPU- en geheugenverzadigi
 
 Uitgeschakelde virtuele machines en sjablonen staan er ook bij. vCenter meldt CPU-counters alleen voor ingeschakelde VM's, dus hun CPU-kolommen tonen N/A in plaats van een misleidende nul.
 
-De pagina van een VM zegt wat die doet (**Actief**, **Uitgeschakeld**, **Sjabloon**, of **Verbinding verbroken** zolang vCenter zijn host niet bereikt) en waar die draait, met zijn host en cluster op één stap. Het **Overzicht** heeft **Vraagt aandacht** voor de VM, zijn CPU, CPU ready, geheugen en schijf, de open incidenten en waarschuwingen van de VM, welke van de zeven VM-waarschuwingen aan staan, en zijn details. **Metrieken** heeft zijn grafieken.
+De pagina van een VM zegt wat die doet (**Actief**, **Uitgeschakeld**, **Sjabloon**, of **Verbinding verbroken** zolang vCenter zijn host niet bereikt) en waar die draait, met zijn host en cluster op één stap. Het **Overzicht** heeft **Vraagt aandacht** voor de VM, zijn CPU, CPU ready, geheugen en schijf, de open incidenten en waarschuwingen van de VM, welke van de zeven VM-waarschuwingen aan staan, en zijn details, met hoeveel van zijn geheugen geswapt is en of de host het nu verplaatst (**Swapping nu**). **Metrieken** heeft zijn grafieken.
 
 ### Datastores
 

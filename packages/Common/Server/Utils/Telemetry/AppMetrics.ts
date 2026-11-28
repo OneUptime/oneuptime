@@ -341,6 +341,8 @@ export default class AppMetrics {
 
   private static probeSchedulingSlotWait: TelemetryHistogram | null = null;
   private static probeSchedulingRefusedCounter: TelemetryCounter | null = null;
+  private static probeSchedulingReconnectCounter: TelemetryCounter | null =
+    null;
   private static probeDispatchLag: TelemetryHistogram | null = null;
   private static probeMonitorTestWait: TelemetryHistogram | null = null;
   private static probeSchedulingGaugesRegistered: boolean = false;
@@ -386,6 +388,19 @@ export default class AppMetrics {
     }
 
     return this.probeSchedulingRefusedCounter;
+  }
+
+  public static getProbeSchedulingReconnectCounter(): TelemetryCounter {
+    if (!this.probeSchedulingReconnectCounter) {
+      this.probeSchedulingReconnectCounter = Telemetry.getCounter({
+        name: "probe.scheduling.reconnect.count",
+        description:
+          "Answers to probe requests that asked the probe's connection to reconnect (Connection: close), because requests were waiting for one of this App server's probe scheduling slots, partitioned by lane. At most one an answer of a lane every 100 ms: the probes' next requests open new connections, which may go to an App server with room.",
+        unit: "1",
+      });
+    }
+
+    return this.probeSchedulingReconnectCounter;
   }
 
   public static getProbeDispatchLag(): TelemetryHistogram {

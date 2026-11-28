@@ -1,7 +1,6 @@
 import NotificationMethodView from "../../Components/NotificationMethods/NotificationMethod";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
@@ -9,13 +8,9 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { PASS_ON_PAGE_TEXT } from "../../Components/OnCallPolicy/PassOn/PassOnPage";
 import { withEscalatedStatusLabel } from "../../Components/OnCallPolicy/PassOn/PassedOnStatus";
-import {
-  NOT_ANSWERED_STATUS_LABEL,
-  withNotAnsweredStatusLabel,
-} from "../../Components/OnCallPolicy/NotAnsweredStatus";
+import { withNotAnsweredStatusLabel } from "../../Components/OnCallPolicy/NotAnsweredStatus";
+import OnCallLogNotificationStatus from "../../Components/OnCallPolicy/OnCallLogNotificationStatus";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -74,7 +69,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Notification Timeline",
           description:
-            "Each notification sent to you, how it was sent and whether it was delivered. If one failed, its status message says why.",
+            "Each notification sent to you, how it was sent and what became of it. If one failed, its status message says why.",
         }}
         selectMoreFields={{
           statusMessage: true,
@@ -169,48 +164,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Status",
             type: FieldType.Element,
 
+            /*
+             * As its own log draws it, where the notification says that for
+             * certain - an email's Success, an answered call - and otherwise
+             * its own status, in the colour of where it stands (#11416).
+             */
             getElement: (item: UserOnCallLogTimeline): ReactElement => {
-              if (item["status"] === UserNotificationStatus.Sent) {
-                return (
-                  <Pill color={Green} text={UserNotificationStatus.Sent} />
-                );
-              } else if (
-                item["status"] === UserNotificationStatus.Acknowledged
-              ) {
-                return (
-                  <Pill
-                    color={Green}
-                    text={UserNotificationStatus.Acknowledged}
-                  />
-                );
-              } else if (item["status"] === UserNotificationStatus.Error) {
-                return (
-                  <Pill color={Yellow} text={UserNotificationStatus.Error} />
-                );
-              } else if (item["status"] === UserNotificationStatus.Sending) {
-                return (
-                  <Pill color={Yellow} text={UserNotificationStatus.Sending} />
-                );
-              } else if (item["status"] === UserNotificationStatus.Skipped) {
-                return (
-                  <Pill color={Yellow} text={UserNotificationStatus.Skipped} />
-                );
-              } else if (item["status"] === UserNotificationStatus.PassedOn) {
-                // The notification you escalated the page from.
-                return (
-                  <Pill
-                    color={Yellow}
-                    text={PASS_ON_PAGE_TEXT.passedOnStatus}
-                  />
-                );
-              } else if (
-                item["status"] === UserNotificationStatus.NotAnswered
-              ) {
-                // A call that rang out, or found the line busy.
-                return <Pill color={Yellow} text={NOT_ANSWERED_STATUS_LABEL} />;
-              }
-
-              return <Pill color={Red} text={UserNotificationStatus.Error} />;
+              return <OnCallLogNotificationStatus notification={item} />;
             },
           },
         ]}

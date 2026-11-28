@@ -207,7 +207,9 @@ const MAPPING_CASES: Array<MappingCase> = [
       statusFilter: "connected",
       osTypeFilter: "linux",
     },
+    // Archived hosts are left out, as the Hosts list leaves them (#11257).
     expectedQuery: {
+      isArchived: false,
       otelCollectorStatus: "connected",
       osType: "linux",
     },
@@ -327,7 +329,7 @@ const MAPPING_CASES: Array<MappingCase> = [
     componentType: DashboardComponentType.DockerHostList,
     resourceType: "docker-host",
     argumentsObject: { statusFilter: "disconnected" },
-    expectedQuery: { otelCollectorStatus: "disconnected" },
+    expectedQuery: { isArchived: false, otelCollectorStatus: "disconnected" },
     expectedSort: { name: SortOrder.Ascending },
     expectedLimit: 25,
   },
@@ -389,7 +391,7 @@ const MAPPING_CASES: Array<MappingCase> = [
     componentType: DashboardComponentType.PodmanHostList,
     resourceType: "podman-host",
     argumentsObject: { statusFilter: "connected" },
-    expectedQuery: { otelCollectorStatus: "connected" },
+    expectedQuery: { isArchived: false, otelCollectorStatus: "connected" },
     expectedSort: { name: SortOrder.Ascending },
     expectedLimit: 25,
   },

@@ -156,6 +156,25 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/Team/ComplianceRule.ts", kind: "keys" },
   /*
+   * What every status of every notification log means (#11138, #11416):
+   * its word and its sentences, as each log, Who Was Told, a test page's
+   * result and a person's On-Call Logs draw them. Who Was Told's server
+   * reads the same file's meanings. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Notification/NotificationLogStatus.ts",
+    kind: "keys",
+  },
+  /*
+   * What the Twilio error codes an SMS log most often shows mean (#11417),
+   * as its Error Code column says under each code. Only the words the file
+   * marks are read.
+   */
+  {
+    directory: "packages/Common/Types/CallAndSMS/TwilioErrorCode.ts",
+    kind: "keys",
+  },
+  /*
    * What each OneUptime AI feature of Data Security sends, never sends and
    * keeps (#10365): Data Security > Settings > OneUptime AI draws the
    * catalog, and the server and the guard read the same file. Only the
@@ -300,6 +319,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Database/SharedNameMarks.ts",
+    kind: "keys",
+  },
+  /*
+   * What escalating a page did, in the reader's language: the Escalate
+   * dialog (Components/OnCallPolicy/PassOn) says it, and a page's call in
+   * its person's language says the same words once 2 is pressed (#11066).
+   * Only the words it marks are read: the server words its English pages
+   * with OnCallPagePassOn's own sentences.
+   */
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/OnCallPassOnWords.ts",
     kind: "keys",
   },
   /*

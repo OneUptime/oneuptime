@@ -51,8 +51,30 @@ export interface GatherInput {
 
 export enum CallAction {}
 
+/*
+ * THE SAME CALL IN THE LANGUAGE OF THE PERSON IT CALLS (#11066).
+ *
+ * A call's words are written in its person's language, as their texts and
+ * emails are, but which voice speaks them is decided where the call is
+ * placed: by the Twilio account that places it, which may have chosen a
+ * voice or speak with its default one (Types/Call/CallVoice). So a call to
+ * a person who reads another language carries its words twice: in English,
+ * in `data`, as every call has - and in their language here. The
+ * Notification service speaks these with a voice of that language when the
+ * account has one, and `data` otherwise: one language's words are never
+ * read by another language's voice. A Notification service of the release
+ * before reads `data` only, and speaks English as it always has.
+ */
+export interface CallInLanguage {
+  // The language the words are written in, as OneUptime names it: "de", "zh-CN".
+  language: string;
+  data: Array<Say | CallAction | GatherInput>;
+}
+
 export interface CallRequestMessage {
   data: Array<Say | CallAction | GatherInput>;
+  // The same call in its person's language, when that is not English.
+  inLanguage?: CallInLanguage | undefined;
 }
 
 export default interface CallRequest extends CallRequestMessage {

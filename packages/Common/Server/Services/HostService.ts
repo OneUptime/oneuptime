@@ -574,9 +574,6 @@ export class Service extends ProjectReferencesService<Model> {
       cpuCores?: number | undefined;
       totalMemoryBytes?: number | undefined;
       processCount?: number | undefined;
-      containerRuntime?: string | undefined;
-      dockerHostId?: ObjectID | undefined;
-      kubernetesClusterId?: ObjectID | undefined;
       agentVersion?: string | undefined;
       deploymentEnvironment?: string | undefined;
       runtimeName?: string | undefined;
@@ -646,15 +643,12 @@ export class Service extends ProjectReferencesService<Model> {
     if (extra?.processCount !== undefined) {
       metadata.processCount = extra.processCount;
     }
-    if (extra?.containerRuntime) {
-      metadata.containerRuntime = extra.containerRuntime;
-    }
-    if (extra?.dockerHostId) {
-      metadata.dockerHostId = extra.dockerHostId;
-    }
-    if (extra?.kubernetesClusterId) {
-      metadata.kubernetesClusterId = extra.kubernetesClusterId;
-    }
+    /*
+     * No container runtime, Docker host or Kubernetes cluster: a Host is a
+     * machine's own telemetry, and the ingest refuses every resource that
+     * names one (Common/Utils/Telemetry/HostResource, issue #11257). Docker
+     * and Podman hosts and Kubernetes nodes have their own rows.
+     */
     if (extra?.agentVersion) {
       metadata.agentVersion = extra.agentVersion;
     }
@@ -727,9 +721,6 @@ export class Service extends ProjectReferencesService<Model> {
     cpuCores?: number | undefined;
     totalMemoryBytes?: number | undefined;
     processCount?: number | undefined;
-    containerRuntime?: string | undefined;
-    dockerHostId?: ObjectID | undefined;
-    kubernetesClusterId?: ObjectID | undefined;
     agentVersion?: string | undefined;
     deploymentEnvironment?: string | undefined;
     runtimeName?: string | undefined;
@@ -759,9 +750,6 @@ export class Service extends ProjectReferencesService<Model> {
        * host's readings (CPU, memory, disk, load, uptime, failed units) are
        * left out for the same reason.
        */
-      containerRuntime: extra?.containerRuntime ?? null,
-      dockerHostId: extra?.dockerHostId?.toString() ?? null,
-      kubernetesClusterId: extra?.kubernetesClusterId?.toString() ?? null,
       agentVersion: extra?.agentVersion ?? null,
       deploymentEnvironment: extra?.deploymentEnvironment ?? null,
       runtimeName: extra?.runtimeName ?? null,

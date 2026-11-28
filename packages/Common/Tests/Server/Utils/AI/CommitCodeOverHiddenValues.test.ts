@@ -819,6 +819,19 @@ const VALUES_OF_EVERY_RULE: Array<
     "[redacted-card]",
     range(2, 2),
   ],
+  // #11384: as Data Security's phone and SSN detectors find them.
+  [
+    "a phone number",
+    ['const ON_CALL_PHONE = "+44 20 7123 4567";'],
+    "[redacted-phone]",
+    range(2, 2),
+  ],
+  [
+    "a Social Security number",
+    ['const APPLICANT_SSN = "536-22-8731";'],
+    "[redacted-ssn]",
+    range(2, 2),
+  ],
   [
     "a long hex digest",
     [
@@ -2568,6 +2581,26 @@ const VALUES: Array<(random: SeededRandom) => DrawnValue> = [
       lines: [`const c = "${card}";`],
       secrets: [card],
       placeholder: "[redacted-card]",
+    };
+  },
+  (random: SeededRandom): DrawnValue => {
+    // A phone number the phone detectors find on its own, in the groups people write it in (#11384).
+    const phone: string = `+44 20 ${draw(random, DIGITS, 4)} ${draw(random, DIGITS, 4)}`;
+
+    return {
+      lines: [`const p = "${phone}";`],
+      secrets: [phone],
+      placeholder: "[redacted-phone]",
+    };
+  },
+  (random: SeededRandom): DrawnValue => {
+    // A Social Security number in its groups: an area, a group and a serial the SSA issues (#11384).
+    const ssn: string = `${100 + random(565)}-${10 + random(89)}-${1000 + random(8999)}`;
+
+    return {
+      lines: [`const s = "${ssn}";`],
+      secrets: [ssn],
+      placeholder: "[redacted-ssn]",
     };
   },
   (random: SeededRandom): DrawnValue => {

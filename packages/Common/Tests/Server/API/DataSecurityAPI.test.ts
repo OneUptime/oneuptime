@@ -6086,6 +6086,14 @@ describe("the exposure assessment's routes", () => {
       refused: EXPOSURE_CHANGE_REFUSED,
       body: { places: [BreachPlace.Eea] },
     },
+    // Saying whether the organization holds the data for another changes the case (#11427).
+    {
+      name: "saying whether the data is held for another organization",
+      path: DATA_SECURITY_API_ROUTES.exposureDataHeldFor(":id"),
+      allowed: EXPOSURE_CHANGE,
+      refused: EXPOSURE_CHANGE_REFUSED,
+      body: { forAnother: true },
+    },
     // Reading the store's access logs keeps what they say on the case (#10951).
     {
       name: "reading the store's access logs for the window",
@@ -6117,6 +6125,9 @@ describe("the exposure assessment's routes", () => {
       jest
         .spyOn(ExposureAssessmentDrafter, "readLogsForPerson")
         .mockResolvedValue({} as never),
+      jest
+        .spyOn(ExposureAssessmentDrafter, "setDataHeldFor")
+        .mockResolvedValue({} as never),
     ];
   });
 
@@ -6145,6 +6156,25 @@ describe("the exposure assessment's routes", () => {
     expect(DATA_SECURITY_API_ROUTES.readExposureLogs("x")).toBe(
       "/security-case/x/exposure-assessment/read-logs",
     );
+    expect(DATA_SECURITY_API_ROUTES.exposureDataHeldFor("x")).toBe(
+      "/security-case/x/exposure-assessment/held-for",
+    );
+  });
+
+  test("whether the data is held for another reaches the drafter as given: true, false, or null to take it back (#11427)", async () => {
+    for (const forAnother of [true, false, null]) {
+      await call(
+        DATA_SECURITY_API_ROUTES.exposureDataHeldFor(":id"),
+        { id: STORE_ID.toString() },
+        { forAnother },
+      );
+    }
+
+    expect(
+      exposureSpies[6]!.mock.calls.map((args: Array<unknown>): unknown => {
+        return (args[0] as { forAnother: unknown }).forAnother;
+      }),
+    ).toEqual([true, false, null]);
   });
 
   test("its read is for the store's findings' readers, its changes for the case's editors", () => {
@@ -6331,6 +6361,21 @@ describe("the exposure assessment's routes", () => {
       "places that are not a list",
       DATA_SECURITY_API_ROUTES.exposurePeoplePlaces(":id"),
       { places: BreachPlace.Eea },
+    ],
+    [
+      "an answer of whose data it is that is not true, false or null",
+      DATA_SECURITY_API_ROUTES.exposureDataHeldFor(":id"),
+      { forAnother: "yes" },
+    ],
+    [
+      "an answer of whose data it is given as a number",
+      DATA_SECURITY_API_ROUTES.exposureDataHeldFor(":id"),
+      { forAnother: 1 },
+    ],
+    [
+      "no answer of whose data it is at all",
+      DATA_SECURITY_API_ROUTES.exposureDataHeldFor(":id"),
+      {},
     ],
   ])(
     "refuses %s, changing nothing",

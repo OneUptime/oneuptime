@@ -4,6 +4,7 @@ import Navbar, {
   MoreMenuItem,
   NavItem,
 } from "../../../UI/Components/Navbar/NavBar";
+import NavBarOfItems from "../../../UI/Components/Navbar/NavBarOfItems";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -75,6 +76,46 @@ describe("Navbar", () => {
     render(<Navbar {...customProps} />);
     expect(screen.getByText("Child 1")).toBeInTheDocument();
     expect(screen.getByText("Child 2")).toBeInTheDocument();
+  });
+
+  /*
+   * A bar handed children is NavBarOfItems, which a status page draws on
+   * its own, without the products menu's code: the same bar either way.
+   */
+  it("draws a bar handed children as NavBarOfItems draws it", () => {
+    const rightElement: NavItem = {
+      id: "test-right-element",
+      title: "Right Element",
+      icon: IconProp.User,
+      route: new Route("/test"),
+    };
+
+    const barProps: Array<Pick<ComponentProps, "className" | "rightElement">> =
+      [
+        {},
+        { className: "custom-class" },
+        { className: "custom-class", rightElement },
+      ];
+
+    for (const props of barProps) {
+      const viaNavbar: string = render(
+        <Navbar {...props}>
+          <div>Child 1</div>
+        </Navbar>,
+      ).container.innerHTML;
+      cleanup();
+
+      const onItsOwn: string = render(
+        <NavBarOfItems {...props}>
+          <div>Child 1</div>
+        </NavBarOfItems>,
+      ).container.innerHTML;
+      cleanup();
+
+      expect(onItsOwn).toBe(viaNavbar);
+      expect(onItsOwn).toContain('aria-label="Main menu"');
+      expect(onItsOwn).toContain('data-testid="nav-children"');
+    }
   });
 
   it("uses a product's section-wide active route in the mobile selector", () => {

@@ -46,10 +46,13 @@ export interface RecordScopeOptions {
    * The columns of the select the reader leaves out of the rows their own
    * grants do not reach, rather than narrowing the read by them
    * (AccessControlPermission.getColumnsKeptToLabels, #11259): a read by
-   * DatabaseService, which withholds them per row. Every other read - and a
-   * read across projects, each project's query worked out on its own
-   * (TenantPermission) - narrows by them as before. A column the query
-   * filters on narrows the read whatever this says.
+   * DatabaseService, which withholds them per row - a read across projects
+   * among them, each project's query worked out on its own
+   * (TenantPermission) and its rows withheld by that project's grants
+   * (getColumnsKeptToLabelsByProject, #11438). Every other read narrows by
+   * them as before: a caller that runs its own query with the read check
+   * withholds nothing, so dropping the narrowing would hand it the values. A
+   * column the query filters on narrows the read whatever this says.
    */
   columnsWithheldPerRecord?: ReadonlyArray<string> | undefined;
 }
@@ -115,6 +118,7 @@ export default class BasePermission {
         type,
         updateData,
         sort,
+        options,
       );
 
       // add user scope if any

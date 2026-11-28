@@ -1,0 +1,1376 @@
+{
+ "nodeHostMetrics": {
+  "signal": "resourceMetrics",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "k8s.cluster.name",
+      "value": {
+       "stringValue": "shop-cluster"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "kubernetes-agent-shop-cluster"
+      }
+     },
+     {
+      "key": "k8s.node.name",
+      "value": {
+       "stringValue": "hosts11257-control-plane"
+      }
+     },
+     {
+      "key": "oneuptime.agent.version",
+      "value": {
+       "stringValue": "1.0.0"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/diskscraper",
+      "version": "0.165.0"
+     },
+     "metrics": [
+      {
+       "name": "system.disk.io",
+       "description": "Disk bytes transferred.",
+       "unit": "By",
+       "sum": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "device",
+            "value": {
+             "stringValue": "nvme0n1p15"
+            }
+           },
+           {
+            "key": "direction",
+            "value": {
+             "stringValue": "read"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794726147000000000",
+          "timeUnixNano": "1795849781109964707",
+          "asInt": "31153152"
+         },
+         {
+          "attributes": [
+           {
+            "key": "device",
+            "value": {
+             "stringValue": "nvme0n1p15"
+            }
+           },
+           {
+            "key": "direction",
+            "value": {
+             "stringValue": "write"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794726147000000000",
+          "timeUnixNano": "1795849781109964707",
+          "asInt": "1024"
+         }
+        ],
+        "aggregationTemporality": 2,
+        "isMonotonic": true
+       }
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/memoryscraper",
+      "version": "0.165.0"
+     },
+     "metrics": [
+      {
+       "name": "system.memory.usage",
+       "description": "Bytes of memory in use.",
+       "unit": "By",
+       "sum": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "state",
+            "value": {
+             "stringValue": "used"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794726147000000000",
+          "timeUnixNano": "1795849781111555867",
+          "asInt": "56050475008"
+         },
+         {
+          "attributes": [
+           {
+            "key": "state",
+            "value": {
+             "stringValue": "free"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794726147000000000",
+          "timeUnixNano": "1795849781111555867",
+          "asInt": "42334457856"
+         }
+        ],
+        "aggregationTemporality": 2
+       }
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/networkscraper",
+      "version": "0.165.0"
+     },
+     "metrics": [
+      {
+       "name": "system.network.io",
+       "description": "The number of bytes transmitted and received.",
+       "unit": "By",
+       "sum": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "device",
+            "value": {
+             "stringValue": "lo"
+            }
+           },
+           {
+            "key": "direction",
+            "value": {
+             "stringValue": "transmit"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794726147000000000",
+          "timeUnixNano": "1795849781111611701",
+          "asInt": "0"
+         },
+         {
+          "attributes": [
+           {
+            "key": "device",
+            "value": {
+             "stringValue": "lo"
+            }
+           },
+           {
+            "key": "direction",
+            "value": {
+             "stringValue": "receive"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794726147000000000",
+          "timeUnixNano": "1795849781111611701",
+          "asInt": "0"
+         }
+        ],
+        "aggregationTemporality": 2,
+        "isMonotonic": true
+       }
+      }
+     ]
+    },
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/processesscraper",
+      "version": "0.165.0"
+     },
+     "metrics": [
+      {
+       "name": "system.processes.count",
+       "description": "Total number of processes in each state.",
+       "unit": "{processes}",
+       "sum": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "status",
+            "value": {
+             "stringValue": "sleeping"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794726147000000000",
+          "timeUnixNano": "1795849781115510542",
+          "asInt": "1"
+         },
+         {
+          "attributes": [
+           {
+            "key": "status",
+            "value": {
+             "stringValue": "blocked"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1794726147000000000",
+          "timeUnixNano": "1795849781115510542",
+          "asInt": "4"
+         }
+        ],
+        "aggregationTemporality": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "nodeKubeletMetrics": {
+  "signal": "resourceMetrics",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "k8s.node.name",
+      "value": {
+       "stringValue": "hosts11257-control-plane"
+      }
+     },
+     {
+      "key": "k8s.cluster.name",
+      "value": {
+       "stringValue": "shop-cluster"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "kubernetes-agent-shop-cluster"
+      }
+     },
+     {
+      "key": "oneuptime.agent.version",
+      "value": {
+       "stringValue": "1.0.0"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver",
+      "version": "0.165.0"
+     },
+     "metrics": [
+      {
+       "name": "k8s.node.memory.usage",
+       "description": "Node memory usage",
+       "unit": "By",
+       "gauge": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1794726147000000000",
+          "timeUnixNano": "1795849781141615084",
+          "asInt": "1847246848"
+         }
+        ]
+       }
+      },
+      {
+       "name": "k8s.node.cpu.usage",
+       "description": "Total CPU usage (sum of all cores per second) averaged over the sample window",
+       "unit": "{cpu}",
+       "gauge": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1794726147000000000",
+          "timeUnixNano": "1795849811130452539",
+          "asDouble": 1.3258057666666665
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "deploymentMetrics": {
+  "signal": "resourceMetrics",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "k8s.deployment.uid",
+      "value": {
+       "stringValue": "5a37292f-c7bb-4842-b37b-50bce806d40c"
+      }
+     },
+     {
+      "key": "k8s.deployment.name",
+      "value": {
+       "stringValue": "otlp-sink"
+      }
+     },
+     {
+      "key": "k8s.namespace.name",
+      "value": {
+       "stringValue": "otlp-sink"
+      }
+     },
+     {
+      "key": "k8s.cluster.name",
+      "value": {
+       "stringValue": "shop-cluster"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "kubernetes-agent-shop-cluster"
+      }
+     },
+     {
+      "key": "oneuptime.agent.version",
+      "value": {
+       "stringValue": "1.0.0"
+      }
+     }
+    ],
+    "entityRefs": [
+     {
+      "type": "k8s.deployment",
+      "idKeys": [
+       "k8s.deployment.uid"
+      ],
+      "descriptionKeys": [
+       "k8s.deployment.name"
+      ]
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/k8sclusterreceiver",
+      "version": "0.165.0"
+     },
+     "metrics": [
+      {
+       "name": "k8s.deployment.available",
+       "description": "Total number of available pods (ready for at least minReadySeconds) targeted by this deployment",
+       "unit": "{pod}",
+       "gauge": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1795849779140144831",
+          "timeUnixNano": "1795849809240875202",
+          "asInt": "1"
+         }
+        ]
+       }
+      },
+      {
+       "name": "k8s.deployment.desired",
+       "description": "Number of desired pods in this deployment",
+       "unit": "{pod}",
+       "gauge": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1795849779140144831",
+          "timeUnixNano": "1795849809240875202",
+          "asInt": "1"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "podMetrics": {
+  "signal": "resourceMetrics",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "k8s.pod.uid",
+      "value": {
+       "stringValue": "f006d131-f70c-47e1-a622-f6577afbeeed"
+      }
+     },
+     {
+      "key": "k8s.pod.name",
+      "value": {
+       "stringValue": "shop-api-5f7668b9b4-c2rm8"
+      }
+     },
+     {
+      "key": "k8s.namespace.name",
+      "value": {
+       "stringValue": "shop"
+      }
+     },
+     {
+      "key": "k8s.node.name",
+      "value": {
+       "stringValue": "hosts11257-control-plane"
+      }
+     },
+     {
+      "key": "k8s.pod.label.app",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "k8s.replicaset.name",
+      "value": {
+       "stringValue": "shop-api-5f7668b9b4"
+      }
+     },
+     {
+      "key": "k8s.deployment.name",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "k8s.cluster.name",
+      "value": {
+       "stringValue": "shop-cluster"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "oneuptime.agent.version",
+      "value": {
+       "stringValue": "1.0.0"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver",
+      "version": "0.165.0"
+     },
+     "metrics": [
+      {
+       "name": "k8s.pod.memory.usage",
+       "description": "Pod memory usage",
+       "unit": "By",
+       "gauge": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1795849972000000000",
+          "timeUnixNano": "1795849991131653927",
+          "asInt": "51646464"
+         }
+        ]
+       }
+      },
+      {
+       "name": "k8s.pod.network.io",
+       "description": "Pod network IO",
+       "unit": "By",
+       "sum": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "interface",
+            "value": {
+             "stringValue": "eth0"
+            }
+           },
+           {
+            "key": "direction",
+            "value": {
+             "stringValue": "receive"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795849972000000000",
+          "timeUnixNano": "1795849991131653927",
+          "asInt": "16386"
+         },
+         {
+          "attributes": [
+           {
+            "key": "interface",
+            "value": {
+             "stringValue": "eth0"
+            }
+           },
+           {
+            "key": "direction",
+            "value": {
+             "stringValue": "transmit"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795849972000000000",
+          "timeUnixNano": "1795849991131653927",
+          "asInt": "27687"
+         }
+        ],
+        "aggregationTemporality": 2,
+        "isMonotonic": true
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "podLogs": {
+  "signal": "resourceLogs",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "k8s.namespace.name",
+      "value": {
+       "stringValue": "shop"
+      }
+     },
+     {
+      "key": "k8s.pod.name",
+      "value": {
+       "stringValue": "shop-api-5f7668b9b4-c2rm8"
+      }
+     },
+     {
+      "key": "k8s.container.name",
+      "value": {
+       "stringValue": "api"
+      }
+     },
+     {
+      "key": "k8s.pod.uid",
+      "value": {
+       "stringValue": "f006d131-f70c-47e1-a622-f6577afbeeed"
+      }
+     },
+     {
+      "key": "k8s.replicaset.name",
+      "value": {
+       "stringValue": "shop-api-5f7668b9b4"
+      }
+     },
+     {
+      "key": "k8s.deployment.name",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "k8s.node.name",
+      "value": {
+       "stringValue": "hosts11257-control-plane"
+      }
+     },
+     {
+      "key": "k8s.pod.label.app",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "k8s.cluster.name",
+      "value": {
+       "stringValue": "shop-cluster"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "oneuptime.agent.version",
+      "value": {
+       "stringValue": "1.0.0"
+      }
+     }
+    ]
+   },
+   "scopeLogs": [
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver",
+      "version": "0.165.0"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1795849973630920600",
+       "observedTimeUnixNano": "1795849973710675140",
+       "severityNumber": 17,
+       "severityText": "Error",
+       "body": {
+        "stringValue": "Error initializing OpenTelemetry SDK. Your application is not instrumented and will not produce telemetry Error: exportIntervalMillis must be greater than or equal to exportTimeoutMillis\n    at new PeriodicExportingMetricReader (/app/node_modules/@opentelemetry/sdk-metrics/build/src/export/PeriodicExportingMetricReader.js:46:19)\n    at /app/node_modules/@opentelemetry/sdk-node/build/src/sdk.js:85:40\n    at Array.forEach (<anonymous>)\n    at configureMetricProviderFromEnv (/app/node_modules/@opentelemetry/sdk-node/build/src/sdk.js:62:22)\n    at NodeSDK.start (/app/node_modules/@opentelemetry/sdk-node/build/src/sdk.js:255:38)\n    at Object.<anonymous> (/app/node_modules/@opentelemetry/auto-instrumentations-node/build/src/register.js:27:9)\n    at Module._compile (node:internal/modules/cjs/loader:1968:14)\n    at Object..js (node:internal/modules/cjs/loader:2108:10)\n    at Module.load (node:internal/modules/cjs/loader:1690:32)\n    at Module._load (node:internal/modules/cjs/loader:1480:12)"
+       },
+       "attributes": [
+        {
+         "key": "log.file.path",
+         "value": {
+          "stringValue": "/var/log/pods/shop_shop-api-5f7668b9b4-c2rm8_f006d131-f70c-47e1-a622-f6577afbeeed/api/0.log"
+         }
+        },
+        {
+         "key": "log.iostream",
+         "value": {
+          "stringValue": "stderr"
+         }
+        },
+        {
+         "key": "time",
+         "value": {
+          "stringValue": "2026-11-28T07:12:53.6309206Z"
+         }
+        },
+        {
+         "key": "restart_count",
+         "value": {
+          "stringValue": "0"
+         }
+        },
+        {
+         "key": "logtag",
+         "value": {
+          "stringValue": "F"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "ebpfSpans": {
+  "signal": "resourceSpans",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "k8s.cluster.name",
+      "value": {
+       "stringValue": "shop-cluster"
+      }
+     },
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "v1.46.0"
+      }
+     },
+     {
+      "key": "telemetry.distro.name",
+      "value": {
+       "stringValue": "opentelemetry-ebpf-instrumentation"
+      }
+     },
+     {
+      "key": "telemetry.distro.version",
+      "value": {
+       "stringValue": "v0.14.0"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "shop-api-5f7668b9b4-c2rm8"
+      }
+     },
+     {
+      "key": "host.id",
+      "value": {
+       "stringValue": "4e1b9c7d-2a3f-4b5c-8d6e-9f0a1b2c3d4e"
+      }
+     },
+     {
+      "key": "os.type",
+      "value": {
+       "stringValue": "linux"
+      }
+     },
+     {
+      "key": "service.namespace",
+      "value": {
+       "stringValue": "shop"
+      }
+     },
+     {
+      "key": "k8s.namespace.name",
+      "value": {
+       "stringValue": "shop"
+      }
+     },
+     {
+      "key": "k8s.pod.name",
+      "value": {
+       "stringValue": "shop-api-5f7668b9b4-c2rm8"
+      }
+     },
+     {
+      "key": "k8s.pod.uid",
+      "value": {
+       "stringValue": "f006d131-f70c-47e1-a622-f6577afbeeed"
+      }
+     },
+     {
+      "key": "k8s.owner.name",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "service.version",
+      "value": {
+       "stringValue": "1.0.0"
+      }
+     },
+     {
+      "key": "k8s.node.name",
+      "value": {
+       "stringValue": "hosts11257-control-plane"
+      }
+     },
+     {
+      "key": "k8s.replicaset.name",
+      "value": {
+       "stringValue": "shop-api-5f7668b9b4"
+      }
+     },
+     {
+      "key": "k8s.container.name",
+      "value": {
+       "stringValue": "api"
+      }
+     },
+     {
+      "key": "k8s.kind",
+      "value": {
+       "stringValue": "Deployment"
+      }
+     },
+     {
+      "key": "k8s.pod.start_time",
+      "value": {
+       "stringValue": "2026-11-28 07:12:52 +0000 UTC"
+      }
+     },
+     {
+      "key": "k8s.deployment.name",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "cloud.platform",
+      "value": {
+       "stringValue": "azure.vm"
+      }
+     },
+     {
+      "key": "cloud.provider",
+      "value": {
+       "stringValue": "azure"
+      }
+     },
+     {
+      "key": "cloud.region",
+      "value": {
+       "stringValue": "eastus"
+      }
+     },
+     {
+      "key": "cloud.resource_id",
+      "value": {
+       "stringValue": "/subscriptions/7c2a5e10-3b4d-4f6a-9e8b-1d2c3b4a5f60/resourceGroups/shop-prod/providers/Microsoft.Compute/virtualMachines/aks-nodepool1-vm0"
+      }
+     },
+     {
+      "key": "host.type",
+      "value": {
+       "stringValue": "Standard_D32as_v7"
+      }
+     },
+     {
+      "key": "os.version",
+      "value": {
+       "stringValue": "24.04.202610250"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "shop.shop-api-5f7668b9b4-c2rm8.api"
+      }
+     },
+     {
+      "key": "span.metrics.skip",
+      "value": {
+       "boolValue": true
+      }
+     },
+     {
+      "key": "otel.scope.name",
+      "value": {
+       "stringValue": "go.opentelemetry.io/obi"
+      }
+     },
+     {
+      "key": "k8s.pod.label.app",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "oneuptime.agent.version",
+      "value": {
+       "stringValue": "1.0.0"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {},
+     "spans": [
+      {
+       "traceId": "377eabdd7eb5afe46bb455f010d163fa",
+       "spanId": "0123f0fb44b25bde",
+       "parentSpanId": "80f44f898d484a1a",
+       "name": "in queue",
+       "kind": 1,
+       "startTimeUnixNano": "1795849981519262924",
+       "endTimeUnixNano": "1795849981519398498",
+       "status": {}
+      },
+      {
+       "traceId": "377eabdd7eb5afe46bb455f010d163fa",
+       "spanId": "cf1f6dfc805ce612",
+       "parentSpanId": "80f44f898d484a1a",
+       "name": "processing",
+       "kind": 1,
+       "startTimeUnixNano": "1795849981519398498",
+       "endTimeUnixNano": "1795849981519569675",
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {},
+     "spans": [
+      {
+       "traceId": "9c9a2f82f3afdf5af043613f80ba5775",
+       "spanId": "3043ab030ea75630",
+       "name": "GET /*",
+       "kind": 2,
+       "startTimeUnixNano": "1795849981520584146",
+       "endTimeUnixNano": "1795849981520686460",
+       "attributes": [
+        {
+         "key": "server.port",
+         "value": {
+          "intValue": "9229"
+         }
+        },
+        {
+         "key": "client.address",
+         "value": {
+          "stringValue": "127.0.0.1"
+         }
+        },
+        {
+         "key": "server.address",
+         "value": {
+          "stringValue": "shop-api"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "101"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "url.path",
+         "value": {
+          "stringValue": "/7024b655-c2f7-4d98-bda4-dfb9aec4ff0b"
+         }
+        },
+        {
+         "key": "url.scheme",
+         "value": {
+          "stringValue": "http"
+         }
+        },
+        {
+         "key": "http.route",
+         "value": {
+          "stringValue": "/*"
+         }
+        },
+        {
+         "key": "network.peer.address",
+         "value": {
+          "stringValue": "127.0.0.1"
+         }
+        },
+        {
+         "key": "network.peer.port",
+         "value": {
+          "intValue": "58222"
+         }
+        },
+        {
+         "key": "network.protocol.version",
+         "value": {
+          "stringValue": "1.1"
+         }
+        },
+        {
+         "key": "span.metrics.skip",
+         "value": {
+          "boolValue": true
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {},
+     "spans": [
+      {
+       "traceId": "4e2a4e78a8f4c651d2ccb8f03096742b",
+       "spanId": "1ed91fa307f2ba0a",
+       "name": "GET /orders",
+       "kind": 3,
+       "startTimeUnixNano": "1795849981642931425",
+       "endTimeUnixNano": "1795849981643066488",
+       "attributes": [
+        {
+         "key": "server.port",
+         "value": {
+          "intValue": "8080"
+         }
+        },
+        {
+         "key": "server.address",
+         "value": {
+          "stringValue": "127.0.0.1"
+         }
+        },
+        {
+         "key": "service.peer.name",
+         "value": {
+          "stringValue": "127.0.0.1"
+         }
+        },
+        {
+         "key": "url.full",
+         "value": {
+          "stringValue": "http://127.0.0.1/orders"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "url.scheme",
+         "value": {
+          "stringValue": "http"
+         }
+        },
+        {
+         "key": "network.peer.address",
+         "value": {
+          "stringValue": "127.0.0.1"
+         }
+        },
+        {
+         "key": "network.peer.port",
+         "value": {
+          "intValue": "8080"
+         }
+        },
+        {
+         "key": "network.protocol.version",
+         "value": {
+          "stringValue": "1.1"
+         }
+        },
+        {
+         "key": "span.metrics.skip",
+         "value": {
+          "boolValue": true
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    },
+    {
+     "scope": {},
+     "spans": [
+      {
+       "traceId": "4e2a4e78a8f4c651d2ccb8f03096742b",
+       "spanId": "5065a86eaf4aa829",
+       "parentSpanId": "f584fb6e7ff7ec2e",
+       "name": "GET /orders",
+       "kind": 2,
+       "startTimeUnixNano": "1795849981643082172",
+       "endTimeUnixNano": "1795849981643870808",
+       "attributes": [
+        {
+         "key": "server.port",
+         "value": {
+          "intValue": "8080"
+         }
+        },
+        {
+         "key": "client.address",
+         "value": {
+          "stringValue": "127.0.0.1"
+         }
+        },
+        {
+         "key": "server.address",
+         "value": {
+          "stringValue": "shop-api"
+         }
+        },
+        {
+         "key": "http.response.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        },
+        {
+         "key": "http.request.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "url.path",
+         "value": {
+          "stringValue": "/orders"
+         }
+        },
+        {
+         "key": "url.scheme",
+         "value": {
+          "stringValue": "http"
+         }
+        },
+        {
+         "key": "http.route",
+         "value": {
+          "stringValue": "/orders"
+         }
+        },
+        {
+         "key": "network.peer.address",
+         "value": {
+          "stringValue": "127.0.0.1"
+         }
+        },
+        {
+         "key": "network.peer.port",
+         "value": {
+          "intValue": "56894"
+         }
+        },
+        {
+         "key": "network.protocol.version",
+         "value": {
+          "stringValue": "1.1"
+         }
+        },
+        {
+         "key": "span.metrics.skip",
+         "value": {
+          "boolValue": true
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "costMetrics": {
+  "signal": "resourceMetrics",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "cost-engine"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "kubernetes-agent-opencost.oneuptime-agent.svc.cluster.local:9003"
+      }
+     },
+     {
+      "key": "server.address",
+      "value": {
+       "stringValue": "kubernetes-agent-opencost.oneuptime-agent.svc.cluster.local"
+      }
+     },
+     {
+      "key": "server.port",
+      "value": {
+       "stringValue": "9003"
+      }
+     },
+     {
+      "key": "url.scheme",
+      "value": {
+       "stringValue": "http"
+      }
+     },
+     {
+      "key": "k8s.cluster.name",
+      "value": {
+       "stringValue": "shop-cluster"
+      }
+     },
+     {
+      "key": "oneuptime.agent.version",
+      "value": {
+       "stringValue": "1.0.0"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver",
+      "version": "0.165.0"
+     },
+     "metrics": [
+      {
+       "name": "node_cpu_hourly_cost",
+       "description": "node_cpu_hourly_cost hourly cost for each cpu on this node",
+       "gauge": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "arch",
+            "value": {
+             "stringValue": "amd64"
+            }
+           },
+           {
+            "key": "exported_instance",
+            "value": {
+             "stringValue": "hosts11257-control-plane"
+            }
+           },
+           {
+            "key": "node",
+            "value": {
+             "stringValue": "hosts11257-control-plane"
+            }
+           },
+           {
+            "key": "provider_id",
+            "value": {
+             "stringValue": "kind://docker/hosts11257/hosts11257-control-plane"
+            }
+           },
+           {
+            "key": "uid",
+            "value": {
+             "stringValue": "cf898eee-e69d-42d1-b23f-7108257e6602"
+            }
+           }
+          ],
+          "timeUnixNano": "1795849938809000000",
+          "asDouble": 0.031611
+         }
+        ]
+       },
+       "metadata": [
+        {
+         "key": "prometheus.type",
+         "value": {
+          "stringValue": "gauge"
+         }
+        }
+       ]
+      },
+      {
+       "name": "node_ram_hourly_cost",
+       "description": "node_ram_hourly_cost hourly cost for each gb of ram on this node",
+       "gauge": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "arch",
+            "value": {
+             "stringValue": "amd64"
+            }
+           },
+           {
+            "key": "exported_instance",
+            "value": {
+             "stringValue": "hosts11257-control-plane"
+            }
+           },
+           {
+            "key": "node",
+            "value": {
+             "stringValue": "hosts11257-control-plane"
+            }
+           },
+           {
+            "key": "provider_id",
+            "value": {
+             "stringValue": "kind://docker/hosts11257/hosts11257-control-plane"
+            }
+           },
+           {
+            "key": "uid",
+            "value": {
+             "stringValue": "cf898eee-e69d-42d1-b23f-7108257e6602"
+            }
+           }
+          ],
+          "timeUnixNano": "1795849938809000000",
+          "asDouble": 0.004237
+         }
+        ]
+       },
+       "metadata": [
+        {
+         "key": "prometheus.type",
+         "value": {
+          "stringValue": "gauge"
+         }
+        }
+       ]
+      },
+      {
+       "name": "node_total_hourly_cost",
+       "description": "node_total_hourly_cost Total node cost per hour",
+       "gauge": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "arch",
+            "value": {
+             "stringValue": "amd64"
+            }
+           },
+           {
+            "key": "exported_instance",
+            "value": {
+             "stringValue": "hosts11257-control-plane"
+            }
+           },
+           {
+            "key": "node",
+            "value": {
+             "stringValue": "hosts11257-control-plane"
+            }
+           },
+           {
+            "key": "provider_id",
+            "value": {
+             "stringValue": "kind://docker/hosts11257/hosts11257-control-plane"
+            }
+           },
+           {
+            "key": "uid",
+            "value": {
+             "stringValue": "cf898eee-e69d-42d1-b23f-7108257e6602"
+            }
+           }
+          ],
+          "timeUnixNano": "1795849938809000000",
+          "asDouble": 1.5444796728401184
+         }
+        ]
+       },
+       "metadata": [
+        {
+         "key": "prometheus.type",
+         "value": {
+          "stringValue": "gauge"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

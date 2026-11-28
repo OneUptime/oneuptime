@@ -1836,8 +1836,15 @@ describe("personal on-call rules", () => {
       "Server/Services/UserNotificationRuleService.ts",
     );
 
-    // Every page's call is built by one builder, which asks for 1 (Utils/Call/OnCallPageCall).
-    expect(ruleService).toContain("data: buildOnCallPageCallData({");
+    /*
+     * Every page's call is built by one builder, which asks for 1
+     * (Utils/Call/OnCallPageCall) - in English, and in the person's
+     * language beside it (#11066).
+     */
+    expect(ruleService).toContain("data: buildOnCallPageCallData(input),");
+    expect(ruleService).toContain(
+      "data: buildOnCallPageCallData(input, getCallTranslator(language)),",
+    );
     expect(ON_CALL_PAGE_CALL_ACKNOWLEDGE_DIGIT).toBe("1");
     expect(ON_CALL_PAGE_CALL_PROMPT.startsWith("Press 1 to acknowledge")).toBe(
       true,
@@ -2607,8 +2614,10 @@ describe("notification settings", () => {
 /*
  * Task fu-i18n-larger: a person's on-call pages are written in their own
  * language (User.language), on every channel whose words OneUptime writes
- * itself; a call and WhatsApp stay English. How OneUptime Reaches You says
- * which, and Your Account says where the language is picked.
+ * itself; WhatsApp stays English, and so does a call, unless the account
+ * that places it speaks with one of OneUptime's voices (#11066). How
+ * OneUptime Reaches You says which, and Your Account says where the
+ * language is picked.
  */
 describe("the language of your pages", () => {
   const ruleService: string = readCommonSource(
@@ -2632,21 +2641,23 @@ describe("the language of your pages", () => {
     );
   });
 
-  it("lists the channels in the person's language, and keeps calls and WhatsApp in English", () => {
+  it("lists the channels in the person's language, a call's when its account has a voice, and keeps WhatsApp in English", () => {
     const rows: Array<string> = tableRows(languageSection);
 
     expect(rows).toEqual([
       "| Email, SMS, push notifications and Telegram | Your language |",
       "| Your own Slack, Microsoft Teams and Mattermost messages | Your language |",
-      "| Phone calls and WhatsApp | English |",
+      "| Phone calls | Your language, when the Twilio account that calls speaks with one of OneUptime's voices; otherwise English. See [What a phone call says](/docs/notifications/on-call-rules#what-a-phone-call-says) |",
+      "| WhatsApp | English |",
     ]);
 
-    // Email, SMS, push, Telegram and chat generators take the translator...
+    // Email, SMS, push, Telegram, chat and call generators take the translator...
     for (const generator of [
       "generateEmailTemplateForIncidentCreated(",
       "generateSmsTemplateForIncidentCreated(",
       "generateTelegramBodyForIncidentCreated(",
       "generateWorkspaceMessageBlocksForIncidentCreated(",
+      "generateCallTemplateForIncidentCreated(",
     ]) {
       const start: number = ruleService.indexOf(`public async ${generator}`);
 
@@ -2657,11 +2668,8 @@ describe("the language of your pages", () => {
       ]).toEqual([generator, expect.stringContaining("translator")]);
     }
 
-    // ...and a call's and WhatsApp's do not: they stay English.
-    for (const generator of [
-      "generateCallTemplateForIncidentCreated(",
-      "generateWhatsAppTemplateForIncidentCreated(",
-    ]) {
+    // ...and WhatsApp's does not: its template is Meta's, in English.
+    for (const generator of ["generateWhatsAppTemplateForIncidentCreated("]) {
       const start: number = ruleService.indexOf(`public async ${generator}`);
 
       expect([generator, start >= 0]).toEqual([generator, true]);
@@ -2687,6 +2695,9 @@ describe("the language of your pages", () => {
   it("points a reader whose pages are English to where the language is picked", () => {
     expect(reachingYou).toContain(
       ":::details My pages are in English, though the dashboard is not",
+    );
+    expect(reachingYou).toContain(
+      "WhatsApp messages stay in English, and so do phone calls through a Twilio account that keeps its default voice.",
     );
     expect(reachingYou).toContain(
       "Pick it in the language menu at the bottom of any page, or under **Language** on **User Profile**.",

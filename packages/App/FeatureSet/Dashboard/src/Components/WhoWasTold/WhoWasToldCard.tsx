@@ -65,6 +65,7 @@ import useLiveRefresh from "Common/UI/Utils/UseLiveRefresh";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ResourceAttentionPill from "../ResourcePart/ResourceAttentionPill";
 import { ResourceAttentionDialogRead } from "../ResourcePart/ResourceAttentionDialog";
+import NotificationLogStatusPill from "../NotificationLogs/NotificationLogStatusPill";
 import {
   FAILED_SUBSCRIBER_SENDS_DESCRIPTION,
   FAILED_SUBSCRIBER_SENDS_EMPTY,
@@ -115,6 +116,10 @@ type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "loaded"; result: WhoWasToldResult };
+
+// A notification's status, as its log draws it.
+export const WHO_WAS_TOLD_NOTIFICATION_STATUS_TEST_ID: string =
+  "who-was-told-notification-status";
 
 // The icon a status draws, and its colour.
 const STATUS_ICONS: Readonly<
@@ -228,7 +233,24 @@ const NotificationLine: FunctionComponent<{
         <span className="text-sm text-gray-900">
           {getChannelName(notification.channel, translator)}
         </span>
-        <Chip chip={DELIVERY_CHIPS[notification.status]} />
+        {notification.logStatus ? (
+          /*
+           * As its log draws it (#11416): a call still ringing is Calling
+           * and an answered one Success, an SMS waiting for its carrier's
+           * receipt a blue Sent and one the gateway took a green one - with
+           * what it means on hover, tap or focus.
+           */
+          <NotificationLogStatusPill
+            kind={notification.logStatus.kind}
+            status={notification.logStatus.status}
+            line={notification.logStatus.line}
+            isAwayFromItsLog={true}
+            size={PillSize.Small}
+            dataTestId={WHO_WAS_TOLD_NOTIFICATION_STATUS_TEST_ID}
+          />
+        ) : (
+          <Chip chip={DELIVERY_CHIPS[notification.status]} />
+        )}
       </div>
       {reason ? (
         <IsolatedLine

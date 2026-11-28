@@ -309,7 +309,13 @@ Algunos campos contienen un valor JSON con una forma propia, como `rotation` y `
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Una clave que se renombra se sigue leyendo con su nombre antiguo: el tipo de restricción de una capa se escribe en `restrictionType` o en su grafía antigua `restictionType`, y una respuesta lleva ambas.
+Una clave que se renombra se sigue leyendo con su nombre antiguo: el tipo de restricción de una capa se escribe en `restrictionType` o en su grafía antigua `restictionType`, y una respuesta lleva ambas. La grafía antigua está obsoleta en las respuestas: la llevan hasta la primera versión principal publicada el 1 de junio de 2027 o después. Las escrituras siempre la leen.
+
+A un valor también se le toma la palabra. La franja semanal de una capa está de guardia los días que nombra, así que su `startTime` y su `endTime` deben caer en su `startDay` y su `endDay` en la zona horaria de la programación. Una franja fechada en otros días se rechaza con un `400` que nombra la franja y da una hora del día nombrado para enviar en su lugar:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Dónde se compró un proyecto
 
@@ -422,6 +428,44 @@ Incident not found.
 ```
 
 Antes respondía `200` con un cuerpo vacío. Una lista (`get-list`) y un recuento siguen respondiendo `200` con los registros que puedes leer, ninguno si no hay. El proveedor de Terraform interpreta un `404` al refrescar como un recurso que ya no existe y lo quita del estado, así que el siguiente plan lo vuelve a crear: da a la clave de API que usa los permisos, y las etiquetas, para leer cada recurso que gestiona. Las herramientas MCP responden a un `404` con un error que remite a la herramienta de lista correspondiente, y la CLI termina con el código `3`.
+
+### Imágenes en el Markdown de un registro
+
+Una imagen pegada en Markdown, como una captura de pantalla en la descripción de un incidente, en un campo personalizado de Markdown o en una nota, es un archivo privado. Su dirección (`/file/image/access-token/...`) solo la abre para una persona que ha iniciado sesión en el proyecto, así que una clave de API la lee a través del registro que la muestra:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+El registro se lee como la clave, igual que lo lee `get-item`: la clave necesita el permiso para leerlo, y sus etiquetas. La respuesta contiene cada imagen que muestra el Markdown del registro, en el orden en que las muestra: su `name`, `mimeType`, `sizeInBytes`, sus datos en `base64`, un `contentId` para un adjunto incrustado en un correo, las `urls` con las que la muestra el Markdown y los `fields` en los que está. En `leftOut` están los archivos que muestra el Markdown y que no se entregan, cada uno con un `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+Solo se entregan imágenes subidas al proyecto del propio registro, hasta 20 y 10 MB en total, y nunca un SVG. Cada tipo de registro con Markdown tiene la misma solicitud, como `/api/incident-public-note/<id>/markdown-files` o `/api/alert/<id>/markdown-files`. Un registro que no existe, o que la clave no puede leer, responde `404` como hace `get-item`, y `422` cuando la clave no puede leer ese tipo de registro en absoluto. Un flujo de trabajo lee las mismas imágenes con [Obtener archivos del Markdown](/docs/workflows/components#get-files-from-markdown).
 
 ## La referencia completa de endpoints
 
