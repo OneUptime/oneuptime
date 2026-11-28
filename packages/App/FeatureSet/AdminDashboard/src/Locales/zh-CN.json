@@ -4637,5 +4637,20 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "此项目中另有一个 {{kind}} 使用此名称，因此在选择器中无法区分它们。请逐个打开，查看哪个是哪个，然后重命名其中一个。",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 个 {{kind}} 与另一个 {{kind}} 同名，在选择器中无法区分。请逐个打开，查看哪个是哪个，然后重命名其中一个。",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 个 {{kinds}} 与另一个 {{kind}} 同名，在选择器中无法区分。请逐个打开，查看哪个是哪个，然后重命名其中一个。",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "有 {{count}} 个 {{kind}} 与另一个 {{kind}} 同名，在选择器中无法区分。请逐个打开，查看哪个是哪个，然后重命名其中一个。"
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "有 {{count}} 个 {{kind}} 与另一个 {{kind}} 同名，在选择器中无法区分。请逐个打开，查看哪个是哪个，然后重命名其中一个。",
+  "You can read this only on {{items}} labelled {{labels}}, so the list cannot be sorted by it.": "您只能在带有标签 {{labels}} 的{{items}}上读取此项，因此列表无法按此项排序。",
+  "You can read this only on {{items}} with certain labels, so the list cannot be sorted by it.": "您只能在带有特定标签的{{items}}上读取此项，因此列表无法按此项排序。",
+  "You can read this only on {{items}} you or your teams own, so the list cannot be sorted by it.": "您只能在您或您的团队拥有的{{items}}上读取此项，因此列表无法按此项排序。",
+  "{{first}} and {{second}}": "{{first}} 和 {{second}}",
+  "{{first}}, {{second}} and {{third}}": "{{first}}、{{second}} 和 {{third}}",
+  "{{first}} or {{second}}": "{{first}} 或 {{second}}",
+  "{{first}}, {{second}} or {{third}}": "{{first}}、{{second}} 或 {{third}}",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "您的权限仅限于带有标签 {{labels}} 的{{items}}。",
+  "Your permission is limited to {{items}} with certain labels.": "您的权限仅限于带有特定标签的{{items}}。",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "您所在的某个团队在带有标签 {{labels}} 的{{items}}上阻止了此操作。",
+  "A team you are on blocks this on {{items}} with certain labels.": "您所在的某个团队在带有特定标签的{{items}}上阻止了此操作。",
+  "Your permissions do not reach this {{itemName}}.": "您的权限不涵盖此{{itemName}}。",
+  "Your permission is limited to {{items}} you or your teams own.": "您的权限仅限于您或您的团队拥有的{{items}}。",
+  "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "您的权限仅限于带有标签 {{labels}} 的{{items}}，以及您或您的团队拥有的{{items}}。",
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "您的权限仅限于带有特定标签的{{items}}，以及您或您的团队拥有的{{items}}。"
 }

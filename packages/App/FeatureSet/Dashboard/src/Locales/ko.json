@@ -68142,5 +68142,11 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "이 기준보다 앞에 있는 \"{{criteria}}\"가 같은 항목을 검사하며 이 시리즈({{series}})에도 일치했으므로 이 시리즈의 경고 생성을 건너뛰었습니다. 같은 검사의 두 단계에 든 시리즈는 첫 번째 단계에서 경고를 하나만 받습니다.",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "이 기준보다 앞에 있는 \"{{criteria}}\"가 같은 항목을 검사하며 함께 일치했으므로 인시던트 생성을 건너뛰었습니다. 같은 검사의 두 단계는 첫 번째 단계에서 인시던트를 하나만 엽니다.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "이 기준보다 앞에 있는 \"{{criteria}}\"가 같은 항목을 검사하며 이 시리즈({{series}})에도 일치했으므로 이 시리즈의 인시던트 생성을 건너뛰었습니다. 같은 검사의 두 단계에 든 시리즈는 첫 번째 단계에서 인시던트를 하나만 받습니다.",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}}이(가) 이 모니터를 해당 상태로 설정하므로 이제부터 가동률, 상태 페이지, SLO가 모니터의 시간을 다시 계산합니다."
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}}이(가) 이 모니터를 해당 상태로 설정하므로 이제부터 가동률, 상태 페이지, SLO가 모니터의 시간을 다시 계산합니다.",
+  "You can read this only on {{items}} labelled {{labels}}, so the list cannot be sorted by it.": "이 항목은 {{labels}} 레이블이 붙은 {{items}}에서만 읽을 수 있으므로 목록을 이 항목으로 정렬할 수 없습니다.",
+  "You can read this only on {{items}} with certain labels, so the list cannot be sorted by it.": "이 항목은 특정 레이블이 붙은 {{items}}에서만 읽을 수 있으므로 목록을 이 항목으로 정렬할 수 없습니다.",
+  "You can read this only on {{items}} you or your teams own, so the list cannot be sorted by it.": "이 항목은 나 또는 내 팀이 소유한 {{items}}에서만 읽을 수 있으므로 목록을 이 항목으로 정렬할 수 없습니다.",
+  "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "권한이 {{labels}} 레이블이 붙은 {{items}} 및 나 또는 내 팀이 소유한 {{items}}(으)로 제한되어 있습니다.",
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "권한이 특정 레이블이 붙은 {{items}} 및 나 또는 내 팀이 소유한 {{items}}(으)로 제한되어 있습니다.",
+  "Your permission is limited to {{items}} you or your teams own.": "권한이 나 또는 내 팀이 소유한 {{items}}(으)로 제한되어 있습니다."
 }

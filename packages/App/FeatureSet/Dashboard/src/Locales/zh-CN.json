@@ -68142,5 +68142,11 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "已跳过为此序列（{{series}}）创建警报，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也与它匹配。处于同一检查两个级别的序列只会收到一条警报，来自第一个级别。",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "已跳过创建事件，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也同样匹配。同一检查的两个级别只会打开一个事件，来自第一个级别。",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "已跳过为此序列（{{series}}）创建事件，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也与它匹配。处于同一检查两个级别的序列只会收到一个事件，来自第一个级别。",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 将此监视器置于其状态，因此从此时起，正常运行时间、状态页和 SLO 重新计入此监视器的时间。"
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 将此监视器置于其状态，因此从此时起，正常运行时间、状态页和 SLO 重新计入此监视器的时间。",
+  "You can read this only on {{items}} labelled {{labels}}, so the list cannot be sorted by it.": "您只能在带有标签 {{labels}} 的{{items}}上读取此项，因此列表无法按此项排序。",
+  "You can read this only on {{items}} with certain labels, so the list cannot be sorted by it.": "您只能在带有特定标签的{{items}}上读取此项，因此列表无法按此项排序。",
+  "You can read this only on {{items}} you or your teams own, so the list cannot be sorted by it.": "您只能在您或您的团队拥有的{{items}}上读取此项，因此列表无法按此项排序。",
+  "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "您的权限仅限于带有标签 {{labels}} 的{{items}}，以及您或您的团队拥有的{{items}}。",
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "您的权限仅限于带有特定标签的{{items}}，以及您或您的团队拥有的{{items}}。",
+  "Your permission is limited to {{items}} you or your teams own.": "您的权限仅限于您或您的团队拥有的{{items}}。"
 }

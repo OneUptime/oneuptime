@@ -68142,5 +68142,11 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "この系列（{{series}}）のアラートは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、この系列にも一致したためです。同じチェックの 2 つの段階に入った系列には、最初の段階からアラートが 1 件だけ作成されます。",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "インシデントは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、これにも一致したためです。同じチェックの 2 つの段階では、最初の段階からインシデントが 1 件だけ作成されます。",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "この系列（{{series}}）のインシデントは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、この系列にも一致したためです。同じチェックの 2 つの段階に入った系列には、最初の段階からインシデントが 1 件だけ作成されます。",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} がこのモニターをそのステータスにしているため、ここから、モニターの時間は再び稼働率、ステータスページ、SLO の計算に含まれます。"
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} がこのモニターをそのステータスにしているため、ここから、モニターの時間は再び稼働率、ステータスページ、SLO の計算に含まれます。",
+  "You can read this only on {{items}} labelled {{labels}}, so the list cannot be sorted by it.": "この項目を読み取れるのはラベル {{labels}} の付いた{{items}}だけなので、一覧をこの項目で並べ替えることはできません。",
+  "You can read this only on {{items}} with certain labels, so the list cannot be sorted by it.": "この項目を読み取れるのは特定のラベルの付いた{{items}}だけなので、一覧をこの項目で並べ替えることはできません。",
+  "You can read this only on {{items}} you or your teams own, so the list cannot be sorted by it.": "この項目を読み取れるのはあなたまたはあなたのチームが所有する{{items}}だけなので、一覧をこの項目で並べ替えることはできません。",
+  "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "あなたの権限は、ラベル {{labels}} の付いた{{items}}と、あなたまたはあなたのチームが所有する{{items}}に限られています。",
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "あなたの権限は、特定のラベルの付いた{{items}}と、あなたまたはあなたのチームが所有する{{items}}に限られています。",
+  "Your permission is limited to {{items}} you or your teams own.": "あなたの権限は、あなたまたはあなたのチームが所有する{{items}}に限られています。"
 }

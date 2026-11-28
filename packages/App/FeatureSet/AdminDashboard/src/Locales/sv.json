@@ -4637,5 +4637,20 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "En annan post av typen {{kind}} i det här projektet har det här namnet, så de två går inte att skilja åt i väljare. Öppna var och en för att se vilken som är vilken, och byt sedan namn på den ena.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} har samma namn som en annan post av typen {{kind}}, och de två går inte att skilja åt i väljare. Öppna var och en för att se vilken som är vilken, och byt sedan namn på den ena.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} har samma namn som en annan post av typen {{kind}} och går inte att skilja åt i väljare. Öppna var och en för att se vilken som är vilken, och byt sedan namn på en av dem.",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} har samma namn som en annan post av typen {{kind}}, och de två går inte att skilja åt i väljare. Öppna var och en för att se vilken som är vilken, och byt sedan namn på den ena."
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} har samma namn som en annan post av typen {{kind}}, och de två går inte att skilja åt i väljare. Öppna var och en för att se vilken som är vilken, och byt sedan namn på den ena.",
+  "You can read this only on {{items}} labelled {{labels}}, so the list cannot be sorted by it.": "Du kan bara läsa detta på {{items}} med etiketten {{labels}}, så listan kan inte sorteras efter det.",
+  "You can read this only on {{items}} with certain labels, so the list cannot be sorted by it.": "Du kan bara läsa detta på {{items}} med vissa etiketter, så listan kan inte sorteras efter det.",
+  "You can read this only on {{items}} you or your teams own, so the list cannot be sorted by it.": "Du kan bara läsa detta på {{items}} som du eller dina team äger, så listan kan inte sorteras efter det.",
+  "{{first}} and {{second}}": "{{first}} och {{second}}",
+  "{{first}}, {{second}} and {{third}}": "{{first}}, {{second}} och {{third}}",
+  "{{first}} or {{second}}": "{{first}} eller {{second}}",
+  "{{first}}, {{second}} or {{third}}": "{{first}}, {{second}} eller {{third}}",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "Din behörighet är begränsad till {{items}} med etiketten {{labels}}.",
+  "Your permission is limited to {{items}} with certain labels.": "Din behörighet är begränsad till {{items}} med vissa etiketter.",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "Ett team som du är med i blockerar detta för {{items}} med etiketten {{labels}}.",
+  "A team you are on blocks this on {{items}} with certain labels.": "Ett team som du är med i blockerar detta för {{items}} med vissa etiketter.",
+  "Your permissions do not reach this {{itemName}}.": "Dina behörigheter når inte det här objektet ({{itemName}}).",
+  "Your permission is limited to {{items}} you or your teams own.": "Din behörighet är begränsad till {{items}} som du eller dina team äger.",
+  "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Din behörighet är begränsad till {{items}} med etiketten {{labels}} och till {{items}} som du eller dina team äger.",
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Din behörighet är begränsad till {{items}} med vissa etiketter och till {{items}} som du eller dina team äger."
 }

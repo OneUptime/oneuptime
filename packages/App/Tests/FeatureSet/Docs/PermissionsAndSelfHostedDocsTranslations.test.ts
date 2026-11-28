@@ -313,6 +313,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Block always wins.",
     "Owned",
     "Acting on the whole project takes a permission that reaches it.",
+    // What the Dashboard locks, and why (#11435, #11436).
+    "The Dashboard locks what your permission does not reach, and says why.",
     "Notification.",
     "Access, when you ask for it.",
     "at least one",
