@@ -67795,5 +67795,19 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "您的姓名和時間會被記錄。如果伺服器變更了此工具，該標記將不再生效，直到有人再次標記。",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} 已於 {{date}} 將其標記為唯讀，但伺服器之後變更了它。在有人再次標記之前，它會被視為可能會做出變更的工具。",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} 沒有說明 {{tool}} 是否會變更內容，也沒有專案管理員將其標記為唯讀，因此 OneUptime 會先詢問。",
-  "{{tool}} marked read-only": "已將 {{tool}} 標記為唯讀"
+  "{{tool}} marked read-only": "已將 {{tool}} 標記為唯讀",
+  "Alert left to \"{{criteria}}\"": "警示已交給「{{criteria}}」",
+  "Incident left to \"{{criteria}}\"": "事件已交給「{{criteria}}」",
+  "Monitoring is paused by scheduled maintenance ({{events}}), with no status set for this monitor. Nothing checks the monitor until the maintenance ends, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "監測已因排定維護（{{events}}）而暫停，且未為此監測器設定狀態。在維護結束之前，沒有任何東西會檢查此監測器，因此其狀態維持在最後記錄的狀態，正常運作時間、狀態頁面和 SLO 不計入這段時間。",
+  "Monitoring is paused by {{incidents}}, declared by hand without a status for this monitor. Nothing checks the monitor until the incident is resolved, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "監測已被手動宣告的 {{incidents}} 暫停，且未為此監測器設定狀態。在事件解決之前，沒有任何東西會檢查此監測器，因此其狀態維持在最後記錄的狀態，正常運作時間、狀態頁面和 SLO 不計入這段時間。",
+  "Monitoring is paused by {{incidents}}, declared by hand, and by scheduled maintenance ({{events}}), with no status set for this monitor. Nothing checks the monitor until both are over, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "監測已被手動宣告的 {{incidents}} 和排定維護（{{events}}）暫停，且未為此監測器設定狀態。在兩者都結束之前，沒有任何東西會檢查此監測器，因此其狀態維持在最後記錄的狀態，正常運作時間、狀態頁面和 SLO 不計入這段時間。",
+  "Monitoring resumed. Uptime, status pages and SLOs count the monitor's time again from here.": "監測已恢復。從此時起，正常運作時間、狀態頁面和 SLO 重新計入此監測器的時間。",
+  "Scheduled maintenance ({{events}}) puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "排定維護（{{events}}）將此監測器置於其狀態，因此從此時起，正常運作時間、狀態頁面和 SLO 重新計入此監測器的時間。",
+  "Scheduled maintenance ({{event}}) is still in progress, so the monitor is back in the status it puts it in.": "排定維護（{{event}}）仍在進行中，因此監測器回到該維護為其設定的狀態。",
+  "Scheduled maintenance is over, and {{incident}} is still open, so the monitor is back in the status the incident puts it in.": "排定維護已結束，但 {{incident}} 仍未解決，因此監測器回到該事件為其設定的狀態。",
+  "Skipped creating an alert because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one alert, from the first.": "已略過建立警示，因為排在此條件之前的「{{criteria}}」檢查的是同一項內容，也同樣相符。同一檢查的兩個級別只會開啟一則警示，來自第一個級別。",
+  "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "已略過為此序列（{{series}}）建立警示，因為排在此條件之前的「{{criteria}}」檢查的是同一項內容，也與它相符。處於同一檢查兩個級別的序列只會收到一則警示，來自第一個級別。",
+  "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "已略過建立事件，因為排在此條件之前的「{{criteria}}」檢查的是同一項內容，也同樣相符。同一檢查的兩個級別只會開啟一個事件，來自第一個級別。",
+  "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "已略過為此序列（{{series}}）建立事件，因為排在此條件之前的「{{criteria}}」檢查的是同一項內容，也與它相符。處於同一檢查兩個級別的序列只會收到一個事件，來自第一個級別。",
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 將此監測器置於其狀態，因此從此時起，正常運作時間、狀態頁面和 SLO 重新計入此監測器的時間。"
 }

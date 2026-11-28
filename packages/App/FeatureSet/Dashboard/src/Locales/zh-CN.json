@@ -67795,5 +67795,19 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "您的姓名和时间会被记录。如果服务器更改了此工具，该标记将不再生效，直到有人再次标记。",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} 已于 {{date}} 将其标记为只读，但服务器此后更改了它。在有人再次标记之前，它会被视为可能会做出更改的工具。",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} 没有说明 {{tool}} 是否会更改内容，也没有项目管理员将其标记为只读，因此 OneUptime 会先询问。",
-  "{{tool}} marked read-only": "已将 {{tool}} 标记为只读"
+  "{{tool}} marked read-only": "已将 {{tool}} 标记为只读",
+  "Alert left to \"{{criteria}}\"": "警报已交给“{{criteria}}”",
+  "Incident left to \"{{criteria}}\"": "事件已交给“{{criteria}}”",
+  "Monitoring is paused by scheduled maintenance ({{events}}), with no status set for this monitor. Nothing checks the monitor until the maintenance ends, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "监控已因计划维护（{{events}}）暂停，且未为此监视器设置状态。在维护结束之前，没有任何东西会检查此监视器，因此其状态保持为最后记录的状态，正常运行时间、状态页和 SLO 不计入这段时间。",
+  "Monitoring is paused by {{incidents}}, declared by hand without a status for this monitor. Nothing checks the monitor until the incident is resolved, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "监控已被手动声明的 {{incidents}} 暂停，且未为此监视器设置状态。在事件解决之前，没有任何东西会检查此监视器，因此其状态保持为最后记录的状态，正常运行时间、状态页和 SLO 不计入这段时间。",
+  "Monitoring is paused by {{incidents}}, declared by hand, and by scheduled maintenance ({{events}}), with no status set for this monitor. Nothing checks the monitor until both are over, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.": "监控已被手动声明的 {{incidents}} 和计划维护（{{events}}）暂停，且未为此监视器设置状态。在两者都结束之前，没有任何东西会检查此监视器，因此其状态保持为最后记录的状态，正常运行时间、状态页和 SLO 不计入这段时间。",
+  "Monitoring resumed. Uptime, status pages and SLOs count the monitor's time again from here.": "监控已恢复。从此时起，正常运行时间、状态页和 SLO 重新计入此监视器的时间。",
+  "Scheduled maintenance ({{events}}) puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "计划维护（{{events}}）将此监视器置于其状态，因此从此时起，正常运行时间、状态页和 SLO 重新计入此监视器的时间。",
+  "Scheduled maintenance ({{event}}) is still in progress, so the monitor is back in the status it puts it in.": "计划维护（{{event}}）仍在进行中，因此监视器回到该维护为其设置的状态。",
+  "Scheduled maintenance is over, and {{incident}} is still open, so the monitor is back in the status the incident puts it in.": "计划维护已结束，但 {{incident}} 仍未解决，因此监视器回到该事件为其设置的状态。",
+  "Skipped creating an alert because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one alert, from the first.": "已跳过创建警报，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也同样匹配。同一检查的两个级别只会打开一条警报，来自第一个级别。",
+  "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "已跳过为此序列（{{series}}）创建警报，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也与它匹配。处于同一检查两个级别的序列只会收到一条警报，来自第一个级别。",
+  "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "已跳过创建事件，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也同样匹配。同一检查的两个级别只会打开一个事件，来自第一个级别。",
+  "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "已跳过为此序列（{{series}}）创建事件，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也与它匹配。处于同一检查两个级别的序列只会收到一个事件，来自第一个级别。",
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 将此监视器置于其状态，因此从此时起，正常运行时间、状态页和 SLO 重新计入此监视器的时间。"
 }
