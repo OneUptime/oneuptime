@@ -1,4 +1,9 @@
 import Includes from "../../Types/BaseDatabase/Includes";
+import {
+  DashboardResourceScope,
+  getDashboardResourceScopeAttributes,
+  isDashboardResourceScope,
+} from "../../Types/Dashboard/DashboardResourceScope";
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../Types/Dashboard/DashboardVariable";
@@ -26,6 +31,14 @@ export interface ResolvedVariableValue {
  * filter. An empty/unset selection means "All" — no filter is applied,
  * and any previously-set filter on that key is removed so the widget
  * shows the cross-cluster view by default.
+ *
+ * A variable that picks among one kind of resource (`resourceScope`, a
+ * template's Cluster or Host) also keeps every widget to that kind's
+ * telemetry, whatever it is set to (issue #11258): "All" is all of the
+ * kind - its identity "is not empty" on the variable's key - and a pick
+ * narrows within it. The kind's other filters (a host's telemetry carries
+ * no Kubernetes, container or SDK attribute) go on the keys the widget does
+ * not filter itself.
  *
  * Multi-select variables emit an `Includes` operator on the same map
  * key so the server's WHERE-builder produces `attributes[key] IN (...)`.
@@ -107,8 +120,29 @@ export default class DashboardVariableInterpolation {
       const key: string = variable.attributeKey as string;
       const resolved: ResolvedVariableValue | undefined =
         DashboardVariableInterpolation.resolveValue(variable);
+      const scopeAttributes: Record<string, unknown> =
+        DashboardVariableInterpolation.getScopeAttributes(variable);
+
+      for (const scopeKey of Object.keys(scopeAttributes)) {
+        // The variable's own key follows its selection, below.
+        if (
+          scopeKey === key ||
+          Object.prototype.hasOwnProperty.call(next, scopeKey)
+        ) {
+          continue;
+        }
+        next[scopeKey] = scopeAttributes[scopeKey];
+        changed = true;
+      }
 
       if (!resolved) {
+        if (Object.prototype.hasOwnProperty.call(scopeAttributes, key)) {
+          // "All" of the kind: any of its names, never the whole project.
+          next[key] = scopeAttributes[key];
+          changed = true;
+          continue;
+        }
+
         if (key in next) {
           delete next[key];
           changed = true;
@@ -129,6 +163,32 @@ export default class DashboardVariableInterpolation {
     }
 
     return changed ? next : source;
+  }
+
+  /*
+   * The resource kind a variable picks among, when it names one this build
+   * knows (an unknown name - a newer build's - scopes nothing).
+   */
+  public static getResourceScope(
+    variable: DashboardVariable,
+  ): DashboardResourceScope | undefined {
+    if (variable.type !== DashboardVariableType.TelemetryAttribute) {
+      return undefined;
+    }
+
+    return isDashboardResourceScope(variable.resourceScope)
+      ? variable.resourceScope
+      : undefined;
+  }
+
+  // The kind's attribute filter for a variable, or none.
+  private static getScopeAttributes(
+    variable: DashboardVariable,
+  ): Record<string, unknown> {
+    const scope: DashboardResourceScope | undefined =
+      DashboardVariableInterpolation.getResourceScope(variable);
+
+    return scope ? getDashboardResourceScopeAttributes(scope) : {};
   }
 
   /*

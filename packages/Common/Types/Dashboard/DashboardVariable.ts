@@ -1,3 +1,5 @@
+import { DashboardResourceScope } from "./DashboardResourceScope";
+
 export enum DashboardVariableType {
   CustomList = "Custom List",
   Query = "Query",
@@ -30,6 +32,14 @@ export default interface DashboardVariable {
    * of this attribute across the current time range.
    */
   attributeKey?: string | undefined;
+  /*
+   * For TelemetryAttribute: the kind of resource the variable picks among
+   * (DashboardResourceScope) - a template's Cluster, Host or vCenter. Every
+   * widget the variable applies to reads only that kind's telemetry, "All"
+   * meaning all of them, and its picker offers only their names. Left out,
+   * "All" filters nothing, as it always has.
+   */
+  resourceScope?: DashboardResourceScope | undefined;
   // Current selected value(s)
   selectedValue?: string | undefined;
   selectedValues?: Array<string> | undefined;

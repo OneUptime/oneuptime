@@ -44,6 +44,8 @@ import {
 import PublicDashboardViewConfig from "../Utils/Dashboard/PublicDashboardViewConfig";
 import PublicDashboardMetricServices from "../Utils/Dashboard/PublicDashboardMetricServices";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
+import PublicDashboardResourceScopes from "../Utils/Dashboard/PublicDashboardResourceScopes";
+import { DashboardResourceScope } from "../../Types/Dashboard/DashboardResourceScope";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import { JSONObject } from "../../Types/JSON";
 import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
@@ -1231,11 +1233,24 @@ export default class DashboardAPI extends BaseAPI<
             );
           }
 
+          /*
+           * A variable that picks among one kind of resource lists that
+           * kind's values only - the kind the stored variable names, never
+           * one the request makes up (issue #11258).
+           */
+          const resourceScope: DashboardResourceScope | undefined =
+            PublicDashboardResourceScopes.getAttributeValueScope({
+              variables: DashboardAPI.getDrawnViewConfig(dashboard).variables,
+              attributeKey: requestedAttributeKey,
+              requestedScope: req.body ? req.body["resourceScope"] : undefined,
+            });
+
           const values: Array<string> =
             await TelemetryAttributeService.fetchAttributeValues({
               projectId: dashboard.projectId,
               telemetryType,
               attributeKey: requestedAttributeKey,
+              resourceScope,
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -1608,28 +1623,26 @@ export default class DashboardAPI extends BaseAPI<
           const allowedFilterAttributeKeys: Set<string> =
             DashboardAPI.collectDashboardFilterAttributeKeys(metricSources);
 
-          const sanitizedAttributes: Record<string, unknown> = {};
           const requestedAttributes: unknown = requestedQuery["attributes"];
 
-          if (
-            requestedAttributes &&
-            typeof requestedAttributes === "object" &&
-            !Array.isArray(requestedAttributes)
-          ) {
-            for (const requestedAttributeKey of Object.keys(
-              requestedAttributes as Record<string, unknown>,
-            )) {
-              if (!allowedFilterAttributeKeys.has(requestedAttributeKey)) {
-                throw new BadDataException(
-                  "This attribute is not part of this dashboard.",
-                );
-              }
-
-              sanitizedAttributes[requestedAttributeKey] = (
-                requestedAttributes as Record<string, unknown>
-              )[requestedAttributeKey];
-            }
-          }
+          /*
+           * The kind of resource a stored variable picks among is kept to
+           * here as on the signed-in board: its filters are added when the
+           * request leaves them out, and a key only the kind names is taken
+           * only as the kind writes it (PublicDashboardResourceScopes,
+           * issue #11258).
+           */
+          const sanitizedAttributes: Record<string, unknown> =
+            PublicDashboardResourceScopes.getMetricQueryAttributes({
+              requestedAttributes:
+                requestedAttributes &&
+                typeof requestedAttributes === "object" &&
+                !Array.isArray(requestedAttributes)
+                  ? { ...(requestedAttributes as Record<string, unknown>) }
+                  : {},
+              allowedFilterAttributeKeys,
+              variables: metricSources.variables,
+            });
 
           /*
            * The services the query is read for come from the saved

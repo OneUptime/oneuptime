@@ -17,6 +17,10 @@ import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import { parseExceptionSpanScope } from "../../Types/Telemetry/ExceptionSpanScope";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
+import {
+  DashboardResourceScope,
+  isDashboardResourceScope,
+} from "../../Types/Dashboard/DashboardResourceScope";
 import TelemetrySourceMapService from "../Services/TelemetrySourceMapService";
 import SourceMapResolver, {
   MAX_FRAMES_PER_RESOLVE_REQUEST,
@@ -815,6 +819,29 @@ const getAttributeValues: GetAttributeValuesFunction = async (
         : undefined;
 
     /*
+     * A dashboard variable that picks among one kind of resource asks for
+     * that kind's values only (DashboardResourceScope, issue #11258). A name
+     * this build does not know is refused rather than ignored, so a picker
+     * never quietly lists the whole project as one kind.
+     */
+    const resourceScopeValue: unknown = req.body["resourceScope"];
+    if (
+      resourceScopeValue !== undefined &&
+      resourceScopeValue !== null &&
+      !isDashboardResourceScope(resourceScopeValue)
+    ) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("resourceScope is not a resource kind"),
+      );
+    }
+    const resourceScope: DashboardResourceScope | undefined =
+      isDashboardResourceScope(resourceScopeValue)
+        ? resourceScopeValue
+        : undefined;
+
+    /*
      * The time range the reader is looking at, so the values offered are
      * those of the rows on screen (issue #4708). Optional: without it the
      * lookup reads the last day, as it always has.
@@ -861,6 +888,7 @@ const getAttributeValues: GetAttributeValuesFunction = async (
         serviceFilter,
         startTime,
         endTime,
+        resourceScope,
       });
 
     return Response.sendJsonObjectResponse(req, res, {

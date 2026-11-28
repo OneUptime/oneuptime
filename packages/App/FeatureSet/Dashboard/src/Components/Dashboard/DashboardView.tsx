@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import DashboardResourceScopeNotice from "./DashboardResourceScopeNotice";
 import DashboardToolbar, {
   DASHBOARD_EXIT_FULL_SCREEN_BUTTON_TEST_ID,
   DASHBOARD_FULL_SCREEN_BUTTON_TEST_ID,
@@ -1502,6 +1503,15 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         </div>
       ) : (
         <></>
+      )}
+      {/*
+       * A board whose variable picks among a kind of resource the project
+       * has none of says so above its empty widgets (issue #11258).
+       */}
+      {isEditMode ? (
+        <></>
+      ) : (
+        <DashboardResourceScopeNotice variables={dashboardVariables} />
       )}
       {canvas}
       {/*
