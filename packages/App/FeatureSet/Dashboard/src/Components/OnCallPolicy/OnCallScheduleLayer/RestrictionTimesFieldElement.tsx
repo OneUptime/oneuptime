@@ -7,6 +7,10 @@ import RestrictionTimes, {
   RestrictionType,
   WeeklyResctriction,
 } from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
+import WeeklyWindowDays, {
+  WindowToCheck,
+} from "Common/Types/OnCallDutyPolicy/WeeklyWindowDays";
+import { translatableTerm } from "Common/Types/Translator";
 import TimezoneAlias from "Common/Types/TimezoneAlias";
 import Typeof from "Common/Types/Typeof";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -115,7 +119,7 @@ const copyRestrictionTimes: CopyRestrictionTimesFunction = (
   const source: RestrictionTimes = RestrictionTimes.fromJSON(value);
   const copy: RestrictionTimes = new RestrictionTimes();
 
-  copy.restictionType = source.restictionType;
+  copy.restrictionType = source.restrictionType;
   copy.dayRestrictionTimes = source.dayRestrictionTimes
     ? { ...source.dayRestrictionTimes }
     : null;
@@ -153,6 +157,67 @@ export const getRestrictionTimeLabelIds: (data: {
   return { from: `${prefix}-from`, to: `${prefix}-to` };
 };
 
+/*
+ * The zone a window's times are shown in: the schedule's, or for a schedule
+ * without one the reader's own (the TimePicker's), the one the note under
+ * the times names.
+ */
+export const getShownTimezone: (timezone: string | undefined) => string = (
+  timezone: string | undefined,
+): string => {
+  return timezone || OneUptimeDate.getCurrentTimezone().toString();
+};
+
+/*
+ * THE DAY A WEEKLY WINDOW'S MENU SHOWS IS THE DAY IT IS ON CALL (#11455):
+ * the day its time falls on in the zone it is shown in, as the engine and
+ * the layer's summary read it. It showed the day the window was saved
+ * with, which a window dated on another day - written through the API, or
+ * stored before its schedule's zone changed - is not on call on. A time
+ * that is no date and time shows the day saved.
+ */
+export const getShownDay: (data: {
+  time: unknown;
+  savedDay: DayOfWeek;
+  timezone: string;
+}) => DayOfWeek = (data: {
+  time: unknown;
+  savedDay: DayOfWeek;
+  timezone: string;
+}): DayOfWeek => {
+  const time: Date | null = RestrictionTimes.readMoment(data.time);
+
+  return time ? WeeklyWindowDays.getDayOf(time, data.timezone) : data.savedDay;
+};
+
+/*
+ * Under a window whose times fall on other days than it was saved with:
+ * what it was saved as, that it is on call on the days shown, and why - in
+ * the reader's words, each day as their language writes one in a sentence.
+ */
+export const getWindowToCheckNote: (data: {
+  translator: Translator;
+  window: WindowToCheck;
+  timezone: string;
+}) => string = (data: {
+  translator: Translator;
+  window: WindowToCheck;
+  timezone: string;
+}): string => {
+  return data.translator.translateTemplate(
+    "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.",
+    {
+      startDay: translatableTerm(data.window.startDay || data.window.startsOn),
+      endDay: translatableTerm(data.window.endDay || data.window.endsOn),
+      timezone: TimezoneAlias.getCanonicalTimezone(data.timezone),
+    },
+  );
+};
+
+// The line under a window to check: amber, as the page's other notices.
+export const WINDOW_TO_CHECK_NOTE_CLASS_NAME: string =
+  "mt-2 max-w-xl text-xs text-amber-700";
+
 const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -169,6 +234,25 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
       setRestrictionTimes(undefined);
     }
   }, [props.value]);
+
+  // The zone the times are shown, picked and moved between days in.
+  const shownTimezone: string = getShownTimezone(props.timezone);
+
+  /*
+   * The windows whose times fall on other days than they were saved with,
+   * by their place: each says so under it (getWindowToCheckNote).
+   */
+  const windowsToCheck: Map<number, WindowToCheck> = new Map<
+    number,
+    WindowToCheck
+  >(
+    WeeklyWindowDays.getWindowsToCheck(
+      restrictionTimes,
+      props.timezone || null,
+    ).map((window: WindowToCheck): [number, WindowToCheck] => {
+      return [window.index, window];
+    }),
+  );
 
   /*
    * Every edit starts from a copy of the current restrictions, so neither this
@@ -327,7 +411,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         ),
         now,
         startDay,
-        props.timezone,
+        shownTimezone,
       );
 
       const endTime: Date = OneUptimeDate.moveDateToTheDayOfWeek(
@@ -340,7 +424,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         ),
         now,
         endDay,
-        props.timezone,
+        shownTimezone,
       );
 
       return { startDay, endDay, startTime, endTime };
@@ -463,6 +547,22 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
       });
     };
 
+    // The days it is on call from and to, which its menus show (getShownDay).
+    const startDayShown: DayOfWeek = getShownDay({
+      time: params.weeklyRestriction.startTime,
+      savedDay: params.weeklyRestriction.startDay,
+      timezone: shownTimezone,
+    });
+    const endDayShown: DayOfWeek = getShownDay({
+      time: params.weeklyRestriction.endTime,
+      savedDay: params.weeklyRestriction.endDay,
+      timezone: shownTimezone,
+    });
+
+    const toCheck: WindowToCheck | undefined = windowsToCheck.get(
+      params.windowIndex,
+    );
+
     /*
      * One window, one row: From and To side by side, each its day over its
      * time, and Delete level with the times. The day picker is as wide as
@@ -470,137 +570,151 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
      * its clear button wrapped under the day. On a narrow screen To and
      * Delete wrap under From rather than running past the card's edge.
      */
+    // The window's row, and under it what it says when it is to be checked.
     return (
-      <div className="mt-2 flex flex-wrap items-end gap-x-5 gap-y-3">
-        <div>
-          <p id={labelIds.from} className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
-            {translator.translateText("From:")}
-          </p>
-          <div className={RESTRICTION_WINDOW_END_CLASS_NAME}>
-            <div>
-              <Dropdown
-                ariaLabelledby={labelIds.from}
-                isClearable={false}
-                options={dayOptions}
-                value={dayOption(params.weeklyRestriction.startDay)}
-                onChange={(value: any) => {
-                  const weeklyRestriction: WeeklyResctriction = {
-                    ...params.weeklyRestriction,
-                    startDay: value,
-                  };
+      <React.Fragment>
+        <div className="mt-2 flex flex-wrap items-end gap-x-5 gap-y-3">
+          <div>
+            <p id={labelIds.from} className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
+              {translator.translateText("From:")}
+            </p>
+            <div className={RESTRICTION_WINDOW_END_CLASS_NAME}>
+              <div>
+                <Dropdown
+                  ariaLabelledby={labelIds.from}
+                  isClearable={false}
+                  options={dayOptions}
+                  value={dayOption(startDayShown)}
+                  onChange={(value: any) => {
+                    const weeklyRestriction: WeeklyResctriction = {
+                      ...params.weeklyRestriction,
+                      startDay: value,
+                    };
 
-                  // move start time to the new start day (in the schedule tz)
-                  if (weeklyRestriction.startTime) {
-                    weeklyRestriction.startTime =
-                      OneUptimeDate.moveDateToTheDayOfWeek(
-                        weeklyRestriction.startTime,
+                    // move start time to the new start day (in the zone shown)
+                    if (weeklyRestriction.startTime) {
+                      weeklyRestriction.startTime =
+                        OneUptimeDate.moveDateToTheDayOfWeek(
+                          weeklyRestriction.startTime,
+                          OneUptimeDate.getCurrentDate(),
+                          value,
+                          shownTimezone,
+                        );
+                    }
+                    params.onChange(weeklyRestriction);
+                  }}
+                />
+              </div>
+              <div>
+                <TimePicker
+                  ariaLabelledby={labelIds.from}
+                  value={storedDateToTimePickerValue(
+                    params.weeklyRestriction?.startTime,
+                  )}
+                  onChange={(value: any) => {
+                    const date: Date = timePickerValueToStoredDate(value);
+
+                    /*
+                     * Keep the day it shows: move the new time onto it, in the
+                     * zone it is shown in, so the weekday matches the engine's.
+                     */
+                    params.onChange({
+                      ...params.weeklyRestriction,
+                      startDay: startDayShown,
+                      startTime: OneUptimeDate.moveDateToTheDayOfWeek(
+                        date,
                         OneUptimeDate.getCurrentDate(),
-                        value,
-                        props.timezone,
-                      );
-                  }
-                  params.onChange(weeklyRestriction);
-                }}
-              />
-            </div>
-            <div>
-              <TimePicker
-                ariaLabelledby={labelIds.from}
-                value={storedDateToTimePickerValue(
-                  params.weeklyRestriction?.startTime,
-                )}
-                onChange={(value: any) => {
-                  const date: Date = timePickerValueToStoredDate(value);
-
-                  /*
-                   * move date to the day of the week from the start day, in the
-                   * schedule timezone so the weekday boundary matches the engine.
-                   */
-                  params.onChange({
-                    ...params.weeklyRestriction,
-                    startTime: OneUptimeDate.moveDateToTheDayOfWeek(
-                      date,
-                      OneUptimeDate.getCurrentDate(),
-                      params.weeklyRestriction.startDay,
-                      props.timezone,
-                    ),
-                  });
-                }}
-              />
+                        startDayShown,
+                        shownTimezone,
+                      ),
+                    });
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
-        <div>
-          <p id={labelIds.to} className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
-            {translator.translateText("To:")}
-          </p>
-          <div className={RESTRICTION_WINDOW_END_CLASS_NAME}>
-            <div>
-              <Dropdown
-                ariaLabelledby={labelIds.to}
-                isClearable={false}
-                options={dayOptions}
-                value={dayOption(params.weeklyRestriction.endDay)}
-                onChange={(value: any) => {
-                  const weeklyRestriction: WeeklyResctriction = {
-                    ...params.weeklyRestriction,
-                    endDay: value,
-                  };
+          <div>
+            <p id={labelIds.to} className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
+              {translator.translateText("To:")}
+            </p>
+            <div className={RESTRICTION_WINDOW_END_CLASS_NAME}>
+              <div>
+                <Dropdown
+                  ariaLabelledby={labelIds.to}
+                  isClearable={false}
+                  options={dayOptions}
+                  value={dayOption(endDayShown)}
+                  onChange={(value: any) => {
+                    const weeklyRestriction: WeeklyResctriction = {
+                      ...params.weeklyRestriction,
+                      endDay: value,
+                    };
 
-                  // move end time to the new end day (in the schedule tz)
-                  if (weeklyRestriction.endTime) {
-                    weeklyRestriction.endTime =
-                      OneUptimeDate.moveDateToTheDayOfWeek(
-                        weeklyRestriction.endTime,
+                    // move end time to the new end day (in the zone shown)
+                    if (weeklyRestriction.endTime) {
+                      weeklyRestriction.endTime =
+                        OneUptimeDate.moveDateToTheDayOfWeek(
+                          weeklyRestriction.endTime,
+                          OneUptimeDate.getCurrentDate(),
+                          value,
+                          shownTimezone,
+                        );
+                    }
+                    params.onChange(weeklyRestriction);
+                  }}
+                />
+              </div>
+              <div>
+                <TimePicker
+                  ariaLabelledby={labelIds.to}
+                  value={storedDateToTimePickerValue(
+                    params.weeklyRestriction?.endTime,
+                  )}
+                  onChange={(value: any) => {
+                    const date: Date = timePickerValueToStoredDate(value);
+
+                    // Keep the day it shows, as the start's time does.
+                    params.onChange({
+                      ...params.weeklyRestriction,
+                      endDay: endDayShown,
+                      endTime: OneUptimeDate.moveDateToTheDayOfWeek(
+                        date,
                         OneUptimeDate.getCurrentDate(),
-                        value,
-                        props.timezone,
-                      );
-                  }
-                  params.onChange(weeklyRestriction);
-                }}
-              />
-            </div>
-            <div>
-              <TimePicker
-                ariaLabelledby={labelIds.to}
-                value={storedDateToTimePickerValue(
-                  params.weeklyRestriction?.endTime,
-                )}
-                onChange={(value: any) => {
-                  const date: Date = timePickerValueToStoredDate(value);
-
-                  /*
-                   * move date to the day of the week from the end day, in the
-                   * schedule timezone so the weekday boundary matches the engine.
-                   */
-                  params.onChange({
-                    ...params.weeklyRestriction,
-                    endTime: OneUptimeDate.moveDateToTheDayOfWeek(
-                      date,
-                      OneUptimeDate.getCurrentDate(),
-                      params.weeklyRestriction.endDay,
-                      props.timezone,
-                    ),
-                  });
-                }}
-              />
+                        endDayShown,
+                        shownTimezone,
+                      ),
+                    });
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* The row's gap spaces it. */}
-        <div>
-          <Button
-            title="Delete"
-            buttonStyle={ButtonStyleType.NORMAL}
-            icon={IconProp.Trash}
-            onClick={() => {
-              params.onDelete();
-            }}
-          />
+          {/* The row's gap spaces it. */}
+          <div>
+            <Button
+              title="Delete"
+              buttonStyle={ButtonStyleType.NORMAL}
+              icon={IconProp.Trash}
+              onClick={() => {
+                params.onDelete();
+              }}
+            />
+          </div>
         </div>
-      </div>
+        {toCheck && (
+          <p
+            className={WINDOW_TO_CHECK_NOTE_CLASS_NAME}
+            data-testid="restriction-window-to-check"
+          >
+            {getWindowToCheckNote({
+              translator: translator,
+              window: toCheck,
+              timezone: shownTimezone,
+            })}
+          </p>
+        )}
+      </React.Fragment>
     );
   };
 
@@ -629,7 +743,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
            * defaults below. It did, which replaced a layer's saved hours with
            * 00:00-01:00 every time its edit form was opened and saved.
            */
-          if (value === (restrictionTimes?.restictionType ?? "")) {
+          if (value === (restrictionTimes?.restrictionType ?? "")) {
             return;
           }
 
@@ -655,7 +769,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
              * would stamp the Common default whose weekday only matches in the
              * server/browser zone.
              */
-            tempRestrictionTimes.restictionType = RestrictionType.Weekly;
+            tempRestrictionTimes.restrictionType = RestrictionType.Weekly;
             tempRestrictionTimes.dayRestrictionTimes = null;
             tempRestrictionTimes.weeklyRestrictionTimes = [
               buildDefaultWeeklyRestriction(),
@@ -663,7 +777,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             updateRestrictionTimes(tempRestrictionTimes);
           }
         }}
-        initialValue={restrictionTimes?.restictionType}
+        initialValue={restrictionTimes?.restrictionType}
         /*
          * In the reader's language: the radio draws its titles as given, so
          * they were English in every language, beside a same-time error
@@ -698,7 +812,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
       />
 
       {restrictionTimes &&
-        restrictionTimes.restictionType !== RestrictionType.None && (
+        restrictionTimes.restrictionType !== RestrictionType.None && (
           /*
            * The zone by its current name, as the rotation start and hand-off
            * over it name it ("US/Pacific" reads America/Los_Angeles), so the

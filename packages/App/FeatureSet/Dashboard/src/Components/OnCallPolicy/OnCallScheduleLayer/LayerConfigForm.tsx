@@ -1,9 +1,12 @@
 import LayerDateTimeFieldElement from "./LayerDateTimeFieldElement";
-import RestrictionTimesFieldElement from "./RestrictionTimesFieldElement";
+import RestrictionTimesFieldElement, {
+  getShownTimezone,
+} from "./RestrictionTimesFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
 import RestrictionTimes, {
   RestrictionType,
 } from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
+import WeeklyWindowDays from "Common/Types/OnCallDutyPolicy/WeeklyWindowDays";
 import RecurringFieldElement from "Common/UI/Components/Events/RecurringFieldElement";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import {
@@ -43,6 +46,47 @@ export interface ComponentProps {
 // The layer's description, folded: most layers are known by their name.
 const MORE_LAYER_FIELDS: FormFieldCollapsibleSection<OnCallDutyPolicyScheduleLayer> =
   getAdvancedFormSection<OnCallDutyPolicyScheduleLayer>();
+
+/*
+ * A LAYER IS SAVED WITH THE DAYS ITS WINDOWS SHOW (#11455). A weekly
+ * window's menus show the days it is on call - the days its times fall on
+ * (getShownDay) - and Save Layer stores those days with it, so a window
+ * whose times fall on other days than it was saved with keeps paging where
+ * it does until a person picks other days, and the server's check of a
+ * window's days takes it. A window that already agrees is saved as it is.
+ */
+export const withDaysShown: (
+  layer: OnCallDutyPolicyScheduleLayer,
+  timezone: string | undefined,
+) => OnCallDutyPolicyScheduleLayer = (
+  layer: OnCallDutyPolicyScheduleLayer,
+  timezone: string | undefined,
+): OnCallDutyPolicyScheduleLayer => {
+  if (!layer.restrictionTimes) {
+    return layer;
+  }
+
+  let restrictionTimes: RestrictionTimes;
+
+  try {
+    restrictionTimes = RestrictionTimes.fromJSON(
+      layer.restrictionTimes as RestrictionTimes | JSONObject,
+    );
+  } catch {
+    return layer;
+  }
+
+  const stamped: RestrictionTimes = WeeklyWindowDays.withDaysOfTheirTimes(
+    restrictionTimes,
+    getShownTimezone(timezone),
+  );
+
+  if (stamped !== restrictionTimes) {
+    layer.restrictionTimes = stamped;
+  }
+
+  return layer;
+};
 
 /*
  * A single form that edits every configuration field of a layer (name,
@@ -234,7 +278,7 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
 
         if (
           restrictionTimes &&
-          restrictionTimes.restictionType === RestrictionType.Daily &&
+          restrictionTimes.restrictionType === RestrictionType.Daily &&
           restrictionTimes.dayRestrictionTimes &&
           restrictionTimes.dayRestrictionTimes.startTime &&
           restrictionTimes.dayRestrictionTimes.endTime
@@ -259,6 +303,11 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
         }
 
         return errors;
+      }}
+      onBeforeUpdate={async (
+        item: OnCallDutyPolicyScheduleLayer,
+      ): Promise<OnCallDutyPolicyScheduleLayer> => {
+        return withDaysShown(item, props.timezone);
       }}
       onSuccess={(item: OnCallDutyPolicyScheduleLayer) => {
         props.onLayerChange(item);

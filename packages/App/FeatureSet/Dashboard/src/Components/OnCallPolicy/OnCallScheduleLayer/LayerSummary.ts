@@ -6,6 +6,8 @@ import RestrictionTimes, {
   RestrictionType,
   WeeklyResctriction,
 } from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
+import WeeklyWindowDays from "Common/Types/OnCallDutyPolicy/WeeklyWindowDays";
+import { JSONObject } from "Common/Types/JSON";
 import {
   getGlobalTranslator,
   PluralTemplate,
@@ -103,6 +105,32 @@ export function summarizeHandOff(handOffTime: Date | undefined): string | null {
   });
 }
 
+/*
+ * Whether a layer's weekly window is on call on other days than it was
+ * saved with (#11455), in the schedule's zone: one a data migration left
+ * as it pages because a time zone could explain it, or one not read by it
+ * yet. Its card says so, and its form says which.
+ */
+export function hasWeeklyWindowsToCheck(
+  restrictionTimes: RestrictionTimes | JSONObject | undefined | null,
+  timezone?: string | undefined,
+): boolean {
+  if (!restrictionTimes) {
+    return false;
+  }
+
+  try {
+    return (
+      WeeklyWindowDays.getWindowsToCheck(
+        RestrictionTimes.fromJSON(restrictionTimes),
+        timezone || null,
+      ).length > 0
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function summarizeRestriction(
   restrictionTimes: RestrictionTimes | undefined,
   /*
@@ -119,7 +147,7 @@ export function summarizeRestriction(
   }
 
   const restrictionType: RestrictionType =
-    restrictionTimes.restictionType || RestrictionType.None;
+    restrictionTimes.restrictionType || RestrictionType.None;
 
   if (restrictionType === RestrictionType.None) {
     return translateTemplate("On call 24/7");

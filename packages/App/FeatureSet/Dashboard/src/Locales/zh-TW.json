@@ -68150,5 +68150,8 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "已略過為此序列（{{series}}）建立警示，因為排在此條件之前的「{{criteria}}」檢查的是同一項內容，也與它相符。處於同一檢查兩個級別的序列只會收到一則警示，來自第一個級別。",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "已略過建立事件，因為排在此條件之前的「{{criteria}}」檢查的是同一項內容，也同樣相符。同一檢查的兩個級別只會開啟一個事件，來自第一個級別。",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "已略過為此序列（{{series}}）建立事件，因為排在此條件之前的「{{criteria}}」檢查的是同一項內容，也與它相符。處於同一檢查兩個級別的序列只會收到一個事件，來自第一個級別。",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 將此監測器置於其狀態，因此從此時起，正常運作時間、狀態頁面和 SLO 重新計入此監測器的時間。"
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 將此監測器置於其狀態，因此從此時起，正常運作時間、狀態頁面和 SLO 重新計入此監測器的時間。",
+  "Active hours to check": "Active hours to check",
+  "Roster Turn Key": "Roster Turn Key",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
 }

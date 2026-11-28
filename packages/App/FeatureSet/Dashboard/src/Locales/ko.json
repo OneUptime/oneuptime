@@ -68150,5 +68150,8 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "이 기준보다 앞에 있는 \"{{criteria}}\"가 같은 항목을 검사하며 이 시리즈({{series}})에도 일치했으므로 이 시리즈의 경고 생성을 건너뛰었습니다. 같은 검사의 두 단계에 든 시리즈는 첫 번째 단계에서 경고를 하나만 받습니다.",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "이 기준보다 앞에 있는 \"{{criteria}}\"가 같은 항목을 검사하며 함께 일치했으므로 인시던트 생성을 건너뛰었습니다. 같은 검사의 두 단계는 첫 번째 단계에서 인시던트를 하나만 엽니다.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "이 기준보다 앞에 있는 \"{{criteria}}\"가 같은 항목을 검사하며 이 시리즈({{series}})에도 일치했으므로 이 시리즈의 인시던트 생성을 건너뛰었습니다. 같은 검사의 두 단계에 든 시리즈는 첫 번째 단계에서 인시던트를 하나만 받습니다.",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}}이(가) 이 모니터를 해당 상태로 설정하므로 이제부터 가동률, 상태 페이지, SLO가 모니터의 시간을 다시 계산합니다."
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}}이(가) 이 모니터를 해당 상태로 설정하므로 이제부터 가동률, 상태 페이지, SLO가 모니터의 시간을 다시 계산합니다.",
+  "Active hours to check": "Active hours to check",
+  "Roster Turn Key": "Roster Turn Key",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
 }
