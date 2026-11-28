@@ -32,7 +32,22 @@ const STATUS_PAGE_SOURCE: string = path.resolve(
  *
  * Built as the status page builds (the shared esbuild config, for
  * production), with its master page as the entry (Helpers/FirstLoadBuild).
+ * Its sources read "Common/..." and their packages through Common, which is
+ * all the Common Test workflow installs - but for the package below.
  */
+
+/*
+ * What the master page builds that the status page installs and Common does
+ * not: i18next's browser language detector, which Utils/i18n - where the
+ * master page applies a status page's language settings - tells the
+ * reader's language with. Where the status page's packages are installed,
+ * it is built as it is; where only Common's are, it is an empty module in
+ * its place, at the same import, so the first load is still told from what
+ * loads later.
+ */
+const STATUS_PAGE_ONLY_PACKAGES: ReadonlyArray<string> = [
+  "i18next-browser-languagedetector",
+];
 
 // The status page's own modules, as the metafile names them.
 const MASTER_PAGE: string =
@@ -54,6 +69,7 @@ beforeAll(() => {
     publicPath: "/status-page/dist/",
     additionalAlias: { Common: COMMON_ROOT },
     nodePaths: [path.join(COMMON_ROOT, "node_modules")],
+    frontendOnlyPackages: STATUS_PAGE_ONLY_PACKAGES,
   });
 }, 300000);
 
