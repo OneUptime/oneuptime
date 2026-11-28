@@ -147,6 +147,7 @@ app:
 | `queueDepth` | Sondeforespørsler som venter på en plass nå, på alle app-podene. Over 0 i flere minutter: legg til app-poder. |
 | `slotWaitP95Ms` | Hvor lenge forespørsler ventet på en plass, på den travleste app-poden. |
 | `refusalsPerMinute` | Sondeforespørsler som fikk svar om at serveren var opptatt. |
+| `reconnectsAskedPerMinute` | Svar som ba en sondes tilkobling om å koble til på nytt, så den neste forespørselen kan gå til en annen app-pod: noen få i sekundet mens en app-pod henger etter. Over 0 i flere minutter: legg til app-poder. |
 | `dispatchLagP95Seconds` | Hvor sent monitorer ble delt ut etter tidspunktet da intervallet deres gjorde dem klare til sjekk. Nær ditt korteste intervall mens ingen forespørsel venter: legg til sondereplikaer. |
 | `monitorsLateByAnIntervalPerMinute` | Monitorer som ble delt ut et helt intervall for sent: sjekker som ble hoppet over. |
 | `monitorTestWaitP95Seconds` | Hvor lenge Test Monitor-kjøringer ventet på en sonde. |

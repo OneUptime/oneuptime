@@ -147,6 +147,7 @@ app:
 | `queueDepth` | Las peticiones de sondas que esperan una plaza ahora, en todos los pods de la aplicación. Por encima de 0 durante minutos: añade pods de la aplicación. |
 | `slotWaitP95Ms` | Cuánto esperaron las peticiones una plaza, en el pod de la aplicación más ocupado. |
 | `refusalsPerMinute` | Las peticiones de sondas a las que se respondió que el servidor estaba ocupado. |
+| `reconnectsAskedPerMinute` | Las respuestas que pidieron a la conexión de una sonda que se volviera a conectar, para que su siguiente petición pueda ir a otro pod de la aplicación: unas pocas por segundo mientras un pod de la aplicación va atrasado. Por encima de 0 durante minutos: añade pods de la aplicación. |
 | `dispatchLagP95Seconds` | Con cuánto retraso se repartieron los monitores, desde el momento en que su intervalo los hizo vencer. Cerca de tu intervalo más corto mientras ninguna petición espera: añade réplicas de sondas. |
 | `monitorsLateByAnIntervalPerMinute` | Los monitores repartidos con un intervalo entero de retraso: comprobaciones que se saltaron. |
 | `monitorTestWaitP95Seconds` | Cuánto esperaron las ejecuciones de Test Monitor a una sonda. |
