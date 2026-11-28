@@ -2,6 +2,11 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { AutomaticFixPullRequestBlocker } from "../../Types/AI/AutomaticFixPullRequests";
 import {
+  CodeFixRepositoryChoice,
+  codeFixRepositoryChoicesToJSON,
+  parseCodeFixRepositoryChoices,
+} from "./CodeFixRepositoryPick";
+import {
   FinishedFixOutcome,
   getCodeFixOffer,
   parseFinishedFixOutcome,
@@ -44,14 +49,37 @@ import SuggestionOffer, { parseSuggestionOffer } from "./SuggestionOffer";
  *   - SetUp: no repository is connected, or Code's own gate stands in the
  *     way (the plan, AI credits or an LLM provider, the day's limit, a
  *     Runner online) - the one step to take;
- *   - Act: a person may open it now.
+ *   - Act: a person may open it now - with the repositories to pick from,
+ *     when several are theirs and none is named like the record's monitor.
  *
  * And, beside SetUp and Act, why OneUptime AI did not open it on its own
  * (AutomaticCodeFixBlocker), read with the project's settings of now.
  *
+ * Who may open it, and in which repository, is the rule every Fix with AI
+ * holds to (CodeFixRepositoryPick, #11209): the person may use the
+ * repository in Code - read it, and ask OneUptime AI to work in it. A
+ * person who may use none of the connected repositories is offered
+ * nothing, unless the bill or the plan stops everyone first.
+ *
  * Pure: the server decides it (FixFromIncidentTaskTrigger
  * .getSuggestionForSubject) and the Dashboard reads it off the wire.
  */
+
+/*
+ * The server's refusal of a fix pull request the person did not pick a
+ * repository for, when several of theirs are connected and none is named
+ * like the record's monitor. The step asks for the pick first, so people
+ * meet this through the API - or on the page, when a repository was
+ * connected after the step read the choices.
+ */
+export const PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES: Readonly<
+  Record<"incident" | "alert", string>
+> = {
+  incident:
+    "Several repositories are connected, and none could be matched to this incident's monitor. Pick the one that holds the code to fix.",
+  alert:
+    "Several repositories are connected, and none could be matched to this alert's monitor. Pick the one that holds the code to fix.",
+};
 
 // Why OneUptime AI did not open the fix pull request on its own.
 export enum AutomaticCodeFixBlocker {
@@ -120,6 +148,15 @@ export interface InvestigationCodeFixSuggestion {
    * other offers.
    */
   automaticBlocker: AutomaticCodeFixBlocker | null;
+  /*
+   * Act, when several repositories the person may use are connected and
+   * none is named like the record's monitor: the first of them by name -
+   * more than one says the person picks the pull request's repository,
+   * from a search of those on the server (the click names the pick).
+   * Empty otherwise: the fix is made in the repository the record resolves
+   * to among the ones the person may use (#11209).
+   */
+  repositories: Array<CodeFixRepositoryChoice>;
 }
 
 export const NO_INVESTIGATION_CODE_FIX_SUGGESTION: InvestigationCodeFixSuggestion =
@@ -130,6 +167,7 @@ export const NO_INVESTIGATION_CODE_FIX_SUGGESTION: InvestigationCodeFixSuggestio
     aiRunId: null,
     isAutomatic: false,
     automaticBlocker: null,
+    repositories: [],
   };
 
 /*
@@ -146,6 +184,7 @@ export const HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION: InvestigationCodeFixSugge
     aiRunId: null,
     isAutomatic: false,
     automaticBlocker: null,
+    repositories: [],
   };
 
 // A fix pull request of the record, as the decision reads it.
@@ -178,6 +217,12 @@ export interface InvestigationCodeFixSuggestionInput {
   blocker: SuggestionBlocker | null;
   // Why it was not opened on its own (read only when no fix exists).
   automaticBlocker: AutomaticCodeFixBlocker | null;
+  /*
+   * The repositories the person may pick for it, when no repository was
+   * found to hold its code for certain (CodeFixPersonRepository
+   * .getRepositoryChoices): offered with Act, when there are two or more.
+   */
+  repositories?: Array<CodeFixRepositoryChoice> | undefined;
 }
 
 export function getInvestigationCodeFixSuggestion(
@@ -217,8 +262,13 @@ export function getInvestigationCodeFixSuggestion(
       aiRunId: run?.aiRunId || null,
       isAutomatic: Boolean(run?.isAutomatic),
       automaticBlocker: null,
+      repositories: [],
     };
   }
+
+  // A pick is the fix's own step: only an offer of the fix carries one.
+  const repositories: Array<CodeFixRepositoryChoice> =
+    offer === SuggestionOffer.Act ? input.repositories || [] : [];
 
   return {
     offer,
@@ -231,6 +281,8 @@ export function getInvestigationCodeFixSuggestion(
     aiRunId: null,
     isAutomatic: false,
     automaticBlocker: input.automaticBlocker,
+    // One repository is no choice: the fix works in it.
+    repositories: repositories.length > 1 ? repositories : [],
   };
 }
 
@@ -246,6 +298,7 @@ export function investigationCodeFixSuggestionToJSON(
     aiRunId: suggestion.aiRunId,
     isAutomatic: suggestion.isAutomatic,
     automaticBlocker: suggestion.automaticBlocker,
+    repositories: codeFixRepositoryChoicesToJSON(suggestion.repositories),
   };
 }
 
@@ -307,5 +360,10 @@ export function parseInvestigationCodeFixSuggestion(
     automaticBlocker: isFixOffer
       ? null
       : parseAutomaticCodeFixBlocker(record["automaticBlocker"]),
+    // A pick is the fix's own step: only an offer of the fix carries one.
+    repositories:
+      offer === SuggestionOffer.Act
+        ? parseCodeFixRepositoryChoices(record["repositories"])
+        : [],
   };
 }

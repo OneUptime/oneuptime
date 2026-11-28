@@ -19,12 +19,15 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 /*
  * WHETHER A CODE-FIX RUN A PERSON ASKS FOR OUTSIDE CODE COULD DO ITS WORK.
  *
- * A trace's Fix performance with AI and a service's Improve logging or
- * tracing ask what Code's own request box asks (CodeTaskGate), about the
- * repository the run will be queued on - decided from the run's own facts,
- * as the run decides it (CodeFixRunRepository) - with the project's plan
- * read for the project, and never the person's permission to edit the
- * repository: these runs are OneUptime's.
+ * A trace's Fix performance with AI, an incident's or alert's Open fix pull
+ * request and a service's Improve logging or tracing ask what Code's own
+ * request box asks (CodeTaskGate), about the repository the run will be
+ * queued on - decided from the run's own facts, as the run decides it
+ * (CodeFixRunRepository), among the repositories the caller allows - with
+ * the project's plan read for the project. The person's own permission to
+ * use the repository is the caller's to weigh, before it asks: the
+ * allowance (CodeFixPersonRepository, #11075, #11209). The gate itself asks
+ * as OneUptime.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -97,6 +100,82 @@ describe("CodeFixStartGate.check", () => {
       projectId: PROJECT_ID,
       taskType: CodeFixTaskType.FixPerformance,
       taskContext: PERFORMANCE_CONTEXT,
+    });
+  });
+
+  test("an incident's fix is resolved by the incident, as the run resolves it - and an alert's by the alert", async () => {
+    const { resolve } = world({ resolvesTo: REPOSITORY_ID });
+    const incidentId: ObjectID = ObjectID.generate();
+    const alertId: ObjectID = ObjectID.generate();
+    const context: CodeFixTaskContext = {
+      sourceInvestigationRunId: ObjectID.generate().toString(),
+    };
+
+    await CodeFixStartGate.check({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.FixFromIncident,
+      taskContext: context,
+      incidentId,
+    });
+    await CodeFixStartGate.check({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.FixFromIncident,
+      taskContext: context,
+      alertId,
+    });
+
+    expect(resolve.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.FixFromIncident,
+      taskContext: context,
+      incidentId,
+    });
+    expect(resolve.mock.calls[1]![0]).toEqual({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.FixFromIncident,
+      taskContext: context,
+      alertId,
+    });
+  });
+
+  test("a record names one subject: an incident beside an alert is the incident's", async () => {
+    const { resolve } = world({ resolvesTo: REPOSITORY_ID });
+    const incidentId: ObjectID = ObjectID.generate();
+
+    await CodeFixStartGate.check({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.FixFromIncident,
+      taskContext: {},
+      incidentId,
+      alertId: ObjectID.generate(),
+    });
+
+    expect(resolve.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.FixFromIncident,
+      taskContext: {},
+      incidentId,
+    });
+  });
+
+  test("resolved among the repositories the caller allows: a person's own", async () => {
+    const { resolve } = world({ resolvesTo: REPOSITORY_ID });
+
+    await CodeFixStartGate.check({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.ImproveTracing,
+      taskContext: { serviceName: "checkout" },
+      allowance: {
+        isEveryRepository: false,
+        repositoryIds: [REPOSITORY_ID.toString()],
+      },
+    });
+
+    expect(resolve.mock.calls[0]![0]).toMatchObject({
+      allowance: {
+        isEveryRepository: false,
+        repositoryIds: [REPOSITORY_ID.toString()],
+      },
     });
   });
 

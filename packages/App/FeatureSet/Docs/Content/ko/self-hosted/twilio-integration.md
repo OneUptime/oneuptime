@@ -241,7 +241,7 @@ Twilio의 일반적인 웹훅 출발지 주소는 바뀌므로, SIP나 미디어
 1. 회사 네트워크와 VPN 밖에서, 콜백 호스트 이름이 공개 게이트웨이로 확인되고 유효한 TLS 인증서를 제공하는지 확인합니다. 브라우저의 GET으로는 이 POST 콜백을 시험할 수 없습니다.
 2. 프로젝트의 Twilio 구성에서 **테스트 SMS 보내기**와 **테스트 전화 보내기**를 사용하고, 대상 전화에서 수신을 확인합니다. 둘 다 Twilio 구성을 추가할 권한이 필요합니다. **프로젝트 소유자**, **프로젝트 관리자**, 또는 사용자 지정 역할의 **Create Call and SMS**와 **Read Call and SMS**입니다.
 3. 사용자의 인증된 SMS 또는 통화 연락처와 알림 규칙을 구성한 뒤, 통제된 온콜 알림을 발생시킵니다. 1을 누르고 OneUptime에서 확인 처리를 확인합니다. 수신 전화 정책을 쓴다면 구성한 번호로 전화해 라우팅과 통화 로그를 확인합니다.
-4. OneUptime과 Twilio의 메시지 로그에서 SMS 전달 상태를 확인합니다. 전송이 수락되었다고 전달이 증명되지는 않습니다. [Twilio는 이후의 상태 변경을 콜백으로 보고합니다](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+4. OneUptime의 [알림 로그](/docs/notifications/notification-logs)와 Twilio의 메시지 로그에서 SMS 전달 상태를 확인합니다. 전송이 수락되었다고 전달이 증명되지는 않습니다. [Twilio는 이후의 상태 변경을 콜백으로 보고합니다](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::
 
 | 증상 | 확인할 곳 |

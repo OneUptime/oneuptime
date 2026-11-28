@@ -614,7 +614,8 @@ describe("the log of each message records what it cost, in whole cents", () => {
     const log: CallLog = logged<CallLog>(CallLogService)[0]!;
 
     expect(log.callCostInUSDCents).toBe(57);
-    expect(log.status).toBe(CallStatus.Success);
+    // Placed, and still ringing until Twilio says how it ended (#11138).
+    expect(log.status).toBe(CallStatus.Calling);
   });
 
   test("WhatsApp: 29 cents, where the old arithmetic took and logged 28", async () => {

@@ -7,6 +7,10 @@ import {
   PLACES_SAID_BY_SOMEONE,
   PLACES_SAVED,
   SAVE_PLACES,
+  SEARCH_US_STATES,
+  STATE_NOT_IN_TABLE,
+  US_STATES,
+  US_STATES_HINT,
   WHERE_FIRST_DESCRIPTION,
   WHERE_FIRST_TITLE,
   WHERE_PEOPLE_LIVE,
@@ -15,8 +19,11 @@ import { describePlaces, say } from "./ExposureAssessmentModel";
 import { getCountryName } from "../../DataSecurity/ComplianceFacts";
 import {
   BREACH_PLACE_CHOICES,
+  BREACH_PLACE_REGION_CHOICES,
   BREACH_PLACES,
   BreachPlace,
+  UNCOVERED_US_STATES,
+  US_JURISDICTION_PLACES,
 } from "Common/Types/DataSecurity/BreachLaws";
 import {
   ExposurePeoplePlaces as SaidPlaces,
@@ -27,6 +34,10 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorLine from "Common/UI/Components/ErrorMessage/ErrorLine";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
@@ -43,8 +54,10 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * WHERE THE PEOPLE THE DATA IS ABOUT LIVE (#10377): which breach laws
  * apply depends on it. The data may show some of them (the countries its
  * data types are of); a person says the rest, by the places OneUptime's
- * table knows - each a chip pressed on or off - and Save Places applies
- * the laws by their answer from then on. Saving none takes it back.
+ * table knows - each region a chip pressed on or off, and the US states,
+ * the District of Columbia and Puerto Rico picked from a list of their own
+ * that a person types to search (#10952) - and Save Places applies the laws
+ * by their answer from then on. Saving none takes it back.
  *
  * While nobody knows, the question is asked first on the card (isAskedFirst):
  * nothing is due first until it is answered.
@@ -75,6 +88,35 @@ const ExposurePeoplePlaces: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const isPicking: boolean =
     props.canChange && (isEditing || (props.isAskedFirst && !props.said));
+  /*
+   * The regions as chips. "Another US state", from before every state was
+   * named, is a chip only while an answer holds it, so it can be taken back.
+   */
+  const regions: Array<BreachPlace> = [
+    ...BREACH_PLACE_REGION_CHOICES,
+    ...(picked.includes(BreachPlace.OtherUsState)
+      ? [BreachPlace.OtherUsState]
+      : []),
+  ];
+  // The states, in the reader's alphabetical order, each saying whether the table has its law.
+  const stateOptions: Array<DropdownOption> = US_JURISDICTION_PLACES.map(
+    (place: BreachPlace): DropdownOption => {
+      return {
+        value: place,
+        label: BREACH_PLACE_CHOICES[place],
+        ...(UNCOVERED_US_STATES.includes(place)
+          ? { description: STATE_NOT_IN_TABLE }
+          : {}),
+      };
+    },
+  ).sort((a: DropdownOption, b: DropdownOption): number => {
+    return say(translator, a.label).localeCompare(say(translator, b.label));
+  });
+  const pickedStates: Array<DropdownOption> = stateOptions.filter(
+    (option: DropdownOption): boolean => {
+      return picked.includes(option.value as BreachPlace);
+    },
+  );
 
   const save: () => Promise<void> = async (): Promise<void> => {
     setIsSaving(true);
@@ -176,13 +218,13 @@ const ExposurePeoplePlaces: FunctionComponent<ComponentProps> = (
         <></>
       )}
       {isPicking ? (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div
             className="flex flex-wrap gap-2"
             role="group"
             aria-labelledby={`${EXPOSURE_TEST_IDS.places}-heading`}
           >
-            {BREACH_PLACES.map((place: BreachPlace): ReactElement => {
+            {regions.map((place: BreachPlace): ReactElement => {
               const isPicked: boolean = picked.includes(place);
 
               return (
@@ -215,6 +257,51 @@ const ExposurePeoplePlaces: FunctionComponent<ComponentProps> = (
                 </button>
               );
             })}
+          </div>
+          <div className="max-w-xl space-y-1.5">
+            <label
+              htmlFor={`${EXPOSURE_TEST_IDS.placeStates}-input`}
+              className="block text-sm font-medium text-gray-900"
+            >
+              {say(translator, US_STATES)}
+            </label>
+            <Dropdown
+              options={stateOptions}
+              value={pickedStates}
+              isMultiSelect={true}
+              placeholder={SEARCH_US_STATES}
+              inputId={`${EXPOSURE_TEST_IDS.placeStates}-input`}
+              ariaDescribedby={`${EXPOSURE_TEST_IDS.placeStates}-hint`}
+              dataTestId={EXPOSURE_TEST_IDS.placeStates}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                const chosen: Array<string> = (
+                  Array.isArray(value) ? value : value === null ? [] : [value]
+                ).map((each: DropdownValue): string => {
+                  return String(each);
+                });
+                const states: Array<BreachPlace> =
+                  US_JURISDICTION_PLACES.filter(
+                    (place: BreachPlace): boolean => {
+                      return chosen.includes(place);
+                    },
+                  );
+
+                setPicked([
+                  ...picked.filter((place: BreachPlace): boolean => {
+                    return !US_JURISDICTION_PLACES.includes(place);
+                  }),
+                  ...states,
+                ]);
+              }}
+            />
+            <p
+              id={`${EXPOSURE_TEST_IDS.placeStates}-hint`}
+              className="text-xs text-gray-500"
+            >
+              {say(translator, US_STATES_HINT)}
+            </p>
           </div>
           {error ? <ErrorLine message={error} /> : <></>}
           <div className="flex flex-wrap gap-2">
