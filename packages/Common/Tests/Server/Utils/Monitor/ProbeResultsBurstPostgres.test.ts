@@ -60,6 +60,19 @@
  * probe takes to get through what is due (its round). "today" below is how
  * probes asked before #11333, as #11247 measured it.
  *
+ * #11386 RUNS THREE MORE, with the workers ticked as FetchList's cron ticks
+ * them and each probe's moments pinned: a busy probe of one worker, the
+ * Helm chart's three workers, and a probe whose round passes the next
+ * minute every time. Each says how far a monitor probe's place in its
+ * probe's round moved from one round to the next, and who missed a minute -
+ * by when results landed and by when the claim handed each out - and
+ * whether a monitor probe missed a second before every one of its probe's
+ * had missed one. Before #11386 the claim handed out the monitors due at
+ * the same moment in the order the table held them: a busy probe's monitor
+ * moved up to 16.6 s in its round, and when the probe fell behind, 350 of
+ * its 600 monitor probes took all its missed minutes, up to four each. Now
+ * a place moves under 2 s, and every monitor probe takes its turn.
+ *
  * Opt in with RUN_POSTGRES_PROBE_RESULTS_BURST_TESTS=true against a Postgres
  * migrated to head, e.g. the Postgres Schema Drift workflow's database:
  *
