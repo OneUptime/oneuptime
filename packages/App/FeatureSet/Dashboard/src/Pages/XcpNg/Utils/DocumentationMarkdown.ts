@@ -86,6 +86,10 @@ export const XCP_NG_AGENT_CONTAINER: string = "oneuptime-xcp-ng-agent";
  */
 export const XCP_NG_AGENT_CONTAINER_NAME_VARIABLE: string =
   "XCP_NG_AGENT_CONTAINER_NAME";
+// The XCP-ng AI agent's container and the .env variable its name comes from.
+export const XCP_NG_AI_AGENT_CONTAINER: string = "oneuptime-xcp-ng-ai-agent";
+export const XCP_NG_AI_AGENT_CONTAINER_NAME_VARIABLE: string =
+  "XCP_NG_AI_AGENT_CONTAINER_NAME";
 
 /*
  * The Xen Orchestra version the agent needs: its OpenMetrics plugin keeps
@@ -405,6 +409,7 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`ONEUPTIME_AI_PROTECTED_TARGETS\` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |
 | \`LOG_LEVEL\` | No | The AI agent's log level: \`debug\`, \`info\` (default), \`warn\` or \`error\` |
 | \`COMPOSE_PROFILES\` | No | \`xcp-ng-ai-agent\` starts the AI agent; the install script writes it when the read token is set |
+| \`${XCP_NG_AI_AGENT_CONTAINER_NAME_VARIABLE}\` | No | The AI agent's container name (default: \`${XCP_NG_AI_AGENT_CONTAINER}\`). The install script names a second Xen Orchestra's AI agent after its collector (\`${XCP_NG_AI_AGENT_CONTAINER}-lab\` beside \`${XCP_NG_AGENT_CONTAINER}-lab\`) unless you set it, and keeps it when you run the script again |
 
 The agent checks Xen Orchestra's certificate against \`${XCP_NG_AGENT_CA_FILE}\`, next to \`docker-compose.yml\`.`,
   };

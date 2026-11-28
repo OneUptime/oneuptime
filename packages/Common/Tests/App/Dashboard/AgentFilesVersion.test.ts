@@ -109,9 +109,11 @@ const AGENT_FILES: Array<AgentFilesPin> = [
    * The Storage Array and XCP-ng agents' docker-compose.yml read the
    * collector's container name from .env since 0.165.0 shipped, so that a
    * second agent on the same machine keeps a name of its own when it is
-   * upgraded (#11168); the Storage Array agent's gained the PowerStore and
-   * NetApp ONTAP services, which only those platforms' agents start, and the
-   * XCP-ng agent's stopped warning about XO_ADDRESS. Pinned again on 0.165.0:
+   * upgraded (#11168), the XCP-ng AI agent's included; the Storage Array
+   * agent's gained the PowerStore and NetApp ONTAP services, which only those
+   * platforms' agents start, and the XCP-ng agent's gained the XCP-ng AI
+   * agent, which only its profile starts, and stopped warning about
+   * XO_ADDRESS. Pinned again on 0.165.0:
    * an installed agent still runs the same collector with the same config
    * and reports the same data, so there is nothing to tell it to upgrade
    * for, and whenever it next is, the upgrade keeps a second agent's name.
@@ -126,14 +128,14 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "otel-collector-config.flashblade.yaml",
     ],
     version: "0.165.0",
-    digest: "8bdbc03b2e69c12a3f4be96d03c10b8f56ac40a26b08e4cf9378389e2ded1065",
+    digest: "b16e0fcf0d4eb275a3e73016c488d4fe733dafaec302634281c3226d1df9f6de",
   },
   {
     kind: AgentKind.XcpNgAgent,
     directory: "XcpNgAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
     version: "0.165.0",
-    digest: "11491a27e167b778fde8ce51dc07ee49651284dbf47344f45aa12780abbc8739",
+    digest: "9dd74fde038db1905332bad77727731fa9dea223de6e95911fa357aa3c9d5440",
   },
 ];
 

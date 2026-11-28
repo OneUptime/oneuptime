@@ -210,6 +210,7 @@ The install script writes these to `/opt/oneuptime-xcp-ng-agent/.env`; a Docker 
 | `LOG_LEVEL` | No | The AI agent's log level: `debug`, `info` (the default), `warn` or `error`. |
 | `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent. The install script writes it when the read token is set, and takes it out when it is not. |
 | `XCP_NG_AGENT_CONTAINER_NAME` | No | The agent's container name. Defaults to `oneuptime-xcp-ng-agent`. A second Xen Orchestra's agent on the same machine needs one of its own: see [Reading several Xen Orchestras](#reading-several-xen-orchestras). The install script names a new agent after its folder unless you set it, and keeps it when you run the script again. |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name. Defaults to `oneuptime-xcp-ng-ai-agent`. The install script names a second Xen Orchestra's AI agent after its collector, such as `oneuptime-xcp-ng-ai-agent-lab` beside `oneuptime-xcp-ng-agent-lab`, unless you set it, and keeps it when you run the script again. |
 
 ## What the agent collects
 

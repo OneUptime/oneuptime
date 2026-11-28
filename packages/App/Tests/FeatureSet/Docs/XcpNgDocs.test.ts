@@ -370,6 +370,8 @@ function dotenvVariables(): Array<string> {
  * default: a quick start that runs the collector alone sets none of them.
  */
 const AI_AGENT_VARIABLES: ReadonlyArray<string> = [
+  // Its container's name: the default is a first agent's.
+  "XCP_NG_AI_AGENT_CONTAINER_NAME",
   "XCP_NG_POOL_ID",
   "ONEUPTIME_AI_AGENT_RESOURCE_NAME",
   "ONEUPTIME_AI_XO_READ_TOKEN",

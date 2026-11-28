@@ -1953,7 +1953,9 @@ describe("install.sh and the XCP-ng AI agent", () => {
       "The XCP-ng AI agent runs too (oneuptime-xcp-ng-ai-agent)",
     );
     expect(dotenv(result.envFile, "COMPOSE_PROFILES")).toBe("xcp-ng-ai-agent");
-    expect(dotenv(result.envFile, "ONEUPTIME_AI_XO_READ_TOKEN")).toBe(READ_TOKEN);
+    expect(dotenv(result.envFile, "ONEUPTIME_AI_XO_READ_TOKEN")).toBe(
+      READ_TOKEN,
+    );
     expect(dotenv(result.envFile, "ONEUPTIME_AI_XO_WRITE_TOKEN")).toBe(
       WRITE_TOKEN,
     );
@@ -1987,7 +1989,8 @@ describe("install.sh and the XCP-ng AI agent", () => {
       port,
       env: freshEnv(port, {
         CURL_CA_BUNDLE: CA.certFile,
-        ONEUPTIME_AI_XO_READ_TOKEN: "expired-Tok3nXoForgotItAfterItsExpiration_1",
+        ONEUPTIME_AI_XO_READ_TOKEN:
+          "expired-Tok3nXoForgotItAfterItsExpiration_1",
       }),
     });
     await fake.close();
@@ -2063,7 +2066,9 @@ describe("install.sh and the XCP-ng AI agent", () => {
     await fake.close();
 
     expect(result.status).toBe(1);
-    expect(result.output).toContain("Error: Xen Orchestra has no REST API at /rest/v0");
+    expect(result.output).toContain(
+      "Error: Xen Orchestra has no REST API at /rest/v0",
+    );
     expect(result.output).toContain("Orchestra 6.9 or later.");
     expectNothingInstalled(result);
   });
@@ -2144,7 +2149,10 @@ describe("install.sh and the XCP-ng AI agent", () => {
       first.envFile,
       fs
         .readFileSync(first.envFile, "utf8")
-        .replace(/^ONEUPTIME_AI_XO_READ_TOKEN=.*$/m, "ONEUPTIME_AI_XO_READ_TOKEN=''"),
+        .replace(
+          /^ONEUPTIME_AI_XO_READ_TOKEN=.*$/m,
+          "ONEUPTIME_AI_XO_READ_TOKEN=''",
+        ),
     );
     const without = await install({
       port,
@@ -2181,7 +2189,9 @@ describe("install.sh and the XCP-ng AI agent", () => {
 
     expect(result.status).toBe(0);
     expect(result.output).toContain("Read-only Xen Orchestra token:");
-    expect(dotenv(result.envFile, "ONEUPTIME_AI_XO_READ_TOKEN")).toBe(READ_TOKEN);
+    expect(dotenv(result.envFile, "ONEUPTIME_AI_XO_READ_TOKEN")).toBe(
+      READ_TOKEN,
+    );
     expect(dotenv(result.envFile, "COMPOSE_PROFILES")).toBe("xcp-ng-ai-agent");
     /*
      * Read with echo off (read -s, pinned statically above): after its
@@ -2195,6 +2205,186 @@ describe("install.sh and the XCP-ng AI agent", () => {
     expect(result.docker).not.toContain(READ_TOKEN);
     expect(result.curlLog).not.toContain(READ_TOKEN);
   });
+});
+
+/*
+ * The XCP-ng AI agent runs beside the collector under its profile, and is
+ * named from .env too (XCP_NG_AI_AGENT_CONTAINER_NAME): after the
+ * collector's, so a second Xen Orchestra's agent runs its AI agent beside the
+ * first one's.
+ */
+describe("install.sh names the XCP-ng AI agent's container beside the collector's", () => {
+  const AI_CONTAINER_VARIABLE = "XCP_NG_AI_AGENT_CONTAINER_NAME";
+  const DEFAULT_AI_CONTAINER = "oneuptime-xcp-ng-ai-agent";
+
+  test("a first agent's AI agent keeps the default name", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const result = await pinnedAgent({
+      port,
+      dir: scratch(),
+      installDirName: DEFAULT_CONTAINER,
+    });
+    await fake.close();
+
+    expect(dotenv(result.envFile, AI_CONTAINER_VARIABLE)).toBe(
+      DEFAULT_AI_CONTAINER,
+    );
+  });
+
+  test.each([
+    [`${DEFAULT_CONTAINER}-lab`, `${DEFAULT_AI_CONTAINER}-lab`],
+    ["lab", `${DEFAULT_AI_CONTAINER}-lab`],
+  ])(
+    "a second agent in %s runs its AI agent as %s",
+    async (installDirName, expected) => {
+      const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+      const result = await pinnedAgent({
+        port,
+        dir: scratch(),
+        installDirName,
+      });
+      await fake.close();
+
+      expect(dotenv(result.envFile, AI_CONTAINER_VARIABLE)).toBe(expected);
+    },
+  );
+
+  test("a collector named otherwise gives its AI agent that name with -ai", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const result = await pinnedAgent({
+      port,
+      dir: scratch(),
+      installDirName: "lab",
+      env: { [CONTAINER_VARIABLE]: "xen-lab" },
+    });
+    await fake.close();
+
+    expect(dotenv(result.envFile, AI_CONTAINER_VARIABLE)).toBe("xen-lab-ai");
+  });
+
+  test("an exported AI agent name is kept, and a re-run keeps it without it being exported again", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const first = await pinnedAgent({
+      port,
+      dir,
+      installDirName: "lab",
+      env: { [AI_CONTAINER_VARIABLE]: "lab-ai-agent" },
+    });
+    // A new name for the collector, later: the AI agent's chosen name stays.
+    const again = await install({
+      port,
+      dir,
+      installDirName: "lab",
+      env: { [CONTAINER_VARIABLE]: "xen-lab" },
+    });
+    await fake.close();
+
+    expect(dotenv(first.envFile, AI_CONTAINER_VARIABLE)).toBe("lab-ai-agent");
+    expect(again.status).toBe(0);
+    expect(dotenv(again.envFile, AI_CONTAINER_VARIABLE)).toBe("lab-ai-agent");
+    expect(dotenv(again.envFile, CONTAINER_VARIABLE)).toBe("xen-lab");
+  });
+
+  test("an AI agent named after the collector follows the collector's new name", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const first = await pinnedAgent({ port, dir, installDirName: "lab" });
+    expect(dotenv(first.envFile, AI_CONTAINER_VARIABLE)).toBe(
+      `${DEFAULT_AI_CONTAINER}-lab`,
+    );
+
+    const renamed = await install({
+      port,
+      dir,
+      installDirName: "lab",
+      env: { [CONTAINER_VARIABLE]: `${DEFAULT_CONTAINER}-lab2` },
+    });
+    await fake.close();
+
+    expect(renamed.status).toBe(0);
+    expect(dotenv(renamed.envFile, AI_CONTAINER_VARIABLE)).toBe(
+      `${DEFAULT_AI_CONTAINER}-lab2`,
+    );
+  });
+
+  test.each(["my ai agent", "-ai", "a"])(
+    "refuses %j for the AI agent before Xen Orchestra is asked anything",
+    async (name) => {
+      const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+      const result = await install({
+        port,
+        env: freshEnv(port, {
+          XO_TLS_FINGERPRINT: CERTS.selfSigned.fingerprint,
+          [AI_CONTAINER_VARIABLE]: name,
+        }),
+      });
+      await fake.close();
+
+      expect(result.status).toBe(1);
+      expect(result.output).toContain(
+        `Error: ${AI_CONTAINER_VARIABLE}="${name}" is not a container name: a letter\nor a digit, then letters, digits, _, . or - (e.g. ${DEFAULT_AI_CONTAINER}-lab).`,
+      );
+      expect(fake.requests).toHaveLength(0);
+      expectNothingInstalled(result);
+    },
+  );
+
+  test("Compose is handed neither name from the shell: every later `docker compose up` reads .env alone", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const result = await pinnedAgent({
+      port,
+      dir: scratch(),
+      installDirName: "lab",
+      env: {
+        [CONTAINER_VARIABLE]: "xen-lab",
+        [AI_CONTAINER_VARIABLE]: "xen-lab-assistant",
+      },
+    });
+    await fake.close();
+
+    expect(result.docker).toContain("compose up sees: \n");
+    expect(result.docker).not.toContain("XCP_NG_");
+  });
+
+  (CAN_RENDER ? test : test.skip)(
+    "the real Docker Compose names the AI agent's container as .env says",
+    async () => {
+      const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+      const result = await pinnedAgent({
+        port,
+        dir: scratch(),
+        installDirName: "lab",
+      });
+      await fake.close();
+
+      const rendered = spawnSync(
+        "docker",
+        [
+          "compose",
+          "--profile",
+          "xcp-ng-ai-agent",
+          "config",
+          "--format",
+          "json",
+        ],
+        {
+          cwd: result.installDir,
+          env: { PATH: process.env.PATH, HOME: result.installDir },
+          encoding: "utf8",
+          timeout: 60000,
+        },
+      );
+      expect(rendered.status).toBe(0);
+      const services = JSON.parse(rendered.stdout).services;
+      expect(services[DEFAULT_CONTAINER].container_name).toBe(
+        `${DEFAULT_CONTAINER}-lab`,
+      );
+      expect(services[DEFAULT_AI_CONTAINER].container_name).toBe(
+        `${DEFAULT_AI_CONTAINER}-lab`,
+      );
+    },
+  );
 });
 
 /* ------------------------------------------------------------ the doctor */

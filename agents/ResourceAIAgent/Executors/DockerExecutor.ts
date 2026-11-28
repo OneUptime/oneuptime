@@ -138,14 +138,23 @@ export const DOCKER_INFO_PROBE_ARGS: ReadonlyArray<string> = [
  * they run (a swarm manager can run the Docker host collector too).
  */
 export const ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
-  // agents/DockerAgent
+  /*
+   * agents/DockerAgent: the collector, the check of its config that runs
+   * once before it starts (and stays, exited), the AI agent
+   */
   "oneuptime-docker-agent",
+  "oneuptime-docker-agent-config-check",
   "oneuptime-docker-ai-agent",
-  // agents/PodmanAgent
+  // agents/PodmanAgent: likewise
   "oneuptime-podman-agent",
+  "oneuptime-podman-agent-config-check",
   "oneuptime-podman-ai-agent",
-  // agents/DockerSwarmAgent: the collector, its inventory sidecar, the AI agent
+  /*
+   * agents/DockerSwarmAgent: the collector, its config check, its inventory
+   * sidecar, the AI agent
+   */
   "oneuptime-docker-swarm-agent",
+  "oneuptime-docker-swarm-agent-config-check",
   "oneuptime-docker-swarm-inventory",
   "oneuptime-docker-swarm-ai-agent",
 ];
