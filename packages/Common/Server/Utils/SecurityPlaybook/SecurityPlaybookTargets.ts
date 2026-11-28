@@ -14,7 +14,16 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { describeSecurityAddressProtection } from "../../../Types/SecurityBlocklist/SecurityProtectedAddress";
 import { SecurityCaseMatchesJson } from "../../../Types/SecurityCase/SecurityCaseMatches";
-import { getCaseClaimedOnlyAddresses } from "../../../Utils/SecurityCase/CaseClaimedClientAddress";
+import {
+  getCaseClaimedOnlyAddresses,
+  getCaseUnvouchedAddresses,
+} from "../../../Utils/SecurityCase/CaseClaimedClientAddress";
+import {
+  TrustedProxies,
+  UnvouchedForwarding,
+} from "../../../Utils/SecurityEvent/ClientAddressTrust";
+import logger from "../Logger";
+import SecurityTrustedProxies from "../SecurityEvent/SecurityTrustedProxies";
 import {
   SecurityAddressScope,
   canonicalAddress,
@@ -275,6 +284,89 @@ export default class SecurityPlaybookTargets {
           !data.claimedOnly.has(address),
       );
     });
+  }
+
+  /*
+   * The proposed addresses a block would act on that the case's requests
+   * named as a client that came through a proxy the project does not vouch
+   * for (#11389), marked with that proxy (unvouchedProxy): the client may
+   * have written them, so a block of one made with nobody's approval waits
+   * for a person instead, who sees why. Read with the case's requests and
+   * the project's trusted proxies as they are now; a case whose requests
+   * cannot be read marks every address, toward a person.
+   */
+  @CaptureSpan()
+  public static async markUnvouchedAddresses(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    targets: Array<SecurityPlaybookTarget>;
+  }): Promise<Array<SecurityPlaybookTarget>> {
+    const isProposedAddress: (target: SecurityPlaybookTarget) => boolean = (
+      target: SecurityPlaybookTarget,
+    ): boolean => {
+      return (
+        target.type === SecurityEntityType.IpAddress &&
+        target.state === SecurityPlaybookTargetState.Proposed
+      );
+    };
+
+    if (!data.targets.some(isProposedAddress)) {
+      return data.targets;
+    }
+
+    let unvouched: Map<string, UnvouchedForwarding> | null = null;
+
+    try {
+      const matches: SecurityCaseMatchesJson | null =
+        await SecurityCaseMatches.build({
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+          props: { isRoot: true },
+          now: OneUptimeDate.getCurrentDate(),
+        });
+      const proxies: TrustedProxies =
+        await SecurityTrustedProxies.getForProject(data.projectId);
+
+      unvouched = matches
+        ? getCaseUnvouchedAddresses({ matches, proxies })
+        : null;
+    } catch (error) {
+      logger.warn(
+        `SecurityPlaybookTargets: could not read the requests of case ${data.securityCaseId.toString()} to tell how its addresses were known; a block of them waits for a person. ${String(error)}`,
+      );
+      unvouched = null;
+    }
+
+    return data.targets.map(
+      (target: SecurityPlaybookTarget): SecurityPlaybookTarget => {
+        if (!isProposedAddress(target)) {
+          return target;
+        }
+
+        if (!unvouched) {
+          return { ...target, unvouchedProxy: "" };
+        }
+
+        const address: string | null = canonicalAddress(target.value);
+        const forwarding: UnvouchedForwarding | undefined = address
+          ? unvouched.get(address)
+          : undefined;
+
+        if (forwarding) {
+          return { ...target, unvouchedProxy: forwarding.hop };
+        }
+
+        // Vouched for now - its proxy listed since it was marked: no mark is kept.
+        if (target.unvouchedProxy === undefined) {
+          return target;
+        }
+
+        const cleared: SecurityPlaybookTarget = { ...target };
+        delete cleared.unvouchedProxy;
+
+        return cleared;
+      },
+    );
   }
 
   /*

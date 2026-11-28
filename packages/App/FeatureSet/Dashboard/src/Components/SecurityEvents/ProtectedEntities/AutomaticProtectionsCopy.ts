@@ -23,5 +23,21 @@ export const AUTOMATIC_PROTECTIONS_UNREAD: string = translationKey(
   "Some could not be listed, because you cannot read them or they could not be read. They are protected all the same.",
 );
 
+/*
+ * Google Cloud's front ends and health checks (#11388), on one line of the
+ * card: ranges nobody but Google connects from, each listed before it.
+ */
+export const GOOGLE_FRONT_ENDS_PROTECTED: string = translationKey(
+  "Google Cloud's front ends and health checks reach the backends of your load balancer {{name}} from these: blocking one would cut off its visitors and fail its health checks.",
+);
+
+export const GOOGLE_FRONT_ENDS_PROTECTED_WITHOUT_LOAD_BALANCER: string =
+  translationKey(
+    "Google Cloud's front ends and health checks connect from these, and nobody else does: blocking one would cut off the visitors of a Google Cloud load balancer in front of your app and fail its health checks.",
+  );
+
 export const AUTOMATIC_PROTECTIONS_TEST_ID: string =
   "protected-entities-automatic";
+
+export const GOOGLE_FRONT_ENDS_PROTECTED_TEST_ID: string =
+  "protected-entities-google-front-ends";
