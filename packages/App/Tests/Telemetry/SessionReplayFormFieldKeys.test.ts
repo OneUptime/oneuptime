@@ -1,5 +1,6 @@
 import { describe, expect, jest, test } from "@jest/globals";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
+import { FastestRun, fastestRunAsync } from "Common/Tests/Helpers/FastestRun";
 import { compileScrubRule } from "Common/Server/Utils/Telemetry/ScrubEngine/CompiledScrubRule";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
@@ -310,6 +311,27 @@ describe("a form field's value is read under what names it (#11501)", () => {
       expect(textOf(typedElsewhere)).toBe(value);
     },
   );
+
+  test("names of different types are each read: a field named for a phone whose autocomplete names a postal code", async () => {
+    const snapshot: JSONObject = snapshotOf([
+      {
+        tagName: "input",
+        id: 10,
+        attributes: { name: "phone", type: "tel", autocomplete: "postal-code", value: "94107" },
+      },
+      {
+        tagName: "input",
+        id: 11,
+        attributes: { name: "phone", type: "tel", autocomplete: "postal-code", value: NATIONAL_PHONE },
+      },
+    ]);
+
+    await scrub([snapshot], [PHONE, POSTAL_CODE]);
+
+    // The ZIP code by the Postal Code rule, under the autocomplete; the number by the Phone Number rule.
+    expect(fieldAttributes(snapshot, 10)["value"]).toBe(REDACTED);
+    expect(fieldAttributes(snapshot, 11)["value"]).toBe(REDACTED);
+  });
 
   test("a textarea and a select are form fields too", async () => {
     const snapshot: JSONObject = snapshotOf([
@@ -675,5 +697,81 @@ describe("a number under a key that names its type is hidden, as a log's is (#11
     await scrub([event], [SENSITIVE_KEYS]);
 
     expect(payloadOf(event)).toEqual({ token: 2012345678 });
+  });
+});
+
+/*
+ * A recording of 400,000 characters of form fields and what was typed in
+ * them, in time in line with its length (Tests/Helpers/FastestRun): every
+ * field's names are read once and remembered by its node id, and each
+ * value read under them as a log's value is under its key. Every attempt
+ * scrubs a recording of its own, since the walk changes what it reads.
+ */
+describe("a recording of 400,000 characters of form fields is scrubbed in time in line with its length", () => {
+  const LENGTH: number = 400_000;
+  const LIMIT_IN_MS: number = 2000;
+
+  function repeat(unit: string, length: number): string {
+    return unit.repeat(Math.ceil(length / unit.length)).slice(0, length);
+  }
+
+  /*
+   * Fields of `value` each, named for a phone by their name and their
+   * type, and an input event of each: as many as hold LENGTH characters of
+   * values, in the fields and the events together.
+   */
+  function recordingOf(value: string): Array<JSONValue> {
+    const count: number = Math.ceil(LENGTH / (2 * value.length));
+    const fields: Array<FormField> = [];
+    const typed: Array<JSONObject> = [];
+
+    for (let index: number = 0; index < count; index++) {
+      fields.push({
+        tagName: "input",
+        id: 100 + index,
+        attributes: { name: `phone_${index}`, type: "tel", value },
+      });
+      typed.push(inputEvent(100 + index, value));
+    }
+
+    return [snapshotOf(fields), ...typed];
+  }
+
+  // Five national numbers to a field, each one ended by a comma.
+  const FIVE_NUMBERS: string = repeat(`${NATIONAL_PHONE}, `, 75);
+
+  test.each([
+    ["national numbers in their groups, five to a field", FIVE_NUMBERS],
+    ["groups of two without end in each field", repeat("12 ", 4_000)],
+    ["a phone word and hyphens without end in each field", `tel ${repeat("0-", 4_000)}`],
+    ["fullwidth digits and hyphens in each field", repeat("０３－", 4_000)],
+    ["one field of the longest value a walk reads, sixty thousand characters", repeat(`${NATIONAL_PHONE}, `, 60_000)],
+  ])("%s", async (_label: string, value: string) => {
+    const timed: FastestRun<SessionReplayScrubResult> = await fastestRunAsync({
+      run: async (): Promise<SessionReplayScrubResult> => {
+        return await SessionReplayScrubService.scrubEvents(
+          recordingOf(value),
+          [PHONE],
+        );
+      },
+      limitInMs: LIMIT_IN_MS,
+    });
+
+    expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
+    // Read whole: no cap of the walk was reached.
+    expect(timed.result.isComplete).toBe(true);
+    expect(timed.result.skippedOversizedStrings).toBe(0);
+  });
+
+  test("and what it hides there, it hides in every field and every event", async () => {
+    const events: Array<JSONValue> = recordingOf(FIVE_NUMBERS);
+
+    const result: SessionReplayScrubResult = await scrub(events, [PHONE]);
+
+    // 2,667 fields of five numbers each, and what was typed in each.
+    expect(events.length).toBe(2_668);
+    expect(JSON.stringify(events)).not.toContain(NATIONAL_PHONE);
+    // Each field's value and each event's text.
+    expect(result.stringsScrubbed).toBe(2 * (events.length - 1));
   });
 });

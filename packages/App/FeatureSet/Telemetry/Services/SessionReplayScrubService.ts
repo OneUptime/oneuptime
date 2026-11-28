@@ -12,6 +12,7 @@ import LogScrubRuleService from "./LogScrubRuleService";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import ScrubAction from "Common/Server/Utils/Telemetry/ScrubAction";
 import { getScrubRulesOfRecord } from "Common/Types/Telemetry/ScrubRuleScope";
+import { getHintsOfKey } from "Common/Utils/Telemetry/ScrubBuiltInPatterns";
 
 /*
  * Server-side second net over a decoded rrweb event tree.
@@ -814,6 +815,10 @@ export default class SessionReplayScrubService {
     PatternWorkScope.handOverRecord(value);
 
     let result: string = value;
+    const readUnder: Array<string> = this.keysReadApart([
+      key,
+      ...(alsoKeys || []),
+    ]);
 
     for (const compiled of compiledRules) {
       const patternType: string = (compiled.rule.patternType as string) || "";
@@ -827,7 +832,7 @@ export default class SessionReplayScrubService {
         (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
       const regex: ScrubRegExp = scrubRegExpUnderKeys(
         compiled.regex,
-        [key, ...(alsoKeys || [])],
+        readUnder,
         result,
       );
 
@@ -851,6 +856,36 @@ export default class SessionReplayScrubService {
     }
 
     return result;
+  }
+
+  /*
+   * The keys a value is read under, one for each set of types they name
+   * (#11501): a pattern rule reads a value under a key by the types the key
+   * names (ScrubBuiltInPatterns' readsUnderKey), and a Custom Regex rule
+   * reads a text alike under any key, so a field's `name="phone"` and
+   * `type="tel"` read it alike - and a long value typed into a field named
+   * for a phone is read once under them, not once for each name.
+   */
+  private static keysReadApart(
+    keys: ReadonlyArray<string | undefined>,
+  ): Array<string> {
+    const named: Set<string> = new Set<string>();
+    const apart: Array<string> = [];
+
+    for (const key of keys) {
+      if (!key) {
+        continue;
+      }
+
+      const types: string = Array.from(getHintsOfKey(key)).sort().join(",");
+
+      if (!named.has(types)) {
+        named.add(types);
+        apart.push(key);
+      }
+    }
+
+    return apart;
   }
 
   /*
