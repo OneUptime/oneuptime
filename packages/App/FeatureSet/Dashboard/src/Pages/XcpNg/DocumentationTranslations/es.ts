@@ -85,6 +85,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `LOG_LEVEL` | No | El nivel de registro del agente de IA: `debug`, `info` (predeterminado), `warn` o `error` |",
   "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
     "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` arranca el agente de IA; el script de instalación lo escribe cuando el token de lectura está definido |",
+  "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-xcp-ng-ai-agent`). The install script names a second Xen Orchestra's AI agent after its collector (`oneuptime-xcp-ng-ai-agent-lab` beside `oneuptime-xcp-ng-agent-lab`) unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | El nombre del contenedor del agente de IA (predeterminado: `oneuptime-xcp-ng-ai-agent`). El script de instalación nombra el agente de IA de un segundo Xen Orchestra según su recolector (`oneuptime-xcp-ng-ai-agent-lab` junto a `oneuptime-xcp-ng-agent-lab`), salvo que lo establezcas tú, y lo conserva cuando vuelves a ejecutar el script |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "El agente comprueba el certificado de Xen Orchestra con `xo-ca.pem`, junto a `docker-compose.yml`.",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

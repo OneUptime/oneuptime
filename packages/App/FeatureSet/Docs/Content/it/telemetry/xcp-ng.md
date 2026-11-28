@@ -210,6 +210,7 @@ Lo script di installazione le scrive in `/opt/oneuptime-xcp-ng-agent/.env`; un'i
 | `LOG_LEVEL` | No | Il livello di log dell'agente IA: `debug`, `info` (il predefinito), `warn` o `error`. |
 | `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` avvia l'agente IA. Lo script di installazione lo scrive quando il token di lettura è impostato, e lo toglie quando non lo è. |
 | `XCP_NG_AGENT_CONTAINER_NAME` | No | Il nome del container dell'agent. Predefinito: `oneuptime-xcp-ng-agent`. L'agent di un secondo Xen Orchestra sulla stessa macchina ne ha bisogno di uno proprio: vedi [Leggere più Xen Orchestra](#leggere-più-xen-orchestra). Lo script di installazione dà a un nuovo agent il nome della sua cartella, a meno che tu non lo imposti, e lo mantiene quando esegui di nuovo lo script. |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | Il nome del container dell'agente IA. Predefinito: `oneuptime-xcp-ng-ai-agent`. Lo script di installazione dà all'agente IA di un secondo Xen Orchestra un nome ricavato da quello del suo collector, come `oneuptime-xcp-ng-ai-agent-lab` accanto a `oneuptime-xcp-ng-agent-lab`, a meno che tu non lo imposti, e lo mantiene quando esegui di nuovo lo script. |
 
 ## Cosa raccoglie l'agent
 

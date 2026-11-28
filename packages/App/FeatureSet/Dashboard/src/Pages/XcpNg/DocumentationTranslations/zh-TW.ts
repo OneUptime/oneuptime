@@ -84,6 +84,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `LOG_LEVEL` | 否 | AI 代理程式的日誌層級：`debug`、`info`（預設）、`warn` 或 `error` |",
   "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
     "| `COMPOSE_PROFILES` | 否 | `xcp-ng-ai-agent` 會啟動 AI 代理程式；安裝指令碼會在設定了讀取權杖時寫入它 |",
+  "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-xcp-ng-ai-agent`). The install script names a second Xen Orchestra's AI agent after its collector (`oneuptime-xcp-ng-ai-agent-lab` beside `oneuptime-xcp-ng-agent-lab`) unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理程式的容器名稱（預設：`oneuptime-xcp-ng-ai-agent`）。除非你自行設定，否則安裝指令碼會依第二個 Xen Orchestra 的收集器為其 AI 代理程式命名（`oneuptime-xcp-ng-ai-agent-lab` 與 `oneuptime-xcp-ng-agent-lab` 並列），並在你再次執行指令碼時保留該名稱 |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "代理程式以 `docker-compose.yml` 旁邊的 `xo-ca.pem` 驗證 Xen Orchestra 的憑證。",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

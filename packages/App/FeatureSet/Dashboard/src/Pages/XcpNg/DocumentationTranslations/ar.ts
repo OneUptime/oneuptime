@@ -84,6 +84,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `LOG_LEVEL` | لا | مستوى سجل وكيل الذكاء الاصطناعي: `debug` أو `info` (الافتراضي) أو `warn` أو `error` |",
   "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
     "| `COMPOSE_PROFILES` | لا | `xcp-ng-ai-agent` يشغّل وكيل الذكاء الاصطناعي؛ ويكتبه برنامج التثبيت النصي عند ضبط رمز القراءة |",
+  "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-xcp-ng-ai-agent`). The install script names a second Xen Orchestra's AI agent after its collector (`oneuptime-xcp-ng-ai-agent-lab` beside `oneuptime-xcp-ng-agent-lab`) unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | لا | اسم حاوية وكيل الذكاء الاصطناعي (الافتراضي: `oneuptime-xcp-ng-ai-agent`). يسمّي برنامج التثبيت النصي وكيل الذكاء الاصطناعي لـ Xen Orchestra ثانٍ باسم مجمّعه (`oneuptime-xcp-ng-ai-agent-lab` بجوار `oneuptime-xcp-ng-agent-lab`) ما لم تضبطه بنفسك، ويحتفظ به عند تشغيل البرنامج النصي مجددًا |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "يتحقق الوكيل من شهادة Xen Orchestra مقابل `xo-ca.pem` الموجود بجوار `docker-compose.yml`.",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

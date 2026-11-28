@@ -210,6 +210,7 @@ key = '/etc/ssl/xo/key.pem'
 | `LOG_LEVEL` | 아니요 | AI 에이전트의 로그 수준: `debug`, `info`(기본값), `warn` 또는 `error`. |
 | `COMPOSE_PROFILES` | 아니요 | `xcp-ng-ai-agent`이면 AI 에이전트가 시작됩니다. 설치 스크립트는 읽기 토큰이 설정되어 있으면 이 값을 쓰고, 그렇지 않으면 뺍니다. |
 | `XCP_NG_AGENT_CONTAINER_NAME` | 아니요 | 에이전트의 컨테이너 이름입니다. 기본값은 `oneuptime-xcp-ng-agent`입니다. 같은 머신에 있는 두 번째 Xen Orchestra의 에이전트에는 고유한 이름이 필요합니다. [여러 Xen Orchestra 읽기](#여러-xen-orchestra-읽기)를 참고하세요. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다. |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | 아니요 | AI 에이전트의 컨테이너 이름입니다. 기본값은 `oneuptime-xcp-ng-ai-agent`입니다. 이 값을 설정하지 않으면 설치 스크립트는 두 번째 Xen Orchestra의 AI 에이전트 이름을 그 수집기 이름에 맞춰 짓고(예: `oneuptime-xcp-ng-ai-agent-lab`, 수집기 `oneuptime-xcp-ng-agent-lab`과 나란히), 스크립트를 다시 실행해도 그 이름을 유지합니다. |
 
 ## 에이전트가 수집하는 것
 

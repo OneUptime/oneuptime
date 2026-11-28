@@ -210,6 +210,7 @@ key = '/etc/ssl/xo/key.pem'
 | `LOG_LEVEL` | 否 | AI 代理程式的日誌層級：`debug`、`info`（預設）、`warn` 或 `error`。 |
 | `COMPOSE_PROFILES` | 否 | `xcp-ng-ai-agent` 會啟動 AI 代理程式。安裝指令碼會在設定了讀取權杖時寫入它，未設定時將其移除。 |
 | `XCP_NG_AGENT_CONTAINER_NAME` | 否 | 代理程式的容器名稱。預設是 `oneuptime-xcp-ng-agent`。同一台機器上第二個 Xen Orchestra 的代理程式需要自己的容器名稱：請參閱 [讀取多個 Xen Orchestra](#讀取多個-xen-orchestra)。除非你自行設定，否則安裝指令碼會依新代理程式的資料夾為它命名，並在你再次執行指令碼時保留該名稱。 |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理程式的容器名稱。預設是 `oneuptime-xcp-ng-ai-agent`。除非你自行設定，否則安裝指令碼會依第二個 Xen Orchestra 的收集器為其 AI 代理程式命名，例如 `oneuptime-xcp-ng-ai-agent-lab` 與 `oneuptime-xcp-ng-agent-lab` 並列，並在你再次執行指令碼時保留該名稱。 |
 
 ## 代理程式收集的內容
 

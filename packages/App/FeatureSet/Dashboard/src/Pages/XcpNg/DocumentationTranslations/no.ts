@@ -85,6 +85,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `LOG_LEVEL` | Nei | Loggnivået til AI-agenten: `debug`, `info` (standard), `warn` eller `error` |",
   "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
     "| `COMPOSE_PROFILES` | Nei | `xcp-ng-ai-agent` starter AI-agenten; installasjonsskriptet skriver det når lesetokenet er satt |",
+  "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-xcp-ng-ai-agent`). The install script names a second Xen Orchestra's AI agent after its collector (`oneuptime-xcp-ng-ai-agent-lab` beside `oneuptime-xcp-ng-agent-lab`) unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | Nei | Containernavnet til AI-agenten (standard: `oneuptime-xcp-ng-ai-agent`). Installasjonsskriptet navngir AI-agenten for et andre Xen Orchestra etter innsamleren (`oneuptime-xcp-ng-ai-agent-lab` ved siden av `oneuptime-xcp-ng-agent-lab`) med mindre du angir det, og beholder det når du kjører skriptet på nytt |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "Agenten kontrollerer Xen Orchestras sertifikat mot `xo-ca.pem` ved siden av `docker-compose.yml`.",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

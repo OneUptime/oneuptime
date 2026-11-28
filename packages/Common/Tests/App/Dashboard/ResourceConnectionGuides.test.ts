@@ -947,14 +947,26 @@ describe.each([
       );
     });
 
-    test("checks the container the agent's compose file starts, by its fixed name", () => {
+    test("checks the container the agent's compose file starts, by its default name", () => {
       const psCommand: string = `docker ps --filter name=${composeCase.containerName}`;
+      const compose: string = readAgentFile(
+        composeCase.agentDirectory,
+        "docker-compose.yml",
+      );
 
       expect(guide.setupSteps[2]!.code).toBe(psCommand);
       expect(guide.troubleshootingSteps[0]!.code).toBe(psCommand);
+      /*
+       * Written out, or read from .env with it as the default (a second
+       * Storage Array agent on a machine, #11168): every name install.sh
+       * gives starts with the default, which `--filter name=` matches.
+       */
       expect(
-        readAgentFile(composeCase.agentDirectory, "docker-compose.yml"),
-      ).toContain(`container_name: ${composeCase.containerName}`);
+        compose.includes(`container_name: ${composeCase.containerName}\n`) ||
+          new RegExp(
+            `container_name: \\$\\{[A-Z0-9_]+:-${composeCase.containerName}\\}\\n`,
+          ).test(compose),
+      ).toBe(true);
       for (const method of COMPOSE_INSTALL_METHODS) {
         expect(markdownFor(method)).toContain(composeCase.containerName);
       }

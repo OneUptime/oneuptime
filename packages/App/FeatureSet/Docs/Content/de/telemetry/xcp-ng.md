@@ -210,6 +210,7 @@ Das Installationsskript schreibt diese nach `/opt/oneuptime-xcp-ng-agent/.env`; 
 | `LOG_LEVEL` | Nein | Die Log-Stufe des KI-Agenten: `debug`, `info` (der Standard), `warn` oder `error`. |
 | `COMPOSE_PROFILES` | Nein | `xcp-ng-ai-agent` startet den KI-Agenten. Das Installationsskript schreibt es, wenn das Lese-Token gesetzt ist, und nimmt es wieder heraus, wenn nicht. |
 | `XCP_NG_AGENT_CONTAINER_NAME` | Nein | Der Containername des Agents. Standard ist `oneuptime-xcp-ng-agent`. Der Agent eines zweiten Xen Orchestra auf demselben Rechner braucht einen eigenen, siehe [Mehrere Xen Orchestras lesen](#mehrere-xen-orchestras-lesen). Das Installationsskript benennt einen neuen Agent nach seinem Ordner, sofern Sie ihn nicht setzen, und behält ihn bei, wenn Sie das Skript erneut ausführen. |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | Nein | Der Containername des KI-Agenten. Standard ist `oneuptime-xcp-ng-ai-agent`. Den KI-Agenten eines zweiten Xen Orchestra benennt das Installationsskript nach seinem Collector, etwa `oneuptime-xcp-ng-ai-agent-lab` neben `oneuptime-xcp-ng-agent-lab`, sofern Sie den Namen nicht setzen, und behält ihn bei, wenn Sie das Skript erneut ausführen. |
 
 ## Was der Agent erfasst
 

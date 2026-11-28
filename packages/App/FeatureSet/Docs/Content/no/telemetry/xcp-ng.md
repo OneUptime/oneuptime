@@ -210,6 +210,7 @@ Installasjonsskriptet skriver disse til `/opt/oneuptime-xcp-ng-agent/.env`; en D
 | `LOG_LEVEL` | Nei | Loggnivået til AI-agenten: `debug`, `info` (standarden), `warn` eller `error`. |
 | `COMPOSE_PROFILES` | Nei | `xcp-ng-ai-agent` starter AI-agenten. Installasjonsskriptet skriver det når lesetokenet er satt, og fjerner det når det ikke er det. |
 | `XCP_NG_AGENT_CONTAINER_NAME` | Nei | Containernavnet til agenten. Standard er `oneuptime-xcp-ng-agent`. Agenten for en annen Xen Orchestra på samme maskin trenger sitt eget: se [Lese flere Xen Orchestra-er](#lese-flere-xen-orchestra-er). Installasjonsskriptet navngir en ny agent etter mappen dens med mindre du angir det, og beholder det når du kjører skriptet igjen. |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | Nei | Containernavnet til AI-agenten. Standard er `oneuptime-xcp-ng-ai-agent`. Installasjonsskriptet navngir AI-agenten for en annen Xen Orchestra etter collectoren dens, for eksempel `oneuptime-xcp-ng-ai-agent-lab` ved siden av `oneuptime-xcp-ng-agent-lab`, med mindre du angir det, og beholder det når du kjører skriptet igjen. |
 
 ## Hva agenten samler inn
 

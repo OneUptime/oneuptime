@@ -210,6 +210,7 @@ key = '/etc/ssl/xo/key.pem'
 | `LOG_LEVEL` | いいえ | AI エージェントのログレベル: `debug`、`info` (既定)、`warn`、`error`。 |
 | `COMPOSE_PROFILES` | いいえ | `xcp-ng-ai-agent` で AI エージェントが起動します。インストールスクリプトは、読み取りトークンが設定されているとこれを書き込み、設定されていないと取り除きます。 |
 | `XCP_NG_AGENT_CONTAINER_NAME` | いいえ | エージェントのコンテナ名。既定は `oneuptime-xcp-ng-agent` です。同じマシン上で別の Xen Orchestra を読み取るエージェントには専用の名前が必要です ([複数の Xen Orchestra を読み取る](#複数の-xen-orchestra-を読み取る) を参照)。設定しない場合、インストールスクリプトは新しいエージェントにそのフォルダーにちなんだ名前を付け、スクリプトを再実行してもその名前を維持します。 |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | いいえ | AI エージェントのコンテナ名。既定は `oneuptime-xcp-ng-ai-agent` です。設定しない場合、インストールスクリプトは別の Xen Orchestra の AI エージェントにそのコレクターにちなんだ名前を付け (たとえば `oneuptime-xcp-ng-ai-agent-lab` を `oneuptime-xcp-ng-agent-lab` の隣に置きます)、スクリプトを再実行してもその名前を維持します。 |
 
 ## エージェントが収集するもの
 
