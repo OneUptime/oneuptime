@@ -407,7 +407,13 @@ services:
       oneuptime:
         aliases:
           - redis
-    command: valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}" --save "" --appendonly no
+    # A memory cap, and noeviction because BullMQ needs it: a full Valkey
+    # refuses writes with an OOM error - telemetry the app cannot queue is
+    # answered with a retryable 503, and while it uses more than
+    # TELEMETRY_INGEST_VALKEY_MEMORY_LIMIT_PERCENT of the cap bulk telemetry
+    # is answered 429 - instead of growing until the host runs out of memory
+    # (#11439). VALKEY_MAX_MEMORY in config.env sets it.
+    command: valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}" --save "" --appendonly no --maxmemory "${VALKEY_MAX_MEMORY:-2gb}" --maxmemory-policy noeviction
     environment:
       VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}
     healthcheck:

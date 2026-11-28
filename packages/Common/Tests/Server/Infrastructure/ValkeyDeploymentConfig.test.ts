@@ -128,6 +128,25 @@ describe("valkey cache and queue backend", () => {
   });
 
   /*
+   * #11439: the compose Valkey ran with no maxmemory, so a flood of queued
+   * telemetry grew it until the host ran out of memory - on 2026-11-27 an
+   * uncapped Valkey on OneUptime Cloud reached 35 GB and came back empty.
+   * With a cap and noeviction (BullMQ's queues are corrupted by evicted
+   * keys), a full Valkey refuses writes instead, and the app answers
+   * telemetry it cannot queue with a retryable error.
+   */
+  test("docker compose caps valkey's memory and never evicts", () => {
+    const service: ComposeService = base.services["valkey"]!;
+
+    expect(service.command).toContain(
+      '--maxmemory "${VALKEY_MAX_MEMORY:-2gb}"',
+    );
+    expect(service.command).toContain("--maxmemory-policy noeviction");
+    // The cap an install gets with no config.env line is the one it ships.
+    expect(readExampleEnvValue("VALKEY_MAX_MEMORY")).toBe("2gb");
+  });
+
+  /*
    * The server, the healthcheck and the app must all resolve to ONE password.
    * If any of the three read a different expression, the stack still starts --
    * it just cannot authenticate, or worse, starts on a different secret than
