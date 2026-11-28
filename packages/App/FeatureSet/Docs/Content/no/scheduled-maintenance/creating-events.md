@@ -63,7 +63,7 @@ Ingenting sendes før du velger en statusside: en hendelse som ikke vises på no
 | **Eiere**                            | **Detaljer om vedlikehold**       | Ingen                           | Personer og team som eier hendelsen og får beskjed om den.                       |
 | **Etiketter**                        | **Detaljer om vedlikehold**       | Ingen                           | Etiketter som regler og filtre kan matche på.                                    |
 | **Monitorer**                        | **Berørte ressurser** | Ingen                        | Monitorene som ikke sjekkes mens hendelsen pågår.                                |
-| **Endre monitorstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen. Spørres om så snart en monitor er valgt. |
+| **Endre monitorstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen, og som oppetiden deres teller. Uten en beholder de statusen sin, og oppetiden deres utelater tiden. Spørres om så snart en monitor er valgt. |
 | **Andre berørte ressurser**          | **Berørte ressurser** | Ingen                        | Verter, klynger, databaser, nettverkslokasjoner, tjenester og mer.               |
 | **Vis hendelse på disse statussidene** | **Berørte ressurser** | Ingen                      | De eneste statussidene som kan vise hendelsen eller gi abonnentene sine beskjed. |
 | **Varslinger til abonnenter**           | **Berørte ressurser** | Publisert med en gang, alle tre tidspunktene på, ingen påminnelser | Når hendelsen vises på disse sidene, og når abonnentene deres får beskjed. |

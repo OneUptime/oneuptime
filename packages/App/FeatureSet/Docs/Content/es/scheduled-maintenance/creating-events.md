@@ -63,7 +63,7 @@ No se envía nada hasta que eliges una página de estado: un evento que no apare
 | **Propietarios**                     | **Detalles del mantenimiento**         | Nadie                           | Personas y equipos a los que pertenece el evento y que reciben avisos sobre él.  |
 | **Etiquetas**                        | **Detalles del mantenimiento**         | Ninguna                         | Etiquetas que las reglas y los filtros pueden usar.                              |
 | **Monitores**                        | **Recursos afectados** | Ninguno                     | Los monitores que no se comprueban mientras el evento está en curso.             |
-| **Cambiar el estado del monitor a**  | **Recursos afectados** | Sin cambio                  | El estado que muestran esos monitores durante el evento. Se pide en cuanto se elige un monitor. |
+| **Cambiar el estado del monitor a**  | **Recursos afectados** | Sin cambio                  | El estado que muestran esos monitores durante el evento, y que cuenta su tiempo de actividad. Si no se elige ninguno, conservan su estado y su tiempo de actividad excluye ese tiempo. Se pide en cuanto se elige un monitor. |
 | **Otros recursos afectados**         | **Recursos afectados** | Ninguno                     | Hosts, clústeres, bases de datos, sitios de red, servicios y más.                |
 | **Mostrar evento en estas páginas de estado** | **Recursos afectados** | Ninguna            | Las únicas páginas de estado que pueden mostrar el evento o avisar a sus suscriptores. |
 | **Notificaciones a suscriptores**    | **Recursos afectados** | Publicado de inmediato, los tres momentos activados, sin recordatorios | Cuándo se muestra el evento en esas páginas y cuándo se avisa a sus suscriptores. |
