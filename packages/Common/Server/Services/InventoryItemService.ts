@@ -308,10 +308,12 @@ export class InventoryItemService extends DatabaseService<Model> {
        * Both promotion gates, repeated at the write boundary. The caller
        * applies them too, but this method is public and the cost of a missed
        * gate here is a registry row that should never have existed — see
-       * `ExtractedEntity.membershipOnly` for what the per-entity flag means.
+       * `ExtractedEntity.membershipOnly` and `.linkOnly` for what the
+       * per-entity flags mean.
        */
       if (
         entity.membershipOnly ||
+        entity.linkOnly ||
         !REGISTRY_PROMOTED_TYPES.has(entity.entityType)
       ) {
         continue;
