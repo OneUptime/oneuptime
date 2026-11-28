@@ -1589,6 +1589,21 @@ alerts:
 # clients do not retry, but no data is queued or persisted.
 telemetry:
   disableIngestion: false
+  # Telemetry waits in Valkey until a worker stores it. A project with this
+  # many batches of one signal (logs, traces, metrics, profiles, security
+  # events) already waiting is answered 429 with a Retry-After for that
+  # signal alone - its senders send the batches again later - while every
+  # other project carries on. A healthy queue holds almost nothing of any
+  # project, so only a flood, or ingest stopped for long, gets here: on
+  # 2026-11-27 one project's metrics flood was 93% of a 700,000-job queue,
+  # grew Valkey to 35 GB and took the probes down with it. 0 turns it off.
+  projectQueueLimit: 10000
+  # Every project's logs, traces, metrics, profiles and security events are
+  # answered 429 the same way while Valkey uses more than this share of its
+  # maxmemory, keeping the rest for probe check results, the Worker and
+  # Workflow queues and the caches. Needs a maxmemory (valkey.maxmemory,
+  # derived from valkey.master.resources.limits.memory). 0 turns it off.
+  valkeyMemoryLimitPercent: 85
 
 # Incoming Request monitors whose criteria group by a payload field evaluate
 # every request they receive, in order: each waits in Valkey until its

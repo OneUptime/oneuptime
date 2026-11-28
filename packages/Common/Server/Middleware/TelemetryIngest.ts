@@ -50,7 +50,11 @@ import {
   measureTelemetryIngestRequest,
   sendTelemetryIngestionBudgetRefusal,
 } from "../Utils/Telemetry/TelemetryIngestionBudgetHttp";
-import { TelemetryIngestionBudgetSignal } from "../../Types/Telemetry/TelemetryIngestionBudget";
+import {
+  TelemetryIngestionBudgetRefusal,
+  TelemetryIngestionBudgetSignal,
+} from "../../Types/Telemetry/TelemetryIngestionBudget";
+import TelemetryIngestShedding from "../Utils/Telemetry/TelemetryIngestShedding";
 import {
   TelemetryIngestRefusalReason,
   getTelemetryIngestRefusalReasonForBudget,
@@ -873,6 +877,39 @@ export default class TelemetryIngest {
               "TelemetryIngest: ingestion key rate limit counter unavailable, admitting telemetry unthrottled",
             );
           }
+        }
+      }
+
+      /*
+       * A project far ahead of the workers, or a telemetry queue nearly
+       * full for everyone (TelemetryIngestShedding, 2026-11-27): answered
+       * 429 with a Retry-After, its exporter sending the batch again later,
+       * before its body is read. A decision in memory, from the queue as the
+       * process last read it. Not counted against the key: nothing on its
+       * page would put it right.
+       */
+      const sheddingSignal: TelemetryIngestionBudgetSignal | null =
+        getTelemetryIngestionBudgetSignalForSurface(surface);
+
+      if (sheddingSignal && surface) {
+        const shed: TelemetryIngestionBudgetRefusal | null =
+          TelemetryIngestShedding.getRefusal({
+            projectId: policy.projectId,
+            signal: sheddingSignal,
+          });
+
+        if (shed) {
+          SpanUtil.addAttributesToCurrentSpan({
+            projectId: policy.projectId.toString(),
+            telemetryIngestionBudgetRefusal: shed.kind,
+          });
+
+          return sendTelemetryIngestionBudgetRefusal({
+            req: req,
+            res: res,
+            refusal: shed,
+            surface: surface,
+          });
         }
       }
 
