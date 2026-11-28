@@ -1164,7 +1164,7 @@ as packages/Common/Types/Call/CallVoice.ts writes them.
 {{- if $callVoice }}
 
 - name: GLOBAL_TWILIO_CALL_VOICE
-  value: {{ include "oneuptime.envValue" $callVoice }}
+  value: {{ include "oneuptime.envValue" $twilio.callVoice }}
 {{- end }}
 {{- end }}
 

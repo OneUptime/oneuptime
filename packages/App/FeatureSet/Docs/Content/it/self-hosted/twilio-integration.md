@@ -66,6 +66,7 @@ Una nuova installazione può partire con SMS e chiamate già funzionanti, senza 
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | Il numero da cui partono le chiamate, con il prefisso internazionale. Non serve per `sms-only` |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Facoltativi, separati da virgole: numeri usati al posto di quello principale per i destinatari del loro paese |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Numeri separati da virgole da cui parte ogni SMS. Obbligatori per `sms-only` |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | Facoltativa: la voce con cui parlano le chiamate, una delle voci di [La voce con cui parlano le chiamate](#la-voce-con-cui-parlano-le-chiamate). Viene letta con o senza `GLOBAL_TWILIO_ACCOUNT_SID`, e finché è impostata, **Voce delle chiamate** nell'Admin Dashboard la mostra in sola lettura |
 
 Con Helm, impostale sotto `twilio` nei tuoi values. Per tenere l'auth token fuori dai values che Helm salva con ogni release, mettilo in un Secret tuo e indica quel Secret in `twilio.existingSecret.name`:
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-Metti i numeri di telefono tra virgolette in un file di values, e passali con `--set-string` invece che con `--set`: senza virgolette, `+14155550100` è un numero, che il chart rifiuta. Il chart rifiuta anche altri valori di `twilio` senza `twilio.accountSid`, un Account SID senza auth token e un auth token indicato sia in `twilio.authToken` sia in un Secret. Con Terraform, imposta gli stessi valori su un `helm_release`, con l'auth token come valore sensibile.
+Metti i numeri di telefono tra virgolette in un file di values, e passali con `--set-string` invece che con `--set`: senza virgolette, `+14155550100` è un numero, che il chart rifiuta. Il chart rifiuta anche altri valori di `twilio` senza `twilio.accountSid` (tutti tranne `twilio.callVoice`, che imposta la voce chiunque imposti l'account), un Account SID senza auth token, un auth token indicato sia in `twilio.authToken` sia in un Secret, e un `twilio.callVoice` che non è una delle voci. Con Terraform, imposta gli stessi valori su un `helm_release`, con l'auth token come valore sensibile.
 
 Con Docker Compose, imposta le voci `GLOBAL_TWILIO_` in `config.env`, poi esegui `npm run start` per ricreare i container.
 
-OneUptime legge le variabili all'avvio. Se una è errata, per esempio un numero di telefono che OneUptime non riesce a leggere o un auth token mancante, l'account non invia SMS e non effettua chiamate finché non viene corretta; il log del server, **Admin Dashboard > Impostazioni > Chiamate e SMS** e la checklist in `/admin/setup` indicano la variabile. L'auth token non viene mai mostrato. Per cambiare l'account, modifica le variabili e riavvia OneUptime: l'Admin Dashboard non lo modifica.
+OneUptime legge le variabili all'avvio. Se una è errata, per esempio un numero di telefono che OneUptime non riesce a leggere o un auth token mancante, l'account non invia SMS e non effettua chiamate finché non viene corretta; il log del server, **Admin Dashboard > Impostazioni > Chiamate e SMS** e la checklist in `/admin/setup` indicano la variabile. Una `GLOBAL_TWILIO_CALL_VOICE` che non indica nessuna voce offerta da OneUptime non blocca alcuna chiamata: le chiamate parlano con la voce predefinita dell'account finché non viene corretta, e gli stessi tre punti la indicano. L'auth token non viene mai mostrato. Per cambiare l'account, modifica le variabili e riavvia OneUptime: l'Admin Dashboard non lo modifica.
 
 ### Gestire le configurazioni di progetto con Terraform
 
@@ -149,7 +150,7 @@ Le pagine di stato propongono solo le configurazioni che inviano SMS, e **Invia 
 
 ### La voce con cui parlano le chiamate
 
-Le chiamate parlano con la voce che il tuo account Twilio usa per impostazione predefinita: la voce Basic gratuita di Twilio, a meno che tu non ne abbia scelta un'altra nella Twilio Console. Secondo Twilio, le sue voci Basic non sono pensate per l'uso in produzione, quindi ogni account può invece parlare con una di queste voci neurali. Scegli quella dell'account dell'intera installazione nella scheda **Voce delle chiamate** di **Admin Dashboard > Impostazioni > Chiamate e SMS**, e quella di una configurazione di progetto in **Voce delle chiamate**, in **Altri campi**.
+Le chiamate parlano con la voce che il tuo account Twilio usa per impostazione predefinita: la voce Basic gratuita di Twilio, a meno che tu non ne abbia scelta un'altra nella Twilio Console. Secondo Twilio, le sue voci Basic non sono pensate per l'uso in produzione, quindi ogni account può invece parlare con una di queste voci neurali. Scegli quella dell'account dell'intera installazione nella scheda **Voce delle chiamate** di **Admin Dashboard > Impostazioni > Chiamate e SMS**, e quella di una configurazione di progetto in **Voce delle chiamate**, in **Altri campi**. Per impostare quella dell'account dell'intera installazione da codice, usa `GLOBAL_TWILIO_CALL_VOICE` (`twilio.callVoice` con Helm): vedi [Impostare l'account dell'intera installazione con variabili d'ambiente](#impostare-laccount-dellintera-installazione-con-variabili-dambiente).
 
 | Voce | Fornitore | Come suona |
 | --- | --- | --- |
@@ -160,7 +161,37 @@ Le chiamate parlano con la voce che il tuo account Twilio usa per impostazione p
 | `Google.en-US-Neural2-F` | Google | Inglese americano, voce femminile |
 | `Google.en-US-Neural2-J` | Google | Inglese americano, voce maschile |
 
-Ogni chiamata fatta tramite l'account parla con quella voce: le chiamate di reperibilità e la risposta al tasto che premi, il messaggio lasciato in segreteria, i codici di verifica, **Invia chiamata di prova** e i saluti di una policy delle chiamate in arrivo. Con queste voci, un numero come `INC-42` viene compitato tramite SSML, il che suona più naturale delle lettere separate da spazi che ricevono le altre voci. Twilio addebita queste voci all'account che effettua la chiamata: $0.0032 ogni 100 caratteri a novembre 2026, meno di 2 centesimi di dollaro per una chiamata di reperibilità. Vedi [i prezzi delle chiamate vocali di Twilio](https://www.twilio.com/en-us/voice/pricing/us). Lascia vuoto **Voce delle chiamate** per mantenere la voce predefinita dell'account. Tramite l'API e Terraform, la voce è il campo `twilioCallVoice`, e una voce che non è nella tabella viene rifiutata.
+Ogni chiamata fatta tramite l'account parla con quella voce: le chiamate di reperibilità e la risposta al tasto che premi, il messaggio lasciato in segreteria, i codici di verifica, **Invia chiamata di prova** e i saluti di una policy delle chiamate in arrivo. Con queste voci, un numero come `INC-42` viene compitato tramite SSML, il che suona più naturale delle lettere separate da spazi che ricevono le altre voci. Twilio addebita queste voci all'account che effettua la chiamata: $0.0032 ogni 100 caratteri a novembre 2026, meno di 3 centesimi di dollaro per una chiamata di reperibilità, in qualsiasi lingua. Vedi [i prezzi delle chiamate vocali di Twilio](https://www.twilio.com/en-us/voice/pricing/us). Lascia vuoto **Voce delle chiamate** per mantenere la voce predefinita dell'account. Tramite l'API e Terraform, la voce è il campo `twilioCallVoice`, e una voce che non è nella tabella viene rifiutata.
+
+#### Chiamate in altre lingue
+
+La chiamata di reperibilità a chi usa OneUptime in un'altra lingua è in quella lingua quando l'account parla con una delle voci qui sopra: le sue parole sono scritte in quella lingua, e una voce di quella lingua le pronuncia, una voce femminile se quella dell'account è femminile e una maschile se è maschile. La richiesta di premere un tasto, i dettagli ripetuti quando non viene premuto alcun tasto, la risposta a un tasto sbagliato e le risposte ai tasti sono tutti in quella lingua, e i tasti restano 1 e 2. Queste sono le voci, dall'elenco delle voci neurali di Twilio, verificate il 27 novembre 2026; costano quanto le voci qui sopra:
+
+| Lingua | Voce femminile | Voce maschile |
+| --- | --- | --- |
+| Tedesco | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| Francese | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| Spagnolo | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| Italiano | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| Portoghese | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| Olandese | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| Danese | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| Norvegese | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| Svedese | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| Russo | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| Giapponese | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| Coreano | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| Cinese semplificato | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| Cinese tradizionale | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| Hindi | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| Arabo | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| Persiano | Nessuna: le chiamate sono in inglese | Nessuna: le chiamate sono in inglese |
+
+Né Amazon Polly né Google hanno una voce persiana, quindi una chiamata a chi usa OneUptime in persiano è in inglese, come ogni chiamata tramite un account che mantiene la sua voce predefinita, che parla solo inglese. Il log di una chiamata conserva ciò che la chiamata ha detto, nella lingua in cui l'ha detto. Un codice di verifica, **Invia chiamata di prova** e i saluti di una policy delle chiamate in arrivo sono in inglese.
+
+#### Progetti che scelgono la propria voce
+
+Su un'installazione self-hosted, un amministratore principale può lasciare che ogni progetto scelga la voce delle sue chiamate tramite l'account dell'intera installazione: attiva **Lascia che i progetti scelgano la voce delle loro chiamate** nella scheda **Voci dei progetti** di **Admin Dashboard > Impostazioni > Chiamate e SMS**. Un **Proprietario del progetto** o un **Amministratore del progetto** la sceglie poi nella scheda **Voce delle chiamate** in **Altre impostazioni** di **Impostazioni del progetto > Notifiche > Canali di notifica**, e un progetto che non ne sceglie nessuna parla con la voce dell'installazione. Twilio addebita la voce di ogni progetto all'account dell'intera installazione, quindi l'interruttore parte disattivato, e disattivarlo riporta ogni progetto alla voce dell'installazione. OneUptime Cloud non lo offre: scegli una voce con una tua configurazione di progetto. Tramite l'API, la voce è il campo `callVoice` del progetto, che viene rifiutato finché l'interruttore è disattivato.
 
 ### Segreteria telefonica nelle chiamate di reperibilità
 

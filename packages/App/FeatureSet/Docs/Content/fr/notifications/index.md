@@ -107,7 +107,8 @@ Vos alertes sont rédigées dans votre langue : celle que vous choisissez dans l
 | --- | --- |
 | E-mail, SMS, notifications push et Telegram | Votre langue |
 | Vos propres messages Slack, Microsoft Teams et Mattermost | Votre langue |
-| Appels téléphoniques et WhatsApp | Anglais |
+| Appels téléphoniques | Votre langue, quand le compte Twilio qui appelle parle avec l'une des voix de OneUptime ; sinon, anglais. Voir [Ce que dit un appel](/docs/notifications/on-call-rules#ce-que-dit-un-appel) |
+| WhatsApp | Anglais |
 
 Ce qui change, ce sont les mots de OneUptime : objets, titres, boutons et phrases, ainsi que les noms avec lesquels chaque nouveau projet démarre, comme Identifié et Incident critique. Ce que votre équipe a écrit reste tel quel : titres, descriptions, causes racines, et noms des projets, des équipes et des états que votre projet a nommés lui-même. Un SMS dans une langue qui a son propre alphabet, comme le russe, le japonais ou le persan, prend plus de parties qu'en anglais.
 
@@ -122,7 +123,7 @@ Vous êtes propriétaire de l'élément, directement ou via une équipe, ou l'é
 :::
 
 :::details Mes alertes sont en anglais, alors que le tableau de bord ne l'est pas
-Le tableau de bord suit votre navigateur tant que vous n'avez pas choisi de langue. Choisissez-la dans le menu des langues en bas de chaque page, ou sous **Langue** dans **Profil utilisateur**. Les appels téléphoniques et les messages WhatsApp restent en anglais.
+Le tableau de bord suit votre navigateur tant que vous n'avez pas choisi de langue. Choisissez-la dans le menu des langues en bas de chaque page, ou sous **Langue** dans **Profil utilisateur**. Les messages WhatsApp restent en anglais, tout comme les appels téléphoniques passés par un compte Twilio qui garde sa voix par défaut.
 :::
 
 :::details J'ai ajouté un numéro de téléphone, mais il n'est pas dans mes règles

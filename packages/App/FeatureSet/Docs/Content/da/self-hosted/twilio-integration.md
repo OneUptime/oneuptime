@@ -66,6 +66,7 @@ En ny installation kan starte med SMS og opkald, der virker, uden noget at sætt
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | Nummeret, opkald går ud fra, med landekode. Ikke nødvendigt for `sms-only` |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Valgfrit, kommasepareret: numre, der bruges i stedet for det primære nummer til modtagere i deres land |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Kommaseparerede numre, som alle SMS'er sendes fra. Påkrævet for `sms-only` |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | Valgfrit: den stemme, opkald taler med, en af stemmerne i [Den stemme, opkaldene taler med](#den-stemme-opkaldene-taler-med). Den læses med eller uden `GLOBAL_TWILIO_ACCOUNT_SID`, og så længe den er angivet, viser **Stemme til opkald** i Admin Dashboard den skrivebeskyttet |
 
 Med Helm angiver du dem under `twilio` i dine values. For at holde auth-tokenet ude af de values, Helm gemmer med hver release, lægger du det i en Secret, du selv administrerer, og angiver den Secret i `twilio.existingSecret.name`:
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-Sæt telefonnumre i anførselstegn i en values-fil, og angiv dem med `--set-string` i stedet for `--set`: uden anførselstegn er `+14155550100` et tal, som chartet afviser. Chartet afviser også andre `twilio`-værdier uden `twilio.accountSid`, et Account SID uden auth-token og et auth-token, der er angivet både i `twilio.authToken` og i en Secret. Med Terraform angiver du de samme værdier på en `helm_release`, med auth-tokenet som en følsom værdi.
+Sæt telefonnumre i anførselstegn i en values-fil, og angiv dem med `--set-string` i stedet for `--set`: uden anførselstegn er `+14155550100` et tal, som chartet afviser. Chartet afviser også andre `twilio`-værdier uden `twilio.accountSid` (alle undtagen `twilio.callVoice`, som angiver stemmen, uanset hvem der angiver kontoen), et Account SID uden auth-token, et auth-token, der er angivet både i `twilio.authToken` og i en Secret, og en `twilio.callVoice`, der ikke er en af stemmerne. Med Terraform angiver du de samme værdier på en `helm_release`, med auth-tokenet som en følsom værdi.
 
 Med Docker Compose angiver du `GLOBAL_TWILIO_`-indstillingerne i `config.env` og kører derefter `npm run start` for at genskabe containerne.
 
-OneUptime læser variablerne, når den starter. Hvis en af dem er forkert, for eksempel et telefonnummer, som OneUptime ikke kan læse, eller et manglende auth-token, sender kontoen ingen SMS'er og foretager ingen opkald, før det er rettet; serverens log, **Admin Dashboard > Indstillinger > Opkald og SMS** og tjeklisten på `/admin/setup` nævner variablen. Auth-tokenet vises aldrig. For at ændre kontoen ændrer du variablerne og genstarter OneUptime: Admin Dashboard ændrer den ikke.
+OneUptime læser variablerne, når den starter. Hvis en af dem er forkert, for eksempel et telefonnummer, som OneUptime ikke kan læse, eller et manglende auth-token, sender kontoen ingen SMS'er og foretager ingen opkald, før det er rettet; serverens log, **Admin Dashboard > Indstillinger > Opkald og SMS** og tjeklisten på `/admin/setup` nævner variablen. En `GLOBAL_TWILIO_CALL_VOICE`, der ikke navngiver en stemme, som OneUptime tilbyder, stopper ingen opkald: opkald taler med kontoens standardstemme, indtil den er rettet, og de samme tre steder nævner den. Auth-tokenet vises aldrig. For at ændre kontoen ændrer du variablerne og genstarter OneUptime: Admin Dashboard ændrer den ikke.
 
 ### Administrer projektkonfigurationer med Terraform
 
@@ -149,7 +150,7 @@ Statussider tilbyder kun de konfigurationer, der sender SMS, og **Send test-SMS*
 
 ### Den stemme, opkaldene taler med
 
-Opkald taler med den stemme, din Twilio-konto bruger som standard: Twilios gratis Basic-stemme, medmindre du har valgt en anden i Twilio Console. Ifølge Twilio er Basic-stemmerne ikke beregnet til brug i produktion, så hver konto kan i stedet tale med en af disse neurale stemmer. Stemmen til kontoen for hele installationen vælger du i kortet **Stemme til opkald** på **Admin Dashboard > Indstillinger > Opkald og SMS**, og stemmen til en projektkonfiguration i **Stemme til opkald** under **Flere felter**.
+Opkald taler med den stemme, din Twilio-konto bruger som standard: Twilios gratis Basic-stemme, medmindre du har valgt en anden i Twilio Console. Ifølge Twilio er Basic-stemmerne ikke beregnet til brug i produktion, så hver konto kan i stedet tale med en af disse neurale stemmer. Stemmen til kontoen for hele installationen vælger du i kortet **Stemme til opkald** på **Admin Dashboard > Indstillinger > Opkald og SMS**, og stemmen til en projektkonfiguration i **Stemme til opkald** under **Flere felter**. For at angive stemmen til kontoen for hele installationen fra kode bruger du `GLOBAL_TWILIO_CALL_VOICE` (`twilio.callVoice` med Helm): se [Angiv kontoen for hele installationen med miljøvariabler](#angiv-kontoen-for-hele-installationen-med-miljøvariabler).
 
 | Stemme | Udbyder | Sådan lyder den |
 | --- | --- | --- |
@@ -160,7 +161,37 @@ Opkald taler med den stemme, din Twilio-konto bruger som standard: Twilios grati
 | `Google.en-US-Neural2-F` | Google | Amerikansk engelsk, kvindelig stemme |
 | `Google.en-US-Neural2-J` | Google | Amerikansk engelsk, mandlig stemme |
 
-Alle opkald gennem kontoen taler med denne stemme: vagtopkald og svaret på den tast, du trykker på, beskeden, der lægges på telefonsvareren, bekræftelseskoder, **Send testopkald** og velkomstbeskederne i en politik for indgående opkald. Med disse stemmer staves et nummer som `INC-42` med SSML, hvilket lyder mere naturligt end de bogstaver med mellemrum, som andre stemmer får. Twilio tager betaling for disse stemmer på den konto, der foretager opkaldet: $0.0032 for hver 100 tegn i november 2026, under 2 amerikanske cent for et vagtopkald. Se [Twilios priser på taleopkald](https://www.twilio.com/en-us/voice/pricing/us). Lad **Stemme til opkald** være tom for at beholde kontoens standardstemme. Gennem API'et og Terraform er stemmen feltet `twilioCallVoice`, og en stemme, der ikke står i tabellen, afvises.
+Alle opkald gennem kontoen taler med denne stemme: vagtopkald og svaret på den tast, du trykker på, beskeden, der lægges på telefonsvareren, bekræftelseskoder, **Send testopkald** og velkomstbeskederne i en politik for indgående opkald. Med disse stemmer staves et nummer som `INC-42` med SSML, hvilket lyder mere naturligt end de bogstaver med mellemrum, som andre stemmer får. Twilio tager betaling for disse stemmer på den konto, der foretager opkaldet: $0.0032 for hver 100 tegn i november 2026, under 3 amerikanske cent for et vagtopkald på ethvert sprog. Se [Twilios priser på taleopkald](https://www.twilio.com/en-us/voice/pricing/us). Lad **Stemme til opkald** være tom for at beholde kontoens standardstemme. Gennem API'et og Terraform er stemmen feltet `twilioCallVoice`, og en stemme, der ikke står i tabellen, afvises.
+
+#### Opkald på andre sprog
+
+Et vagtopkald til en, der bruger OneUptime på et andet sprog, er på det sprog, når kontoen taler med en af stemmerne ovenfor: ordene er skrevet på sproget, og en stemme på sproget siger dem, en kvindestemme, hvis kontoen taler med en kvindestemme, og en mandsstemme, hvis den taler med en mandsstemme. Opfordringen til at trykke, detaljerne, der gentages, når der ikke trykkes på nogen tast, svaret på en forkert tast og svarene på tasterne er alle på sproget, og tasterne forbliver 1 og 2. Det er disse stemmer fra Twilios liste over neurale stemmer, tjekket den 27. november 2026; de koster det samme som stemmerne ovenfor:
+
+| Sprog | Kvindestemme | Mandsstemme |
+| --- | --- | --- |
+| Tysk | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| Fransk | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| Spansk | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| Italiensk | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| Portugisisk | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| Nederlandsk | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| Dansk | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| Norsk | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| Svensk | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| Russisk | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| Japansk | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| Koreansk | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| Forenklet kinesisk | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| Traditionelt kinesisk | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| Hindi | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| Arabisk | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| Persisk | Ingen: opkald er på engelsk | Ingen: opkald er på engelsk |
+
+Hverken Amazon Polly eller Google har en persisk stemme, så et opkald til en, der bruger OneUptime på persisk, er på engelsk, ligesom alle opkald gennem en konto, der beholder sin standardstemme, som kun taler engelsk. Et opkalds log gemmer, hvad opkaldet sagde, på det sprog, det sagde det på. En bekræftelseskode, **Send testopkald** og velkomstbeskederne i en politik for indgående opkald er på engelsk.
+
+#### Projekter, der vælger deres egen stemme
+
+På en selvhostet installation kan en masteradministrator lade hvert projekt vælge stemmen til sine opkald gennem kontoen for hele installationen: slå **Lad projekter vælge stemmen til deres opkald** til i kortet **Projekternes stemmer** på **Admin Dashboard > Indstillinger > Opkald og SMS**. En **Projektejer** eller **Projektadministrator** vælger den derefter i kortet **Stemme til opkald** under **Yderligere indstillinger** på **Projektindstillinger > Notifikationer > Notifikationskanaler**, og et projekt, der ikke vælger nogen, taler med installationens stemme. Twilio tager betaling for hvert projekts stemme på kontoen for hele installationen, så kontakten starter slået fra, og slår du den fra, får alle projekter installationens stemme igen. OneUptime Cloud tilbyder det ikke: vælg en stemme med din egen projektkonfiguration. Gennem API'et er stemmen projektets felt `callVoice`, som afvises, mens kontakten er slået fra.
 
 ### Telefonsvarer ved vagtopkald
 

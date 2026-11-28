@@ -66,6 +66,7 @@ En ny installation kan starta med SMS och samtal som fungerar, utan något att s
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | Numret som samtal går ut från, med landskod. Behövs inte för `sms-only` |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Valfritt, kommaseparerat: nummer som används i stället för det primära för mottagare i sitt land |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Kommaseparerade nummer som varje SMS skickas från. Krävs för `sms-only` |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | Valfritt: rösten som samtalen talar med, en av rösterna i [Rösten som samtalen använder](#rösten-som-samtalen-använder). Den läses med eller utan `GLOBAL_TWILIO_ACCOUNT_SID`, och så länge den är angiven visar **Röst för samtal** i Admin Dashboard den skrivskyddat |
 
 Med Helm anger du dem under `twilio` i dina values. För att hålla auth-token utanför de values som Helm sparar med varje release lägger du den i en egen Secret och anger den Secret i `twilio.existingSecret.name`:
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-Sätt telefonnummer inom citattecken i en values-fil, och skicka dem med `--set-string` i stället för `--set`: utan citattecken är `+14155550100` ett tal, som charten avvisar. Charten avvisar också andra `twilio`-värden utan `twilio.accountSid`, ett Account SID utan auth-token och en auth-token som anges både i `twilio.authToken` och i en Secret. Med Terraform anger du samma värden på en `helm_release`, med auth-token som ett känsligt värde.
+Sätt telefonnummer inom citattecken i en values-fil, och skicka dem med `--set-string` i stället för `--set`: utan citattecken är `+14155550100` ett tal, som charten avvisar. Charten avvisar också andra `twilio`-värden utan `twilio.accountSid` (alla utom `twilio.callVoice`, som anger rösten oavsett vem som anger kontot), ett Account SID utan auth-token, en auth-token som anges både i `twilio.authToken` och i en Secret, och en `twilio.callVoice` som inte är en av rösterna. Med Terraform anger du samma värden på en `helm_release`, med auth-token som ett känsligt värde.
 
 Med Docker Compose anger du `GLOBAL_TWILIO_`-inställningarna i `config.env` och kör sedan `npm run start` för att återskapa containrarna.
 
-OneUptime läser variablerna när den startar. Om någon av dem är fel, till exempel ett telefonnummer som OneUptime inte kan läsa eller en saknad auth-token, skickar kontot inga SMS och ringer inga samtal förrän det är åtgärdat; serverns logg, **Admin Dashboard > Inställningar > Samtal och SMS** och checklistan på `/admin/setup` nämner variabeln. Auth-token visas aldrig. För att ändra kontot ändrar du variablerna och startar om OneUptime: Admin Dashboard ändrar det inte.
+OneUptime läser variablerna när den startar. Om någon av dem är fel, till exempel ett telefonnummer som OneUptime inte kan läsa eller en saknad auth-token, skickar kontot inga SMS och ringer inga samtal förrän det är åtgärdat; serverns logg, **Admin Dashboard > Inställningar > Samtal och SMS** och checklistan på `/admin/setup` nämner variabeln. En `GLOBAL_TWILIO_CALL_VOICE` som inte namnger någon röst som OneUptime erbjuder stoppar inga samtal: samtal talar med kontots standardröst tills den är åtgärdad, och samma tre ställen nämner den. Auth-token visas aldrig. För att ändra kontot ändrar du variablerna och startar om OneUptime: Admin Dashboard ändrar det inte.
 
 ### Hantera projektkonfigurationer med Terraform
 
@@ -149,7 +150,7 @@ Statussidor erbjuder bara de konfigurationer som skickar SMS, och **Skicka test-
 
 ### Rösten som samtalen använder
 
-Samtal talar med den röst som ditt Twilio-konto använder som standard: Twilios kostnadsfria Basic-röst, om du inte har valt en annan i Twilio Console. Enligt Twilio är Basic-rösterna inte avsedda för produktion, så varje konto kan i stället tala med en av de här neurala rösterna. Välj rösten för kontot för hela installationen i kortet **Röst för samtal** på **Admin Dashboard > Inställningar > Samtal och SMS**, och för en projektkonfiguration i **Röst för samtal** under **Fler fält**.
+Samtal talar med den röst som ditt Twilio-konto använder som standard: Twilios kostnadsfria Basic-röst, om du inte har valt en annan i Twilio Console. Enligt Twilio är Basic-rösterna inte avsedda för produktion, så varje konto kan i stället tala med en av de här neurala rösterna. Välj rösten för kontot för hela installationen i kortet **Röst för samtal** på **Admin Dashboard > Inställningar > Samtal och SMS**, och för en projektkonfiguration i **Röst för samtal** under **Fler fält**. För att ange rösten för kontot för hela installationen från kod använder du `GLOBAL_TWILIO_CALL_VOICE` (`twilio.callVoice` med Helm): se [Ange kontot för hela installationen med miljövariabler](#ange-kontot-för-hela-installationen-med-miljövariabler).
 
 | Röst | Skapad av | Hur den låter |
 | --- | --- | --- |
@@ -160,7 +161,37 @@ Samtal talar med den röst som ditt Twilio-konto använder som standard: Twilios
 | `Google.en-US-Neural2-F` | Google | Amerikansk engelska, kvinnlig röst |
 | `Google.en-US-Neural2-J` | Google | Amerikansk engelska, manlig röst |
 
-Alla samtal via kontot talar med den rösten: jourlarm och svaret på knappen du trycker på, meddelandet som lämnas i röstbrevlådan, verifieringskoder, **Skicka testsamtal** och hälsningarna i en policy för inkommande samtal. Med de här rösterna stavas ett nummer som `INC-42` med SSML, vilket låter mer naturligt än de åtskilda bokstäver som andra röster får. Twilio tar betalt för de här rösterna på kontot som ringer samtalet: $0.0032 per 100 tecken i november 2026, under 2 amerikanska cent per larmsamtal. Se [Twilios röstpriser](https://www.twilio.com/en-us/voice/pricing/us). Lämna fältet **Röst för samtal** tomt för att behålla kontots standardröst. Via API:et och Terraform är rösten fältet `twilioCallVoice`, och en röst som inte finns i tabellen avvisas.
+Alla samtal via kontot talar med den rösten: jourlarm och svaret på knappen du trycker på, meddelandet som lämnas i röstbrevlådan, verifieringskoder, **Skicka testsamtal** och hälsningarna i en policy för inkommande samtal. Med de här rösterna stavas ett nummer som `INC-42` med SSML, vilket låter mer naturligt än de åtskilda bokstäver som andra röster får. Twilio tar betalt för de här rösterna på kontot som ringer samtalet: $0.0032 per 100 tecken i november 2026, under 3 amerikanska cent per larmsamtal på alla språk. Se [Twilios röstpriser](https://www.twilio.com/en-us/voice/pricing/us). Lämna fältet **Röst för samtal** tomt för att behålla kontots standardröst. Via API:et och Terraform är rösten fältet `twilioCallVoice`, och en röst som inte finns i tabellen avvisas.
+
+#### Samtal på andra språk
+
+Ett larmsamtal till någon som använder OneUptime på ett annat språk är på det språket när kontot talar med en av rösterna ovan: orden är skrivna på språket, och en röst på språket säger dem, en kvinnoröst om kontot talar med en kvinnoröst och en mansröst om det talar med en mansröst. Uppmaningen att trycka, detaljerna som upprepas när ingen knapp trycks, svaret på fel knapp och svaren på knapparna är alla på språket, och knapparna förblir 1 och 2. Det här är rösterna, från Twilios lista över neurala röster, kontrollerade den 27 november 2026; de kostar lika mycket som rösterna ovan:
+
+| Språk | Kvinnoröst | Mansröst |
+| --- | --- | --- |
+| Tyska | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| Franska | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| Spanska | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| Italienska | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| Portugisiska | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| Nederländska | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| Danska | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| Norska | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| Svenska | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| Ryska | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| Japanska | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| Koreanska | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| Förenklad kinesiska | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| Traditionell kinesiska | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| Hindi | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| Arabiska | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| Persiska | Ingen: samtal är på engelska | Ingen: samtal är på engelska |
+
+Varken Amazon Polly eller Google har en persisk röst, så ett samtal till någon som använder OneUptime på persiska är på engelska, liksom alla samtal via ett konto som behåller sin standardröst, som bara talar engelska. Ett samtals logg sparar det samtalet sa, på det språk det sa det på. En verifieringskod, **Skicka testsamtal** och hälsningarna i en policy för inkommande samtal är på engelska.
+
+#### Projekt som väljer sin egen röst
+
+På en självhostad installation kan en huvudadministratör låta varje projekt välja rösten för sina samtal via kontot för hela installationen: slå på **Låt projekt välja rösten för sina samtal** i kortet **Projektens röster** på **Admin Dashboard > Inställningar > Samtal och SMS**. En **Projektägare** eller **Projektadministratör** väljer den sedan i kortet **Röst för samtal** under **Fler inställningar** på **Projektinställningar > Aviseringar > Aviseringskanaler**, och ett projekt som inte väljer någon talar med installationens röst. Twilio tar betalt för varje projekts röst på kontot för hela installationen, så reglaget är avstängt från början, och stänger du av det talar alla projekt med installationens röst igen. OneUptime Cloud erbjuder inte det här: välj en röst med en egen projektkonfiguration. Via API:et är rösten projektets fält `callVoice`, som avvisas så länge reglaget är avstängt.
 
 ### Röstbrevlåda vid joursamtal
 
