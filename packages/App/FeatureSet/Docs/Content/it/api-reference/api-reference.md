@@ -301,6 +301,16 @@ isVisibleOnStatusPage must be true or false.
 
 Un aggiornamento che scrive i valori di un record così come sono già non cambia nulla: non avvia i flussi di lavoro **On Update** del record, non invia aggiornamenti in tempo reale e non aggiunge una voce al log di audit. `false` scritto sopra `false` conta come lo stesso valore, e così `"false"` scritto sopra `false`, un numero scritto come testo, un orario scritto come lo stesso istante in un altro formato ed etichette scritte come le stesse etichette in qualsiasi ordine. Quando un aggiornamento modifica alcuni valori e ne riscrive altri così come sono, la sua voce del log di audit elenca solo i valori modificati, e il **Campi da osservare** di un flusso di lavoro sente solo quelli.
 
+### Valori scritti come JSON
+
+Alcuni campi contengono un valore JSON con una forma propria, come `rotation` e `restrictionTimes` di un livello di una pianificazione di reperibilità; il riferimento dell'API elenca ogni forma tra i suoi tipi di dati. OneUptime legge solo le chiavi di quella forma, quindi un valore che omette la chiave che dice cosa significa, scrive quella chiave in un altro modo o le dà un valore che OneUptime non conosce viene rifiutato con un `400` che indica la chiave, invece di essere salvato come un valore che non fa nulla:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+Una chiave rinominata continua a essere letta con il suo vecchio nome: il tipo di restrizione di un livello si scrive sotto `restrictionType`, o sotto la grafia precedente `restictionType`, e una risposta le riporta entrambe.
+
 ### Dove è stato acquistato un progetto
 
 Il rivenditore, il piano del rivenditore e la licenza del rivenditore di un progetto (`resellerId`, `resellerPlanId`, `resellerLicenseId`, e le relazioni `reseller` e `resellerPlan`) li imposta solo OneUptime: quando un progetto viene creato con il codice promozionale di un rivenditore, e quando il rivenditore cambia il piano. Una creazione o una modifica di un progetto che ne invia uno viene rifiutata con un `400` che nomina il campo, chiunque la invii:

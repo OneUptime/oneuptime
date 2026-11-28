@@ -301,6 +301,16 @@ isVisibleOnStatusPage must be true or false.
 
 Een update die de waarden van een record schrijft zoals ze al zijn, verandert niets: ze start de workflows **On Update** van het record niet, stuurt geen live-updates en voegt geen auditlogregel toe. `false` geschreven over `false` telt als dezelfde waarde, net als `"false"` geschreven over `false`, een getal geschreven als tekst, een tijd geschreven als hetzelfde moment in een ander formaat, en labels geschreven als dezelfde labels in willekeurige volgorde. Als een update sommige waarden wijzigt en andere terugschrijft zoals ze zijn, noemt haar auditlogregel alleen de gewijzigde waarden, en hoort de **Velden om te volgen** van een workflow alleen die.
 
+### Waarden die als JSON worden geschreven
+
+Sommige velden bevatten een JSON-waarde met een eigen vorm, zoals `rotation` en `restrictionTimes` van een laag van een bereikbaarheidsschema; de API-referentie toont elke vorm bij haar gegevenstypen. OneUptime leest alleen de sleutels van die vorm, dus een waarde die de sleutel weglaat die zegt wat ze betekent, die sleutel anders spelt of er een waarde aan geeft die OneUptime niet kent, wordt geweigerd met een `400` die de sleutel noemt, in plaats van te worden opgeslagen als een waarde die niets doet:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+Een sleutel die een andere naam krijgt, wordt ook onder zijn oude naam gelezen: het beperkingstype van een laag wordt geschreven onder `restrictionType` of onder de oudere spelling `restictionType`, en een antwoord bevat beide.
+
 ### Waar een project is gekocht
 
 De reseller, het resellerabonnement en de resellerlicentie van een project (`resellerId`, `resellerPlanId`, `resellerLicenseId`, en de relaties `reseller` en `resellerPlan`) worden alleen door OneUptime ingesteld: als een project wordt aangemaakt met de promotiecode van een reseller, en als de reseller het abonnement wijzigt. Een aanmaak of wijziging van een project die er een van stuurt, wordt geweigerd met een `400` die het veld noemt, wie het ook stuurt:

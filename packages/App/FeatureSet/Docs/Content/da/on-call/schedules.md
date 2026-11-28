@@ -69,7 +69,9 @@ flowchart TB
 | **Rotationen starter** | Den dato og det klokkeslæt, lagets rotation begynder. |
 | **Skift hver** | Hvor ofte vagten går videre til den næste person i laget. |
 | **Tidspunkt for første overdragelse** | Den første overdragelse til den næste person, ved eller efter starten. Senere overdragelser følger hvert rotationsinterval. |
-| **Begrænsninger** | De timer, laget har vagt: **Ingen begrænsninger**, **Bestemte tidspunkter på dagen** eller **Bestemte tidspunkter i ugen**, i vagtplanens tidszone. Uden for dem tager lavere lag over. |
+| **Begrænsninger** | De timer, laget har vagt (**Aktive timer**): **Ingen begrænsninger**, **Bestemte tidspunkter på dagen** eller **Bestemte tidspunkter i ugen**, i vagtplanens tidszone. Uden for dem tager lavere lag over. |
+
+Med aktive timer er hvert tidsrum en vagt for sig. Fra 17:00 til 07:00 er én vagt, der slutter kl. 07:00 næste morgen: i **Tidslinje for vagtplaner**, i e-mailene, i mobilappen og i Slack og Microsoft Teams, i vagtplanens tidszone og også de nætter, hvor uret stilles om. En persons tørn er alle vedkommendes tidsrum frem til næste overdragelse, og vedkommende får besked én gang hver vej: "You are now on-call", når tørnens første tidsrum begynder, med hvornår tidsrummet slutter, og hvornår tørnen gør, og "You are no longer on-call", når dens sidste tidsrum slutter, ikke ved hvert tidsrum. Vil du påmindes før hvert tidsrum, så vælg et tidspunkt under **Påmind mig før vagter**, som [Kalenderfeeds](/docs/on-call/calendar-feeds#påmindelser-og-meddelelser-om-ny-tildeling) beskriver. Har en anden vagten mellem to af tidsrummene, gennem en tilsidesættelse eller et lavere lag, eller giver en ændring af lagene det næste tidsrum til en anden, er det en overdragelse og meldes som en. Vagttiden registreres stadig tidsrum for tidsrum, og vagtpolitikkens kanaler og feed siger stadig hver gang, hvem der har vagt.
 
 For at ændre, hvilket lag der kommer først, skal du bruge pilene på et lags kort: **Flyt lag op (højere prioritet)** eller **Flyt lag ned (lavere prioritet)**.
 
@@ -111,7 +113,10 @@ Vagtplaner er ressourcen `/api/on-call-duty-policy-schedule`; deres lag og perso
 
 - At oprette en vagtplan med `firstLayerUsers` (en liste med bruger-id'er i den rækkefølge, de skiftes) i dens `miscDataProps` giver den dens første lag, ligesom dashboardet gør: **Layer 1**, på vagt fra nu, døgnet rundt. `firstLayerRotation` siger, hvor længe hver tørn varer, som en rotation som `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; uden den en uge. Hver bruger skal være medlem af projektet, og kalderen skal have lov til at oprette lag, ellers oprettes vagtplanen ikke.
 - En vagtplan, der oprettes uden dem, har ingen lag, som før; Terraforms ressource for vagtplaner sender dem ikke.
-- Et lag, der oprettes uden `rotation`, overdrager dagligt, som det altid har gjort.
+- Et lag, der oprettes uden `rotation`, overdrager hver uge, og et lag uden `restrictionTimes` har vagt døgnet rundt, som et nyt lag i dashboardet begynder.
+- Et lags `restrictionTimes`, dets aktive timer, angiver typen under `restrictionType`: `None` (vagt døgnet rundt), `Daily` eller `Weekly`. `restictionType`, den ældre stavemåde uden det andet "r", læses også, og hvert svar angiver typen under begge, så en klient eller en Terraform-konfiguration skrevet med en af dem fortsat virker; laget gemmes med `restrictionType`.
+- En skrivning, der ville give et lag vagt på intet tidspunkt, afvises med en `400`, der nævner nøglen: en type, der mangler, er ukendt eller er forskellig under de to stavemåder (en opdatering tager den, der afviger fra lagets nuværende type); et `Daily`-tidsrum, hvis `startTime` og `endTime` ikke er datoer og klokkeslæt (`"09:00"` alene afvises); en `Weekly`-begrænsning uden `weeklyRestrictionTimes`; eller et tidsrum, der begynder og slutter på samme tidspunkt. En `rotation`, hvis `intervalType` ikke er `Hour`, `Day`, `Week`, `Month` eller `Year`, afvises på samme måde.
+- Et lag, der blev gemt, før disse skrivninger blev afvist, uden en type, der blev læst, havde aldrig vagt. En opgradering af OneUptime læser hvert sådant lag ud fra de timer, det indeholder, gemmer det sådan og finder igen ud af, hvem der har vagt i vagtplanen, så dets personer tilkaldes fra da af og får besked om det.
 - En ændring af en vagtplans lag og personerne i dem, foretaget med API'et eller Terraform, meldes som én ændring: Hvem der har vagt, beregnes, når lagene ikke er blevet ændret i et halvt minut, og den, der går på eller af vagt eller er den næste, får besked én gang, ikke én gang for hvert lag eller hver person, der skrives. Tilkald går til den, lagene sætter på vagt, så snart hver ændring er gemt.
 - For at ændre på én gang, hvem der tager vagter i en vagtplans lag, som **Gem ændringer** på siden **Lag** gør, skal du læse lagene med `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` og sende dem tilbage, ændret, til `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. De nævner hvert lag, vagtplanen beholder, det med højest prioritet først, hvert med sine personer i vagtrækkefølge: den, der allerede er i et lag, med sit `layerUserId`, den, der tilføjes, kun med `userId`. `deletedLayerIds` nævner de lag, der skal slettes.
 - En gemning skrives helt eller slet ikke, og hvem der har vagt, beregnes én gang, med det samme. En, der foretages, efter at en anden har ændret lagene, afvises med 409, fordi dens `basedOnVersion` ikke længere er lagenes: læs lagene igen, og foretag ændringen på det, der er der nu. Terraform-ressourcen `oneuptime_on_call_schedule_layers` gemmer en vagtplans lag på denne måde.
@@ -129,6 +134,28 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
     }
   }'
 ```
