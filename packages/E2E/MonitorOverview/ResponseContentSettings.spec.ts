@@ -162,15 +162,20 @@ async function screenshotCard(card: Locator, name: string): Promise<void> {
 }
 
 test.describe("a Website or API monitor's Settings page", () => {
-  test("has a Response content card right after Monitoring: one switch, on, saying what is kept and that secrets are masked", async ({
+  test("has a Response content card under Monitoring and During Incidents: one switch, on, saying what is kept and that secrets are masked", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openSettings(page, { type: "api" });
 
+    // Under the switches that say whether the monitor is checked (#11141).
     const titles: Array<string> = await cardTitles(page);
-    expect(titles.slice(0, 2)).toEqual(["Monitoring", "Response content"]);
+    expect(titles.slice(0, 3)).toEqual([
+      "Monitoring",
+      "During Incidents",
+      "Response content",
+    ]);
 
     const card: Locator = responseCard(page, "Response content");
     await expect(card).toContainText(
