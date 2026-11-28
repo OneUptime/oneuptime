@@ -11,7 +11,7 @@ import RecordOwnership, {
 import { APP_API_URL } from "../Config";
 import API from "./API/API";
 import ModelAPI from "./ModelAPI/ModelAPI";
-import PermissionGate, { RecordOwnershipFacts } from "./PermissionGate";
+import RecordLocks, { RecordOwnershipFacts } from "./RecordLocks";
 import React from "react";
 
 /*
@@ -82,7 +82,7 @@ export const isRecordOwnershipWanted: (
 
   return (
     KindsWithOwners.hasOwnerTables(new modelType().tableName) &&
-    PermissionGate.hasOwnedScopedGrants()
+    RecordLocks.hasOwnedScopedGrants()
   );
 };
 

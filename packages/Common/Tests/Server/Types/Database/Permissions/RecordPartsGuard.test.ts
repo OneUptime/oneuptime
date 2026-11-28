@@ -13,7 +13,7 @@ import { describe, expect, test } from "@jest/globals";
  * THE DASHBOARD'S READING OF A RECORD'S PARTS IS THE SERVER'S (#11435).
  *
  * A record's page locks its parts' Add and Remove by the record's labels
- * (Types/LabelAccess/RecordParts, PermissionGate.getPartLock): a part's
+ * (Types/LabelAccess/RecordParts, RecordLocks.getPartLock): a part's
  * rows carry the labels of the records they name, so where they name no
  * labelled record but the one they are read through, the record's labels
  * decide its grants; where they name another one too, only the record's

@@ -20,12 +20,12 @@ import {
   getColumnSortLock,
   getColumnSortLockSentence,
 } from "../../../UI/Utils/ColumnSortLock";
-import PermissionGate, {
-  ModelAction,
+import PermissionGate, { ModelAction } from "../../../UI/Utils/PermissionGate";
+import RecordLocks, {
   ModelPartLock,
   ModelRecordLock,
   RecordOwnershipFacts,
-} from "../../../UI/Utils/PermissionGate";
+} from "../../../UI/Utils/RecordLocks";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import {
   getRecordAccessGateOptions,
@@ -61,10 +61,10 @@ import {
  * (#11435, #11436, #11437) - the rule as the Dashboard reads it, from the
  * permission snapshot and the server's answer of who owns a record:
  *
- *   - PermissionGate.getRecordLock: a record's update and delete, by its
+ *   - RecordLocks.getRecordLock: a record's update and delete, by its
  *     labels and its owners; nothing known of the owners, nothing locked by
  *     them; a label-less kind with owners (a team) weighed by its owners;
- *   - PermissionGate.getPartLock: a part's create, update and delete by the
+ *   - RecordLocks.getPartLock: a part's create, update and delete by the
  *     record's labels and owners - the record's labels deciding the grants
  *     only where the part's rows carry them alone;
  *   - the page's scope (getRecordLabelAccessScope): the record's refusals,
@@ -193,7 +193,7 @@ describe("getRecordLock: a record by its labels and its owners", () => {
   test("an Owned admin: a lock that says the owners decide; refused on a monitor nobody of theirs owns", () => {
     signInAs(OWNED_ADMIN);
 
-    const lock: ModelRecordLock = PermissionGate.getRecordLock(new Monitor())!;
+    const lock: ModelRecordLock = RecordLocks.getRecordLock(new Monitor())!;
 
     expect(lock.isDecidedByOwners).toBe(true);
     expect(lock.labelsColumn).toBe("labels");
@@ -233,7 +233,7 @@ describe("getRecordLock: a record by its labels and its owners", () => {
   test("while nobody has said who owns it: the owners decide, nothing is refused", () => {
     signInAs(OWNED_ADMIN);
 
-    const verdict: LabelVerdict = PermissionGate.getRecordLock(
+    const verdict: LabelVerdict = RecordLocks.getRecordLock(
       new Monitor(),
     )!.weigh(ModelAction.Delete, [], null);
 
@@ -250,7 +250,7 @@ describe("getRecordLock: a record by its labels and its owners", () => {
     };
 
     expect(
-      PermissionGate.getRecordLock(new Monitor())!.weigh(
+      RecordLocks.getRecordLock(new Monitor())!.weigh(
         ModelAction.Delete,
         [],
         getRecordOwnershipFacts(answer, RECORD),
@@ -267,7 +267,7 @@ describe("getRecordLock: a record by its labels and its owners", () => {
       }),
     ]);
 
-    const lock: ModelRecordLock = PermissionGate.getRecordLock(new Team())!;
+    const lock: ModelRecordLock = RecordLocks.getRecordLock(new Team())!;
 
     expect(lock.labelsColumn).toBeNull();
     expect(lock.isDecidedByOwners).toBe(true);
@@ -287,10 +287,10 @@ describe("getRecordLock: a record by its labels and its owners", () => {
 
   test("nothing to lock: a Project Member over the project, a Viewer alone", () => {
     signInAs([row(Permission.ProjectMember, { scope: PermissionScope.All })]);
-    expect(PermissionGate.getRecordLock(new Monitor())).toBeNull();
+    expect(RecordLocks.getRecordLock(new Monitor())).toBeNull();
 
     signInAs([row(Permission.Viewer, { scope: PermissionScope.All })]);
-    expect(PermissionGate.getRecordLock(new Monitor())).toBeNull();
+    expect(RecordLocks.getRecordLock(new Monitor())).toBeNull();
   });
 
   test("a grant limited to labels locks by them, as getLabelLock does", () => {
@@ -302,7 +302,7 @@ describe("getRecordLock: a record by its labels and its owners", () => {
       }),
     ]);
 
-    const lock: ModelRecordLock = PermissionGate.getRecordLock(new Monitor())!;
+    const lock: ModelRecordLock = RecordLocks.getRecordLock(new Monitor())!;
 
     expect(lock.isDecidedByOwners).toBe(false);
     expect(lock.labelIds).toEqual([LABEL_X]);
@@ -323,7 +323,7 @@ describe("getPartLock: a part by the record's labels and owners", () => {
       }),
     ]);
 
-    const lock: ModelPartLock = PermissionGate.getPartLock(
+    const lock: ModelPartLock = RecordLocks.getPartLock(
       new MonitorOwnerUser(),
       new Monitor(),
     )!;
@@ -347,7 +347,7 @@ describe("getPartLock: a part by the record's labels and owners", () => {
     ]);
 
     expect(
-      PermissionGate.getPartLock(new MonitorProbe(), new Monitor())!.weigh(
+      RecordLocks.getPartLock(new MonitorProbe(), new Monitor())!.weigh(
         ModelAction.Delete,
         [],
       ).isAllowed,
@@ -363,7 +363,7 @@ describe("getPartLock: a part by the record's labels and owners", () => {
     ]);
 
     expect(
-      PermissionGate.getPartLock(new MonitorProbe(), new Monitor())!.weigh(
+      RecordLocks.getPartLock(new MonitorProbe(), new Monitor())!.weigh(
         ModelAction.Delete,
         [LABEL_X],
       ).refusal,
@@ -379,7 +379,7 @@ describe("getPartLock: a part by the record's labels and owners", () => {
       }),
     ]);
 
-    const lock: ModelPartLock = PermissionGate.getPartLock(
+    const lock: ModelPartLock = RecordLocks.getPartLock(
       new MonitorOwnerUser(),
       new Monitor(),
     )!;
@@ -412,7 +412,7 @@ describe("getPartLock: a part by the record's labels and owners", () => {
       }),
     ]);
 
-    const lock: ModelPartLock = PermissionGate.getPartLock(
+    const lock: ModelPartLock = RecordLocks.getPartLock(
       new MonitorProbe(),
       new Monitor(),
     )!;
@@ -427,10 +427,10 @@ describe("getPartLock: a part by the record's labels and owners", () => {
     signInAs(OWNED_ADMIN);
 
     expect(
-      PermissionGate.getPartLock(new MonitorProbe(), new Runner()),
+      RecordLocks.getPartLock(new MonitorProbe(), new Runner()),
     ).toBeNull();
     expect(
-      PermissionGate.getPartLock(new Monitor() as never, new Monitor()),
+      RecordLocks.getPartLock(new Monitor() as never, new Monitor()),
     ).toBeNull();
   });
 });
@@ -446,7 +446,7 @@ describe("the page's scope, with who owns the record and its parts", () => {
     return getRecordLabelAccessScope({
       tableName: "Monitor",
       recordId: RECORD.toUpperCase(),
-      lock: PermissionGate.getRecordLock(new Monitor()),
+      lock: RecordLocks.getRecordLock(new Monitor()),
       recordLabelIds: data.labels || [],
       nouns: { singularName: "Monitor", pluralName: "Monitors" },
       labelNames: new Map<string, string>([[LABEL_X, "Production"]]),
@@ -688,10 +688,10 @@ describe("the columns a list is not sorted by, and why", () => {
 describe("the snapshot as the pages read it", () => {
   test("whether the reader holds a grant scoped to Owned at all", () => {
     signInAs(OWNED_ADMIN);
-    expect(PermissionGate.hasOwnedScopedGrants()).toBe(true);
+    expect(RecordLocks.hasOwnedScopedGrants()).toBe(true);
 
     signInAs([row(Permission.ProjectAdmin, { scope: PermissionScope.Owned })]);
-    expect(PermissionGate.hasOwnedScopedGrants()).toBe(false);
+    expect(RecordLocks.hasOwnedScopedGrants()).toBe(false);
   });
 
   test("every label the reader's grants are limited to or blocked on", () => {
@@ -704,17 +704,17 @@ describe("the snapshot as the pages read it", () => {
       row(Permission.Viewer, { scope: PermissionScope.All }),
     ]);
 
-    expect(PermissionGate.getSnapshotLabelIds().sort()).toEqual(
+    expect(RecordLocks.getSnapshotLabelIds().sort()).toEqual(
       [LABEL_X, TEAM_B].sort(),
     );
   });
 
   test("the snapshot's key moves when the snapshot does", () => {
     signInAs(OWNED_ADMIN);
-    const first: string = PermissionGate.getSnapshotKey();
+    const first: string = RecordLocks.getSnapshotKey();
     signInAs([row(Permission.Viewer, { scope: PermissionScope.All })]);
 
-    expect(PermissionGate.getSnapshotKey()).not.toBe(first);
+    expect(RecordLocks.getSnapshotKey()).not.toBe(first);
   });
 });
 

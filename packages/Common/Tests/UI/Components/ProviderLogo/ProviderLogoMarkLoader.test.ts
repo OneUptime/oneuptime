@@ -7,14 +7,18 @@ import ProviderLogo, {
 import ALL_PROVIDER_LOGO_MARKS from "../../../../Types/ProviderLogo/AllProviderLogoMarks";
 import { ProviderLogoMarkShapes } from "../../../../Types/ProviderLogo/ProviderLogoMark";
 import { PROVIDER_LOGO_MARK_BOXES } from "../../../../Types/ProviderLogo/ProviderLogoMarks";
+import ICON_BRAND_MARKS from "../../../../UI/Components/Icon/IconBrandMarks";
 import * as LoaderModule from "../../../../UI/Components/ProviderLogo/ProviderLogoMarkLoader";
 
 /*
  * The marks a page draws are loaded one by one, the first time each is
  * drawn (ProviderLogoMarkLoader): the bundler makes a small file of every
- * mark a loader names, so a page carries only the marks it shows. These
- * hold the loader table to the Marks folder and the registry, and the
- * loading itself: once, cached, retried after a failure, never throwing.
+ * mark a loader names, so a page carries only the marks it shows. The
+ * icon set's marks (Icon/IconBrandMarks), which every page holds already,
+ * are drawn at once and have no loader: a loader made each one more file of
+ * every page's first load. These hold the loader table and the icon set's
+ * marks to the Marks folder and the registry, and the loading itself: once,
+ * cached, retried after a failure, never throwing.
  */
 
 type Loader = () => Promise<{ default: unknown }>;
@@ -100,14 +104,25 @@ describe("the mark loader table", () => {
     }
   });
 
-  test("the loaders, the boxes, the shapes and the folder name the same marks", () => {
+  test("the loaders with the icon set's marks, the boxes, the shapes and the folder name the same marks", () => {
     const loaders: Array<string> = Object.keys(
       LoaderModule.PROVIDER_LOGO_MARK_LOADERS,
-    ).sort();
+    );
 
-    expect(loaders).toEqual(files);
+    expect([...loaders, ...Object.keys(ICON_BRAND_MARKS)].sort()).toEqual(
+      files,
+    );
     expect(Object.keys(PROVIDER_LOGO_MARK_BOXES).sort()).toEqual(files);
     expect(Object.keys(ALL_PROVIDER_LOGO_MARKS).sort()).toEqual(files);
+  });
+
+  test("no mark the icon set draws has a loader: a file of its own would only be one more of every first load", () => {
+    for (const mark of Object.keys(ICON_BRAND_MARKS)) {
+      expect({
+        mark,
+        hasLoader: mark in LoaderModule.PROVIDER_LOGO_MARK_LOADERS,
+      }).toEqual({ mark, hasLoader: false });
+    }
   });
 
   test("every mark is a logo of the registry", () => {
@@ -116,7 +131,7 @@ describe("the mark loader table", () => {
     }
   });
 
-  test.each(Object.keys(PROVIDER_LOGO_MARK_BOXES))(
+  test.each(Object.keys(LoaderModule.PROVIDER_LOGO_MARK_LOADERS))(
     "%s loads the shapes its module holds",
     async (mark: string) => {
       const loader: Loader | undefined = (
@@ -136,28 +151,49 @@ describe("loading a mark", () => {
   test("loads a mark once, caches it, and draws it at once after that", async () => {
     const loader: typeof LoaderModule = freshLoader();
     const loaders: Loaders = loader.PROVIDER_LOGO_MARK_LOADERS as Loaders;
-    const original: Loader | undefined = loaders[ProviderLogo.Slack];
+    const original: Loader | undefined = loaders[ProviderLogo.Cloudflare];
     let calls: number = 0;
 
-    loaders[ProviderLogo.Slack] = async (): Promise<{ default: unknown }> => {
+    loaders[ProviderLogo.Cloudflare] = async (): Promise<{
+      default: unknown;
+    }> => {
       calls++;
       return { default: SHAPES };
     };
 
     expect(
-      loader.getLoadedProviderLogoMark(ProviderLogo.Slack),
+      loader.getLoadedProviderLogoMark(ProviderLogo.Cloudflare),
     ).toBeUndefined();
-    await expect(loader.loadProviderLogoMark(ProviderLogo.Slack)).resolves.toBe(
+    await expect(
+      loader.loadProviderLogoMark(ProviderLogo.Cloudflare),
+    ).resolves.toBe(SHAPES);
+    expect(loader.getLoadedProviderLogoMark(ProviderLogo.Cloudflare)).toBe(
       SHAPES,
     );
-    expect(loader.getLoadedProviderLogoMark(ProviderLogo.Slack)).toBe(SHAPES);
-    await loader.loadProviderLogoMark(ProviderLogo.Slack);
+    await loader.loadProviderLogoMark(ProviderLogo.Cloudflare);
     expect(calls).toBe(1);
 
     if (original) {
-      loaders[ProviderLogo.Slack] = original;
+      loaders[ProviderLogo.Cloudflare] = original;
     }
   });
+
+  test.each(Object.keys(ICON_BRAND_MARKS))(
+    "%s, a mark the icon set draws, is drawn at once from the icon set's own shapes, before any load",
+    async (mark: string) => {
+      const loader: typeof LoaderModule = freshLoader();
+      const shapes: ProviderLogoMarkShapes | undefined =
+        ALL_PROVIDER_LOGO_MARKS[mark as ProviderLogo];
+
+      expect(shapes).toBeDefined();
+      expect(loader.getLoadedProviderLogoMark(mark as ProviderLogo)).toEqual(
+        shapes,
+      );
+      await expect(
+        loader.loadProviderLogoMark(mark as ProviderLogo),
+      ).resolves.toEqual(shapes);
+    },
+  );
 
   test("marks asked for at the same time share one load", async () => {
     const loader: typeof LoaderModule = freshLoader();
