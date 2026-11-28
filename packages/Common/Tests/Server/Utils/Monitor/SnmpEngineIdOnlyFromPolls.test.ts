@@ -46,7 +46,7 @@ function sourceFiles(directory: string): Array<string> {
 
     if (entry.isDirectory()) {
       files.push(...sourceFiles(full));
-    } else if (/\.tsx?$/.test(entry.name)) {
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
       files.push(full);
     }
   }
@@ -159,8 +159,9 @@ describe("on the server", () => {
     ).toEqual(["packages/Common/Server/Utils/Monitor/NetworkInventoryUtil.ts"]);
 
     const inventory: string =
-      named.get("packages/Common/Server/Utils/Monitor/NetworkInventoryUtil.ts") ||
-      "";
+      named.get(
+        "packages/Common/Server/Utils/Monitor/NetworkInventoryUtil.ts",
+      ) || "";
 
     expect(inventory).toContain(
       "SnmpTrapReceiverUtil.normalizeEngineId(systemInfo?.snmpEngineId)",
@@ -182,7 +183,9 @@ describe("on the server", () => {
 
   test("the trap ingest never names it at all", () => {
     for (const file of named.keys()) {
-      expect(file).not.toMatch(/ProcessProbeIngest|SnmpTrapLogWriter|SnmpTrapUnmatchedHome|ProbeIngest\//);
+      expect(file).not.toMatch(
+        /ProcessProbeIngest|SnmpTrapLogWriter|SnmpTrapUnmatchedHome|ProbeIngest\//,
+      );
     }
   });
 });

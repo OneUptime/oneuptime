@@ -72,6 +72,7 @@ import {
   NETWORK_EVENTS_PAGE_LIMIT,
   NETWORK_EVENT_SOURCES_LOG_LIMIT,
   NetworkEventSource,
+  NetworkEventSourceKind,
   NetworkEventsScope,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkEvents/NetworkEventsModel";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -467,7 +468,7 @@ describe("fetchNetworkEventsBackground: why a range has nothing in it", () => {
     });
   });
 
-  test("the network with no event: whether any probe heard syslog at all", async () => {
+  test("the network with no event: whether any probe heard syslog or an SNMP trap at all", async () => {
     answerList([]);
     answerFacets({ "syslog.sourceIp": [{ value: "10.0.0.2", count: 14 }] });
 
@@ -485,16 +486,37 @@ describe("fetchNetworkEventsBackground: why a range has nothing in it", () => {
     expect(postRequests()[0]!.data).toEqual({
       startTime: "2026-10-06T12:00:00.000Z",
       endTime: "2026-10-13T12:00:00.000Z",
-      facetKeys: ["syslog.sourceIp"],
+      facetKeys: ["syslog.sourceIp", "snmpTrap.sourceIp"],
       attributes: {},
       limit: 1,
     });
   });
 
+  /*
+   * #11407: a project whose senders send SNMP traps only - enterprise traps
+   * that are no event among them - is receiving all the same: never the
+   * syslog set-up guide, and the card lists its senders.
+   */
+  test("the network with no event, whose probes heard SNMP traps only: arriving", async () => {
+    answerList([]);
+    answerFacets({
+      "syslog.sourceIp": [],
+      "snmpTrap.sourceIp": [{ value: "203.0.113.20", count: 3 }],
+    });
+
+    expect(await fetchNetworkEventsBackground(NETWORK)).toEqual({
+      lastEventAt: null,
+      isReceivingLogs: true,
+    });
+  });
+
   test.each([
-    ["no senders", { "syslog.sourceIp": [] }],
+    ["no senders", { "syslog.sourceIp": [], "snmpTrap.sourceIp": [] }],
     ["no such facet", {}],
-    ["a facet that is not a list", { "syslog.sourceIp": "10.0.0.2" }],
+    [
+      "facets that are not lists",
+      { "syslog.sourceIp": "10.0.0.2", "snmpTrap.sourceIp": 3 },
+    ],
   ])(
     "the network with no event and %s: nothing is arriving",
     async (_name: string, facets: JSONObject) => {
@@ -528,27 +550,66 @@ describe("fetchNetworkEventsBackground: why a range has nothing in it", () => {
   });
 });
 
-describe("fetchNetworkEventSources: who sends syslog without being a device", () => {
-  test("reads the newest logs ingest marked as from no device, and lists their senders", async () => {
-    answerList([
-      {
-        time: new Date("2026-10-13T11:59:00.000Z"),
-        attributes: {
-          "syslog.unmatched": "true",
-          "syslog.sourceIp": "203.0.113.7",
-          "syslog.hostname": "edge-sw9",
-          "syslog.vendor": "Cisco",
-          "probe.id": "44444444-4444-4444-8444-444444444444",
-        },
+describe("fetchNetworkEventSources: who sends syslog or SNMP traps without being a device", () => {
+  const SYSLOG_FROM_NO_DEVICE: Array<JSONObject> = [
+    {
+      time: new Date("2026-10-13T11:59:00.000Z"),
+      attributes: {
+        "syslog.unmatched": "true",
+        "syslog.sourceIp": "203.0.113.7",
+        "syslog.hostname": "edge-sw9",
+        "syslog.vendor": "Cisco",
+        "probe.id": "44444444-4444-4444-8444-444444444444",
       },
-      {
-        time: new Date("2026-10-13T11:58:00.000Z"),
-        attributes: {
-          "syslog.unmatched": "true",
-          "syslog.sourceIp": "203.0.113.7",
-        },
+    },
+    {
+      time: new Date("2026-10-13T11:58:00.000Z"),
+      attributes: {
+        "syslog.unmatched": "true",
+        "syslog.sourceIp": "203.0.113.7",
       },
-    ]);
+    },
+  ];
+
+  const TRAPS_FROM_NO_DEVICE: Array<JSONObject> = [
+    {
+      time: new Date("2026-10-13T11:59:30.000Z"),
+      attributes: {
+        "snmpTrap.unmatched": "true",
+        "snmpTrap.sourceIp": "203.0.113.20",
+        "snmpTrap.oid": "1.3.6.1.4.1.1588.2.1.1.1.0.3",
+        "probe.id": "44444444-4444-4444-8444-444444444444",
+        "networkSite.id": "8c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f",
+      },
+    },
+  ];
+
+  // Each read answered by what it asks for.
+  function answerReads(answers: {
+    syslog?: Array<JSONObject> | Error | undefined;
+    traps?: Array<JSONObject> | Error | undefined;
+  }): void {
+    getListMock.mockImplementation((request: ListRequest): Promise<unknown> => {
+      const answer: Array<JSONObject> | Error | undefined =
+        request.query.attributes["snmpTrap.unmatched"] === "true"
+          ? answers.traps
+          : answers.syslog;
+
+      if (answer instanceof Error) {
+        return Promise.reject(answer);
+      }
+
+      return Promise.resolve({
+        data: answer || [],
+        count: (answer || []).length,
+        skip: 0,
+        limit: NETWORK_EVENT_SOURCES_LOG_LIMIT,
+      });
+    });
+  }
+
+  test("reads the newest syslog ingest marked as from no device, and lists their senders", async () => {
+    answerReads({ syslog: SYSLOG_FROM_NO_DEVICE });
 
     const sources: Array<NetworkEventSource> =
       await fetchNetworkEventSources(WINDOW);
@@ -568,14 +629,88 @@ describe("fetchNetworkEventSources: who sends syslog without being a device", ()
         hostname: "edge-sw9",
         vendor: "Cisco",
         probeId: "44444444-4444-4444-8444-444444444444",
+        kinds: [NetworkEventSourceKind.Syslog],
         lastSeenAt: new Date("2026-10-13T11:59:00.000Z"),
         messageCount: 2,
       },
     ]);
   });
 
+  test("reads the newest SNMP traps ingest marked as from no device too, each kind on its own (#11407)", async () => {
+    answerReads({ syslog: SYSLOG_FROM_NO_DEVICE, traps: TRAPS_FROM_NO_DEVICE });
+
+    const sources: Array<NetworkEventSource> =
+      await fetchNetworkEventSources(WINDOW);
+
+    expect(
+      listRequests().map((request: ListRequest) => {
+        return [request.query.attributes, request.limit, request.query.time];
+      }),
+    ).toEqual([
+      [{ "syslog.unmatched": "true" }, NETWORK_EVENT_SOURCES_LOG_LIMIT, WINDOW],
+      [
+        { "snmpTrap.unmatched": "true" },
+        NETWORK_EVENT_SOURCES_LOG_LIMIT,
+        WINDOW,
+      ],
+    ]);
+
+    expect(
+      sources.map((source: NetworkEventSource) => {
+        return [source.address, source.kinds, source.vendor, source.siteId];
+      }),
+    ).toEqual([
+      [
+        "203.0.113.20",
+        [NetworkEventSourceKind.SnmpTraps],
+        "Brocade",
+        "8c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f",
+      ],
+      ["203.0.113.7", [NetworkEventSourceKind.Syslog], "Cisco", undefined],
+    ]);
+  });
+
+  test("a read that fails leaves out only what it would have found", async () => {
+    answerReads({
+      syslog: new Error("syslog read failed"),
+      traps: TRAPS_FROM_NO_DEVICE,
+    });
+
+    expect(
+      (await fetchNetworkEventSources(WINDOW)).map(
+        (source: NetworkEventSource) => {
+          return source.address;
+        },
+      ),
+    ).toEqual(["203.0.113.20"]);
+
+    answerReads({
+      syslog: SYSLOG_FROM_NO_DEVICE,
+      traps: new Error("trap read failed"),
+    });
+
+    expect(
+      (await fetchNetworkEventSources(WINDOW)).map(
+        (source: NetworkEventSource) => {
+          return source.address;
+        },
+      ),
+    ).toEqual(["203.0.113.7"]);
+  });
+
+  test("both failing is thrown, for the page to leave the card out", async () => {
+    answerReads({
+      syslog: new Error("syslog read failed"),
+      traps: new Error("trap read failed"),
+    });
+
+    await expect(fetchNetworkEventSources(WINDOW)).rejects.toThrow(
+      "syslog read failed",
+    );
+  });
+
   test("nobody", async () => {
-    answerList([]);
+    answerReads({});
 
     expect(await fetchNetworkEventSources(WINDOW)).toEqual([]);
   });

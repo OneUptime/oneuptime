@@ -405,9 +405,10 @@ describe("four recorded SNMPv3 traps from one address", () => {
   it("polled over v2c, the switches' own polls read their engines (#11405): each trap on its own switch", async () => {
     const fleet: Array<NetworkDevice> = theFleet({ isPolledOverSnmpV3: false });
 
-    for (const key of ["siteSwitch1", "siteSwitch2"] as Array<
-      SharedAddressDeviceKey
-    >) {
+    for (const key of [
+      "siteSwitch1",
+      "siteSwitch2",
+    ] as Array<SharedAddressDeviceKey>) {
       // As a v2c poll's walk reports it, and the inventory keeps it.
       const polled: string | null = SnmpTrapReceiverUtil.normalizeEngineId(
         SHARED_ADDRESS_DEVICES[key].engineId.toLowerCase(),
