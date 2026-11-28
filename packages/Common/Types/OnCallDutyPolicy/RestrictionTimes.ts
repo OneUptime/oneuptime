@@ -42,6 +42,38 @@ export interface WeeklyResctriction {
 export const RESTRICTION_TYPE_KEY: string = "restrictionType";
 export const LEGACY_RESTRICTION_TYPE_KEY: string = "restictionType";
 
+/*
+ * THE OLDER SPELLING IN ANSWERS IS DEPRECATED (#11456).
+ *
+ * restictionType is sent beside restrictionType only so that clients and
+ * Terraform configurations written against it keep working while they move
+ * to restrictionType. Terraform compares a configuration with the answer as
+ * a subset, so one written with restictionType fails every apply once an
+ * answer leaves it out. It goes in three steps:
+ *
+ *   1. OneUptime 18.0.0 (now): deprecated, in the API reference and the
+ *      On-Call Schedules docs. Answers carry both spellings, and writes read
+ *      both.
+ *   2. The Terraform provider's examples and its monitor-steps writer write
+ *      restrictionType alone, and the provider reads a configuration's
+ *      restictionType as restrictionType when it compares what it sent with
+ *      what it reads back, so a configuration written with either applies
+ *      against an answer with one.
+ *   3. The first major version released on or after 1 June 2027, once step
+ *      2 has shipped in an earlier release: answers stop carrying
+ *      restictionType. Writes keep reading it for good, so old
+ *      configurations still apply.
+ *
+ * Step 3 is taking LEGACY_RESTRICTION_TYPE_KEY out of this list: nothing
+ * else writes it into an answer. RestrictionTypeSpellingsGuard (Common
+ * Tests) holds every other file that names the older spelling to a list of
+ * its own, each with why, so the removal knows all it touches.
+ */
+export const RESTRICTION_TYPE_KEYS_IN_ANSWERS: ReadonlyArray<string> = [
+  RESTRICTION_TYPE_KEY,
+  LEGACY_RESTRICTION_TYPE_KEY,
+];
+
 // The keys a restriction's value holds, as stored and as sent out.
 export const RESTRICTION_TIMES_VALUE_KEYS: ReadonlyArray<string> = [
   RESTRICTION_TYPE_KEY,
@@ -94,6 +126,8 @@ export default class RestrictionTimes extends DatabaseProperty {
   /**
    * @deprecated The older spelling of restrictionType, kept so code written
    * against it keeps working (#11269). It reads and writes the same type.
+   * Nothing outside Common reads it since #11457 (RestrictionTypeSpellingsGuard
+   * holds it so); it goes with the older key in answers (#11456).
    */
   public get restictionType(): RestrictionType {
     return this.restrictionType;
@@ -149,18 +183,24 @@ export default class RestrictionTimes extends DatabaseProperty {
   }
 
   /*
-   * What a client reading the restriction is sent: the type under its name
-   * and under its older spelling, so a reader of either finds it (#11269).
+   * What a client reading the restriction is sent: the type under each key
+   * of RESTRICTION_TYPE_KEYS_IN_ANSWERS - its name, and while it is
+   * deprecated its older spelling - so a reader of either finds it (#11269,
+   * #11456).
    */
   public override toJSON(): JSONObject {
+    const value: JSONObject = {};
+
+    for (const key of RESTRICTION_TYPE_KEYS_IN_ANSWERS) {
+      value[key] = this.restrictionType;
+    }
+
+    value["dayRestrictionTimes"] = this.dayRestrictionTimes;
+    value["weeklyRestrictionTimes"] = this.weeklyRestrictionTimes;
+
     return JSONFunctions.serialize({
       _type: ObjectType.RestrictionTimes,
-      value: {
-        [RESTRICTION_TYPE_KEY]: this.restrictionType,
-        [LEGACY_RESTRICTION_TYPE_KEY]: this.restrictionType,
-        dayRestrictionTimes: this.dayRestrictionTimes,
-        weeklyRestrictionTimes: this.weeklyRestrictionTimes,
-      },
+      value: value,
     });
   }
 
