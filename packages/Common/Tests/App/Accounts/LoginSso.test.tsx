@@ -503,6 +503,7 @@ describe("Accounts single sign-on, in every edition", () => {
           disableUserProjectCreation: false,
           disablePushNotifications: false,
           canSendEmail: true,
+          canProjectsChooseCallVoice: false,
         };
       });
     navigateSpy = jest
