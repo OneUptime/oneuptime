@@ -170,6 +170,7 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
         "AutoRemediationRule",
         "AutoRemediationSuggestion",
         "ExternalMcpServer",
+        "ExternalMcpToolReadOnlyMark",
         "LlmLog",
         "LlmProvider",
         "ResourceAiAgent",
