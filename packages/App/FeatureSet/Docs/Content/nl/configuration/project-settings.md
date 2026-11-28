@@ -63,7 +63,9 @@ flowchart LR
 
 In een nieuw project staat hij aan. Een project dat al bestond, houdt hem uit, omdat de API-clients en Terraform-configuraties van het project kunnen rekenen op namen die terugkomen: zet hem aan wanneer u er klaar voor bent.
 
-Onder de schakelaar toont de kaart elke naam die het project al meer dan eens heeft, soort voor soort, met een link naar elk record en de dag waarop het is gemaakt. De schakelaar aanzetten weigert niets wat al bestaat: die records blijven werken tot iemand ze hernoemt, en alleen een nieuw record of een hernoeming heeft een eigen naam nodig. Een record opnieuw opslaan met zijn eigen naam, in welke schrijfwijze ook, is geen hernoeming.
+Onder de schakelaar toont de kaart elke naam die het project al meer dan eens heeft, soort voor soort, met een link naar elk record en de dag waarop het is gemaakt. Een OpenStack-budget opent op de pagina **Uitgaven** van zijn cloud, en een werkruimtesamenvatting op het tabblad **Samenvatting** van zijn Slack-, Microsoft Teams- of Mattermost-pagina. AI-agenten hebben geen pagina in het dashboard, dus de kaart noemt ze zonder link en zegt dat erbij. De schakelaar aanzetten weigert niets wat al bestaat: die records blijven werken tot iemand ze hernoemt, en alleen een nieuw record of een hernoeming heeft een eigen naam nodig. Een record opnieuw opslaan met zijn eigen naam, in welke schrijfwijze ook, is geen hernoeming.
+
+De eigen lijst van elke soort markeert die records ook, met **Zelfde naam als een ander item van het type monitor** (of sjabloon, sleutel enzovoort) en de dag waarop elk is gemaakt, en zegt boven de lijst hoeveel het er zijn. Een lijst markeert alleen de records die u kunt openen.
 
 Wat de schakelaar ook zegt, een formulier waarschuwt terwijl u een naam typt die een ander record van dat soort al heeft, en linkt naar dat record. Zolang de schakelaar aan staat, zegt de waarschuwing ook dat opslaan zou worden geweigerd.
 

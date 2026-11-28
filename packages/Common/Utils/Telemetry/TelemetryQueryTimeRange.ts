@@ -74,6 +74,11 @@ export default class TelemetryQueryTimeRange {
 
     let rawStart: unknown = undefined;
     let rawEnd: unknown = undefined;
+    /*
+     * Which end it held: a check's window holds its start and not its end
+     * (TelemetryCheckWindow, #11334), and says so in its JSON.
+     */
+    let includesEnd: boolean = true;
 
     if (value instanceof InBetween) {
       /*
@@ -90,9 +95,11 @@ export default class TelemetryQueryTimeRange {
 
       rawStart = value.startValue;
       rawEnd = value.endValue;
+      includesEnd = value.includesEnd;
     } else if ((value as JSONObject)["_type"] === ObjectType.InBetween) {
       rawStart = (value as JSONObject)["startValue"];
       rawEnd = (value as JSONObject)["endValue"];
+      includesEnd = (value as JSONObject)["includesEnd"] !== false;
     } else {
       return null;
     }
@@ -104,7 +111,7 @@ export default class TelemetryQueryTimeRange {
       return null;
     }
 
-    return new InBetween<Date>(startDate, endDate);
+    return new InBetween<Date>(startDate, endDate, { includesEnd });
   }
 
   private static toDate(value: unknown): Date | null {

@@ -163,6 +163,7 @@ import UpgradeLibraryRuleCopies from "./UpgradeLibraryRuleCopies";
 import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopiesForHashedAddresses";
 import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
 import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
+import MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType from "./MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -224,6 +225,7 @@ import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResource
 import EndOnCallTimeLogsOfDeletedPolicies from "./EndOnCallTimeLogsOfDeletedPolicies";
 import WorkOutMonitorsPausedByIncidents from "./WorkOutMonitorsPausedByIncidents";
 import AddSensitiveFileServedToRecommendedRules from "./AddSensitiveFileServedToRecommendedRules";
+import MergeBackExceptionsSplitByFailedLookups from "./MergeBackExceptionsSplitByFailedLookups";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1711,6 +1713,30 @@ const DataMigrations: Array<DataMigrationBase> = [
    * two slots kept last.
    */
   new AddSensitiveFileServedToRecommendedRules(),
+  /*
+   * Merges back the duplicates a failed fingerprint lookup made before
+   * #11027 whose error never happened again (#11113): an exception made
+   * since grouping v2 under the grouping v1 fingerprint of its own stored
+   * text, after the exception that text's later fingerprints find, is
+   * merged into that one as its next occurrence would merge it
+   * (TelemetryExceptionSplitHeal), when every occurrence ClickHouse keeps
+   * agrees. Postgres, and a bounded read of ClickHouse per pair; paged,
+   * resumable, idempotent; a couple of minutes at most, the
+   * TelemetryException:MergeBackExceptionsSplitByFailedLookups job doing
+   * the rest. No ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new MergeBackExceptionsSplitByFailedLookups(),
+  /*
+   * The metric rules Scrub It made for a phone number or a US Social
+   * Security number match the data type's pattern type instead of its
+   * frozen pattern (#11112), as MetricScrubRulesMatchTheirPatternType moved
+   * the three types before them: each hides what Data Security finds, in
+   * every reading, and covers its finding again. Postgres only,
+   * idempotent; no ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

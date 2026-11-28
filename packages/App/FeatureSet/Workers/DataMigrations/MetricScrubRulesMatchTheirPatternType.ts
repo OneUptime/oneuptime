@@ -50,12 +50,15 @@ import MetricPipelineRuleType from "Common/Types/Metrics/MetricPipelineRuleType"
  * not written over.
  */
 
-// Each frozen pattern Scrub It wrote into a metric rule, word for word, and the pattern type it stands for.
-export const FROZEN_SCRUB_IT_PATTERNS: ReadonlyArray<{
+// A frozen pattern Scrub It wrote into a metric rule, word for word, and the pattern type it stands for.
+export interface FrozenScrubItPattern {
   dataTypeId: string;
   pattern: string;
   patternType: string;
-}> = [
+}
+
+// Each frozen pattern Scrub It wrote for the three types this migration moves.
+export const FROZEN_SCRUB_IT_PATTERNS: ReadonlyArray<FrozenScrubItPattern> = [
   {
     dataTypeId: "ip-address",
     pattern:
@@ -103,8 +106,20 @@ function countWrittenRows(result: unknown): number {
 }
 
 export default class MetricScrubRulesMatchTheirPatternType extends DataMigrationBase {
-  public constructor() {
-    super("MetricScrubRulesMatchTheirPatternType");
+  // The frozen patterns this migration moves, each to its pattern type.
+  private readonly frozenPatterns: ReadonlyArray<FrozenScrubItPattern>;
+
+  /*
+   * Another migration moves other frozen patterns the same way, under its
+   * own name (MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType, #11112):
+   * this one's name and patterns are the three types', as they always were.
+   */
+  public constructor(
+    name: string = "MetricScrubRulesMatchTheirPatternType",
+    frozenPatterns: ReadonlyArray<FrozenScrubItPattern> = FROZEN_SCRUB_IT_PATTERNS,
+  ) {
+    super(name);
+    this.frozenPatterns = frozenPatterns;
   }
 
   /*
@@ -115,6 +130,7 @@ export default class MetricScrubRulesMatchTheirPatternType extends DataMigration
   public static moveFilters(
     filters: unknown,
     attributeKey: string | null | undefined,
+    frozenPatterns: ReadonlyArray<FrozenScrubItPattern> = FROZEN_SCRUB_IT_PATTERNS,
   ): Array<MetricPipelineRuleFilterCondition> | null {
     const key: string = (attributeKey || "").trim();
 
@@ -134,11 +150,9 @@ export default class MetricScrubRulesMatchTheirPatternType extends DataMigration
           (condition.attributeKey || "").trim() === key &&
           condition.conditionType ===
             MetricPipelineRuleFilterConditionType.MatchesRegex
-            ? FROZEN_SCRUB_IT_PATTERNS.find(
-                (entry: { pattern: string }): boolean => {
-                  return entry.pattern === condition.value;
-                },
-              )
+            ? frozenPatterns.find((entry: { pattern: string }): boolean => {
+                return entry.pattern === condition.value;
+              })
             : undefined;
 
         if (!frozen) {
@@ -214,6 +228,7 @@ export default class MetricScrubRulesMatchTheirPatternType extends DataMigration
             MetricScrubRulesMatchTheirPatternType.moveFilters(
               stored,
               row.addAttributeKey,
+              this.frozenPatterns,
             );
 
           if (!filters) {

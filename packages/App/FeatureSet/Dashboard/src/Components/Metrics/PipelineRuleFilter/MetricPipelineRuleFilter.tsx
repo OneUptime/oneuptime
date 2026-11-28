@@ -21,8 +21,9 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 /*
  * MATCHES PATTERN TYPE (#10934): the value holds what a log or trace scrub
  * rule's built-in Pattern Type finds, matched by the very pattern those
- * rules run - what Scrub It's rule for an IP address, an email address or a
- * card number in a metric's attribute matches. Its value is picked from the
+ * rules run - what Scrub It's rule for an IP address, an email address, a
+ * card number, a phone number or a Social Security number in a metric's
+ * attribute matches (#11112). Its value is picked from the
  * pattern types, named as the scrub rule forms name them, never typed.
  */
 export const MATCHES_PATTERN_TYPE_LABEL: string = translationKey(

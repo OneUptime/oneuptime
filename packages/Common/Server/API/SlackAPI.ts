@@ -3512,6 +3512,11 @@ export default class SlackAPI {
         projectId: data.projectId,
         slackCommand: data.slackCommand,
       }),
+      /*
+       * The project's external MCP servers, for the person who asked: their
+       * tools that read, as their linked OneUptime account may (#11082).
+       */
+      offersExternalMcpServers: true,
       pageContext: await WorkspaceAiContext.getChannelRecord({
         projectId: data.projectId,
         channelId: data.slackChannelId,

@@ -12,6 +12,7 @@ import {
   NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
   NAME_TAKEN_REFUSAL_CODE,
   REFUSAL_CODE_FIELD,
+  TAKEN_BY_ID_FIELD,
 } from "Common/Types/Exception/NameTakenException";
 import {
   VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
@@ -436,6 +437,92 @@ const (
 )
 
 /*
+ * WHICH RECORD HAS THE NAME (OneUptime/oneuptime#11019).
+ *
+ * A refusal of a name a project requires to be one of its kind carries,
+ * beside its code, the ID of the record that has the name - only when the
+ * caller's key may read that record (takenByIDField, Common/Types/Exception/
+ * NameTakenException.ts's TAKEN_BY_ID_FIELD). Once nothing of the apply has
+ * given the name up, the error says which record that is, and the exact
+ * line that brings it under this configuration: terraform import, into this
+ * resource on a create, into a resource of its own on a rename (the line
+ * names the resource's type, ForResource; Terraform shows its address with
+ * the error). Under Crossplane, the external-name annotation that adopts it.
+ *
+ * Without the field - an older server, a record the key may not read, a
+ * kind whose refusal does not send it - the advice is what it always was.
+ * The client never names a record the server did not: the ID is read from
+ * that field alone, and only when it is an ID (isRecordID).
+ */
+const takenByIDField = "${TAKEN_BY_ID_FIELD}"
+
+// resourceTypeKey is the context key ForResource keeps a resource type under.
+type resourceTypeKey struct{}
+
+// ForResource says the requests made with ctx are a resource's of the given
+// type ("oneuptime_monitor"), so what a refusal of one of them says to run
+// names it (nameTakenAdvice). Every generated resource's Create and Update
+// make their requests with it.
+func ForResource(ctx context.Context, resourceType string) context.Context {
+    return context.WithValue(ctx, resourceTypeKey{}, resourceType)
+}
+
+// resourceTypeOf reads the resource type a response's request was made for
+// (ForResource), or "" when nothing said.
+func resourceTypeOf(resp *http.Response) string {
+    if resp == nil || resp.Request == nil {
+        return ""
+    }
+
+    resourceType, _ := resp.Request.Context().Value(resourceTypeKey{}).(string)
+    return resourceType
+}
+
+// takenName is what a refusal of a name a record in service has says of
+// that record, and of the write it refused.
+type takenName struct {
+    // The ID of the record that has the name, when the server said it
+    // (takenByIDOf): "" when it did not.
+    takenByID string
+    // The type of the resource whose write was refused (ForResource): ""
+    // when its request did not say.
+    resourceType string
+    // The refused write renamed a record (PUT, PATCH). Otherwise it created
+    // one, and the record that has the name may be the one it means.
+    isRename bool
+}
+
+// takenNameOf reads what a refusal of a taken name says, and of which write.
+func takenNameOf(resp *http.Response, body []byte) takenName {
+    taken := takenName{
+        takenByID:    takenByIDOf(body),
+        resourceType: resourceTypeOf(resp),
+    }
+
+    if resp != nil && resp.Request != nil {
+        taken.isRename = resp.Request.Method == http.MethodPut || resp.Request.Method == http.MethodPatch
+    }
+
+    return taken
+}
+
+// takenByIDOf reads the ID of the record an error body says has the name:
+// "" when it says none, or what it says is not an ID.
+func takenByIDOf(body []byte) string {
+    var parsed map[string]interface{}
+    if err := json.Unmarshal(body, &parsed); err != nil {
+        return ""
+    }
+
+    id, _ := parsed[takenByIDField].(string)
+    if !isRecordID(id) {
+        return ""
+    }
+
+    return id
+}
+
+/*
  * A VALUE THAT IS NOT A NAME, BUT THAT A RECORD HOLDS ALONE, ASKED AGAIN THE
  * SAME WAY (OneUptime/oneuptime#10319).
  *
@@ -617,14 +704,57 @@ func isValueTakenRefusal(body []byte) bool {
 // to the server's own words once it has been asked again for the whole
 // window: no resource of this apply gave the name up. Either a record
 // outside this configuration has it, or resources of this configuration
-// swap names, and neither ever goes through on its own.
-func (c *Client) nameTakenAdvice() string {
-    advice := "If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record. If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."
+// swap names, and neither ever goes through on its own. Where the server
+// said which record has it, the advice names it, with the line that brings
+// it under this configuration (#11019).
+func (c *Client) nameTakenAdvice(taken takenName) string {
+    advice := nameTakenOutsideAdvice + " " + nameTakenSwapAdvice
+    if taken.takenByID != "" {
+        advice = c.takenByAdvice(taken) + "\\n\\n" + nameTakenSwapAdvice
+    }
+
     if c.nameTakenRetry.window <= 0 {
         return advice
     }
 
     return fmt.Sprintf("The name was still taken after asking again for %s. %s", describeWait(c.nameTakenRetry.window), advice)
+}
+
+// What to do with a name a record outside this configuration has, when the
+// server does not say which record that is.
+const nameTakenOutsideAdvice = "If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record."
+
+// What to do with names resources of this configuration swap.
+const nameTakenSwapAdvice = "If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."
+
+// takenByAdvice names the record that has the name and says how to bring it
+// under this configuration: into this resource on a create - it may be the
+// record the resource means - and into a resource of its own on a rename,
+// where this resource is a record already. The command is on a line of its
+// own, to copy; its address is this resource's type with the name its block
+// gives it, which Terraform shows with the error.
+func (c *Client) takenByAdvice(taken takenName) string {
+    named := fmt.Sprintf("The record that has it is %s.", taken.takenByID)
+
+    // Crossplane adopts a record by its ID, from a managed resource's annotation.
+    if c.lastApplied != nil {
+        if taken.isRename {
+            return fmt.Sprintf("%s If it is outside this configuration, such as one OneUptime made with the project, give this resource another name, or adopt that record with a managed resource of its own, annotated crossplane.io/external-name: %q, and rename it there.", named, taken.takenByID)
+        }
+        return fmt.Sprintf("%s If it is outside this configuration, such as one OneUptime made with the project, give this resource another name, or adopt that record with this managed resource: set its crossplane.io/external-name annotation to %q.", named, taken.takenByID)
+    }
+
+    address := "<address>"
+    if taken.resourceType != "" {
+        address = taken.resourceType + ".<name>"
+    }
+    command := fmt.Sprintf("  terraform import %s %s", address, taken.takenByID)
+
+    if taken.isRename {
+        return fmt.Sprintf("%s If it is outside this configuration, such as one OneUptime made with the project, give this resource another name, or import that record into a resource of its own and rename it there:\\n\\n%s", named, command)
+    }
+
+    return fmt.Sprintf("%s If it is outside this configuration, such as one OneUptime made with the project, give this resource another name, or import that record into this resource, at the address Terraform shows with this error:\\n\\n%s", named, command)
 }
 
 // valueTakenAdvice is what a refusal of a value a record in service holds
@@ -820,7 +950,7 @@ func (c *Client) ParseResponse(resp *http.Response, target interface{}) error {
         // up. A name an archived record has keeps the server's own words alone,
         // which say to unarchive it or pick another name.
         if resp.StatusCode == http.StatusBadRequest && isNameTakenRefusal(body) {
-            message += " " + c.nameTakenAdvice()
+            message += " " + c.nameTakenAdvice(takenNameOf(resp, body))
         }
 
         // The same for a value a record in service holds alone (#10319).

@@ -34,6 +34,9 @@ const AGENT_DIRECTORY: string = path.resolve(
 // A collector config's file name, as the agent ships each.
 const COLLECTOR_CONFIG: RegExp = /^otel-collector-config[a-z0-9.-]*\.yaml$/;
 
+// An exporter's own config file, which it may read the array's login from.
+const YAML_FILE: RegExp = /\.ya?ml$/;
+
 interface TableLine {
   config: string;
   system: string;
@@ -159,13 +162,14 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
         noun: entry.config.arrayNoun,
         /*
          * Only an agent that talks to the array itself asks about its TLS:
-         * the collector, or an exporter that checks the array's certificate
-         * (NetApp Harvest).
+         * the collector, which does unless its platform says it does not
+         * (talksTlsToArray: PowerScale's SNMP), or an exporter that checks
+         * the array's certificate (NetApp Harvest).
          */
         tlsToArray:
           (entry.config.talksTlsToArray ??
-            entry.config.exporterService === null ||
-              entry.config.exporterChecksCertificate)
+            entry.config.exporterService === null) ||
+          entry.config.exporterChecksCertificate
             ? "yes"
             : "no",
         // An exporter that logs in itself: its user, and the files it runs with.
@@ -217,7 +221,7 @@ describe("each config of the table", () => {
         expect(text).not.toContain(`\${env:${line.tokenVariable}}`);
         const exporterFiles: string = line.otherFiles
           .filter((file: string): boolean => {
-            return /\.ya?ml$/.test(file);
+            return YAML_FILE.test(file);
           })
           .map((file: string): string => {
             return readAgentFile(file);

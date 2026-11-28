@@ -222,6 +222,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "the file's JSON string forms, quote marks, tool names and flag letters",
   },
   {
+    file: "packages/Common/Utils/AiRemediation/Resource/XcpNgCommandPolicy.ts",
+    count: 1,
+    builtFrom:
+      "a /regular expression/ in an xo-cli filter OneUptime AI writes, at most MAX_XO_FILTER_REGEX_CHARS long and refused by describeUnsafeRegex when a repeated group repeats itself or it holds a back-reference, whose syntax JavaScript checks; it is never run here, and Xen Orchestra runs the filter",
+  },
+  {
     file: "packages/Common/Utils/Call/CallSpeech.ts",
     count: 1,
     builtFrom:

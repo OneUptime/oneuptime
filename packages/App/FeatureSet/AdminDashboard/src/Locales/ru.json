@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "При удалении IoT-парка удаляется и его реестр устройств, поэтому зарегистрированные устройства больше не смогут подключиться.",
   "Deleting a database also deletes the endpoints it is reached at.": "При удалении базы данных удаляются и конечные точки, по которым она доступна.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "При удалении облачного подключения OneUptime перестаёт читать аккаунт. Его ресурсы остаются вместе с метриками.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "Удаление подключения к системам хранения прекращает чтение OneUptime массивов за ним и удаляет его сохранённый пароль и проверки подключения. Его массивы остаются вместе с метриками.",
   "True": "Истина",
   "False": "Ложь",
   "Key": "Ключ",
@@ -4631,5 +4632,10 @@
   "Only XCP-ng pools that match conditions": "Только пулы XCP-ng, соответствующие условиям",
   "All savings": "Вся экономия",
   "Only savings that match conditions": "Только экономия, соответствующая условиям",
-  "XCP-ng Pool": "Пул XCP-ng"
+  "XCP-ng Pool": "Пул XCP-ng",
+  "Same name as another {{kind}}": "Совпадает с названием другого объекта типа «{{kind}}»",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Такое же название есть у другого объекта типа «{{kind}}» в этом проекте, поэтому в полях выбора их не различить. Откройте каждый, чтобы понять, какой из них какой, затем переименуйте один из них.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} называется так же, как другой объект этого типа, и в полях выбора их не различить. Откройте каждый объект, чтобы понять, какой из них какой, затем переименуйте один из них.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kinds}}, названные так же, как другой объект типа «{{kind}}»: {{count}}. В полях выбора их не различить. Откройте каждый объект, чтобы понять, какой из них какой, затем переименуйте один из них.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} называется так же, как другой объект этого типа, и в полях выбора их не различить. Откройте каждый объект, чтобы понять, какой из них какой, затем переименуйте один из них."
 }

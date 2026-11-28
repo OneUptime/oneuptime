@@ -312,7 +312,7 @@ describe("MetricScrubRulesMatchTheirPatternType", () => {
 
   test("leaves every filter that is not Scrub It's frozen pattern of one of the three, and every other rule", async () => {
     const kept: Array<StoredRule> = [
-      // Another type's frozen pattern: its pattern type finds less.
+      // Another type's frozen pattern, which a migration of its own moves (#11112).
       redactRule("b1", "caller", [
         attributeFilter(
           "caller",
