@@ -98,6 +98,86 @@ export const canShowMarkdownFiles: CanShowMarkdownFilesFunction = (
   );
 };
 
+/*
+ * MARKDOWN THAT A RECORD KEEPS INSIDE A JSON COLUMN, by table: the incident
+ * and the alert a monitor's criteria open (their description and
+ * remediation notes, in the monitor's steps), and a playbook's steps (a
+ * note to add, an announcement to post). The dashboard edits each with the
+ * Markdown editor, which uploads a pasted picture as it does for any
+ * Markdown field, so the record shows that image to whoever may read it
+ * (#11478). A column named here must be one of the model's JSON columns, or
+ * its Monitor Steps (MarkdownRecords.test).
+ */
+export const MARKDOWN_IN_JSON_COLUMNS: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  Monitor: ["monitorSteps"],
+  MonitorTemplate: ["monitorSteps"],
+  SecurityPlaybook: ["steps"],
+};
+
+export type GetMarkdownInJsonColumnsFunction = (
+  model: BaseModel,
+) => Array<string>;
+
+// The JSON columns of a model that hold Markdown people write, when any.
+export const getMarkdownInJsonColumns: GetMarkdownInJsonColumnsFunction = (
+  model: BaseModel,
+): Array<string> => {
+  const columns: ReadonlyArray<string> =
+    (model.tableName &&
+      Object.prototype.hasOwnProperty.call(
+        MARKDOWN_IN_JSON_COLUMNS,
+        model.tableName,
+      ) &&
+      MARKDOWN_IN_JSON_COLUMNS[model.tableName]) ||
+    [];
+
+  const tableColumns: Array<string> = model.getTableColumns().columns;
+
+  return columns.filter((column: string): boolean => {
+    return tableColumns.includes(column);
+  });
+};
+
+export type GetImageColumnsFunction = (model: BaseModel) => Array<string>;
+
+/*
+ * The columns a record can show an inline image in, to the people who may
+ * read them (#11478): its Markdown columns, the Markdown it keeps in JSON
+ * columns, and its custom fields, any of which may be a Markdown field.
+ * Wider than what a Get Files From Markdown step reads (its Markdown
+ * columns and Markdown custom fields): the image's address opens it for a
+ * person wherever the dashboard shows it to them.
+ */
+export const getImageColumns: GetImageColumnsFunction = (
+  model: BaseModel,
+): Array<string> => {
+  return [
+    ...getMarkdownColumns(model),
+    ...getMarkdownInJsonColumns(model),
+    ...(getMarkdownCustomFieldKind(model) ? [CUSTOM_FIELDS_COLUMN] : []),
+  ];
+};
+
+export type CanShowImagesFunction = (model: BaseModel) => boolean;
+
+/*
+ * Whether a model's records can show inline images to the people who may
+ * read them: records of a project with a column of getImageColumns. Every
+ * write of one is read for the images it shows (Server/Utils/File/
+ * ShownImages).
+ */
+export const canShowImages: CanShowImagesFunction = (
+  model: BaseModel,
+): boolean => {
+  return (
+    Boolean(model.tableName) &&
+    Boolean(model.getTenantColumn()) &&
+    getImageColumns(model).length > 0
+  );
+};
+
 export type IsMarkdownFilesRecordTypeFunction = (model: BaseModel) => boolean;
 
 /*

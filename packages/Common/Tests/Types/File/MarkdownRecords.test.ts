@@ -6,19 +6,27 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
+import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
+import ShownImage from "../../../Models/DatabaseModels/ShownImage";
+import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import User from "../../../Models/DatabaseModels/User";
 import { getCustomFieldRecordKind } from "../../../Types/CustomField/CustomFieldRecordKinds";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import {
+  canShowImages,
   canShowMarkdownFiles,
   COMMON_MARKDOWN_RECORD_TABLE_NAMES,
   CUSTOM_FIELDS_COLUMN,
+  getImageColumns,
   getMarkdownColumns,
   getMarkdownCustomFieldKind,
   getMarkdownFilesRecordTypes,
+  getMarkdownInJsonColumns,
   isMarkdownFilesRecordType,
+  MARKDOWN_IN_JSON_COLUMNS,
 } from "../../../Types/File/MarkdownRecords";
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 
 /*
  * Which records can show files in Markdown, read from the models (#11256):
@@ -219,5 +227,181 @@ describe("the record types a Get Files From Markdown step reads", () => {
         ]),
       ),
     ).toEqual(["Incident", "Alert"]);
+  });
+});
+
+/*
+ * Which records show inline images to the people who may read them
+ * (#11478): wider than what Get Files From Markdown reads - the Markdown a
+ * record keeps in JSON too, where the dashboard's editor uploads pictures
+ * as it does into any Markdown field.
+ */
+describe("the Markdown a record keeps in JSON columns", () => {
+  test("a monitor's and a monitor template's criteria, and a playbook's steps", () => {
+    expect(getMarkdownInJsonColumns(new Monitor())).toEqual(["monitorSteps"]);
+    expect(getMarkdownInJsonColumns(new MonitorTemplate())).toEqual([
+      "monitorSteps",
+    ]);
+    expect(getMarkdownInJsonColumns(new SecurityPlaybook())).toEqual(["steps"]);
+  });
+
+  test("a model with none has none", () => {
+    expect(getMarkdownInJsonColumns(new Incident())).toEqual([]);
+    expect(getMarkdownInJsonColumns(new User())).toEqual([]);
+  });
+
+  test("each column named is a JSON column of a model of that table, of a project", () => {
+    for (const [tableName, columns] of Object.entries(
+      MARKDOWN_IN_JSON_COLUMNS,
+    )) {
+      const model: BaseModel | undefined = MODELS.find(
+        (candidate: BaseModel): boolean => {
+          return candidate.tableName === tableName;
+        },
+      );
+
+      expect([tableName, Boolean(model)]).toEqual([tableName, true]);
+      expect([tableName, Boolean(model!.getTenantColumn())]).toEqual([
+        tableName,
+        true,
+      ]);
+
+      for (const column of columns) {
+        expect([
+          tableName,
+          column,
+          getMarkdownInJsonColumns(model!).includes(column),
+        ]).toEqual([tableName, column, true]);
+        expect([
+          tableName,
+          column,
+          [TableColumnType.JSON, TableColumnType.MonitorSteps].includes(
+            model!.getTableColumnMetadata(column)!.type,
+          ),
+        ]).toEqual([tableName, column, true]);
+      }
+    }
+  });
+
+  test("a table named in the list that has no such column names nothing", () => {
+    const stranger: Monitor = new Monitor();
+
+    jest
+      .spyOn(stranger, "getTableColumns")
+      .mockReturnValue({ columns: ["_id", "projectId"] } as never);
+
+    expect(getMarkdownInJsonColumns(stranger)).toEqual([]);
+  });
+});
+
+describe("getImageColumns", () => {
+  test("an incident's Markdown, then its custom fields", () => {
+    expect(getImageColumns(new Incident())).toEqual([
+      "description",
+      "rootCause",
+      "postmortemNote",
+      "remediationNotes",
+      CUSTOM_FIELDS_COLUMN,
+    ]);
+  });
+
+  test("a monitor's criteria and its custom fields", () => {
+    expect(getImageColumns(new Monitor())).toEqual([
+      "monitorSteps",
+      CUSTOM_FIELDS_COLUMN,
+    ]);
+  });
+
+  test("a note's Markdown alone, an edit waiting for approval too", () => {
+    expect(getImageColumns(new IncidentInternalNote())).toEqual(["note"]);
+    expect(getImageColumns(new IncidentPublicNote())).toEqual([
+      "note",
+      "pendingNote",
+    ]);
+  });
+
+  test("an announcement's description", () => {
+    expect(getImageColumns(new StatusPageAnnouncement())).toEqual([
+      "description",
+    ]);
+  });
+
+  test("covers everything Get Files From Markdown reads, for every model", () => {
+    for (const model of MODELS) {
+      const columns: Array<string> = getImageColumns(model);
+
+      for (const column of getMarkdownColumns(model)) {
+        expect([model.tableName, column, columns.includes(column)]).toEqual([
+          model.tableName,
+          column,
+          true,
+        ]);
+      }
+
+      if (getMarkdownCustomFieldKind(model)) {
+        expect([
+          model.tableName,
+          columns.includes(CUSTOM_FIELDS_COLUMN),
+        ]).toEqual([model.tableName, true]);
+      }
+    }
+  });
+
+  test("each column once, every one a column of the model", () => {
+    for (const model of MODELS) {
+      const columns: Array<string> = getImageColumns(model);
+
+      expect([model.tableName, new Set(columns).size]).toEqual([
+        model.tableName,
+        columns.length,
+      ]);
+
+      for (const column of columns) {
+        expect([
+          model.tableName,
+          column,
+          model.getTableColumns().columns.includes(column),
+        ]).toEqual([model.tableName, column, true]);
+      }
+    }
+  });
+});
+
+describe("canShowImages", () => {
+  test("every record that can show files in Markdown, and a playbook too", () => {
+    for (const model of MODELS) {
+      if (canShowMarkdownFiles(model)) {
+        expect([model.tableName, canShowImages(model)]).toEqual([
+          model.tableName,
+          true,
+        ]);
+      }
+    }
+
+    expect(canShowMarkdownFiles(new SecurityPlaybook())).toBe(false);
+    expect(canShowImages(new SecurityPlaybook())).toBe(true);
+  });
+
+  test("a record of no project, a file, and the table of shown images itself show none", () => {
+    expect(canShowImages(new User())).toBe(false);
+    expect(canShowImages(new File())).toBe(false);
+    expect(canShowImages(new ShownImage())).toBe(false);
+  });
+
+  test("every model that can show images is of a project, with a column to show them in", () => {
+    for (const model of MODELS) {
+      if (!canShowImages(model)) {
+        continue;
+      }
+
+      expect([model.tableName, Boolean(model.getTenantColumn())]).toEqual([
+        model.tableName,
+        true,
+      ]);
+      expect([model.tableName, getImageColumns(model).length > 0]).toEqual([
+        model.tableName,
+        true,
+      ]);
+    }
   });
 });

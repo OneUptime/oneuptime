@@ -1229,6 +1229,8 @@ import { AddScheduleRosterTurnAndRestrictionTypeKey1809187791269 } from "./18091
 import { AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260 } from "./1809187801260-AddMonitorTemplateChangesAndCreatedFromTemplate";
 import { AddProjectCallVoice1809187801300 } from "./1809187801300-AddProjectCallVoice";
 import { AddVMwareHealthSettingsAndSwapRates1809187811157 } from "./1809187811157-AddVMwareHealthSettingsAndSwapRates";
+import { AddShownImages1809187821478 } from "./1809187821478-AddShownImages";
+import { BackfillShownImages1809187821479 } from "./1809187821479-BackfillShownImages";
 
 export default [
   InitialMigration,
@@ -2462,4 +2464,6 @@ export default [
   AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260,
   AddProjectCallVoice1809187801300,
   AddVMwareHealthSettingsAndSwapRates1809187811157,
+  AddShownImages1809187821478,
+  BackfillShownImages1809187821479,
 ];

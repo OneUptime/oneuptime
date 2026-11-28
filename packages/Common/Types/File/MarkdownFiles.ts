@@ -213,6 +213,47 @@ export const readMarkdownImageReferences: ReadMarkdownImageReferencesFunction =
     return references;
   };
 
+// What every inline image's address holds, before its token.
+export const IMAGE_ADDRESS_SEGMENT: string = "/file/image/access-token/";
+
+export type ReadImageTokensFunction = (value: unknown) => Array<string>;
+
+/*
+ * The inline image tokens a stored value names, each once, in the order
+ * written: Markdown text, or JSON that holds Markdown - a custom field's
+ * value, a monitor's criteria, a playbook's steps - read as its text. A
+ * value that names none is read no further than one search for the address.
+ */
+export const readImageTokens: ReadImageTokensFunction = (
+  value: unknown,
+): Array<string> => {
+  let text: string = "";
+
+  if (typeof value === "string") {
+    text = value;
+  } else if (value !== undefined && value !== null) {
+    try {
+      text = JSON.stringify(value) || "";
+    } catch {
+      text = "";
+    }
+  }
+
+  if (!text || !text.includes(IMAGE_ADDRESS_SEGMENT)) {
+    return [];
+  }
+
+  const tokens: Array<string> = [];
+
+  for (const reference of readMarkdownImageReferences(text)) {
+    if (!tokens.includes(reference.token)) {
+      tokens.push(reference.token);
+    }
+  }
+
+  return tokens;
+};
+
 // One field of a record and the Markdown it holds.
 export interface MarkdownSource {
   // A column ("description") or a custom field's name.

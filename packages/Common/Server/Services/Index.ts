@@ -24,6 +24,7 @@ import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
 import FileService from "./FileService";
+import ShownImageService from "./ShownImageService";
 import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
 import IncidentOnCallRuleOwningTeamService from "./IncidentOnCallRuleOwningTeamService";
@@ -725,6 +726,8 @@ const services: Array<BaseService> = [
   EmailVerificationTokenService,
 
   FileService,
+  // Which records show each inline image (#11478).
+  ShownImageService,
 
   IncidentCustomFieldService,
   IncidentOnCallRuleService,

@@ -259,6 +259,7 @@ import RelatedFileAccess, {
   RelatedFileReader,
 } from "../Utils/File/RelatedFileAccess";
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
+import ShownImages from "../Utils/File/ShownImages";
 import AttachedFiles, { hasAttachedFiles } from "../Utils/File/AttachedFiles";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
@@ -7983,6 +7984,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
 
       /*
+       * The images it shows, recorded against it: their addresses open them
+       * for the people who may read it (#11478). See ShownImages.
+       */
+      await ShownImages.afterCreate({
+        model: this.model,
+        row: createBy.data,
+      });
+
+      /*
        * A product's first record: the products menu stops saying "Not set
        * up" on it at once, on every server (#7465). See ProjectUsageCache.
        */
@@ -13329,6 +13339,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         rowsBefore: rowsBeforeForImages,
         written: data,
         rowsAfter: rowsAsWritten,
+      });
+
+      /*
+       * The images the write puts in each record, recorded against it: their
+       * addresses open them for the people who may read it (#11478). See
+       * ShownImages.
+       */
+      await ShownImages.afterUpdate({
+        model: this.model,
+        written: data,
+        rows: affectedItems,
       });
 
       /*
