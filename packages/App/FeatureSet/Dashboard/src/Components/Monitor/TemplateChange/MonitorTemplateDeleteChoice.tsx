@@ -54,6 +54,11 @@ const MonitorTemplateDeleteChoice: FunctionComponent<ComponentProps> = (
           },
         )}
       </p>
+      {/*
+       * Each time the delete asks, it starts from keeping their settings,
+       * and the choice says so to the page as it opens: a clear chosen in a
+       * delete that was cancelled is not carried into the next.
+       */}
       <RadioButtons
         dataTestId="monitor-template-delete-choice-options"
         initialValue={DeleteChoice.KeepSettings}

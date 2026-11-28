@@ -991,6 +991,18 @@ describe("a template's delete asks what happens to its monitors, in Persian", ()
     expect(question).not.toMatch(/[0-9]/);
     expect(question).toContain("Switches");
 
+    // It starts from keeping their settings, and says so to the page.
+    expect(onChange).toHaveBeenCalled();
+    expect(
+      onChange.mock.calls.map((call: [DeleteChoice]): DeleteChoice => {
+        return call[0];
+      }),
+    ).toEqual(
+      onChange.mock.calls.map(() => {
+        return DeleteChoice.KeepSettings;
+      }),
+    );
+
     await act(async () => {
       fireEvent.click(
         screen.getByTestId(`card-select-option-${DeleteChoice.ClearCriteria}`),
@@ -998,5 +1010,36 @@ describe("a template's delete asks what happens to its monitors, in Persian", ()
     });
 
     expect(onChange).toHaveBeenLastCalledWith(DeleteChoice.ClearCriteria);
+  });
+
+  test("a clear chosen in a delete that was cancelled is not carried into the next one", async () => {
+    const onChange: Mock<(choice: DeleteChoice) => void> = jest.fn();
+    const ask: () => Promise<void> = async (): Promise<void> => {
+      await act(async () => {
+        render(
+          <I18nextProvider i18n={instances["fa"]!}>
+            <MonitorTemplateDeleteChoice
+              templateName="Switches"
+              linkedMonitorCount={851}
+              onChange={onChange}
+            />
+          </I18nextProvider>,
+        );
+      });
+    };
+
+    await ask();
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`card-select-option-${DeleteChoice.ClearCriteria}`),
+      );
+    });
+    expect(onChange).toHaveBeenLastCalledWith(DeleteChoice.ClearCriteria);
+
+    // Cancelled: the delete's dialog closes, and opens again.
+    cleanup();
+    await ask();
+
+    expect(onChange).toHaveBeenLastCalledWith(DeleteChoice.KeepSettings);
   });
 });
