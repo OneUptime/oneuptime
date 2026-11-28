@@ -115,6 +115,14 @@ import {
   getDeleteConsequence,
   joinSentences,
 } from "../DeleteConfirmation/DeleteConsequences";
+import { joinSentences as joinSentencesInOrder } from "../../Utils/SentenceSeparator";
+import {
+  ColumnSortLock,
+  getColumnSortLock,
+  getColumnSortLockSentence,
+  SortLockModel,
+} from "../../Utils/ColumnSortLock";
+import { useLabelNames } from "../../Utils/RecordLabelLock";
 import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
 import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
 import Icon from "../Icon/Icon";
@@ -1464,10 +1472,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * on it: its changes are offered only when a team of theirs that owns it
    * may make them (PrivateRecordScope). A list of the page's own kind lists
    * other records, which the page's answer is not about: each row is
-   * weighed by its own labels instead (ModelTable, #11259).
+   * weighed by its own labels instead (ModelTable, #11259). A list of one of
+   * the record's parts takes the page's answer for the part only while its
+   * query keeps it to the record's rows (#11435).
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
-    useListGateOptions(model);
+    useListGateOptions(model, props.query);
 
   type GetItemLabelFunction = (item: unknown) => string;
 
@@ -1836,6 +1846,34 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     return [...declaredColumns, ...attributeColumns];
   }, [declaredColumns, attributeColumns]);
+
+  /*
+   * The labels the columns this reader may not sort by are read on
+   * (#11437, ColumnSortLock): their (i) names them, once read.
+   */
+  const sortLockLabelIds: Array<string> = [];
+
+  for (const column of allColumns) {
+    const field: string | undefined = column.field
+      ? Object.keys(column.field)[0]
+      : undefined;
+    const lock: ColumnSortLock | null =
+      field && !column.selectedProperty
+        ? getColumnSortLock(model as SortLockModel, field)
+        : null;
+
+    for (const labelId of lock?.labelIds || []) {
+      if (!sortLockLabelIds.includes(labelId)) {
+        sortLockLabelIds.push(labelId);
+      }
+    }
+  }
+
+  const sortLockLabelNames: ReadonlyMap<string, string> =
+    useLabelNames(sortLockLabelIds);
+  const sortLockNamesKey: string = Array.from(
+    sortLockLabelNames.entries(),
+  ).join(";");
 
   /*
    * A kind Require Unique Names holds marks the records whose name another
@@ -2661,11 +2699,39 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [showModel, setShowModal] = useState<boolean>(false);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
   const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
-  const [sortBy, setSortBy] = useState<keyof TBaseModel | null>(
-    (initialUrlState.view.sortBy as keyof TBaseModel | undefined) ||
-      props.sortBy ||
-      null,
-  );
+  /*
+   * The sort a link or a saved view asks for, unless the reader may not
+   * order the list by it - a column they read on some labels only, or on
+   * the records they own (#11437, ColumnSortLock): the server would refuse
+   * the list. The list's own sort then, if they may sort by that.
+   */
+  const getSortOfReader: (
+    asked: keyof TBaseModel | null | undefined,
+  ) => keyof TBaseModel | null = (
+    asked: keyof TBaseModel | null | undefined,
+  ): keyof TBaseModel | null => {
+    const isLocked: (column: keyof TBaseModel | null | undefined) => boolean = (
+      column: keyof TBaseModel | null | undefined,
+    ): boolean => {
+      return Boolean(
+        column && getColumnSortLock(model as SortLockModel, String(column)),
+      );
+    };
+
+    if (!asked || !isLocked(asked)) {
+      return asked || null;
+    }
+
+    return props.sortBy && !isLocked(props.sortBy) ? props.sortBy : null;
+  };
+
+  const [sortBy, setSortBy] = useState<keyof TBaseModel | null>(() => {
+    return getSortOfReader(
+      (initialUrlState.view.sortBy as keyof TBaseModel | undefined) ||
+        props.sortBy ||
+        null,
+    );
+  });
   const [sortOrder, setSortOrder] = useState<SortOrder>(
     initialUrlState.view.sortOrder || props.sortOrder || SortOrder.Ascending,
   );
@@ -3024,11 +3090,34 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               column.selectedProperty) as keyof TBaseModel)
           : key;
 
-        const disableSort: boolean = Boolean(
+        /*
+         * A column the reader reads on some labels only, or only on the
+         * records they own, is no order of theirs: the server refuses it
+         * (#11437). Not offered, and its (i) says why - where the header
+         * would sort for anyone else.
+         */
+        const sortLock: ColumnSortLock | null =
+          key && !column.selectedProperty
+            ? getColumnSortLock(model as SortLockModel, String(key))
+            : null;
+
+        const sortsForOthers: boolean = !(
           column.disableSort ||
-            shouldDisableSort(column, key) ||
-            isDrawnFromRecordId<TBaseModel>(column, key),
+          shouldDisableSort(column, key) ||
+          isDrawnFromRecordId<TBaseModel>(column, key)
         );
+
+        const disableSort: boolean = !sortsForOthers || Boolean(sortLock);
+
+        const sortLockSentence: string =
+          sortLock && sortsForOthers
+            ? getColumnSortLockSentence({
+                lock: sortLock,
+                pluralName: props.pluralName || model.pluralName || "",
+                labelNames: sortLockLabelNames,
+                translator: translator,
+              })
+            : "";
 
         const relationSort: RelationColumnSort | undefined = columnKey
           ? relationColumnSorts.get(String(columnKey))
@@ -3045,6 +3134,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
         const tableColumn: TableColumn<TBaseModel> = {
           ...column,
+          ...(sortLockSentence
+            ? {
+                headerTooltip: joinSentencesInOrder([
+                  column.headerTooltip
+                    ? translator.translateText(column.headerTooltip) ||
+                      column.headerTooltip
+                    : "",
+                  sortLockSentence,
+                ]),
+              }
+            : {}),
           id: columnIdByColumn.get(column),
           /*
            * Nor does a column that draws its own thing from the record's id
@@ -4407,6 +4507,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       serializeToTableColumns();
     }
   }, [twinMarks.version]);
+
+  // The labels a locked sort's (i) names arrived (#11437).
+  useEffect(() => {
+    if (sortLockNamesKey) {
+      serializeToTableColumns();
+    }
+  }, [sortLockNamesKey]);
+
+  /*
+   * The permission snapshot landed after the list chose its sort: a sort the
+   * reader may not order by gives way to the list's own (#11437).
+   */
+  const hasSnapshot: boolean = PermissionGate.hasPermissionSnapshot();
+
+  useEffect(() => {
+    const sortOfReader: keyof TBaseModel | null = getSortOfReader(sortBy);
+
+    if (sortBy && sortOfReader !== sortBy) {
+      setSortBy(sortOfReader);
+      setSortOrder(props.sortOrder || SortOrder.Ascending);
+    }
+  }, [hasSnapshot, sortBy]);
 
   /*
    * Re-serialize whenever the parent passes a new `columns` reference. The
