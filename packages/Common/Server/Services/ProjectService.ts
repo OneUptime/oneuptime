@@ -2114,12 +2114,17 @@ export class ProjectService extends ProjectReferencesService<Model> {
     data: { callVoice?: unknown },
     props: DatabaseCommonInteractionProps | undefined,
   ): Promise<void> {
-    const value: unknown = data.callVoice;
-
-    if (value === undefined) {
+    /*
+     * Only a write that carries the voice itself is rewritten, so its
+     * caller is held to the column's update list for what they sent: the
+     * test is on the payload's own column, as the hook scan reads it
+     * (Tests/Helpers/HookColumnWriteScan).
+     */
+    if (data.callVoice === undefined) {
       return;
     }
 
+    const value: unknown = data.callVoice;
     const error: string | null = getCallVoiceError(value);
 
     if (error) {
