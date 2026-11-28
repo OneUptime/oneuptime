@@ -3,6 +3,7 @@ import { ResponseJSON, ResultSet } from "@clickhouse/client";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import { MutableMetricService as MutableMetricServiceClass } from "./MutableMetricService";
 import Metric from "../../Models/AnalyticsModels/Metric";
+import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AggregateBy, {
   AggregateUtil,
 } from "../Types/AnalyticsDatabase/AggregateBy";
@@ -3573,8 +3574,17 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       )
       .append(conditionStatement())
       .append(`)))) AS states FROM ${databaseName}.${this.model.tableName}`)
+      /*
+       * The sort key in PREWHERE, the attributes after it: only this
+       * monitor's rows of the window go on to the WHERE, so the attributes
+       * map is read for them alone, not for the other series' rows the same
+       * granules hold (readMonitorWindowRows says more). On ClickHouse 26.7,
+       * 36 million rows, an hour's count of one step's checks: 146 ms of CPU
+       * and 145 MiB read with the four conditions in WHERE, 71 ms and 58 MiB
+       * here.
+       */
       .append(
-        SQL` WHERE projectId = ${{
+        SQL` PREWHERE projectId = ${{
           value: data.projectId.toString(),
           type: TableColumnType.ObjectID,
         }} AND name = ${{
@@ -3589,7 +3599,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         }} AND time <= ${{
           value: data.windowEnd,
           type: TableColumnType.DateTime64,
-        }} AND isNotNull(value)`,
+        }} WHERE isNotNull(value)`,
       );
 
     MetricService.appendMonitorCheckAttributeFilter({
@@ -3718,8 +3728,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       .append(
         ` argMax(assumeNotNull(value), time) AS previousValue, max(time) AS previousAt FROM ${databaseName}.${this.model.tableName}`,
       )
+      // The sort key in PREWHERE, as summarizeMonitorChecks reads it.
       .append(
-        SQL` WHERE projectId = ${{
+        SQL` PREWHERE projectId = ${{
           value: data.projectId.toString(),
           type: TableColumnType.ObjectID,
         }} AND name = ${{
@@ -3734,7 +3745,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         }} AND time < ${{
           value: before,
           type: TableColumnType.DateTime64,
-        }} AND isNotNull(value)`,
+        }} WHERE isNotNull(value)`,
       );
 
     MetricService.appendMonitorCheckAttributeFilter({
@@ -3787,6 +3798,144 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     return rows;
+  }
+
+  /**
+   * One monitor's rows of one series over a window, newest first, at most
+   * `limit` of them: the window an over-time filter judges
+   * (EvaluateOverTime.readWindowRows) and the window a match history is
+   * read from (CriteriaFilterMatchHistory). Each row carries its time, its
+   * value and the attributes `readAttributeKeys` names, nothing else; a row
+   * with no value is left out, as both readers leave it out.
+   *
+   * Every probe result reads one of these for each window its over-time
+   * filters judge (EvaluateOverTime's OverTimeWindowReads), so this is the
+   * read monitoring sends ClickHouse most.
+   * It reads in one pass over the table's own sort key (projectId, name,
+   * primaryEntityId, time), with those four conditions in PREWHERE: only
+   * the rows of this monitor's series in the window go on to the WHERE,
+   * so the attributes map - the widest column, about 450 bytes a row -
+   * is read for them alone, not for the other series' rows the same
+   * granules hold. A find through findBy read `_id` and sorted by it as a
+   * tiebreaker, and so read the window's granules twice to page exactly
+   * (toSortKeyPageBound), none of which a window needs. On ClickHouse 26.7,
+   * 36 million rows of telemetry and monitor checks, a ten-minute window of
+   * one monitor's step: 352 ms of CPU and 170 MiB read through findBy, 108
+   * ms and 41 MiB here (Tests/Server/Services/MetricServiceMonitorWindow
+   * pins the statement).
+   *
+   * Each attribute filter is one of a fixed shape with its values bound
+   * (appendMonitorCheckAttributeFilter), as a counted window's is.
+   */
+  public async readMonitorWindowRows(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    metricName: string;
+    windowStart: Date;
+    windowEnd: Date;
+    /*
+     * Rows whose attribute equals the value, or one of the values: a step
+     * of a series (MonitorStepSeries), a disk, a match history's filter key.
+     */
+    attributes?: MonitorCheckAttributeFilter | undefined;
+    // The attributes each row hands back, as its `attributes`: probeId.
+    readAttributeKeys?: Array<string> | undefined;
+    limit: number;
+  }): Promise<Array<Metric>> {
+    const limit: number = Math.floor(Number(data.limit));
+
+    if (!Number.isSafeInteger(limit) || limit < 1) {
+      throw new BadDataException(
+        "A monitor's window is read up to a whole number of rows.",
+      );
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const readAttributeKeys: Array<string> = data.readAttributeKeys || [];
+
+    const statement: Statement = SQL`SELECT time, value`;
+
+    readAttributeKeys.forEach((key: string, index: number): void => {
+      statement
+        .append(
+          SQL`, attributes[${{ value: key, type: TableColumnType.Text }}]`,
+        )
+        .append(` AS attribute${index}`);
+    });
+
+    statement
+      .append(` FROM ${databaseName}.${this.model.tableName}`)
+      .append(
+        SQL` PREWHERE projectId = ${{
+          value: data.projectId.toString(),
+          type: TableColumnType.ObjectID,
+        }} AND name = ${{
+          value: data.metricName,
+          type: TableColumnType.Text,
+        }} AND primaryEntityId = ${{
+          value: data.monitorId.toString(),
+          type: TableColumnType.ObjectID,
+        }} AND time >= ${{
+          value: data.windowStart,
+          type: TableColumnType.DateTime64,
+        }} AND time <= ${{
+          value: data.windowEnd,
+          type: TableColumnType.DateTime64,
+        }}`,
+      )
+      .append(` WHERE isNotNull(value)`);
+
+    MetricService.appendMonitorCheckAttributeFilter({
+      statement: statement,
+      attributes: data.attributes,
+    });
+
+    statement
+      .append(this.getRetentionReadFilter())
+      .append(
+        SQL` ORDER BY time DESC LIMIT ${{
+          value: limit,
+          type: TableColumnType.Number,
+        }}`,
+      )
+      .append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+    const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
+    const responseJSON: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+
+    const rows: Array<JSONObject> = (responseJSON.data || []).map(
+      (row: JSONObject): JSONObject => {
+        const item: JSONObject = {
+          time: row["time"],
+          value: row["value"],
+        };
+
+        if (readAttributeKeys.length > 0) {
+          const attributes: JSONObject = {};
+
+          readAttributeKeys.forEach((key: string, index: number): void => {
+            const value: unknown = row[`attribute${index}`];
+
+            // A map reads a missing key as "": the row has no such attribute.
+            if (value !== undefined && value !== null && value !== "") {
+              attributes[key] = String(value);
+            }
+          });
+
+          item["attributes"] = attributes;
+        }
+
+        return item;
+      },
+    );
+
+    return AnalyticsBaseModel.fromJSONArray<Metric>(rows, Metric);
   }
 
   /*

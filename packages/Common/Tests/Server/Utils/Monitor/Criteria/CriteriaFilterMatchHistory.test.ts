@@ -6,14 +6,10 @@ import CriteriaFilterMatchHistory, {
 } from "../../../../../Server/Utils/Monitor/Criteria/CriteriaFilterMatchHistory";
 import MonitorMetricUtil from "../../../../../Server/Utils/Monitor/MonitorMetricUtil";
 import MetricService from "../../../../../Server/Services/MetricService";
-import FindBy from "../../../../../Server/Types/AnalyticsDatabase/FindBy";
 import logger from "../../../../../Server/Utils/Logger";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
-import InBetween from "../../../../../Types/BaseDatabase/InBetween";
-import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import FilterCondition from "../../../../../Types/Filter/FilterCondition";
-import { JSONObject } from "../../../../../Types/JSON";
 import {
   CheckOn,
   CriteriaFilter,
@@ -143,7 +139,10 @@ function everyMinuteBefore(
   });
 }
 
-let findByCalls: Array<FindBy<Metric>> = [];
+// The window reads asked for (MetricService.readMonitorWindowRows).
+type WindowRead = Parameters<typeof MetricService.readMonitorWindowRows>[0];
+
+let findByCalls: Array<WindowRead> = [];
 let storedChecks: Array<Metric> = [];
 let readError: Error | null = null;
 
@@ -219,9 +218,9 @@ describe("CriteriaFilterMatchHistory", () => {
     readError = null;
 
     jest
-      .spyOn(MetricService, "findBy")
-      .mockImplementation((findBy: FindBy<Metric>): Promise<Array<Metric>> => {
-        findByCalls.push(findBy);
+      .spyOn(MetricService, "readMonitorWindowRows")
+      .mockImplementation((read: WindowRead): Promise<Array<Metric>> => {
+        findByCalls.push(read);
 
         if (readError) {
           return Promise.reject(readError);
@@ -895,41 +894,39 @@ describe("CriteriaFilterMatchHistory", () => {
 
       expect(findByCalls).toHaveLength(1);
 
-      const query: JSONObject = findByCalls[0]!.query as unknown as JSONObject;
+      const read: WindowRead = findByCalls[0]!;
 
-      expect(query["projectId"]).toBe(PROJECT_ID);
-      expect(query["primaryEntityId"]).toBe(MONITOR_ID);
-      expect(query["name"]).toBe(CRITERIA_FILTER_MATCH_METRIC_NAME);
-      expect(query["attributes"]).toEqual({
+      expect(read.projectId).toBe(PROJECT_ID);
+      expect(read.monitorId).toBe(MONITOR_ID);
+      expect(read.metricName).toBe(CRITERIA_FILTER_MATCH_METRIC_NAME);
+      expect(read.attributes).toEqual({
         [CRITERIA_FILTER_KEY_ATTRIBUTE]: FILTER_KEY,
       });
-
-      const time: InBetween<Date> = query["time"] as unknown as InBetween<Date>;
 
       /*
        * The 5 minute window, and twice the widest gap the run may cross
        * (two and a half one-minute intervals): back to where the run of
        * matching checks may start, and to another probe's newest check.
        */
-      expect(time.startValue).toEqual(
+      expect(read.windowStart).toEqual(
         new Date(NOW.getTime() - 10 * MINUTE_IN_MS),
       );
-      expect(time.endValue).toEqual(NOW);
-      expect(findByCalls[0]!.select).toEqual({
-        value: true,
-        time: true,
-        attributes: true,
-      });
-      expect(findByCalls[0]!.props).toEqual({ isRoot: true });
+      expect(read.windowEnd).toEqual(NOW);
 
       /*
-       * Newest first, so a read that reaches the row limit - every probe's
-       * checks over a long window - leaves out the oldest checks: a history
-       * that starts later, which makes All Values wait, never checks at
-       * random from the middle of a run.
+       * Each row's probe and nothing else of its attributes: a history read
+       * the whole attributes map of every check it held.
        */
-      expect(findByCalls[0]!.sort).toEqual({ time: SortOrder.Descending });
-      expect(findByCalls[0]!.limit).toBe(LIMIT_PER_PROJECT);
+      expect(read.readAttributeKeys).toEqual(["probeId"]);
+
+      /*
+       * Newest first (readMonitorWindowRows reads every window so), so a
+       * read that reaches the row limit - every probe's checks over a long
+       * window - leaves out the oldest checks: a history that starts later,
+       * which makes All Values wait, never checks at random from the middle
+       * of a run.
+       */
+      expect(read.limit).toBe(LIMIT_PER_PROJECT);
     });
 
     test("is not met when the history cannot be read - a read failure is never a breach", async () => {

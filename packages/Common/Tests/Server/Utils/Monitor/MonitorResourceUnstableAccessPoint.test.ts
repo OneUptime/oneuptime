@@ -34,14 +34,11 @@ import MonitorStatusTimelineService from "../../../../Server/Services/MonitorSta
 import ProjectService from "../../../../Server/Services/ProjectService";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
-import FindBy from "../../../../Server/Types/AnalyticsDatabase/FindBy";
 import logger from "../../../../Server/Utils/Logger";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
-import InBetween from "../../../../Types/BaseDatabase/InBetween";
-import Includes from "../../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../../Types/Date";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../Types/JSON";
@@ -435,42 +432,40 @@ describe("A flapping access point is unstable, and one that is down is an outage
         }
       });
     jest
-      .spyOn(MetricService, "findBy")
+      .spyOn(MetricService, "readMonitorWindowRows")
       .mockImplementation(
-        async (findBy: FindBy<Metric>): Promise<Array<Metric>> => {
-          const query: JSONObject = findBy.query as unknown as JSONObject;
-          const time: InBetween<Date> = query[
-            "time"
-          ] as unknown as InBetween<Date>;
-          const attributes: JSONObject =
-            (query["attributes"] as JSONObject) || {};
+        async (
+          read: Parameters<typeof MetricService.readMonitorWindowRows>[0],
+        ): Promise<Array<Metric>> => {
+          const attributes: Record<string, string | Array<string>> =
+            read.attributes || {};
 
           return store
             .filter((row: StoredRow): boolean => {
               return (
-                row.name === query["name"] &&
-                row.primaryEntityId === query["primaryEntityId"]!.toString() &&
-                row.time.getTime() >= time.startValue.getTime() &&
-                row.time.getTime() <= time.endValue.getTime() &&
+                row.name === read.metricName &&
+                row.primaryEntityId === read.monitorId.toString() &&
+                row.time.getTime() >= read.windowStart.getTime() &&
+                row.time.getTime() <= read.windowEnd.getTime() &&
+                row.value !== null &&
                 Object.entries(attributes).every(
-                  ([key, value]: [string, unknown]): boolean => {
+                  ([key, value]: [string, string | Array<string>]): boolean => {
                     /*
-                     * Includes is any of its values, a missing key read as
-                     * "", as the analytics query reads a map: a one-step
+                     * A list is any of its values, a missing key read as "",
+                     * as the analytics query reads a map: a one-step
                      * monitor's step, or no step (#10906).
                      */
-                    if (value instanceof Includes) {
-                      return value.values
-                        .map((included: string | number | ObjectID) => {
-                          return included.toString();
-                        })
-                        .includes(String(row.attributes[key] ?? ""));
-                    }
+                    const stored: string = String(row.attributes[key] ?? "");
 
-                    return row.attributes[key] === value;
+                    return Array.isArray(value)
+                      ? value.includes(stored)
+                      : stored === value;
                   },
                 )
               );
+            })
+            .sort((a: StoredRow, b: StoredRow): number => {
+              return b.time.getTime() - a.time.getTime();
             })
             .map((row: StoredRow): Metric => {
               const metric: Metric = new Metric();

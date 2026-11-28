@@ -1,7 +1,10 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import PerEntityCriteriaFanOut from "../PerEntityCriteriaFanOut";
-import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import EvaluateOverTime, {
+  OverTimeCriteriaValue,
+  OverTimeWindowReads,
+} from "./EvaluateOverTime";
 import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import MonitorCriteriaMessageFormatter from "../MonitorCriteriaMessageFormatter";
 import OneUptimeDate from "../../../../Types/Date";
@@ -46,6 +49,11 @@ export default class ServerMonitorCriteria {
      * (MonitorStepSeries, #10906): never another step's checks.
      */
     stepScope?: MonitorStepSeriesScope | undefined;
+    /*
+     * The over-time windows read for the probe result being judged
+     * (OverTimeWindowReads): each read once, whatever asks for it.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
   }): Promise<string | null> {
     // Server Monitoring Checks
 
@@ -64,6 +72,7 @@ export default class ServerMonitorCriteria {
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
         stepScope: input.stepScope,
+        windowReads: input.windowReads,
       });
     }
 
@@ -83,6 +92,7 @@ export default class ServerMonitorCriteria {
         miscData: undefined,
         monitoringInterval: input.monitoringInterval,
         stepScope: input.stepScope,
+        windowReads: input.windowReads,
       });
 
     /*
@@ -538,6 +548,11 @@ export default class ServerMonitorCriteria {
      * (MonitorStepSeries, #10906): never another step's checks.
      */
     stepScope?: MonitorStepSeriesScope | undefined;
+    /*
+     * The over-time windows read for the probe result being judged
+     * (OverTimeWindowReads): each read once, whatever asks for it.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
   }): Promise<string | null> {
     const diskPath: string | undefined =
       input.criteriaFilter.serverMonitorOptions?.diskPath;
@@ -565,6 +580,7 @@ export default class ServerMonitorCriteria {
             criteriaFilter: input.criteriaFilter,
             monitoringInterval: input.monitoringInterval,
             stepScope: input.stepScope,
+            windowReads: input.windowReads,
             agentDiskPath: candidateDisk.diskPath,
             disk: candidateDisk,
           });
@@ -588,6 +604,7 @@ export default class ServerMonitorCriteria {
       criteriaFilter: input.criteriaFilter,
       monitoringInterval: input.monitoringInterval,
       stepScope: input.stepScope,
+      windowReads: input.windowReads,
       agentDiskPath:
         diskMetric?.diskPath || ServerMonitorCriteria.toAgentDiskPath(diskPath),
       disk: diskMetric,
@@ -609,6 +626,11 @@ export default class ServerMonitorCriteria {
      * (MonitorStepSeries, #10906): never another step's checks.
      */
     stepScope?: MonitorStepSeriesScope | undefined;
+    /*
+     * The over-time windows read for the probe result being judged
+     * (OverTimeWindowReads): each read once, whatever asks for it.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
     // The path the agent reports the disk under, which its window is read by.
     agentDiskPath: string;
     disk: BasicDiskMetrics | undefined;
@@ -621,6 +643,7 @@ export default class ServerMonitorCriteria {
         miscData: { diskPath: input.agentDiskPath },
         monitoringInterval: input.monitoringInterval,
         stepScope: input.stepScope,
+        windowReads: input.windowReads,
       });
 
     if (overTime.earlyReturn) {

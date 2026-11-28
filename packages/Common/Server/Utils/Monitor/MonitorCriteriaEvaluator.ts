@@ -44,6 +44,7 @@ import CheckWindowCounts, {
 import PreviousCheckComparison, {
   PreviousCheckReads,
 } from "./Criteria/PreviousCheckComparison";
+import { OverTimeWindowReads } from "./Criteria/EvaluateOverTime";
 import DnsAnswerFingerprint from "./DnsAnswerFingerprint";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
@@ -2859,6 +2860,15 @@ ${incomingRequestGrouping.rootCauseNote}
             criteriaFilter: criteriaFilter,
             criteriaInEffect: input.criteriaInEffect,
             seriesEvaluations: input.seriesEvaluations,
+            /*
+             * Read once for the probe result: this check's evaluation, every
+             * filter on the same window, and the probe agreement pass.
+             */
+            windowReads: input.matchHistory
+              ? OverTimeWindowReads.forMatchHistoryReads(
+                  input.matchHistory.reads,
+                )
+              : undefined,
           });
       }
 
@@ -2977,6 +2987,12 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaFilter: CriteriaFilter;
     criteriaInEffect?: CriteriaInEffect | undefined;
     seriesEvaluations?: MetricSeriesEvaluations | undefined;
+    /*
+     * The over-time windows read for the probe result being judged
+     * (OverTimeWindowReads): each read once, for its own evaluation and the
+     * probe agreement pass alike.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
   }): Promise<string | null> {
     /*
      * The rows of a series this step's over-time windows read (#10906): its
@@ -3064,6 +3080,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
           stepScope: stepScope,
+          windowReads: input.windowReads,
         });
 
       if (apiRequestCriteriaResult) {
@@ -3111,6 +3128,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
           stepScope: stepScope,
+          windowReads: input.windowReads,
         });
 
       if (incomingRequestResult) {
@@ -3137,6 +3155,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
           stepScope: stepScope,
+          windowReads: input.windowReads,
         });
 
       if (sslMonitorResult) {
@@ -3151,6 +3170,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
           stepScope: stepScope,
+          windowReads: input.windowReads,
         });
 
       if (serverMonitorResult) {
@@ -3257,6 +3277,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
           stepScope: stepScope,
+          windowReads: input.windowReads,
         });
 
       if (snmpMonitorResult) {
@@ -3271,6 +3292,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
           stepScope: stepScope,
+          windowReads: input.windowReads,
         });
 
       if (dnsMonitorResult) {
@@ -3285,6 +3307,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
           stepScope: stepScope,
+          windowReads: input.windowReads,
         });
 
       if (domainMonitorResult) {
@@ -3311,6 +3334,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
           stepScope: stepScope,
+          windowReads: input.windowReads,
         });
 
       if (ntpMonitorResult) {
@@ -3337,6 +3361,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
           stepScope: stepScope,
+          windowReads: input.windowReads,
         });
 
       if (databaseMonitorResult) {
@@ -3352,6 +3377,7 @@ ${incomingRequestGrouping.rootCauseNote}
             criteriaFilter: input.criteriaFilter,
             monitoringInterval: input.monitor.monitoringInterval,
             stepScope: stepScope,
+            windowReads: input.windowReads,
           },
         );
 
@@ -3367,6 +3393,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
           stepScope: stepScope,
+          windowReads: input.windowReads,
         });
 
       if (probeStatusResult) {

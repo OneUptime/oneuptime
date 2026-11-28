@@ -5,7 +5,6 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import OneUptimeDate from "../../../../Types/Date";
-import { JSONObject } from "../../../../Types/JSON";
 import {
   CriteriaFilter,
   CriteriaFilterUtil,
@@ -22,6 +21,9 @@ import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import stableStringify from "../../../../Utils/StableStringify";
+
+// The attribute each row of a history names the probe that made it under.
+const PROBE_ID_ATTRIBUTE: string = "probeId";
 
 /*
  * One check of one filter that keeps a match history: whether the filter
@@ -676,18 +678,18 @@ export default class CriteriaFilterMatchHistory {
     from: Date;
     to: Date;
   }): Promise<Array<RecordedMatch>> {
-    const filterKeyAttribute: JSONObject = {};
-    filterKeyAttribute[CRITERIA_FILTER_KEY_ATTRIBUTE] = data.filterKey;
-
+    /*
+     * Each row's probe, and nothing else of its attributes: the history is
+     * split between the probes that wrote it.
+     */
     const rows: Array<Metric> = await EvaluateOverTime.readWindowRows({
       projectId: data.projectId,
       monitorId: data.monitorId,
       metricName: CRITERIA_FILTER_MATCH_METRIC_NAME,
       windowStart: data.from,
       windowEnd: data.to,
-      attributes: filterKeyAttribute,
-      selectAttributes: true,
-      newestFirst: true,
+      attributes: { [CRITERIA_FILTER_KEY_ATTRIBUTE]: data.filterKey },
+      readAttributeKeys: [PROBE_ID_ATTRIBUTE],
     });
 
     const matches: Array<RecordedMatch> = [];
@@ -703,7 +705,7 @@ export default class CriteriaFilterMatchHistory {
         continue;
       }
 
-      const probeId: unknown = row.attributes?.["probeId"];
+      const probeId: unknown = row.attributes?.[PROBE_ID_ATTRIBUTE];
 
       matches.push({
         matched: Number(row.value) === CRITERIA_FILTER_MATCHED_VALUE,

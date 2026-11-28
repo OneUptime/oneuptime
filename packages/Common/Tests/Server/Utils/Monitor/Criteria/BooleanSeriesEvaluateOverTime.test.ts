@@ -4,7 +4,6 @@ import DnsMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/Dns
 import ExternalStatusPageMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/ExternalStatusPageMonitorCriteria";
 import SnmpMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/SnmpMonitorCriteria";
 import MetricService from "../../../../../Server/Services/MetricService";
-import FindBy from "../../../../../Server/Types/AnalyticsDatabase/FindBy";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import {
   CheckOn,
@@ -136,8 +135,8 @@ describe("true/false filters evaluated over time", () => {
     windowSamples = [];
 
     jest
-      .spyOn(MetricService, "findBy")
-      .mockImplementation((_findBy: FindBy<Metric>): Promise<Array<Metric>> => {
+      .spyOn(MetricService, "readMonitorWindowRows")
+      .mockImplementation((): Promise<Array<Metric>> => {
         return Promise.resolve(windowSamples);
       });
   });

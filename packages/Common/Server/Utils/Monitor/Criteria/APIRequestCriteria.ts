@@ -1,6 +1,9 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
-import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import EvaluateOverTime, {
+  OverTimeCriteriaValue,
+  OverTimeWindowReads,
+} from "./EvaluateOverTime";
 import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import { JSONObject } from "../../../../Types/JSON";
 import {
@@ -31,6 +34,11 @@ export default class APIRequestCriteria {
      * (MonitorStepSeries, #10906): never another step's checks.
      */
     stepScope?: MonitorStepSeriesScope | undefined;
+    /*
+     * The over-time windows read for the probe result being judged
+     * (OverTimeWindowReads): each read once, whatever asks for it.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
   }): Promise<string | null> {
     // Server Monitoring Checks
 
@@ -55,6 +63,7 @@ export default class APIRequestCriteria {
             : undefined,
         monitoringInterval: input.monitoringInterval,
         stepScope: input.stepScope,
+        windowReads: input.windowReads,
       });
 
     /*

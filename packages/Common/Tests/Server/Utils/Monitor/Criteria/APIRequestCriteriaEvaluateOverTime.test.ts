@@ -1,6 +1,5 @@
 import APIRequestCriteria from "../../../../../Server/Utils/Monitor/Criteria/APIRequestCriteria";
 import MetricService from "../../../../../Server/Services/MetricService";
-import FindBy from "../../../../../Server/Types/AnalyticsDatabase/FindBy";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import {
   CheckOn,
@@ -91,8 +90,8 @@ describe("APIRequestCriteria evaluate over time", () => {
     windowSamples = [];
 
     jest
-      .spyOn(MetricService, "findBy")
-      .mockImplementation((_findBy: FindBy<Metric>): Promise<Array<Metric>> => {
+      .spyOn(MetricService, "readMonitorWindowRows")
+      .mockImplementation((): Promise<Array<Metric>> => {
         return Promise.resolve(windowSamples);
       });
   });
@@ -417,7 +416,7 @@ describe("APIRequestCriteria evaluate over time", () => {
 
       const findBySpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
         MetricService,
-        "findBy",
+        "readMonitorWindowRows",
       );
 
       const result: string | null = await evaluate({
@@ -435,11 +434,10 @@ describe("APIRequestCriteria evaluate over time", () => {
         dataToProcess: buildResponse({ responseTimeInMs: 9000 }),
       });
 
-      const query: Record<string, unknown> = (
-        findBySpy.mock.calls[0]![0] as { query: Record<string, unknown> }
-      ).query;
+      const read: { attributes?: Record<string, unknown> } = findBySpy.mock
+        .calls[0]![0] as { attributes?: Record<string, unknown> };
 
-      expect(query["attributes"]).toBeUndefined();
+      expect(read.attributes).toEqual({});
       expect(result).not.toBeNull();
     });
   });
@@ -464,7 +462,7 @@ describe("APIRequestCriteria evaluate over time", () => {
     test("the metric store is never read for them", async () => {
       const findBySpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
         MetricService,
-        "findBy",
+        "readMonitorWindowRows",
       );
 
       await evaluate({

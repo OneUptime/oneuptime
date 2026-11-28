@@ -25,7 +25,10 @@ import RmonAlarmTrapUtil, {
 } from "../../../../Utils/NetworkEvent/RmonAlarmTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import PingMonitorResponse from "../../../../Types/Monitor/PingMonitor/PingMonitorResponse";
-import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import EvaluateOverTime, {
+  OverTimeCriteriaValue,
+  OverTimeWindowReads,
+} from "./EvaluateOverTime";
 import MonitorStepSeries, {
   MonitorStepSeriesScope,
 } from "../../../../Types/Monitor/MonitorStepSeries";
@@ -461,6 +464,11 @@ export default class SnmpMonitorCriteria {
      * (MonitorStepSeries, #10906): never another step's checks.
      */
     stepScope?: MonitorStepSeriesScope | undefined;
+    /*
+     * The over-time windows read for the probe result being judged
+     * (OverTimeWindowReads): each read once, whatever asks for it.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
   }): Promise<string | null> {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -621,6 +629,7 @@ export default class SnmpMonitorCriteria {
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
         stepScope: input.stepScope,
+        windowReads: input.windowReads,
       });
 
     /*

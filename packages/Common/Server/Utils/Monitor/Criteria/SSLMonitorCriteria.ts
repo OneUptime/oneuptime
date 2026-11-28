@@ -10,7 +10,10 @@ import CertificateRevocationStatus from "../../../../Types/Monitor/SSLMonitor/Ce
 import SslCertificateExpiry from "../../../../Types/Monitor/SSLMonitor/SslCertificateExpiry";
 import SslMonitorResponse from "../../../../Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
-import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import EvaluateOverTime, {
+  OverTimeCriteriaValue,
+  OverTimeWindowReads,
+} from "./EvaluateOverTime";
 import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -31,6 +34,11 @@ export default class ServerMonitorCriteria {
      * (MonitorStepSeries, #10906): never another step's checks.
      */
     stepScope?: MonitorStepSeriesScope | undefined;
+    /*
+     * The over-time windows read for the probe result being judged
+     * (OverTimeWindowReads): each read once, whatever asks for it.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
   }): Promise<string | null> {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -48,6 +56,7 @@ export default class ServerMonitorCriteria {
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
         stepScope: input.stepScope,
+        windowReads: input.windowReads,
       });
 
     /*
