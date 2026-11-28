@@ -23,6 +23,7 @@ import ScrubJsonTextUtil, {
 } from "../../../../Utils/Telemetry/ScrubJsonText";
 import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
+  ScrubNumberOf,
 } from "../../../../Utils/Telemetry/ScrubNestedValues";
 import PatternWorkScope from "../../PatternWorkScope";
 import ScrubAction, {
@@ -412,10 +413,45 @@ export default class TraceScrubEngine {
         };
       };
 
+    /*
+     * A number: a Named Attributes rule hides the whole value of what it
+     * names, a number too; a pattern rule reads one only under a key that
+     * changes what it finds - 536221234 sent as a number under
+     * `customer.ssn` (#11383).
+     */
+    const scrubNumberOf: ScrubNumberOf = (
+      key: string,
+      value: number,
+    ): ((text: string) => string) | null => {
+      if (isNamedKeys) {
+        return hideText;
+      }
+
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        data.eventName !== undefined ? `${data.eventName}.${key}` : key,
+        value,
+      );
+
+      return regex === compiled.regex
+        ? null
+        : (text: string): string => {
+            return this.scrubString(
+              text,
+              compiled,
+              data.jsonTexts,
+              data.tally,
+              data.recorder,
+              regex,
+            );
+          };
+    };
+
     if (!compiled.keys) {
       ScrubNestedValuesUtil.scrubAttributeTextsUnderKeys(
         attributes,
         scrubTextOf,
+        scrubNumberOf,
       );
       return;
     }
@@ -430,12 +466,15 @@ export default class TraceScrubEngine {
       }
 
       const value: unknown = attributes[key];
+      const scrubbed: unknown = ScrubNestedValuesUtil.scrubValueUnderKey(
+        key,
+        value,
+        scrubTextOf,
+        scrubNumberOf,
+      );
 
-      if (typeof value === "string" || ScrubNestedValuesUtil.isNested(value)) {
-        attributes[key] = ScrubNestedValuesUtil.scrubTexts(
-          value,
-          scrubTextOf(key, value),
-        ) as JSONObject[string];
+      if (scrubbed !== value) {
+        attributes[key] = scrubbed as JSONObject[string];
       }
     }
   }

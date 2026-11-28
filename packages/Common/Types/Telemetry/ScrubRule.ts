@@ -121,9 +121,11 @@ export interface ScrubRegExp {
    * under `customer.ssn` - and inside a list or a map as the JSON text the
    * table stores it as. `key`: the field's name, an attribute's key as
    * Data Security names its location; `value`: what the key holds - a text,
-   * or a list or a map whose texts the engine reads one by one. The pattern
-   * itself when the key and the value change nothing it finds. None for a
-   * pattern that reads a text alone, whatever holds it (scrubRegExpUnderKey).
+   * a number (read as its text), or a list or a map whose texts the engine
+   * reads one by one. The pattern itself when the key and the value change
+   * nothing it finds - and an engine reads a number only where they do. None
+   * for a pattern that reads a text alone, whatever holds it
+   * (scrubRegExpUnderKey).
    */
   underKey?(key: string, value: unknown): ScrubRegExp;
 }

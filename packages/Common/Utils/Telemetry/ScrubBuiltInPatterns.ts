@@ -331,7 +331,10 @@ export function getHintsOfKey(key: string): ReadonlySet<string> {
  *
  *  - a text under a key whose name hints the type is read with the name
  *    for the word every candidate needs, and whole by the type's shape
- *    (TextReadings.findDetectorRanges);
+ *    (TextReadings.findDetectorRanges) - and so is a number sent under
+ *    such a key, 536221234 under `customer.ssn`, which the table stores and
+ *    Data Security reads as its text; under any other key a number stays
+ *    the number it is, as a timestamp or an id must;
  *  - a list or a map is read as the JSON text the table stores it as
  *    (ScrubStoredText), with its key's name for that word when it hints the
  *    type, as Data Security reads it there: a map's key is a word right
@@ -367,7 +370,8 @@ function readsUnderKey(data: {
       ? hints
       : undefined;
 
-    if (typeof value === "string") {
+    // A text, or a number, which the table stores and Data Security reads as its text.
+    if (typeof value === "string" || typeof value === "number") {
       return hinted
         ? (text: string): Array<TextRange> => {
             return data.findRanges(text, hinted);

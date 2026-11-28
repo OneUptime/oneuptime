@@ -16,6 +16,7 @@ import ScrubJsonTextUtil, {
 } from "../../../../Utils/Telemetry/ScrubJsonText";
 import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
+  ScrubNumberOf,
 } from "../../../../Utils/Telemetry/ScrubNestedValues";
 import PatternWorkScope from "../../PatternWorkScope";
 import ScrubAction, {
@@ -271,22 +272,30 @@ export default class LogScrubEngine {
         data.tally,
       );
 
-      // The whole value of each attribute it names - the record's own session id aside (#8924).
+      /*
+       * The whole value of each attribute it names - the record's own
+       * session id aside (#8924) - a number too: whatever it holds, as its
+       * coverage says (#11383).
+       */
       for (const key of Object.keys(attributes)) {
         if (data.correlationIdKeys.has(key) || !compiled.keys?.matches(key)) {
           continue;
         }
 
         const value: unknown = attributes[key];
+        const hidden: unknown = ScrubNestedValuesUtil.scrubValueUnderKey(
+          key,
+          value,
+          (): ((text: string) => string) => {
+            return hideText;
+          },
+          (): ((text: string) => string) => {
+            return hideText;
+          },
+        );
 
-        if (
-          typeof value === "string" ||
-          ScrubNestedValuesUtil.isNested(value)
-        ) {
-          attributes[key] = ScrubNestedValuesUtil.scrubTexts(
-            value,
-            hideText,
-          ) as JSONObject[string];
+        if (hidden !== value) {
+          attributes[key] = hidden as JSONObject[string];
         }
       }
 
@@ -318,10 +327,39 @@ export default class LogScrubEngine {
         };
       };
 
+    /*
+     * A number, only under a key that changes what the rule finds:
+     * 536221234 sent as a number under `customer.ssn` (#11383).
+     */
+    const scrubNumberOf: ScrubNumberOf = (
+      key: string,
+      value: number,
+    ): ((text: string) => string) | null => {
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        key,
+        value,
+      );
+
+      return regex === compiled.regex
+        ? null
+        : (text: string): string => {
+            return this.scrubString(
+              text,
+              compiled,
+              data.jsonTexts,
+              data.tally,
+              data.recorder,
+              regex,
+            );
+          };
+    };
+
     if (!compiled.keys) {
       ScrubNestedValuesUtil.scrubAttributeTextsUnderKeys(
         attributes,
         scrubTextOf,
+        scrubNumberOf,
       );
       return;
     }
@@ -333,12 +371,15 @@ export default class LogScrubEngine {
       }
 
       const value: unknown = attributes[key];
+      const scrubbed: unknown = ScrubNestedValuesUtil.scrubValueUnderKey(
+        key,
+        value,
+        scrubTextOf,
+        scrubNumberOf,
+      );
 
-      if (typeof value === "string" || ScrubNestedValuesUtil.isNested(value)) {
-        attributes[key] = ScrubNestedValuesUtil.scrubTexts(
-          value,
-          scrubTextOf(key, value),
-        ) as JSONObject[string];
+      if (scrubbed !== value) {
+        attributes[key] = scrubbed as JSONObject[string];
       }
     }
   }

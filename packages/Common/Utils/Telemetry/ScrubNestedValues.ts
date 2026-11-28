@@ -52,6 +52,16 @@ export interface ScrubNestedValuesAllowance {
 
 type NestedValue = Array<unknown> | Record<string, unknown>;
 
+/*
+ * How a rule scrubs a number held under a key, read as its text (#11383):
+ * null where the key changes nothing the rule finds, and the number is
+ * kept as it always was.
+ */
+export type ScrubNumberOf = (
+  key: string,
+  value: number,
+) => ((text: string) => string) | null;
+
 const JSON_WHITESPACE: string = " \t\n\r";
 
 // A list, or a map as JSON writes one: what a rule reads inside.
@@ -430,19 +440,70 @@ export default class ScrubNestedValuesUtil {
    * `scrubTextOf` gives for its key and the value it holds: a rule that
    * reads a value as the key it is held under says (#11383) - a national
    * number alone under `user.phone` is a phone number, and a list or a map
-   * is read as its JSON text too (ScrubRegExp.underKey).
+   * is read as its JSON text too (ScrubRegExp.underKey). `scrubNumberOf`:
+   * for a rule that reads a number under a key - 536221234 sent as a
+   * number under `customer.ssn`, which the table stores, and Data Security
+   * reads, as its text - how a number under that key is scrubbed, or null
+   * where the key changes nothing it finds: the number is kept, as every
+   * number always was.
    */
   public static scrubAttributeTextsUnderKeys(
     attributes: Record<string, unknown>,
     scrubTextOf: (key: string, value: unknown) => (text: string) => string,
+    scrubNumberOf?: ScrubNumberOf | undefined,
   ): void {
     for (const key of Object.keys(attributes)) {
       const value: unknown = attributes[key];
+      const scrubbed: unknown = ScrubNestedValuesUtil.scrubValueUnderKey(
+        key,
+        value,
+        scrubTextOf,
+        scrubNumberOf,
+      );
 
-      if (typeof value === "string" || isNested(value)) {
-        attributes[key] = scrubTextsAt(value, scrubTextOf(key, value), 0);
+      if (scrubbed !== value) {
+        attributes[key] = scrubbed;
       }
     }
+  }
+
+  /*
+   * One attribute's value as scrubAttributeTextsUnderKeys leaves it: its
+   * texts scrubbed as its key says, a number under a key a rule reads
+   * numbers by scrubbed as its text - kept as the number it is unless the
+   * rule hid some of it - and anything else kept.
+   */
+  public static scrubValueUnderKey(
+    key: string,
+    value: unknown,
+    scrubTextOf: (key: string, value: unknown) => (text: string) => string,
+    scrubNumberOf?: ScrubNumberOf | undefined,
+  ): unknown {
+    if (typeof value === "string" || isNested(value)) {
+      return scrubTextsAt(value, scrubTextOf(key, value), 0);
+    }
+
+    if (
+      typeof value !== "number" ||
+      !Number.isFinite(value) ||
+      !scrubNumberOf
+    ) {
+      return value;
+    }
+
+    const scrubNumber: ((text: string) => string) | null = scrubNumberOf(
+      key,
+      value,
+    );
+
+    if (!scrubNumber) {
+      return value;
+    }
+
+    const text: string = String(value);
+    const scrubbed: string = scrubNumber(text);
+
+    return scrubbed === text ? value : scrubbed;
   }
 
   /*
