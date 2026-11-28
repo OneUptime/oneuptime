@@ -106,7 +106,7 @@ vapid:
 
 セルフホストの OneUptime サーバーがほかのサーバーのプッシュをリレーするのは、`PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` と自身の `EXPO_ACCESS_TOKEN` がある場合だけです。この設定がなければ、そのアドレスに 404 で応答します。ほかの OneUptime サーバーが送信に使うサーバーでだけ有効にし、そのアドレスにはそれらのサーバーだけが届くようにしてください。
 
-Web Push では、チームが使うブラウザーの実際の購読エンドポイントのホストを許可してください。OneUptime は `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com`、`push.apple.com` を、それぞれのサブドメインも含めて受け付けます。典型的な例は `updates.push.services.mozilla.com` と `web.push.apple.com` です。宛先は [ブラウザーのプッシュ購読](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) が提供します。Expo や OneUptime のリレーだけを許可しても Web Push は有効になりません。
+Web Push では、チームが使うブラウザーの実際の購読エンドポイントのホストを許可してください。OneUptime は `fcm.googleapis.com`、`android.googleapis.com`、`jmt17.google.com`、`push.services.mozilla.com`、`notify.windows.com`、`push.apple.com` を、それぞれのサブドメインも含めて受け付けます。典型的な例は `updates.push.services.mozilla.com` と `web.push.apple.com` です。宛先は [ブラウザーのプッシュ購読](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) が提供します。Expo や OneUptime のリレーだけを許可しても Web Push は有効になりません。
 
 通知を送信する OneUptime のプロセスから、DNS の名前解決と外向きの TLS を許可してください。そのトラストストアは宛先の証明書を検証できる必要があり、プロキシは対話的な認証なしで API リクエストを通す必要があります。プッシュのプロバイダーが OneUptime サーバーの Webhook を呼び出すことはないため、利用者のデバイスが VPN などのプライベート接続でアクセスできるなら、サーバーはプライベートのままで構いません。リレーや外部のプッシュサービスにアクセスできないサーバーは、これらの通知を配信できません。
 

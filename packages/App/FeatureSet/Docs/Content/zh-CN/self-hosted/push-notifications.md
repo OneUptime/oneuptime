@@ -106,7 +106,7 @@ vapid:
 
 自托管的 OneUptime 服务器只有设置了 `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` 并拥有自己的 `EXPO_ACCESS_TOKEN`，才会为其他服务器中继推送；没有这项设置时，它在该地址返回 404。只在您其他 OneUptime 服务器发送时经过的那台服务器上开启，并只让那些服务器访问该地址。
 
-对于 Web Push，请允许你的团队所用浏览器的实际订阅端点主机。OneUptime 接受 `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com` 和 `push.apple.com`，包括它们的子域名。典型的例子有 `updates.push.services.mozilla.com` 和 `web.push.apple.com`。目标由 [浏览器的推送订阅](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) 提供；只允许 Expo 或 OneUptime 的中继并不能启用 Web Push。
+对于 Web Push，请允许你的团队所用浏览器的实际订阅端点主机。OneUptime 接受 `fcm.googleapis.com`、`android.googleapis.com`、`jmt17.google.com`、`push.services.mozilla.com`、`notify.windows.com` 和 `push.apple.com`，包括它们的子域名。典型的例子有 `updates.push.services.mozilla.com` 和 `web.push.apple.com`。目标由 [浏览器的推送订阅](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) 提供；只允许 Expo 或 OneUptime 的中继并不能启用 Web Push。
 
 请允许发送通知的 OneUptime 进程进行 DNS 解析和出站 TLS。它的信任库必须能验证目标的证书，代理必须在无需交互式身份验证的情况下放行 API 请求。推送提供商不会调用你的 OneUptime 服务器上的 Webhook，因此只要用户设备能通过 VPN 或其他私有连接访问服务器，服务器就可以保持私有。无法访问其中继或外部推送服务的服务器无法投递这些通知。
 
