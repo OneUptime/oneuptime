@@ -166,44 +166,39 @@ export const ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
  * database agent's collector and AI agent, which Compose names after the
  * install directory (<project>-oneuptime-database-agent-1), hence the globs -
  * as it names the Storage Array agent's exporter and syslog sidecars
- * (<project>-pure-fa-exporter-1). A second Storage Array or XCP-ng agent on
- * the same machine runs under a name of its own (its .env's
- * STORAGE_ARRAY_AGENT_CONTAINER_NAME, or XCP_NG_AGENT_CONTAINER_NAME and
- * XCP_NG_AI_AGENT_CONTAINER_NAME), which install.sh derives from these
- * unless someone exports another: whatever it is, the container is still its
- * Compose service's, which parseDockerTargetInspect reads from its labels
- * and run() holds to these names too. OneUptime AI never changes them either.
+ * (<project>-pure-fa-exporter-1). A second Storage Array, XCP-ng, Ceph,
+ * Proxmox, VMware or OpenStack agent on the same machine runs under names of
+ * its own (its .env's STORAGE_ARRAY_AGENT_CONTAINER_NAME,
+ * XCP_NG_AGENT_CONTAINER_NAME, CEPH_AGENT_CONTAINER_NAME and the others,
+ * #11168, #11434), which install.sh derives from these, keeping them in the
+ * name (oneuptime-pve-exporter-cluster2), unless someone exports another:
+ * whatever it is, the container is still its Compose service's, which
+ * parseDockerTargetInspect reads from its labels and run() holds to these
+ * names too, the sidecars' services among them (pve-exporter,
+ * openstack-exporter). OneUptime AI never changes them either.
  */
 export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   // agents/HostAIAgent
   "oneuptime-host-ai-agent",
-  // agents/CephAgent
-  "oneuptime-ceph-agent",
-  "oneuptime-ceph-ai-agent",
   /*
-   * agents/ProxmoxAgent: the collector, the sidecar that moves it to the
-   * next node's API when PVE_HOST's goes down, its exporter, the AI agent
+   * agents/CephAgent, agents/ProxmoxAgent, agents/VMwareAgent and
+   * agents/OpenStackAgent: every container of theirs, its collector, its AI
+   * agent and its sidecars (Proxmox's API failover and exporter, OpenStack's
+   * exporters and its log-only and trace-only collectors), under its default
+   * name or the one install.sh names a second agent's beside it
+   * (oneuptime-pve-exporter-cluster2): one glob each, as the protected
+   * targets OneUptime accepts are 64, these and ONEUPTIME_AI_PROTECTED_TARGETS
+   * together. The sidecars' Compose services, which their names do not
+   * start with, protect them under any name someone exports.
    */
-  "oneuptime-proxmox-agent",
-  "oneuptime-pve-api-failover",
-  "oneuptime-pve-exporter",
-  "oneuptime-proxmox-ai-agent",
-  // agents/VMwareAgent
-  "oneuptime-vmware-agent",
-  "oneuptime-vmware-ai-agent",
-  /*
-   * agents/OpenStackAgent: the collector, its exporters, the AI agent, and
-   * the log-only and trace-only collectors of docker-compose.logs.yml and
-   * docker-compose.traces.yml
-   */
-  "oneuptime-openstack-agent",
-  "oneuptime-openstack-exporter",
-  "oneuptime-openstack-quota-exporter",
-  "oneuptime-openstack-database-exporter",
-  "oneuptime-openstack-worker-state-exporter",
-  "oneuptime-openstack-ai-agent",
-  "oneuptime-openstack-logs",
-  "oneuptime-openstack-traces",
+  "*oneuptime-ceph-*",
+  "*oneuptime-proxmox-*",
+  "*oneuptime-pve-*",
+  "pve-api-failover",
+  "pve-exporter",
+  "*oneuptime-vmware-*",
+  "*oneuptime-openstack-*",
+  "openstack-*exporter",
   /*
    * agents/XcpNgAgent: the collector and the AI agent. A second Xen
    * Orchestra's collector and AI agent, or the AI agent of a second pool, run
