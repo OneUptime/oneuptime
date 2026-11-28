@@ -51,6 +51,8 @@ import {
 } from "../../../Components/VMware/Part/VMwarePartRoutes";
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
+import { useVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import VMwareHostReportNotice from "../../../Components/VMware/Host/VMwareHostReportNotice";
 import VMwareHostOverviewTab from "../../../Components/VMware/Host/VMwareHostOverviewTab";
 import VMwareHostVirtualMachinesTab from "../../../Components/VMware/Host/VMwareHostVirtualMachinesTab";
@@ -81,6 +83,7 @@ export const VMWARE_HOST_TAB_LOGS: string = "Logs";
 const VMwareVCenterHostDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const rules: VMwareHealthRules = useVMwareHealthRules();
   /*
    * Route shape: .../vmware/:modelId/hosts/:subModelId — subModelId is
    * the percent-encoded inventory externalId ("host/<dc>/<host>"), not
@@ -348,6 +351,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
     now: OneUptimeDate.getCurrentDate(),
     routeFor: partRoutes.getPartRoute,
     listRouteFor: partRoutes.getListRoute,
+    rules,
   });
 
   const showVirtualMachines: () => void = (): void => {

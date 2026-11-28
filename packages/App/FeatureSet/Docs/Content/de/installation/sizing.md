@@ -147,6 +147,7 @@ app:
 | `queueDepth` | Sonden-Anfragen, die gerade auf einen Slot warten, auf allen App-Pods. Minutenlang über 0: App-Pods hinzufügen. |
 | `slotWaitP95Ms` | Wie lange Anfragen auf einen Slot gewartet haben, auf dem am stärksten ausgelasteten App-Pod. |
 | `refusalsPerMinute` | Sonden-Anfragen, die als ausgelastet beantwortet wurden. |
+| `reconnectsAskedPerMinute` | Antworten, die die Verbindung einer Sonde gebeten haben, sich neu zu verbinden, damit ihre nächste Anfrage an einen anderen App-Pod gehen kann: einige pro Sekunde, solange ein App-Pod nicht hinterherkommt. Minutenlang über 0: App-Pods hinzufügen. |
 | `dispatchLagP95Seconds` | Wie spät Monitore verteilt wurden, nach dem Moment, zu dem ihr Intervall sie fällig machte. Nahe an Ihrem kürzesten Intervall, während keine Anfrage wartet: Sonden-Replikate hinzufügen. |
 | `monitorsLateByAnIntervalPerMinute` | Monitore, die ein ganzes Intervall zu spät verteilt wurden: Prüfungen, die ausgefallen sind. |
 | `monitorTestWaitP95Seconds` | Wie lange Test-Monitor-Läufe auf eine Sonde gewartet haben. |

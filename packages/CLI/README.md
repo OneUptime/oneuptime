@@ -112,20 +112,22 @@ oneuptime context delete old-context
 
 A resource takes the subcommands the API takes for it: `list`, `get` and `count` to read it, and `create`, `update` and `delete` to change it. Most resources take all six. The ones OneUptime writes itself, such as an email log, are read only. `oneuptime <resource> --help` lists the subcommands a resource has:
 
-| Subcommand                                   | Description                                                  |
-| -------------------------------------------- | ------------------------------------------------------------ |
-| `<resource> list [options]`                  | List resources with filtering and pagination                 |
-| `<resource> get <id>`                        | Get a single resource by ID                                  |
-| `<resource> create [--<field> <value>]`      | Create a new resource, a flag per field                      |
-| `<resource> update <id> [--<field> <value>]` | Update an existing resource                                  |
-| `<resource> delete <id>`                     | Delete a resource                                            |
-| `<resource> count [--query <json>]`          | Count resources                                              |
-| `<resource> fields`                          | List its fields: what each is for, and the flag that sets it |
-| `<resource> acknowledge <id>`                | Acknowledge an incident, an alert, or an episode of either   |
-| `<resource> resolve <id>`                    | Resolve one                                                  |
-| `<resource> start <id>`                      | Start a maintenance event (`scheduled-maintenance-event`)    |
-| `<resource> end <id>`                        | End one                                                      |
-| `<resource> add-note <id> --note <markdown>` | Add a note to any of those, `--public` for its status pages  |
+| Subcommand                                   | Description                                                                                |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `<resource> list [options]`                  | List resources with filtering and pagination                                               |
+| `<resource> get <id>`                        | Get a single resource by ID                                                                |
+| `<resource> create [--<field> <value>]`      | Create a new resource, a flag per field                                                    |
+| `<resource> update <id> [--<field> <value>]` | Update an existing resource                                                                |
+| `<resource> delete <id>`                     | Delete a resource                                                                          |
+| `<resource> count [--query <json>]`          | Count resources                                                                            |
+| `<resource> fields`                          | List its fields: what each is for, and the flag that sets it                               |
+| `<resource> acknowledge <id>`                | Acknowledge an incident, an alert, or an episode of either                                 |
+| `<resource> resolve <id>`                    | Resolve one                                                                                |
+| `<resource> start <id>`                      | Start a maintenance event (`scheduled-maintenance-event`)                                  |
+| `<resource> end <id>`                        | End one                                                                                    |
+| `<resource> add-note <id> --note <markdown>` | Add a note to any of those, `--public` for its status pages                                |
+| `<resource> breakdown [options]`             | `cloud-cost` only: what the clouds cost in a period, broken down, beside the period before |
+| `<resource> export [options]`                | `cloud-cost` only: every cost of a period as a FOCUS 1.2 file                              |
 
 ### List Options
 

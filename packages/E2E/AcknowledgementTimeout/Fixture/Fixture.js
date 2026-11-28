@@ -3,9 +3,10 @@
  * (Pages/OnCallDuty/OnCallDutyPolicy/Escalation), in the policy's own side
  * menu: its levels, the Repeat Policy card, and - folded under More settings
  * - the Acknowledgement Timeout card (issue #5123) with the dialog that
- * changes it. The page, the fold, the cards and the dialog are the
- * production ones from this branch; only the ModelAPI / API data boundary
- * and the signed-in user's permissions are replaced.
+ * changes it, and after it the Incident Role card (#11088): the policy
+ * gives the people it pages no role. The page, the fold, the cards and the
+ * dialog are the production ones from this branch; only the ModelAPI / API
+ * data boundary and the signed-in user's permissions are replaced.
  *
  * Steered by the query string:
  *   - timeout=<n>   the policy pages again after n minutes; absent, it does

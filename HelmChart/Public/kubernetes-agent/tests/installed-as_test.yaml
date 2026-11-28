@@ -93,4 +93,7 @@ tests:
       installedAs: gke-marketplace
     asserts:
       - failedTemplate:
-          errorPattern: 'installedAs must be one of the following: "", "aws-eks-addon"'
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/installedAs': value must be one of '', 'aws-eks-addon'

@@ -217,6 +217,11 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     migration:
       "1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds.ts",
   },
+  // A project's VMware health rules (#11157).
+  {
+    table: "VMwareHealthSetting",
+    migration: "1809187811157-AddVMwareHealthSettingsAndSwapRates.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(

@@ -761,7 +761,7 @@ describe("one meaning per key", () => {
       expect(MEANING_KEYS).toContain(key);
       expect({ key, files: filesLookingUp(key) }).toEqual({
         key,
-        files: ["Pages/StorageArray/Utils/StorageArrayHealth.ts"],
+        files: ["Pages/StorageArray/Utils/StorageArrayStatusWords.ts"],
       });
       expect({
         word,

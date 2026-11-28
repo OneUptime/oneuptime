@@ -436,6 +436,83 @@ describe("the check on a translated message", () => {
       ),
     ).toEqual(["Project Admin"]);
   });
+
+  /*
+   * #11396: the drawn-name pattern read any word that started as a role's
+   * name does as the role, so Hindi's "प्रोजेक्ट एडमिनिस्ट्रेटर" (Project
+   * Administrator) passed for the Project Admin, whom the role picker draws
+   * "प्रोजेक्ट एडमिन". The three messages name the role as drawn now.
+   */
+  it("would fail the Hindi messages that named the Project Admin an Administrator", () => {
+    const keys: ReadonlyArray<string> = [
+      "A Project Admin can review these settings.",
+      "Ask a Project Admin to check the service's health and the AI settings.",
+      "Ask a Project Admin to check the service's health and the server logs.",
+    ];
+
+    for (const key of keys) {
+      const value: string = dashboardValue("hi", key);
+
+      expect([key, value.includes("प्रोजेक्ट एडमिन ")]).toEqual([key, true]);
+      expect(rolesNotNamedAsDrawn("hi", key, value)).toEqual([]);
+      expect(
+        rolesNotNamedAsDrawn(
+          "hi",
+          key,
+          value.replace("प्रोजेक्ट एडमिन ", "प्रोजेक्ट एडमिनिस्ट्रेटर "),
+        ),
+      ).toEqual(["Project Admin"]);
+    }
+  });
+
+  it("takes what Persian and Arabic write onto a role's name, and only that", () => {
+    // Persian writes "a" onto the end of the whole name: no Security Admin.
+    expect(
+      rolesNotNamedAsDrawn(
+        "fa",
+        "No Security Admin has confirmed this yet.",
+        "هنوز هیچ مدیر امنیتی این را تأیید نکرده است.",
+      ),
+    ).toEqual([]);
+    // ... and a plural there is the projects': the admin of the projects.
+    expect(
+      rolesNotNamedAsDrawn(
+        "fa",
+        "Ask a Project Admin.",
+        "از مدیر پروژه‌ها بپرسید.",
+      ),
+    ).toEqual(["Project Admin"]);
+    expect(
+      rolesNotNamedAsDrawn(
+        "fa",
+        "Ask a Project Admin.",
+        "از مدیر پروژه بپرسید.",
+      ),
+    ).toEqual([]);
+    // Arabic writes "to" onto the noun, and its plural is another word.
+    expect(
+      rolesNotNamedAsDrawn(
+        "ar",
+        "Ask a Project Owner.",
+        "اطلب ذلك من مالك المشروع، أو أرسله لمالك المشروع.",
+      ),
+    ).toEqual([]);
+    expect(
+      rolesNotNamedAsDrawn(
+        "ar",
+        "Project Members can read it.",
+        "يمكن لأعضاء المشروع قراءته.",
+      ),
+    ).toEqual([]);
+    // The notifications (إشعارات) hold the letters of the Viewer (عارض).
+    expect(
+      rolesNotNamedAsDrawn(
+        "ar",
+        "A Viewer can read the notifications.",
+        "يمكن قراءة الإشعارات.",
+      ),
+    ).toEqual(["Viewer"]);
+  });
 });
 
 describe("translated messages name the built-in roles as their role picker draws them", () => {

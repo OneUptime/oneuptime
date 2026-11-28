@@ -6,6 +6,7 @@ import AlertMeasurementService from "Common/Server/Services/AlertMeasurementServ
 import AlertReminderRuleService from "Common/Server/Services/AlertReminderRuleService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import AlertStateService from "Common/Server/Services/AlertStateService";
+import CloudCostGroupService from "Common/Server/Services/CloudCostGroupService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import HostCollectorConfigService from "Common/Server/Services/HostCollectorConfigService";
 import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFieldService";
@@ -122,6 +123,8 @@ export default class NormalizeListOrder extends DataMigrationBase {
       SecurityCasePriorityService,
       // A project's public note approval steps of each kind, the same since they began.
       PublicNoteApprovalStepService,
+      // A cost view's groups, the first that matches a cost taking it (#11006), the same since they began.
+      CloudCostGroupService,
     ] as Array<DatabaseService<any>>;
   }
 

@@ -86,7 +86,8 @@ tests:
     set:
       clusterName: "   "
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: 'clusterName is required: it identifies this cluster''s nodes, namespaces, pods and deployments in OneUptime, and two clusters installed without it will be merged into one. Set it with --set clusterName=<name>.'
 
   - it: stamps the node name on the DaemonSet so node identity is never blank
     templates:

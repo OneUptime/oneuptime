@@ -37,8 +37,12 @@ import Queue from "Common/Server/Infrastructure/Queue";
 import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
-import { getServerTwilioEnvironment } from "Common/Server/Utils/ServerTwilioConfig";
+import {
+  getServerTwilioCallVoice,
+  getServerTwilioEnvironment,
+} from "Common/Server/Utils/ServerTwilioConfig";
 import ServerTwilioEnvironment, {
+  ServerTwilioCallVoiceReading,
   ServerTwilioEnvironmentReading,
 } from "Common/Types/CallAndSMS/ServerTwilioEnvironment";
 import { getServerEmailEnvironment } from "Common/Server/Utils/ServerEmailSettings";
@@ -200,6 +204,27 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     if (twilioEnvironmentWarning) {
       logger.warn(twilioEnvironmentWarning);
+    }
+
+    /*
+     * The voice GLOBAL_TWILIO_CALL_VOICE sets for the server's calls
+     * (#11064), said once, and a voice OneUptime does not offer, by the
+     * variable's name: calls speak with the account's default voice until
+     * it names one.
+     */
+    const twilioCallVoice: ServerTwilioCallVoiceReading =
+      getServerTwilioCallVoice();
+    const twilioCallVoiceNotice: string | null =
+      ServerTwilioEnvironment.getCallVoiceStartupNotice(twilioCallVoice);
+    const twilioCallVoiceWarning: string | null =
+      ServerTwilioEnvironment.getCallVoiceStartupWarning(twilioCallVoice);
+
+    if (twilioCallVoiceNotice) {
+      logger.info(twilioCallVoiceNotice);
+    }
+
+    if (twilioCallVoiceWarning) {
+      logger.warn(twilioCallVoiceWarning);
     }
 
     /*

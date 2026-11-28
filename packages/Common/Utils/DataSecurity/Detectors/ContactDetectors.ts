@@ -157,6 +157,14 @@ const emailDetector: DataTypeDetector = {
    * what an Email Address rule hides - is the encoded address whole.
    */
   readsPercentEncoded: true,
+  /*
+   * An address typed in fullwidth, as an input method in fullwidth mode
+   * types one (#11385): ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ, and jane＠example.com
+   * with its "@" alone in fullwidth. Read with the fullwidth ASCII block
+   * read as ASCII, it is jane@example.com, found on the characters it is
+   * typed with.
+   */
+  readsFullwidthLetters: true,
 };
 
 /*
@@ -643,13 +651,17 @@ const internationalPhoneDetector: DataTypeDetector = {
    * "+" for each space and its own "+" escaped (#11199):
    * phone=%2B44+20+7946+0958, and typed wholly in fullwidth, as Japanese
    * and Chinese text writes one, its plus sign, hyphens, parentheses and
-   * ideographic spaces too (#11115): ＋８１ ３－１２３４－５６７８. What a Phone
-   * Number rule hides, it finds in every reading (ScrubBuiltInPatterns).
+   * ideographic spaces too (#11115): ＋８１ ３－１２３４－５６７８ - its groups
+   * set apart by another dash as well, ＋８１ ３ー１２３４ー５６７８ or
+   * +44 20 7946‑0958, and the words beside it typed in fullwidth, ＴＥＬ
+   * (#11385). What a Phone Number rule hides, it finds in every reading
+   * (ScrubBuiltInPatterns).
    */
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
   readsPlusAsSpace: true,
   readsFullwidthForms: true,
+  readsFullwidthLetters: true,
 };
 
 /*
@@ -694,6 +706,7 @@ const nanpFormattedDetector: DataTypeDetector = {
   readsDigitsOfEveryScript: true,
   readsPlusAsSpace: true,
   readsFullwidthForms: true,
+  readsFullwidthLetters: true,
 };
 
 // A UK mobile: 07 and nine more digits, often as 07xxx xxxxxx.
@@ -717,6 +730,7 @@ const ukMobileDetector: DataTypeDetector = {
   readsDigitsOfEveryScript: true,
   readsPlusAsSpace: true,
   readsFullwidthForms: true,
+  readsFullwidthLetters: true,
 };
 
 // Any national number of 9 to 12 digits, only next to phone words.
@@ -744,6 +758,7 @@ const nationalPhoneDetector: DataTypeDetector = {
   readsDigitsOfEveryScript: true,
   readsPlusAsSpace: true,
   readsFullwidthForms: true,
+  readsFullwidthLetters: true,
 };
 
 /*

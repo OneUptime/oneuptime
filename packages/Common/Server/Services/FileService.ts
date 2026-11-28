@@ -32,6 +32,7 @@ import Select from "../Types/Database/Select";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { MARKDOWN_FILE_HEAD_LENGTH } from "../../Types/File/MarkdownFiles";
 import crypto from "crypto";
 import { SelectQueryBuilder } from "typeorm";
 
@@ -80,6 +81,26 @@ export interface FileFacts {
   size: number;
   projectId: ObjectID | null;
 }
+
+/*
+ * An inline image of a project, as deciding whether to hand it out reads it
+ * (getProjectImagesByToken): who it belongs to, whether it is public, its
+ * type and size, and its first bytes - never all of them.
+ */
+export interface ProjectImageFacts extends FileAccessFacts {
+  fileId: ObjectID;
+  name: string;
+  fileType: string;
+  sizeInBytes: number;
+  head: Uint8Array;
+}
+
+/*
+ * What an image token may hold: the hex generateImageAccessToken writes, no
+ * longer than the column. Anything else addresses no file and is never sent
+ * to Postgres.
+ */
+const IMAGE_ACCESS_TOKEN_REGEX: RegExp = /^[a-fA-F0-9]{1,100}$/;
 
 export class Service extends DatabaseService<File> {
   public constructor() {
@@ -410,6 +431,146 @@ export class Service extends DatabaseService<File> {
       size: Number(row.size) || 0,
       projectId: readStoredId(row.projectId),
     };
+  }
+
+  /**
+   * The files of one project that these inline image tokens address, keyed
+   * by token: what deciding whether to hand one out reads of it (its name,
+   * type, size, owners, whether it is public, and its first bytes), never
+   * all of its bytes. A token that is not one, a file of another project or
+   * of none, and a deleted file are all simply absent, so a caller cannot
+   * tell one from another (MarkdownFiles).
+   */
+  @CaptureSpan()
+  public async getProjectImagesByToken(data: {
+    tokens: Array<string>;
+    projectId: ObjectID;
+  }): Promise<Map<string, ProjectImageFacts>> {
+    const images: Map<string, ProjectImageFacts> = new Map();
+
+    const tokens: Array<string> = Array.from(
+      new Set(
+        data.tokens.filter((token: string): boolean => {
+          return IMAGE_ACCESS_TOKEN_REGEX.test(token);
+        }),
+      ),
+    );
+
+    if (
+      tokens.length === 0 ||
+      !ObjectID.isValidUUID(data.projectId.toString())
+    ) {
+      return images;
+    }
+
+    const rows: Array<{
+      _id?: unknown;
+      name?: unknown;
+      fileType?: unknown;
+      imageAccessToken?: unknown;
+      projectId?: unknown;
+      createdByUserId?: unknown;
+      isPublic?: unknown;
+      size?: unknown;
+      head?: unknown;
+    }> = await this.getRepository()
+      .createQueryBuilder("file")
+      .select('"file"."_id"', "_id")
+      .addSelect('"file"."name"', "name")
+      .addSelect('"file"."fileType"', "fileType")
+      .addSelect('"file"."imageAccessToken"', "imageAccessToken")
+      .addSelect('"file"."projectId"', "projectId")
+      .addSelect('"file"."createdByUserId"', "createdByUserId")
+      .addSelect('"file"."isPublic"', "isPublic")
+      .addSelect('octet_length("file"."file")', "size")
+      .addSelect(
+        `substring("file"."file" from 1 for ${MARKDOWN_FILE_HEAD_LENGTH})`,
+        "head",
+      )
+      .where('"file"."imageAccessToken" IN (:...tokens)', { tokens: tokens })
+      .andWhere('"file"."projectId" = :projectId', {
+        projectId: data.projectId.toString(),
+      })
+      .andWhere('"file"."deletedAt" IS NULL')
+      .getRawMany();
+
+    for (const row of rows) {
+      const fileId: ObjectID | null = readStoredId(row._id);
+
+      if (!fileId || typeof row.imageAccessToken !== "string") {
+        continue;
+      }
+
+      images.set(row.imageAccessToken, {
+        fileId: fileId,
+        name: typeof row.name === "string" ? row.name : "",
+        fileType: typeof row.fileType === "string" ? row.fileType : "",
+        sizeInBytes: Number(row.size) || 0,
+        head: ArrayBuffer.isView(row.head)
+          ? new Uint8Array(
+              row.head.buffer,
+              row.head.byteOffset,
+              row.head.byteLength,
+            )
+          : new Uint8Array(0),
+        projectId: readStoredId(row.projectId),
+        createdByUserId: readStoredId(row.createdByUserId),
+        isPublic: row.isPublic === true,
+      });
+    }
+
+    return images;
+  }
+
+  /**
+   * The bytes of these files of one project, keyed by id in lower case: the
+   * files getProjectImagesByToken found fit to hand out, read in one query.
+   * A file of another project, or deleted since, is absent.
+   */
+  @CaptureSpan()
+  public async getProjectFileBytes(data: {
+    fileIds: Array<ObjectID>;
+    projectId: ObjectID;
+  }): Promise<Map<string, Buffer>> {
+    const bytes: Map<string, Buffer> = new Map();
+
+    const ids: Array<string> = Array.from(
+      new Set(
+        data.fileIds
+          .map((fileId: ObjectID): string => {
+            return normalizeFileId(fileId);
+          })
+          .filter((fileId: string): boolean => {
+            return ObjectID.isValidUUID(fileId);
+          }),
+      ),
+    );
+
+    if (ids.length === 0 || !ObjectID.isValidUUID(data.projectId.toString())) {
+      return bytes;
+    }
+
+    const rows: Array<{ _id?: unknown; file?: unknown }> =
+      await this.getRepository()
+        .createQueryBuilder("file")
+        .select('"file"."_id"', "_id")
+        .addSelect('"file"."file"', "file")
+        .where('"file"."_id" IN (:...ids)', { ids: ids })
+        .andWhere('"file"."projectId" = :projectId', {
+          projectId: data.projectId.toString(),
+        })
+        .andWhere('"file"."deletedAt" IS NULL')
+        .getRawMany();
+
+    for (const row of rows) {
+      if (typeof row._id !== "string" || !Buffer.isBuffer(row.file)) {
+        continue;
+      }
+
+      bytes.set(normalizeFileId(row._id), row.file);
+    }
+
+    return bytes;
   }
 
   @CaptureSpan()

@@ -123,7 +123,7 @@ OneUptime은 흔한 VMware 문제를 위한 템플릿 25개를 제공하며, **�
 | VM CPU Ready Contention | 가상 머신 | 경고 | `vcenter.vm.cpu.readiness`, VM별 Avg | 10% 초과: VM은 실행할 준비가 되었지만 호스트에 내줄 물리 코어가 없었음. 게스트 안에서는 보이지 않음 | 9% 이하 |
 | VM Memory Saturation | 가상 머신 | 경고 | `vcenter.vm.memory.utilization`, VM별 Avg | 메모리의 90% 초과: 게스트가 곧 페이징을 시작함 | 81% 이하 |
 | VM Memory Ballooning | 가상 머신 | 경고 | `vcenter.vm.memory.ballooned`, VM별 Max | 0 초과: 호스트의 메모리가 부족해 이 게스트에서 회수하고 있음 | 다시 0 |
-| VM Memory Swapping | 가상 머신 | 심각 | `vcenter.vm.memory.swapped`, VM별 Max | 0 초과: 호스트가 VM의 메모리를 스왑하고 있음. 벌루닝과 압축 다음의 마지막 수단 | 다시 0 |
+| VM Memory Swapping | 가상 머신 | 심각 | `vcenter.vm.memory.swapped`, VM별 Max | 0 초과: VM 메모리의 일부가 호스트의 스왑 파일에 있음. 지금 스왑 아웃된 것이거나 이전 메모리 압박에서 남은 것으로, ESXi는 VM이 접근할 때까지 이를 그대로 둠. vCenter의 개요는 둘을 구분함: [스왑된 메모리는 지금 스왑 중인 것이 아님](/docs/telemetry/vmware#스왑된-메모리는-지금-스왑-중인-것이-아님) 참고 | 다시 0 |
 | VM Disk Latency High | 가상 머신 | 경고 | `vcenter.vm.disk.latency.max`, VM별 Max | 50 ms 초과: 게스트의 애플리케이션에서 I/O 시간 초과가 남 | 45 ms 이하 |
 | VM Disk Usage High | 가상 머신 | 경고 | `vcenter.vm.disk.utilization`, VM별 Avg | 프로비저닝된 스토리지의 90% 초과 사용: 씬 프로비저닝 VM이 곧 전체 크기를 차지함 | 81% 이하 |
 | Datastore Capacity Warning | 데이터스토어 | 경고 | `vcenter.datastore.disk.utilization`, `resource.vcenter.datastore.name` 별 Avg | 80% 초과: 씬 디스크와 스냅샷이 나머지를 빠르게 쓰므로 미리 보내는 경고 | 72% 이하 |
@@ -214,7 +214,7 @@ OneUptime은 흔한 VMware 문제를 위한 템플릿 25개를 제공하며, **�
 | `vcenter.vm.disk.utilization` | `%` | VM의 프로비저닝된 스토리지 중 데이터스토어에서 사용된 비율(0–100). 100%에 가까워진 씬 프로비저닝 VM은 곧 전체 크기를 차지합니다 |
 | `vcenter.vm.memory.ballooned` | `MiBy` | 벌룬 드라이버(VMware Tools)가 VM에서 회수한 게스트 메모리. 0보다 크면 ESXi 호스트의 메모리가 부족한 것입니다 |
 | `vcenter.vm.memory.granted` | `MiBy` | 호스트가 VM에 할당한 머신 메모리. _기본적으로 꺼짐_: `vcenter.vm.memory.granted` 를 켜세요 |
-| `vcenter.vm.memory.swapped` | `MiBy` | 호스트의 스왑 파일에서 VM에 할당된 메모리. 벌루닝과 압축 다음의 마지막 수단이며, 0보다 큰 값은 VM이 RAM 대신 디스크 지연 시간을 치르고 있다는 뜻입니다 |
+| `vcenter.vm.memory.swapped` | `MiBy` | 호스트의 스왑 파일에서 VM에 할당된 메모리. 벌루닝과 압축 다음의 마지막 수단입니다. ESXi는 VM이 접근할 때까지 스왑된 페이지를 그대로 두므로, 0보다 큰 값은 이전 메모리 압박에서 남은 것일 수 있습니다 |
 | `vcenter.vm.memory.swapped_ssd` | `KiBy` | 호스트의 플래시 스왑 캐시로 스왑된 VM의 메모리. 스왑 파일보다는 덜 아프지만 여전히 메모리 압박입니다 |
 | `vcenter.vm.memory.usage` | `MiBy` | VM의 게스트가 실제로 쓰는 메모리. 전원이 켜진 VM과 꺼진 VM 모두에 대해 보냅니다(꺼져 있으면 0) |
 | `vcenter.vm.memory.utilization` | `%` | VM의 메모리 사용률. 구성된 메모리 대비 백분율(0–100) |
@@ -241,7 +241,7 @@ OneUptime은 흔한 VMware 문제를 위한 템플릿 25개를 제공하며, **�
 | `vcenter.resource_pool.memory.ballooned` | `MiBy` | 풀의 모든 VM에서 벌룬 드라이버가 회수한 메모리 |
 | `vcenter.resource_pool.memory.granted` | `MiBy` | 풀의 VM에 할당된 호스트 메모리. `type`(`private` / `shared`, 공유 페이지는 투명한 페이지 공유로 중복 제거됨)별로 나뉩니다 |
 | `vcenter.resource_pool.memory.shares` | `{shares}` | 풀에 구성된 메모리 공유 |
-| `vcenter.resource_pool.memory.swapped` | `MiBy` | ESXi 호스트의 스왑 공간에서 풀의 VM에 할당된 메모리. 0보다 큰 값은 풀의 VM 중 적어도 하나가 호스트에 의해 스왑되고 있다는 뜻입니다 |
+| `vcenter.resource_pool.memory.swapped` | `MiBy` | ESXi 호스트의 스왑 공간에서 풀의 VM에 할당된 메모리. 0보다 큰 값은 풀의 VM 중 적어도 하나가 지금 또는 이전부터 호스트 스왑에 메모리를 두고 있다는 뜻입니다 |
 | `vcenter.resource_pool.memory.usage` | `MiBy` | 풀이 쓰는 메모리. 최근 컬렉터 빌드에서는 `type`(`guest` / `host` / `overhead`)별로 나뉘고, 이전 빌드는 유형 없는 시리즈 하나를 보냅니다. `type = guest` 로 필터링하세요 |
 
 ### vSAN
@@ -288,7 +288,7 @@ vSAN이 있는 클러스터, 그 안의 호스트, vSAN 데이터스토어의 VM
 - **데이터스토어가 가득 차고 있음:** `vcenter.datastore.disk.utilization`, 평균, `resource.vcenter.datastore.name` 으로 그룹화, **보다 큼** `80`.
 - **클러스터가 호스트를 잃음:** `vcenter.cluster.host.count` 를 `effective = false` 로 필터링, 최대, `resource.vcenter.cluster.name` 으로 그룹화, **보다 큼** `0`.
 - **예상보다 적은 VM이 실행됨:** `vcenter.cluster.vm.count` 를 `power_state = on` 및 `resource.vcenter.cluster.name = Production` 으로 필터링, 합계, **보다 작음** 예상하는 수.
-- **VM이 호스트에 의해 스왑됨:** `vcenter.vm.memory.swapped`, 최대, `resource.vcenter.vm.name` 으로 그룹화, **보다 큼** `0`.
+- **VM이 호스트 스왑에 많은 메모리를 두고 있음:** `vcenter.vm.memory.swapped`, 최대, `resource.vcenter.vm.name` 으로 그룹화, **보다 큼** `1024`. 메모리 압박이 사라진 뒤에도 몇 MiB가 오래 남아 있을 수 있으므로, 0보다 큰 임계값을 두면 이전부터 남은 메모리로 기준이 발생하지 않습니다.
 
 ### 기본 기준
 

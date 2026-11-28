@@ -24,6 +24,7 @@ const path = require("path");
 const yaml = require("js-yaml");
 const { spawnSync } = require("child_process");
 const { agentFilesCurlStub } = require("./Utils/AgentFilesCurlStub");
+const { agentKindVersion } = require("./Utils/AgentKindVersion");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT_DIR = path.join(REPO_ROOT, "agents", "StorageArrayAgent");
@@ -126,9 +127,15 @@ function snapshotMetricNames() {
   const source = fs.readFileSync(PLATFORM_PATH, "utf8");
   const block = source.match(/snapshotMetricNames: \[([\s\S]*?)\n {2}\],/);
   expect(block).not.toBeNull();
-  return [...block[1].matchAll(/"(powerscale_[a-z0-9_]+)"/g)].map((match) => {
-    return match[1];
-  });
+  const names = [...block[1].matchAll(/"(powerscale_[a-z0-9_]+)"/g)].map(
+    (match) => {
+      return match[1];
+    },
+  );
+  // Names written another way (single quotes, constants) would read as none,
+  // and "every series the platform reads" would check nothing (#11403).
+  expect(names.length).toBeGreaterThan(0);
+  return names;
 }
 
 // The metric names the config sends: its receivers' and the transform's copies.
@@ -293,13 +300,8 @@ describe("agents/StorageArrayAgent/otel-collector-config.powerscale.yaml", () =>
   });
 
   test("stamps the array identity and the agent's version as every agent config does, and never splits a poll", () => {
-    const compose = fs.readFileSync(
-      path.join(AGENT_DIR, "docker-compose.yml"),
-      "utf8",
-    );
-    const pin = compose.match(
-      /otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/,
-    )[1];
+    // The agent's files' version, not the collector's (AgentFilesVersion.test.ts).
+    const version = agentKindVersion("STORAGE_ARRAY_AGENT_VERSION");
     expect(CONFIG.processors.resource.attributes).toEqual([
       {
         key: "storage.array.name",
@@ -311,7 +313,7 @@ describe("agents/StorageArrayAgent/otel-collector-config.powerscale.yaml", () =>
         value: "${env:STORAGE_SYSTEM}",
         action: "upsert",
       },
-      { key: "oneuptime.agent.version", value: pin, action: "upsert" },
+      { key: "oneuptime.agent.version", value: version, action: "upsert" },
       { key: "service.name", action: "delete" },
       { key: "service.instance.id", action: "delete" },
     ]);

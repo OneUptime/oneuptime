@@ -4,9 +4,11 @@ import { VMWARE_HOST_NOT_RESPONDING_TEMPLATE_ID } from "Common/Types/Monitor/VMw
 import { ResourceAttentionSeverity } from "../../../Components/ResourcePart/ResourceAttention";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
-  VMWARE_CPU_READY_WARNING_PERCENT,
-  VMWARE_DATASTORE_CRITICAL_PERCENT,
-  VMWARE_DATASTORE_WARNING_PERCENT,
+  DEFAULT_VMWARE_HEALTH_RULES,
+  VMwareHealthRules,
+  isPastVMwareHealthThreshold,
+} from "Common/Types/VMware/VMwareHealthRules";
+import {
   VMWARE_HOST_SATURATION_PERCENT,
   VMwareHostState,
   assessVMwareHost,
@@ -331,6 +333,7 @@ export function sortVMwareHostsForGlance(data: {
   hosts: Array<VMwareResource>;
   datacenters: Array<VMwareResource>;
   now: Date;
+  rules?: VMwareHealthRules | undefined;
 }): Array<VMwareResource> {
   const rankOf: (host: VMwareResource) => number = (
     host: VMwareResource,
@@ -343,6 +346,7 @@ export function sortVMwareHostsForGlance(data: {
       host: host,
       datacenter: datacenter,
       now: data.now,
+      rules: data.rules,
     }).severity;
     if (severity) {
       return SEVERITY_RANK[severity] ?? 1;
@@ -386,37 +390,38 @@ export function sortVMwareHostsForGlance(data: {
  */
 export type VMwareUsageTone = "positive" | "warning" | "danger";
 
-// A host's or a VM's CPU or memory: amber past 90%, never red.
+/*
+ * A host's or a VM's CPU or memory: amber past its rule's line (90% unless
+ * the project set another, none when it turned the rule off), never red.
+ */
 export function getVMwareHostLoadTone(
   percent: number | null | undefined,
+  threshold: number | null = VMWARE_HOST_SATURATION_PERCENT,
 ): VMwareUsageTone {
-  return percent !== null &&
-    percent !== undefined &&
-    percent > VMWARE_HOST_SATURATION_PERCENT
+  return isPastVMwareHealthThreshold(percent, threshold)
     ? "warning"
     : "positive";
 }
 
-// How full a datastore is: amber past 80%, red past 90%.
+// How full a datastore is: amber past 80%, red past 90%, or the project's.
 export function getVMwareDatastoreFullTone(
   percent: number | null | undefined,
+  rules: VMwareHealthRules = DEFAULT_VMWARE_HEALTH_RULES,
 ): VMwareUsageTone {
-  if (percent === null || percent === undefined) {
-    return "positive";
-  }
-  if (percent > VMWARE_DATASTORE_CRITICAL_PERCENT) {
+  if (isPastVMwareHealthThreshold(percent, rules.datastoreCriticalPercent)) {
     return "danger";
   }
-  return percent > VMWARE_DATASTORE_WARNING_PERCENT ? "warning" : "positive";
+  return isPastVMwareHealthThreshold(percent, rules.datastoreWarningPercent)
+    ? "warning"
+    : "positive";
 }
 
-// How long a VM waits for a free CPU: amber past 10%, never red.
+// How long a VM waits for a free CPU: amber past 10%, or the project's.
 export function getVMwareCpuReadyPercentTone(
   percent: number | null | undefined,
+  rules: VMwareHealthRules = DEFAULT_VMWARE_HEALTH_RULES,
 ): VMwareUsageTone {
-  return percent !== null &&
-    percent !== undefined &&
-    percent > VMWARE_CPU_READY_WARNING_PERCENT
+  return isPastVMwareHealthThreshold(percent, rules.vmCpuReadyWarningPercent)
     ? "warning"
     : "positive";
 }

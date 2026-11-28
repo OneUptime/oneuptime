@@ -71,10 +71,12 @@ import {
   aiProviders,
   aiReadiness,
   aiRules,
+  codeRepositories,
   filterInsights,
   fixSuggestion,
   saveProjectSwitches,
 } from "./MetricFindings";
+import { answerCodeRepositoryChoices } from "../../SuiteHelpers/CodeRepositoryChoiceAnswers";
 import {
   insightsMetricTypes,
   insightsMetrics,
@@ -178,6 +180,17 @@ async function handleApi(method, options) {
    */
   if (url.includes("/telemetry-ingestion-budget")) {
     return new HTTPErrorResponse(404, { message: "Not modelled" }, {});
+  }
+
+  // Fix with AI's picker: the repositories the fix may be asked in, searched.
+  const choices = answerCodeRepositoryChoices({
+    method,
+    url,
+    body,
+    repositories: codeRepositories(),
+  });
+  if (choices) {
+    return choices;
   }
 
   return ok({});

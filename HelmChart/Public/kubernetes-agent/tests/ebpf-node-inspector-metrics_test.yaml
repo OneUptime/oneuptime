@@ -170,4 +170,7 @@ tests:
     asserts:
       - template: templates/configmap-deployment.yaml
         failedTemplate:
-          errorPattern: "dropNodeInspectorMetrics"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/dropNodeInspectorMetrics': got string, want boolean

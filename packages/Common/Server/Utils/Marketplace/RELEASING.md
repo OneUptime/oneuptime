@@ -346,8 +346,9 @@ app's test order, which the same billing account had bought;
 Cloud leave other products' orders alone. Google approved OneUptime Cloud
 (case 77068529) with an adjusted revenue share, which the maintainer
 accepted on the case on 19 November; Google's approval letter of that day
-sets it. **Left**: production running #11472, and the test purchase back on
-its own order (step 9); usage billing tested once the trial ends (step 9);
+sets it. **Left**: production running #11472 (merged on 28 November)
+before 08:00 UTC on 3 December, and the test purchase back on its own order
+(step 9); usage billing tested once the trial ends (step 9);
 the technical integration's review (step 10); then **Publish** once all
 three reviews are approved (the maintainer's go-ahead).
 
@@ -547,10 +548,16 @@ rules do.
    account's newest order in force, whatever its product: by 27 November
    the test purchase had plan `enterprise`, the Kubernetes app's
    ([#11472](https://github.com/OneUptime/oneuptime/pull/11472) fixes it).
-   Once production runs the fix, the daily sync puts the purchase back on
-   its own order: plan `pay-as-you-go`, product `oneuptime-cloud.endpoints.…`.
-   Until then, do not cancel the Kubernetes app's test order: OneUptime
-   Cloud would take the cancellation as its own and end the test purchase.
+   On 28 November production's row had all of that order: its entitlement,
+   its product (`oneuptime-enterprise.endpoints.…`) and its usage reporting
+   ID, so the first reports after the trial would go to the wrong consumer.
+   Production then ran 17.3.0, without the fix. Once production runs the
+   fix, the daily sync (08:00 UTC) puts the purchase back on its own order:
+   plan `pay-as-you-go`, product `oneuptime-cloud.endpoints.…`. The trial
+   ends at 11:16 UTC on 3 December, so the fix needs to be in production
+   before that day's sync. Until then, do not cancel the Kubernetes app's
+   test order: OneUptime Cloud would take the cancellation as its own and
+   end the test purchase.
 
 10. **Submit for review** - a maintainer's decision. Product details and
     pricing went in on 19 November 2026. The technical integration's
@@ -828,6 +835,7 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-28 | Google Cloud | Technical integration submitted for review, with the go-ahead, before usage billing could be tested                   | Agent      |
 | 2026-11-28 | Google Cloud | Test purchase found on the Kubernetes app's order (same account); other products' orders now ignored (#11472)         | Agent      |
 | 2026-11-28 | Google Cloud | Told on the case: the integration is in review; the first usage report is confirmed there after 3 December            | Agent      |
+| 2026-11-28 | Google Cloud | Production's test purchase holds the Kubernetes order's ID; #11472 merged, needed in production by 3 Dec 08:00        | Agent      |
 
 ## Notes for agents driving the browser
 

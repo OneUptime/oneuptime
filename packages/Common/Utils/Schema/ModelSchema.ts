@@ -40,6 +40,7 @@ import { getApiSingularName } from "../ModelApiName";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import { isAccountDateColumn } from "../../Types/Database/AccessControl/AccountDateColumns";
+import RelationReadersUtil from "../../Types/Database/RelationReadersUtil";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 import {
   CREATED_BY_ACTOR_ID_COLUMN,
@@ -1442,7 +1443,10 @@ export class ModelSchema extends BaseSchema {
    * may read, and the ids and times), of a type that orders. Not a secret,
    * whose stored value orders nothing a person reads, nor a column kept to
    * its owner (OwnerOnlyColumn), which a relation read refuses most callers,
-   * nor a person's account dates (AccountDateColumns), which SortValidator
+   * nor one held to its own read through a relation (RelationReaders
+   * .ColumnReaders: an on-call policy's incident role, #11234), which only
+   * its own readers may sort by, not every reader of the relation, nor a
+   * person's account dates (AccountDateColumns), which SortValidator
    * refuses as an order through a relation to all but OneUptime and a
    * master admin (#9823). The fields SortValidator's refusals offer through
    * a relation are of these.
@@ -1472,6 +1476,7 @@ export class ModelSchema extends BaseSchema {
         !column.hashed &&
         !column.encrypted &&
         !isOwnerOnlyColumn(model, key) &&
+        !RelationReadersUtil.isHeldToItsOwnRead(column) &&
         !isAccountDateColumn(model.tableName, key)
       );
     });

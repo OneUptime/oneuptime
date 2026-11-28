@@ -254,6 +254,7 @@ describe("Sign in with SSO offers the provider this device last signed in with",
           disableUserProjectCreation: false,
           disablePushNotifications: false,
           canSendEmail: true,
+          canProjectsChooseCallVoice: false,
         };
       });
     navigateSpy = jest
