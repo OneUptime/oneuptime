@@ -145,6 +145,12 @@ const PROVIDERS: ReadonlyArray<Provider> = [
     settingsStep: "Credentials",
   },
   {
+    value: "crowdsec",
+    title: "CrowdSec",
+    category: "Network security",
+    docsSlug: "crowdsec",
+  },
+  {
     value: "google-secops",
     title: "Google SecOps",
     category: "SIEM",
