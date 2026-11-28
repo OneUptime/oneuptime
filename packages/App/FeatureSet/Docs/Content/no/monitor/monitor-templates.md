@@ -6,6 +6,7 @@ En monitormal er en lagret monitorkonfigurasjon (en type, kriterier, et interval
 - [Opprett en mal](#opprett-en-mal): Fire trinn, som Opprett monitor.
 - [Opprett monitorer fra den](#opprett-monitorer-fra-en-mal): Ett klikk, eller koble til monitorer du allerede har.
 - [Synkroniser endringer](#synkroniser-endringer-til-tilkoblede-monitorer): Hva hver synkroniseringsknapp kopierer.
+- [Flytt monitorer til en annen mal](#flytt-monitorer-til-en-annen-mal): En bedre mal, og hver monitor beholder historikken sin.
 - [Behold verdier for hver monitor](#behold-verdier-for-hver-monitor): Beskytt et mål eller hoder mot en synkronisering.
 :::
 
@@ -55,7 +56,7 @@ Malen legges til i listen. Åpne den for å se siden, med et kort for hver del: 
 ## Opprett monitorer fra en mal
 
 - **Ny monitor.** Klikk på **Opprett monitor** i malens rad i listen, eller på **Opprett monitor fra mal** på siden dens. **Opprett monitor** åpner med malens type og innstillinger fylt ut; endre det du trenger, og opprett den. Den nye monitoren er koblet til malen.
-- **Monitorer du allerede har.** Under **Tilkoblede monitorer** klikker du på **Koble til eksisterende monitorer** og velger dem. De beholder innstillingene sine til du synkroniserer.
+- **Monitorer du allerede har.** Under **Tilkoblede monitorer** klikker du på **Koble til eksisterende monitorer** og velger dem. Med **Bruk malens kriterier og intervall** slått på får de malens kriterier, intervall og sondeenighet når de kobles til; slått av beholder de innstillingene sine til du synkroniserer. En monitor som er koblet til en annen mal, flyttes til denne.
 
 Verdier som er satt under **Standardverdier for egendefinerte felt**, skrives til hver monitor som opprettes fra malen, også monitorer som regler for automatisk import og varslingspolicyer oppretter fra den.
 
@@ -70,9 +71,60 @@ Verdier som er satt under **Standardverdier for egendefinerte felt**, skrives ti
 | **Synkroniser etiketter til koblede monitorer** | Etikettene, og ingenting annet | Alt annet |
 | **Synkroniser egendefinerte felt til tilknyttede monitorer** | De egendefinerte feltene malen har en standardverdi for, i stedet for det hver monitor hadde | Egendefinerte felt som malen lar stå tomme, og alt annet |
 
-For å synkronisere én monitor klikker du på **Synkroniser fra mal** i raden dens under **Tilkoblede monitorer**. Det kopierer kriteriene og trinninnstillingene (unntatt beskyttede felt), overvåkingsintervallet, minimum sondeenighet og etikettene, og lar monitorens navn, beskrivelse og verdier i egendefinerte felt være. **Koble fra mal** kobler fra en monitor; den beholder innstillingene sine.
+For å synkronisere én monitor klikker du på **Synkroniser fra mal** i raden dens under **Tilkoblede monitorer**. Det kopierer kriteriene og trinninnstillingene (unntatt beskyttede felt), overvåkingsintervallet, minimum sondeenighet og etikettene, og lar monitorens navn, beskrivelse og verdier i egendefinerte felt være. For å koble fra en monitor, se [Koble monitorer fra en mal](#koble-monitorer-fra-en-mal).
 
 Etter en synkronisering sier et sammendrag hvor mange monitorer som ble oppdatert. **Delvis synkronisert** betyr at noen tilkoblede monitorer fortsatt har den forrige konfigurasjonen, som regel fordi tillatelsene dine ikke dekker dem.
+
+## Flytt monitorer til en annen mal
+
+Når en bedre mal tar over for en annen, flytter du monitorene til den i stedet for å slette dem. Hver monitor beholder navnet, statushistorikken, etikettene, eierne og hendelsene sine, og får den nye malens kriterier.
+
+:::steps
+### Velg monitorene
+
+Åpne malen de er koblet til nå. Under **Tilkoblede monitorer** velger du monitorene, eller alle sammen. Du kan også velge monitorer i monitorlisten, filtrert på en hvilken som helst kolonne.
+
+### Flytt dem
+
+Under **Massehandlinger** klikker du på **Flytt til en annen mal** (i monitorlisten **Koble til mal**). Velg malen.
+
+### La malens innstillinger være på
+
+La **Bruk malens kriterier og intervall** være slått på, så hver monitor får malens kriterier, trinninnstillinger, intervall og sondeenighet nå. Slått av beholder hver monitor sine egne til du synkroniserer. Bekreft deretter.
+:::
+
+Dette gjør flyttingen:
+
+- Monitorenes kriterier, intervall og sondeenighet erstattes av malens. En åpen hendelse eller et åpent varsel som de gamle kriteriene var satt til å løse automatisk, blir løst, og de nye kriteriene åpner en ny hvis problemet fortsatt er der. Hver monitor for nettverksenheter fortsetter å følge sin egen enhet, og hver adresse- eller URL-monitor fortsetter å sjekke adressen til sin egen enhet.
+- Navn, beskrivelser, statushistorikk, etiketter, eiere, verdier i egendefinerte felt og koblinger til hendelser forblir som de er.
+- En monitor som en import, en regel for automatisk import eller en varslingspolicy for nettverket har opprettet, beholder malen den ble opprettet fra. Den regelen oppretter den aldri på nytt, og en varslingspolicy slipper den: den sletter eller erstatter den ikke lenger.
+- En enhet har én monitor fra hver mal. Når en enhet allerede har en monitor som er opprettet for den fra den nye malen, utelates den andre monitoren dens, og endringen navngir den som står i veien: slett én av de to, og flytt så på nytt.
+- En monitor av en annen type enn malens utelates.
+
+Endringen kjører på serveren, opptil 10 000 monitorer om gangen, og viser fremdriften: hva som ble flyttet, hva som ble utelatt og hvorfor, og de åpne hendelsene og varslene den løste. Å lukke dialogen stopper den ikke, og malens side viser en endring som fortsatt pågår. **Stopp** stopper den før neste monitor, og **Prøv på nytt** prøver monitorene som mislyktes eller ikke ble nådd, på nytt.
+
+> [!TIP]
+> Flytter du enhetene til en regel for automatisk import til en ny mal? Flytt monitorene først, og pek deretter regelen mot den nye malen. I motsatt rekkefølge gir regelen hver enhet en monitor til, fra den nye malen, ved siden av den den har.
+
+## Koble monitorer fra en mal
+
+Klikk på **Koble fra mal** i raden til en monitor under **Tilkoblede monitorer**, eller velg monitorer der eller i monitorlisten og bruk **Koble fra mal** under **Massehandlinger**. Velg hva monitorene beholder:
+
+| Valg | Hva monitorene gjør etterpå |
+| --- | --- |
+| **Behold innstillingene deres** | De fortsetter å sjekke og varsle med kriteriene de har nå, som egne monitorer, og får ikke lenger malens oppdateringer. |
+| **Fjern malens kriterier fra dem** | De fortsetter å sjekke, men oppretter ingen hendelser eller varsler og setter ingen status før du kobler dem til en mal igjen. En åpen hendelse eller et åpent varsel som kriteriene deres var satt til å løse automatisk, blir løst. |
+
+Uansett beholder de navnene, statushistorikken, etikettene, eierne og hendelsene sine, og en regel som opprettet dem, oppretter dem aldri på nytt.
+
+## Slett en mal
+
+En mal som en varslingspolicy for nettverket eller en regel for automatisk import oppretter monitorer fra, kan ikke slettes: pek først policyen eller regelen mot en annen mal. Når monitorer er koblet til malen, spør slettingen hva som skal skje med dem:
+
+- **Behold innstillingene deres** (standard): slettingen kobler dem fra, og de fortsetter å sjekke og varsle med kriteriene de har.
+- **Fjern denne malens kriterier fra dem**: hver kobles fra med kriteriene fjernet, som ovenfor, og deretter slettes malen. Når en monitor forblir koblet til, for eksempel en som tillatelsene dine ikke dekker, beholdes malen, og dialogen sier hvor mange.
+
+For å flytte monitorene til en annen mal i stedet bruker du **Flytt til en annen mal** før du sletter den.
 
 ## Behold verdier for hver monitor
 
@@ -174,6 +226,14 @@ Et beskyttet felt kunne ikke matches mot et trinn på en av monitorene, så synk
 
 :::details Synkroniseringsknappene er nedtonet
 Ingen monitor er koblet til malen ennå. Opprett en monitor fra den, eller klikk på **Koble til eksisterende monitorer** under **Tilkoblede monitorer**.
+:::
+
+:::details En flytting utelater en monitor: "Enheten denne monitoren ble opprettet for, har allerede en monitor koblet til denne malen"
+Enheten har en monitor som er opprettet for den fra malen du flytter til, som regel fordi en regel for automatisk import ble pekt mot den malen før flyttingen. Slett den du ikke trenger – den nyeste har minst historikk – og flytt så på nytt.
+:::
+
+:::details Etter at en regel for automatisk import er flyttet til en ny mal, har enhetene to monitorer
+Regelen ga hver enhet den nye malens monitor ved siden av den den hadde. Slett de nye monitorene, og flytt deretter de gamle til den nye malen: de beholder historikken sin, og regelen oppretter ingen på nytt.
 :::
 
 :::details Lagring feiler med "Unsupported do not sync field"
