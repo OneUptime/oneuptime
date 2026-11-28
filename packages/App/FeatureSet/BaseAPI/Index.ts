@@ -756,6 +756,7 @@ import SecurityPlaybookService, {
   Service as SecurityPlaybookServiceType,
 } from "Common/Server/Services/SecurityPlaybookService";
 import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
+import SecurityUserErasureRequestAPI from "Common/Server/API/SecurityUserErasureRequestAPI";
 import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
 import SecurityAutomaticResponsePolicyAPI from "Common/Server/API/SecurityAutomaticResponsePolicyAPI";
 import SecurityAutomaticResponseActionService, {
@@ -1045,9 +1046,6 @@ import RumSessionReplayViewService, {
 import RumSessionErasureRequestService, {
   Service as RumSessionErasureRequestServiceType,
 } from "Common/Server/Services/RumSessionErasureRequestService";
-import SecurityUserErasureRequestService, {
-  Service as SecurityUserErasureRequestServiceType,
-} from "Common/Server/Services/SecurityUserErasureRequestService";
 import RumSessionPinService, {
   Service as RumSessionPinServiceType,
 } from "Common/Server/Services/RumSessionPinService";
@@ -1836,7 +1834,6 @@ import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
-import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
@@ -6520,16 +6517,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(RumSessionErasureRequest, RumSessionErasureRequestService).getRouter(),
     );
 
-    // Erasing one person from Security Events' user vault (#10908).
+    /*
+     * Erasing one person from Security Events' user vault (#10908), and how
+     * far each open request has got (#11232).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        SecurityUserErasureRequest,
-        SecurityUserErasureRequestServiceType
-      >(
-        SecurityUserErasureRequest,
-        SecurityUserErasureRequestService,
-      ).getRouter(),
+      new SecurityUserErasureRequestAPI().getRouter(),
     );
 
     app.use(

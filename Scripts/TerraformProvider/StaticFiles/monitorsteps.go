@@ -2688,14 +2688,33 @@ func monitorStepsActiveHoursToAPI(attrs map[string]attr.Value, timezone string) 
 		})
 	}
 
+	// The type under its name and under its older spelling, as the server
+	// sends a restriction since OneUptime/oneuptime#11269: every server reads
+	// restictionType, and a newer one restrictionType.
 	return map[string]interface{}{
 		"_type": "RestrictionTimes",
 		"value": map[string]interface{}{
+			"restrictionType":        "Weekly",
 			"restictionType":         "Weekly",
 			"dayRestrictionTimes":    nil,
 			"weeklyRestrictionTimes": windows,
 		},
 	}
+}
+
+// monitorStepsRestrictionType reads a restriction's type as the server
+// does: under restrictionType, else under restictionType, its older
+// spelling (OneUptime/oneuptime#11269). "" for neither.
+func monitorStepsRestrictionType(value map[string]interface{}) string {
+	for _, key := range []string{"restrictionType", "restictionType"} {
+		if text, ok := value[key].(string); ok {
+			switch text {
+			case "None", "Daily", "Weekly":
+				return text
+			}
+		}
+	}
+	return ""
 }
 
 // A window of the hours: the minute of the week it opens, Monday 00:00 is 0.
@@ -2754,7 +2773,7 @@ func monitorStepsActiveHoursFromAPI(stored map[string]interface{}, timezone stri
 
 	windows := []monitorStepsHoursWindow{}
 
-	switch value["restictionType"] {
+	switch monitorStepsRestrictionType(value) {
 	case "Daily":
 		daily, ok := value["dayRestrictionTimes"].(map[string]interface{})
 		if !ok {

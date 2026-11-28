@@ -610,7 +610,7 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
   @Column({
     nullable: false,
     type: ColumnType.JSON,
-    default: RestrictionTimes.getDefault().toJSON(),
+    default: RestrictionTimes.getDefault().toDatabaseJSON(),
     transformer: RestrictionTimes.getDatabaseTransformer(),
   })
   public restrictionTimes?: RestrictionTimes = undefined;

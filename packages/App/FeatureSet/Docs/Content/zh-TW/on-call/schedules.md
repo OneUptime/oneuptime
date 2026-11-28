@@ -69,7 +69,9 @@ flowchart TB
 | **輪換開始時間** | 該層輪替開始的日期和時間。 |
 | **輪換週期** | 待命多久交給層中的下一個人。 |
 | **首次交接時間** | 第一次交接給下一個人的時間，在開始時或之後。之後的交接依每個輪替間隔進行。 |
-| **限制** | 該層待命的時段：依排程的時區為 **無限制** 、 **一天中的特定時間** 或 **一週中的特定時間** 。在這些時段之外，由下層接手。 |
+| **限制** | 該層待命的時段（**有效時段**）：依排程的時區為 **無限制** 、 **一天中的特定時間** 或 **一週中的特定時間** 。在這些時段之外，由下層接手。 |
+
+設定有效時段後，每個時段都是一個獨立的班次。17:00 到 07:00 是一個班次，在隔天早上 07:00 結束：在 **待命時間軸** 、電子郵件、行動應用程式以及 Slack 和 Microsoft Teams 中都一樣，以排程的時區計算，在時鐘調整的夜裡也是如此。一個人的輪值是到下一次交接之前的所有時段，每個方向只通知一次：輪值的第一個時段開始時寄送 "You are now on-call"，並註明該時段和整個輪值何時結束；最後一個時段結束時寄送 "You are no longer on-call"，而不是每個時段都寄送。若要在每個時段前收到提醒，請依 [行事曆訂閱源](/docs/on-call/calendar-feeds#提醒與重新指派通知) 的說明在 **班次前提醒我** 中選擇時間。如果在兩個時段之間由別人待命（透過覆寫或下層），或層的變更把下一個時段交給了別人，這就是一次交接，並以交接通知。待命時間仍依時段逐一記錄，待命策略的頻道和動態仍會每次說明誰在待命。
 
 若要變更哪一層排在前面，請使用層卡片上的箭頭 **上移層（提高優先順序）** 或 **下移層（降低優先順序）** 。
 
@@ -111,7 +113,10 @@ flowchart TB
 
 - 在 `miscDataProps` 中帶 `firstLayerUsers` （依輪替順序排列的使用者 ID 清單）建立排程，會像儀表板一樣為它建立第一層：從現在開始全天候待命的 **Layer 1** 。 `firstLayerRotation` 以 `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}` 這樣的輪替指定每次待命時長；未提供時為一週。每個使用者都必須是專案成員，呼叫端必須有權建立層，否則不會建立排程。
 - 不帶它們建立的排程和以前一樣沒有層；Terraform 的排程資源不會傳送它們。
-- 不帶 `rotation` 建立的層和以往一樣每天交接。
+- 不帶 `rotation` 建立的層每週交接一次，不帶 `restrictionTimes` 的層全天候待命，與在主控台中新建的層相同。
+- 層的 `restrictionTimes`（即其有效時段）在 `restrictionType` 中寫明類型：`None`（全天候待命）、`Daily` 或 `Weekly`。也會讀取 `restictionType`，也就是少了第二個 "r" 的舊拼法，每個回應都會在兩個鍵下提供類型，因此以任一拼法撰寫的用戶端或 Terraform 設定都能繼續運作；層以 `restrictionType` 儲存。
+- 會讓層在任何時刻都不待命的寫入會被拒絕，回傳指明該鍵的 `400`：類型缺少、未知或在兩種拼法下不同（更新時採用與層目前類型不同的那個）；`startTime` 和 `endTime` 不是日期與時間的 `Daily` 時段（只有 `"09:00"` 會被拒絕）；沒有 `weeklyRestrictionTimes` 的 `Weekly` 限制；或開始與結束於同一時間的時段。`intervalType` 不是 `Hour`、`Day`、`Week`、`Month` 或 `Year` 的 `rotation` 也會以同樣方式被拒絕。
+- 在開始拒絕這些寫入之前儲存、沒有可讀取類型的層從未待命過。升級 OneUptime 時，會依每個這樣的層所含的時段讀取它並照此儲存，再重新計算其排程中誰在待命，因此其中的人從此會被呼叫，並收到相應通知。
 - 透過 API 或 Terraform 對排程的層和層中人員所做的變更會作為一次變更通知：在層半分鐘內沒有再變更後才計算誰在待命，開始待命、結束待命或下一位待命的人只會收到一次通知，而不是每寫入一個層或一個人就通知一次。每項變更一儲存，呼叫就會傳給層所安排的待命人員。
 - 若要像 **層** 頁面上的 **儲存變更** 那樣一次變更誰在排程的各層中輪值，請用 `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` 讀取各層，修改後再傳回 `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers` 。其中依優先順序從高到低列出排程保留的每一層，每層依輪值順序列出其中的人員：已在某層中的人用其 `layerUserId` ，新加入的人只用 `userId` 。 `deletedLayerIds` 列出要刪除的層。
 - 一次儲存要麼全部寫入，要麼完全不寫入，誰在待命只計算一次，並且立即計算。在別人變更各層之後才進行的儲存會以 409 被拒絕，因為它的 `basedOnVersion` 已不再是各層目前的版本：請重新讀取各層，並在現有內容的基礎上進行變更。Terraform 的 `oneuptime_on_call_schedule_layers` 資源就是這樣儲存排程的各層的。
@@ -129,6 +134,28 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
     }
   }'
 ```
