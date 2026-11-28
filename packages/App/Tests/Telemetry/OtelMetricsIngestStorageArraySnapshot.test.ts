@@ -1220,22 +1220,27 @@ describe("storage array snapshot ingest — the platform", () => {
     );
   });
 
+  /*
+   * A platform OneUptime reads nothing of (no extractor): Hitachi VSP. NetApp
+   * ONTAP was the example until it got one (#11189); a known platform is
+   * never taken from the declaration alone (resolveStorageArraySystem).
+   */
   test("a platform with no catalog is labelled from the declaration alone", async () => {
     const spies: Spies = setupIngestMocks({});
 
     await OtelMetricsIngestService.processMetricsFromQueue(
       request([
         resourceMetrics({
-          arrayName: "ontap-01",
-          storageSystem: " NetApp.ONTAP ",
-          metrics: [gauge("netapp_volume_size_bytes", [point(GIB)])],
+          arrayName: "vsp-01",
+          storageSystem: " Hitachi.VSP ",
+          metrics: [gauge("vsp_pool_total_capacity_bytes", [point(GIB)])],
         }),
       ]),
     );
 
     expect(spies.bulkUpsert).not.toHaveBeenCalled();
     expect(spies.resetVolumeConnectionCounts).not.toHaveBeenCalled();
-    expect(extras(spies)).toEqual({ storageSystem: "netapp.ontap" });
+    expect(extras(spies)).toEqual({ storageSystem: "hitachi.vsp" });
   });
 
   test("a Pure batch without Pure series never writes the declared platform", async () => {
@@ -1277,7 +1282,7 @@ describe("storage array snapshot ingest — the platform", () => {
         const name: unknown = data.attributes.find((a: JSONObject) => {
           return a["key"] === "storage.array.name";
         })?.["value"];
-        return (name as JSONObject)["stringValue"] === "ontap-01"
+        return (name as JSONObject)["stringValue"] === "vsp-01"
           ? OTHER_ARRAY_ID
           : ARRAY_ID;
       },
@@ -1287,9 +1292,9 @@ describe("storage array snapshot ingest — the platform", () => {
       request([
         declaring(fbArrayScrape(), "purestorage.flasharray"),
         resourceMetrics({
-          arrayName: "ontap-01",
-          storageSystem: "netapp.ontap",
-          metrics: [gauge("netapp_volume_size_bytes", [point(GIB)])],
+          arrayName: "vsp-01",
+          storageSystem: "hitachi.vsp",
+          metrics: [gauge("vsp_pool_total_capacity_bytes", [point(GIB)])],
         }),
       ]),
     );
@@ -1308,7 +1313,7 @@ describe("storage array snapshot ingest — the platform", () => {
       StorageSystem.PureStorageFlashBlade,
     );
     expect(written.get(OTHER_ARRAY_ID.toString())).toEqual({
-      storageSystem: "netapp.ontap",
+      storageSystem: "hitachi.vsp",
     });
   });
 });

@@ -7,6 +7,7 @@ OneUptime 提供者發佈在 [Terraform Registry](https://registry.terraform.io/
 - [版本如何編號](#版本如何編號): 提供者的版本就是發佈它的 OneUptime 發行版本。
 - [鎖定檔](#鎖定檔): 每台機器安裝的版本和總和檢查碼。
 - [改用較新的版本](#改用較新的版本): 閱讀變更內容，下載新版本，然後執行計畫。
+- [驗證某個版本的總和檢查碼](#驗證某個版本的總和檢查碼): 依照 `init` 的方式手動檢查一個版本。
 :::
 
 ## 發佈了什麼
@@ -57,6 +58,8 @@ terraform {
 
 已發佈的版本永遠不會改變：登錄檔會保留它們最初下載的內容的總和檢查碼，`init` 會用這些總和檢查碼核對每一次下載。需要修復的版本會作為下一個修補版本重新發佈，範圍會包含它，該發行版本的說明會寫明它取代的是哪個版本。
 
+每個版本發佈之後，以及之後的每一天，OneUptime 都會針對每個平台，把兩個登錄檔保留的總和檢查碼與該發行版本提供的檔案進行比較。
+
 ## 鎖定檔
 
 `terraform init` 會把它選定的版本及其下載內容的總和檢查碼記錄在 `.terraform.lock.hcl` 中。請提交這個檔案：這樣每台機器和每次 CI 執行都會安裝完全相同的版本，直到你選擇另一個版本。總和檢查碼涵蓋登錄檔發佈的每個平台，所以一個鎖定檔可以同時用於 Linux、macOS 和 Windows 機器。
@@ -95,6 +98,29 @@ terraform init -upgrade
 :::
 
 在自架的 OneUptime 上，請先升級 OneUptime，再提高提供者範圍的終點。
+
+## 驗證某個版本的總和檢查碼
+
+只有當你所用平台的三個 SHA-256 總和檢查碼一致時，`init` 才會安裝該版本：版本發佈時登錄檔保留的那個、該發行版本的 `SHA256SUMS` 中 zip 所在的那一行，以及 zip 本身。它也會檢查 `SHA256SUMS` 是否由 OneUptime 的金鑰簽署，該金鑰的指紋以 `9D87 E494 AC01 6697` 結尾。要自己檢查一個版本，請在第一行設定它的版本、你的系統和你的架構：
+
+```bash
+VERSION=17.3.0 OS=linux ARCH=amd64
+ZIP=terraform-provider-oneuptime_${VERSION}_${OS}_${ARCH}.zip
+SUMS=terraform-provider-oneuptime_${VERSION}_SHA256SUMS
+curl -s https://registry.terraform.io/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH > registry.json
+jq -r .shasum registry.json
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$ZIP"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS.sig"
+grep "$ZIP" "$SUMS"
+sha256sum "$ZIP"
+jq -r '.signing_keys.gpg_public_keys[0].ascii_armor' registry.json | gpg --import
+gpg --verify "$SUMS.sig" "$SUMS"
+```
+
+它列印的三個總和檢查碼必須相同，`gpg` 必須顯示 `Good signature from "OneUptime <key@oneuptime.com>"`。在 macOS 上，用 `shasum -a 256` 取代 `sha256sum`。當登錄檔的總和檢查碼與另外兩個不同時，`init` 會拒絕該版本：請參閱[總和檢查碼不符的版本](/docs/terraform/troubleshooting#總和檢查碼不符的版本)。
+
+OpenTofu 的登錄檔保留的是同樣的總和檢查碼：可以從 `https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH` 讀取它自己的總和檢查碼。它沒有該提供者的金鑰，所以 `tofu init` 會檢查總和檢查碼，並略過簽章。
 
 ## 程式碼在哪裡
 

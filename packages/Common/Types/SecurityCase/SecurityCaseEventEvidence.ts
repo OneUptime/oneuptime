@@ -1,3 +1,5 @@
+import { SECURITY_REQUEST_ATTRIBUTES } from "../SecurityEvent/SecurityEventRequestOutcome";
+
 /*
  * SECURITY EVENTS BOOKMARKED ONTO A CASE.
  *
@@ -231,6 +233,18 @@ function readList(value: unknown): Array<string> {
   return list;
 }
 
+/*
+ * The attributes a snapshot keeps before any other, however many the event
+ * has: how its address was known (#11389) - what a detection's kept events
+ * are read for before an automatic response blocks it.
+ */
+const SNAPSHOT_FIRST_ATTRIBUTES: ReadonlyArray<string> = [
+  SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust,
+  SECURITY_REQUEST_ATTRIBUTES.forwardedBy,
+  SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress,
+  SECURITY_REQUEST_ATTRIBUTES.claimedClientAddressFrom,
+];
+
 function readAttributes(value: unknown): { [key: string]: string } {
   const attributes: { [key: string]: string } = {};
 
@@ -238,9 +252,17 @@ function readAttributes(value: unknown): { [key: string]: string } {
     return attributes;
   }
 
-  const keys: Array<string> = Object.keys(
-    value as Record<string, unknown>,
-  ).sort();
+  const allKeys: Array<string> = Object.keys(value as Record<string, unknown>);
+  const keys: Array<string> = [
+    ...SNAPSHOT_FIRST_ATTRIBUTES.filter((key: string): boolean => {
+      return allKeys.includes(key);
+    }),
+    ...allKeys
+      .filter((key: string): boolean => {
+        return !SNAPSHOT_FIRST_ATTRIBUTES.includes(key);
+      })
+      .sort(),
+  ];
 
   for (const key of keys) {
     if (

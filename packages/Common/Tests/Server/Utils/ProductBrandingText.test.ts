@@ -147,6 +147,63 @@ describe("brandCallRequest", () => {
     expect(ProductBrandingText.brandCallRequest(original, null)).toBe(original);
     expect(ProductBrandingText.brandCallRequest(original, {})).toBe(original);
   });
+
+  test("names the product in the call's words in its person's language too (#11066)", () => {
+    const german: CallRequest = {
+      ...callRequest(),
+      inLanguage: {
+        language: "de",
+        data: [
+          { sayMessage: "Dies ist eine Nachricht von OneUptime." } as Say,
+          {
+            ...(callRequest().data[1] as GatherInput),
+            introMessage: "Ein Anruf von OneUptime. Drücken Sie 1.",
+            onInputCallRequest: {
+              "1": { sayMessage: "In OneUptime bestätigt. Auf Wiederhören." },
+              default: { sayMessage: "Auf Wiederhören von OneUptime." },
+            },
+          },
+        ],
+      },
+    };
+
+    const branded: CallRequest = ProductBrandingText.brandCallRequest(
+      german,
+      ACME,
+    );
+
+    expect(branded.inLanguage?.language).toBe("de");
+    expect((branded.inLanguage!.data[0] as Say).sayMessage).toBe(
+      "Dies ist eine Nachricht von Acme.",
+    );
+
+    const gather: GatherInput = branded.inLanguage!.data[1] as GatherInput;
+
+    expect(gather.introMessage).toBe("Ein Anruf von Acme. Drücken Sie 1.");
+    expect(gather.onInputCallRequest["1"]?.sayMessage).toBe(
+      "In Acme bestätigt. Auf Wiederhören.",
+    );
+    expect(gather.onInputCallRequest.default.sayMessage).toBe(
+      "Auf Wiederhören von Acme.",
+    );
+    // The English beside it, as before.
+    expect((branded.data[0] as Say).sayMessage).toBe(
+      "This is a message from Acme.",
+    );
+    // And the request it was given is left as it was.
+    expect((german.inLanguage!.data[0] as Say).sayMessage).toBe(
+      "Dies ist eine Nachricht von OneUptime.",
+    );
+  });
+
+  test("a call with no words in another language gets none", () => {
+    const branded: CallRequest = ProductBrandingText.brandCallRequest(
+      callRequest(),
+      ACME,
+    );
+
+    expect("inLanguage" in branded).toBe(false);
+  });
 });
 
 describe("brandPushMessage", () => {

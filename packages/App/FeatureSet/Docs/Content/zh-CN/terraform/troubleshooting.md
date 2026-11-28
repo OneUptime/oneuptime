@@ -37,6 +37,7 @@
 | `Not an ID` | 引用记录，而不是写它的名称：参阅[该写 ID 的地方写了名称](#该写-id-的地方写了名称) |
 | `.tf` 文件中有来自仪表板的 JSON | 把它写成 HCL：参阅[来自仪表板的 JSON](#来自仪表板的-json) |
 | `no available releases match the given constraints` | 使用版本范围，而不是单个确切版本：参阅[从未发布过的版本](#从未发布过的版本) |
+| `checksum list has unexpected SHA-256 hash` | 使用该提供程序的其他版本：参阅[校验和不匹配的版本](#校验和不匹配的版本) |
 | `x509: certificate signed by unknown authority` | 信任你的证书颁发机构：参阅[证书](#证书) |
 | `invalid character '<' looking for beginning of value` | 让 `oneuptime_url` 指向 OneUptime 本身：参阅[返回网页而不是 API](#返回网页而不是-api) |
 | `connection refused` 或 `Client.Timeout exceeded` | 检查地址、网络和代理：参阅[连接失败](#连接失败) |
@@ -238,6 +239,14 @@ terraform {
 ```
 
 在自托管 OneUptime 上，请把范围的上限设为你的 OneUptime 版本，如[自托管设置](/docs/terraform/self-hosted#选择提供程序版本)所示。[注册表使用](/docs/terraform/registry#版本如何编号)解释了版本的编号方式。
+
+### 校验和不匹配的版本
+
+`checksum list has unexpected SHA-256 hash` 表示该发布为这个版本提供的文件，并不是版本发布时注册表读取的那些文件。注册表会保留它当时读取的校验和，`init` 会用这些校验和核对每一次下载。14.3.0、16.0.0、17.0.0、17.1.0 和 17.2.0 的文件，以及 11.x 到 14.0.x 中一些较旧版本的文件，在注册表读取之后又被构建并上传了一次，所以 `init` 在每个平台上都会拒绝这些版本，Terraform 和 OpenTofu 都一样。锁文件也绕不过去：`init` 会在读取锁文件之前，先把注册表的校验和与该发布的校验和进行比较。
+
+请使用其他版本：17.3.0 或更新的版本，或者 15.0.0。允许更新版本的范围会通过 `terraform init -upgrade` 选中它。这样的版本重新发布时，会作为下一个补丁版本发布，例如 17.2.0 对应 17.2.1，里面是同一个提供程序，允许该补丁的范围会选中它。
+
+要在使用某个版本之前检查它，请参阅[验证某个版本的校验和](/docs/terraform/registry#验证某个版本的校验和)。
 
 ## 连接自托管 OneUptime
 

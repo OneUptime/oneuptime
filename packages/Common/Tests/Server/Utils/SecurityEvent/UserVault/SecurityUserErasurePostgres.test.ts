@@ -33,9 +33,16 @@ import {
   SecurityCaseAiActionStatus,
 } from "../../../../../Types/SecurityCase/SecurityCaseAi";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
-import SecurityPlaybookRunStatus from "../../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
+import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
+import { SecurityPlaybookActionType } from "../../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import SecurityPlaybookRunStatus, {
+  SecurityPlaybookStepStatus,
+} from "../../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { SecurityUserErasureRequestStatus } from "../../../../../Types/SecurityEvent/SecurityUserErasure";
-import { detectionRuleMatchMarkdown } from "../../../../../Utils/SecurityCase/SecurityCaseMarkdown";
+import {
+  detectionRuleMatchMarkdown,
+  threatIntelMatchMarkdown,
+} from "../../../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import { getEntityCaseGroupingKey } from "../../../../../Utils/SecurityCase/SecurityEntityRiskScore";
 import { ErasedName } from "../../../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
 import {
@@ -123,6 +130,9 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
     // What a detection opened, deduped by its fingerprint (#11130).
     "Alert",
     "Incident",
+    // The feed items that announced them, which copy their description (#11230).
+    "AlertFeed",
+    "IncidentFeed",
   ];
 
   beforeAll(async () => {
@@ -675,6 +685,112 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
       expect((await rowOf("SecurityPlaybookRun", bobs))["status"]).toBe(
         SecurityPlaybookRunStatus.WaitingForApproval,
       );
+    });
+
+    test("a step's message that names the person as inline code - a threat intel lookup's, lower-cased as it matched, a Windows account's backslash and all - gets the token too, an approver's words do not (#11230)", async () => {
+      // As Check threat intel writes its message (SecurityPlaybookActions).
+      const lookedUp: (value: string) => string = (value: string): string => {
+        return `1 entity is known-bad in threat intel: \`${value}\`.`;
+      };
+      const UPN: string = "Alice.Smith@Contoso.com";
+      const WINDOWS: string = "CORP\\alice";
+      const upnToken: string = ScrubHashToken.ofValue({
+        projectId,
+        value: UPN,
+      });
+      const windowsToken: string = ScrubHashToken.ofValue({
+        projectId,
+        value: WINDOWS,
+      });
+      const erased: Array<ErasedName> = [
+        ...names,
+        { named: UPN, hashed: upnToken },
+        { named: WINDOWS, hashed: windowsToken },
+      ];
+      const lookUp: (message: string) => Record<string, unknown> = (
+        message: string,
+      ): Record<string, unknown> => {
+        return {
+          stepId: "lookup",
+          action: SecurityPlaybookActionType.CheckThreatIntel,
+          status: SecurityPlaybookStepStatus.Succeeded,
+          message,
+          found: true,
+        };
+      };
+      const runOf: (
+        stepResults: Array<Record<string, unknown>>,
+      ) => Promise<ObjectID> = (
+        stepResults: Array<Record<string, unknown>>,
+      ): Promise<ObjectID> => {
+        return insert("SecurityPlaybookRun", {
+          projectId: projectId.toString(),
+          playbookName: "Look up the account",
+          status: SecurityPlaybookRunStatus.Succeeded,
+          stepResults,
+        });
+      };
+      const messageOf: (id: ObjectID) => Promise<unknown> = async (
+        id: ObjectID,
+      ): Promise<unknown> => {
+        return (
+          (await rowOf("SecurityPlaybookRun", id))["stepResults"] as Array<
+            Record<string, unknown>
+          >
+        )[0]!["message"];
+      };
+
+      // The name as the vault holds it, beside an approver's own words.
+      const exact: ObjectID = await runOf([
+        lookUp(lookedUp(ALICE)),
+        {
+          stepId: "suspend",
+          status: SecurityPlaybookStepStatus.Succeeded,
+          approval: { comment: `Ask ${ALICE} first`, targets: [ALICE] },
+        },
+      ]);
+      // The lookup matched Alice.Smith@Contoso.com lower-cased, and says so.
+      const lowerCased: ObjectID = await runOf([
+        lookUp(lookedUp(UPN.toLowerCase())),
+      ]);
+      // The column's JSON holds the backslash escaped: CORP\\alice.
+      const backslashed: ObjectID = await runOf([lookUp(lookedUp(WINDOWS))]);
+
+      await SecurityUserErasureRecords.withdrawPlaybookRuns({
+        projectId,
+        names: erased,
+      });
+
+      expect(await messageOf(exact)).toBe(lookedUp(aliceToken));
+      expect(await messageOf(lowerCased)).toBe(lookedUp(upnToken));
+      expect(await messageOf(backslashed)).toBe(lookedUp(windowsToken));
+
+      const approval: Record<string, unknown> = (
+        (await rowOf("SecurityPlaybookRun", exact))["stepResults"] as Array<
+          Record<string, unknown>
+        >
+      )[1]!["approval"] as Record<string, unknown>;
+
+      expect(approval["comment"]).toBe(`Ask ${ALICE} first`);
+      expect(approval["targets"]).toEqual([aliceToken]);
+
+      // Done again, nothing more is found to change.
+      const versions: Array<unknown> = [];
+
+      for (const id of [exact, lowerCased, backslashed]) {
+        versions.push((await rowOf("SecurityPlaybookRun", id))["version"]);
+      }
+
+      await SecurityUserErasureRecords.withdrawPlaybookRuns({
+        projectId,
+        names: erased,
+      });
+
+      for (const [index, id] of [exact, lowerCased, backslashed].entries()) {
+        expect((await rowOf("SecurityPlaybookRun", id))["version"]).toBe(
+          versions[index],
+        );
+      }
     });
   });
 
@@ -1266,6 +1382,662 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
 
       // Nor the name itself, in anything Security Events keeps of it.
       expect(after.toLowerCase()).not.toContain(ALICE);
+    });
+
+    /*
+     * #11230: a threat intel feed lists the person's address, and keeps it
+     * in clear beside its indicator's STIX id and name. What OneUptime wrote
+     * about the match named the indicator by both; written here by the same
+     * builders the matcher writes with.
+     */
+    describe("a threat intel feed's indicator (#11230)", () => {
+      const STIX_ID: string = "indicator--8e2e2d2b-17d4-4cbf-938f-98ee46b3cd3f";
+      const BOB_STIX_ID: string =
+        "indicator--0b0b0b0b-0000-4000-8000-00000000b0b0";
+      const INDICATOR_NAME: string = `Phishing sender ${ALICE}`;
+      const FEED_NAME: string = "Acme Phishing Senders";
+
+      // The id that takes the indicator's place: the match's keyed fingerprint, on the token.
+      function erasedIdOf(token: string): string {
+        return `[INDICATOR:${keyed(token, DetectionFingerprintKind.ThreatIntel)}]`;
+      }
+
+      // A detection's description, and its case's, as the matcher writes them.
+      function matchDescription(
+        value: string,
+        stixId: string = STIX_ID,
+        indicatorName: string = INDICATOR_NAME,
+      ): string {
+        return threatIntelMatchMarkdown({
+          feedName: FEED_NAME,
+          indicatorName,
+          indicatorValue: value,
+          indicatorType: "email-addr",
+          confidence: 80,
+          matchCount: 2,
+          windowStart: "2026-11-24T09:00:00Z",
+          windowEnd: "2026-11-24T09:15:00Z",
+          stixId,
+          sampleMessage: `Sign-in from ${ADDRESS}`,
+        }).toString();
+      }
+
+      // An alert's description, as ThreatIntelMatcher.buildMatchDescription writes it.
+      function alertDescription(
+        value: string,
+        stixId: string = STIX_ID,
+      ): string {
+        return [
+          INDICATOR_NAME,
+          `Indicator ${value} (email-addr, confidence 80) matched 2 security events between A and B.`,
+          `STIX indicator: ${stixId}`,
+          `Sample event: Sign-in from ${ADDRESS}`,
+          `Observables: ${value}, ${ADDRESS}`,
+        ].join("\n\n");
+      }
+
+      async function feedItem(
+        table: "AlertFeed" | "IncidentFeed",
+        recordId: ObjectID,
+        description: string,
+      ): Promise<ObjectID> {
+        return await insert(table, {
+          projectId: projectId.toString(),
+          [table === "AlertFeed" ? "alertId" : "incidentId"]:
+            recordId.toString(),
+          feedInfoInMarkdown: `#### 🚨 Created:\n\n**[Threat Intel] ${FEED_NAME} — ${ALICE}**:\n\n${description}\n\n🔴 **State**: Created`,
+        });
+      }
+
+      test("a detection's description, and the case's it opened: the erased indicator id for the STIX id, and the indicator's name gone", async () => {
+        const caseId: ObjectID = await insert("SecurityCase", {
+          projectId: projectId.toString(),
+          title: `${FEED_NAME} — ${ALICE}`,
+          description: matchDescription(ALICE),
+          entities: userEntities(ALICE),
+        });
+        const detectionId: ObjectID = await detection({
+          securityCaseId: caseId.toString(),
+          source: SecurityDetectionSource.ThreatIntel,
+          title: `${FEED_NAME} — ${ALICE}`,
+          description: matchDescription(ALICE),
+          groupValue: ALICE,
+          ruleName: FEED_NAME,
+          fingerprint: ofFeed(
+            keyed(ALICE, DetectionFingerprintKind.ThreatIntel),
+          ),
+        });
+        // Somebody else's match keeps the feed's indicator.
+        const bobId: ObjectID = await detection({
+          source: SecurityDetectionSource.ThreatIntel,
+          title: `${FEED_NAME} — ${BOB}`,
+          description: matchDescription(BOB, BOB_STIX_ID, "Phishing sender"),
+          groupValue: BOB,
+          fingerprint: ofFeed(keyed(BOB, DetectionFingerprintKind.ThreatIntel)),
+        });
+
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        const unnamed: string = [
+          `Indicator \`${aliceToken}\` (email-addr, confidence 80) from the threat intel feed **${FEED_NAME}** matched 2 security events between 2026-11-24T09:00:00Z and 2026-11-24T09:15:00Z.`,
+          `STIX indicator: \`${erasedIdOf(aliceToken)}\``,
+          `Sample event: \`Sign-in from ${ADDRESS}\``,
+        ].join("\n\n");
+
+        const row: Record<string, unknown> = await rowOf(
+          "SecurityDetection",
+          detectionId,
+        );
+
+        expect(row["description"]).toBe(unnamed);
+        expect(row["fingerprint"]).toBe(
+          ofFeed(keyed(aliceToken, DetectionFingerprintKind.ThreatIntel)),
+        );
+        // The feed is still named; the indicator is not.
+        expect(row["ruleName"]).toBe(FEED_NAME);
+        expect((await rowOf("SecurityCase", caseId))["description"]).toBe(
+          unnamed,
+        );
+
+        for (const kept of [row, await rowOf("SecurityCase", caseId)]) {
+          const text: string = JSON.stringify(kept);
+
+          expect(text).not.toContain(STIX_ID);
+          expect(text).not.toContain("Phishing sender");
+          expect(text.toLowerCase()).not.toContain(ALICE);
+        }
+
+        expect((await rowOf("SecurityDetection", bobId))["description"]).toBe(
+          matchDescription(BOB, BOB_STIX_ID, "Phishing sender"),
+        );
+      });
+
+      test("the events a detection kept: their stamp about the person says the token and the erased indicator id", async () => {
+        const detectionId: ObjectID = await detection({
+          source: SecurityDetectionSource.ThreatIntel,
+          title: `${FEED_NAME} — ${ALICE}`,
+          groupValue: ALICE,
+          matchedEvents: {
+            events: [
+              {
+                message: "Sign-in",
+                principalUser: ALICE,
+                attributes: {
+                  "threat.indicator_value": ALICE,
+                  "threat.indicator_id": STIX_ID,
+                  "threat.feed": FEED_NAME,
+                  "threat.indicator_type": "email-addr",
+                },
+              },
+              {
+                message: "Port scan",
+                attributes: {
+                  "threat.indicator_value": "198.51.100.66",
+                  "threat.indicator_id": BOB_STIX_ID,
+                },
+              },
+            ],
+            outcomes: {},
+          },
+        });
+
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        expect(
+          (await rowOf("SecurityDetection", detectionId))["matchedEvents"],
+        ).toEqual({
+          events: [
+            {
+              message: "Sign-in",
+              principalUser: aliceToken,
+              attributes: {
+                "threat.indicator_value": aliceToken,
+                "threat.indicator_id": erasedIdOf(aliceToken),
+                "threat.feed": FEED_NAME,
+                "threat.indicator_type": "email-addr",
+              },
+            },
+            {
+              message: "Port scan",
+              attributes: {
+                "threat.indicator_value": "198.51.100.66",
+                "threat.indicator_id": BOB_STIX_ID,
+              },
+            },
+          ],
+          outcomes: {},
+        });
+      });
+
+      test("an alert and an incident the match opened: their description and the feed item that announced it say the erased indicator id, the rest as written", async () => {
+        const fingerprint: string = ofFeed(
+          legacy(ALICE, DetectionFingerprintKind.ThreatIntel),
+        );
+        const alertId: ObjectID = await alert(fingerprint, {
+          title: `[Threat Intel] ${FEED_NAME} — ${ALICE}`,
+          description: alertDescription(ALICE),
+        });
+        const alertItem: ObjectID = await feedItem(
+          "AlertFeed",
+          alertId,
+          alertDescription(ALICE),
+        );
+        const incidentId: ObjectID = await insert("Incident", {
+          projectId: projectId.toString(),
+          title: `[Threat Intel] ${FEED_NAME} — ${ALICE}`,
+          description: alertDescription(ALICE),
+          seriesFingerprint: ofFeed(
+            keyed(ALICE, DetectionFingerprintKind.ThreatIntel),
+          ),
+        });
+        const incidentItem: ObjectID = await feedItem(
+          "IncidentFeed",
+          incidentId,
+          alertDescription(ALICE),
+        );
+        // Somebody else's alert, of the same feed: as it was.
+        const bobAlert: ObjectID = await alert(
+          ofFeed(keyed(BOB, DetectionFingerprintKind.ThreatIntel)),
+          {
+            title: `[Threat Intel] ${FEED_NAME} — ${BOB}`,
+            description: alertDescription(BOB, BOB_STIX_ID),
+          },
+        );
+        const bobItem: ObjectID = await feedItem(
+          "AlertFeed",
+          bobAlert,
+          alertDescription(BOB, BOB_STIX_ID),
+        );
+
+        const before: Record<string, unknown> = await rowOf("Alert", alertId);
+
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        const erased: string = erasedIdOf(aliceToken);
+        const after: Record<string, unknown> = await rowOf("Alert", alertId);
+
+        expect(after["description"]).toBe(
+          alertDescription(ALICE).replace(
+            `STIX indicator: ${STIX_ID}`,
+            `STIX indicator: ${erased}`,
+          ),
+        );
+        expect(after["seriesFingerprint"]).toBe(
+          ofFeed(keyed(aliceToken, DetectionFingerprintKind.ThreatIntel)),
+        );
+        // Nothing else about it changed: its title is left, as an erasure leaves alerts.
+        expect({
+          ...after,
+          description: null,
+          seriesFingerprint: null,
+        }).toEqual({ ...before, description: null, seriesFingerprint: null });
+
+        expect(
+          (await rowOf("AlertFeed", alertItem))["feedInfoInMarkdown"],
+        ).toContain(`STIX indicator: ${erased}`);
+        expect(
+          String((await rowOf("AlertFeed", alertItem))["feedInfoInMarkdown"]),
+        ).not.toContain(STIX_ID);
+        expect((await rowOf("Incident", incidentId))["description"]).toBe(
+          alertDescription(ALICE).replace(
+            `STIX indicator: ${STIX_ID}`,
+            `STIX indicator: ${erased}`,
+          ),
+        );
+        expect(
+          String(
+            (await rowOf("IncidentFeed", incidentItem))["feedInfoInMarkdown"],
+          ),
+        ).toContain(`STIX indicator: ${erased}`);
+
+        expect((await rowOf("Alert", bobAlert))["description"]).toBe(
+          alertDescription(BOB, BOB_STIX_ID),
+        );
+        expect(
+          String((await rowOf("AlertFeed", bobItem))["feedInfoInMarkdown"]),
+        ).toContain(`STIX indicator: ${BOB_STIX_ID}`);
+      });
+
+      test("what an earlier erasure un-named with the indicator left, a request filed again takes it out", async () => {
+        const detectionId: ObjectID = await detection({
+          source: SecurityDetectionSource.ThreatIntel,
+          title: `${FEED_NAME} — ${aliceToken}`,
+          description: matchDescription(aliceToken),
+          groupValue: aliceToken,
+          fingerprint: ofFeed(
+            keyed(aliceToken, DetectionFingerprintKind.ThreatIntel),
+          ),
+        });
+        const caseId: ObjectID = await insert("SecurityCase", {
+          projectId: projectId.toString(),
+          title: `${FEED_NAME} — ${aliceToken}`,
+          description: matchDescription(aliceToken),
+        });
+        const alertId: ObjectID = await alert(
+          ofFeed(keyed(aliceToken, DetectionFingerprintKind.ThreatIntel)),
+          {
+            title: `[Threat Intel] ${FEED_NAME} — ${ALICE}`,
+            description: alertDescription(ALICE),
+          },
+        );
+
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        for (const description of [
+          (await rowOf("SecurityDetection", detectionId))["description"],
+          (await rowOf("SecurityCase", caseId))["description"],
+          (await rowOf("Alert", alertId))["description"],
+        ]) {
+          expect(String(description)).not.toContain(STIX_ID);
+          expect(String(description)).toContain(erasedIdOf(aliceToken));
+        }
+
+        expect(
+          String(
+            (await rowOf("SecurityDetection", detectionId))["description"],
+          ),
+        ).not.toContain("Phishing sender");
+      });
+
+      test("running it again changes nothing", async () => {
+        const caseId: ObjectID = await insert("SecurityCase", {
+          projectId: projectId.toString(),
+          title: `${FEED_NAME} — ${ALICE}`,
+          description: matchDescription(ALICE),
+        });
+
+        await detection({
+          securityCaseId: caseId.toString(),
+          source: SecurityDetectionSource.ThreatIntel,
+          title: `${FEED_NAME} — ${ALICE}`,
+          description: matchDescription(ALICE),
+          groupValue: ALICE,
+          fingerprint: ofFeed(
+            keyed(ALICE, DetectionFingerprintKind.ThreatIntel),
+          ),
+        });
+
+        const alertId: ObjectID = await alert(
+          ofFeed(keyed(ALICE, DetectionFingerprintKind.ThreatIntel)),
+          { description: alertDescription(ALICE) },
+        );
+
+        await feedItem("AlertFeed", alertId, alertDescription(ALICE));
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        const snapshot: () => Promise<string> = async (): Promise<string> => {
+          const rows: Array<unknown> = [];
+
+          for (const table of [
+            "SecurityDetection",
+            "SecurityCase",
+            "Alert",
+            "AlertFeed",
+          ]) {
+            rows.push(
+              ...(await database.query(
+                `SELECT * FROM "${schema}"."${table}" WHERE "projectId" = $1 ORDER BY "_id"`,
+                [projectId.toString()],
+              )),
+            );
+          }
+
+          return JSON.stringify(rows);
+        };
+
+        const once: string = await snapshot();
+
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        expect(await snapshot()).toBe(once);
+      });
+    });
+
+    /*
+     * #11231: a Sigma correlation that groups on several fields, with Write
+     * Detection Findings and Open Security Cases off: nothing else keeps its
+     * group value, but what it opened carries the value's fingerprint - its
+     * alerts and incidents, and the firings its group's other entities'
+     * risk counted.
+     */
+    describe("a correlation that opens no cases and writes no findings (#11231)", () => {
+      const unnamedValue: () => string = (): string => {
+        return `${aliceToken} / ${ADDRESS}`;
+      };
+      const TITLE: string = `[Detection] Sign-in burst — ${CORRELATION}`;
+
+      test("its alert's and incident's fingerprints, read off their titles and proven by them, become the token's", async () => {
+        const alertId: ObjectID = await alert(ofRule(legacy(CORRELATION)), {
+          title: TITLE,
+        });
+        const incidentId: ObjectID = await insert("Incident", {
+          projectId: projectId.toString(),
+          title: TITLE,
+          seriesFingerprint: ofRule(keyed(CORRELATION)),
+        });
+
+        const values: Array<ErasedName> =
+          await SecurityUserErasureRecords.findCorrelationValues({
+            projectId,
+            names,
+          });
+
+        expect(values).toEqual([
+          { named: CORRELATION, hashed: unnamedValue() },
+        ]);
+
+        await SecurityUserErasureRecords.unnameRecords({
+          projectId,
+          names: [...names, ...values],
+        });
+
+        expect(await seriesFingerprintOf("Alert", alertId)).toBe(
+          ofRule(keyed(unnamedValue())),
+        );
+        expect(await seriesFingerprintOf("Incident", incidentId)).toBe(
+          ofRule(keyed(unnamedValue())),
+        );
+      });
+
+      test("an alert open under the correlation's value goes on taking its group's matches, about the token", async () => {
+        const openAlert: ObjectID = await alert(ofRule(legacy(CORRELATION)), {
+          title: TITLE,
+        });
+
+        jest
+          .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+          .mockResolvedValue([OPEN_STATE_ID]);
+        const create: ReturnType<typeof jest.spyOn> = jest
+          .spyOn(AlertService, "create")
+          .mockRejectedValue(new Error("nothing should open") as never);
+
+        const fire: (groupValue: string) => Promise<Array<string>> = async (
+          groupValue: string,
+        ): Promise<Array<string>> => {
+          const seen: Array<string> = [];
+
+          await openDedupedAlerts({
+            projectId,
+            alertSeverityId: ObjectID.generate(),
+            logLabel: "test",
+            matches: [
+              {
+                ...DetectionRuleEvaluator.buildFingerprints(rule(), groupValue),
+                title: "t",
+                description: "d",
+                rootCause: "r",
+              },
+            ],
+            onOutcome: (outcome: DedupedRecordOutcome): void => {
+              seen.push(outcome.recordId.toString());
+            },
+          });
+
+          return seen;
+        };
+
+        expect(await fire(CORRELATION)).toEqual([openAlert.toString()]);
+
+        const values: Array<ErasedName> =
+          await SecurityUserErasureRecords.findCorrelationValues({
+            projectId,
+            names,
+          });
+
+        await SecurityUserErasureRecords.unnameRecords({
+          projectId,
+          names: [...names, ...values],
+        });
+
+        // The rule fires on the token now: the same alert takes it.
+        expect(await fire(unnamedValue())).toEqual([openAlert.toString()]);
+        expect(create).not.toHaveBeenCalled();
+      });
+
+      test("the firings its group's other entities' risk counted, read from the person's own risk before it is deleted", async () => {
+        await insert("SecurityEntityRisk", {
+          projectId: projectId.toString(),
+          entityKey: ALICE,
+          entityValue: ALICE,
+          contributions: [
+            {
+              sourceKey: `rule:${RULE_ID.toString()}`,
+              firingKeys: [firingKey(legacy(CORRELATION))],
+            },
+          ],
+        });
+        const addressRisk: ObjectID = await insert("SecurityEntityRisk", {
+          projectId: projectId.toString(),
+          entityKey: ADDRESS,
+          entityValue: ADDRESS,
+          contributions: [
+            {
+              sourceKey: `rule:${RULE_ID.toString()}`,
+              firingKeys: [
+                firingKey(legacy(CORRELATION)),
+                firingKey(legacy(BOB), 2),
+              ],
+            },
+          ],
+        });
+
+        const values: Array<ErasedName> =
+          await SecurityUserErasureRecords.findCorrelationValues({
+            projectId,
+            names,
+          });
+
+        expect(values).toEqual([
+          { named: CORRELATION, hashed: unnamedValue() },
+        ]);
+
+        await SecurityUserErasureRecords.unnameRecords({
+          projectId,
+          names: [...names, ...values],
+        });
+
+        // The person's risk row is gone; the address's counts the firing under the token's value.
+        expect(
+          await database.query(
+            `SELECT "_id" FROM "${schema}"."SecurityEntityRisk" WHERE "entityKey" = $1`,
+            [ALICE],
+          ),
+        ).toEqual([]);
+        expect(
+          (await rowOf("SecurityEntityRisk", addressRisk))["contributions"],
+        ).toEqual([
+          {
+            sourceKey: `rule:${RULE_ID.toString()}`,
+            firingKeys: [
+              firingKey(keyed(unnamedValue())),
+              firingKey(legacy(BOB), 2),
+            ],
+          },
+        ]);
+      });
+
+      test("three values, a host first: the name and both other entities that counted the firing", async () => {
+        const three: string = `web-01 / ${ALICE} / ${ADDRESS}`;
+
+        await insert("SecurityEntityRisk", {
+          projectId: projectId.toString(),
+          entityKey: ALICE,
+          entityValue: ALICE,
+          contributions: [
+            {
+              sourceKey: `rule:${RULE_ID.toString()}`,
+              firingKeys: [firingKey(keyed(three))],
+            },
+          ],
+        });
+
+        for (const entity of ["web-01", ADDRESS]) {
+          await insert("SecurityEntityRisk", {
+            projectId: projectId.toString(),
+            entityKey: entity,
+            entityValue: entity,
+            contributions: [
+              {
+                sourceKey: `rule:${RULE_ID.toString()}`,
+                firingKeys: [firingKey(keyed(three))],
+              },
+            ],
+          });
+        }
+
+        expect(
+          await SecurityUserErasureRecords.findCorrelationValues({
+            projectId,
+            names,
+          }),
+        ).toEqual([
+          { named: three, hashed: `web-01 / ${aliceToken} / ${ADDRESS}` },
+        ]);
+      });
+
+      test("a title its fingerprint does not prove names no value: its record is left", async () => {
+        const alertId: ObjectID = await alert(ofRule(keyed("someone else")), {
+          title: TITLE,
+        });
+
+        expect(
+          await SecurityUserErasureRecords.findCorrelationValues({
+            projectId,
+            names,
+          }),
+        ).toEqual([]);
+
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        expect(await seriesFingerprintOf("Alert", alertId)).toBe(
+          ofRule(keyed("someone else")),
+        );
+      });
+
+      test("nothing kept is a fingerprint of the correlation's value, keyed or not", async () => {
+        await alert(ofRule(legacy(CORRELATION)), { title: TITLE });
+        await insert("Incident", {
+          projectId: projectId.toString(),
+          title: TITLE,
+          seriesFingerprint: ofRule(keyed(CORRELATION)),
+        });
+        await insert("SecurityEntityRisk", {
+          projectId: projectId.toString(),
+          entityKey: ALICE,
+          entityValue: ALICE,
+          contributions: [
+            {
+              sourceKey: `rule:${RULE_ID.toString()}`,
+              firingKeys: [firingKey(legacy(CORRELATION))],
+            },
+          ],
+        });
+        await insert("SecurityEntityRisk", {
+          projectId: projectId.toString(),
+          entityKey: ADDRESS,
+          entityValue: ADDRESS,
+          contributions: [
+            {
+              sourceKey: `rule:${RULE_ID.toString()}`,
+              firingKeys: [firingKey(legacy(CORRELATION))],
+            },
+          ],
+        });
+
+        const before: string = await everythingKept();
+
+        expect(before).toContain(legacy(CORRELATION));
+
+        const values: Array<ErasedName> =
+          await SecurityUserErasureRecords.findCorrelationValues({
+            projectId,
+            names,
+          });
+
+        await SecurityUserErasureRecords.unnameRecords({
+          projectId,
+          names: [...names, ...values],
+        });
+
+        const after: string = await everythingKept();
+
+        for (const fingerprint of [
+          legacy(CORRELATION),
+          keyed(CORRELATION),
+          legacy(ALICE),
+          keyed(ALICE),
+        ]) {
+          expect(after).not.toContain(fingerprint);
+        }
+
+        // And running it again changes nothing more.
+        await SecurityUserErasureRecords.unnameRecords({
+          projectId,
+          names: [...names, ...values],
+        });
+
+        expect(await everythingKept()).toBe(after);
+      });
     });
   });
 

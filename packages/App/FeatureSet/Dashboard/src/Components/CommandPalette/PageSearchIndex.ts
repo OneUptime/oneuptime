@@ -4210,6 +4210,29 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         labelRules: PageMap.VMWARE_SETTINGS_LABEL_RULES,
         rulesAuditLogs: PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.VMWARE_ARCHIVED,
+        more: [
+          {
+            // Where every vCenter's Needs attention turns amber and red (#11157).
+            page: PageMap.VMWARE_SETTINGS_HEALTH_RULES,
+            title: "Health Rules",
+            icon: IconProp.Heart,
+            keywords: [
+              "vmware thresholds",
+              "health thresholds",
+              "swapped memory",
+              "memory swapping",
+              "cpu ready",
+              "ballooning",
+            ],
+            settings: [
+              "Busy ESXi Hosts",
+              "Full Datastores",
+              "VM Swapping",
+              "VM Ballooning and CPU Ready",
+              "Resource Pool Swapping",
+            ],
+          },
+        ],
       }),
     ],
   },

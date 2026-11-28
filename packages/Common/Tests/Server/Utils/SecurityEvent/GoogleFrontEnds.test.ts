@@ -947,6 +947,9 @@ describe("a forged X-Forwarded-For through Google's front ends", () => {
       edges: [],
       ownLoadBalancers: blocks(OWN_LOAD_BALANCER),
       googleFrontEnds: blocks(...GOOGLE_FRONT_END_RANGES),
+      // Blind: the TCP proxy's front ends not withheld (#11389).
+      untrusted: [],
+      trustsPrivateAddresses: true,
       readsAccessLogForwardedFor: false,
       accessLogFormat: null,
     });

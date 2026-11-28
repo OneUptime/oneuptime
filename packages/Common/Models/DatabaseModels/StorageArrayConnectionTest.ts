@@ -291,7 +291,8 @@ export default class StorageArrayConnectionTest extends BaseModel {
     required: true,
     type: TableColumnType.LongText,
     title: "Address",
-    description: "The HTTPS address being tested, normalized to https://host:port.",
+    description:
+      "The HTTPS address being tested, normalized to https://host:port.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -369,6 +370,7 @@ export default class StorageArrayConnectionTest extends BaseModel {
     description:
       "Pending until the probe takes the test, Running while it connects, then Succeeded or Failed.",
     defaultValue: StorageArrayConnectionTestStatus.Pending,
+    allowedValues: Object.values(StorageArrayConnectionTestStatus),
   })
   @Column({
     type: ColumnType.ShortText,
@@ -388,6 +390,7 @@ export default class StorageArrayConnectionTest extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Error Code",
     description: "Why the test failed, as a code.",
+    allowedValues: Object.values(StorageArrayCollectionErrorCode),
   })
   @Column({
     type: ColumnType.ShortText,

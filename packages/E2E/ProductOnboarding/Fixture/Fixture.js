@@ -147,6 +147,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import UserUtil from "Common/UI/Utils/User";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerSharedNames } from "../../SuiteHelpers/SharedNameAnswers";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000a1";
 const SAM_ID = "40000000-0000-4000-8000-0000000000a1";
@@ -1069,6 +1070,30 @@ async function handleApi(method, options) {
       serialize(answer[1]((options && options.data) || {})),
       {},
     );
+  }
+
+  /*
+   * Which monitors share a name (#11021): the Monitors list asks with every
+   * read of its rows, to mark them (ModelTable's TwinMarks), answered as
+   * the server finds them (SuiteHelpers/SharedNameAnswers). None here: the
+   * project has one monitor at most.
+   */
+  const twins =
+    method === "GET"
+      ? answerSharedNames({
+          url,
+          kinds: [
+            {
+              modelType: Monitor,
+              records: () => {
+                return TABLES[tableName(Monitor)];
+              },
+            },
+          ],
+        })
+      : null;
+  if (twins) {
+    return new HTTPResponse(200, twins, {});
   }
 
   fixture.unhandled.push({

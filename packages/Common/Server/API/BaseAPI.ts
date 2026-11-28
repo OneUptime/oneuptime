@@ -41,6 +41,11 @@ import ListEntries from "../Utils/Database/ListEntries";
 import RetiredColumns from "../Utils/Database/RetiredColumns";
 import RecordOwnershipRoute from "./RecordOwnershipRoute";
 import KindsWithOwners from "../../Types/Database/AccessControl/KindsWithOwners";
+import MarkdownFiles from "../Utils/File/MarkdownFiles";
+import {
+  MARKDOWN_FILES_ROUTE,
+  MarkdownFilesResult,
+} from "../../Types/File/MarkdownFiles";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -138,6 +143,39 @@ export default class BaseAPI<
         }
       },
     );
+
+    /*
+     * The pictures a record's Markdown shows - an incident's description, a
+     * Markdown custom field, a note - with their names, types and bytes, for
+     * an API key or a signed-in person (#11256):
+     *
+     *   GET or POST /<path>/:id/markdown-files
+     *
+     * The image's own address opens it only for a person signed in to the
+     * project, whatever records they may read; here the record is read as
+     * the caller, and only what the Markdown they may read shows is handed
+     * out (MarkdownFiles). Only for a model whose records can show files in
+     * Markdown.
+     */
+    if (MarkdownFiles.canShowFiles(new this.entityType())) {
+      for (const method of ["get", "post"] as const) {
+        router[method](
+          `${new this.entityType().getCrudApiPath()?.toString()}/:id${MARKDOWN_FILES_ROUTE}`,
+          UserMiddleware.getUserMiddleware,
+          async (
+            req: ExpressRequest,
+            res: ExpressResponse,
+            next: NextFunction,
+          ) => {
+            try {
+              await this.getMarkdownFiles(req, res);
+            } catch (err) {
+              next(err);
+            }
+          },
+        );
+      }
+    }
 
     // Update
     router.put(
@@ -542,6 +580,48 @@ export default class BaseAPI<
     return Response.sendEntityResponse(req, res, item, this.entityType, {
       retiredColumns: retiredColumns,
     });
+  }
+
+  /*
+   * The pictures the record's Markdown shows, as the caller may have them
+   * (MarkdownFiles): { files: [...], leftOut: [...] }. Who is asking comes
+   * first: an anonymous request is answered 401, whatever the id. A record
+   * that does not exist, or the caller may not read, is answered 404, as
+   * getItem answers it. Never cached: what comes back is the caller's.
+   */
+  @CaptureSpan()
+  public async getMarkdownFiles(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    CommonAPI.assertCredentialsPresent(props);
+
+    const recordId: string = (req.params["id"] || "").trim().toLowerCase();
+
+    if (!ObjectID.isValidUUID(recordId)) {
+      throw new NotFoundException(
+        MarkdownFiles.getNotFoundMessage(new this.entityType()),
+      );
+    }
+
+    await this.onBeforeGet(req, res);
+
+    const result: MarkdownFilesResult = await MarkdownFiles.readRecordFiles({
+      service: this.service,
+      recordId: new ObjectID(recordId),
+      props: props,
+    });
+
+    Response.setNoCacheHeaders(res);
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      result as unknown as JSONObject,
+    );
   }
 
   @CaptureSpan()

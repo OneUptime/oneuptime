@@ -26,6 +26,7 @@ Du får sjældent brug for at have den åben, mens du bygger. Hver bloks indstil
 | Omforme data mellem to blokke                                 | [JSON](#json) eller [Custom Code](#custom-code)                   |
 | Vente før den næste blok                                      | [Sleep](#sleep)                                                   |
 | Starte en anden arbejdsgang                                      | [Execute Workflow](#execute-workflow)                             |
+| Vedhæfte de billeder, en posts Markdown viser, til en e-mail | [Hent filer fra Markdown](#get-files-from-markdown) |
 | Læse eller ændre hændelser, monitorer og andre poster         | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
 | Åbne, kvittere for og løse hændelser eller advarsler for et andet værktøjs problemer | [Hændelser og advarsler fra andre værktøjer](#hændelser-og-advarsler-fra-andre-værktøjer) |
 | Kvittere for eller lukke et Zabbix-problem                    | [Zabbix](#zabbix)                                                 |
@@ -391,6 +392,139 @@ Start en anden arbejdsgang i samme projekt. Din arbejdsgang fortsætter uden at 
 **Ud** udløses, så snart den anden arbejdsgang står i kø. **Fejl** udløses, når den ikke kan: den findes ikke, er slået fra eller arkiveret, eller at starte den ville give en løkke.
 
 Brug det til at dele fælles logik: byg en «post i hændelseskanalen»-arbejdsgang én gang, og start den fra hver arbejdsgang, der har brug for det. En kæde af arbejdsgange, der starter hinanden, kan ikke gå i ring tilbage til sig selv og er højst 10 led dyb. Se [Konfiguration og sikkerhed](/docs/workflows/configuration#grænse-for-at-kalde-andre-arbejdsgange).
+
+## Get Files From Markdown
+
+Læser de billeder, en posts Markdown viser, som de skærmbilleder nogen har indsat i en hændelses beskrivelse, et brugerdefineret Markdown-felt eller en note, med hvert billedes navn, type og data. Brug det til at vedhæfte billederne en e-mail, så de vises der, hvor Markdown placerer dem.
+
+| Indstilling | Hvad den gør |
+| --- | --- |
+| **Posttype** | Den slags post, hvis Markdown viser billederne: en hændelse, en hændelses offentlige eller interne note, en advarsel, en planlagt vedligeholdelse og mere. |
+| **Post-id** | Den post, der læses, som regel den, der startede arbejdsgangen, som i `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+
+| Udgang | Hvornår |
+| --- | --- |
+| **Succes** | Posten blev læst, uanset om den viser billeder. |
+| **Fejl** | Posten kunne ikke læses: Den findes ikke, eller arbejdsgangen må ikke læse den. **Fejl** siger hvorfor. |
+
+Den returnerer:
+
+- **Filer**: hvert billede i den rækkefølge, posten viser det, med:
+  - `name`: filens navn, som den blev uploadet;
+  - `mimeType`: dens type, som `image/png` eller `image/jpeg`;
+  - `sizeInBytes`: dens størrelse i byte;
+  - `base64`: billedets data;
+  - `contentId`: et ID til billedet i en HTML-e-mail (`<img src="cid:...">`), det samme for det samme billede, uanset hvilken post der viser det;
+  - `urls`: hver adresse, Markdown viser det med;
+  - `fields`: de felter, der viser det, som `description` eller navnet på et brugerdefineret felt.
+- **Antal**: hvor mange billeder **Filer** indeholder.
+- **Udeladt**: de filer, Markdown viser, som ikke er i **Filer**, hver med sit `name`, sine `urls`, sine `fields`, en `reason` og en `message`, der siger hvorfor.
+
+**Filer** indeholder billedernes data, så kørslens log skjuler det og viser **Antal** og **Udeladt** i stedet. En senere blok, der får billederne, skriver det, den får, i sin egen post i loggen.
+
+### Hvilke billeder den udleverer
+
+Blokken læser posten, som en Find One-blok gør, som arbejdsgangen: i arbejdsgangens eget projekt, aldrig en privat hændelse, advarsel eller episode, og kun det, arbejdsgangens rettigheder lader den læse. En post, den ikke må læse, tager **Fejl**, ligesom en, der ikke findes.
+
+Den udleverer kun:
+
+- billeder, som postens Markdown-felter viser, som en hændelses beskrivelse, grundårsag, postmortem og afhjælpningsnoter, og dens brugerdefinerede Markdown-felter. Et brugerdefineret tekstfelt er ikke Markdown, så en adresse skrevet i et sådant læses ikke;
+- billeder, der er uploadet til postens eget projekt. En adresse, der er kopieret fra en post i et andet projekt, står under **Udeladt** som ikke fundet;
+- billeder: PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF, HEIC og ICO, hver kontrolleret ud fra det, filen indeholder, og ud fra dens type. En SVG kan indeholde script, så den udelades, og det gør en fil, der kun påstår at være et billede, også;
+- op til 20 billeder og 10 MB i alt. Det, der går ud over en grænse, står under **Udeladt** med grunden.
+
+Den kan ikke vise en liste over filer eller læse en ud fra dens adresse: Den læser kun det, posten viser.
+
+### Eksempel: indlejrede billeder i en e-mail sendt med Microsoft Graph
+
+Denne arbejdsgang sender hver ny hændelse som e-mail med Microsoft Graph, med skærmbillederne fra dens beskrivelse der, hvor beskrivelsen placerer dem.
+
+:::steps
+### Få et token til Microsoft Graph
+
+Registrer et program i Microsoft Entra ID, giv det programtilladelsen `Mail.Send`, og giv administratorsamtykke. Opret derefter en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv) med navnet `GRAPH_TOKEN` til Microsoft, med tildelingstypen **Client Credentials** og omfanget `https://graph.microsoft.com/.default`.
+
+### Start ved en ny hændelse
+
+Tilføj udløseren **Ved oprettelse: Hændelse**, og send dens **Titel** og **Beskrivelse** videre.
+
+### Læs hændelsens billeder
+
+Tilføj **Hent filer fra Markdown** efter udløseren. Sæt **Posttype** til **Hændelse** og **Post-id** til `{{local.components.incident-on-create-1.returnValues.model._id}}`.
+
+### Byg beskeden
+
+Tilføj **Kør egen JavaScript** til dens udgang **Succes**, med disse **Argumenter**:
+
+```json title="Arguments"
+{
+  "subject": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "files": {{local.components.get-files-from-markdown-1.returnValues.files}}
+}
+```
+
+Koden får hver adresse på et billede til at pege på dets vedhæftning (`cid:` og dets `contentId`) og vedhæfter billedet indlejret under samme ID:
+
+```javascript title="JavaScript Code"
+const escapeHtml = (text) =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// The description, a paragraph at a time.
+let html = escapeHtml(args.description || "")
+  .split(/\n{2,}/)
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("\n");
+
+const attachments = [];
+
+for (const file of args.files) {
+  for (const url of file.urls) {
+    html = html.split(url).join(`cid:${file.contentId}`);
+  }
+
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    contentId: file.contentId,
+    isInline: true,
+  });
+}
+
+// ![alt](cid:...) becomes an <img>, where the Markdown put the image.
+html = html.replace(/!\[([^\]]*)\]\((cid:[^)\s]+)\)/g, '<img src="$2" alt="$1">');
+
+return {
+  message: {
+    subject: args.subject,
+    body: { contentType: "HTML", content: html },
+    toRecipients: [{ emailAddress: { address: "oncall@example.com" } }],
+    attachments: attachments,
+  },
+  saveToSentItems: false,
+};
+```
+
+### Send den med Microsoft Graph
+
+Tilføj **API-kald POST (JSON)** til kodens udgang **Succes**:
+
+| Indstilling | Værdi |
+| --- | --- |
+| **URL** | `https://graph.microsoft.com/v1.0/users/alerts@example.com/sendMail` |
+| **Anmodningsheadere** | `Authorization`: `Bearer {{global.variables.GRAPH_TOKEN}}` |
+| **Anmodningsbrødtekst** | `{{local.components.javascript-1.returnValues.returnValue}}` |
+
+Microsoft Graph svarer `202 Accepted`, og blokken tager **Succes**.
+:::
+
+Microsoft Graph tager imod en vedhæftning på op til 3 MB i en besked, der sendes til den på denne måde. Et større billede kræver en uploadsession eller et link i stedet for billedet. En posts billeder kan også læses med en API-nøgle uden for en arbejdsgang: se [Billeder i en posts Markdown](/docs/api-reference/api-reference#billeder-i-en-posts-markdown).
 
 ## Hændelser og advarsler fra andre værktøjer
 

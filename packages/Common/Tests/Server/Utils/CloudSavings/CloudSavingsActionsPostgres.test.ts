@@ -966,7 +966,7 @@ describePostgres("acting on savings, against Postgres", () => {
           actionId: new ObjectID(asked.actionId),
         }),
       ).rejects.toThrow(
-        "Nobody owns this resource, so only a project owner or admin can approve or undo this change.",
+        "Nobody owns this resource, so only a Project Owner or Project Admin can approve or undo this change.",
       );
 
       const approved: CloudSavingsActionResult =

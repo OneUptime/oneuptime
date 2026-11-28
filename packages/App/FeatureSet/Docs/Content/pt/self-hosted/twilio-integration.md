@@ -66,6 +66,7 @@ Uma instalação nova pode subir com SMS e chamadas funcionando, sem nada para c
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | O número de onde saem as chamadas, com o código do país. Não é necessário para `sms-only` |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Opcional, separados por vírgulas: números usados no lugar do principal para os destinatários do país deles |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Números separados por vírgulas de onde sai cada SMS. Obrigatório para `sms-only` |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | Opcional: a voz com que as chamadas falam, uma das vozes de [A voz com que as chamadas falam](#a-voz-com-que-as-chamadas-falam). É lida com ou sem `GLOBAL_TWILIO_ACCOUNT_SID`, e enquanto está definida, **Voz das chamadas** no Admin Dashboard a mostra em modo somente leitura |
 
 Com o Helm, defina-as em `twilio` nos seus values. Para manter o auth token fora dos values que o Helm salva a cada release, coloque-o em um Secret seu e indique esse Secret em `twilio.existingSecret.name`:
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-Coloque os números de telefone entre aspas em um arquivo de values, e passe-os com `--set-string` em vez de `--set`: sem aspas, `+14155550100` é um número, que o chart recusa. O chart também recusa outros valores de `twilio` sem `twilio.accountSid`, um Account SID sem auth token e um auth token informado tanto em `twilio.authToken` quanto em um Secret. Com o Terraform, defina os mesmos valores em um `helm_release`, com o auth token como valor sensível.
+Coloque os números de telefone entre aspas em um arquivo de values, e passe-os com `--set-string` em vez de `--set`: sem aspas, `+14155550100` é um número, que o chart recusa. O chart também recusa outros valores de `twilio` sem `twilio.accountSid` (todos menos `twilio.callVoice`, que define a voz seja quem for que defina a conta), um Account SID sem auth token, um auth token informado tanto em `twilio.authToken` quanto em um Secret, e um `twilio.callVoice` que não seja uma das vozes. Com o Terraform, defina os mesmos valores em um `helm_release`, com o auth token como valor sensível.
 
 Com o Docker Compose, defina as configurações `GLOBAL_TWILIO_` no `config.env` e depois execute `npm run start` para recriar os contêineres.
 
-O OneUptime lê as variáveis ao iniciar. Se alguma estiver errada, como um número de telefone que o OneUptime não consegue ler ou um auth token ausente, a conta não envia SMS nem faz chamadas até que isso seja corrigido; o log do servidor, **Admin Dashboard > Configurações > Chamadas e SMS** e a lista de verificação em `/admin/setup` indicam a variável. O auth token nunca é exibido. Para mudar a conta, altere as variáveis e reinicie o OneUptime: o Admin Dashboard não a altera.
+O OneUptime lê as variáveis ao iniciar. Se alguma estiver errada, como um número de telefone que o OneUptime não consegue ler ou um auth token ausente, a conta não envia SMS nem faz chamadas até que isso seja corrigido; o log do servidor, **Admin Dashboard > Configurações > Chamadas e SMS** e a lista de verificação em `/admin/setup` indicam a variável. Uma `GLOBAL_TWILIO_CALL_VOICE` que não indica nenhuma voz oferecida pelo OneUptime não impede nenhuma chamada: as chamadas falam com a voz padrão da conta até que ela seja corrigida, e os mesmos três lugares a indicam. O auth token nunca é exibido. Para mudar a conta, altere as variáveis e reinicie o OneUptime: o Admin Dashboard não a altera.
 
 ### Gerenciar configurações de projeto com o Terraform
 
@@ -149,7 +150,7 @@ As páginas de status oferecem só as configurações que enviam SMS, e **Enviar
 
 ### A voz com que as chamadas falam
 
-As chamadas falam com a voz que a sua conta do Twilio usa por padrão: a voz Basic gratuita do Twilio, a menos que você tenha escolhido outra no Twilio Console. Segundo o Twilio, as vozes Basic não são feitas para produção, por isso cada conta pode, em vez disso, falar com uma destas vozes neurais. Escolha a da conta da instalação inteira no cartão **Voz das chamadas** de **Admin Dashboard > Configurações > Chamadas e SMS**, e a de uma configuração de projeto no campo **Voz das chamadas**, em **Mais campos**.
+As chamadas falam com a voz que a sua conta do Twilio usa por padrão: a voz Basic gratuita do Twilio, a menos que você tenha escolhido outra no Twilio Console. Segundo o Twilio, as vozes Basic não são feitas para produção, por isso cada conta pode, em vez disso, falar com uma destas vozes neurais. Escolha a da conta da instalação inteira no cartão **Voz das chamadas** de **Admin Dashboard > Configurações > Chamadas e SMS**, e a de uma configuração de projeto no campo **Voz das chamadas**, em **Mais campos**. Para definir a da conta da instalação inteira por código, use `GLOBAL_TWILIO_CALL_VOICE` (`twilio.callVoice` com o Helm): veja [Definir a conta da instalação inteira com variáveis de ambiente](#definir-a-conta-da-instalação-inteira-com-variáveis-de-ambiente).
 
 | Voz | Feita por | Como soa |
 | --- | --- | --- |
@@ -160,7 +161,37 @@ As chamadas falam com a voz que a sua conta do Twilio usa por padrão: a voz Bas
 | `Google.en-US-Neural2-F` | Google | Inglês americano, voz feminina |
 | `Google.en-US-Neural2-J` | Google | Inglês americano, voz masculina |
 
-Toda chamada feita pela conta fala com essa voz: os acionamentos de plantão e a resposta à tecla que você pressiona, a mensagem deixada na caixa postal, os códigos de verificação, **Enviar chamada de teste** e as saudações de uma política de chamadas recebidas. Nessas vozes, um número como `INC-42` é soletrado com SSML, o que soa mais natural do que as letras espaçadas que as outras vozes recebem. O Twilio cobra essas vozes na conta que faz a chamada: $0.0032 a cada 100 caracteres em novembro de 2026, menos de 2 centavos de dólar americano pela chamada de um acionamento. Veja [os preços de voz do Twilio](https://www.twilio.com/en-us/voice/pricing/us). Deixe o campo **Voz das chamadas** vazio para manter a voz padrão da conta. Pela API e pelo Terraform, a voz é o campo `twilioCallVoice`, e uma voz que não está na tabela é recusada.
+Toda chamada feita pela conta fala com essa voz: os acionamentos de plantão e a resposta à tecla que você pressiona, a mensagem deixada na caixa postal, os códigos de verificação, **Enviar chamada de teste** e as saudações de uma política de chamadas recebidas. Nessas vozes, um número como `INC-42` é soletrado com SSML, o que soa mais natural do que as letras espaçadas que as outras vozes recebem. O Twilio cobra essas vozes na conta que faz a chamada: $0.0032 a cada 100 caracteres em novembro de 2026, menos de 3 centavos de dólar americano pela chamada de um acionamento, em qualquer idioma. Veja [os preços de voz do Twilio](https://www.twilio.com/en-us/voice/pricing/us). Deixe o campo **Voz das chamadas** vazio para manter a voz padrão da conta. Pela API e pelo Terraform, a voz é o campo `twilioCallVoice`, e uma voz que não está na tabela é recusada.
+
+#### Chamadas em outros idiomas
+
+A chamada de um acionamento de plantão para quem usa o OneUptime em outro idioma é nesse idioma quando a conta fala com uma das vozes acima: as palavras dela são escritas nesse idioma, e uma voz desse idioma as diz, uma voz feminina se a da conta for feminina e uma masculina se for masculina. O pedido para pressionar uma tecla, os detalhes repetidos quando nenhuma tecla é pressionada, a resposta a uma tecla errada e as respostas às teclas ficam todos nesse idioma, e as teclas continuam sendo 1 e 2. Estas são as vozes, da lista de vozes neurais do Twilio, verificadas em 27 de novembro de 2026; elas custam o mesmo que as vozes acima:
+
+| Idioma | Voz feminina | Voz masculina |
+| --- | --- | --- |
+| Alemão | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| Francês | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| Espanhol | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| Italiano | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| Português | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| Holandês | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| Dinamarquês | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| Norueguês | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| Sueco | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| Russo | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| Japonês | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| Coreano | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| Chinês simplificado | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| Chinês tradicional | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| Hindi | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| Árabe | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| Persa | Nenhuma: as chamadas são em inglês | Nenhuma: as chamadas são em inglês |
+
+Nem o Amazon Polly nem o Google têm uma voz em persa, então uma chamada para quem usa o OneUptime em persa é em inglês, como toda chamada por uma conta que mantém a voz padrão, que só fala inglês. O log de uma chamada guarda o que a chamada disse, no idioma em que disse. Um código de verificação, **Enviar chamada de teste** e as saudações de uma política de chamadas recebidas são em inglês.
+
+#### Projetos que escolhem a própria voz
+
+Em uma instalação auto-hospedada, um administrador master pode deixar cada projeto escolher a voz das suas chamadas pela conta da instalação inteira: ative **Deixar os projetos escolherem a voz das suas chamadas** no cartão **Vozes dos projetos** de **Admin Dashboard > Configurações > Chamadas e SMS**. Um **Proprietário do projeto** ou **Administrador do projeto** então a escolhe no cartão **Voz das chamadas** em **Mais configurações** de **Configurações do projeto > Notificações > Canais de notificação**, e um projeto que não escolhe nenhuma fala com a voz da instalação. O Twilio cobra a voz de cada projeto na conta da instalação inteira, por isso a chave começa desligada, e desligá-la faz todos os projetos voltarem à voz da instalação. O OneUptime Cloud não oferece isso: escolha uma voz com uma configuração de projeto própria. Pela API, a voz é o campo `callVoice` do projeto, que é recusado enquanto a chave estiver desligada.
 
 ### Caixa postal nas chamadas de plantão
 

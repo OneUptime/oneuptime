@@ -126,6 +126,7 @@ function serverSays(vars: Partial<GlobalConfigVars> | Error): void {
         disableUserProjectCreation: false,
         disablePushNotifications: false,
         canSendEmail: true,
+        canProjectsChooseCallVoice: false,
         ...vars,
       };
     });

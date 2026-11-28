@@ -7,6 +7,7 @@ Le fournisseur OneUptime est publié dans le [Terraform Registry](https://regist
 - [Comment les versions sont numérotées](#comment-les-versions-sont-numérotées): La version d'un fournisseur est la version de OneUptime qui l'a publié.
 - [Le fichier de verrouillage](#le-fichier-de-verrouillage): La version et les sommes de contrôle que chaque machine installe.
 - [Passer à une version plus récente](#passer-à-une-version-plus-récente): Lire ce qui a changé, la télécharger et planifier.
+- [Vérifier les sommes de contrôle d'une version](#vérifier-les-sommes-de-contrôle-dune-version): Vérifier une version à la main, comme `init` la vérifie.
 :::
 
 ## Ce qui est publié
@@ -57,6 +58,8 @@ L'adresse source ne nomme aucun registre : Terraform la lit dans le Terraform Re
 
 Une version publiée ne change jamais : les registres gardent les sommes de contrôle de ce qu'ils ont téléchargé en premier, et `init` vérifie chaque téléchargement par rapport à elles. Une version à réparer est publiée de nouveau comme la version de correctif suivante, qu'une plage prend en compte, et les notes de cette version disent quelle version elle remplace.
 
+Après la publication de chaque version, puis chaque jour, OneUptime compare les sommes de contrôle que gardent les deux registres avec les fichiers que sert la publication de la version, pour chaque plateforme.
+
 ## Le fichier de verrouillage
 
 `terraform init` enregistre la version qu'il a choisie, et les sommes de contrôle de ses téléchargements, dans `.terraform.lock.hcl`. Commitez ce fichier : chaque machine et chaque exécution de CI installent alors exactement cette version, jusqu'à ce que vous en choisissiez une autre. Les sommes de contrôle couvrent chaque plateforme que publie le registre, si bien qu'un fichier de verrouillage sert aussi bien les machines sous Linux, macOS et Windows.
@@ -95,6 +98,29 @@ Exécutez `terraform plan`, et n'appliquez que lorsqu'il est vide ou montre les 
 :::
 
 Sur un OneUptime auto-hébergé, mettez d'abord à jour OneUptime, puis montez la fin de la plage du fournisseur.
+
+## Vérifier les sommes de contrôle d'une version
+
+`init` n'installe une version que lorsque trois sommes de contrôle SHA-256 concordent pour votre plateforme : celle que le registre a gardée quand la version a été publiée, la ligne du zip dans le `SHA256SUMS` de la publication, et le zip lui-même. Il vérifie aussi que `SHA256SUMS` est signé par la clé de OneUptime, dont l'empreinte se termine par `9D87 E494 AC01 6697`. Pour vérifier une version vous-même, indiquez sa version, votre système et votre architecture sur la première ligne :
+
+```bash
+VERSION=17.3.0 OS=linux ARCH=amd64
+ZIP=terraform-provider-oneuptime_${VERSION}_${OS}_${ARCH}.zip
+SUMS=terraform-provider-oneuptime_${VERSION}_SHA256SUMS
+curl -s https://registry.terraform.io/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH > registry.json
+jq -r .shasum registry.json
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$ZIP"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS.sig"
+grep "$ZIP" "$SUMS"
+sha256sum "$ZIP"
+jq -r '.signing_keys.gpg_public_keys[0].ascii_armor' registry.json | gpg --import
+gpg --verify "$SUMS.sig" "$SUMS"
+```
+
+Les trois sommes de contrôle affichées doivent être identiques, et `gpg` doit dire `Good signature from "OneUptime <key@oneuptime.com>"`. Sous macOS, écrivez `shasum -a 256` à la place de `sha256sum`. Quand la somme de contrôle du registre diffère des deux autres, `init` refuse la version : voir [Une version dont les sommes de contrôle ne correspondent pas](/docs/terraform/troubleshooting#une-version-dont-les-sommes-de-contrôle-ne-correspondent-pas).
+
+Le registre d'OpenTofu garde les mêmes sommes de contrôle : lisez la sienne à `https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH`. Il n'a pas de clé pour le fournisseur, donc `tofu init` vérifie les sommes de contrôle et ignore la signature.
 
 ## Où se trouve le code
 

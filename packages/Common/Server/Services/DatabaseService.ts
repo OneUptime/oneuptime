@@ -12635,6 +12635,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
 
       /*
+       * Who did something to the record is OneUptime's to say. See the
+       * helpers. First, so a column that says who and is only OneUptime's
+       * too (a cost report's Outside Recipients Set By) is taken out as
+       * every other such column is, and not refused below.
+       */
+      this.assertUpdateChangesSomething(
+        this.decideUserAttributionOnUpdate(updateBy.data, updateBy.props),
+        updateBy.data,
+      );
+
+      /*
        * What only OneUptime writes is not an update's to change: refused,
        * naming the columns, before any hook reads the write
        * (ColumnsOnlyOneUptimeWrites, #10053).
@@ -12644,12 +12655,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         record: updateBy.data,
         props: updateBy.props,
       });
-
-      // Who did something to the record is OneUptime's to say. See the helpers.
-      this.assertUpdateChangesSomething(
-        this.decideUserAttributionOnUpdate(updateBy.data, updateBy.props),
-        updateBy.data,
-      );
 
       // One reference, one value, whichever name it is sent under. See the helper.
       this.assertRelationNamesAgree(updateBy.data, updateBy.props);

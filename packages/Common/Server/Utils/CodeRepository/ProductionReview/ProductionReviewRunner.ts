@@ -47,6 +47,7 @@ import ProductionReviewRepositoryProfile, {
   RepositoryProductionProfile,
 } from "./ProductionReviewRepositoryProfile";
 import ProductionReviewScope, {
+  ProductionReviewRumApplication,
   ProductionReviewScopeResult,
 } from "./ProductionReviewScope";
 import ProductionReviewSensitiveData from "./ProductionReviewSensitiveData";
@@ -473,6 +474,14 @@ export default class ProductionReviewRunner {
           } catch {
             return false;
           }
+        },
+        // The web and mobile apps the repository is the front end of (#11395).
+        rumApplications: (): Promise<Array<ProductionReviewRumApplication>> => {
+          return ProductionReviewScope.getRumApplications({
+            projectId,
+            codeRepositoryId: repository.id!,
+            services: scope.services,
+          });
         },
       });
     } catch (error) {

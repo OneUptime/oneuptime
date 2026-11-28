@@ -58,6 +58,7 @@ import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import RumApplicationClientService from "Common/Server/Services/RumApplicationClientService";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
+import XcpNgPoolService from "Common/Server/Services/XcpNgPoolService";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -171,6 +172,21 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
       method: "findOrCreateByName",
     },
     maintenance: { service: VMwareVCenterService, method: "updateLastSeen" },
+  },
+  {
+    // A pool is resolved by its XAPI UUID, never by its name (#10995).
+    name: "autoDiscoverXcpNgPool",
+    method: "autoDiscoverXcpNgPool",
+    namespace: "xcp-ng-pool-id",
+    attributes: [
+      stringAttribute("xcp_ng.pool.id", "c0ffee00-1111-4222-8333-444455556666"),
+      stringAttribute("xcp_ng.pool.name", "pool-prod"),
+    ] as JSONArray,
+    findOrCreate: {
+      service: XcpNgPoolService,
+      method: "findOrCreateByIdentifier",
+    },
+    maintenance: { service: XcpNgPoolService, method: "updateAgentLastSeen" },
   },
   {
     name: "autoDiscoverIoTFleet",

@@ -4,10 +4,15 @@ import {
   DATA_TYPE_CATALOG,
   DataTypeInfo,
 } from "../../../Types/DataSecurity/DataTypeCatalog";
-import { DataTypeDetector } from "../../../Utils/DataSecurity/Detector";
+import {
+  DataTypeDetector,
+  matchesFieldShape,
+} from "../../../Utils/DataSecurity/Detector";
 import BUILT_IN_DETECTORS, {
   getBuiltInDetectorsOf,
 } from "../../../Utils/DataSecurity/Detectors/Index";
+import { getHintedDataTypeIds } from "../../../Utils/DataSecurity/FieldNameHints";
+import { NUMBER_DASHES } from "../../../Utils/DataSecurity/FullwidthForms";
 import { QUERY_NAME_DATA_TYPE_ID } from "../../../Utils/DataSecurity/QueryStringNames";
 import { sha256 } from "../../../Utils/DataSecurity/Sha256";
 import {
@@ -60,6 +65,12 @@ interface Labelled {
   dataTypeId: string;
   text: string;
   value: string;
+  /*
+   * The field the text is the value of, when it is one - an attribute's
+   * key: Data Security reads its name as the words a value needs, and a
+   * whole value by the shape its type takes there (#11383, findAsRead).
+   */
+  field?: string | undefined;
 }
 
 interface CorpusEntry {
@@ -222,8 +233,69 @@ function jsonDocument(key: string, value: string): string {
   return `{"${key}": "${value}", "batch": "nightly"}`;
 }
 
-function labelled(dataTypeId: string, text: string, value: string): Labelled {
-  return { dataTypeId, text, value };
+function labelled(
+  dataTypeId: string,
+  text: string,
+  value: string,
+  field?: string | undefined,
+): Labelled {
+  return field === undefined
+    ? { dataTypeId, text, value }
+    : { dataTypeId, text, value, field };
+}
+
+/*
+ * What Data Security finds in a text: as it is, or as a field's value when
+ * it is one (#11383) - with the field's name for the words a value needs
+ * (TextScanOptions.hintedDataTypeIds), and, for a type the name hints that
+ * no detector found in it, the whole value when it has the shape the type
+ * takes in such a field (matchesFieldShape), Medium, as FieldClassifier
+ * counts it.
+ */
+function findAsRead(
+  text: string,
+  options: TextScanOptions = {},
+  field?: string | undefined,
+): Array<TextMatch> {
+  if (field === undefined) {
+    return findSensitiveValues(text, options);
+  }
+
+  const hinted: ReadonlySet<string> = getHintedDataTypeIds(field);
+  const matches: Array<TextMatch> = findSensitiveValues(text, {
+    ...options,
+    hintedDataTypeIds: hinted,
+  });
+  const whole: string = text.trim();
+  const start: number = text.length - text.trimStart().length;
+
+  for (const detector of (options.detectors ||
+    BUILT_IN_DETECTORS) as ReadonlyArray<DataTypeDetector>) {
+    if (
+      !hinted.has(detector.dataTypeId) ||
+      !detector.fieldValuePattern ||
+      matches.some((match: TextMatch): boolean => {
+        return match.dataTypeId === detector.dataTypeId;
+      })
+    ) {
+      continue;
+    }
+
+    const normalized: string | null = matchesFieldShape(detector, whole);
+
+    if (normalized !== null) {
+      matches.push({
+        dataTypeId: detector.dataTypeId,
+        start,
+        end: start + whole.length,
+        normalized,
+        confidence: DataConfidence.Medium,
+        isTestValue: Boolean(detector.isTestValue?.(normalized)),
+      });
+    }
+  }
+
+  return matches;
 }
 
 /*
@@ -311,10 +383,11 @@ function isFoundAlone(
   dataTypeId: string,
   text: string,
   value: string,
+  field?: string | undefined,
 ): boolean {
   const start: number = text.indexOf(value);
 
-  return findSensitiveValues(text, ownReadingOf(dataTypeId)).some(
+  return findAsRead(text, ownReadingOf(dataTypeId), field).some(
     (match: TextMatch) => {
       return (
         match.dataTypeId === dataTypeId &&
@@ -328,8 +401,12 @@ function isFoundAlone(
 }
 
 // Whether the type's own detectors find anything at all in the text.
-function isRefusedAlone(dataTypeId: string, text: string): boolean {
-  return findSensitiveValues(text, ownReadingOf(dataTypeId)).every(
+function isRefusedAlone(
+  dataTypeId: string,
+  text: string,
+  field?: string | undefined,
+): boolean {
+  return findAsRead(text, ownReadingOf(dataTypeId), field).every(
     (match: TextMatch) => {
       return match.dataTypeId !== dataTypeId || match.isTestValue;
     },
@@ -383,8 +460,12 @@ function isKnownConfusion(found: string, label: string): boolean {
  * them, and a near miss built that way every time is kept, for the
  * precision test to say.
  */
-function isTakenByAnotherType(dataTypeId: string, text: string): boolean {
-  return findSensitiveValues(text).some((match: TextMatch) => {
+function isTakenByAnotherType(
+  dataTypeId: string,
+  text: string,
+  field?: string | undefined,
+): boolean {
+  return findAsRead(text, {}, field).some((match: TextMatch) => {
     return (
       isSure(match) &&
       match.dataTypeId !== dataTypeId &&
@@ -1188,8 +1269,14 @@ const CORPUS: Record<string, CorpusEntry> = buildCorpus(CORPUS_SEED);
  * longer chain of groups. And a phone or Social Security number typed
  * wholly in fullwidth, its signs and separators too (#11115), and a
  * national number or nine digits beside the words that name them, with
- * the same digits beside no such word as their near misses (#11114).
- * Labelled apart from the corpus, which draws two
+ * the same digits beside no such word as their near misses (#11114). And
+ * a national number or nine digits alone under a key that names them,
+ * read as Data Security reads a field (#11383: the same digits under a key
+ * that names nothing are their near misses); a number whose groups are set
+ * apart by another dash, and a value - an address, an IBAN, a postcode, a
+ * number's words - typed in fullwidth letters (#11385: a katakana word's
+ * ー beside a digit, a range, CJK prose with fullwidth letters as near
+ * misses). Labelled apart from the corpus, which draws two
  * values of each type from its detectors' shapes, and held to a precision
  * and a recall of 1: every value found as its type, and nothing else found.
  * Each case draws from a stream of its own, so the corpus draws as before.
@@ -1228,6 +1315,88 @@ function fullwidthOf(character: string): string {
 // A number typed wholly in fullwidth: every digit, sign, separator and space of it.
 function toFullwidth(number: string): string {
   return Array.from(number).map(fullwidthOf).join("");
+}
+
+/*
+ * The other dashes a number's groups are set apart by, read as hyphens
+ * between two digits (#11385): ー, ｰ, ‐, ‑, ‒, – and −.
+ */
+const OTHER_DASHES: ReadonlyArray<string> = NUMBER_DASHES.map(
+  (dash: number): string => {
+    return String.fromCharCode(dash);
+  },
+);
+
+// Whether the character at `at` is an ASCII digit.
+function isAsciiDigitAt(text: string, at: number): boolean {
+  return at >= 0 && at < text.length && ASCII_DIGIT_CHARACTER.test(text[at]!);
+}
+
+const ASCII_DIGIT_CHARACTER: RegExp = /^[0-9]$/;
+
+/*
+ * A text with each hyphen between two digits written as another dash, in
+ * turn from `first` (#11385): 536-22-8731 as 536–22−8731. One character for
+ * one, so a value is where it was.
+ */
+function withOtherDashes(text: string, first: number = 0): string {
+  let written: string = "";
+  let next: number = first;
+
+  for (let index: number = 0; index < text.length; index++) {
+    if (
+      text[index] === "-" &&
+      isAsciiDigitAt(text, index - 1) &&
+      isAsciiDigitAt(text, index + 1)
+    ) {
+      written += OTHER_DASHES[next % OTHER_DASHES.length];
+      next++;
+    } else {
+      written += text[index];
+    }
+  }
+
+  return written;
+}
+
+/*
+ * A text typed wholly in fullwidth, as an input method in fullwidth mode
+ * types every character (#11385): each of ASCII's printable characters as
+ * its fullwidth form, letters too, a space as an ideographic space. One
+ * character for one.
+ */
+function allInFullwidth(text: string): string {
+  return Array.from(text)
+    .map((character: string): string => {
+      const code: number = character.charCodeAt(0);
+
+      if (character === " ") {
+        return IDEOGRAPHIC_SPACE;
+      }
+
+      return code >= 0x21 && code <= 0x7e
+        ? String.fromCharCode(code + 0xfee0)
+        : character;
+    })
+    .join("");
+}
+
+// Whether a value holds one of the other dashes.
+function holdsOtherDash(value: string): boolean {
+  return OTHER_DASHES.some((dash: string): boolean => {
+    return value.includes(dash);
+  });
+}
+
+// Whether a value is typed in fullwidth letters: it holds one.
+function holdsFullwidthLetter(value: string): boolean {
+  return Array.from(value).some((character: string): boolean => {
+    const code: number = character.charCodeAt(0);
+
+    return (
+      (code >= 0xff21 && code <= 0xff3a) || (code >= 0xff41 && code <= 0xff5a)
+    );
+  });
 }
 
 // Whether a value holds a number's fullwidth sign or separator, an ideographic space among them.
@@ -2110,6 +2279,339 @@ const READING_CASES_OF: Readonly<
       ],
     };
   },
+  /*
+   * #11383: a national phone number of no other shape alone under a key
+   * that names a phone - user.phone, customer.mobile, msisdn - as Data
+   * Security reads a field: the key's name is the word it needs, and a
+   * whole value of a phone's shape there is one. The same digits under a
+   * key that names nothing, and a placeholder of a phone's shape, are none.
+   */
+  "phone-number: a national number alone under a key that names it":
+    (): CorpusEntry => {
+      const london: string = drawnUntaken(
+        "phone-number",
+        (): string => {
+          return `020${drawnDigitsOf(8, "7")}`;
+        },
+        (drawn: string): string => {
+          return drawn;
+        },
+      );
+      const mobile: string = drawnUntaken(
+        "phone-number",
+        (): string => {
+          return drawnDigitsOf(9, "6");
+        },
+        (drawn: string): string => {
+          return drawn;
+        },
+      );
+      const msisdn: string = drawnUntaken(
+        "phone-number",
+        (): string => {
+          return `447${drawnDigitsOf(9, "7")}`;
+        },
+        (drawn: string): string => {
+          return drawn;
+        },
+      );
+      const grouped: string = `020 ${drawnDigitsOf(4, "7")} ${drawnDigitsOf(4)}`;
+      const fullwidth: string = toFullwidth(`0${drawnDigitsOf(10, "8")}`);
+
+      return {
+        positives: [
+          labelled("phone-number", london, london, "user.phone"),
+          labelled("phone-number", mobile, mobile, "customer.mobile"),
+          labelled("phone-number", msisdn, msisdn, "msisdn"),
+          labelled("phone-number", grouped, grouped, "phone_number"),
+          labelled("phone-number", fullwidth, fullwidth, "contact.telephone"),
+        ],
+        nearMisses: [
+          labelled("phone-number", london, "", "order.id"),
+          labelled("phone-number", msisdn, "", "request.number"),
+          labelled("phone-number", "000000000", "", "user.phone"),
+        ],
+      };
+    },
+  /*
+   * #11383: nine digits in a row alone under a key that names a Social
+   * Security number - customer.ssn, applicant.social_security_number,
+   * ss.number - and the same digits under a key that names nothing, or an
+   * area no one is issued under the key that names one.
+   */
+  "us-ssn: nine digits alone under a key that names an SSN":
+    (): CorpusEntry => {
+      const first: string = drawnUntaken(
+        "us-ssn",
+        (): string => {
+          return drawnSsn().split("-").join("");
+        },
+        (drawn: string): string => {
+          return drawn;
+        },
+      );
+      const second: string = drawnUntaken(
+        "us-ssn",
+        (): string => {
+          return drawnSsn().split("-").join("");
+        },
+        (drawn: string): string => {
+          return `666${drawn.slice(3)}`;
+        },
+      );
+      const third: string = drawnUntaken(
+        "us-ssn",
+        (): string => {
+          return drawnSsn().split("-").join("");
+        },
+        (drawn: string): string => {
+          return `ref ${drawn}`;
+        },
+      );
+      const fullwidth: string = toFullwidth(drawnSsn().split("-").join(""));
+
+      return {
+        positives: [
+          labelled("us-ssn", first, first, "customer.ssn"),
+          labelled(
+            "us-ssn",
+            second,
+            second,
+            "applicant.social_security_number",
+          ),
+          labelled("us-ssn", `ref ${third}`, third, "ss.number"),
+          labelled("us-ssn", fullwidth, fullwidth, "ssn"),
+        ],
+        nearMisses: [
+          labelled("us-ssn", first, "", "order.id"),
+          labelled("us-ssn", `666${second.slice(3)}`, "", "customer.ssn"),
+        ],
+      };
+    },
+  /*
+   * #11385: a phone number whose groups are set apart by another dash -
+   * the prolonged sound mark of a number typed in Japanese, a non-breaking
+   * hyphen, an en dash, a figure dash - and what reads as no phone number
+   * so: a katakana word's ー beside a digit, a range, a time zone and a
+   * date.
+   */
+  "phone-number: its groups set apart by a typeset dash or a prolonged sound mark":
+    (): CorpusEntry => {
+      const tokyo: string = toFullwidth(
+        `+81 3-${drawnDigitsOf(4, "1")}-${drawnDigitsOf(4)}`,
+      )
+        .split("－")
+        .join("ー");
+      const london: string = `+44 20 ${drawnDigitsOf(4, "7")}‑${drawnDigitsOf(4)}`;
+      const sanFrancisco: string = `(${drawnExchange()}) ${drawnExchange()}–${drawnDigitsOf(4)}`;
+      const paris: string = `+33 1‒${drawnDigitsOf(2)}‒${drawnDigitsOf(2)}‒${drawnDigitsOf(2)}‒${drawnDigitsOf(2)}`;
+      // Halfwidth katakana text writes the halfwidth prolonged sound mark.
+      const osaka: string = `+81 6ｰ${drawnDigitsOf(4, "1")}ｰ${drawnDigitsOf(4)}`;
+
+      return {
+        positives: [
+          labelled("phone-number", `電話 ${tokyo}`, tokyo),
+          labelled("phone-number", `ﾃﾞﾝﾜ ${osaka}`, osaka),
+          labelled(
+            "phone-number",
+            `2026-10-27T10:15:02Z INFO call ${london} queued`,
+            london,
+          ),
+          labelled("phone-number", `{"tel": "${sanFrancisco}"}`, sanFrancisco),
+          labelled("phone-number", `fax ${paris}`, paris),
+        ],
+        nearMisses: [
+          labelled(
+            "phone-number",
+            `サーバー3台 データ2ー${1 + random(8)}件`,
+            "",
+          ),
+          labelled("phone-number", `pages 10–20 of 2020–2026 call later`, ""),
+          labelled(
+            "phone-number",
+            `at UTC +1 2026−11−${10 + random(18)} 10:15:00`,
+            "",
+          ),
+        ],
+      };
+    },
+  // #11385: a Social Security number whose groups are set apart by another dash, and what is none so.
+  "us-ssn: its groups set apart by a typeset dash or a prolonged sound mark":
+    (): CorpusEntry => {
+      const typed: string = toFullwidth(drawnSsn()).split("－").join("ー");
+      const enDash: string = drawnSsn().split("-").join("–");
+      const minus: string = drawnSsn().split("-").join("−");
+
+      return {
+        positives: [
+          labelled("us-ssn", `SSN：${typed}`, typed),
+          labelled(
+            "us-ssn",
+            `2026-10-27T10:15:02Z INFO applicant ssn ${enDash} verified`,
+            enDash,
+          ),
+          labelled("us-ssn", `{"ssn": "${minus}"}`, minus),
+        ],
+        nearMisses: [
+          labelled(
+            "us-ssn",
+            `SSN 666–${drawnSsn().slice(4).split("-").join("–")}`,
+            "",
+          ),
+          labelled("us-ssn", `ref ${enDash}–${drawnDigitsOf(2)}`, ""),
+        ],
+      };
+    },
+  // #11385: a card whose groups are set apart by another dash, and a check digit off so.
+  "credit-card-number: its groups set apart by a typeset dash or a prolonged sound mark":
+    (): CorpusEntry => {
+      // Drawn again while a near miss of it is another type's value.
+      const card: string = drawnUntaken(
+        "credit-card-number",
+        drawnCard,
+        (drawn: string): string => {
+          return `card ${inGroupsOfFour(checkDigitOff(drawn), "–")} order ${inGroupsOfFour(drawn, "‒").slice(0, 14)}`;
+        },
+      );
+      const other: string = drawnCard();
+      const enDashed: string = inGroupsOfFour(card, "–");
+      const typed: string = toFullwidth(inGroupsOfFour(other, "-"))
+        .split("－")
+        .join("ー");
+
+      return {
+        positives: [
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO card ${enDashed} charged`,
+            enDashed,
+          ),
+          labelled("credit-card-number", `カード番号：${typed}`, typed),
+        ],
+        nearMisses: [
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO card ${inGroupsOfFour(checkDigitOff(card), "–")} charged`,
+            "",
+          ),
+          labelled(
+            "credit-card-number",
+            `order ${inGroupsOfFour(card, "‒").slice(0, 14)} shipped`,
+            "",
+          ),
+        ],
+      };
+    },
+  /*
+   * #11385: an email address typed in fullwidth, as an input method in
+   * fullwidth mode types one - and one with its "@" alone in fullwidth -
+   * and what is none typed so: CJK prose with fullwidth letters and an
+   * "@", an address with no top-level domain.
+   */
+  "email-address: typed in fullwidth": (): CorpusEntry => {
+    const typed: string = allInFullwidth(
+      `${fake(LOWER, 4 + random(5))}.${fake(LOWER, 3 + random(5))}@${drawnDomain()}`,
+    );
+    const atOnly: string = `${fake(LOWER, 5 + random(5))}＠${drawnDomain()}`;
+
+    return {
+      positives: [
+        labelled("email-address", `メール ${typed} に送信しました`, typed),
+        labelled("email-address", `連絡先：${atOnly}`, atOnly),
+      ],
+      nearMisses: [
+        labelled("email-address", "ＩＴ部門＠本社 へ連絡してください", ""),
+        labelled(
+          "email-address",
+          `メール ${allInFullwidth(`${fake(LOWER, 6)}@localhost`)} に送信`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11385: an IBAN typed in fullwidth letters and digits, its groups apart by ideographic spaces, and one a digit off.
+  "iban: typed in fullwidth letters": (): CorpusEntry => {
+    // Drawn again while its groups, or its near miss's, are another type's value: a card's.
+    const groupedOf: (iban: string) => string = (iban: string): string => {
+      return `振込先 IBAN：${allInFullwidth(ibanInGroups(iban, " "))}`;
+    };
+    const wholeOf: (iban: string) => string = (iban: string): string => {
+      return `口座 ${allInFullwidth(iban)} へ`;
+    };
+    const first: string = drawnUntaken(
+      "iban",
+      drawnIban,
+      (drawn: string): string => {
+        return `${groupedOf(drawn)} ${groupedOf(checkDigitOff(drawn))}`;
+      },
+    );
+    const second: string = drawnUntaken(
+      "iban",
+      drawnIban,
+      (drawn: string): string => {
+        return `${wholeOf(drawn)} ${wholeOf(drawn.slice(0, -1))}`;
+      },
+    );
+    const grouped: string = allInFullwidth(ibanInGroups(first, " "));
+    const whole: string = allInFullwidth(second);
+
+    return {
+      positives: [
+        labelled("iban", groupedOf(first), grouped),
+        labelled("iban", wholeOf(second), whole),
+      ],
+      nearMisses: [
+        labelled("iban", groupedOf(checkDigitOff(first)), ""),
+        labelled("iban", wholeOf(second.slice(0, -1)), ""),
+      ],
+    };
+  },
+  // #11385: a UK postcode typed in fullwidth, and letters no inward code takes typed so.
+  "postal-code: a UK postcode typed in fullwidth": (): CorpusEntry => {
+    const first: string = allInFullwidth(drawnUkPostcode());
+    const second: string = allInFullwidth(drawnUkPostcode());
+
+    return {
+      positives: [
+        labelled("postal-code", `postcode ${first}`, first),
+        labelled("postal-code", `{"address": "${second}"}`, second),
+      ],
+      nearMisses: [
+        labelled(
+          "postal-code",
+          `postcode ${allInFullwidth(`SW${1 + random(9)}A ${random(10)}CI`)}`,
+          "",
+        ),
+        labelled(
+          "postal-code",
+          `postcode ${allInFullwidth(`SW${1 + random(9)}A${random(10)}AA`)}`,
+          "",
+        ),
+      ],
+    };
+  },
+  /*
+   * #11385: a national phone number and nine digits in a row beside the
+   * words that name them typed in fullwidth - ＴＥＬ, ＳＳＮ - and the same
+   * digits beside words that name neither, or a word inside another.
+   */
+  "phone-number and us-ssn: their words typed in fullwidth":
+    (): CorpusEntry => {
+      const national: string = toFullwidth(`0${drawnDigitsOf(10, "3")}`);
+      const ssn: string = toFullwidth(drawnSsn().split("-").join(""));
+
+      return {
+        positives: [
+          labelled("phone-number", `ＴＥＬ\u3000${national}`, national),
+          labelled("us-ssn", `ＳＳＮ：${ssn}`, ssn),
+        ],
+        nearMisses: [
+          labelled("phone-number", `ＩＤ\u3000${national}`, ""),
+          labelled("phone-number", `ＴＥＬＥＭＥＴＲＹ\u3000${national}`, ""),
+          labelled("us-ssn", `ＲＥＦ\u3000${ssn}`, ""),
+        ],
+      };
+    },
   // #10936
   "ip-address: right after a key's colon": (): CorpusEntry => {
     const first: string = drawnIpv6();
@@ -2621,6 +3123,120 @@ function fullwidthCases(
   return cases;
 }
 
+/*
+ * #11385: every type whose detectors read a number's fullwidth forms - and
+ * so the other dashes between two digits - its own drawn values and near
+ * misses with each hyphen between two digits written as another dash, in
+ * turn (withOtherDashes): 536-22-8731 as 536–22−8731. A number is the same
+ * number whatever dash sets its groups apart, so each value is found as
+ * its type, and each near miss refused, as with hyphens. A type whose
+ * values a draw writes with no hyphen between digits reads as it is.
+ */
+function otherDashCases(
+  corpus: Record<string, CorpusEntry>,
+): Record<string, CorpusEntry> {
+  const cases: Record<string, CorpusEntry> = {};
+
+  for (const dataTypeId of FULLWIDTH_TYPES) {
+    const entry: CorpusEntry | undefined = corpus[dataTypeId];
+
+    if (!entry) {
+      continue;
+    }
+
+    const positives: Array<Labelled> = entry.positives.map(
+      (positive: Labelled, index: number): Labelled => {
+        const text: string = withOtherDashes(positive.text, index * 3);
+        const start: number = positive.text.indexOf(positive.value);
+
+        return labelled(
+          positive.dataTypeId,
+          text,
+          text.slice(start, start + positive.value.length),
+        );
+      },
+    );
+
+    const nearMisses: Array<Labelled> = [];
+
+    entry.nearMisses.forEach((nearMiss: Labelled, index: number): void => {
+      const text: string = withOtherDashes(nearMiss.text, index * 3 + 1);
+
+      if (!isTakenByAnotherType(dataTypeId, text)) {
+        nearMisses.push(labelled(nearMiss.dataTypeId, text, ""));
+      }
+    });
+
+    cases[`${dataTypeId}: its groups set apart by another dash`] = {
+      positives,
+      nearMisses,
+    };
+  }
+
+  return cases;
+}
+
+/*
+ * #11385: every type whose detectors read a value typed in fullwidth
+ * letters, its own drawn values and near misses typed wholly in fullwidth
+ * (allInFullwidth): every letter, digit, sign and punctuation mark of the
+ * log line or the JSON text each is written in, its spaces ideographic
+ * ones - so the words beside each value are typed in fullwidth too. A value
+ * is the same value however it is typed, so each is found as its type, on
+ * the characters it is typed with, and each near miss refused, as in
+ * ASCII.
+ */
+const FULLWIDTH_LETTERS_TYPES: ReadonlyArray<string> = Array.from(
+  new Set(
+    BUILT_IN_DETECTORS.filter((detector: DataTypeDetector): boolean => {
+      return detector.readsFullwidthLetters === true;
+    }).map((detector: DataTypeDetector): string => {
+      return detector.dataTypeId;
+    }),
+  ),
+).sort();
+
+function fullwidthLettersCases(
+  corpus: Record<string, CorpusEntry>,
+): Record<string, CorpusEntry> {
+  const cases: Record<string, CorpusEntry> = {};
+
+  for (const dataTypeId of FULLWIDTH_LETTERS_TYPES) {
+    const entry: CorpusEntry | undefined = corpus[dataTypeId];
+
+    if (!entry) {
+      continue;
+    }
+
+    const positives: Array<Labelled> = entry.positives.map(
+      (positive: Labelled): Labelled => {
+        const text: string = allInFullwidth(positive.text);
+        const start: number = positive.text.indexOf(positive.value);
+
+        return labelled(
+          positive.dataTypeId,
+          text,
+          text.slice(start, start + positive.value.length),
+        );
+      },
+    );
+    const nearMisses: Array<Labelled> = [];
+
+    for (const nearMiss of entry.nearMisses) {
+      const text: string = allInFullwidth(nearMiss.text);
+
+      if (!isTakenByAnotherType(dataTypeId, text)) {
+        nearMisses.push(labelled(nearMiss.dataTypeId, text, ""));
+      }
+    }
+
+    cases[`${dataTypeId}: its values typed wholly in fullwidth, letters too`] =
+      { positives, nearMisses };
+  }
+
+  return cases;
+}
+
 function buildReadingCases(corpusSeed: number): Record<string, CorpusEntry> {
   const cases: Record<string, CorpusEntry> = {};
   // The corpus of this seed: what the cases built from its values read.
@@ -2637,6 +3253,8 @@ function buildReadingCases(corpusSeed: number): Record<string, CorpusEntry> {
     ...everyScriptCases(corpus),
     ...inAUrlCases(corpus),
     ...fullwidthCases(corpus),
+    ...otherDashCases(corpus),
+    ...fullwidthLettersCases(corpus),
   };
 }
 
@@ -2682,7 +3300,9 @@ function score(corpus: Record<string, CorpusEntry>): Scores {
 
       scores.positives++;
 
-      for (const match of findSensitiveValues(positive.text).filter(isSure)) {
+      for (const match of findAsRead(positive.text, {}, positive.field).filter(
+        isSure,
+      )) {
         if (
           match.dataTypeId === positive.dataTypeId &&
           match.start < end &&
@@ -2705,7 +3325,9 @@ function score(corpus: Record<string, CorpusEntry>): Scores {
     }
 
     for (const nearMiss of entry.nearMisses) {
-      for (const match of findSensitiveValues(nearMiss.text).filter(isSure)) {
+      for (const match of findAsRead(nearMiss.text, {}, nearMiss.field).filter(
+        isSure,
+      )) {
         if (!isKnownConfusion(match.dataTypeId, nearMiss.dataTypeId)) {
           tallyOf(match.dataTypeId).wrong.push(
             `${nearMiss.dataTypeId} near miss: ${nearMiss.text}`,
@@ -2897,13 +3519,22 @@ describe("values written the ways the detectors now read them too", () => {
       expect([name, entry.nearMisses.length >= 2]).toEqual([name, true]);
 
       for (const positive of entry.positives) {
-        if (!isFoundAlone(positive.dataTypeId, positive.text, positive.value)) {
+        if (
+          !isFoundAlone(
+            positive.dataTypeId,
+            positive.text,
+            positive.value,
+            positive.field,
+          )
+        ) {
           wrong.push(`not found alone: ${positive.text}`);
         }
       }
 
       for (const nearMiss of entry.nearMisses) {
-        if (!isRefusedAlone(nearMiss.dataTypeId, nearMiss.text)) {
+        if (
+          !isRefusedAlone(nearMiss.dataTypeId, nearMiss.text, nearMiss.field)
+        ) {
           wrong.push(`found alone: ${nearMiss.text}`);
         }
       }
@@ -2916,7 +3547,7 @@ describe("values written the ways the detectors now read them too", () => {
    * A precision and a recall of 1: every labelled value found as its type,
    * and nothing else - no near miss, no other type - found in any of them.
    */
-  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960, #11025, #11030 to #11034, #11114, #11115, #11199, #11200)", () => {
+  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960, #11025, #11030 to #11034, #11114, #11115, #11199, #11200, #11383, #11385)", () => {
     const readingScores: Scores = score(READING_CASES);
     const wrong: Array<string> = [];
 
@@ -2941,7 +3572,7 @@ describe("values written the ways the detectors now read them too", () => {
       return [seed];
     }),
   )(
-    "finds every value, and nothing else, at seed %i too (#11114, #11115, #11199, #11200)",
+    "finds every value, and nothing else, at seed %i too (#11114, #11115, #11199, #11200, #11383, #11385)",
     (seed: number) => {
       const cases: Record<string, CorpusEntry> = buildReadingCases(seed);
       const readingScores: Scores = score(cases);
@@ -3118,12 +3749,136 @@ describe("values written the ways the detectors now read them too", () => {
     expect(withAForm).toBeGreaterThan(20);
   });
 
+  // #11385: every number written with hyphens is written with the other dashes too.
+  test("writes every type read with its fullwidth forms with its groups set apart by another dash (#11385)", () => {
+    const HYPHEN_BETWEEN_DIGITS: RegExp = /[0-9]-[0-9]/;
+    let withADash: number = 0;
+
+    for (const dataTypeId of FULLWIDTH_TYPES) {
+      if (!CORPUS[dataTypeId]) {
+        continue;
+      }
+
+      const written: CorpusEntry =
+        READING_CASES[`${dataTypeId}: its groups set apart by another dash`]!;
+
+      expect([dataTypeId, written.positives.length]).toEqual([
+        dataTypeId,
+        CORPUS[dataTypeId]!.positives.length,
+      ]);
+
+      for (const positive of written.positives) {
+        // No hyphen between digits is left: each is another dash now.
+        expect([
+          dataTypeId,
+          HYPHEN_BETWEEN_DIGITS.test(positive.value),
+        ]).toEqual([dataTypeId, false]);
+
+        if (holdsOtherDash(positive.value)) {
+          withADash++;
+        }
+      }
+    }
+
+    // Every one of the dashes sets a value's groups apart somewhere.
+    expect(withADash).toBeGreaterThan(10);
+
+    for (const dash of OTHER_DASHES) {
+      const codePoint: string = dash.charCodeAt(0).toString(16);
+
+      expect([
+        codePoint,
+        Object.values(READING_CASES).some((entry: CorpusEntry): boolean => {
+          return entry.positives.some((positive: Labelled): boolean => {
+            return positive.value.includes(dash);
+          });
+        }),
+      ]).toEqual([codePoint, true]);
+    }
+  });
+
+  // #11385: every type that reads fullwidth letters has its values typed wholly in fullwidth.
+  test("writes every type read in fullwidth letters with its values typed wholly in fullwidth, letters too (#11385)", () => {
+    let withALetter: number = 0;
+
+    for (const dataTypeId of FULLWIDTH_LETTERS_TYPES) {
+      if (!CORPUS[dataTypeId]) {
+        continue;
+      }
+
+      const written: CorpusEntry =
+        READING_CASES[
+          `${dataTypeId}: its values typed wholly in fullwidth, letters too`
+        ]!;
+
+      expect([dataTypeId, written.positives.length]).toEqual([
+        dataTypeId,
+        CORPUS[dataTypeId]!.positives.length,
+      ]);
+
+      for (const positive of written.positives) {
+        // Typed in fullwidth indeed: no printable ASCII is left in its text.
+        expect([
+          dataTypeId,
+          Array.from(positive.text).some((character: string): boolean => {
+            const code: number = character.charCodeAt(0);
+
+            return code > 0x20 && code < 0x7f;
+          }),
+        ]).toEqual([dataTypeId, false]);
+
+        if (holdsFullwidthLetter(positive.value)) {
+          withALetter++;
+        }
+      }
+    }
+
+    // Values with letters - IBANs, postcodes, IDs, addresses - many of them.
+    expect(withALetter).toBeGreaterThan(30);
+    expect(FULLWIDTH_LETTERS_TYPES).toEqual(
+      expect.arrayContaining(["email-address", "iban", "postal-code"]),
+    );
+    // Every type that reads a number's fullwidth forms reads its letters too.
+    expect(FULLWIDTH_LETTERS_TYPES).toEqual(
+      expect.arrayContaining([...FULLWIDTH_TYPES]),
+    );
+  });
+
+  /*
+   * #11383: a value under a key that names its type is found by the key's
+   * name - and not without it: each such value is refused as the text it
+   * is, read under no key.
+   */
+  test("reads a field's value with the field's name for the words it needs, and without it finds none (#11383)", () => {
+    let keyed: number = 0;
+
+    for (const [name, entry] of Object.entries(READING_CASES)) {
+      for (const positive of entry.positives) {
+        if (positive.field === undefined) {
+          continue;
+        }
+
+        keyed++;
+        expect([
+          name,
+          positive.field,
+          isRefusedAlone(positive.dataTypeId, positive.text),
+        ]).toEqual([name, positive.field, true]);
+      }
+    }
+
+    expect(keyed).toBeGreaterThan(6);
+  });
+
   /*
    * #11114, #11115: a Phone Number or SSN rule hides what Data Security
    * finds (TextReadings.findDetectorRanges): over every case written for
    * those types - in fullwidth, beside the words that name them, in a URL,
-   * in any script's digits - each finding of the type is hidden, and
-   * nothing the type's detectors do not find, near misses included.
+   * in any script's digits, under a key that names them (#11383, read as
+   * the rule reads a value under its key), set apart by another dash or
+   * beside their words typed in fullwidth (#11385) - each finding of the
+   * type is hidden, and nothing the type's detectors do not find, near
+   * misses included.
    */
   test("a Phone Number or SSN rule hides exactly what Data Security finds of its type, in every case of it", () => {
     let texts: number = 0;
@@ -3139,13 +3894,23 @@ describe("values written the ways the detectors now read them too", () => {
 
         const detectors: ReadonlyArray<DataTypeDetector> =
           getBuiltInDetectorsOf(labelled.dataTypeId);
+        // A field's value read as the rule reads it under its key (#11383).
         const ranges: Array<TextRange> = findDetectorRanges(
           detectors,
           labelled.text,
+          undefined,
+          {
+            hintedDataTypeIds:
+              labelled.field === undefined
+                ? undefined
+                : getHintedDataTypeIds(labelled.field),
+          },
         );
-        const found: Array<TextMatch> = findSensitiveValues(labelled.text, {
-          detectors,
-        });
+        const found: Array<TextMatch> = findAsRead(
+          labelled.text,
+          { detectors },
+          labelled.field,
+        );
 
         texts++;
 
@@ -3185,6 +3950,27 @@ describe("values written the ways the detectors now read them too", () => {
     }
 
     expect(texts).toBeGreaterThan(60);
+  });
+
+  // A generated case of a hand-written case's name would put it out of the corpus, unseen.
+  test("no generated case takes the name of a hand-written one", () => {
+    const generated: Array<string> = [
+      ...Object.keys(everyScriptCases(CORPUS)),
+      ...Object.keys(inAUrlCases(CORPUS)),
+      ...Object.keys(fullwidthCases(CORPUS)),
+      ...Object.keys(otherDashCases(CORPUS)),
+      ...Object.keys(fullwidthLettersCases(CORPUS)),
+    ];
+
+    expect(
+      generated.filter((name: string): boolean => {
+        return Object.prototype.hasOwnProperty.call(READING_CASES_OF, name);
+      }),
+    ).toEqual([]);
+    expect(new Set(generated).size).toBe(generated.length);
+    expect(Object.keys(READING_CASES)).toHaveLength(
+      Object.keys(READING_CASES_OF).length + generated.length,
+    );
   });
 
   test("draws each case from a stream of its own, the same for the same seed", () => {

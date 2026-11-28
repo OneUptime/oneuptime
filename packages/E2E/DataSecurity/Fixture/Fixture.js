@@ -64,6 +64,7 @@ import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed, {
   DataSecurityIssueFeedEventType,
 } from "Common/Models/DatabaseModels/DataSecurityIssueFeed";
+import DataSecurityIssuePullRequest from "Common/Models/DatabaseModels/DataSecurityIssuePullRequest";
 import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurityResidencyRule";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
@@ -1401,6 +1402,11 @@ table(Probe);
 table(DataSecurityCustomDataType);
 table(DataSecurityResidencyRule);
 table(CodeRepository);
+/*
+ * The pull requests people link to an issue as their own fix (#10831),
+ * listed on its How to Fix card: nobody linked one yet.
+ */
+table(DataSecurityIssuePullRequest);
 // The label filters of the store lists: the project has no labels.
 table(Label);
 

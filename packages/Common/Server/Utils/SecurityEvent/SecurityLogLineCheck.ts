@@ -2,7 +2,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityLogLineCheckResult } from "../../../Types/SecurityEvent/SecurityLogLineCheck";
 import { checkSecurityLogLines } from "../../../Utils/SecurityEvent/SecurityLogLineCheck";
-import { NO_TRUSTED_PROXY_SOURCES } from "../../../Utils/SecurityEvent/TrustedProxySources";
+import { UNREAD_TRUSTED_PROXY_SOURCES } from "../../../Utils/SecurityEvent/TrustedProxySources";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import SecurityTrustedProxies, {
   TrustedProxySourcesRead,
@@ -31,8 +31,8 @@ export default class SecurityLogLineCheckReader {
 
     return checkSecurityLogLines({
       text: data.text,
-      // A project that cannot be read trusts only private addresses, as a scan of it would.
-      sources: read ? read.sources : NO_TRUSTED_PROXY_SOURCES,
+      // A project that cannot be read trusts no proxy at all, as a scan of it would (#11389).
+      sources: read ? read.sources : UNREAD_TRUSTED_PROXY_SOURCES,
       now: OneUptimeDate.getCurrentDate(),
     });
   }

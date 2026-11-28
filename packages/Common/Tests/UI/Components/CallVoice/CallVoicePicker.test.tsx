@@ -1,11 +1,19 @@
 import CallVoiceSample, {
   CALL_VOICE_COST_SENTENCE,
   CALL_VOICE_DEFAULT_COST_SENTENCE,
+  CALL_VOICE_DEFAULT_LANGUAGES_SENTENCE,
   CALL_VOICE_HEAR_IT_SENTENCE,
+  CALL_VOICE_HIDE_LANGUAGES,
+  CALL_VOICE_LANGUAGES_SENTENCES,
+  CALL_VOICE_LANGUAGES_TEST_ID,
+  CALL_VOICE_NO_LANGUAGE_VOICE,
   CALL_VOICE_SAMPLE_LABEL,
   CALL_VOICE_SAMPLE_PROJECT_NAME,
   CALL_VOICE_SAMPLE_RECORD_NUMBER,
+  CALL_VOICE_SHOW_LANGUAGES,
+  CallVoiceOfLanguage,
   getCallVoiceSampleSentence,
+  getCallVoicesOfLanguages,
 } from "../../../../UI/Components/CallVoice/CallVoiceSample";
 import {
   CALL_VOICE_DEFAULT_LABEL,
@@ -23,9 +31,11 @@ import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import {
   CALL_VOICES,
   CallVoice,
+  CallVoiceGender,
   getCallVoice,
   getCallVoiceCentsOfAPage,
 } from "../../../../Types/Call/CallVoice";
+import { SUPPORTED_DASHBOARD_LANGUAGES } from "../../../../Types/Dashboard/DashboardLanguage";
 import { Translator, createTranslator } from "../../../../Types/Translator";
 import {
   ON_CALL_PAGE_CALL_PROMPT,
@@ -34,7 +44,7 @@ import {
 } from "../../../../Utils/Call/OnCallPageCall";
 import "@testing-library/jest-dom";
 import { beforeAll, describe, expect, test } from "@jest/globals";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React from "react";
 import { I18nextProvider } from "react-i18next";
@@ -47,8 +57,11 @@ import { I18nextProvider } from "react-i18next";
  * project's Twilio config. Each voice by its own name, drawn as written,
  * with who makes it and how it sounds under it in the reader's language;
  * the empty choice is the account's default voice. Under the picker: the
- * voice chosen, the first lines a page's call says - in English, as every
- * call is, never translated - what it costs, and how to hear it.
+ * voice chosen, the first lines a page's call says in English - the
+ * voice's own language, never translated - that a call to a person who
+ * reads another language speaks it, in its voice of that kind, and which
+ * voice that is for each language, folded (#11066); what it costs, and how
+ * to hear it.
  */
 
 const GERMAN_WORDS: Record<string, string> = {
@@ -58,9 +71,14 @@ const GERMAN_WORDS: Record<string, string> = {
   "British English, female voice": "Britisches Englisch, weibliche Stimme",
   "British English, male voice": "Britisches Englisch, männliche Stimme",
   [CALL_VOICE_SAMPLE_LABEL]:
-    "So beginnt der Anruf einer Benachrichtigung, immer auf Englisch:",
+    "So beginnt der Anruf einer Benachrichtigung auf Englisch:",
+  [CALL_VOICE_LANGUAGES_SENTENCES[CallVoiceGender.Male]]:
+    "Anrufe an Personen, die OneUptime in einer anderen Sprache lesen, sprechen diese Sprache, mit einer Männerstimme dieser Sprache.",
+  [CALL_VOICE_SHOW_LANGUAGES]: "Stimme jeder Sprache anzeigen",
+  [CALL_VOICE_HIDE_LANGUAGES]: "Stimme jeder Sprache ausblenden",
+  [CALL_VOICE_NO_LANGUAGE_VOICE]: "Auf Englisch: keine Stimme spricht sie",
   [CALL_VOICE_COST_SENTENCE]:
-    "Twilio berechnet für diese Stimme einen Aufpreis: unter 2 US-Cent je Anruf einer Benachrichtigung.",
+    "Twilio berechnet für diese Stimmen einen Aufpreis: unter {{cents}} US-Cent je Anruf einer Benachrichtigung, in jeder Sprache.",
   [CALL_VOICE_DEFAULT_COST_SENTENCE]:
     "Kostenlos. Laut Twilio sind seine Basic-Stimmen nicht für den Produktivbetrieb gedacht.",
   [CALL_VOICE_HEAR_IT_SENTENCE]:
@@ -258,16 +276,16 @@ describe("under the picker", () => {
       `“${getCallVoiceSampleSentence()}”`,
     );
     expect(screen.getByTestId("call-voice-sample-cost")).toHaveTextContent(
-      CALL_VOICE_COST_SENTENCE,
+      "Twilio charges extra for these voices: under 3 US cents for each page's call, in any language.",
     );
     expect(screen.getByText(CALL_VOICE_HEAR_IT_SENTENCE)).toBeInTheDocument();
   });
 
-  test("what it costs is true of every voice: under 2 US cents for a page's call", () => {
-    expect(CALL_VOICE_COST_SENTENCE).toContain("under 2 US cents");
+  test("what it costs is true of every voice in every language: under 3 US cents for a page's call (#11066)", () => {
+    expect(CALL_VOICE_COST_SENTENCE).toContain("under {{cents}} US cents");
 
     for (const voice of CALL_VOICES) {
-      expect(getCallVoiceCentsOfAPage(voice)).toBe(2);
+      expect(getCallVoiceCentsOfAPage(voice)).toBe(3);
     }
   });
 
@@ -315,7 +333,7 @@ describe("under the picker", () => {
       screen.getByText(GERMAN_WORDS[CALL_VOICE_SAMPLE_LABEL]!),
     ).toBeInTheDocument();
     expect(screen.getByTestId("call-voice-sample-cost")).toHaveTextContent(
-      GERMAN_WORDS[CALL_VOICE_COST_SENTENCE]!,
+      "Twilio berechnet für diese Stimmen einen Aufpreis: unter 3 US-Cent je Anruf einer Benachrichtigung, in jeder Sprache.",
     );
     expect(
       screen.getByText(GERMAN_WORDS[CALL_VOICE_HEAR_IT_SENTENCE]!),
@@ -442,5 +460,202 @@ describe("a voice's facts on a page read from the right", () => {
     expect(option?.description).toBe(
       `${isolated("Amazon Polly")} • انگلیسی آمریکایی، صدای زن`,
     );
+  });
+});
+
+describe("the languages a voice speaks (#11066)", () => {
+  test("a woman's voice says calls in another language speak it in a woman's voice, a man's in a man's", () => {
+    const { unmount } = render(
+      <I18nextProvider i18n={english}>
+        <CallVoiceSample value="Polly.Joanna-Neural" />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByTestId(CALL_VOICE_LANGUAGES_TEST_ID)).toHaveTextContent(
+      CALL_VOICE_LANGUAGES_SENTENCES[CallVoiceGender.Female],
+    );
+    unmount();
+
+    render(
+      <I18nextProvider i18n={english}>
+        <CallVoiceSample value="Polly.Matthew-Neural" />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByTestId(CALL_VOICE_LANGUAGES_TEST_ID)).toHaveTextContent(
+      CALL_VOICE_LANGUAGES_SENTENCES[CallVoiceGender.Male],
+    );
+  });
+
+  test("each language's voice is folded away, and the fold says which way it is", () => {
+    render(
+      <I18nextProvider i18n={english}>
+        <CallVoiceSample value="Polly.Joanna-Neural" />
+      </I18nextProvider>,
+    );
+
+    const toggle: HTMLElement = screen.getByTestId(
+      `${CALL_VOICE_LANGUAGES_TEST_ID}-toggle`,
+    );
+
+    expect(toggle).toHaveTextContent(CALL_VOICE_SHOW_LANGUAGES);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.queryByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-list`),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveTextContent(CALL_VOICE_HIDE_LANGUAGES);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-list`),
+    ).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.queryByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-list`),
+    ).not.toBeInTheDocument();
+  });
+
+  test("opened, it names every other language by its own name, with the voice its calls speak with", () => {
+    render(
+      <I18nextProvider i18n={english}>
+        <CallVoiceSample value="Polly.Joanna-Neural" />
+      </I18nextProvider>,
+    );
+
+    fireEvent.click(
+      screen.getByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-toggle`),
+    );
+
+    const others: Array<string> = SUPPORTED_DASHBOARD_LANGUAGES.filter(
+      (language: { code: string }): boolean => {
+        return language.code !== "en";
+      },
+    ).map((language: { code: string }): string => {
+      return language.code;
+    });
+
+    for (const code of others) {
+      expect(
+        screen.getByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-${code}`),
+      ).toBeInTheDocument();
+    }
+
+    const german: HTMLElement = screen.getByTestId(
+      `${CALL_VOICE_LANGUAGES_TEST_ID}-de`,
+    );
+
+    expect(german).toHaveTextContent("Deutsch");
+    expect(german).toHaveTextContent("Vicki · Amazon Polly");
+    expect(german.querySelector("[lang='de']")).toHaveTextContent("Deutsch");
+
+    expect(
+      screen.getByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-ru`),
+    ).toHaveTextContent("Wavenet-A · Google");
+
+    // Persian has no voice: its calls are in English, and the list says so.
+    const persianRow: HTMLElement = screen.getByTestId(
+      `${CALL_VOICE_LANGUAGES_TEST_ID}-fa`,
+    );
+
+    expect(persianRow).toHaveTextContent("فارسی");
+    expect(persianRow).toHaveTextContent(CALL_VOICE_NO_LANGUAGE_VOICE);
+    expect(persianRow.querySelector("[lang='fa']")).toHaveAttribute(
+      "dir",
+      "rtl",
+    );
+  });
+
+  test("the voice of each language is the one a call speaks with", () => {
+    const languages: Array<CallVoiceOfLanguage> = getCallVoicesOfLanguages(
+      getCallVoice("Polly.Brian-Neural")!,
+    );
+
+    expect(
+      languages.map((each: CallVoiceOfLanguage): [string, string | null] => {
+        return [each.language.code, each.voice ? each.voice.value : null];
+      }),
+    ).toEqual([
+      ["de", "Polly.Daniel-Neural"],
+      ["fr", "Polly.Remi-Neural"],
+      ["es", "Polly.Sergio-Neural"],
+      ["it", "Polly.Adriano-Neural"],
+      ["pt", "Polly.Thiago-Neural"],
+      ["nl", "Google.nl-NL-Wavenet-G"],
+      ["da", "Google.da-DK-Wavenet-G"],
+      ["no", "Google.nb-NO-Wavenet-G"],
+      ["sv", "Google.sv-SE-Wavenet-G"],
+      ["ru", "Google.ru-RU-Wavenet-B"],
+      ["ja", "Polly.Takumi-Neural"],
+      ["ko", "Google.ko-KR-Neural2-C"],
+      ["zh-CN", "Google.cmn-CN-Wavenet-B"],
+      ["zh-TW", "Google.cmn-TW-Wavenet-B"],
+      ["hi", "Google.hi-IN-Neural2-B"],
+      ["fa", null],
+      ["ar", "Google.ar-XA-Wavenet-B"],
+    ]);
+  });
+
+  test("with no voice chosen, it says calls are in English and what choosing one brings, with nothing to open", () => {
+    render(
+      <I18nextProvider i18n={english}>
+        <CallVoiceSample value={undefined} />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByTestId(CALL_VOICE_LANGUAGES_TEST_ID)).toHaveTextContent(
+      CALL_VOICE_DEFAULT_LANGUAGES_SENTENCE,
+    );
+    expect(
+      screen.queryByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-toggle`),
+    ).not.toBeInTheDocument();
+  });
+
+  test("in German, the sentence, the fold and the list's words are the reader's; the languages keep their own names", () => {
+    render(
+      <I18nextProvider i18n={german}>
+        <CallVoiceSample value="Polly.Brian-Neural" />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByTestId(CALL_VOICE_LANGUAGES_TEST_ID)).toHaveTextContent(
+      GERMAN_WORDS[CALL_VOICE_LANGUAGES_SENTENCES[CallVoiceGender.Male]]!,
+    );
+
+    const toggle: HTMLElement = screen.getByTestId(
+      `${CALL_VOICE_LANGUAGES_TEST_ID}-toggle`,
+    );
+
+    expect(toggle).toHaveTextContent(GERMAN_WORDS[CALL_VOICE_SHOW_LANGUAGES]!);
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveTextContent(GERMAN_WORDS[CALL_VOICE_HIDE_LANGUAGES]!);
+    expect(
+      screen.getByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-fa`),
+    ).toHaveTextContent(GERMAN_WORDS[CALL_VOICE_NO_LANGUAGE_VOICE]!);
+    expect(
+      screen.getByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-ja`),
+    ).toHaveTextContent("日本語");
+  });
+
+  test("on a page read from the right, each voice's Latin facts are set apart", () => {
+    render(
+      <I18nextProvider i18n={persian}>
+        <CallVoiceSample value="Polly.Joanna-Neural" />
+      </I18nextProvider>,
+    );
+
+    fireEvent.click(
+      screen.getByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-toggle`),
+    );
+
+    expect(
+      screen.getByTestId(`${CALL_VOICE_LANGUAGES_TEST_ID}-de`).textContent,
+    ).toContain(`${isolated("Vicki")} • ${isolated("Amazon Polly")}`);
   });
 });

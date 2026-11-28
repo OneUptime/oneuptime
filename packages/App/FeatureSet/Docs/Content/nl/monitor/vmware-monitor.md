@@ -123,7 +123,7 @@ Templates lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 | VM CPU Ready Contention | Virtuele machine | Waarschuwing | `vcenter.vm.cpu.readiness`, Avg per VM | Boven 10 %: de VM was klaar om te draaien, maar de host had geen fysieke core voor haar. Onzichtbaar vanuit de guest | Op 9 % of lager |
 | VM Memory Saturation | Virtuele machine | Waarschuwing | `vcenter.vm.memory.utilization`, Avg per VM | Boven 90 % van haar geheugen: de guest staat op het punt te pagen | Op 81 % of lager |
 | VM Memory Ballooning | Virtuele machine | Waarschuwing | `vcenter.vm.memory.ballooned`, Max per VM | Boven 0: de host komt geheugen tekort en neemt het terug van deze guest | Op 0 |
-| VM Memory Swapping | Virtuele machine | Kritiek | `vcenter.vm.memory.swapped`, Max per VM | Boven 0: de host swapt het geheugen van de VM, het laatste redmiddel na ballooning en compressie | Op 0 |
+| VM Memory Swapping | Virtuele machine | Kritiek | `vcenter.vm.memory.swapped`, Max per VM | Boven 0: een deel van het geheugen van de VM staat in het swapbestand van de host, nu uitgeswapt of over van eerdere geheugendruk, want ESXi houdt het vast tot de VM het aanspreekt. Het Overzicht van het vCenter houdt de twee uit elkaar: zie [Geswapt geheugen betekent niet dat er geswapt wordt](/docs/telemetry/vmware#geswapt-geheugen-betekent-niet-dat-er-geswapt-wordt) | Op 0 |
 | VM Disk Latency High | Virtuele machine | Waarschuwing | `vcenter.vm.disk.latency.max`, Max per VM | Boven 50 ms: applicaties in de guest krijgen time-outs op I/O | Op 45 ms of lager |
 | VM Disk Usage High | Virtuele machine | Waarschuwing | `vcenter.vm.disk.utilization`, Avg per VM | Boven 90 % van haar toegewezen opslag vastgelegd: een thin-provisioned VM staat op het punt haar volledige grootte op te eisen | Op 81 % of lager |
 | Datastore Capacity Warning | Datastore | Waarschuwing | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Boven 80 %: een vroege waarschuwing, omdat thin disks en snapshots de rest snel opmaken | Op 72 % of lager |
@@ -214,7 +214,7 @@ De metrieken hieronder vormen de catalogus die het monitorformulier aanbiedt. De
 | `vcenter.vm.disk.utilization`              | `%`           | Percentage (0–100) van de toegewezen opslag van de VM dat op de datastore is vastgelegd — een thin-provisioned VM die 100 % nadert, staat op het punt haar volledige grootte op te eisen |
 | `vcenter.vm.memory.ballooned`              | `MiBy`        | Guestgeheugen dat de balloon-driver (VMware Tools) van de VM heeft teruggehaald. Boven 0 betekent dat de ESXi-host geheugen tekortkomt                                        |
 | `vcenter.vm.memory.granted`                | `MiBy`        | Machinegeheugen dat de host aan de VM heeft toegekend. _Standaard uit_ — zet `vcenter.vm.memory.granted` aan                                                                  |
-| `vcenter.vm.memory.swapped`                | `MiBy`        | Geheugen dat de VM uit het swapbestand van de host krijgt — het laatste redmiddel na ballooning en compressie; elke waarde boven 0 betekent dat de VM voor RAM met schijflatentie betaalt |
+| `vcenter.vm.memory.swapped`                | `MiBy`        | Geheugen dat de VM uit het swapbestand van de host krijgt — het laatste redmiddel na ballooning en compressie. ESXi houdt een geswapte pagina vast tot de VM die aanspreekt, dus een waarde boven 0 kan over zijn van eerdere geheugendruk |
 | `vcenter.vm.memory.swapped_ssd`            | `KiBy`        | Geheugen van de VM dat naar de flash-swapcache van de host is geswapt — minder pijnlijk dan het swapbestand, maar nog steeds geheugendruk                                      |
 | `vcenter.vm.memory.usage`                  | `MiBy`        | Geheugen dat de guest van de VM actief gebruikt. Verstuurd voor ingeschakelde en uitgeschakelde VM's (0 als ze uit staat)                                                     |
 | `vcenter.vm.memory.utilization`            | `%`           | Geheugenbezetting van de VM als percentage (0–100) van haar geconfigureerde geheugen                                                                                           |
@@ -241,7 +241,7 @@ De metrieken hieronder vormen de catalogus die het monitorformulier aanbiedt. De
 | `vcenter.resource_pool.memory.ballooned` | `MiBy`     | Geheugen dat de balloon-driver over alle VM's in de pool heeft teruggehaald                                                                                              |
 | `vcenter.resource_pool.memory.granted`   | `MiBy`     | Hostgeheugen toegekend aan de VM's van de pool, uitgesplitst naar `type` (`private` / `shared` — gedeelde pagina's worden gededupliceerd door transparent page sharing)  |
 | `vcenter.resource_pool.memory.shares`    | `{shares}` | Geheugenshares die op de pool zijn ingesteld                                                                                                                             |
-| `vcenter.resource_pool.memory.swapped`   | `MiBy`     | Geheugen dat de VM's van de pool uit de swapruimte van de ESXi-hosts krijgen — elke waarde boven 0 betekent dat ten minste één VM in de pool door de host wordt geswapt |
+| `vcenter.resource_pool.memory.swapped`   | `MiBy`     | Geheugen dat de VM's van de pool uit de swapruimte van de ESXi-hosts krijgen — een waarde boven 0 betekent dat ten minste één VM in de pool geheugen in de host-swap heeft, nu of van eerder |
 | `vcenter.resource_pool.memory.usage`     | `MiBy`     | Geheugen dat de pool gebruikt, uitgesplitst naar `type` (`guest` / `host` / `overhead`) op recente collector-builds; oudere builds sturen één reeks zonder type. Filter `type = guest` |
 
 ### vSAN
@@ -288,7 +288,7 @@ Enkele criteria om mee te beginnen:
 - **Een datastore loopt vol:** `vcenter.datastore.disk.utilization`, Gemiddelde, gegroepeerd op `resource.vcenter.datastore.name`, **Groter dan** `80`.
 - **Een cluster verloor een host:** `vcenter.cluster.host.count` gefilterd op `effective = false`, Maximum, gegroepeerd op `resource.vcenter.cluster.name`, **Groter dan** `0`.
 - **Er draaien minder VM's dan verwacht:** `vcenter.cluster.vm.count` gefilterd op `power_state = on` en `resource.vcenter.cluster.name = Production`, Som, **Kleiner dan** het aantal dat je verwacht.
-- **Een VM wordt door de host geswapt:** `vcenter.vm.memory.swapped`, Maximum, gegroepeerd op `resource.vcenter.vm.name`, **Groter dan** `0`.
+- **Een VM heeft veel geheugen in de host-swap:** `vcenter.vm.memory.swapped`, Maximum, gegroepeerd op `resource.vcenter.vm.name`, **Groter dan** `1024`. Een paar MiB kunnen daar lang blijven staan nadat de geheugendruk voorbij is, dus een drempel boven 0 voorkomt dat geheugen dat van eerder over is het criterium laat afgaan.
 
 ### Standaardcriteria
 

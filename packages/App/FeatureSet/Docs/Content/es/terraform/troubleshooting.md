@@ -37,6 +37,7 @@ Busque en la tabla de abajo el mensaje que imprimió Terraform, o lo que vio que
 | `Not an ID` | Haga referencia al registro en lugar de nombrarlo: consulte [Un nombre donde va un ID](#un-nombre-donde-va-un-id) |
 | JSON del panel en un archivo `.tf` | Escríbalo como HCL: consulte [JSON del panel](#json-del-panel) |
 | `no available releases match the given constraints` | Use un rango de versiones, no una sola versión exacta: consulte [Una versión que nunca se publicó](#una-versión-que-nunca-se-publicó) |
+| `checksum list has unexpected SHA-256 hash` | Use otra versión del proveedor: consulte [Una versión cuyas sumas de comprobación no coinciden](#una-versión-cuyas-sumas-de-comprobación-no-coinciden) |
 | `x509: certificate signed by unknown authority` | Confíe en su autoridad de certificación: consulte [Certificados](#certificados) |
 | `invalid character '<' looking for beginning of value` | Apunte `oneuptime_url` a su propio OneUptime: consulte [Una página web en lugar de la API](#una-página-web-en-lugar-de-la-api) |
 | `connection refused` o `Client.Timeout exceeded` | Compruebe la dirección, la red y cualquier proxy: consulte [Conexiones que fallan](#conexiones-que-fallan) |
@@ -238,6 +239,14 @@ terraform {
 ```
 
 En un OneUptime autoalojado, limite el rango a la versión de su OneUptime, como muestra [Configuración autoalojada](/docs/terraform/self-hosted#elegir-la-versión-del-proveedor). [Uso del registro](/docs/terraform/registry#cómo-se-numeran-las-versiones) explica cómo se numeran las versiones.
+
+### Una versión cuyas sumas de comprobación no coinciden
+
+`checksum list has unexpected SHA-256 hash` significa que los archivos que sirve la versión publicada no son los que el registro leyó cuando se publicó la versión. El registro guarda las sumas de comprobación que leyó entonces, y `init` comprueba cada descarga con ellas. Los archivos de 14.3.0, 16.0.0, 17.0.0, 17.1.0 y 17.2.0, y de algunas versiones más antiguas de 11.x a 14.0.x, se compilaron y subieron una segunda vez después de que los registros los leyeran, así que `init` rechaza esas versiones en todas las plataformas, tanto con Terraform como con OpenTofu. Un archivo de bloqueo no lo evita: `init` compara la suma de comprobación del registro con la de la versión publicada antes de leer el archivo de bloqueo.
+
+Use otra versión: 17.3.0 o más nueva, o 15.0.0. Un rango que permite una versión más nueva la toma con `terraform init -upgrade`. Cuando una de esas versiones se publica de nuevo, es como la siguiente versión de parche, por ejemplo 17.2.1 para 17.2.0, con el mismo proveedor dentro, y un rango que permite ese parche lo toma.
+
+Para comprobar una versión antes de usarla, consulte [Verificar las sumas de comprobación de una versión](/docs/terraform/registry#verificar-las-sumas-de-comprobación-de-una-versión).
 
 ## Conectarse a un OneUptime autoalojado
 
