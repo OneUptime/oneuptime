@@ -3,6 +3,7 @@ import { Green, Yellow } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ProbeBehindUtil, {
+  ProbeBehindBy,
   ProbeBehindRead,
   ProbeBehindWork,
 } from "Common/Types/Probe/ProbeBehind";
@@ -15,6 +16,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import React, { FunctionComponent, ReactElement } from "react";
+import { PROBE_BEHIND_BY } from "./ProbeStatus";
 
 /*
  * WHETHER A PROBE KEEPS UP WITH ITS MONITORS, AND WITH THE NETWORK DEVICES
@@ -22,13 +24,16 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * A probe that cannot keep up checks what it can and the rest wait: every
  * page went on showing the monitors up, checked as often as set, while each
- * was checked half as often. On Time, or Behind with since when, why it
- * matters and what to do: update the probe - one that predates #9488
- * asks for its monitors once a minute, and one that predates #9499 for
- * at most 250 devices a minute - or let it do more at once. The answer is
- * OneUptime's, kept on the probe once a minute (Types/Probe/ProbeBehind);
- * the page reads it with checksLateSince and checksLastLateAt, and
- * devicePollsLateSince and devicePollsLastLateAt.
+ * was checked half as often. On Time, or Behind with how far ("Behind by
+ * 15 minutes", as the probe lists say it) and since when, why it matters
+ * and what to do: update the probe - one that predates #9488 asks for its
+ * monitors once a minute, and one that predates #9499 for at most 250
+ * devices a minute - or let it do more at once. The answer is OneUptime's,
+ * kept on the probe once a minute (Types/Probe/ProbeBehind); the page reads
+ * it with checksLateSince, checksLastLateAt and checksLastLateDueAt, and
+ * devicePollsLateSince, devicePollsLastLateAt and devicePollsLastLateDueAt.
+ * Plain Behind while no due time is kept yet (the probe's first reading
+ * after an upgrade).
  *
  * Monitor Checks always shows while the probe is connected. Network Device
  * Polls shows only while it is behind on them: most probes poll no device,
@@ -131,9 +136,30 @@ const ProbeChecksElement: FunctionComponent<ComponentProps> = (
     );
   }
 
+  // How far behind this kind of work runs, once a due time is kept.
+  const behindByMs: number | null =
+    work === ProbeBehindWork.DevicePolls
+      ? ProbeBehindUtil.getDevicePollsBehindByMs(state)
+      : ProbeBehindUtil.getBehindByMs(state);
+  const behindBy: ProbeBehindBy | null =
+    behindByMs === null ? null : ProbeBehindUtil.getBehindByAmount(behindByMs);
+
   return (
     <div className="space-y-1" data-testid={testId}>
-      <Statusbubble text={copy.behind} color={Yellow} shouldAnimate={false} />
+      {behindBy ? (
+        <Statusbubble
+          text={translator.translatePlural(
+            PROBE_BEHIND_BY[behindBy.unit],
+            behindBy.count,
+          )}
+          // Already in the reader's language.
+          isUserContent={true}
+          color={Yellow}
+          shouldAnimate={false}
+        />
+      ) : (
+        <Statusbubble text={copy.behind} color={Yellow} shouldAnimate={false} />
+      )}
       <p className="break-words text-sm text-gray-700">
         {translator.translateTemplate(copy.behindWords, {
           time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(

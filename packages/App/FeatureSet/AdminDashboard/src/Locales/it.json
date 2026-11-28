@@ -4671,5 +4671,11 @@
   "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "La tua autorizzazione è limitata a {{items}} con determinate etichette e a {{items}} di cui tu o i tuoi team siete proprietari.",
   "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Eliminare un modello di monitor scollega i suoi monitor. Mantengono i criteri e le impostazioni che ha dato loro, e continuano a controllare e a generare avvisi.",
   "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "Il dispositivo per cui è stato creato questo monitor ha già un monitor collegato a questo modello: {{monitorName}}. Elimina uno dei due, oppure collega questo a un altro modello.",
-  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "Il dispositivo per cui è stato creato questo monitor ha già un monitor collegato a questo modello. Elimina uno dei due, oppure collega questo a un altro modello."
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "Il dispositivo per cui è stato creato questo monitor ha già un monitor collegato a questo modello. Elimina uno dei due, oppure collega questo a un altro modello.",
+  "Behind by {{count}} minutes": "In ritardo di {{count}} minuti",
+  "Behind by {{count}} minutes_one": "In ritardo di {{count}} minuto",
+  "Behind by {{count}} hours": "In ritardo di {{count}} ore",
+  "Behind by {{count}} hours_one": "In ritardo di {{count}} ora",
+  "Behind by {{count}} days": "In ritardo di {{count}} giorni",
+  "Behind by {{count}} days_one": "In ritardo di {{count}} giorno"
 }
