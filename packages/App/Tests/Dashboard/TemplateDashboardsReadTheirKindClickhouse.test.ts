@@ -184,6 +184,8 @@ const WINDOW: InBetween<Date> = new InBetween<Date>(
 // A project with a bit of everything, and one with the Docker Agent alone.
 const MIXED_PROJECT: ObjectID = ObjectID.generate();
 const DOCKER_ONLY_PROJECT: ObjectID = ObjectID.generate();
+// Two hosts' own collectors, a Kubernetes node and a Docker host.
+const TWO_HOSTS_PROJECT: ObjectID = ObjectID.generate();
 
 const SERVICE_ID: ObjectID = ObjectID.generate();
 
@@ -400,6 +402,36 @@ function dockerAgentBlocks(): Array<RecordedBlock> {
   return [
     recorded("docker-agent", "containerMetrics"),
     recorded("docker-agent", "containerLogs"),
+  ];
+}
+
+// db-01's collector as another machine's sends it: its name and id.
+function asAnotherHost(block: RecordedBlock, name: string): RecordedBlock {
+  const copy: RecordedBlock = JSON.parse(JSON.stringify(block));
+
+  for (const attribute of resourceAttributesOf(copy)) {
+    const key: string = attribute["key"] as string;
+
+    if (key === "host.name" || key === "azure.vm.name") {
+      attribute["value"] = { stringValue: name };
+    }
+
+    if (key === "host.id") {
+      attribute["value"] = {
+        stringValue: "6b1d0c3e-8f2a-4c5d-9e7f-0a1b2c3d4e5f",
+      };
+    }
+  }
+
+  return copy;
+}
+
+function twoHostsBlocks(): Array<RecordedBlock> {
+  return [
+    recorded("host-collector", "hostMetrics"),
+    asAnotherHost(recorded("host-collector", "hostMetrics"), "db-02"),
+    recorded("kubernetes-agent", "nodeHostMetrics"),
+    ...dockerAgentBlocks(),
   ];
 }
 
@@ -790,17 +822,24 @@ function readersOf(rows: Array<ReadRow>, key: string): Array<string> {
   ).sort();
 }
 
-// A tile's points, fetched as the board fetches them.
-async function tilePoints(data: {
+// A widget's points, fetched as the board fetches them.
+async function fetchAsTheBoardDoes(data: {
   projectId: ObjectID;
   type: DashboardTemplateType;
   metricName: string;
+  grouped?: boolean;
   variables: Array<DashboardVariable>;
-}): Promise<Array<number>> {
+}): Promise<Array<AggregatedModel>> {
   const query: MetricQueryConfigData | undefined = getTemplateMetricQueries(
     data.type,
   ).find((candidate: MetricQueryConfigData) => {
-    return candidate.metricQueryData.filterData.metricName === data.metricName;
+    const isGrouped: boolean =
+      (candidate.metricQueryData.groupByAttributeKeys || []).length > 0;
+
+    return (
+      candidate.metricQueryData.filterData.metricName === data.metricName &&
+      isGrouped === Boolean(data.grouped)
+    );
   });
 
   expect(query).toBeDefined();
@@ -824,12 +863,33 @@ async function tilePoints(data: {
       refreshNonce: ObjectID.generate().toString(),
     } as never);
 
-    return (results[0]?.data || []).map((point: AggregatedModel) => {
-      return Number(point["value"]);
-    });
+    return results[0]?.data || [];
   } finally {
     spy.mockRestore();
   }
+}
+
+// A tile's points, fetched as the board fetches them.
+async function tilePoints(data: {
+  projectId: ObjectID;
+  type: DashboardTemplateType;
+  metricName: string;
+  variables: Array<DashboardVariable>;
+}): Promise<Array<number>> {
+  return (await fetchAsTheBoardDoes(data)).map((point: AggregatedModel) => {
+    return Number(point["value"]);
+  });
+}
+
+// The host a grouped chart's point is drawn for.
+function hostOfPoint(point: AggregatedModel): string {
+  const attributes: unknown = point["attributes"];
+  const grouped: Record<string, unknown> =
+    attributes && typeof attributes === "object"
+      ? (attributes as Record<string, unknown>)
+      : (point as unknown as Record<string, unknown>);
+
+  return String(grouped["resource.host.name"] ?? grouped["host.name"] ?? "");
 }
 
 integration("template dashboards read their own kind of resource", () => {
@@ -905,6 +965,7 @@ integration("template dashboards read their own kind of resource", () => {
     for (const projectData of [
       { projectId: MIXED_PROJECT, blocks: mixedProjectBlocks() },
       { projectId: DOCKER_ONLY_PROJECT, blocks: dockerAgentBlocks() },
+      { projectId: TWO_HOSTS_PROJECT, blocks: twoHostsBlocks() },
     ]) {
       const rows: { metrics: Array<JSONObject>; logs: Array<JSONObject> } =
         await ingestRows(projectData);
@@ -1130,6 +1191,21 @@ integration("template dashboards read their own kind of resource", () => {
 
       expect(points).toHaveLength(1);
       expect(Math.abs(points[0]! - ownAverage) / ownAverage).toBeLessThan(1e-6);
+    });
+
+    test("Hosts' Memory Usage by Host draws a line for each host - not one for every host, nor one for the Kubernetes node", async () => {
+      const points: Array<AggregatedModel> = await fetchAsTheBoardDoes({
+        projectId: TWO_HOSTS_PROJECT,
+        type: DashboardTemplateType.Host,
+        metricName: "system.memory.usage",
+        grouped: true,
+        variables: templateVariables(DashboardTemplateType.Host),
+      });
+
+      expect(points.length).toBeGreaterThan(0);
+      expect(
+        Array.from(new Set<string>(points.map(hostOfPoint))).sort(),
+      ).toEqual(["db-01", "db-02"]);
     });
 
     test("Hosts' picker offers db-01 alone - no Docker host, no pod, no node VM an app's SDK named", async () => {

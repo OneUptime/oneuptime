@@ -3694,8 +3694,11 @@ function createHostDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
    *
-   * - Per-host charts fan out via `groupByAttributeKeys: ["host.name"]`
-   *   so a single chart renders one series per host. The OTel host
+   * - Per-host charts fan out via
+   *   `groupByAttributeKeys: ["resource.host.name"]` so a single chart
+   *   renders one series per host: a resource attribute is stored under
+   *   its `resource.` key, and grouping by a bare `host.name`, which no
+   *   row carries, drew every host as one line. The OTel host
    *   receiver emits `system.cpu.utilization` as a [0, 1] ratio, which
    *   Value/Gauge widgets auto-scale to percent at render time (see
    *   splitFormattedValue / isFractionScale).
@@ -3778,7 +3781,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: MetricDashboardMetricType.SystemCpuUtilization,
         aggregationType: MetricsAggregationType.Avg,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
       },
     }),
     createChartComponent({
@@ -3791,7 +3794,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: MetricDashboardMetricType.SystemMemoryUsage,
         aggregationType: MetricsAggregationType.Avg,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
       },
     }),
 
@@ -3861,7 +3864,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: "system.filesystem.usage",
         aggregationType: MetricsAggregationType.Avg,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
       },
     }),
 
@@ -3886,7 +3889,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: MetricDashboardMetricType.SystemDiskIo,
         aggregationType: MetricsAggregationType.Sum,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
         transformAsRate: true,
       },
     }),
@@ -3900,7 +3903,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: MetricDashboardMetricType.SystemNetworkIo,
         aggregationType: MetricsAggregationType.Sum,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
         transformAsRate: true,
       },
     }),
@@ -3926,7 +3929,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: "system.processes.count",
         aggregationType: MetricsAggregationType.Avg,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
       },
     }),
     createLogStreamComponent({

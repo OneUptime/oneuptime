@@ -148,3 +148,43 @@ describe("the Monitor template", () => {
     expect(table!.leftInDashboardUnits).toBe(0);
   });
 });
+
+describe("the Hosts template's charts by host", () => {
+  test("group by the key its Host variable names hosts by: a resource attribute's stored key, which every host's row carries", () => {
+    const config: DashboardViewConfig = getTemplateConfig(
+      DashboardTemplateType.Host,
+    )!;
+    const hostKey: string | undefined = (config.variables || []).find(
+      (variable: DashboardVariable) => {
+        return variable.name === "host";
+      },
+    )?.attributeKey;
+
+    expect(hostKey).toBe("resource.host.name");
+
+    const groupings: Array<Array<string>> = config.components.flatMap(
+      (component: DashboardBaseComponent): Array<Array<string>> => {
+        const args: {
+          metricQueryConfig?: {
+            metricQueryData?: { groupByAttributeKeys?: Array<string> };
+          };
+        } = (component.arguments || {}) as unknown as {
+          metricQueryConfig?: {
+            metricQueryData?: { groupByAttributeKeys?: Array<string> };
+          };
+        };
+        const keys: Array<string> =
+          args.metricQueryConfig?.metricQueryData?.groupByAttributeKeys || [];
+
+        return keys.length > 0 ? [keys] : [];
+      },
+    );
+
+    // Every "by Host" chart, never a bare host.name that no row carries.
+    expect(groupings.length).toBeGreaterThanOrEqual(6);
+
+    for (const keys of groupings) {
+      expect(keys).toEqual([hostKey]);
+    }
+  });
+});
