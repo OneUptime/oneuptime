@@ -256,6 +256,7 @@ flowchart LR
 
 :::cards
 - [提交會建立什麼](/docs/forms/on-submit): 回答和提交時設定如何成為事件或維護事件。
+- [追蹤提交](/docs/forms/follow-ups): 提交者可追蹤自己的請求、寫信給您的團隊並新增其他人。
 - [分享與安全](/docs/forms/sharing-and-security): 分享連結、每個範本的連結，以及保護它們的機制。
 - [事件設定與自動化](/docs/incidents/settings): 事件自訂欄位和範本。
 :::

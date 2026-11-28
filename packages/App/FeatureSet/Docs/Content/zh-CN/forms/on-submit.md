@@ -201,5 +201,6 @@ flowchart TB
 - [构建表单](/docs/forms/building): 填写这些字段的问题、隐藏的问题和模板。
 - [事件设置与自动化](/docs/incidents/settings): 事件模板和自定义字段。
 - [事件备注、负责人与动态](/docs/incidents/notes-owners-and-feed): 私密备注、公开备注和所有者。
+- [跟进提交](/docs/forms/follow-ups): 提交者可关注自己的请求、给您的团队写信并添加其他人。
 - [分享与安全](/docs/forms/sharing-and-security): 谁可以提交，以及提交的频率。
 :::

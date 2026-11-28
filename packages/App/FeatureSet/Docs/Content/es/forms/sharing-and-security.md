@@ -274,4 +274,5 @@ El incidente de un formulario ejecuta las políticas de guardia que nombran sus 
 - [Visión general de los formularios](/docs/forms/index): Para qué sirven los formularios, los permisos y la API.
 - [Crear un formulario](/docs/forms/building): Las preguntas, las preguntas ocultas y las plantillas.
 - [Lo que crea un envío](/docs/forms/on-submit): El incidente o el evento que crea cada envío.
+- [Seguimiento de un envío](/docs/forms/follow-ups): Quienes envían siguen su solicitud, escriben a tu equipo y añaden a otras personas.
 :::

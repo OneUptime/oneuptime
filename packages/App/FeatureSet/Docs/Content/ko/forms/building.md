@@ -256,6 +256,7 @@ flowchart LR
 
 :::cards
 - [제출로 만들어지는 항목](/docs/forms/on-submit): 답변과 제출 시 설정이 인시던트나 유지 관리 이벤트가 되는 과정.
+- [제출 후속 조치](/docs/forms/follow-ups): 보낸 사람이 자신의 요청을 팔로우하고, 팀에 메시지를 쓰고, 다른 사람을 추가합니다.
 - [공유 및 보안](/docs/forms/sharing-and-security): 링크 공유, 템플릿마다의 링크, 그리고 그것들을 보호하는 것.
 - [인시던트 설정 및 자동화](/docs/incidents/settings): 인시던트 사용자 정의 필드와 템플릿.
 :::

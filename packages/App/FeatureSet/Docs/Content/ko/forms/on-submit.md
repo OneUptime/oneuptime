@@ -201,5 +201,6 @@ flowchart TB
 - [양식 만들기](/docs/forms/building): 이 필드를 채우는 질문, 숨겨진 질문, 템플릿.
 - [인시던트 설정 및 자동화](/docs/incidents/settings): 인시던트 템플릿과 사용자 정의 필드.
 - [인시던트 메모, 소유자 및 피드](/docs/incidents/notes-owners-and-feed): 비공개 메모, 공개 메모, 소유자.
+- [제출 후속 조치](/docs/forms/follow-ups): 보낸 사람이 자신의 요청을 팔로우하고, 팀에 메시지를 쓰고, 다른 사람을 추가합니다.
 - [공유 및 보안](/docs/forms/sharing-and-security): 누가 얼마나 자주 제출할 수 있는지.
 :::

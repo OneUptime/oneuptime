@@ -274,4 +274,5 @@ O incidente de um formulário executa as políticas de plantão que as configura
 - [Visão geral dos formulários](/docs/forms/index): Para que servem os formulários, as permissões e a API.
 - [Criar um formulário](/docs/forms/building): As perguntas, as perguntas ocultas e os modelos.
 - [O que um envio cria](/docs/forms/on-submit): O incidente ou evento que cada envio cria.
+- [Acompanhar um envio](/docs/forms/follow-ups): Quem envia acompanha a sua solicitação, escreve para a sua equipe e adiciona outras pessoas.
 :::

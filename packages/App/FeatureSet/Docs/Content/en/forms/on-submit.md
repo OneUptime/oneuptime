@@ -201,5 +201,6 @@ A file question keeps the files a submitter chooses in their browser and sends t
 - [Building a Form](/docs/forms/building): The questions that feed these fields, hidden questions and templates.
 - [Incident Settings & Automation](/docs/incidents/settings): Incident templates and custom fields.
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed): Private notes, public notes and owners.
+- [Following Up on a Submission](/docs/forms/follow-ups): Let submitters follow what they sent, write to your team and add others.
 - [Sharing & Security](/docs/forms/sharing-and-security): Who can submit, and how often.
 :::

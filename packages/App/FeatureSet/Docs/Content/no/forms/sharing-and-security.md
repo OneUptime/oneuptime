@@ -274,4 +274,5 @@ Et skjemas hendelse kjører vaktpolicyene innstillingene og malen nevner, og det
 - [Skjemaer – oversikt](/docs/forms/index): Hva skjemaer er til, tillatelser og API-et.
 - [Bygg et skjema](/docs/forms/building): Spørsmålene, skjulte spørsmål og maler.
 - [Hva en innsending oppretter](/docs/forms/on-submit): Hendelsen eller begivenheten hver innsending oppretter.
+- [Følge opp en innsending](/docs/forms/follow-ups): Den som sender, følger forespørselen sin, skriver til teamet ditt og legger til andre.
 :::

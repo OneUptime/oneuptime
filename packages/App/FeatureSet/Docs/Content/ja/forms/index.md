@@ -8,6 +8,7 @@
 - [最初のフォームを作成する](#最初のフォームを作成する): 空のフォームから、共有できるリンクまで。
 - [フォームの作成](/docs/forms/building): 質問、回答の種類、非表示の質問、テンプレート、ブランディング。
 - [送信で作成されるもの](/docs/forms/on-submit): 回答と設定がインシデントやメンテナンスイベントになるまで。
+- [送信のフォローアップ](/docs/forms/follow-ups): 送信した人が自分のリクエストをフォローし、チームに連絡し、ほかの人を追加できます。
 - [共有とセキュリティ](/docs/forms/sharing-and-security): リンク、IP 許可リスト、レート制限、トラブルシューティング。
 :::
 
@@ -290,6 +291,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 :::cards
 - [フォームの作成](/docs/forms/building): 質問、回答の種類、リンクされた項目、カスタムフィールド、プレビュー。
 - [送信で作成されるもの](/docs/forms/on-submit): 回答と送信時の設定がインシデントやメンテナンスイベントになるまで。
+- [送信のフォローアップ](/docs/forms/follow-ups): 送信した人が自分のリクエストをフォローし、チームに連絡し、ほかの人を追加できます。
 - [共有とセキュリティ](/docs/forms/sharing-and-security): リンク、IP 許可リスト、レート制限、キャプチャ、トラブルシューティング。
 - [インシデントの宣言](/docs/incidents/declaring-incidents): インシデントを宣言するその他の方法。
 :::

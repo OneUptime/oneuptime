@@ -274,4 +274,5 @@ En formulars hændelse kører de vagtpolitikker, dens indstillinger og dens skab
 - [Formularer – overblik](/docs/forms/index): Hvad formularer er til, rettigheder og API'en.
 - [Byg en formular](/docs/forms/building): Spørgsmålene, skjulte spørgsmål og skabeloner.
 - [Hvad en indsendelse opretter](/docs/forms/on-submit): Den hændelse eller begivenhed, hver indsendelse opretter.
+- [Opfølgning på en indsendelse](/docs/forms/follow-ups): Den, der sender, følger sin anmodning, skriver til dit team og tilføjer andre.
 :::
