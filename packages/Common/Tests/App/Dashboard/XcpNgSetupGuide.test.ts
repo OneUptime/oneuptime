@@ -1294,8 +1294,10 @@ describe("the environment variables table", () => {
     const script: string = readAgentFile("install.sh");
     const rows: Map<string, { required: string; description: string }> =
       envTableRows(guideFor("install-script"));
-    // The collector's ten, the AI agent's eleven (#10998), and the two
-    // containers' names.
+    /*
+     * The collector's ten, the AI agent's eleven (#10998), and the two
+     * containers' names.
+     */
     expect(rows.size).toBe(23);
     for (const name of rows.keys()) {
       if (name === "XO_SCHEME") {
