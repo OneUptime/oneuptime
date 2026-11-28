@@ -318,9 +318,8 @@ describe("what every Data Security call keeps", () => {
       [DataSecurityAiFeature.DescribeDataType]:
         AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
       /*
-       * A residency, owner or label rule drafted from a sentence a person
-       * writes to Ask AI or through the MCP server (#10378), while they
-       * wait: not autonomous.
+       * A residency, owner or label rule from a person's sentence, through
+       * Ask AI or the MCP server (#10378): asked for, so not autonomous.
        */
       [DataSecurityAiFeature.DraftRuleFromSentence]:
         AI_DATA_SECURITY_RULE_DRAFT_FEATURE,

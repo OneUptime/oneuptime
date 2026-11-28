@@ -246,7 +246,7 @@ const DataSecurityDataStores: FunctionComponent<
           },
           // How it is scanned: only the fields its kind reads (#11140).
           ...getStoreScanMethodFields({
-            section: moreFieldsSection,
+            collapsibleSection: moreFieldsSection,
             kindOf: (values: FormValues<DataStore>): string | undefined => {
               return values.kind;
             },
