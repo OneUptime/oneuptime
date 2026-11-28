@@ -25,6 +25,8 @@ Jeder Status ist eine Pille, deren Farbe zeigt, wo die Nachricht ist:
 
 Zeigen Sie auf einen Status, tippen Sie ihn an oder gehen Sie mit der Tabulatortaste zu ihm, und er sagt, was er bedeutet und was als Nächstes kommt. **Statusmeldung anzeigen** im Menü der Zeile zeigt, was der Anbieter gesagt hat, etwa die ID der Nachricht oder warum sie fehlschlug. Der Filter **Status** jedes Tabs listet jeden Status auf, den der Tab zeigen kann, in der Reihenfolge, in der eine Nachricht sie durchläuft.
 
+Die Karte **Wer benachrichtigt wurde** in der Übersicht eines Vorfalls oder einer Warnung und das Ergebnis einer Test-Alarmierung zeigen den Status jeder Nachricht auf dieselbe Weise, in denselben Farben: Ein Anruf, bei dem es noch klingelt, zeigt auch dort **Wird angerufen**, nie **Gesendet**.
+
 ## SMS
 
 ```mermaid title="Die Status einer SMS, von OneUptime bis zum Telefon"
@@ -40,7 +42,7 @@ flowchart TB
 | **Wird gesendet** | OneUptime hat die SMS an Twilio übergeben, das sie an den Netzbetreiber weiterleitet. |
 | **Gesendet** | Der Netzbetreiber hat die SMS angenommen. Sie wechselt zu **Zugestellt** oder **Nicht zugestellt**, sobald sich der Netzbetreiber zurückmeldet. |
 | **Zugestellt** | Der Netzbetreiber hat bestätigt, dass die SMS das Telefon erreicht hat. Dies ist der letzte Status einer SMS, die angekommen ist. |
-| **Nicht zugestellt** | Der Netzbetreiber konnte sie nicht zustellen. **Fehlercode** nennt den Grund: `30003` ist ein ausgeschaltetes oder unerreichbares Telefon, `30005` eine Nummer, die es nicht gibt, `30006` ein Festnetzanschluss und `30007` eine Nachricht, die der Netzbetreiber gefiltert hat. |
+| **Nicht zugestellt** | Der Netzbetreiber konnte sie nicht zustellen. **Fehlercode** nennt den Grund und was der Code bedeutet. |
 | **Fehlgeschlagen** | Twilio konnte sie nicht senden. **Fehlercode** nennt den Grund. |
 | **Fehler** | Sie wurde nicht gesendet, zum Beispiel weil SMS für das Projekt ausgeschaltet sind oder Twilio die Nummer abgelehnt hat. **Statusmeldung anzeigen** nennt den Grund. |
 | **Guthaben zu niedrig** | Sie wurde nicht gesendet: Das Guthaben des Projekts reichte dafür nicht aus. |
@@ -49,6 +51,33 @@ flowchart TB
 Eine SMS, die das eigene SMS- und Anruf-Gateway des Servers angenommen hat, bleibt **Gesendet**, in Grün: Das Gateway meldet keine Zustellung, also ist das ihr letzter Status.
 
 Twilio meldet OneUptime jede Änderung, sobald sie geschieht, signiert mit dem Auth-Token des Kontos, über das die SMS hinausging, und OneUptime lehnt jede Meldung ab, die nicht von Twilio stammt. Dafür muss Twilio Ihren Server erreichen können: siehe [Twilio-Integration](/docs/self-hosted/twilio-integration).
+
+### Fehlercodes
+
+Jeder Code unter **Fehlercode** öffnet die Seite von Twilio zu diesem Code, die auflistet, was ihn verursachen kann. Unter den Codes, mit denen eine SMS am häufigsten fehlschlägt, sagt das Protokoll in einer Zeile, was sie bedeuten:
+
+| Code | Was er bedeutet |
+| --- | --- |
+| `20003` | Twilio hat die Anmeldedaten des Kontos nicht akzeptiert. |
+| `21211` | Die Nummer ist keine gültige Telefonnummer. |
+| `21408` | Das Twilio-Konto darf keine SMS in dieses Land senden. |
+| `21606` | Die Absendernummer kann für dieses Twilio-Konto keine SMS senden. |
+| `21608` | Ein Twilio-Testkonto kann nur an Nummern senden, die darin verifiziert sind. |
+| `21610` | Der Empfänger hat mit STOP geantwortet, daher sendet Twilio ihm von dieser Nummer keine SMS mehr. |
+| `21612` | Die Absendernummer kann diese Nummer nicht erreichen. |
+| `21614` | Die Nummer ist keine Mobilfunknummer, sondern zum Beispiel ein Festnetzanschluss. |
+| `30001` | Es wurden zu viele SMS auf einmal gesendet, und die Warteschlange von Twilio ist übergelaufen. |
+| `30002` | Das Twilio-Konto wurde gesperrt, bevor die SMS hinausging. |
+| `30003` | Das Telefon ist ausgeschaltet oder nicht erreichbar. |
+| `30004` | Die Nummer ist für den Empfang der SMS gesperrt. |
+| `30005` | Die Nummer ist unbekannt und existiert möglicherweise nicht mehr. |
+| `30006` | Die Nummer kann keine SMS empfangen, zum Beispiel bei einem Festnetzanschluss. |
+| `30007` | Twilio oder der Netzbetreiber hat die SMS als Spam gefiltert. |
+| `30008` | Der Netzbetreiber konnte die SMS nicht zustellen und hat keinen Grund genannt. |
+| `30032` | Die gebührenfreie Absendernummer ist noch nicht verifiziert. |
+| `30034` | Die Absendernummer ist nicht für A2P 10DLC registriert, was Netzbetreiber in den USA verlangen. |
+
+Ein Code, der nicht von Twilio stammt, etwa der HTTP-Status, mit dem Ihr SMS- und Anruf-Gateway geantwortet hat, wird so angezeigt, wie er ist.
 
 ## Anrufe
 

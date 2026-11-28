@@ -119,8 +119,6 @@ const LEFT_TO_WRITE: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/SiteSearchBox.tsx {{totalCount}}",
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness.tsx {{count}}",
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness.tsx {{total}}",
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/PassOn/PassOnPage.ts {{order}}",
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/PassOn/PassOnPage.ts {{count}}",
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/ResponderReadinessCard.tsx {{count}}",
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/ResponderReadinessCard.tsx {{total}}",
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/ScheduleTimeline.tsx {{shown}}",

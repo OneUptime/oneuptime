@@ -37,6 +37,12 @@ Stubbed:
   read for X-Forwarded-For. What is trusted without being listed
   (`POST /security-trusted-proxies/automatic`) is no edge and no load balancer; a Security
   Viewer, who may not read cloud resources, is told the load balancers could not be listed.
+- Check a log line has the server read a pasted line (`POST /security-log-lines/check`,
+  #11046): answered by the server's own reading (`checkSecurityLogLines`), with those trusted
+  proxies - only the private addresses.
+- Which security tools and which SIEMs share a name (`GET /shared-names/<Table>`, #11021),
+  which their tables ask with every read of their rows: answered from the rows as the server
+  finds them (`../SuiteHelpers/SharedNameAnswers.js`) - none, each has a name of its own.
 - The signed-in user ("Maya Chen" of a generic "Acme Commerce" workspace) and her
   permissions. The fixture header says the data is synthetic
   ("Preview workspace · Synthetic data").

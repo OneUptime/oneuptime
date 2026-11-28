@@ -119,6 +119,13 @@ export function describeTrialFinished(data: {
     );
   }
 
+  // Forwarded through a proxy nothing vouches for (#11389): the client may have written them.
+  if (summary.sparedUnvouchedProxy > 0) {
+    lines.push(
+      `It left ${addresses(summary.sparedUnvouchedProxy)} for a person: ${summary.sparedUnvouchedProxy === 1 ? "it" : "they"} came through a private address you haven't listed as a proxy, which may have passed on what the client wrote.`,
+    );
+  }
+
   if (summary.wouldHaveStopped > 0) {
     lines.push(
       `It would have reached the most automatic blocks your project makes in an hour ${summary.wouldHaveStopped === 1 ? "once" : `${summary.wouldHaveStopped} times`}, and paged your security owners.`,

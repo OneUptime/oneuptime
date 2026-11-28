@@ -30,6 +30,8 @@ export interface SecurityAutomaticResponseTrialSummary {
   sparedProtected: number;
   // ...OneUptime could not tell whether a signed-in user had.
   sparedCannotTell: number;
+  // ...its requests came through a proxy nothing vouches for (#11389): the client may have written it.
+  sparedUnvouchedProxy: number;
   // The times it would have stopped at the hourly limit, and paged.
   wouldHaveStopped: number;
 }
@@ -87,6 +89,14 @@ export function summarizeSecurityAutomaticResponseTrial(
       (row: SecurityAutomaticResponseSummaryRow): boolean => {
         return (
           row.outcome === SecurityAutomaticResponseOutcome.SparedCannotTell
+        );
+      },
+    ),
+    sparedUnvouchedProxy: distinctValues(
+      rows,
+      (row: SecurityAutomaticResponseSummaryRow): boolean => {
+        return (
+          row.outcome === SecurityAutomaticResponseOutcome.SparedUnvouchedProxy
         );
       },
     ),

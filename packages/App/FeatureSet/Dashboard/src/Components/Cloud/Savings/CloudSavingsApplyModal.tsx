@@ -87,7 +87,7 @@ export const APPLY_OWNERS_APPROVE: string = translationKey(
   "Its owners approve it: {{owners}}.",
 );
 export const APPLY_ADMINS_APPROVE: string = translationKey(
-  "Nobody owns this resource, so a project owner or admin approves it.",
+  "Nobody owns this resource, so a Project Owner or Project Admin approves it.",
 );
 export const APPLY_YOU_APPROVE: string = translationKey(
   "You can approve it, so it runs as soon as you apply it.",

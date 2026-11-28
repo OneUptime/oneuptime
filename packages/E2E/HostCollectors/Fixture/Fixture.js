@@ -56,6 +56,7 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import HostLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Layout";
 import HostsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Hosts";
@@ -369,7 +370,10 @@ const store = {
   ScheduledMaintenance: [],
   ScheduledMaintenanceState: [],
   MonitorRecommendation: [],
-  // The host's side menu: its recommendations, and the monitors behind them.
+  /*
+   * The host's side menu: its recommendations, and the monitors that cover
+   * them, which it asks the server for (POST /monitor/recommendation-coverage).
+   */
   Monitor: [],
   RecommendationDismissal: [],
 };
@@ -1003,6 +1007,17 @@ async function handleApi(method, options) {
   const names = method === "GET" ? answerUniqueNames({ url }) : null;
   if (names) {
     return new HTTPResponse(200, names, {});
+  }
+
+  // Which of the host's recommended monitors exist, from the project's monitors.
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body: options.data,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

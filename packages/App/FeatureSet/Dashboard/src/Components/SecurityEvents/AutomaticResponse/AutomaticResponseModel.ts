@@ -28,6 +28,7 @@ import {
   SO_FAR_WOULD_HAVE_BLOCKED,
   SO_FAR_WOULD_HAVE_CHALLENGED,
   SPARED_CANNOT_TELL,
+  SPARED_UNVOUCHED_PROXY,
   SPARED_NONE,
   SPARED_NONE_YOURS,
   SPARED_NO_SIGNED_IN,
@@ -296,6 +297,15 @@ export function writeTrialSummary(data: {
   if (summary.sparedCannotTell > 0) {
     lines.push(
       translator.translatePlural(SPARED_CANNOT_TELL, summary.sparedCannotTell),
+    );
+  }
+
+  if (summary.sparedUnvouchedProxy > 0) {
+    lines.push(
+      translator.translatePlural(
+        SPARED_UNVOUCHED_PROXY,
+        summary.sparedUnvouchedProxy,
+      ),
     );
   }
 

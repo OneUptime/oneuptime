@@ -761,7 +761,7 @@ describe("one meaning per key", () => {
       expect(MEANING_KEYS).toContain(key);
       expect({ key, files: filesLookingUp(key) }).toEqual({
         key,
-        files: ["Pages/StorageArray/Utils/StorageArrayHealth.ts"],
+        files: ["Pages/StorageArray/Utils/StorageArrayStatusWords.ts"],
       });
       expect({
         word,
@@ -884,8 +884,9 @@ describe("one meaning per key", () => {
    * been read. The logs look up a key of their own, and never the bare one.
    */
   test("a message's Read is its own key in the notification logs, which never look up the verb", () => {
+    // Defined once, in Common, for every page that says what became of a message (#11416).
     const WORDS: string =
-      "Components/NotificationLogs/NotificationLogStatus.ts";
+      "packages/Common/Types/Notification/NotificationLogStatus.ts";
 
     expect(filesLookingUp("Read (message status)")).toEqual([WORDS]);
     expect(MEANING_KEYS).toContain("Read (message status)");
@@ -901,6 +902,80 @@ describe("one meaning per key", () => {
         sameAsTheVerb: locale["Read (message status)"] === locale["Read"],
       }).toEqual({ language, sameAsTheVerb: false });
     }
+  });
+
+  /*
+   * #11418: the Notification Logs' Call and Push tabs looked up the bare
+   * "Call" and "Push" - a function call in Chinese (调用), Korean (호출) and
+   * Russian (Вызов), a payment in Arabic (الدفع) - and so did Team
+   * Compliance's Call channel. They look up the phone call's and the push
+   * notification's own keys, as Notification Settings' columns do, and no
+   * place that draws the words looks the bare ones up any more.
+   */
+  test("the Notification Logs' Call and Push tabs, and Team Compliance's Call channel, look up a phone call and a push notification, never the bare words", () => {
+    const TABS: string = "Components/NotificationLogs/NotificationLogsTabs.tsx";
+    const COMPLIANCE: string = "packages/Common/Types/Team/ComplianceRule.ts";
+
+    expect(filesLookingUp("Call (phone call)")).toEqual(
+      expect.arrayContaining([TABS, COMPLIANCE]),
+    );
+    expect(filesLookingUp("Push (push notification)")).toContain(TABS);
+
+    for (const file of [TABS, COMPLIANCE]) {
+      expect({ file, bareCall: filesLookingUp("Call").includes(file) }).toEqual(
+        {
+          file,
+          bareCall: false,
+        },
+      );
+      expect({ file, barePush: filesLookingUp("Push").includes(file) }).toEqual(
+        {
+          file,
+          barePush: false,
+        },
+      );
+    }
+
+    /*
+     * What is left holds the bare words as a method's English type, never
+     * looked up: Notification Settings' labels (drawn by their own keys),
+     * the method lines' titles (drawn as "Phone call") and the setup
+     * checklist's channel labels.
+     */
+    expect(filesLookingUp("Call")).toEqual([
+      "Components/UserSettings/SetupChecklist/useSetupChecklist.ts",
+      "Pages/UserSettings/NotificationSettings.tsx",
+      "packages/Common/UI/Utils/NotificationMethodUtil.ts",
+    ]);
+    expect(filesLookingUp("Push")).toEqual([
+      "Components/UserSettings/SetupChecklist/useSetupChecklist.ts",
+      "Pages/UserSettings/NotificationSettings.tsx",
+      "packages/Common/UI/Utils/NotificationMethodUtil.ts",
+    ]);
+  });
+
+  test("On-Call > Readiness and an escalation rule's readiness name a method by its name, never by looking its English type up", () => {
+    const READINESS: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, SOURCE, "Pages/OnCallDuty/Readiness.tsx"),
+      "utf8",
+    );
+    const RULE_READINESS: string = fs.readFileSync(
+      path.join(
+        REPOSITORY_ROOT,
+        SOURCE,
+        "Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(READINESS).not.toContain("translator.translateText(channel)");
+    expect(READINESS).toContain(
+      "NotificationMethodUtil.getMethodName(translator, channel)",
+    );
+    expect(RULE_READINESS).not.toContain(
+      "translator.translateTerm(method.methodType)",
+    );
+    expect(RULE_READINESS).toContain("NotificationMethodUtil.getMethodName(");
   });
 
   /*

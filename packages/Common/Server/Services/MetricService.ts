@@ -48,7 +48,14 @@ import { getEntityBudget } from "../Utils/Telemetry/EntityRegistry";
 import { EntityScopeQueryValue } from "../Utils/AnalyticsDatabase/StatementGenerator";
 import Includes from "../../Types/BaseDatabase/Includes";
 import InBetween from "../../Types/BaseDatabase/InBetween";
-import MinuteRollupRange from "../Utils/AnalyticsDatabase/MinuteRollupRange";
+import MinuteRollupRange, {
+  MinuteRollupSplit,
+} from "../Utils/AnalyticsDatabase/MinuteRollupRange";
+import {
+  METRIC_ROLLUP_BUCKET_FROM_RAW_ROWS,
+  METRIC_ROLLUP_STATE_COLUMNS,
+  METRIC_ROLLUP_STATES_FROM_RAW_ROWS,
+} from "../Utils/AnalyticsDatabase/MetricRollupStates";
 import EqualTo from "../../Types/BaseDatabase/EqualTo";
 import InventoryItemService from "./InventoryItemService";
 import InventoryItem from "../../Models/DatabaseModels/InventoryItem";
@@ -2523,8 +2530,16 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   private tryBuildMinuteAggregateMVStatement(
     aggregateBy: AggregateBy<Metric>,
   ): { statement: Statement; columns: Array<string> } | null {
-    // A check's window is read exactly: whole minutes only (MinuteRollupRange).
-    if (!this.canRollupServe(aggregateBy)) {
+    /*
+     * A check's window is read exactly (MinuteRollupRange): whole from the
+     * rollup when its ends are whole minutes, its whole minutes from the
+     * rollup and its partial ones from the raw rows when it holds some
+     * (#11373), from the raw rows otherwise.
+     */
+    if (
+      !this.canRollupServe(aggregateBy) &&
+      !this.getRollupSplit(aggregateBy)
+    ) {
       return null;
     }
 
@@ -2641,11 +2656,14 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         ),
       )
       .append(` as time`);
-    statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1m`);
     statement.append(
-      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime ${this.getRollupEndOperator(aggregateBy)} toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
+      this.buildRollupSource({
+        aggregateBy: aggregateBy,
+        databaseName: databaseName,
+        rollupTableName: AnalyticsTableName.MetricItemAggMV1m,
+        filter: SQL` `.append(nonTimeWhere),
+      }),
     );
-    statement.append(SQL` `).append(nonTimeWhere);
 
     statement.append(SQL` GROUP BY `).append(`time`);
     statement.append(SQL` ORDER BY `).append(sortStatement);
@@ -2741,8 +2759,16 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   private tryBuildEntityAggregateMVStatement(
     aggregateBy: AggregateBy<Metric>,
   ): { statement: Statement; columns: Array<string> } | null {
-    // A check's window is read exactly: whole minutes only (MinuteRollupRange).
-    if (!this.canRollupServe(aggregateBy)) {
+    /*
+     * A check's window is read exactly (MinuteRollupRange): whole from the
+     * rollup when its ends are whole minutes, its whole minutes from the
+     * rollup and its partial ones from the raw rows when it holds some
+     * (#11373), from the raw rows otherwise.
+     */
+    if (
+      !this.canRollupServe(aggregateBy) &&
+      !this.getRollupSplit(aggregateBy)
+    ) {
       return null;
     }
 
@@ -2872,28 +2898,35 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         ),
       )
       .append(` as time`);
-    statement.append(SQL` FROM ${databaseName}.`);
-    statement.append(resolved.route.tableName);
-    statement.append(
-      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime ${this.getRollupEndOperator(aggregateBy)} toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
+    // The entity's rows: its key, which the rollup and the raw rows both hold.
+    const entityFilter: Statement = new Statement().append(
+      ` AND ${resolved.route.keyColumn}`,
     );
-    statement.append(` AND ${resolved.route.keyColumn}`);
     if (resolved.keys.length === 1) {
-      statement.append(
+      entityFilter.append(
         SQL` = ${{
           value: resolved.keys[0]!,
           type: TableColumnType.Text,
         }}`,
       );
     } else {
-      statement.append(
+      entityFilter.append(
         SQL` IN ${{
           value: resolved.keys,
           type: TableColumnType.ArrayText,
         }}`,
       );
     }
-    statement.append(SQL` `).append(nonTimeWhere);
+    entityFilter.append(SQL` `).append(nonTimeWhere);
+
+    statement.append(
+      this.buildRollupSource({
+        aggregateBy: aggregateBy,
+        databaseName: databaseName,
+        rollupTableName: resolved.route.tableName,
+        filter: entityFilter,
+      }),
+    );
 
     statement.append(SQL` GROUP BY `).append(`time`);
     statement.append(SQL` ORDER BY `).append(sortStatement);
@@ -3335,6 +3368,96 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       this.getTimeRange(aggregateBy);
 
     return range ? MinuteRollupRange.getEndOperator(range) : "<=";
+  }
+
+  /*
+   * A check's window the rollup cannot serve whole, split into its whole
+   * minutes and its partial ones (MinuteRollupRange.split, issue #11373);
+   * null when the rollup serves the read whole, or the raw rows must.
+   */
+  private getRollupSplit(
+    aggregateBy: AggregateBy<Metric>,
+  ): MinuteRollupSplit | null {
+    const range: InBetween<Date | string | number> | null =
+      this.getTimeRange(aggregateBy);
+
+    return range ? MinuteRollupRange.split(range) : null;
+  }
+
+  /*
+   * Where a rollup read takes its rows from, as the read's FROM: the
+   * rollup's buckets of the read's range, its end held or left out as the
+   * range has it (MinuteRollupRange.getEndOperator).
+   *
+   * Or, for a check's window the rollup cannot serve whole (issue #11373),
+   * one source of two parts that follow on: the rollup's buckets of the
+   * window's whole minutes, and the raw rows of each partial minute at its
+   * ends - from its start, up to its end - rolled up by minute into the
+   * states the rollups' views store (MetricRollupStates). So the read merges
+   * them as if the rollup held a bucket of exactly the window's own part of
+   * each edge minute, at any bucket interval, a minute's or a day's: every
+   * record in the window read once, the one on its end by none. An ungrouped
+   * Host check over the past hour reads its host's sixty buckets and at most
+   * a minute of raw points, where its raw read read the whole hour's.
+   *
+   * `filter` is what the read filters by beyond its time - its project and
+   * metric, an entity's key - on columns the rollup and the raw table both
+   * have, so the raw rows of an edge are the rows the rollup's view rolled
+   * up into that minute's bucket, and no others.
+   */
+  private buildRollupSource(data: {
+    aggregateBy: AggregateBy<Metric>;
+    databaseName: string;
+    rollupTableName: string;
+    filter: Statement;
+  }): Statement {
+    const split: MinuteRollupSplit | null = this.canRollupServe(
+      data.aggregateBy,
+    )
+      ? null
+      : this.getRollupSplit(data.aggregateBy);
+    const retention: string = this.getRetentionReadFilter();
+
+    if (!split) {
+      return new Statement()
+        .append(SQL` FROM ${data.databaseName}.`)
+        .append(data.rollupTableName)
+        .append(
+          ` WHERE bucketTime >= toDateTime('${this.formatDateTime(data.aggregateBy.startTimestamp!)}') AND bucketTime ${this.getRollupEndOperator(data.aggregateBy)} toDateTime('${this.formatDateTime(data.aggregateBy.endTimestamp!)}')${retention}`,
+        )
+        .append(data.filter);
+    }
+
+    const source: Statement = new Statement()
+      .append(
+        ` FROM (SELECT bucketTime, ${METRIC_ROLLUP_STATE_COLUMNS.join(", ")}`,
+      )
+      .append(SQL` FROM ${data.databaseName}.`)
+      .append(data.rollupTableName)
+      .append(
+        ` WHERE bucketTime >= toDateTime('${this.formatDateTime(split.wholeFrom)}') AND bucketTime < toDateTime('${this.formatDateTime(split.wholeTo)}')${retention}`,
+      )
+      .append(data.filter);
+
+    for (const edge of MinuteRollupRange.getEdges(split)) {
+      const edgeTime: Statement = this.statementGenerator.toWhereStatement({
+        time: new InBetween<Date>(edge.from, edge.to, { includesEnd: false }),
+      } as Query<Metric>);
+
+      source
+        .append(
+          ` UNION ALL SELECT ${METRIC_ROLLUP_BUCKET_FROM_RAW_ROWS}, ${METRIC_ROLLUP_STATES_FROM_RAW_ROWS.join(", ")}`,
+        )
+        .append(SQL` FROM ${data.databaseName}.`)
+        .append(this.model.tableName)
+        .append(` WHERE TRUE `)
+        .append(edgeTime)
+        .append(retention)
+        .append(data.filter)
+        .append(` GROUP BY bucketTime`);
+    }
+
+    return source.append(`)`);
   }
 
   private stripTimeFromQuery(query: unknown): typeof query {

@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -24,7 +25,21 @@ import TableHeader from "../../../UI/Components/Table/TableHeader";
 import Column from "../../../UI/Components/Table/Types/Column";
 import Columns from "../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../UI/Components/Types/FieldType";
+import BaseModelTable, {
+  BaseTableCallbacks,
+  ComponentProps as BaseModelTableProps,
+} from "../../../UI/Components/ModelTable/BaseModelTable";
+import { TWIN_MARK_PILL_TEST_ID } from "../../../UI/Components/ModelTable/TwinMarkWords";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import ListResult from "../../../Types/BaseDatabase/ListResult";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import ProjectUtil from "../../../UI/Utils/Project";
+import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
+import User from "../../../UI/Utils/User";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -644,10 +659,119 @@ describe("ModelTable hands headerTooltip through", () => {
   /*
    * ModelTable builds the Table's columns by spreading its own; the field
    * exists on both Column types so a page can set it once on a ModelTable
-   * column. Pinned at the source: rendering a ModelTable needs the whole
-   * API layer.
+   * column.
    */
   const COMMON_UI: string = path.join(__dirname, "..", "..", "..", "UI");
+
+  const PROJECT_ID: string = "9a9a9a9a-0000-4000-8000-0000000006f1";
+  const TWIN_A: string = "aaaaaaaa-0000-4000-8000-0000000006f1";
+  const TWIN_B: string = "bbbbbbbb-0000-4000-8000-0000000006f1";
+  const OTHER: string = "cccccccc-0000-4000-8000-0000000006f1";
+  const NAME_TIP: string = "What the monitor is called on every page.";
+  const DESCRIPTION_TIP: string = "What the monitor checks, in its own words.";
+
+  function monitorRow(id: string, name: string): Monitor {
+    const monitor: Monitor = new Monitor();
+    monitor._id = id;
+    monitor.name = name;
+    monitor.description = `${name} answers`;
+    return monitor;
+  }
+
+  const rows: Array<Monitor> = [
+    monitorRow(TWIN_A, "Checkout API"),
+    monitorRow(TWIN_B, "checkout api"),
+    monitorRow(OTHER, "Payments"),
+  ];
+
+  // A list of monitors, drawn whole: two of them share a name.
+  function renderMonitorList(): void {
+    const callbacks: BaseTableCallbacks<Monitor> = {
+      deleteItem: async (): Promise<void> => {
+        return undefined;
+      },
+      getModelFromJSON: (item: JSONObject): Monitor => {
+        return item as unknown as Monitor;
+      },
+      getJSONFromModel: (item: Monitor): JSONObject => {
+        return item as unknown as JSONObject;
+      },
+      addSlugToSelect: (select: unknown): unknown => {
+        return select;
+      },
+      getList: async (list: {
+        skip: number;
+        limit: number;
+      }): Promise<ListResult<Monitor>> => {
+        return {
+          data: rows,
+          count: rows.length,
+          skip: list.skip,
+          limit: list.limit,
+        };
+      },
+      toJSONArray: (): Array<JSONObject> => {
+        return [];
+      },
+      updateById: async (): Promise<void> => {
+        return undefined;
+      },
+      showCreateEditModal: (): React.ReactElement => {
+        return <div />;
+      },
+    } as unknown as BaseTableCallbacks<Monitor>;
+
+    const props: BaseModelTableProps<Monitor> = {
+      modelType: Monitor,
+      id: "header-tooltip-table",
+      name: "Monitors",
+      columns: [
+        {
+          field: { name: true },
+          title: "Name",
+          type: FieldType.Text,
+          headerTooltip: NAME_TIP,
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          type: FieldType.Text,
+          headerTooltip: DESCRIPTION_TIP,
+        },
+      ],
+      filters: [],
+      cardProps: { title: "Monitors" },
+      isCreateable: false,
+      isEditable: false,
+      isDeleteable: false,
+      isViewable: false,
+      disableUrlState: true,
+      callbacks: callbacks,
+    } as unknown as BaseModelTableProps<Monitor>;
+
+    render(<BaseModelTable<Monitor> {...props} />);
+  }
+
+  beforeEach(() => {
+    // The whole list reads and draws as it would on a page, in real time.
+    jest.useRealTimers();
+    PermissionGate.clearPermissionPropsCache();
+    TableFilterUrlState.resetClaimedKeys();
+    window.localStorage.clear();
+    // A reader who may read every column of the list.
+    jest.spyOn(User, "isMasterAdmin").mockReturnValue(true);
+    // In a project that marks the monitors sharing a name (TwinMarks).
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+    jest
+      .spyOn(UniqueNamesApi, "readSharedNames")
+      .mockResolvedValue({ groups: [[TWIN_A, TWIN_B]] });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   test("both Column types declare headerTooltip", () => {
     for (const file of [
@@ -663,14 +787,44 @@ describe("ModelTable hands headerTooltip through", () => {
     }
   });
 
-  test("BaseModelTable spreads the column into the table column", () => {
-    const source: string = fs.readFileSync(
-      path.join(COMMON_UI, "Components", "ModelTable", "BaseModelTable.tsx"),
-      "utf8",
-    );
-    const push: number = source.indexOf("columns.push({");
+  /*
+   * Drawn, not read from its source: the column BaseModelTable builds for
+   * the Table spreads the page's, and the name column it marks for the
+   * records sharing a name (markTwinsInColumn) spreads that again - so the
+   * (i) a page sets is in the header of a marked column and of any other.
+   */
+  test("BaseModelTable spreads the column into the table column", async () => {
+    renderMonitorList();
 
-    expect(push).toBeGreaterThan(-1);
-    expect(source.slice(push, push + 80)).toContain("...column,");
+    // The name column is the marked one: the two monitors sharing a name carry the mark.
+    await waitFor(() => {
+      expect(screen.getAllByTestId(TWIN_MARK_PILL_TEST_ID)).toHaveLength(2);
+    });
+
+    // Each column's (i), in the list's header.
+    const header: HTMLElement = document.querySelector("thead")!;
+    const infos: Array<HTMLElement> = within(header).getAllByRole("button", {
+      name: /^About /,
+    });
+
+    expect(
+      infos.map((info: HTMLElement): string => {
+        return info.getAttribute("aria-label") || "";
+      }),
+    ).toEqual(["About Name", "About Description"]);
+
+    // And what each says, shown as its tooltip.
+    for (const [info, tip] of [
+      [infos[0]!, NAME_TIP],
+      [infos[1]!, DESCRIPTION_TIP],
+    ] as Array<[HTMLElement, string]>) {
+      fireEvent.mouseEnter(info);
+
+      const shown: HTMLElement = await screen.findByText(tip);
+
+      expect(shown.closest('[role="tooltip"]')).not.toBeNull();
+
+      fireEvent.mouseLeave(info);
+    }
   });
 });

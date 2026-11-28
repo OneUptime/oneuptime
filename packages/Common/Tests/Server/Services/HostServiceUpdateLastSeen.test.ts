@@ -441,7 +441,6 @@ describe("HostService.updateLastSeen", () => {
       ["hostId", 100],
       ["hostArch", 100],
       ["hostType", 100],
-      ["containerRuntime", 100],
       ["agentVersion", 100],
       ["deploymentEnvironment", 100],
       ["runtimeName", 100],
@@ -476,20 +475,36 @@ describe("HostService.updateLastSeen", () => {
       expect(lastWrite()["hostArch"]).toBe("amd64");
     });
 
-    test("numeric and relation columns are left alone by the clamp", async () => {
-      const dockerHostId: ObjectID = ObjectID.generate();
-
+    test("numeric columns are left alone by the clamp", async () => {
       await HostService.updateLastSeen(HOST_ID, {
         cpuCores: 64,
         totalMemoryBytes: 274877906944,
         processCount: 1337,
-        dockerHostId: dockerHostId,
       });
 
       expect(lastWrite()["cpuCores"]).toBe(64);
       expect(lastWrite()["totalMemoryBytes"]).toBe(274877906944);
       expect(lastWrite()["processCount"]).toBe(1337);
-      expect(lastWrite()["dockerHostId"]).toBe(dockerHostId);
+    });
+
+    /*
+     * A Host is a machine's own telemetry: the ingest refuses every resource
+     * that names a container runtime, a Docker host or a Kubernetes cluster
+     * (Common/Utils/Telemetry/HostResource, issue #11257), so a heartbeat
+     * never writes one, even from a caller that still hands it over.
+     */
+    test("never writes a container runtime, a Docker host or a Kubernetes cluster onto a Host", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        containerRuntime: "docker",
+        dockerHostId: ObjectID.generate(),
+        kubernetesClusterId: ObjectID.generate(),
+      } as unknown as UpdateLastSeenExtra);
+
+      expect(lastWrite()["osType"]).toBe("linux");
+      expect(lastWrite()).not.toHaveProperty("containerRuntime");
+      expect(lastWrite()).not.toHaveProperty("dockerHostId");
+      expect(lastWrite()).not.toHaveProperty("kubernetesClusterId");
     });
   });
 

@@ -47,6 +47,8 @@ export interface ProbeSchedulingReplicaView {
   slots: number;
   slotWaitP95Ms: number;
   refusedLastMinute: number;
+  // Answers that asked their connection to reconnect, both lanes.
+  reconnectsAskedLastMinute: number;
   monitorTestQueueDepth: number;
   monitorsHandedOutLastMinute: number;
   dispatchLagP95Seconds: number;
@@ -67,10 +69,17 @@ export interface ProbeSchedulingFleetView {
   slotWaitMaxMs: number;
   // Probe requests answered busy, both lanes.
   refusalsPerMinute: number;
+  /*
+   * Answers that asked their probe's connection to reconnect, both lanes:
+   * a replica with requests waiting for a slot asks a few a second, so the
+   * probes' connections move to replicas with room (issue #11392).
+   */
+  reconnectsAskedPerMinute: number;
   // The monitor test lane.
   monitorTestQueueDepth: number;
   monitorTestSlots: number;
   monitorTestRefusalsPerMinute: number;
+  monitorTestReconnectsAskedPerMinute: number;
   // Monitors handed out, and how late past when they were due.
   monitorsHandedOutPerMinute: number;
   dispatchLagP50Seconds: number;
@@ -130,9 +139,11 @@ export function aggregateProbeScheduling(
     slotWaitP95Ms: 0,
     slotWaitMaxMs: 0,
     refusalsPerMinute: 0,
+    reconnectsAskedPerMinute: 0,
     monitorTestQueueDepth: 0,
     monitorTestSlots: 0,
     monitorTestRefusalsPerMinute: 0,
+    monitorTestReconnectsAskedPerMinute: 0,
     monitorsHandedOutPerMinute: 0,
     dispatchLagP50Seconds: 0,
     dispatchLagP95Seconds: 0,
@@ -170,9 +181,15 @@ export function aggregateProbeScheduling(
     );
     view.refusalsPerMinute +=
       ((work?.refused || 0) + (tests?.refused || 0)) * perMinute;
+    // A view an older replica wrote has no reconnects: none counted.
+    view.reconnectsAskedPerMinute +=
+      ((work?.reconnectsAsked || 0) + (tests?.reconnectsAsked || 0)) *
+      perMinute;
     view.monitorTestQueueDepth += tests?.waiting || 0;
     view.monitorTestSlots += tests?.maxConcurrentRequests || 0;
     view.monitorTestRefusalsPerMinute += (tests?.refused || 0) * perMinute;
+    view.monitorTestReconnectsAskedPerMinute +=
+      (tests?.reconnectsAsked || 0) * perMinute;
     view.monitorsHandedOutPerMinute += snapshot.monitorsHandedOut * perMinute;
     view.dispatchLagP50Seconds = Math.max(
       view.dispatchLagP50Seconds,
@@ -205,6 +222,8 @@ export function aggregateProbeScheduling(
       slots: work?.maxConcurrentRequests || 0,
       slotWaitP95Ms: round(work?.slotWaitMs.p95 || 0),
       refusedLastMinute: (work?.refused || 0) + (tests?.refused || 0),
+      reconnectsAskedLastMinute:
+        (work?.reconnectsAsked || 0) + (tests?.reconnectsAsked || 0),
       monitorTestQueueDepth: tests?.waiting || 0,
       monitorsHandedOutLastMinute: snapshot.monitorsHandedOut,
       dispatchLagP95Seconds: round(snapshot.dispatchLagSeconds.p95),
@@ -216,6 +235,10 @@ export function aggregateProbeScheduling(
   view.refusalsPerMinute = Math.round(view.refusalsPerMinute);
   view.monitorTestRefusalsPerMinute = Math.round(
     view.monitorTestRefusalsPerMinute,
+  );
+  view.reconnectsAskedPerMinute = Math.round(view.reconnectsAskedPerMinute);
+  view.monitorTestReconnectsAskedPerMinute = Math.round(
+    view.monitorTestReconnectsAskedPerMinute,
   );
   view.monitorsHandedOutPerMinute = Math.round(view.monitorsHandedOutPerMinute);
   view.dispatchLagP50Seconds = round(view.dispatchLagP50Seconds);

@@ -35,12 +35,12 @@ Pure Storage ने फ़रवरी 2026 में अपना नाम ब
 ```mermaid title="ऐरे से OneUptime तक"
 flowchart TB
     collector["कलेक्टर"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["ऐरे,<br/>पोर्ट 443"]
-    collector -->|"पुराना FlashArray,<br/>FlashBlade"| exporter["Pure का एक्सपोर्टर"]
+    collector -->|"पुराना FlashArray,<br/>FlashBlade"| exporter["Pure का<br/>एक्सपोर्टर"]
     exporter -->|"API टोकन"| array
-    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    collector -->|"ONTAP"| harvest["NetApp<br/>Harvest"]
     harvest -->|"केवल-पढ़ने वाला उपयोगकर्ता,<br/>REST API"| cluster["क्लस्टर,<br/>पोर्ट 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    collector -->|"PowerStore"| dell["Dell's exporter"]
+    collector -->|"PowerStore"| dell["Dell's<br/>exporter"]
     dell -->|"user and password"| array
     array -->|"syslog, port 5514"| syslog["Syslog collector"]
     syslog -->|"OTLP"| oneuptime
@@ -399,6 +399,14 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerstore.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/powerstore-exporter.Dockerfile
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/powerstore-syslog.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate

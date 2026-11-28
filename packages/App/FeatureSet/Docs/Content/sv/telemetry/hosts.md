@@ -79,6 +79,16 @@ Varje OneUptime tillhandahåller sina egna installationsprogram, så en egenvär
 Dialogrutans sista steg visar när värden ansluter, med en länk till den. I listan visas den som **Startar** tills dess första mätvärden kommer in, oftast inom en minut, och sedan med sin hälsa, **Felfri** när inget på den behöver ses över, och sin insamlare **Körs**. Värdens sida **Topologi** ritar på en karta vad som körs på den, vad som anropar den och vad den anropar: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
 
+## Vad som räknas som en värd
+
+Listan **Värdar** visar de maskiner som skickar sin egen telemetri från en insamlare på maskinen. Annan telemetri namnger också en maskin i `host.name`, men lägger aldrig till en värd:
+
+- telemetrin från en Docker- eller Podman-värd, som har `container.runtime`: Den hör till **Docker** eller **Podman**;
+- telemetrin från ett Kubernetes-kluster, en nod eller en podd, som har `k8s.cluster.name`, `k8s.node.name` eller `k8s.pod.name`: Den hör till **Kubernetes**;
+- en behållares egen telemetri, som har `container.id`, och en applikations, som har `telemetry.sdk.name`: Den hör till applikationens tjänst.
+
+Tidigare versioner lade till några av dessa maskiner som värdar: Docker- och Podman-värdar, Kubernetes-noder och -poddar, och en värd för varje podd i en app som exporterar direkt till OneUptime, en till för varje utrullning. Uppgraderingen arkiverade dem, var och en med en post i sitt flöde som säger varför. Den behöll varje värd som du lade till själv, varje värd vars insamlare OneUptime hanterar och varje värd som skickade en värds egna mätvärden. De arkiverade finns under **Avancerad → Arkiverad** i listan **Värdar**, där **Avarkivera** tar tillbaka en.
+
 ## Se vilka värdar som kräver uppmärksamhet
 
 Listan **Värdar** börjar med **Kräver uppmärksamhet**: varje värd som är trasig eller behöver ses över, den mest brådskande först, var och en med orsaken och ett steg till sin sida. En värd som har slutat rapportera säger när den senast gjorde det. Kräver inget uppmärksamhet finns inget kort.

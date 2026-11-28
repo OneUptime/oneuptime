@@ -143,19 +143,48 @@ describe("an AWS ELBv2 load balancer", () => {
     ).toBeNull();
   });
 
-  test("an address the record names is kept when public, a private one left out", () => {
+  /*
+   * #11389: a private address is kept too. A project that stops trusting
+   * private addresses still trusts an internal load balancer's, by its
+   * being the load balancer's.
+   */
+  test("an address the record names is kept when public or private, never one that is no load balancer's to have", () => {
     const reading: OwnLoadBalancerReading | null = readOwnLoadBalancer(
-      albRecord({ cloudEndpoints: [ALB_DNS, "52.1.2.3", "10.0.1.20"] }),
+      albRecord({
+        cloudEndpoints: [
+          ALB_DNS,
+          "52.1.2.3",
+          "10.0.1.20",
+          "127.0.0.1",
+          "169.254.169.254",
+        ],
+      }),
     );
 
-    expect(reading?.addresses).toEqual(["52.1.2.3"]);
+    expect(reading?.addresses).toEqual(["52.1.2.3", "10.0.1.20"]);
     expect(reading?.hostNames).toEqual([ALB_DNS]);
+  });
+
+  test("an internal one, at a private address only, is one", () => {
+    expect(
+      readOwnLoadBalancer(
+        albRecord({
+          cloudProperties: { Type: "application", Scheme: "internal" },
+          cloudEndpoints: ["10.0.1.20"],
+        }),
+      ),
+    ).toEqual({
+      kind: OwnLoadBalancerKind.AwsApplicationLoadBalancer,
+      name: "web",
+      addresses: ["10.0.1.20"],
+      hostNames: [],
+    });
   });
 
   test("one with no address and no name to look one up by is none", () => {
     expect(readOwnLoadBalancer(albRecord({ cloudEndpoints: [] }))).toBeNull();
     expect(
-      readOwnLoadBalancer(albRecord({ cloudEndpoints: ["10.0.1.20"] })),
+      readOwnLoadBalancer(albRecord({ cloudEndpoints: ["127.0.0.1"] })),
     ).toBeNull();
   });
 });
@@ -271,7 +300,12 @@ describe("a Google Cloud forwarding rule", () => {
     }
   });
 
-  test("an internal one's private address is trusted anyway: none to list", () => {
+  /*
+   * #11389: an internal one appends its private address to X-Forwarded-For
+   * as an external one does its public one, and is trusted for being the
+   * load balancer, not only for being private.
+   */
+  test("an internal one's private address is listed as its own", () => {
     expect(
       readOwnLoadBalancer(
         forwardingRule({
@@ -279,7 +313,12 @@ describe("a Google Cloud forwarding rule", () => {
           routesTo: { target: URL_MAP, targetType: "internal_http_lb_rule" },
         }),
       ),
-    ).toBeNull();
+    ).toEqual(
+      expect.objectContaining({
+        kind: OwnLoadBalancerKind.GoogleCloudApplicationLoadBalancer,
+        addresses: ["10.128.0.9"],
+      }),
+    );
   });
 
   test("a rule that sends nowhere, or only runs in a network, is none", () => {
@@ -340,13 +379,15 @@ describe("an Azure public IP address", () => {
     }
   });
 
-  test("a gateway's address must be public to be listed", () => {
-    expect(
-      readOwnLoadBalancer({
-        ...azurePublicIp(GATEWAY),
-        cloudEndpoints: ["10.1.0.4"],
-      }),
-    ).toBeNull();
+  test("a gateway's address must be one it can be reached at to be listed", () => {
+    for (const address of ["127.0.0.1", "169.254.0.4", "::1", "fe80::4"]) {
+      expect(
+        readOwnLoadBalancer({
+          ...azurePublicIp(GATEWAY),
+          cloudEndpoints: [address],
+        }),
+      ).toBeNull();
+    }
   });
 });
 
@@ -395,7 +436,7 @@ describe("what is never a proxy", () => {
 });
 
 describe("addresses", () => {
-  test("IPv6 public addresses are kept, each once however written", () => {
+  test("IPv6 addresses are kept, each once however written: public and private, never link-local", () => {
     const reading: OwnLoadBalancerReading | null = readOwnLoadBalancer(
       albRecord({
         cloudEndpoints: [
@@ -403,14 +444,15 @@ describe("addresses", () => {
           "2600:1f18:4000::7",
           "2600:1F18:4000:0:0:0:0:7",
           "fd00::7",
+          "fe80::7",
         ],
       }),
     );
 
-    expect(reading?.addresses).toEqual(["2600:1f18:4000::7"]);
+    expect(reading?.addresses).toEqual(["2600:1f18:4000::7", "fd00::7"]);
   });
 
-  test("a name's resolved addresses join the record's: public ones, each once", () => {
+  test("a name's resolved addresses join the record's: public and private ones, each once", () => {
     const reading: OwnLoadBalancerReading = readOwnLoadBalancer(albRecord())!;
 
     expect(
@@ -419,9 +461,10 @@ describe("addresses", () => {
         "52.1.2.3",
         "10.0.1.20",
         "::ffff:52.1.2.4",
+        "127.0.0.1",
         "not an address",
       ]),
-    ).toEqual(["52.1.2.3", "52.1.2.4"]);
+    ).toEqual(["52.1.2.3", "10.0.1.20", "52.1.2.4"]);
   });
 });
 
@@ -435,6 +478,8 @@ describe("the kinds", () => {
         "Google Cloud Application Load Balancer",
       [OwnLoadBalancerKind.AzureApplicationGateway]:
         "Azure Application Gateway",
+      [OwnLoadBalancerKind.GoogleCloudProxyOnlySubnet]:
+        "Google Cloud proxy-only subnet",
     });
   });
 

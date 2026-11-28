@@ -82,7 +82,10 @@ export enum SensitiveDataSink {
    * and traits `identify()` hands OneUptime's RUM SDK, LogRocket,
    * FullStory, PostHog or Datadog RUM. It reaches a RUM application's
    * sessions (sessions.identifiedUserLabel, sessions.identifiedUserTraits),
-   * where every replay of the user's sessions is filed under it.
+   * where every replay of the user's sessions is filed under it. And the
+   * tags OneUptime's RUM SDK is handed with setTags() and addTag()
+   * (#11458), which reach the sessions' tags (sessions.tags.<key>), read by
+   * everyone who can list sessions.
    */
   Session = "Session",
 }

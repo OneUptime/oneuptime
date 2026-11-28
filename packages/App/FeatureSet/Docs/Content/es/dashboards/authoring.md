@@ -43,6 +43,8 @@ Las plantillas, según la categoría en la que las muestra el selector:
 
 **Recomendadas** reúne Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard y Metrics Dashboard. Una plantilla es un punto de partida, no un vínculo: una vez creado el panel, cámbialo como quieras. La plantilla no vuelve a actualizarlo después.
 
+Cada plantilla de infraestructura muestra solo su propia clase de recurso, a través del [Tipo de recurso](/docs/dashboards/variables#telemetry-attribute) de su variable: un Docker Swarm Dashboard en un proyecto sin swarm se queda vacío, y lo dice, en lugar de mostrar los contenedores y los registros de todo lo demás.
+
 ## Editar y guardar
 
 Un panel se abre en modo de lectura. Para cambiarlo, abre el menú **⋯** de su barra de herramientas y elige **Editar panel**. La barra de herramientas muestra **Editando** junto al nombre, y sustituye el intervalo de tiempo y sus otros controles por **Añadir widget**, **Variables**, **Cancelar** y **Guardar cambios**, con una fila debajo para el **Intervalo de tiempo predeterminado** y la **Actualización automática predeterminada** del panel.

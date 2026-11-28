@@ -43,6 +43,8 @@ Die Vorlagen, nach der Kategorie, unter der die Auswahl sie aufführt:
 
 **Empfohlen** enthält Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard und Metrics Dashboard. Eine Vorlage ist ein Ausgangspunkt, keine Verknüpfung: Sobald das Dashboard erstellt ist, ändern Sie es nach Belieben. Später aktualisiert die Vorlage es nicht mehr.
 
+Jede Infrastrukturvorlage zeigt nur ihre eigene Art von Ressource, über den [Ressourcentyp](/docs/dashboards/variables#telemetry-attribute) ihrer Variablen: Ein Docker Swarm Dashboard in einem Projekt ohne Swarm bleibt leer und sagt das, statt die Container und Logs von allem anderen zu zeigen.
+
 ## Bearbeiten und speichern
 
 Ein Dashboard öffnet sich in der Ansicht, zum Lesen. Um es zu ändern, öffnen Sie das Menü **⋯** in seiner Werkzeugleiste und wählen **Dashboard bearbeiten**. Die Werkzeugleiste zeigt **Bearbeitung** neben dem Namen und tauscht den Zeitbereich und seine anderen Bedienelemente gegen **Widget hinzufügen**, **Variablen**, **Abbrechen** und **Änderungen speichern**, darunter eine Zeile für den **Standardzeitraum** und die **Automatische Aktualisierung (Standard)** des Dashboards.

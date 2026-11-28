@@ -40,7 +40,7 @@ Todo lo demás espera en **Más campos**, plegado hasta que lo abras:
 | Campo | Qué hace |
 | --- | --- |
 | **Cada turno dura** | **1 día**, **1 semana**, **2 semanas** o **1 mes**, y **1 semana** si no lo cambias. Se pregunta en cuanto alguien se turna. Cada persona está de guardia ese tiempo y luego toma el relevo la siguiente, a la hora del día en que se creó la programación. |
-| **Zona horaria** | La zona horaria en la que se guardan las horas de relevo y las horas de guardia. Empieza con la tuya. Cada zona horaria sigue las reglas actuales de su región: America/Vancouver (Columbia Británica) se queda en UTC-7 todo el año desde 2026. |
+| **Zona horaria** | La zona horaria en la que se guardan las horas de relevo y las horas de guardia. Empieza con la tuya. Cambiarla más tarde deja cada hora tal como se lee: un relevo a las 09:00 sigue a las 09:00, y una franja del lunes sigue en lunes. Cada zona horaria sigue las reglas actuales de su región: America/Vancouver (Columbia Británica) se queda en UTC-7 todo el año desde 2026. |
 | **Descripción** | Notas sobre la programación. |
 | **Etiquetas** | Etiquetas para encontrar y agrupar la programación. |
 
@@ -70,6 +70,8 @@ flowchart TB
 | **Rotar cada** | Cada cuánto pasa la guardia a la siguiente persona de la capa. |
 | **Hora del primer relevo** | El primer relevo a la siguiente persona, en el inicio o después. Los relevos posteriores siguen cada intervalo de rotación. |
 | **Restricciones** | Las horas en que la capa está de guardia (**Horas activas**): **Sin restricciones**, **Horas específicas del día** u **Horas específicas de la semana**, en la zona horaria de la programación. Fuera de ellas, toman el relevo las capas inferiores. |
+
+Una franja de **Horas específicas de la semana** va del día y la hora de **Desde:** al día y la hora de **Hasta:**, y los días que muestra son los días en que está de guardia. Una franja cuyas horas caen en días distintos de aquellos con los que se guardó, como una escrita mediante la API con sus horas fechadas en otros días, o una guardada antes de que cambiara la zona horaria de su programación, se marca con **Horas activas por revisar** en su capa, y debajo indica con qué días se guardó. Sigue de guardia los días mostrados, y **Guardar capa** la deja ahí: elige los días que quieres antes de guardar.
 
 Con horas activas, cada franja es un turno propio. De 17:00 a 07:00 es un turno, que termina a las 07:00 de la mañana siguiente: en la **Cronología de la programación**, en los correos, en la aplicación móvil y en Slack y Microsoft Teams por igual, en la zona horaria de la programación y también las noches en que cambia la hora. El turno de una persona son todas sus franjas hasta el siguiente relevo, y se le avisa una vez en cada sentido: "You are now on-call" cuando empieza la primera franja de su turno, con cuándo termina esa franja y cuándo termina su turno, y "You are no longer on-call" cuando termina su última franja, no en cada franja. Para que te lo recuerden antes de cada franja, elige una hora en **Recordarme antes de los turnos**, como describe [Feeds de calendario](/docs/on-call/calendar-feeds#recordatorios-y-avisos-de-reasignación). Cuando otra persona está de guardia entre dos de sus franjas, por una sustitución o una capa inferior, o un cambio en las capas da la franja siguiente a otra persona, eso es un relevo y se avisa como tal. Su tiempo de guardia se sigue registrando franja a franja, y los canales y el feed de la política de guardia siguen diciendo cada vez quién está de guardia.
 
@@ -114,7 +116,10 @@ Las programaciones de guardia son el recurso `/api/on-call-duty-policy-schedule`
 - Crear una programación con `firstLayerUsers` (una lista de identificadores de usuario, en el orden en que se turnan) en sus `miscDataProps` le da su primera capa, como hace el panel: **Layer 1**, de guardia desde ahora, las 24 horas. `firstLayerRotation` indica cuánto dura cada turno, como una rotación del tipo `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; sin ella, una semana. Cada usuario debe ser miembro del proyecto y quien llama debe poder crear capas; si no, la programación no se crea.
 - Una programación creada sin ellos no tiene capas, como antes; el recurso de programaciones de Terraform no los envía.
 - Una capa creada sin `rotation` hace el relevo cada semana, y una sin `restrictionTimes` está de guardia a todas horas, como empieza una capa nueva en el panel.
-- Los `restrictionTimes` de una capa, sus horas activas, nombran su tipo en `restrictionType`: `None` (de guardia a todas horas), `Daily` o `Weekly`. También se lee `restictionType`, su grafía antigua sin la segunda "r", y cada respuesta lleva el tipo en ambas, así que un cliente o una configuración de Terraform escritos con cualquiera de ellas siguen funcionando; la capa se guarda con `restrictionType`.
+- Los `restrictionTimes` de una capa, sus horas activas, nombran su tipo en `restrictionType`: `None` (de guardia a todas horas), `Daily` o `Weekly`. También se lee `restictionType`, su grafía antigua sin la segunda "r", y cada respuesta lleva el tipo en ambas, así que un cliente o una configuración de Terraform escritos con cualquiera de ellas siguen funcionando; la capa se guarda con `restrictionType`. `restictionType` en las respuestas está obsoleto: las respuestas lo llevan hasta la primera versión principal publicada el 1 de junio de 2027 o después, y las escrituras siempre lo leerán. Escribe `restrictionType`.
+- Una franja `Weekly`, `{"startDay", "startTime", "endDay", "endTime"}`, está de guardia los días que nombra: su `startTime` y su `endTime` deben caer en su `startDay` y su `endDay` en la zona horaria de la programación. Una franja cuya hora cae en otro día se rechaza con un `400` que nombra la franja, el día en que cae su hora y una hora del día nombrado para enviar en su lugar. Un día que se omite es el día en que cae su hora. Una franja que se devuelve exactamente como la tiene la capa no se vuelve a juzgar, así que un cliente que lee una capa y la vuelve a escribir no se rechaza por ello. En una programación sin zona horaria, cuyas horas se leen en la del servidor, una hora solo se rechaza cuando no cae en su día en ninguna zona horaria.
+- Al actualizar OneUptime, cada franja guardada cuyas horas caen en días distintos de los que nombra, y en ninguna zona horaria en esos días, se mueve a los días que nombra a la misma hora del día, y se vuelve a calcular quién está de guardia. Una franja cuyas horas caen en sus días en otra zona horaria, como puede pasar con una fijada en otra zona o guardada antes de que cambiara la zona horaria de su programación, se deja como está, avisando como hasta ahora, y se marca con **Horas activas por revisar**.
+- Cambiar la `timezone` de una programación de una zona a otra lleva los `startsAt`, `handOffTime` y `restrictionTimes` de sus capas al reloj de la nueva zona: cada uno marca allí la misma fecha, el mismo día y la misma hora del día que antes. Dar a una programación su primera zona horaria, o quitársela, mantiene los instantes como están.
 - Una escritura que dejaría una capa de guardia en ningún momento se rechaza con un `400` que nombra la clave: un tipo que falta, desconocido o distinto en las dos grafías (una actualización toma el que difiere del tipo actual de la capa); una franja `Daily` cuyos `startTime` y `endTime` no son fechas y horas (`"09:00"` solo se rechaza); una restricción `Weekly` sin `weeklyRestrictionTimes`; o una franja que empieza y termina a la misma hora. Una `rotation` cuyo `intervalType` no es `Hour`, `Day`, `Week`, `Month` ni `Year` se rechaza del mismo modo.
 - Una capa guardada antes de que se rechazaran estas escrituras, sin un tipo que se leyera, nunca estaba de guardia. Al actualizar OneUptime, cada una de esas capas se lee según las horas que contiene, se guarda así y se vuelve a calcular quién está de guardia en su programación, de modo que a sus personas se les avisa desde entonces y se les informa de ello.
 - Un cambio en las capas de una programación y en las personas que contienen, hecho con la API o Terraform, se avisa como un solo cambio: quién está de guardia se calcula cuando las capas llevan medio minuto sin cambios, y quien entra o sale de guardia, o es el siguiente, recibe el aviso una vez, no una por cada capa o persona escrita. Las alertas van a quien las capas ponen de guardia en cuanto se guarda cada cambio.
@@ -155,6 +160,25 @@ curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
           "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
           "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
         }
+      }}
+    }
+  }'
+```
+
+```bash
+curl -X PUT https://oneuptime.com/api/on-call-duty-schedule-layer/<layer-id> \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Weekly",
+        "weeklyRestrictionTimes": [{
+          "startDay": "Monday",
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T09:00:00+01:00"},
+          "endDay": "Friday",
+          "endTime": {"_type": "DateTime", "value": "2026-01-09T17:00:00+01:00"}
+        }]
       }}
     }
   }'

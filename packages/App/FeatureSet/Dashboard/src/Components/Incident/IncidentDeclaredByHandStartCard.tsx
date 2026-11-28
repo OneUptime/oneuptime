@@ -12,32 +12,31 @@ import { INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY } from "./IncidentDeclared
  * it is flipped. A project owner or admin may flip it; for anyone else it is
  * locked and says why. Each state says what it means for paging.
  */
-const IncidentDeclaredByHandStartCard: FunctionComponent =
-  (): ReactElement => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+const IncidentDeclaredByHandStartCard: FunctionComponent = (): ReactElement => {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-    if (!projectId) {
-      return <></>;
-    }
+  if (!projectId) {
+    return <></>;
+  }
 
-    return (
-      <ModelSwitchCard<Project>
-        modelType={Project}
-        modelId={projectId}
-        column={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.column}
-        cardTitle={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.cardTitle}
-        cardDescription={
-          INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.cardDescription
-        }
-        title={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.switchTitle}
-        getDescription={(isOn: boolean): string => {
-          return isOn
-            ? INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.switchOnDescription
-            : INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.switchOffDescription;
-        }}
-        dataTestId={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.dataTestId}
-      />
-    );
-  };
+  return (
+    <ModelSwitchCard<Project>
+      modelType={Project}
+      modelId={projectId}
+      column={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.column}
+      cardTitle={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.cardTitle}
+      cardDescription={
+        INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.cardDescription
+      }
+      title={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.switchTitle}
+      getDescription={(isOn: boolean): string => {
+        return isOn
+          ? INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.switchOnDescription
+          : INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.switchOffDescription;
+      }}
+      dataTestId={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.dataTestId}
+    />
+  );
+};
 
 export default IncidentDeclaredByHandStartCard;

@@ -4,6 +4,10 @@ import {
   LlmUserEmailAttributeKeys,
   LlmUserIdAttributeKeys,
 } from "../../../../Types/Telemetry/LlmConventions";
+import {
+  ScrubRegExp,
+  scrubRegExpUnderKey,
+} from "../../../../Types/Telemetry/ScrubRule";
 import { getScrubRulesOfRecord } from "../../../../Types/Telemetry/ScrubRuleScope";
 import TraceScrubAction from "../../../../Types/Trace/TraceScrubAction";
 import { TRACE_SCAN_ATTRIBUTE_KEYS } from "../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
@@ -19,6 +23,7 @@ import ScrubJsonTextUtil, {
 } from "../../../../Utils/Telemetry/ScrubJsonText";
 import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
+  ScrubNumberOf,
 } from "../../../../Utils/Telemetry/ScrubNestedValues";
 import PatternWorkScope from "../../PatternWorkScope";
 import ScrubAction, {
@@ -52,6 +57,13 @@ import { countScrubbedValues, ScrubValueTally } from "./ScrubValueTally";
  *    identity columns copied out of an attribute it names;
  *  - a pattern rule that names attributes looks for its matches in their
  *    values alone, its name and status message still as its fields say.
+ *
+ * And a pattern rule reads an attribute's value as the key it is held
+ * under says (ScrubRegExp.underKey, #11383) - a span's, a link's, an
+ * event's under its event's name, an exception's: a Phone Number or SSN
+ * rule hides 02012345678 under `user.phone` and 536221234 under
+ * `customer.ssn`, as Data Security finds them there, and reads a list or a
+ * map as the JSON text the table stores it as.
  *
  * Every value a rule changes in a span is counted, by rule, with the span's
  * service and version (ScrubValueTally), unless the caller counts nothing
@@ -183,6 +195,8 @@ export default class TraceScrubEngine {
    * record's, so each such text is parsed once however many rules read it.
    * `recorder`: told each address an IP Address Hash rule hides, when
    * Security Events reads the batch's traces (ScrubAction.applyAndRecord).
+   * `regex`: the rule's pattern as it reads the value the text is of - the
+   * key it is held under, for an attribute (ScrubRegExp.underKey, #11383).
    */
   private static scrubString(
     value: string,
@@ -190,6 +204,7 @@ export default class TraceScrubEngine {
     jsonTexts: ScrubJsonTexts,
     tally: ScrubValueTally,
     recorder?: ScrubHashedAddressRecorder | null | undefined,
+    regex: ScrubRegExp = compiled.regex,
   ): string {
     const rule: ScrubEngineRule = compiled.rule;
     const patternType: string = rule.patternType || "";
@@ -204,7 +219,7 @@ export default class TraceScrubEngine {
     return ScrubJsonTextUtil.scrubText({
       text: value,
       findMatches: (text: string): Array<[number, number]> => {
-        return compiled.regex.matchRanges(text);
+        return regex.matchRanges(text);
       },
       replaceMatch: (match: string): string => {
         tally.add(compiled);
@@ -216,7 +231,7 @@ export default class TraceScrubEngine {
           projectId: rule.projectId,
           recorder: recorder,
           // How a match the pattern found in a reading reads, for Mask and Hash.
-          pattern: compiled.regex,
+          pattern: regex,
         });
       },
       // A person may have written a custom pattern against stored escapes.
@@ -312,7 +327,10 @@ export default class TraceScrubEngine {
    * every text of the values it names; a pattern rule that names attributes
    * reads only their values. `heldAsText`: the keys whose values were too
    * deep or too large to read value by value, and are read as their JSON
-   * text. `recorder`: as scrubString's.
+   * text. `recorder`: as scrubString's. `eventName`: for an event's
+   * attributes, the event's name, which Data Security names an attribute
+   * of it by (events.<event>.<key>): a pattern rule reads its values under
+   * that name (#11383).
    */
   private static scrubAttributesInPlace(data: {
     attributes: JSONObject;
@@ -323,6 +341,7 @@ export default class TraceScrubEngine {
     tally: ScrubValueTally;
     correlationIdKeys?: ReadonlySet<string> | undefined;
     recorder?: ScrubHashedAddressRecorder | null | undefined;
+    eventName?: string | undefined;
   }): void {
     const { attributes, compiled } = data;
 
@@ -358,20 +377,87 @@ export default class TraceScrubEngine {
     }
 
     const isNamedKeys: boolean = isNamedKeysRule(compiled.rule);
-    const scrubText: (text: string) => string = isNamedKeys
-      ? this.hideTextOf(compiled, data.tally)
-      : (text: string): string => {
-          return this.scrubString(
-            text,
-            compiled,
-            data.jsonTexts,
-            data.tally,
-            data.recorder,
-          );
-        };
+    const hideText: (text: string) => string = this.hideTextOf(
+      compiled,
+      data.tally,
+    );
+
+    /*
+     * Each value's texts, read as the key it is held under says: a Phone
+     * Number or SSN rule reads 02012345678 under `user.phone` as a phone
+     * number, and a list or a map as its JSON text too (#11383). An event's
+     * attribute is read under the name Data Security gives it, its event's
+     * name before its key. A Named Attributes rule hides every text whole.
+     */
+    const scrubTextOf: (
+      key: string,
+      value: unknown,
+    ) => (text: string) => string = (
+      key: string,
+      value: unknown,
+    ): ((text: string) => string) => {
+      if (isNamedKeys) {
+        return hideText;
+      }
+
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        data.eventName !== undefined ? `${data.eventName}.${key}` : key,
+        value,
+      );
+
+      return (text: string): string => {
+        return this.scrubString(
+          text,
+          compiled,
+          data.jsonTexts,
+          data.tally,
+          data.recorder,
+          regex,
+        );
+      };
+    };
+
+    /*
+     * A number: a Named Attributes rule hides the whole value of what it
+     * names, a number too; a pattern rule reads one only under a key that
+     * changes what it finds - 536221234 sent as a number under
+     * `customer.ssn` (#11383).
+     */
+    const scrubNumberOf: ScrubNumberOf = (
+      key: string,
+      value: number,
+    ): ((text: string) => string) | null => {
+      if (isNamedKeys) {
+        return hideText;
+      }
+
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        data.eventName !== undefined ? `${data.eventName}.${key}` : key,
+        value,
+      );
+
+      return regex === compiled.regex
+        ? null
+        : (text: string): string => {
+            return this.scrubString(
+              text,
+              compiled,
+              data.jsonTexts,
+              data.tally,
+              data.recorder,
+              regex,
+            );
+          };
+    };
 
     if (!compiled.keys) {
-      ScrubNestedValuesUtil.scrubAttributeTexts(attributes, scrubText);
+      ScrubNestedValuesUtil.scrubAttributeTextsUnderKeys(
+        attributes,
+        scrubTextOf,
+        scrubNumberOf,
+      );
       return;
     }
 
@@ -385,12 +471,15 @@ export default class TraceScrubEngine {
       }
 
       const value: unknown = attributes[key];
+      const scrubbed: unknown = ScrubNestedValuesUtil.scrubValueUnderKey(
+        key,
+        value,
+        scrubTextOf,
+        scrubNumberOf,
+      );
 
-      if (typeof value === "string" || ScrubNestedValuesUtil.isNested(value)) {
-        attributes[key] = ScrubNestedValuesUtil.scrubTexts(
-          value,
-          scrubText,
-        ) as JSONObject[string];
+      if (scrubbed !== value) {
+        attributes[key] = scrubbed as JSONObject[string];
       }
     }
   }
@@ -847,6 +936,7 @@ export default class TraceScrubEngine {
               keysRules,
               tally,
               recorder,
+              eventName: typeof event["name"] === "string" ? event["name"] : "",
             });
           }
         }

@@ -152,7 +152,10 @@ fi
 
 COLLECTOR_IMAGE="$(sed -n 's/^ *image: *\(otel\/opentelemetry-collector-contrib:[^ ]*\).*/\1/p' "${WORK_DIR}/docker-compose.yml" | head -n 1)"
 [ -n "${COLLECTOR_IMAGE}" ] || fail "no collector image in docker-compose.yml"
-AGENT_VERSION="${COLLECTOR_IMAGE##*:}"
+# The version the agent's files stamp, as the Dashboard compares it: the
+# collector's until the files change on it (AgentFilesVersion.test.ts).
+AGENT_VERSION="$(sed -n 's/^export const STORAGE_ARRAY_AGENT_VERSION: string = "\([0-9.]*\)";$/\1/p' "${REPO_ROOT}/packages/App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind.ts")"
+[ -n "${AGENT_VERSION}" ] || fail "no STORAGE_ARRAY_AGENT_VERSION in AgentKind.ts"
 
 # .env is written as install.sh writes it: with install.sh's own quoting.
 quote_function="$(sed -n '/^compose_env_quote() {$/,/^}$/p' "${AGENT_DIR}/install.sh")"

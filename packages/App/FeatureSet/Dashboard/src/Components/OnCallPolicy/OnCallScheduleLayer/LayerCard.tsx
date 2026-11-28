@@ -21,6 +21,7 @@ import {
 } from "./LayerUserColors";
 import {
   formatRelativeStart,
+  hasWeeklyWindowsToCheck,
   summarizeRestriction,
   summarizeRotation,
 } from "./LayerSummary";
@@ -132,6 +133,15 @@ const LayerCard: FunctionComponent<ComponentProps> = (
   const rotationSummary: string = summarizeRotation(layer.rotation);
 
   const restrictionSummary: string = summarizeRestriction(
+    layer.restrictionTimes,
+    props.timezone,
+  );
+
+  /*
+   * Whether a weekly window of the layer is on call on other days than it
+   * was saved with (#11455): its form says which, under the window.
+   */
+  const hasWindowsToCheck: boolean = hasWeeklyWindowsToCheck(
     layer.restrictionTimes,
     props.timezone,
   );
@@ -467,6 +477,13 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                 dataTestId="layer-card-unsaved"
               />
             )}
+            {hasWindowsToCheck && (
+              <Pill
+                text="Active hours to check"
+                tone={PillTone.Warning}
+                dataTestId="layer-card-windows-to-check"
+              />
+            )}
           </div>
           {layer.description ? (
             <p className="mt-0.5 truncate text-sm text-gray-500">
@@ -698,7 +715,13 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           </div>
 
           <div className="border-t border-gray-200 pt-5">
+            {/*
+             * Read again when the schedule's zone changes: the server keeps
+             * the layer's times on the new zone's clock, so the times the
+             * form fetched before are no longer the layer's.
+             */}
             <LayerConfigForm
+              key={`layer-configuration-${layer.id?.toString() || "new"}-${props.timezone || ""}`}
               layer={layer}
               timezone={props.timezone}
               onLayerChange={props.onLayerChange}

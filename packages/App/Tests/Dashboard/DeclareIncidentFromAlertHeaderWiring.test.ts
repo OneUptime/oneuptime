@@ -876,11 +876,13 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     );
     /*
      * Carried forward beside where the incident starts (StartingStage),
-     * which every create hands its success hook, and the alert incident rule
-     * that declared it, if one did (read off the validated alert ids).
+     * which every create hands its success hook, the alert incident rule
+     * that declared it, if one did (read off the validated alert ids), and
+     * when its feed starts, which the entry naming the alerts is filed just
+     * before (#10911).
      */
     const carryForwardAt: number = onBeforeCreate.indexOf(
-      "constcarryForward:IncidentCreateCarryForward={startingStage:startingStage,alertIdsToLink:validatedAlertIds,acknowledgedAlertStateId:alertsToAcknowledge?.acknowledgedAlertStateId||null,alertIdsToAcknowledge:alertsToAcknowledge?.alertIdsToAcknowledge||[],declaredByAlertIncidentRuleName:this.getDeclaringAlertIncidentRuleName({createBy:createBy,alertIdsToLink:validatedAlertIds,}),carryOverAlertOwners:carryOverAlertOwners,};",
+      "constcarryForward:IncidentCreateCarryForward={startingStage:startingStage,alertIdsToLink:validatedAlertIds,acknowledgedAlertStateId:alertsToAcknowledge?.acknowledgedAlertStateId||null,alertIdsToAcknowledge:alertsToAcknowledge?.alertIdsToAcknowledge||[],declaredByAlertIncidentRuleName:this.getDeclaringAlertIncidentRuleName({createBy:createBy,alertIdsToLink:validatedAlertIds,}),carryOverAlertOwners:carryOverAlertOwners,feedStartsAt:feedStartsAt,};",
     );
     /*
      * The incident number is taken by the service's one numbering method
@@ -910,13 +912,13 @@ describe("the server acknowledging the alerts an incident is declared from", () 
    * The alerts to acknowledge travel next to - never instead of - the alerts
    * to link: every validated alert is linked, only the checked subset is
    * acknowledged. The name of the alert incident rule that declared the
-   * incident, if one did, travels after them.
+   * incident, if one did, travels after them, and when its feed starts last.
    */
   test("carries the checked alerts to acknowledge forward beside the alerts to link", () => {
     const code: string = denseCommon(INCIDENT_SERVICE);
 
     expect(code).toContain(
-      "typeIncidentCreateCarryForward=|(StartingStageCarryForward&{alertIdsToLink:Array<ObjectID>;acknowledgedAlertStateId:ObjectID|null;alertIdsToAcknowledge:Array<ObjectID>;declaredByAlertIncidentRuleName:string|null;carryOverAlertOwners:boolean;})|null;",
+      "typeIncidentCreateCarryForward=|(StartingStageCarryForward&{alertIdsToLink:Array<ObjectID>;acknowledgedAlertStateId:ObjectID|null;alertIdsToAcknowledge:Array<ObjectID>;declaredByAlertIncidentRuleName:string|null;carryOverAlertOwners:boolean;feedStartsAt:Date;})|null;",
     );
     expect(code).toContain(
       'importIncidentAlertService,{AcknowledgeDeclaredAlertsResult,AlertsToAcknowledgeOnDeclare,LinkAlertsToIncidentResult,}from"./IncidentAlertService";',
@@ -1007,6 +1009,13 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     );
   });
 
+  /*
+   * Started once, beside the hook's other steps - an incident declared
+   * already acknowledged or resolved waits for it before its first state,
+   * which it carries over to the alerts - and waited for before the hook
+   * returns: the page the declarer lands on lists the alerts it was
+   * declared from.
+   */
   test("the linking itself is still awaited by onCreateSuccess", () => {
     const onCreateSuccess: string = methodBody(
       denseCommon(INCIDENT_SERVICE),
@@ -1014,8 +1023,14 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     );
 
     expect(onCreateSuccess).toContain(
-      "awaitthis.linkAlertsDeclaredWithIncident(onCreate,createdItem,privacyRulesApplied,);",
+      "constalertsLinked:Promise<void>=this.linkAlertsDeclaredWithIncident(onCreate,createdItem,privacyRulesApplied,);",
     );
+    expect(
+      countOf(onCreateSuccess, "this.linkAlertsDeclaredWithIncident("),
+    ).toBe(1);
+    expect(
+      onCreateSuccess.endsWith("awaitalertsLinked;returncreatedItem;"),
+    ).toBe(true);
   });
 
   test("checks the caller may change the state of the alerts it will acknowledge, unless root, before handing them back with the state", () => {

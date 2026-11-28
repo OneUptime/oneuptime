@@ -13,6 +13,11 @@
  *                         used it (its requests could not be read, or the
  *                         address is hidden and its vault could not be
  *                         read): left for a person;
+ *   SparedUnvouchedProxy  its requests came through a proxy the project
+ *                         trusts only because it is private, which may be a
+ *                         TCP proxy that passed on the X-Forwarded-For the
+ *                         client wrote (#11389): the address may be the
+ *                         client's own words, so it is left for a person;
  *   StoppedAtLimit        the project's policies had made their 50 blocks of
  *                         the hour: they stopped, and paged the project's
  *                         security owners;
@@ -24,6 +29,7 @@ export enum SecurityAutomaticResponseOutcome {
   SparedProtected = "SparedProtected",
   SparedSignedIn = "SparedSignedIn",
   SparedCannotTell = "SparedCannotTell",
+  SparedUnvouchedProxy = "SparedUnvouchedProxy",
   StoppedAtLimit = "StoppedAtLimit",
   Failed = "Failed",
 }
@@ -35,6 +41,7 @@ export const SECURITY_AUTOMATIC_RESPONSE_OUTCOMES: ReadonlyArray<SecurityAutomat
     SecurityAutomaticResponseOutcome.SparedProtected,
     SecurityAutomaticResponseOutcome.SparedSignedIn,
     SecurityAutomaticResponseOutcome.SparedCannotTell,
+    SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
     SecurityAutomaticResponseOutcome.StoppedAtLimit,
     SecurityAutomaticResponseOutcome.Failed,
   ];
@@ -52,6 +59,7 @@ export const SECURITY_AUTOMATIC_RESPONSE_SPARED_OUTCOMES: ReadonlyArray<Security
     SecurityAutomaticResponseOutcome.SparedProtected,
     SecurityAutomaticResponseOutcome.SparedSignedIn,
     SecurityAutomaticResponseOutcome.SparedCannotTell,
+    SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
     SecurityAutomaticResponseOutcome.StoppedAtLimit,
   ];
 

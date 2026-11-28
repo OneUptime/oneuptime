@@ -161,6 +161,13 @@ interface Kind {
    * is given with it: an update needs the record to be readable too.
    */
   reader: Permission;
+  /*
+   * Only those who may read the key choose one on create: whoever else may
+   * create the row leaves the key out and is given one OneUptime makes
+   * (RunnerService.assertMayChooseKey; RunnerKeyChoiceOverHttp holds the
+   * refusal).
+   */
+  isKeyChosenOnlyByReaders?: boolean | undefined;
   route: string;
   modelType: { new (): BaseModel };
   service: DatabaseService<BaseModel>;
@@ -183,6 +190,7 @@ const KINDS: Array<Kind> = [
     component: "a Runner",
     noun: "Runner",
     reader: Permission.ReadRunner,
+    isKeyChosenOnlyByReaders: true,
     route: "/runner",
     modelType: Runner as unknown as { new (): BaseModel },
     service: RunnerService as unknown as DatabaseService<BaseModel>,
@@ -205,7 +213,10 @@ const KINDS: Array<Kind> = [
 
 /*
  * The roles that may write the key, read from the model, so the suite
- * follows the model: each one is asked to store a shipped key below.
+ * follows the model: each one is asked to store a shipped key below. Where
+ * only those who may read the key choose one, a create's list is the
+ * table's, for a create that leaves the key out, and its writers are the
+ * roles on both lists.
  */
 function keyWriters(
   kind: Kind,
@@ -216,7 +227,17 @@ function keyWriters(
 
   expect(access).not.toBeNull();
 
-  return [...(access as ColumnAccessControl)[operation]];
+  const writers: Array<Permission> = [
+    ...(access as ColumnAccessControl)[operation],
+  ];
+
+  if (operation === "create" && kind.isKeyChosenOnlyByReaders) {
+    return writers.filter((permission: Permission): boolean => {
+      return (access as ColumnAccessControl).read.includes(permission);
+    });
+  }
+
+  return writers;
 }
 
 let props: DatabaseCommonInteractionProps;

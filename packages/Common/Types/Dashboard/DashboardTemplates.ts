@@ -6,6 +6,7 @@ import DashboardChartType from "./Chart/ChartType";
 import ObjectID from "../ObjectID";
 import DashboardBaseComponent from "./DashboardComponents/DashboardBaseComponent";
 import DashboardVariable, { DashboardVariableType } from "./DashboardVariable";
+import { DashboardResourceScope } from "./DashboardResourceScope";
 import IconProp from "../Icon/IconProp";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import IncidentMetricType from "../Incident/IncidentMetricType";
@@ -829,12 +830,22 @@ function createKubernetesNodeListComponent(data: {
  * stored in ClickHouse under the `resource.` prefix (see the comment
  * in MonitorAlert.ts), so the binding keys here mirror what the
  * Kubernetes / Host detail pages already filter on.
+ *
+ * An infrastructure template's own variable - its Cluster, Host, vCenter
+ * or pool - names the kind of resource it picks among (`resourceScope`,
+ * issue #11258): every widget on the board reads only that kind's
+ * telemetry, "All" meaning all of them, and the picker lists only their
+ * names. Without it, "All" read the whole project: a Docker Swarm board
+ * drew the Docker Agent's containers and every log, and the Hosts tiles
+ * averaged in Kubernetes nodes. A variable that narrows within the kind
+ * (a namespace, a region) names none.
  */
 function createTelemetryAttributeVariable(data: {
   name: string;
   label: string;
   attributeKey: string;
   isMultiSelect?: boolean;
+  resourceScope?: DashboardResourceScope;
 }): DashboardVariable {
   return {
     id: ObjectID.generate().toString(),
@@ -843,6 +854,7 @@ function createTelemetryAttributeVariable(data: {
     type: DashboardVariableType.TelemetryAttribute,
     attributeKey: data.attributeKey,
     isMultiSelect: data.isMultiSelect ?? false,
+    ...(data.resourceScope ? { resourceScope: data.resourceScope } : {}),
   };
 }
 
@@ -1547,24 +1559,23 @@ function createMonitorDashboardConfig(): DashboardViewConfig {
       isBold: true,
     }),
 
-    // Row 10-12: Table and logs
+    /*
+     * Row 10-12: the response time table, the whole row. A "Recent Logs"
+     * stream sat beside it, but monitors write no logs (their checks are
+     * Monitor Logs, a table of their own), so it drew every log in the
+     * project until a monitor was picked and none after, as no log names
+     * a monitor (issue #11258).
+     */
     createTableComponent({
       title: "Response Time Breakdown",
       top: 10,
       left: 0,
-      width: 6,
+      width: 12,
       height: 3,
       metricConfig: {
         metricName: MonitorMetricType.ResponseTime,
         aggregationType: MetricsAggregationType.Avg,
       },
-    }),
-    createLogStreamComponent({
-      title: "Recent Logs",
-      top: 10,
-      left: 6,
-      width: 6,
-      height: 3,
     }),
   ];
 
@@ -2348,6 +2359,7 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
       name: "cluster",
       label: "Cluster",
       attributeKey: "resource.k8s.cluster.name",
+      resourceScope: DashboardResourceScope.KubernetesCluster,
     }),
     createTelemetryAttributeVariable({
       name: "namespace",
@@ -2557,6 +2569,7 @@ function createKubernetesCostDashboardConfig(): DashboardViewConfig {
       name: "cluster",
       label: "Cluster",
       attributeKey: "resource.k8s.cluster.name",
+      resourceScope: DashboardResourceScope.KubernetesCluster,
     }),
   ];
 
@@ -3681,8 +3694,11 @@ function createHostDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
    *
-   * - Per-host charts fan out via `groupByAttributeKeys: ["host.name"]`
-   *   so a single chart renders one series per host. The OTel host
+   * - Per-host charts fan out via
+   *   `groupByAttributeKeys: ["resource.host.name"]` so a single chart
+   *   renders one series per host: a resource attribute is stored under
+   *   its `resource.` key, and grouping by a bare `host.name`, which no
+   *   row carries, drew every host as one line. The OTel host
    *   receiver emits `system.cpu.utilization` as a [0, 1] ratio, which
    *   Value/Gauge widgets auto-scale to percent at render time (see
    *   splitFormattedValue / isFractionScale).
@@ -3765,7 +3781,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: MetricDashboardMetricType.SystemCpuUtilization,
         aggregationType: MetricsAggregationType.Avg,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
       },
     }),
     createChartComponent({
@@ -3778,7 +3794,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: MetricDashboardMetricType.SystemMemoryUsage,
         aggregationType: MetricsAggregationType.Avg,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
       },
     }),
 
@@ -3848,7 +3864,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: "system.filesystem.usage",
         aggregationType: MetricsAggregationType.Avg,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
       },
     }),
 
@@ -3873,7 +3889,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: MetricDashboardMetricType.SystemDiskIo,
         aggregationType: MetricsAggregationType.Sum,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
         transformAsRate: true,
       },
     }),
@@ -3887,7 +3903,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: MetricDashboardMetricType.SystemNetworkIo,
         aggregationType: MetricsAggregationType.Sum,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
         transformAsRate: true,
       },
     }),
@@ -3913,7 +3929,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       metricConfig: {
         metricName: "system.processes.count",
         aggregationType: MetricsAggregationType.Avg,
-        groupByAttributeKeys: ["host.name"],
+        groupByAttributeKeys: ["resource.host.name"],
       },
     }),
     createLogStreamComponent({
@@ -3930,6 +3946,12 @@ function createHostDashboardConfig(): DashboardViewConfig {
    * dashboard's by-host charts already split rendering per host; the
    * selector lets users narrow to a subset (e.g. just two prod hosts)
    * without losing the per-host breakdown.
+   *
+   * It names its kind (DashboardResourceScope.Host): every widget reads a
+   * host's own telemetry only, picked or not - never a Kubernetes node's
+   * system.* metrics, which the tiles used to average in, nor a Docker
+   * host's or a pod's - and the picker offers hosts' names only (issues
+   * #11257, #11258).
    */
   const variables: Array<DashboardVariable> = [
     createTelemetryAttributeVariable({
@@ -3937,6 +3959,7 @@ function createHostDashboardConfig(): DashboardViewConfig {
       label: "Host",
       attributeKey: "resource.host.name",
       isMultiSelect: true,
+      resourceScope: DashboardResourceScope.Host,
     }),
   ];
 
@@ -4083,6 +4106,7 @@ function createProxmoxDashboardConfig(): DashboardViewConfig {
       name: "cluster",
       label: "Cluster",
       attributeKey: "resource.proxmox.cluster.name",
+      resourceScope: DashboardResourceScope.ProxmoxCluster,
     }),
   ];
 
@@ -4337,6 +4361,7 @@ function createOpenStackDashboardConfig(): DashboardViewConfig {
       name: "cloud",
       label: "Cloud",
       attributeKey: "resource.openstack.cloud.name",
+      resourceScope: DashboardResourceScope.OpenStackCloud,
     }),
     createTelemetryAttributeVariable({
       name: "region",
@@ -4591,6 +4616,7 @@ function createVMwareDashboardConfig(): DashboardViewConfig {
       name: "vcenter",
       label: "vCenter",
       attributeKey: "resource.vmware.vcenter.name",
+      resourceScope: DashboardResourceScope.VMwareVCenter,
     }),
   ];
 
@@ -4766,6 +4792,7 @@ function createXcpNgDashboardConfig(): DashboardViewConfig {
       name: "pool",
       label: "XCP-ng Pool",
       attributeKey: "resource.xcp_ng.pool.name",
+      resourceScope: DashboardResourceScope.XcpNgPool,
     }),
   ];
 
@@ -4797,7 +4824,12 @@ function createDockerSwarmDashboardConfig(): DashboardViewConfig {
    *   so the chart draws it as stored.
    *
    * - The cluster variable scopes telemetry by the only resource
-   *   attribute the agent stamps: resource.docker.swarm.cluster.name.
+   *   attribute the agent stamps: resource.docker.swarm.cluster.name. It
+   *   names its kind (DashboardResourceScope.DockerSwarmCluster), so with
+   *   no cluster picked the board still reads swarm telemetry only: the
+   *   Docker Agent sends the same container.* metrics, and they and every
+   *   other log used to fill this board in a project with no swarm at all
+   *   (issue #11258).
    */
   const components: Array<DashboardBaseComponent> = [
     // Row 0: Title
@@ -4898,6 +4930,7 @@ function createDockerSwarmDashboardConfig(): DashboardViewConfig {
       name: "cluster",
       label: "Cluster",
       attributeKey: "resource.docker.swarm.cluster.name",
+      resourceScope: DashboardResourceScope.DockerSwarmCluster,
     }),
   ];
 
@@ -5069,6 +5102,7 @@ function createCephDashboardConfig(): DashboardViewConfig {
       name: "cluster",
       label: "Cluster",
       attributeKey: "resource.ceph.cluster.name",
+      resourceScope: DashboardResourceScope.CephCluster,
     }),
   ];
 
@@ -5333,6 +5367,7 @@ function createStorageArrayDashboardConfig(): DashboardViewConfig {
       name: "array",
       label: "Storage Array",
       attributeKey: "resource.storage.array.name",
+      resourceScope: DashboardResourceScope.StorageArray,
     }),
   ];
 

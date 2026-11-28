@@ -197,4 +197,7 @@ tests:
       ebpf.dropUnlinkedClientCalls: "yes"
     asserts:
       - failedTemplate:
-          errorPattern: "dropUnlinkedClientCalls: Invalid type. Expected: boolean, given: string"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/dropUnlinkedClientCalls': got string, want boolean

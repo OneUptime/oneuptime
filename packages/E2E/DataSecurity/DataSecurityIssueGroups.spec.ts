@@ -296,13 +296,17 @@ test.describe("Fix the Cause", () => {
     );
     await expect(dialog).toContainText("modules/static-site/main.tf");
     await expect(dialog.getByTestId(`${FIX}-cloud`)).toHaveCount(0);
-    // The repository the grouping found is the one picked.
-    await expect(dialog.getByTestId(`${FIX}-pull-request`)).toContainText(
-      "acme/infra",
-    );
-    await expect(
-      dialog.getByRole("combobox", { name: "Repository" }),
-    ).toBeVisible();
+    /*
+     * The repository the grouping found is the one picked, named as its
+     * project names it - infra, its host's acme/infra under it in the list
+     * (CodeRepositorySearchField, #10921).
+     */
+    const repository: Locator = dialog.getByRole("button", {
+      name: "Repository",
+      exact: true,
+    });
+    await expect(repository).toBeVisible();
+    await expect(repository).toHaveAccessibleDescription("infra");
     await settle(page);
     await screenshot(page, "fix-the-cause-pull-request-1280", false);
 

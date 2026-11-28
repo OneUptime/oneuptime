@@ -79,6 +79,16 @@ Cada instância do OneUptime fornece os próprios instaladores, então uma inst�
 A última etapa da caixa de diálogo informa quando o host se conecta, com um link para ele. Na lista, ele aparece como **Iniciando** até chegarem as primeiras métricas, geralmente em até um minuto, e depois com a integridade dele, **Íntegro** quando nada nele precisa de atenção, e o coletor **Em execução**. A página **Topologia** do host desenha em um único mapa o que roda nele, o que o chama e o que ele chama: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
 :::
 
+## O que conta como host
+
+A lista **Hosts** mostra as máquinas que enviam a própria telemetria a partir de um coletor na máquina. Outra telemetria também nomeia uma máquina em `host.name`, mas nunca adiciona um host:
+
+- a de um host Docker ou Podman, que traz `container.runtime`: ela fica em **Docker** ou **Podman**;
+- a de um cluster, nó ou pod do Kubernetes, que traz `k8s.cluster.name`, `k8s.node.name` ou `k8s.pod.name`: ela fica em **Kubernetes**;
+- a do próprio contêiner, que traz `container.id`, e a de uma aplicação, que traz `telemetry.sdk.name`: ela fica no serviço da aplicação.
+
+Versões anteriores adicionavam algumas dessas máquinas como hosts: hosts Docker e Podman, nós e pods do Kubernetes, e um host para cada pod de um app que exporta direto para o OneUptime, mais um a cada rollout. A atualização os arquivou, cada um com uma entrada no feed dele que diz por quê. Ela manteve cada host que você mesmo adicionou, cada host cujo coletor o OneUptime gerencia e cada host que enviou as leituras próprias de um host. Os arquivados ficam em **Avançado → Arquivado** na lista **Hosts**, onde **Desarquivar** traz um de volta.
+
 ## Ver quais hosts requerem atenção
 
 A lista **Hosts** começa com **Requer atenção**: cada host que está quebrado ou precisa de atenção, o mais urgente primeiro, cada um com o motivo e um passo até a página dele. Um host que parou de reportar diz quando reportou pela última vez. Quando nada requer atenção, não há cartão.

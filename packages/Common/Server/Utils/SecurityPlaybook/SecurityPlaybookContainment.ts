@@ -213,6 +213,13 @@ export function describeTarget(target: SecurityPlaybookTarget): string {
     case SecurityPlaybookTargetState.LeftOut:
       return "left out by the approver";
     case SecurityPlaybookTargetState.Proposed:
+      // Forwarded through a proxy nothing vouches for (#11389): its block waits for a person.
+      if (target.unvouchedProxy !== undefined) {
+        return target.unvouchedProxy
+          ? `came through ${target.unvouchedProxy}, a private address you haven't listed as a proxy: the client may have written it`
+          : "came through proxies OneUptime can't name: the client may have written it";
+      }
+
       return target.reason === SecurityPlaybookTargetReason.ThreatIntel
         ? "known to threat intel"
         : "what the case is grouped on";

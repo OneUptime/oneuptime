@@ -61,6 +61,10 @@ Legen Sie den **Attributschlüssel** fest, etwa `service.name`, `host.name` oder
 
 Das ist die häufigste Quelle, weil sie keine eigene Liste braucht: Die Werte sind die, die Sie ohnehin senden.
 
+Eine Telemetry-Attribute-Variable kann außerdem einen **Ressourcentyp** haben: **Kubernetes-Cluster**, **Hosts**, **Docker-Swarm-Cluster**, **Proxmox-Cluster**, **OpenStack-Clouds**, **VMware-vCenter**, **XCP-ng-Pools**, **Ceph-Cluster** oder **Speicher-Arrays**. Mit einem Typ zeigt jedes Widget nur die Daten dieses Typs, schon bevor ein Wert gewählt ist: **Alle** heißt dann **Alle Hosts**, **Alle Cluster** und so weiter und zeigt sie alle, und die Wahl von Werten grenzt die Anzeige auf diese ein. Die Auswahl bietet nur die Namen dieses Typs an, sodass eine Variable vom Typ **Hosts** Ihre Hosts anbietet, nie einen Docker-Host oder einen Pod. Solange noch nichts dieses Typs an OneUptime meldet, sagt das Dashboard das über seinen Widgets, mit einer Schaltfläche zum Einrichten, etwa **Kubernetes einrichten**.
+
+Die Infrastrukturvorlagen geben ihrer Variablen ihren Typ, und Dashboards, die vor der Einführung der Typen aus ihnen erstellt wurden, haben ihren beim Upgrade erhalten. Um wieder das ganze Projekt zu lesen, setzen Sie den **Ressourcentyp** der Variablen auf **Beliebiger Ressourcentyp**.
+
 ### Project Labels
 
 Wählen Sie vorhandene Projektbeschriftungen, die als Auswahl des Dashboards angeboten werden. Erstellen Sie zum Beispiel eine Variable namens `UNIT`, setzen Sie ihre Quelle auf **Projektbeschriftungen**, und wählen Sie die Beschriftungen `0660` und `0661`.
@@ -83,7 +87,7 @@ Eine Query-Variable aus einem älteren Dashboard bleibt erhalten und zeigt ein T
 
 Mit angehaktem **Mehrfachauswahl zulassen** wählen Betrachter einen oder mehrere Werte, und die Widgets zeigen jeden davon. Eine leere Auswahl bedeutet **Alle**, und eine Variable mit Mehrfachauswahl beginnt immer mit **Alle**, daher ist ihr **Standard** ausgegraut.
 
-Eine Variable mit Einzelauswahl beginnt mit ihrem **Standard**, oder mit **Alle**, wenn sie keinen hat. **Alle** entfernt den Filter der Variablen, sodass die Widgets alles zeigen.
+Eine Variable mit Einzelauswahl beginnt mit ihrem **Standard**, oder mit **Alle**, wenn sie keinen hat. **Alle** entfernt den Filter der Variablen, sodass die Widgets alles zeigen. Bei einer Variablen mit einem **Ressourcentyp** zeigen sie alles dieses Typs.
 
 Nutzen Sie die Mehrfachauswahl, um „checkout und payments zusammen“ zu vergleichen, ohne das Dashboard zu verlassen. Vermeiden Sie sie dort, wo die Zahlen über Werte hinweg nicht aufgehen, etwa bei einem Durchschnitt aus Durchschnitten.
 

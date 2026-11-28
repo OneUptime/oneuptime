@@ -61,6 +61,10 @@ Define la **Clave del atributo**, como `service.name`, `host.name` o `k8s.namesp
 
 Es el origen más habitual, porque no necesita una lista propia: los valores son los que ya envías.
 
+Una variable Telemetry Attribute también puede tener un **Tipo de recurso**: **Clústeres de Kubernetes**, **Hosts**, **clústeres de Docker Swarm**, **clústeres de Proxmox**, **nubes de OpenStack**, **vCenters de VMware**, **pools de XCP-ng**, **clústeres de Ceph** o **Cabinas de almacenamiento**. Con uno, cada widget muestra solo los datos de ese tipo, incluso antes de elegir un valor: **Todos** aparece como **Todos los hosts**, **Todos los clústeres**, etc., y los muestra todos, y elegir valores lo limita a esos. El selector ofrece solo los nombres de ese tipo, así que una variable de **Hosts** ofrece tus hosts, nunca un host de Docker ni un pod. Mientras nada de ese tipo envíe datos a OneUptime, el panel lo indica encima de sus widgets, con un botón para configurar uno, como **Configurar Kubernetes**.
+
+Las plantillas de infraestructura dan su tipo a su variable, y los paneles creados a partir de ellas antes de que existieran los tipos recibieron el suyo al actualizar. Para volver a leer todo el proyecto, establece el **Tipo de recurso** de la variable en **Cualquier tipo de recurso**.
+
 ### Project Labels
 
 Elige etiquetas de proyecto existentes para ofrecerlas como un desplegable del panel. Por ejemplo, crea una variable llamada `UNIT`, pon su origen en **Etiquetas del proyecto** y elige las etiquetas `0660` y `0661`.
@@ -83,7 +87,7 @@ Una variable Query de un panel antiguo se conserva y muestra un cuadro de texto 
 
 Con **Permitir selección múltiple** marcado, los espectadores eligen uno o varios valores, y los widgets muestran cualquiera de ellos. Una selección vacía significa **Todos**, y una variable de selección múltiple siempre empieza en **Todos**, por lo que su valor **Predeterminado** aparece atenuado.
 
-Una variable de selección única empieza en su valor **Predeterminado**, o en **Todos** si no tiene ninguno. **Todos** quita el filtro de la variable, así que los widgets lo muestran todo.
+Una variable de selección única empieza en su valor **Predeterminado**, o en **Todos** si no tiene ninguno. **Todos** quita el filtro de la variable, así que los widgets lo muestran todo. En una variable con un **Tipo de recurso**, muestran todo lo de ese tipo.
 
 Usa la selección múltiple para comparar "checkout y payments juntos" sin salir del panel. Evítala cuando los números no se suman entre valores, como en una media de medias.
 

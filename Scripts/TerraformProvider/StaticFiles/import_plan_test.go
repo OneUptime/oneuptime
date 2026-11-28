@@ -83,13 +83,15 @@ func newSettleAPI(t *testing.T) *settleAPI {
 
 	// A monitor made in the dashboard: OneUptime keeps its criteria's
 	// defaults, the request type it defaults to, and a bare origin with its
-	// trailing slash.
+	// trailing slash, and answers every column that has a default - one left
+	// out here imports as null, and the plan then sets it to its default.
 	api.rows["/monitor"][settleMonitorID] = map[string]interface{}{
-		"name":                    "Storefront",
-		"monitorType":             "Website",
-		"isArchived":              false,
-		"disableActiveMonitoring": false,
-		"keepResponseContent":     true,
+		"name":                          "Storefront",
+		"monitorType":                   "Website",
+		"isArchived":                    false,
+		"disableActiveMonitoring":       false,
+		"keepResponseContent":           true,
+		"keepMonitoringDuringIncidents": false,
 		"monitorSteps": monitorStepWire("https://example.com/", onlineCriteria(serverCriteriaDefaults), map[string]interface{}{
 			"requestType": "GET",
 		}),

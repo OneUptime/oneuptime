@@ -10,6 +10,10 @@ import {
   readTelemetryLeakFrame,
   readTelemetryLeakList,
 } from "../../../../Types/DataSecurity/TelemetryLeakFix";
+import {
+  isRumSessionTagLocation,
+  RUM_SET_TAGS_CALL,
+} from "../../../../Types/DataSecurity/RumSessionPlaces";
 import { METRIC_NAME_LOCATION } from "../../../../Types/DataSecurity/TelemetryScrubTarget";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import BUILT_IN_DETECTORS from "../../../../Utils/DataSecurity/Detectors/Index";
@@ -65,8 +69,9 @@ export const MAX_RUM_FRAMES_RESOLVED: number = 20;
  * template - and the page it was written on: the path the URL scrubber
  * keeps of it (no host, no query; a hash route kept, identifiers masked),
  * as a template. A session's user details name the session recorder call
- * that gave them (identify) and the page the session started on. Never a
- * recording: no finding is in one, and nothing here reads one.
+ * that gave them (identify), its tags the one that gave those (setTags,
+ * #11458), and both the page the session started on. Never a recording:
+ * no finding is in one, and nothing here reads one.
  *
  * Pure - no database, no scanner, no service - so the eval set of recorded
  * findings and the code agent's benchmark read records exactly as the
@@ -594,19 +599,24 @@ export function readLeakPlaceOfRow(data: {
       break;
     }
     /*
-     * A session's: the page it started on, and for its user details (its
-     * label and traits) the recorder call that gave them. A session's own
-     * attributes are the host page's, not identify()'s: their key names them.
+     * A session's: the page it started on, and the recorder call that gave
+     * it what holds the data - identify() its user details (its label and
+     * traits), setTags() its tags (#11458; addTag() writes the same map).
+     * A session's own attributes are the recorder's: their key names them.
      */
     case TelemetrySampleSource.RumSessions: {
       const page: string = readRumPage(row, data.templateOf);
-      const isUserDetail: boolean = data.location.startsWith(
+      const recorderCall: string | null = data.location.startsWith(
         RUM_USER_DETAILS_PREFIX,
-      );
+      )
+        ? RUM_IDENTIFY_CALL
+        : isRumSessionTagLocation(data.location)
+          ? RUM_SET_TAGS_CALL
+          : null;
 
       place = {
         ...place,
-        ...(isUserDetail ? { recorderCall: RUM_IDENTIFY_CALL } : {}),
+        ...(recorderCall ? { recorderCall } : {}),
         ...(page ? { page } : {}),
       };
       break;

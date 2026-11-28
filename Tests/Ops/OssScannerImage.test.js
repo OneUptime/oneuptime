@@ -995,7 +995,12 @@ describe("the settings the image, its scripts, CI and the Probe image share", ()
   });
 
   test("a suite against a Keeper cluster reads a variable of its own, which config.env leaves unset", () => {
-    for (const suite of clickhouseSuites.filter(isKeeperClusterSuite)) {
+    const keeperSuites = clickhouseSuites.filter(isKeeperClusterSuite);
+
+    // Four when this was written: renamed, the loop below would check nothing.
+    expect(keeperSuites.length).toBeGreaterThan(0);
+
+    for (const suite of keeperSuites) {
       const text = read(suite);
 
       expect(text).toContain(

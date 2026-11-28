@@ -1,5 +1,9 @@
 import StorageArrayResourceKind from "./StorageArrayResourceKind";
 import {
+  getSharedKindLabels,
+  StorageArrayResourceKindLabels,
+} from "./StorageArrayResourceKindLabels";
+import {
   StorageArrayKindDefinition,
   StorageArrayPlatform,
 } from "./StorageArrayPlatform";
@@ -8,40 +12,9 @@ import StorageArrayPlatformRegistry from "./StorageArrayPlatformRegistry";
 /*
  * Which kinds of object a platform's inventory holds, and what each is
  * called. The kinds of a platform and the words of a kind only one platform
- * has come from StorageArrayPlatformRegistry; the shared kinds' words are
- * here.
+ * has come from StorageArrayPlatformRegistry; the shared kinds' words from
+ * StorageArrayResourceKindLabels.
  */
-const KIND_LABELS: Record<
-  StorageArrayResourceKind,
-  { singular: string; plural: string }
-> = {
-  [StorageArrayResourceKind.Volume]: { singular: "Volume", plural: "Volumes" },
-  [StorageArrayResourceKind.Host]: { singular: "Host", plural: "Hosts" },
-  [StorageArrayResourceKind.Pod]: { singular: "Pod", plural: "Pods" },
-  [StorageArrayResourceKind.Hardware]: {
-    singular: "Hardware Component",
-    plural: "Hardware Components",
-  },
-  [StorageArrayResourceKind.Drive]: { singular: "Drive", plural: "Drives" },
-  [StorageArrayResourceKind.Controller]: {
-    singular: "Controller",
-    plural: "Controllers",
-  },
-  [StorageArrayResourceKind.NetworkInterface]: {
-    singular: "Network Interface",
-    plural: "Network Interfaces",
-  },
-  [StorageArrayResourceKind.Directory]: {
-    singular: "Directory",
-    plural: "Directories",
-  },
-  [StorageArrayResourceKind.FileSystem]: {
-    singular: "File System",
-    plural: "File Systems",
-  },
-  [StorageArrayResourceKind.Bucket]: { singular: "Bucket", plural: "Buckets" },
-};
-
 export class StorageArrayResourceKindUtil {
   // The kinds platforms share. A platform's own kinds are its own.
   public static getAllKinds(): Array<StorageArrayResourceKind> {
@@ -107,9 +80,11 @@ export class StorageArrayResourceKindUtil {
   private static getLabels(
     kind: string,
     storageSystem?: string | null | undefined,
-  ): { singular: string; plural: string } | undefined {
-    if (Object.prototype.hasOwnProperty.call(KIND_LABELS, kind)) {
-      return KIND_LABELS[kind as StorageArrayResourceKind];
+  ): StorageArrayResourceKindLabels | undefined {
+    const shared: StorageArrayResourceKindLabels | undefined =
+      getSharedKindLabels(kind);
+    if (shared) {
+      return shared;
     }
     const definition: StorageArrayKindDefinition | null =
       StorageArrayPlatformRegistry.getKindDefinition(kind, storageSystem);
