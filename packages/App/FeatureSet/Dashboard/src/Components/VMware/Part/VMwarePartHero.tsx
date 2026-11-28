@@ -28,6 +28,8 @@ import {
 } from "../../../Pages/VMware/Utils/VMwareHealth";
 import { VMwareHostVirtualMachineSummary } from "../../../Pages/VMware/Utils/VMwareHostData";
 import { isVMwareRootResourcePool } from "../../../Pages/VMware/Utils/VMwarePartFacts";
+import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import {
   formatBytes,
   formatMhz,
@@ -138,6 +140,8 @@ export function getVMwarePartHeroStatus(data: {
   datacenters: Array<VMwareResource>;
   hosts: Array<VMwareResource>;
   now: Date;
+  // The project's health rules (VMware > Settings > Health Rules).
+  rules?: VMwareHealthRules | undefined;
 }): ResourcePartStatus | undefined {
   const row: VMwareResource | null = data.row;
   if (data.isRowRead === false) {
@@ -152,6 +156,7 @@ export function getVMwarePartHeroStatus(data: {
         host: row,
         datacenter: findVMwareDatacenter(data.datacenters, row.datacenterName),
         now: data.now,
+        rules: data.rules,
       });
     case VMwareResourceKind.VirtualMachine: {
       const status: ResourcePartStatus = getVMwareVirtualMachineStatus({
@@ -159,6 +164,7 @@ export function getVMwarePartHeroStatus(data: {
         now: data.now,
         hosts: data.hosts,
         datacenters: data.datacenters,
+        rules: data.rules,
       });
       return {
         ...status,
@@ -168,7 +174,11 @@ export function getVMwarePartHeroStatus(data: {
       };
     }
     case VMwareResourceKind.Datastore:
-      return getVMwareDatastoreStatus({ datastore: row, now: data.now });
+      return getVMwareDatastoreStatus({
+        datastore: row,
+        now: data.now,
+        rules: data.rules,
+      });
     default:
       return getVMwareClusterStatus({
         cluster: row,
@@ -183,6 +193,7 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const rules: VMwareHealthRules = useVMwareHealthRules();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -472,6 +483,7 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
         datacenters: props.datacenters,
         hosts: props.hosts,
         now: props.now,
+        rules,
       })}
       location={location}
       lastReportAt={lastReportAt}

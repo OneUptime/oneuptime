@@ -14,10 +14,12 @@ import {
   routeParamFromExternalId,
 } from "../Utils/VMwareResourceUtils";
 import {
-  VMWARE_USAGE_BAR_THRESHOLDS,
   getVMwareClusterHostsTone,
+  getVMwareUsageBarThresholds,
   toVMwareListResources,
 } from "../../../Components/VMware/VMwareResourceColumns";
+import { useVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -36,6 +38,7 @@ const VMwareVCenterClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const rules: VMwareHealthRules = useVMwareHealthRules();
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -129,10 +132,7 @@ const VMwareVCenterClusters: FunctionComponent<
         cpu: VMWARE_METRIC_DESCRIPTIONS.clusterCpuInUse,
         memory: VMWARE_METRIC_DESCRIPTIONS.clusterMemoryInUse,
       }}
-      metricThresholds={{
-        cpu: VMWARE_USAGE_BAR_THRESHOLDS,
-        memory: VMWARE_USAGE_BAR_THRESHOLDS,
-      }}
+      metricThresholds={getVMwareUsageBarThresholds(rules)}
       tableIdPrefix="vmware"
       emptyMessage="No clusters reported yet. Standalone ESXi hosts have no cluster object; otherwise make sure the VMware agent is sending metrics."
       columns={[

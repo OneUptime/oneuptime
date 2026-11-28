@@ -17,14 +17,15 @@ import ResourcePartDetailsCard, {
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
-  VMWARE_DATASTORE_CRITICAL_PERCENT,
-  VMWARE_DATASTORE_WARNING_PERCENT,
   getVMwareDatastorePercent,
+  getVMwareThresholdLine,
   isVMwareIssueAbout,
   toVMwareDate,
   toVMwareNumber,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
 import { VMWARE_DATASTORE_ALERT_TEMPLATE_IDS } from "../../../Pages/VMware/Utils/VMwarePartFacts";
+import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import {
   formatBytes,
   formatPercent,
@@ -63,6 +64,8 @@ const VMwareDatastoreOverview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // Where the bar turns amber and red: the project's datastore rules.
+  const rules: VMwareHealthRules = useVMwareHealthRules();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -153,8 +156,8 @@ const VMwareDatastoreOverview: FunctionComponent<ComponentProps> = (
           }
           percent={percent}
           thresholds={{
-            warn: VMWARE_DATASTORE_WARNING_PERCENT,
-            danger: VMWARE_DATASTORE_CRITICAL_PERCENT,
+            warn: getVMwareThresholdLine(rules.datastoreWarningPercent),
+            danger: getVMwareThresholdLine(rules.datastoreCriticalPercent),
           }}
           description={VMWARE_METRIC_DESCRIPTIONS.datastoreUsedPercent}
         />

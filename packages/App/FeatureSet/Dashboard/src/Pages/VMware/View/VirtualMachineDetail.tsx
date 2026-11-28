@@ -43,6 +43,8 @@ import {
 } from "../../../Components/VMware/Part/VMwarePartRoutes";
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
+import { useVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 
 const MIB: number = 1024 * 1024;
 const KIB: number = 1024;
@@ -51,6 +53,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const rules: VMwareHealthRules = useVMwareHealthRules();
   // The charts draw their titles and legends as given: hand them the reader's words.
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -498,6 +501,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     now: now,
     routeFor: routes.getPartRoute,
     listRouteFor: routes.getListRoute,
+    rules,
   });
 
   const tabs: Array<Tab> = [

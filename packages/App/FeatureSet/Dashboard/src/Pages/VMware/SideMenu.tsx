@@ -39,6 +39,19 @@ const VMwareSideMenu: FunctionComponent = (): ReactElement => {
       title: "Settings",
       defaultCollapsed: true,
       items: [
+        /*
+         * Where every vCenter marks a part as needing a look or someone now
+         * (#11157): its Overview, its pages, its lists and its Topology.
+         */
+        {
+          link: {
+            title: "Health Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.VMWARE_SETTINGS_HEALTH_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Heart,
+        },
         {
           link: {
             title: "Owner Rules",
