@@ -106,21 +106,22 @@ export class SnmpEngineIdReader {
     target: EngineIdTarget;
   }): Promise<string | undefined> {
     const key: string = SnmpEngineIdReader.keyOf(data.target);
-    const state: EngineIdState = this.states.get(key) || {};
+    const missedAt: number | undefined =
+      this.states.get(key)?.communityMissedAt;
 
-    if (
-      state.communityMissedAt === undefined ||
-      this.now() - state.communityMissedAt >= COMMUNITY_RETRY_MS
-    ) {
+    if (missedAt === undefined || this.now() - missedAt >= COMMUNITY_RETRY_MS) {
       const engineId: string | undefined =
         await SnmpEngineIdReader.readOverCommunity(data.session);
 
+      // As it is now: a discovery may have answered while the GET was out.
+      const latest: EngineIdState = this.states.get(key) || {};
+
       if (engineId) {
-        this.remember(key, { ...state, communityMissedAt: undefined });
+        this.remember(key, { ...latest, communityMissedAt: undefined });
         return engineId;
       }
 
-      this.remember(key, { ...state, communityMissedAt: this.now() });
+      this.remember(key, { ...latest, communityMissedAt: this.now() });
     }
 
     return this.fromDiscovery(data.target);

@@ -462,6 +462,43 @@ describe("readForCommunityPoll: the community first, then discovery", () => {
     expect(reader.getDiscoveriesUnderWay()).toBe(0);
   });
 
+  test("a discovery that answers while a poll's GET is out is kept: the poll writes into the agent's state as it is then", async () => {
+    const lab: ReturnType<typeof readerWithLab> = readerWithLab();
+    lab.answers.set(TARGET.host, ENGINE);
+
+    // An earlier poll found nothing over the community, and an hour has passed.
+    await lab.reader.readForCommunityPoll({
+      session: sessionAnswering(NO_ENGINE_IN_VIEW).session,
+      target: TARGET,
+    });
+    await lab.reader.whenIdle();
+    lab.setNow(Date.UTC(2026, 10, 28, 9, 0, 0) + COMMUNITY_RETRY_MS);
+
+    let answerTheGet: () => void = (): void => {};
+    const slowGet: snmp.Session = {
+      get: (
+        _oids: Array<string>,
+        callback: (error: Error | null, varbinds?: Array<snmp.Varbind>) => void,
+      ): void => {
+        answerTheGet = (): void => {
+          callback(null, NO_ENGINE_IN_VIEW.varbinds);
+        };
+      },
+    } as unknown as snmp.Session;
+
+    const polling: Promise<string | undefined> =
+      lab.reader.readForCommunityPoll({ session: slowGet, target: TARGET });
+
+    // Meanwhile a rediscovery is due, and answers with a new engine.
+    lab.answers.set(TARGET.host, "800000090300AABBCC1140CC");
+    lab.reader.fromDiscovery(TARGET);
+    await lab.reader.whenIdle();
+
+    answerTheGet();
+    expect(await polling).toBe("800000090300AABBCC1140CC");
+    expect(lab.reader.fromDiscovery(TARGET)).toBe("800000090300AABBCC1140CC");
+  });
+
   test("a community that throws is a community that found nothing", async () => {
     const lab: ReturnType<typeof readerWithLab> = readerWithLab();
     lab.answers.set(TARGET.host, ENGINE);
