@@ -68,6 +68,7 @@ import {
   timedOutRequestError,
   unresolvedNameRequestError,
 } from "../../TestingUtils/NotificationRequestErrors";
+import { getSpokenCall } from "../../../../Utils/Call/CallLanguage";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -902,7 +903,7 @@ describe("call", () => {
     expect(gather.responseUrl.toString()).toBe(CALL_RESPONSE_URL);
   });
 
-  test("to a person who reads Persian, is English only: no voice speaks Persian", async () => {
+  test("to a person who reads Persian, carries its Persian beside its English: Twilio speaks the English, a gateway may speak Persian (#11459)", async () => {
     await deliver(
       {
         userCall: {
@@ -920,7 +921,12 @@ describe("call", () => {
       JSONObject,
     ];
 
-    expect(callRequest.inLanguage).toBeUndefined();
+    expect(callRequest.inLanguage?.language).toBe("fa");
+    expect(callRequest.inLanguage!.data.length).toBe(callRequest.data.length);
+    // No voice of Twilio's speaks Persian: through it, the call is the English one.
+    expect(getSpokenCall(callRequest, "Polly.Joanna-Neural").language).toBe(
+      "en",
+    );
   });
 });
 
