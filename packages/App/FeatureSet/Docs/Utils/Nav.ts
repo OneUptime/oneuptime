@@ -603,6 +603,10 @@ const DocsNav: NavGroup[] = [
         title: "Notification Settings",
         url: "/docs/notifications/notification-settings",
       },
+      {
+        title: "Notification Logs",
+        url: "/docs/notifications/notification-logs",
+      },
     ],
   },
   {
