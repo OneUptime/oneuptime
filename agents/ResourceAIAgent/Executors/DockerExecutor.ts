@@ -152,12 +152,18 @@ export const ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
 
 /*
  * OneUptime's other agents, which may share this engine: the Host AI agent,
- * the Ceph, Proxmox, VMware, OpenStack and Storage Array collectors and their
- * AI agents (named by their docker-compose.yml files), and the database agent's
- * collector and AI agent, which Compose names after the install directory
- * (<project>-oneuptime-database-agent-1), hence the globs - as it names the
- * Storage Array agent's Pure exporter sidecars (<project>-pure-fa-exporter-1).
- * OneUptime AI never changes them either.
+ * the Ceph, Proxmox, VMware, OpenStack, Storage Array and XCP-ng collectors
+ * and their AI agents (named by their docker-compose*.yml files), and the
+ * database agent's collector and AI agent, which Compose names after the
+ * install directory (<project>-oneuptime-database-agent-1), hence the globs -
+ * as it names the Storage Array agent's exporter and syslog sidecars
+ * (<project>-pure-fa-exporter-1). A second Storage Array or XCP-ng agent on
+ * the same machine runs under a name of its own (its .env's
+ * STORAGE_ARRAY_AGENT_CONTAINER_NAME or XCP_NG_AGENT_CONTAINER_NAME), which
+ * install.sh derives from these unless someone exports another: whatever it
+ * is, the container is still its Compose service's, which
+ * parseDockerTargetInspect reads from its labels and run() holds to these
+ * names too. OneUptime AI never changes them either.
  */
 export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   // agents/HostAIAgent
@@ -176,21 +182,35 @@ export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   // agents/VMwareAgent
   "oneuptime-vmware-agent",
   "oneuptime-vmware-ai-agent",
-  // agents/OpenStackAgent: the collector, its exporters, the AI agent
+  /*
+   * agents/OpenStackAgent: the collector, its exporters, the AI agent, and
+   * the log-only and trace-only collectors of docker-compose.logs.yml and
+   * docker-compose.traces.yml
+   */
   "oneuptime-openstack-agent",
   "oneuptime-openstack-exporter",
   "oneuptime-openstack-quota-exporter",
   "oneuptime-openstack-database-exporter",
   "oneuptime-openstack-worker-state-exporter",
   "oneuptime-openstack-ai-agent",
+  "oneuptime-openstack-logs",
+  "oneuptime-openstack-traces",
   /*
    * agents/StorageArrayAgent: the collector (a second array's agent, in a
-   * folder of its own, renames it), and Pure's exporters, one per install
+   * folder of its own, has a name of its own), and the exporters and the
+   * syslog collector Compose names after each install's directory: Pure's,
+   * Dell's, PowerStore's syslog and NetApp Harvest
    */
   "oneuptime-storage-array-agent",
   "*oneuptime-storage-array-agent*",
   "*pure-fa-exporter*",
   "*pure-fb-exporter*",
+  "*powerstore-exporter*",
+  "*powerstore-syslog*",
+  "*netapp-harvest*",
+  // agents/XcpNgAgent: the collector (a second Xen Orchestra's, likewise)
+  "oneuptime-xcp-ng-agent",
+  "*oneuptime-xcp-ng-agent*",
   // agents/DatabaseAgent: Compose services, one install per database
   "*oneuptime-database-agent*",
   "*oneuptime-database-ai-agent*",
@@ -199,6 +219,13 @@ export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
 // Labels on the agent's own container that name what it belongs to.
 const SWARM_SERVICE_NAME_LABEL: string = "com.docker.swarm.service.name";
 const STACK_NAMESPACE_LABEL: string = "com.docker.stack.namespace";
+
+/*
+ * The label docker compose puts on every container it makes: the service it
+ * made it for, whatever the container is named (container_name, or
+ * <project>-<service>-<n>).
+ */
+const COMPOSE_SERVICE_LABEL: string = "com.docker.compose.service";
 
 // A full container id, as docker and podman write it.
 const CONTAINER_ID_PATTERN: RegExp = /^[0-9a-f]{64}$/;
@@ -548,7 +575,11 @@ export interface DockerTargetIdentity {
    * leading "/"), a service's name, a node's name and host name.
    */
   names: Array<string>;
-  // The swarm service a container is a task of, when it is one.
+  /*
+   * What a container belongs to: the swarm service it is a task of, and the
+   * Compose service it was made for - which stays the same when someone
+   * gives the container a name of its own.
+   */
   memberOf: Array<string>;
   /*
    * What the object's state says about the change (describeDockerTargetStateRefusal);
@@ -657,6 +688,7 @@ export function parseDockerTargetInspect(data: {
 
       if (labels) {
         addName(memberOf, labels[SWARM_SERVICE_NAME_LABEL]);
+        addName(memberOf, labels[COMPOSE_SERVICE_LABEL]);
       }
 
       // Only what the engine said is recorded.
@@ -1390,10 +1422,12 @@ export default class DockerExecutor implements ResourceExecutor {
    * "oneuptime-docker-agent" does; a swarm service or node goes by its id
    * too). So each target is looked up on the engine (`docker
    * container|service|node inspect`) and its id and every name it goes by —
-   * and, for a container, the swarm service it is a task of — are held to
-   * the protected targets; with ONEUPTIME_AI_WRITE_TARGETS set, one of the
-   * object's own names must be inside it too. A target the engine cannot
-   * resolve is refused: the agent never changes what it cannot identify.
+   * and, for a container, the swarm service it is a task of and the Compose
+   * service it was made for, so a OneUptime agent's container given a name
+   * of its own is still protected — are held to the protected targets; with
+   * ONEUPTIME_AI_WRITE_TARGETS set, one of the object's own names must be
+   * inside it too. A target the engine cannot resolve is refused: the agent
+   * never changes what it cannot identify.
    * The refusal (or null) is returned, never thrown.
    */
   private async checkResolvedTargets(data: {
