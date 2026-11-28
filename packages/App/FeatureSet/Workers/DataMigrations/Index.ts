@@ -164,6 +164,8 @@ import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopi
 import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
 import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
 import MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType from "./MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType";
+import ArchiveHostsRegisteredFromNonHostTelemetry from "./ArchiveHostsRegisteredFromNonHostTelemetry";
+import ScopeTemplateDashboardVariablesToTheirResources from "./ScopeTemplateDashboardVariablesToTheirResources";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1737,6 +1739,22 @@ const DataMigrations: Array<DataMigrationBase> = [
    * kept last.
    */
   new MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType(),
+  /*
+   * The Hosts an earlier release registered from a Docker or Podman host's,
+   * Kubernetes' or an application's telemetry are archived, each saying why
+   * in its feed, and the container runtime is cleared off the Hosts kept
+   * (#11257). Postgres only, idempotent; no ordering requirement of its
+   * own; before the two slots kept last.
+   */
+  new ArchiveHostsRegisteredFromNonHostTelemetry(),
+  /*
+   * A dashboard made from an infrastructure template has its template
+   * variable name the kind of resource it picks among, as the template now
+   * ships it, so "All" reads that kind and not the whole project (#11258).
+   * Postgres only, idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
+   */
+  new ScopeTemplateDashboardVariablesToTheirResources(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams
