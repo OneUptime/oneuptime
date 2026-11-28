@@ -90,10 +90,12 @@ export interface CallVoice extends SpokenCallVoice {
 
 /*
  * Twilio's price for these voices - neural ones - per 100 characters said,
- * in US dollars, as Twilio listed it in November 2026
- * (https://www.twilio.com/en-us/voice/pricing/us). Twilio prices a call's
- * speech in blocks of 100 characters, 100 at least. Basic voices, the
- * account default's, are free.
+ * in US dollars, as Twilio listed it in November 2026, "current as of
+ * October 2026" (https://www.twilio.com/en-us/voice/pricing/us), for its
+ * Neural tier: Polly's neural voices and Google's WaveNet and Neural2 ones,
+ * every voice of the lists below. Twilio prices a call's speech in blocks
+ * of 100 characters, 100 at least. Basic voices, the account default's,
+ * are free.
  */
 export const CALL_VOICE_PRICE_PER_100_CHARACTERS_IN_USD: number = 0.0032;
 
@@ -101,9 +103,21 @@ export const CALL_VOICE_PRICE_PER_100_CHARACTERS_IN_USD: number = 0.0032;
  * About how many characters a page's call says when nobody presses a key:
  * who calls, what happened and its number, the keys and a title, twice,
  * then its goodbye (Utils/Call/OnCallPageCall) - a title is cut at 100
- * characters.
+ * characters. In English.
  */
 export const CALL_VOICE_CHARACTERS_IN_A_PAGE: number = 500;
+
+/*
+ * The same in the language that says the most of it (#11066): French says
+ * about 635 characters for an episode's call, German about 620, where
+ * English says under 500 and Chinese about 315 - measured by the call's
+ * own builder in every language a call is spoken in
+ * (Tests/Utils/Call/OnCallPageCallCost). What a page's call costs at most
+ * is read from it, so what the picker says it costs holds in every one:
+ * under 3 US cents. A page again, a person's page and their message say
+ * more, in English too.
+ */
+export const CALL_VOICE_MOST_CHARACTERS_IN_A_PAGE: number = 700;
 
 export const CALL_VOICES: ReadonlyArray<CallVoice> = Object.freeze([
   {
@@ -451,26 +465,38 @@ export function getCallVoiceForLanguage(
 /*
  * About what a page's call costs in this voice, in US dollars, as Twilio
  * prices it: blocks of 100 characters, for about as many as a page's call
- * says. Free (0) for no voice - the account's default.
+ * says - in English, or `characters` of another call. Free (0) for no voice
+ * - the account's default. A call in another language costs as much per
+ * character: its voice is in the same tier.
  */
-export function getCallVoiceCostOfAPageInUsd(voice: CallVoice | null): number {
+export function getCallVoiceCostOfAPageInUsd(
+  voice: SpokenCallVoice | null,
+  characters: number = CALL_VOICE_CHARACTERS_IN_A_PAGE,
+): number {
   if (!voice) {
     return 0;
   }
 
   return (
-    Math.ceil(CALL_VOICE_CHARACTERS_IN_A_PAGE / 100) *
+    Math.max(1, Math.ceil(characters / 100)) *
     CALL_VOICE_PRICE_PER_100_CHARACTERS_IN_USD
   );
 }
 
 /*
- * The same in whole US cents, rounded up: what the picker says a page's
- * call costs at most ("under 2 US cents"). 0 for the account's default
+ * The most a page's call costs in this voice, in whole US cents, rounded
+ * up: what the picker says it costs ("under 2 US cents") - for the longest
+ * call in any language it is spoken in (CALL_VOICE_MOST_CHARACTERS_IN_A_PAGE,
+ * #11066), and so for the English one too. 0 for the account's default
  * voice, which is free.
  */
-export function getCallVoiceCentsOfAPage(voice: CallVoice | null): number {
+export function getCallVoiceCentsOfAPage(voice: SpokenCallVoice | null): number {
   return Math.ceil(
-    Number((getCallVoiceCostOfAPageInUsd(voice) * 100).toFixed(6)),
+    Number(
+      (
+        getCallVoiceCostOfAPageInUsd(voice, CALL_VOICE_MOST_CHARACTERS_IN_A_PAGE) *
+        100
+      ).toFixed(6),
+    ),
   );
 }
