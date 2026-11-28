@@ -227,9 +227,9 @@ export default class GetFilesFromMarkdown extends ComponentCode {
     }
 
     const shown: string =
-      text.length > 0 && text.length <= 80 ? `"${text}"` : "what it was given";
+      text.length > 0 && text.length <= 80 ? ` "${text}"` : "";
 
-    return `Record ID ${shown} is not an ID. Pick the ID of the ${name} with { }, or paste one.`;
+    return `Record ID${shown} is not an ID. Pick the ID of the ${name} with { }, or paste one.`;
   }
 
   private takeError(data: {
