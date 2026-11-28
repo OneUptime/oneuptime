@@ -61,6 +61,8 @@ export enum SecurityBlockDestinationProvider {
   MicrosoftDefender = "MicrosoftDefender",
   // CrowdStrike Falcon's custom IOCs, on every machine (#10346).
   CrowdStrike = "CrowdStrike",
+  // CrowdSec's ban decisions, through its Local API, which its remediation components enforce (#11158).
+  CrowdSec = "CrowdSec",
 }
 
 /*

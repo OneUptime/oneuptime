@@ -51,6 +51,9 @@ export const GOOGLE_WORKSPACE: string = "integrations/google-workspace";
 // What Cloudflare's firewall did at the edge.
 export const CLOUDFLARE: string = "integrations/cloudflare";
 
+// The alerts CrowdSec sends, and the bans it holds for the blocklist (#11158).
+export const CROWDSEC: string = "integrations/crowdsec";
+
 // Task 28c: issues opened in GitHub and GitLab, and the chat steps.
 export const GITHUB: string = "integrations/github";
 export const GITLAB: string = "integrations/gitlab";
@@ -95,6 +98,7 @@ export const INTEGRATIONS_PAGES: ReadonlyArray<IntegrationsDocsPageEntry> = [
   { page: ENTRA_ID, navTitle: "Microsoft Entra ID" },
   { page: GOOGLE_WORKSPACE, navTitle: "Google Workspace" },
   { page: CLOUDFLARE, navTitle: "Cloudflare" },
+  { page: CROWDSEC, navTitle: "CrowdSec" },
   { page: GITHUB, navTitle: "GitHub" },
   { page: GITLAB, navTitle: "GitLab" },
   { page: DISCORD, navTitle: "Discord" },
@@ -130,6 +134,7 @@ export const SECURITY_CONNECTION_PAGES: ReadonlyArray<string> = [
   ENTRA_ID,
   GOOGLE_WORKSPACE,
   CLOUDFLARE,
+  CROWDSEC,
 ];
 
 // The pages of a workflow that opens an issue for every incident.
@@ -980,6 +985,20 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       // Challenge This Network's permission, where every block takes a list (#10894).
       "Challenge a network by its ASN",
     ],
+    /*
+     * CrowdSec's own name, and the checks its test reports, which the
+     * server names (#11158).
+     */
+    [CROWDSEC]: [
+      "CrowdSec",
+      "Reach CrowdSec's Local API",
+      "Sign in to the Local API",
+      "Read CrowdSec's allowlists",
+      "Block with CrowdSec",
+      "Background workers",
+      "Security event storage",
+      "Alerts received",
+    ],
     // The button that inserts a value into a step's setting: a symbol.
     [DISCORD]: ["{ }"],
     [TELEGRAM]: ["{ }"],
@@ -1385,6 +1404,12 @@ export const GROUPING_VARIABLES: Readonly<
 export const OTHER_TOOL_VARIABLES: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
+  /*
+   * CrowdSec's notification template (#11158): Go's, rendering the alerts
+   * as JSON. CrowdSecDocsFacts holds it to the notification Send alerts
+   * hands out.
+   */
+  [CROWDSEC]: [".|toJson"],
   [NEW_RELIC]: [
     "json issueId",
     "json issuePageUrl",

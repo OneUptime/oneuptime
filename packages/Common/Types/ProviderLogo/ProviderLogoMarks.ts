@@ -166,6 +166,12 @@ export const PROVIDER_LOGO_STAND_IN_ICONS: Readonly<
   [ProviderLogo.AwsSecurityHub]: IconProp.ShieldCheck,
   // CrowdStrike: no display of its marks without its written consent.
   [ProviderLogo.CrowdStrike]: IconProp.Bolt,
+  /*
+   * CrowdSec: no one-colour mark of its own - Simple Icons has none, and
+   * CrowdSec publishes no press kit or brand rules to take one from. A
+   * crowd, for the crowd its signals come from.
+   */
+  [ProviderLogo.CrowdSec]: IconProp.UserGroup,
   // Groq: its logos are for licensed partners only.
   [ProviderLogo.Groq]: IconProp.Bolt,
   /*

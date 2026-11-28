@@ -23,7 +23,7 @@ flowchart TB
 
 ## Voordat je begint
 
-- Voor een lijst een `https`-adres dat een tekstbestand downloadt met één indicator per regel.
+- Voor een lijst een `https`-adres dat een tekstbestand downloadt met één indicator per regel, vrij of met een gebruikersnaam en wachtwoord.
 - Voor een TAXII-feed een TAXII 2.1-server die STIX 2.1-objecten van het type `indicator` publiceert, en de ID van de collectie die moet worden opgehaald. Een TAXII-feed meldt zich anoniem aan, met een bearer-token, of met HTTP Basic-authenticatie.
 - Voor een Google SecOps-feed een [Google SecOps-verbinding](/docs/integrations/google-secops#de-beheerde-connector-instellen) waarvan het serviceaccount indicatorovereenkomsten mag doorzoeken: de rol `roles/chronicle.viewer` mag dat.
 - Servers die een TLS-clientcertificaat vereisen (mutual TLS), zoals CISA AIS, worden niet ondersteund. De openbare ATT&CK-server van MITRE publiceert technieken en groepen in plaats van indicatoren, dus een feed die daarop is gericht, blijft leeg.
@@ -50,7 +50,7 @@ Open **Producten → Beveiligingsgebeurtenissen → Detecties → Dreigingsinfor
 
 ### Maak de feed aan
 
-Klik op **Feed met dreigingsinformatie aanmaken** en kies de **Bron**: **Lijst van indicatoren**, **TAXII-collectie** of **Google SecOps**. De volgende stap vraagt alleen naar die bron: voor een lijst de **Lijst-URL**, voor een collectie **TAXII-server** en **Aanmelden**, of de **Google SecOps-verbinding**. **Bij overeenkomst** komt als laatste. De velden staan in de tabel hieronder.
+Klik op **Feed met dreigingsinformatie aanmaken** en kies de **Bron**: **Lijst van indicatoren**, **TAXII-collectie** of **Google SecOps**. De volgende stap vraagt alleen naar die bron: voor een lijst de **Lijst-URL** en **Aanmelden**, voor een collectie **TAXII-server** en **Aanmelden**, of de **Google SecOps-verbinding**. **Bij overeenkomst** komt als laatste. De velden staan in de tabel hieronder.
 
 ### Controleer de eerste ophaalronde
 
@@ -67,7 +67,7 @@ Binnen een minuut of twee toont de rij van de feed **Laatst opgevraagd**, en **S
 | **Collectie-ID** | De collectie die de indicatoren publiceert. |
 | **Opvraaginterval (minuten)** | Hoe vaak de bron wordt gelezen: 1 tot 1440 minuten, standaard 60. Een lijst wordt hooguit elke 15 minuten gelezen. |
 | **Minimale betrouwbaarheid** | Voor een TAXII-collectie of Google SecOps: indicatoren met een lagere confidence worden overgeslagen, 0 tot 100, en 0 houdt alles. Indicatoren zonder confidence komen altijd door. |
-| **Aanmelden** | Hoe OneUptime zich aanmeldt: **Niet aanmelden** voor een openbare collectie, **Bearer-token** voor een token van de beheerder van de server, of **Gebruikersnaam en wachtwoord** voor HTTP Basic-authenticatie. |
+| **Aanmelden** | Hoe OneUptime zich aanmeldt: **Niet aanmelden** voor een openbare lijst of collectie, **Bearer-token** voor een token van de beheerder van een collectie, of **Gebruikersnaam en wachtwoord** voor HTTP Basic-authenticatie. |
 | **API-token**, **Gebruikersnaam voor Basic Auth** en **Wachtwoord voor Basic Auth** | Alleen gevraagd voor de gekozen aanmelding. |
 | **Zaak openen bij overeenkomst** | Standaard aan: elke gebeurtenis die een indicator noemt, opent een [zaak](/docs/telemetry/security-cases) over die indicator, of wordt toegevoegd aan de open zaak die er al over gaat. |
 | **Waarschuwingen en incidenten** | Standaard **Een waarschuwing maken**: elke gematchte indicator opent een waarschuwing. |
@@ -76,7 +76,7 @@ Binnen een minuut of twee toont de rij van de feed **Laatst opgevraagd**, en **S
 | **Ernst van incident** | Zoals **Ernst van waarschuwing**, voor incidenten. |
 | **Detection Finding schrijven bij overeenkomst** | Standaard aan: elke match schrijft een bevinding in de gebeurtenisstroom. |
 
-De tokens en wachtwoorden van een TAXII-feed worden versleuteld en na het opslaan nooit meer getoond. Om ze te wijzigen, kies je **Inloggegevens bijwerken** in de rij van de feed en daarna **Bearer-token**, **Gebruikersnaam en wachtwoord** of **Niet aanmelden**, dat wist wat is opgeslagen: je keuze vervangt de aanmelding van de feed, dus het opslaan van een token wist een opgeslagen wachtwoord, en omgekeerd.
+De tokens en wachtwoorden van een feed worden versleuteld en na het opslaan nooit meer getoond. Om ze te wijzigen, kies je **Inloggegevens bijwerken** in de rij van de feed en daarna **Bearer-token**, **Gebruikersnaam en wachtwoord** of **Niet aanmelden**, dat wist wat is opgeslagen: je keuze vervangt de aanmelding van de feed, dus het opslaan van een token wist een opgeslagen wachtwoord, en omgekeerd. Een lijst biedt geen token.
 
 ### Hoe een feed wordt opgehaald
 
@@ -92,6 +92,7 @@ Een uitgeschakelde feed wordt niet opgehaald en niet vergeleken. De indicatoren 
 - Een waarde blijft 2 dagen na de ophaalronde die haar het laatst las een actieve indicator, en een waarde die de lijst laat vallen, matcht vanaf de volgende ophaalronde niet meer. Een lijst die niet is veranderd, wordt eens per dag opnieuw geschreven.
 - Een lijst bevat hooguit 50.000 indicatoren. **Samenvatting van de laatste opvraging** vertelt hoeveel er zijn gelezen, hoeveel regels zijn overgeslagen en hoeveel er zijn weggelaten.
 - Het adres moet `https` gebruiken en valt onder dezelfde uitgaande regels als een verbinding: op OneUptime Cloud wordt een privéadres geweigerd.
+- Een lijst achter een aanmelding wordt opgevraagd met **Gebruikersnaam en wachtwoord**, als HTTP Basic-authenticatie, nooit in het adres. Zo levert de CrowdSec Console de blokkeerlijsten waarop je je abonneert: zie [De blokkeerlijsten van CrowdSec lezen](/docs/integrations/crowdsec#de-blokkeerlijsten-van-crowdsec-lezen).
 
 ### Hoe Google SecOps wordt gelezen
 

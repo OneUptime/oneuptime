@@ -62,6 +62,7 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | इनबाउंड | Microsoft Entra ID साइन-इन और डायरेक्टरी बदलाव, और Microsoft 365 ऑडिट लॉग को सुरक्षा इवेंट में लाता है। |
 | [Google Workspace](/docs/integrations/google-workspace) | इनबाउंड | Google Workspace साइन-इन, एडमिन बदलाव और Google के अपने डिटेक्शन को सुरक्षा इवेंट में लाता है। |
 | [Cloudflare](/docs/integrations/cloudflare) | इनबाउंड | Cloudflare के फ़ायरवॉल ने जो ब्लॉक किया, चुनौती दी और लॉग किया, उसे आपके ऐप तक पहुँचे अनुरोधों के बगल में सुरक्षा इवेंट में लाता है। |
+| [CrowdSec](/docs/integrations/crowdsec) | इनबाउंड | CrowdSec के अलर्ट को सुरक्षा इवेंट में लाता है, और आपके ब्लॉक किए गए पतों को CrowdSec में बैन करता है। |
 
 ### टिकटिंग और IT सर्विस मैनेजमेंट
 

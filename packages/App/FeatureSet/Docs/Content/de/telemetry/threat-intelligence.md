@@ -23,7 +23,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- Für eine Liste eine `https`-Adresse, die eine Textdatei mit einem Indikator pro Zeile herunterlädt.
+- Für eine Liste eine `https`-Adresse, die eine Textdatei mit einem Indikator pro Zeile herunterlädt, frei zugänglich oder mit Benutzername und Passwort.
 - Für einen TAXII-Feed ein TAXII-2.1-Server, der STIX-2.1-Objekte vom Typ `indicator` veröffentlicht, und die ID der abzufragenden Sammlung. Ein TAXII-Feed meldet sich anonym, mit einem Bearer-Token oder mit HTTP-Basic-Auth an.
 - Für einen Google SecOps-Feed eine [Google SecOps-Verbindung](/docs/integrations/google-secops#den-verwalteten-connector-einrichten), deren Dienstkonto Indikatortreffer durchsuchen darf: Die Rolle `roles/chronicle.viewer` darf das.
 - Server, die ein TLS-Client-Zertifikat verlangen (Mutual TLS), wie CISA AIS, werden nicht unterstützt. Der öffentliche ATT&CK-Server von MITRE veröffentlicht Techniken und Gruppen statt Indikatoren, also bleibt ein Feed, der auf ihn zeigt, leer.
@@ -50,7 +50,7 @@ Die Kachel einer Liste verlinkt ihre Nutzungsbedingungen: Feodo Tracker ist für
 
 ### Den Feed erstellen
 
-Klicken Sie auf **Threat-Intel-Feed erstellen** und wählen Sie seine **Quelle**: **Liste von Indikatoren**, **TAXII-Sammlung** oder **Google SecOps**. Der nächste Schritt fragt nur nach dieser Quelle: bei einer Liste die **Listen-URL**, bei einer Sammlung **TAXII-Server** und **Anmeldung**, oder die **Google SecOps-Verbindung**. **Bei Treffer** kommt zuletzt. Die Felder stehen in der Tabelle unten.
+Klicken Sie auf **Threat-Intel-Feed erstellen** und wählen Sie seine **Quelle**: **Liste von Indikatoren**, **TAXII-Sammlung** oder **Google SecOps**. Der nächste Schritt fragt nur nach dieser Quelle: bei einer Liste die **Listen-URL** und **Anmeldung**, bei einer Sammlung **TAXII-Server** und **Anmeldung**, oder die **Google SecOps-Verbindung**. **Bei Treffer** kommt zuletzt. Die Felder stehen in der Tabelle unten.
 
 ### Die erste Abfrage prüfen
 
@@ -67,7 +67,7 @@ Innerhalb von ein, zwei Minuten zeigt die Zeile des Feeds **Zuletzt abgefragt**,
 | **Sammlungs-ID** | Die Sammlung, die die Indikatoren veröffentlicht. |
 | **Abfrageintervall (Minuten)** | Wie oft die Quelle gelesen wird: 1 bis 1440 Minuten, standardmäßig 60. Eine Liste wird höchstens alle 15 Minuten gelesen. |
 | **Mindestkonfidenz** | Für eine TAXII-Sammlung oder Google SecOps: Indikatoren mit niedrigerer Konfidenz werden übersprungen, 0 bis 100, 0 behält alles. Indikatoren ohne Konfidenz kommen immer durch. |
-| **Anmeldung** | Wie sich OneUptime anmeldet: **Keine Anmeldung** für eine öffentliche Sammlung, **Bearer-Token** für ein Token vom Betreiber des Servers oder **Benutzername und Passwort** für HTTP-Basic-Auth. |
+| **Anmeldung** | Wie sich OneUptime anmeldet: **Keine Anmeldung** für eine öffentliche Liste oder Sammlung, **Bearer-Token** für ein Token vom Betreiber einer Sammlung oder **Benutzername und Passwort** für HTTP-Basic-Auth. |
 | **API-Token**, **Basic-Auth-Benutzername** und **Basic-Auth-Passwort** | Nur für die gewählte Anmeldung abgefragt. |
 | **Bei Treffer einen Fall eröffnen** | Standardmäßig an: Jedes Ereignis, das einen Indikator nennt, eröffnet einen [Fall](/docs/telemetry/security-cases) zu diesem Indikator oder wird dem offenen Fall zugeordnet, der ihn bereits betrifft. |
 | **Warnungen und Vorfälle** | Standardmäßig **Warnung erstellen**: Jeder getroffene Indikator öffnet eine Warnung. |
@@ -76,7 +76,7 @@ Innerhalb von ein, zwei Minuten zeigt die Zeile des Feeds **Zuletzt abgefragt**,
 | **Vorfallsschweregrad** | Wie **Warnungsschweregrad**, für Vorfälle. |
 | **Bei Treffer Erkennungsbefund schreiben** | Standardmäßig an: Jeder Treffer schreibt einen Befund in den Ereignisstrom. |
 
-Die Tokens und Passwörter eines TAXII-Feeds werden verschlüsselt und nach dem Speichern nie wieder angezeigt. Um sie zu ändern, wählen Sie **Anmeldedaten aktualisieren** in der Zeile des Feeds und dann **Bearer-Token**, **Benutzername und Passwort** oder **Keine Anmeldung**, was das Gespeicherte löscht: Ihre Wahl ersetzt die Anmeldung des Feeds, also löscht das Speichern eines Tokens ein gespeichertes Passwort, und umgekehrt.
+Die Tokens und Passwörter eines Feeds werden verschlüsselt und nach dem Speichern nie wieder angezeigt. Um sie zu ändern, wählen Sie **Anmeldedaten aktualisieren** in der Zeile des Feeds und dann **Bearer-Token**, **Benutzername und Passwort** oder **Keine Anmeldung**, was das Gespeicherte löscht: Ihre Wahl ersetzt die Anmeldung des Feeds, also löscht das Speichern eines Tokens ein gespeichertes Passwort, und umgekehrt. Eine Liste bietet kein Token an.
 
 ### Wie ein Feed abgefragt wird
 
@@ -92,6 +92,7 @@ Ein deaktivierter Feed wird weder abgefragt noch abgeglichen. Die Indikatoren, d
 - Ein Wert bleibt 2 Tage nach der Abfrage, die ihn zuletzt gelesen hat, ein aktiver Indikator, und ein Wert, den die Liste entfernt, trifft ab der nächsten Abfrage nicht mehr. Eine Liste, die sich nicht geändert hat, wird einmal am Tag neu geschrieben.
 - Eine Liste umfasst höchstens 50.000 Indikatoren. **Zusammenfassung der letzten Abfrage** sagt, wie viele gelesen, wie viele Zeilen übersprungen und wie viele ausgelassen wurden.
 - Die Adresse muss `https` verwenden und unterliegt denselben ausgehenden Regeln wie eine Verbindung: In OneUptime Cloud wird eine private Adresse abgelehnt.
+- Eine Liste hinter einer Anmeldung wird mit **Benutzername und Passwort** abgerufen, per HTTP-Basic-Auth, nie in ihrer Adresse. So stellt die CrowdSec Console die Sperrlisten bereit, die Sie abonnieren: siehe [Die Sperrlisten von CrowdSec lesen](/docs/integrations/crowdsec#die-sperrlisten-von-crowdsec-lesen).
 
 ### Wie Google SecOps gelesen wird
 

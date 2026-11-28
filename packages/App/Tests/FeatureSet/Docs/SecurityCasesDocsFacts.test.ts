@@ -2547,6 +2547,7 @@ describe("Security Cases and Playbooks docs", () => {
         SecurityProtectedAddressSource.OneUptimeCloud,
         SecurityProtectedAddressSource.Edge,
         SecurityProtectedAddressSource.GoogleFrontEnd,
+        SecurityProtectedAddressSource.TrustedProxy,
         SecurityProtectedAddressSource.OneUptime,
         SecurityProtectedAddressSource.EndpointProduct,
         SecurityProtectedAddressSource.Monitor,
@@ -2568,6 +2569,10 @@ describe("Security Cases and Playbooks docs", () => {
     for (const range of ["35.191.0.0/16", "130.211.0.0/22"]) {
       expect(GOOGLE_LOAD_BALANCER_SOURCE_RANGES).toContain(range);
     }
+    // #11158: the project's Trusted Proxies, at every destination.
+    expect(blocklist).toContain(
+      "Nor are your **Trusted Proxies**, which OneUptime trusts as your own: a block of one would cut off everyone it forwards.",
+    );
     expect(AUTOMATIC_PROTECTIONS_TITLE).toBe("Protected Automatically");
     expect(blocklist).toContain(
       "**Protected Entities** lists them under **Protected Automatically**.",

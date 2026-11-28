@@ -20,6 +20,7 @@ import {
   CrowdStrikeBlockDestinationSource,
   MicrosoftDefenderBlockDestinationSource,
 } from "./Destinations/EndpointBlockDestinationSources";
+import { CrowdSecBlockDestinationSource } from "./Destinations/CrowdSecBlockDestinationSource";
 
 /*
  * WHERE A PROJECT'S BLOCKLIST IS ENFORCED (#10338): every destination of
@@ -31,7 +32,8 @@ import {
  * blocking turned on, say, or one per zone of it. Each provider's issue of
  * #10335 adds its source to getSecurityBlockDestinationSources as it lands
  * (Cloudflare #10343, AWS WAF #10344, the feed #10345, Defender and
- * CrowdStrike #10346, Azure WAF #10348, Cloud Armor #10349). Until one has,
+ * CrowdStrike #10346, Azure WAF #10348, Cloud Armor #10349, CrowdSec
+ * #11158). Until one has,
  * a project has no destination, and the blocklist says so: its blocks are
  * enforced nowhere.
  *
@@ -103,6 +105,8 @@ export function getSecurityBlockDestinationSources(): ReadonlyArray<SecurityBloc
       // Every machine (#10346): Microsoft Defender's indicators and CrowdStrike Falcon's IOCs.
       MicrosoftDefenderBlockDestinationSource,
       CrowdStrikeBlockDestinationSource,
+      // CrowdSec's ban decisions, which its remediation components enforce (#11158).
+      CrowdSecBlockDestinationSource,
     ];
   }
 

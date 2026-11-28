@@ -141,7 +141,7 @@ export const NOTHING_ENFORCES_TITLE: string = translationKey(
 );
 
 export const NOTHING_ENFORCES_DESCRIPTION: string = translationKey(
-  "Connect Cloudflare, AWS WAF, Azure WAF, Cloud Armor or a firewall that reads a list, or turn on blocking on a Microsoft Defender or CrowdStrike connection. Until then, blocking here records it, and blocks it nowhere.",
+  "Connect Cloudflare, AWS WAF, Azure WAF, Cloud Armor or a firewall that reads a list, or turn on blocking on a Microsoft Defender, CrowdStrike or CrowdSec connection. Until then, blocking here records it, and blocks it nowhere.",
 );
 
 export const OPEN_SECURITY_CONNECTIONS: string = translationKey(

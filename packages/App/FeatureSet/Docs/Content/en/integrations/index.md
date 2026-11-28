@@ -62,6 +62,7 @@ Start from the top of the table: the higher a way is, the less there is to maint
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Inbound | Bring Microsoft Entra ID sign-ins and directory changes, and the Microsoft 365 audit log, into Security Events. |
 | [Google Workspace](/docs/integrations/google-workspace) | Inbound | Bring Google Workspace sign-ins, admin changes and Google's own findings into Security Events. |
 | [Cloudflare](/docs/integrations/cloudflare) | Inbound | Bring what Cloudflare's firewall blocked, challenged and logged into Security Events, beside what reached your app. |
+| [CrowdSec](/docs/integrations/crowdsec) | Inbound | Bring CrowdSec's alerts into Security Events, and ban the addresses you block in CrowdSec. |
 
 ### Ticketing and IT service management
 

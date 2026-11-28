@@ -161,6 +161,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   "integrations/microsoft-entra-id": 23,
   "integrations/google-workspace": 23,
   "integrations/cloudflare": 23,
+  "integrations/crowdsec": 23,
   "integrations/github": 21,
   "integrations/gitlab": 20,
   "integrations/discord": 20,

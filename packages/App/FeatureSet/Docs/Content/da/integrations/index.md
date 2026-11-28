@@ -62,6 +62,7 @@ Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at ved
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Indgående | Henter logins og mappeændringer fra Microsoft Entra ID og Microsoft 365-auditloggen ind i Sikkerhedshændelser. |
 | [Google Workspace](/docs/integrations/google-workspace) | Indgående | Henter logins, administratorændringer og detektioner fra Google Workspace ind i Sikkerhedshændelser. |
 | [Cloudflare](/docs/integrations/cloudflare) | Indgående | Henter det, som Cloudflares firewall blokerede, udfordrede og loggede, ind i Sikkerhedshændelser, ved siden af det, der nåede din app. |
+| [CrowdSec](/docs/integrations/crowdsec) | Indgående | Henter alarmer fra CrowdSec ind i Sikkerhedshændelser og bandlyser i CrowdSec de adresser, du blokerer. |
 
 ### Sagsstyring og IT-servicestyring
 

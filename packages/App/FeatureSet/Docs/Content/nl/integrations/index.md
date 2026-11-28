@@ -62,6 +62,7 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Inkomend | Brengt aanmeldingen en directorywijzigingen van Microsoft Entra ID, en het Microsoft 365-auditlogboek, naar Beveiligingsgebeurtenissen. |
 | [Google Workspace](/docs/integrations/google-workspace) | Inkomend | Brengt aanmeldingen, beheerderswijzigingen en detecties van Google Workspace naar Beveiligingsgebeurtenissen. |
 | [Cloudflare](/docs/integrations/cloudflare) | Inkomend | Brengt wat de firewall van Cloudflare heeft geblokkeerd, uitgedaagd en vastgelegd naar Beveiligingsgebeurtenissen, naast wat je app bereikte. |
+| [CrowdSec](/docs/integrations/crowdsec) | Inkomend | Brengt alerts van CrowdSec naar Beveiligingsgebeurtenissen, en bant in CrowdSec de adressen die je blokkeert. |
 
 ### Ticketing en IT-servicemanagement
 

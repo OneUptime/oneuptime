@@ -129,6 +129,7 @@ Endpointet svarer `200`, når begivenhederne står i kø. En begivenhed uden tid
 | `ocsf` | OCSF-begivenheds-JSON (`class_uid`, `severity_id` osv.) | Ingen |
 | `udm` | UDM-begivenheder fra Google SecOps (Chronicle) (`metadata.event_type` osv.) | `chronicle`, `google-secops` |
 | `google-secops-alert` | Detektioner og advarsler fra Google SecOps: SOAR-webhooks og detektionsstrømmen | `secops-alert`, `detection` |
+| `crowdsec` | Advarsler fra CrowdSec, sådan som dens `http`-notifikationsplugin sender dem (se [CrowdSec](/docs/integrations/crowdsec)) | `crowdsec-alert` |
 | `generic` | Al anden JSON, læst ud fra almindelige feltnavne | Ingen |
 
 Angiv formatet med `?format=`, med headeren `x-oneuptime-security-event-format` eller med et felt `"format"` på øverste niveau. Udelader du det, bestemmes hver begivenheds format for sig, så én webhook kan blande detektioner med rå begivenheder.
@@ -266,10 +267,12 @@ Den gemmes som en informativ hændelse, `oneuptime-probe-traffic`, der navngiver
 | Microsoft Entra ID | Logins, mappeændringer og risikoregistreringer, hvis du vælger det mislykkede baggrunds- og app-logins, og fra Microsoft 365-auditloggen videresendelse af mail, deling og phishingdomme | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Logins, Googles egne fund, administratorændringer og app-adgang, og deling i Drev | [Google Workspace](/docs/integrations/google-workspace) |
 | Cloudflare | Det, som dens firewall blokerede, udfordrede og loggede ved edge, som HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
+| CrowdSec | De advarsler, dens notifikationsplugin sender, som Detection Findings, og bandlysning af de adresser, du blokerer | [CrowdSec](/docs/integrations/crowdsec) |
 
 - Produktets egne advarsler på eller over **Åbn sager fra** (**Høj og højere**, medmindre du vælger et andet niveau, eller **Aldrig**) åbner [sager](/docs/telemetry/security-cases), grupperet efter den bruger, vært eller adresse, de handler om.
 - En forbindelse læser poster efter det tidspunkt, produktet oprettede dem, ikke efter tidspunktet for den aktivitet, de beskriver. En SIEM-regel, der kører hver time, opretter detektioner længe efter de begivenheder, den matchede, og de importeres alligevel.
 - Den første hentning kigger 24 timer tilbage, så en ny forbindelse viser nylige poster med det samme.
+- Der hentes aldrig fra en CrowdSec-forbindelse: CrowdSec sender hver advarsel, så snart den udløses, gennem den notifikation, som forbindelsens **Send advarsler** giver.
 - **Test forbindelse** i forbindelsens række tjekker adgangen til produktet, og at OneUptimes egne workers kører, og importerer intet. **Kør nu** henter med det samme.
 
 ## Hvad en begivenhed indeholder

@@ -13,6 +13,7 @@ import {
 } from "../../../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
 import {
   SecurityEventConnectorDefinition,
+  areSecurityEventConnectorAlertsPushed,
   getSecurityEventConnectorDefinition,
 } from "../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import { resolveTelemetryRetentionInDays } from "../../../../Types/Telemetry/TelemetryRetentionConfig";
@@ -190,6 +191,11 @@ export default class SecurityEventConnectionPoller {
     const now: Date = OneUptimeDate.getCurrentDate();
 
     for (const connection of connections) {
+      // A product that sends its alerts (CrowdSec, #11158) is never polled.
+      if (areSecurityEventConnectorAlertsPushed(connection.provider)) {
+        continue;
+      }
+
       const intervalInMinutes: number = Math.max(
         1,
         connection.pollIntervalInMinutes || 5,

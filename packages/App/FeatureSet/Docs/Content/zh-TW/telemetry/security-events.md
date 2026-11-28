@@ -129,6 +129,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `ocsf` | OCSF 事件 JSON（`class_uid`、`severity_id` 等） | 無 |
 | `udm` | Google SecOps（Chronicle）UDM 事件（`metadata.event_type` 等） | `chronicle`、`google-secops` |
 | `google-secops-alert` | Google SecOps 偵測和警示：SOAR Webhook 和偵測串流 | `secops-alert`、`detection` |
+| `crowdsec` | CrowdSec 的警示，即其 `http` 通知外掛程式傳送的內容（請參閱 [CrowdSec](/docs/integrations/crowdsec)） | `crowdsec-alert` |
 | `generic` | 任何其他 JSON，依常見欄位名稱讀取 | 無 |
 
 可以用 `?format=`、`x-oneuptime-security-event-format` 標頭，或最上層的 `"format"` 欄位指定格式。不指定時，每個事件的格式會個別判斷，所以一個 Webhook 可以混合傳送偵測和原始事件。
@@ -266,10 +267,12 @@ Key Vault、儲存體帳戶和 Azure SQL 資料庫各自保留一份自己的稽
 | Microsoft Entra ID | 登入、目錄變更和風險偵測，可選的失敗的背景和應用程式登入，以及 Microsoft 365 稽核日誌中的郵件轉寄、共用和網路釣魚判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 登入、Google 自身的偵測、管理員變更和應用程式授權，以及雲端硬碟中的共用 | [Google Workspace](/docs/integrations/google-workspace) |
 | Cloudflare | 其防火牆在邊緣封鎖、質詢和記錄的請求，作為 HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
+| CrowdSec | 其通知外掛程式傳送的警示，作為 Detection Finding，以及對你封鎖的位址的封鎖 | [CrowdSec](/docs/integrations/crowdsec) |
 
 - 產品本身的警示，只要等級達到或高於 **開啟案例的起始嚴重程度**（預設為 **高及以上**，你也可以選擇其他等級或 **從未**），就會開啟 [案件](/docs/telemetry/security-cases)，並依它們涉及的使用者、主機或位址分組。
 - 連線依產品建立記錄的時間讀取記錄，而不是依記錄所描述活動的時間。每小時執行一次的 SIEM 規則會在它符合的事件之後很久才建立偵測，這些偵測仍然會被匯入。
 - 第一次輪詢會回溯 24 小時，所以新連線會立即顯示最近的記錄。
+- CrowdSec 連線永遠不會被輪詢：CrowdSec 每產生一則警示，就透過連線所在列中 **傳送警示** 提供的通知立即傳送。
 - 連線所在列中的 **測試連線** 會檢查對產品的存取，以及 OneUptime 自己的工作程序是否在執行，不會匯入任何內容。**立即執行** 會立即輪詢。
 
 ## 事件包含什麼
