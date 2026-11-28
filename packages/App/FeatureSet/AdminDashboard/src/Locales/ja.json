@@ -4605,7 +4605,7 @@
   "Project Call Voices": "プロジェクトの通話の音声",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "各プロジェクトが、このサーバーの Twilio アカウントを通じた自分の通話の音声を選ぶかどうか。",
   "Let projects choose their call voice": "プロジェクトに通話の音声を選ばせる",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "プロジェクトのオーナーと管理者が プロジェクト設定 > 通知 > 通知チャネル で選び、その料金はこのサーバーの Twilio アカウントが支払います。音声を選ばないプロジェクトは、上の音声で話します。",
+  "Project owners and admins choose it, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "プロジェクトのオーナーと管理者が選び、その料金はこのサーバーの Twilio アカウントが支払います。音声を選ばないプロジェクトは、上の音声で話します。",
   "Every project's calls through this server's Twilio account speak with the voice above.": "このサーバーの Twilio アカウントを通じたすべてのプロジェクトの通話は、上の音声で話します。",
   "Set by the GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE environment variable: twilio.letProjectsChooseCallVoice with Helm, or config.env with Docker Compose. Change it there and restart OneUptime.": "環境変数 GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE で設定されています：Helm では twilio.letProjectsChooseCallVoice、Docker Compose では config.env です。そこで変更してから OneUptime を再起動してください。",
   "An environment variable sets this switch, so it cannot be changed here.": "このスイッチは環境変数で設定されているため、ここでは変更できません。",
