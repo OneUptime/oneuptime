@@ -124,6 +124,173 @@ reject_dollar() {
 }
 
 # ----------------------------------------------------------------------------
+# The agent's container name
+# ----------------------------------------------------------------------------
+# Two containers cannot share a name, so a second array's agent on this
+# machine, in a directory of its own, needs a container name of its own.
+# docker-compose.yml reads it from .env (container_name:
+# ${STORAGE_ARRAY_AGENT_CONTAINER_NAME:-oneuptime-storage-array-agent}), and
+# nothing asks for it. It is, in this order:
+#   - STORAGE_ARRAY_AGENT_CONTAINER_NAME exported, or in .env on a re-run,
+#     like every other value;
+#   - for an agent set up before .env held it, the name its docker-compose.yml
+#     was given by hand (what README.md said to do): read from that file
+#     before this run replaces it, else from the container this directory
+#     runs, else from the newest docker-compose.yml.bak.<timestamp> an
+#     earlier upgrade kept. An upgrade never takes a second agent's name away;
+#   - otherwise the directory's: oneuptime-storage-array-agent-<directory
+#     name>, or the directory's name itself when it starts with
+#     oneuptime-storage-array-agent. The default directory's is the default
+#     name, so a first agent is named as it always was.
+# Every OneUptime agent container keeps oneuptime-storage-array-agent in its
+# name unless someone exports another, and the compose service is always
+# oneuptime-storage-array-agent: `docker compose ps` / `logs` in the
+# directory find the container whatever its name.
+AGENT_SERVICE="oneuptime-storage-array-agent"
+DEFAULT_CONTAINER_NAME="oneuptime-storage-array-agent"
+
+# Whether $1 is a name Docker gives a container: a letter or a digit, then at
+# least one more letter, digit, _, . or -.
+is_container_name() {
+    case "$1" in
+        "" | ? | [!a-zA-Z0-9]* | *[!a-zA-Z0-9_.-]*) return 1 ;;
+    esac
+    return 0
+}
+
+# compose_container_name <compose file>: the container_name the agent's
+# service sets there, when it is a name written out (not ${...}), or nothing.
+compose_container_name() {
+    local value=""
+    [ -f "$1" ] || return 0
+    value="$(awk -v service="$AGENT_SERVICE" '
+        /^[[:space:]]*(#.*)?$/ { next }
+        {
+            match($0, /^[[:space:]]*/)
+            indent = RLENGTH
+            if (inside && indent <= service_indent) { inside = 0 }
+            if (!inside && $0 ~ ("^[[:space:]]+" service ":[[:space:]]*(#.*)?$")) {
+                inside = 1
+                service_indent = indent
+                next
+            }
+            if (inside && $0 ~ /^[[:space:]]+container_name:/) {
+                sub(/^[[:space:]]+container_name:[[:space:]]*/, "")
+                sub(/[[:space:]]+#.*$/, "")
+                sub(/[[:space:]]+$/, "")
+                print
+                exit
+            }
+        }' "$1" 2>/dev/null)" || true
+    case "$value" in
+        \"*\") value="${value#\"}"; value="${value%\"}" ;;
+        \'*\') value="${value#\'}"; value="${value%\'}" ;;
+    esac
+    if is_container_name "$value"; then
+        printf '%s' "$value"
+    fi
+}
+
+# The name of the agent's container this directory's compose project runs
+# (running or not), or nothing.
+existing_container_name() {
+    local id="" name=""
+    [ -f "$INSTALL_DIR/docker-compose.yml" ] || return 0
+    id="$(cd "$INSTALL_DIR" 2>/dev/null && docker compose ps -a -q "$AGENT_SERVICE" 2>/dev/null | head -n 1)" || true
+    [ -n "$id" ] || return 0
+    name="$(docker inspect -f '{{.Name}}' "$id" 2>/dev/null | head -n 1)" || true
+    name="${name#/}"
+    if is_container_name "$name"; then
+        printf '%s' "$name"
+    fi
+}
+
+# The name the newest docker-compose.yml.bak.<timestamp> gave the agent,
+# when it is not the default one, or nothing.
+backup_container_name() {
+    local backup="" name="" found=""
+    for backup in "$INSTALL_DIR"/docker-compose.yml.bak.*; do
+        [ -f "$backup" ] || continue
+        name="$(compose_container_name "$backup")"
+        if [ -n "$name" ] && [ "$name" != "$DEFAULT_CONTAINER_NAME" ]; then
+            found="$name"
+        fi
+    done
+    printf '%s' "$found"
+}
+
+# The name of the installation directory, as a container name of this agent.
+directory_container_name() {
+    local dir="$INSTALL_DIR" base=""
+    while [ "${dir%/}" != "$dir" ] && [ -n "${dir%/}" ]; do
+        dir="${dir%/}"
+    done
+    base="$(printf '%s' "${dir##*/}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_.-' '-' \
+        | sed -e 's/--*/-/g' -e 's/^[-_.]*//' -e 's/[-_.]*$//')"
+    case "$base" in
+        "") printf '%s' "$DEFAULT_CONTAINER_NAME" ;;
+        "$DEFAULT_CONTAINER_NAME"*) printf '%s' "$base" ;;
+        *) printf '%s-%s' "$DEFAULT_CONTAINER_NAME" "$base" ;;
+    esac
+}
+
+# Sets STORAGE_ARRAY_AGENT_CONTAINER_NAME when neither the shell nor .env
+# gave it, as the block above says, and CONTAINER_NAME_SOURCE to where it
+# came from.
+choose_container_name() {
+    local edited="" existing="" backed_up=""
+    edited="$(compose_container_name "$INSTALL_DIR/docker-compose.yml")"
+    existing="$(existing_container_name)"
+    if [ -n "$edited" ] && [ "$edited" != "$DEFAULT_CONTAINER_NAME" ]; then
+        STORAGE_ARRAY_AGENT_CONTAINER_NAME="$edited"
+        CONTAINER_NAME_SOURCE="its docker-compose.yml"
+    elif [ -n "$existing" ] && [ "$existing" != "$DEFAULT_CONTAINER_NAME" ]; then
+        STORAGE_ARRAY_AGENT_CONTAINER_NAME="$existing"
+        CONTAINER_NAME_SOURCE="the container it runs as"
+    else
+        backed_up="$(backup_container_name)"
+        if [ -n "$backed_up" ]; then
+            STORAGE_ARRAY_AGENT_CONTAINER_NAME="$backed_up"
+            CONTAINER_NAME_SOURCE="its docker-compose.yml, kept as a backup by an earlier upgrade"
+        elif [ -n "$existing" ]; then
+            STORAGE_ARRAY_AGENT_CONTAINER_NAME="$existing"
+            CONTAINER_NAME_SOURCE="the container it runs as"
+        else
+            STORAGE_ARRAY_AGENT_CONTAINER_NAME="$(directory_container_name)"
+            CONTAINER_NAME_SOURCE="its directory"
+        fi
+    fi
+}
+
+# Whether the compose file $1 differs from the one install.sh installed
+# (sha256 $2) in the agent's container name alone: the edit README.md asked
+# for, which .env carries now, so nothing needs making again.
+only_container_name_edited() {
+    local file="$1" recorded="$2" restored="" restored_sha=""
+    [ -n "$recorded" ] || return 1
+    restored="$(mktemp)" || return 1
+    awk -v service="$AGENT_SERVICE" -v name="$DEFAULT_CONTAINER_NAME" '
+        done_once || /^[[:space:]]*(#.*)?$/ { print; next }
+        {
+            match($0, /^[[:space:]]*/)
+            indent = RLENGTH
+            if (inside && indent <= service_indent) { inside = 0 }
+            if (!inside && $0 ~ ("^[[:space:]]+" service ":[[:space:]]*(#.*)?$")) {
+                inside = 1
+                service_indent = indent
+            } else if (inside && $0 ~ /^[[:space:]]+container_name:/) {
+                print "    container_name: " name
+                done_once = 1
+                next
+            }
+            print
+        }' "$file" > "$restored" 2>/dev/null || true
+    restored_sha="$(file_sha256 "$restored")"
+    rm -f "$restored"
+    [ -n "$restored_sha" ] && [ "$restored_sha" = "$recorded" ]
+}
+
+# ----------------------------------------------------------------------------
 # The platforms this agent reads: one line each, one collector config each
 # ----------------------------------------------------------------------------
 # Everything that differs between platforms is here, so a new platform is its
@@ -197,7 +364,7 @@ if [ -f "$ENV_FILE" ]; then
     for name in ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY STORAGE_ARRAY_NAME \
                 STORAGE_SYSTEM STORAGE_ARRAY_COLLECTOR_CONFIG \
                 $PLATFORM_VARIABLES \
-                STORAGE_ARRAY_INSECURE_SKIP_VERIFY; do
+                STORAGE_ARRAY_INSECURE_SKIP_VERIFY STORAGE_ARRAY_AGENT_CONTAINER_NAME; do
         if [ -z "${!name}" ]; then
             printf -v "$name" '%s' "$(dotenv_get "$name" "$ENV_FILE")"
         fi
@@ -321,6 +488,34 @@ else
     STORAGE_ARRAY_INSECURE_SKIP_VERIFY="true"
 fi
 
+# The agent's container name (see "The agent's container name" above): the
+# one exported or in .env, checked, or else the one this directory's agent
+# already has, or its directory's.
+CONTAINER_NAME_SOURCE=""
+if [ -n "$STORAGE_ARRAY_AGENT_CONTAINER_NAME" ]; then
+    if ! is_container_name "$STORAGE_ARRAY_AGENT_CONTAINER_NAME"; then
+        echo "Error: STORAGE_ARRAY_AGENT_CONTAINER_NAME=\"$STORAGE_ARRAY_AGENT_CONTAINER_NAME\" is not a container name: a letter or"
+        echo "a digit, then letters, digits, _, . or - (e.g. $DEFAULT_CONTAINER_NAME-fa02)."
+        exit 1
+    fi
+else
+    choose_container_name
+fi
+if [ "$STORAGE_ARRAY_AGENT_CONTAINER_NAME" != "$DEFAULT_CONTAINER_NAME" ]; then
+    case "$CONTAINER_NAME_SOURCE" in
+        "its directory")
+            echo "The agent's container is $STORAGE_ARRAY_AGENT_CONTAINER_NAME, named after its directory, so it"
+            echo "does not take the name of another array's agent on this machine."
+            ;;
+        "")
+            echo "The agent's container is $STORAGE_ARRAY_AGENT_CONTAINER_NAME (STORAGE_ARRAY_AGENT_CONTAINER_NAME)."
+            ;;
+        *)
+            echo "The agent's container keeps its name, $STORAGE_ARRAY_AGENT_CONTAINER_NAME, from $CONTAINER_NAME_SOURCE."
+            ;;
+    esac
+fi
+
 # Create installation directory
 echo ""
 echo "Installing to: $INSTALL_DIR"
@@ -344,6 +539,9 @@ AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS $PLATFORM_FILES"
 AGENT_FILES_RECORD="$INSTALL_DIR/.agent-files.sha256"
 EDITED_FILES=()
 DIFFERING_FILES=()
+# The old docker-compose.yml, when the one change made to it was the agent's
+# container name, which .env carries now (only_container_name_edited).
+RENAMED_COMPOSE_BACKUP=""
 
 file_sha256() {
     if command -v sha256sum >/dev/null 2>&1; then
@@ -407,6 +605,13 @@ fetch_agent_file() {
     exit 1
 }
 
+# What install.sh had installed as docker-compose.yml, for
+# only_container_name_edited once the download has replaced it.
+INSTALLED_COMPOSE_SHA=""
+if [ -f "$AGENT_FILES_RECORD" ]; then
+    INSTALLED_COMPOSE_SHA="$(awk '$2 == "docker-compose.yml" { sha = $1 } END { print sha }' "$AGENT_FILES_RECORD")"
+fi
+
 echo "Downloading configuration files..."
 rm -f "$AGENT_FILES_RECORD.new"
 for file in $AGENT_FILES; do
@@ -441,6 +646,21 @@ if [ -f "$AGENT_FILES_RECORD.new" ]; then
 else
     rm -f "$AGENT_FILES_RECORD"
 fi
+# A docker-compose.yml whose one change was the agent's container name is
+# not a change to make again: .env carries the name now.
+KEPT_EDITS=()
+for backup in "${EDITED_FILES[@]}"; do
+    case "${backup##*/}" in
+        docker-compose.yml.bak.*)
+            if only_container_name_edited "$backup" "$INSTALLED_COMPOSE_SHA"; then
+                RENAMED_COMPOSE_BACKUP="$backup"
+                continue
+            fi
+            ;;
+    esac
+    KEPT_EDITS+=("$backup")
+done
+EDITED_FILES=("${KEPT_EDITS[@]}")
 
 # Every platform's address, token, user and password variable, quoted for
 # Compose: the ones this platform does not read stay empty, so switching
@@ -454,8 +674,9 @@ platform_env_lines() {
 
 # Create .env file. It holds the array's API token or password, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
-# value is quoted for Compose (see compose_env_quote); the platform, the
-# config, the profile and the boolean are validated shapes and stay bare.
+# value is quoted for Compose (see compose_env_quote), the container name
+# too; the platform, the config, the profile and the boolean are validated
+# shapes and stay bare.
 touch "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 cat > "$ENV_FILE" <<ENVEOF
@@ -467,6 +688,7 @@ STORAGE_ARRAY_COLLECTOR_CONFIG=$STORAGE_ARRAY_COLLECTOR_CONFIG
 COMPOSE_PROFILES=$COMPOSE_PROFILES
 $(platform_env_lines)
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=$STORAGE_ARRAY_INSECURE_SKIP_VERIFY
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=$(compose_env_quote "$STORAGE_ARRAY_AGENT_CONTAINER_NAME")
 ENVEOF
 chmod 600 "$ENV_FILE"
 
@@ -492,9 +714,10 @@ docker compose "${PROFILE_ARGS[@]}" down --remove-orphans > /dev/null 2>&1 || tr
 if ! docker compose up -d --force-recreate; then
     echo ""
     echo "Error: the agent did not start. If Docker reports that the container name"
-    echo "\"oneuptime-storage-array-agent\" is already in use, another array's agent runs on"
-    echo "this machine: give this one its own container_name in $INSTALL_DIR/docker-compose.yml"
-    echo "(see README.md, \"Monitoring several arrays\") and run: cd $INSTALL_DIR && docker compose up -d"
+    echo "\"$STORAGE_ARRAY_AGENT_CONTAINER_NAME\" is already in use, another container on this machine has it (another"
+    echo "array's agent, say): give this agent a name of its own and run this again, e.g."
+    echo "  STORAGE_ARRAY_AGENT_CONTAINER_NAME=$DEFAULT_CONTAINER_NAME-<array> INSTALL_DIR=$INSTALL_DIR bash install.sh"
+    echo "It is kept in $ENV_FILE from then on (see README.md, \"Monitoring several arrays\")."
     exit 1
 fi
 
@@ -524,6 +747,18 @@ if [ "${#DIFFERING_FILES[@]}" -gt 0 ]; then
         echo "  $backup"
     done
     echo "If they do, re-apply your changes to the new files, then: cd $INSTALL_DIR && docker compose up -d --force-recreate"
+fi
+if [ -n "$RENAMED_COMPOSE_BACKUP" ]; then
+    echo ""
+    echo "Your docker-compose.yml gave the agent's container a name of its own, the one change"
+    echo "you had made to it. The new docker-compose.yml reads the name from .env"
+    echo "(STORAGE_ARRAY_AGENT_CONTAINER_NAME=$STORAGE_ARRAY_AGENT_CONTAINER_NAME), so there is nothing to make again."
+    echo "Your copy is kept: $RENAMED_COMPOSE_BACKUP"
+elif [ "$CONTAINER_NAME_SOURCE" = "its docker-compose.yml" ]; then
+    echo ""
+    echo "The new docker-compose.yml reads the agent's container name from .env"
+    echo "(STORAGE_ARRAY_AGENT_CONTAINER_NAME=$STORAGE_ARRAY_AGENT_CONTAINER_NAME): leave its container_name line"
+    echo "as it is when you make your other changes again."
 fi
 echo ""
 echo "To check status:  cd $INSTALL_DIR && docker compose ps"

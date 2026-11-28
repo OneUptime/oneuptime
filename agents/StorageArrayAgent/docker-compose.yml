@@ -9,10 +9,13 @@ services:
     # against this version. The PowerStore syslog collector below runs this
     # same image (*collector-image).
     image: &collector-image otel/opentelemetry-collector-contrib:0.165.0
-    # One agent monitors ONE array. To monitor a second array from the same
-    # machine, install it into another directory and give its container
-    # another name here (see README.md).
-    container_name: oneuptime-storage-array-agent
+    # One agent monitors ONE array. Two containers cannot share a name, so a
+    # second array's agent on the same machine, installed into a directory
+    # of its own, runs under a name of its own:
+    # STORAGE_ARRAY_AGENT_CONTAINER_NAME in .env, which install.sh writes
+    # and keeps (see README.md, "Monitoring several arrays"). Leave this
+    # line as it is: an upgrade replaces this file, never .env.
+    container_name: ${STORAGE_ARRAY_AGENT_CONTAINER_NAME:-oneuptime-storage-array-agent}
     volumes:
       # Which shipped config runs, chosen by STORAGE_ARRAY_COLLECTOR_CONFIG
       # in .env (install.sh sets it, together with COMPOSE_PROFILES):
