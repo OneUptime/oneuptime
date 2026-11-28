@@ -13,6 +13,7 @@ import {
   test,
 } from "@jest/globals";
 import axios from "axios";
+import { getJestSpyOn } from "../../Spy";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import { getFormCustomDomainApiUrl } from "../../../Types/Form/FormCustomDomain";
@@ -277,10 +278,10 @@ describe("takeFormFollowUpView", () => {
   );
 
   test("still opens the address's view when the tab keeps nothing", () => {
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    getJestSpyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("QuotaExceededError");
     });
-    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    getJestSpyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("SecurityError");
     });
 

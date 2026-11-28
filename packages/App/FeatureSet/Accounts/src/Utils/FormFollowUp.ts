@@ -323,9 +323,11 @@ export const loadMyFormRequests: (
   return readPublicFormMyRequests(response.data);
 };
 
-// ---------------------------------------------------------------------------
-// Reading what the server says.
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * Reading what the server says.
+ * ---------------------------------------------------------------------------
+ */
 
 type IsPlainObjectFunction = (
   value: unknown,
@@ -336,6 +338,9 @@ const isPlainObject: IsPlainObjectFunction = (
 ): value is Record<string, unknown> => {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 };
+
+// The only colour a state's badge draws: one of six hex digits.
+const STATE_COLOR: RegExp = /^#[0-9a-f]{6}$/i;
 
 const readText: (value: unknown) => string = (value: unknown): string => {
   return typeof value === "string" ? value : "";
@@ -361,7 +366,7 @@ const readState: (value: unknown) => PublicFormRequestState | null = (
 
   const color: string = readText(value["color"]);
 
-  if (/^#[0-9a-f]{6}$/i.test(color)) {
+  if (STATE_COLOR.test(color)) {
     state.color = color;
   }
 

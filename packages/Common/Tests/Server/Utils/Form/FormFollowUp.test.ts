@@ -105,9 +105,11 @@ const USER_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 const SHARE_KEY: string = "66666666-6666-4666-8666-666666666666";
 const FORM_URL: string = `https://oneuptime.example/accounts/form/${SHARE_KEY}`;
 
-// ---------------------------------------------------------------------------
-// In-memory stores, read the way the services are asked.
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * In-memory stores, read the way the services are asked.
+ * ---------------------------------------------------------------------------
+ */
 
 const text: (value: unknown) => string = (value: unknown): string => {
   return value === undefined || value === null ? "" : String(value);

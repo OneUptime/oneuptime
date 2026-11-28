@@ -195,15 +195,19 @@ interface ViewProps {
   onBackToForm: () => void;
 }
 
-// A failure's sentence, and on a line of its own when to try again.
-const FailureLines: FunctionComponent<{
+interface FailureLinesProps {
   failure: FormFollowUpFailureText;
-}> = (data: { failure: FormFollowUpFailureText }): ReactElement => {
+}
+
+// A failure's sentence, and on a line of its own when to try again.
+const FailureLines: FunctionComponent<FailureLinesProps> = (
+  props: FailureLinesProps,
+): ReactElement => {
   return (
     <span>
-      {data.failure.message}
-      {data.failure.retryAfter ? (
-        <span className="mt-1 block">{data.failure.retryAfter}</span>
+      {props.failure.message}
+      {props.failure.retryAfter ? (
+        <span className="mt-1 block">{props.failure.retryAfter}</span>
       ) : (
         <></>
       )}
@@ -211,13 +215,19 @@ const FailureLines: FunctionComponent<{
   );
 };
 
-// A state's badge: its name, beside a dot of its color.
-const StateBadge: FunctionComponent<{
+interface StateBadgeProps {
   state: PublicFormRequestState | null;
-}> = (data: { state: PublicFormRequestState | null }): ReactElement => {
+}
+
+// A state's badge: its name, beside a dot of its color.
+const StateBadge: FunctionComponent<StateBadgeProps> = (
+  props: StateBadgeProps,
+): ReactElement => {
   const { t } = useTranslation();
 
-  const name: string = data.state ? data.state.name : t("formFollowUp.closed");
+  const name: string = props.state
+    ? props.state.name
+    : t("formFollowUp.closed");
 
   return (
     <span
@@ -227,7 +237,7 @@ const StateBadge: FunctionComponent<{
       <span
         aria-hidden="true"
         className="h-2 w-2 rounded-full bg-gray-400"
-        style={data.state?.color ? { backgroundColor: data.state.color } : {}}
+        style={props.state?.color ? { backgroundColor: props.state.color } : {}}
       ></span>
       <span className="[overflow-wrap:anywhere]">{name}</span>
     </span>
