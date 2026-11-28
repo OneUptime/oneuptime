@@ -54,6 +54,7 @@ import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import PublicNoteApprovalPolicy from "../Utils/Notes/PublicNoteApprovalPolicy";
 import MonitorIncidentPause, {
+  MonitorHeldStatus,
   MonitorIncidentPauseState,
 } from "../Utils/Monitor/MonitorIncidentPause";
 import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
@@ -1377,14 +1378,17 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
    * Releases the monitors of an event that has let go of them - it ended or
    * was resolved, it was deleted, or an edit detached them - clearing the
    * flag that stopped probing and putting each back in the operational
-   * status. A monitor another event still holds is left as it is (see
+   * status. A monitor another event still holds stays paused (see
    * isMonitorHeldInMaintenanceByAnyEvent).
    *
-   * A monitor an incident declared by hand still pauses goes back to the
-   * status that incident puts it in, not to operational, which showed it up
-   * while the incident said it was down (MonitorIncidentPause). Released or
-   * not, each monitor's time then counts as what still pauses it says, or
-   * counts again once nothing does (#11301).
+   * A monitor that incidents declared by hand, or other events, still hold
+   * in a status of theirs goes to the most severe of those statuses
+   * (MonitorIncidentPause.putInHeldStatus, #11432), not to operational,
+   * which showed it up while an incident said it was down (#11301) - nor
+   * left in the status of the event that ended, as a monitor another event
+   * still held was. One another event holds in no status keeps the status
+   * it has, as before. Released or not, each monitor's time then counts as
+   * what still pauses it says, or counts again once nothing does (#11301).
    */
   @CaptureSpan()
   public async enableActiveMonitoringForMonitors(
@@ -1477,47 +1481,43 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
             holdingByEventId,
           );
 
-        if (isHeldByAnotherEvent) {
-          /*
-           * Another event still holds it: it stays paused, in the status
-           * it holds, and its time counts as the events still holding it
-           * say.
-           */
-          await MonitorIncidentPause.syncMonitors({
-            projectId: projectId,
-            monitorIds: [monitor.id!],
+        // Another event still holding it keeps it paused.
+        if (!isHeldByAnotherEvent) {
+          await MonitorService.updateOneById({
+            id: monitor.id!,
+            data: {
+              disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false, /// This will start active monitoring again.
+            },
+            props: {
+              isRoot: true,
+            },
           });
-          continue;
         }
 
-        await MonitorService.updateOneById({
-          id: monitor.id!,
-          data: {
-            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false, /// This will start active monitoring again.
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        // What still pauses it: incidents declared by hand, if any.
+        /*
+         * What still pauses it: incidents declared by hand, and the other
+         * events holding it.
+         */
         const pause: MonitorIncidentPauseState | null =
           await MonitorIncidentPause.syncPause({
             projectId: projectId,
             monitorId: monitor.id!,
           });
 
-        const incidentStatus: {
-          monitorStatusId: ObjectID;
-          rootCause: string;
-        } | null = pause
-          ? await MonitorIncidentPause.getStatusOfIncidentsStillPausing(pause)
+        /*
+         * Held in a status of theirs: the most severe of them, whichever
+         * let go (#11432). Held in none by another event, it keeps the
+         * status it holds, as before; held in none by an incident, or by
+         * nothing, it is given back as every end gives back: operational.
+         */
+        const heldStatus: MonitorHeldStatus | null = pause
+          ? await MonitorIncidentPause.putInHeldStatus({ state: pause })
           : null;
 
         const monitorStatusId: ObjectID | undefined =
-          incidentStatus?.monitorStatusId ||
-          resolvedMonitorState?.id ||
-          undefined;
+          heldStatus || isHeldByAnotherEvent
+            ? undefined
+            : resolvedMonitorState?.id || undefined;
 
         if (
           monitorStatusId &&
@@ -1529,10 +1529,6 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           monitorStatusTimeline.monitorId = monitor.id!;
           monitorStatusTimeline.projectId = projectId;
           monitorStatusTimeline.monitorStatusId = monitorStatusId;
-
-          if (incidentStatus) {
-            monitorStatusTimeline.rootCause = incidentStatus.rootCause;
-          }
 
           await MonitorStatusTimelineService.create({
             data: monitorStatusTimeline,
@@ -1571,9 +1567,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
    * What the time of the event's monitors counts as from here, as what pauses
    * each of them now says (MonitorIncidentPause, #11301): the status the
    * events and incidents holding it put it in, or left out of uptime, status
-   * pages and SLOs while none of them puts it in one. Each monitor on its
-   * own, and a failure is logged, never thrown: the change that led here is
-   * saved already.
+   * pages and SLOs while none of them puts it in one. Each monitor is put in
+   * the most severe status of what pauses it first, when it is not in it
+   * (#11432): the event's status was taken away or made less severe, so
+   * that of what else holds the monitor shows. Each monitor on its own, and
+   * a failure is logged, never thrown: the change that led here is saved
+   * already.
    */
   public async markUptimeOfMonitors(
     scheduledMaintenanceEvent: Pick<
@@ -1595,6 +1594,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           .map((monitor: Monitor): ObjectID => {
             return monitor.id!;
           }),
+        putInHeldStatus: true,
       });
     } catch (err) {
       logger.error(

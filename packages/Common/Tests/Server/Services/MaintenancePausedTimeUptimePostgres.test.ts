@@ -1,4 +1,5 @@
 import Entities from "../../../Models/DatabaseModels/Index";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
@@ -650,15 +651,29 @@ describePostgres(
       const incidentId: ObjectID = await seedIncident(data);
 
       if (data.changeMonitorStatusToId) {
-        await MonitorService.changeMonitorStatus(
-          projectId,
-          data.monitorIds,
-          data.changeMonitorStatusToId,
-          true,
-          `Status was changed because Incident INC-${data.incidentNumber} was created.`,
-          undefined,
-          { isRoot: true },
+        // IncidentService's own step: the status, where nothing holds the monitor in a more severe one.
+        const createdItem: Incident = new Incident(incidentId);
+        createdItem.projectId = projectId;
+        createdItem.incidentNumber = data.incidentNumber;
+        createdItem.incidentNumberWithPrefix = `INC-${data.incidentNumber}`;
+        createdItem.changeMonitorStatusToId = data.changeMonitorStatusToId;
+        createdItem.monitors = data.monitorIds.map(
+          (monitorId: ObjectID): Monitor => {
+            return new Monitor(monitorId);
+          },
         );
+
+        await (
+          IncidentService as unknown as {
+            handleMonitorStatusChangeAsync: (
+              createdItem: Incident,
+              onCreate: OnCreate<Incident>,
+            ) => Promise<void>;
+          }
+        ).handleMonitorStatusChangeAsync(createdItem, {
+          createBy: { data: createdItem, props: { isRoot: true } },
+          carryForward: null,
+        } as unknown as OnCreate<Incident>);
       }
 
       await IncidentService.disableActiveMonitoringIfManualIncident(incidentId);
@@ -1449,9 +1464,12 @@ describePostgres(
       /*
        * The event's end used to put the monitor back to operational even
        * while the incident still said it was down: green on its status
-       * pages, counted as up, until the incident was resolved.
+       * pages, counted as up, until the incident was resolved. And its start
+       * put the monitor in Under Maintenance over the incident's Offline:
+       * a monitor several hold is in the most severe status they set
+       * (#11432), so it stays Offline throughout.
        */
-      test("the event ends while that incident is still open: the monitor goes back to the incident's status, not to operational", async () => {
+      test("the event starts and ends while that incident is still open: the monitor stays in the incident's more severe status, never operational", async () => {
         const monitorId: ObjectID = await seedMonitor({
           statusId: operationalStatusId,
         });
@@ -1460,6 +1478,62 @@ describePostgres(
           monitorIds: [monitorId],
           changeMonitorStatusToId: offlineStatusId,
           incidentNumber: 33,
+        });
+
+        const eventId: ObjectID = await seedEvent({
+          monitorIds: [monitorId],
+          changeMonitorStatusToId: underMaintenanceStatusId,
+        });
+        await moveEventInto(eventId, ongoingStateId);
+
+        expect((await pauseFlags(monitorId)).statusId).toBe(
+          offlineStatusId.toString(),
+        );
+
+        await moveEventInto(eventId, endedStateId);
+
+        expect(await pauseFlags(monitorId)).toEqual({
+          maintenance: false,
+          incident: true,
+          statusId: offlineStatusId.toString(),
+        });
+
+        // Offline from the incident on, counted: no row of its own since.
+        const rows: Array<TimelineRow> = await timeline(monitorId);
+        expect(
+          rows.map((row: TimelineRow): [string, boolean] => {
+            return [row.monitorStatusId, row.isMonitoringOff];
+          }),
+        ).toEqual([
+          [operationalStatusId.toString(), false],
+          [offlineStatusId.toString(), false],
+        ]);
+
+        // Resolved: operational, as before.
+        await resolveIncident(incidentId, [monitorId]);
+
+        expect(await pauseFlags(monitorId)).toEqual({
+          maintenance: false,
+          incident: false,
+          statusId: operationalStatusId.toString(),
+        });
+      });
+
+      test("the event, more severe than the incident open on its monitor, ends: the monitor goes back to the incident's status, not to operational", async () => {
+        const monitorId: ObjectID = await seedMonitor({
+          statusId: operationalStatusId,
+        });
+
+        // The project puts Under Maintenance after Offline in its list.
+        await database.query(
+          `UPDATE "MonitorStatus" SET "priority" = 5 WHERE "_id" = $1`,
+          [underMaintenanceStatusId.toString()],
+        );
+
+        const incidentId: ObjectID = await declareIncident({
+          monitorIds: [monitorId],
+          changeMonitorStatusToId: offlineStatusId,
+          incidentNumber: 38,
         });
 
         const eventId: ObjectID = await seedEvent({
@@ -1481,22 +1555,10 @@ describePostgres(
         });
 
         const rows: Array<TimelineRow> = await timeline(monitorId);
-        expect(rows[rows.length - 1]!.monitorStatusId).toBe(
-          offlineStatusId.toString(),
-        );
         expect(rows[rows.length - 1]!.isMonitoringOff).toBe(false);
         expect(rows[rows.length - 1]!.rootCause).toBe(
-          `Scheduled maintenance is over, and [INC-33](https://oneuptime.example/incidents/${incidentId.toString()}) is still open, so the monitor is back in the status the incident puts it in.`,
+          `[INC-38](https://oneuptime.example/incidents/${incidentId.toString()}) is still open, so the monitor is in the status it puts it in.`,
         );
-
-        // Resolved: operational, as before.
-        await resolveIncident(incidentId, [monitorId]);
-
-        expect(await pauseFlags(monitorId)).toEqual({
-          maintenance: false,
-          incident: false,
-          statusId: operationalStatusId.toString(),
-        });
       });
 
       test("maintenance with a status, then an incident with none: counted as the maintenance's status, and left out once the event ends", async () => {
@@ -1582,7 +1644,7 @@ describePostgres(
         );
         expect(rows[rows.length - 1]!.isMonitoringOff).toBe(false);
         expect(rows[rows.length - 1]!.rootCause).toBe(
-          `Scheduled maintenance ([SM-1](https://oneuptime.example/scheduled-maintenance/${eventId.toString()})) is still in progress, so the monitor is back in the status it puts it in.`,
+          `Scheduled maintenance ([SM-1](https://oneuptime.example/scheduled-maintenance/${eventId.toString()})) is still in progress, so the monitor is in the status it puts it in.`,
         );
 
         // The event ends: operational.

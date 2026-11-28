@@ -226,7 +226,7 @@ export const MONITORING_RESUMED: string = translationKey(
  * A monitor back in the status of what still pauses it, when the rest lets
  * go of it (MonitorIncidentPause, #11301): an incident declared by hand still
  * open once maintenance is over, or maintenance still in progress once an
- * incident lets go.
+ * incident lets go. Written until #11432; rows from then still read them.
  */
 export const BACK_IN_STATUS_OF_INCIDENT: string = translationKey(
   "Scheduled maintenance is over, and {{incident}} is still open, so the monitor is back in the status the incident puts it in.",
@@ -234,6 +234,25 @@ export const BACK_IN_STATUS_OF_INCIDENT: string = translationKey(
 export const BACK_IN_STATUS_OF_MAINTENANCE: string = translationKey(
   "Scheduled maintenance ({{event}}) is still in progress, so the monitor is back in the status it puts it in.",
 );
+/*
+ * A monitor in the status of what still pauses it (MonitorIncidentPause,
+ * #11432), once something else let go of it or stopped setting a status:
+ * the one incident declared by hand or maintenance event that still sets
+ * one, or, when several still do, the one whose status is the most severe.
+ */
+export const IN_STATUS_OF_PAUSING_INCIDENT: string = translationKey(
+  "{{incident}} is still open, so the monitor is in the status it puts it in.",
+);
+export const IN_STATUS_OF_PAUSING_MAINTENANCE: string = translationKey(
+  "Scheduled maintenance ({{event}}) is still in progress, so the monitor is in the status it puts it in.",
+);
+export const IN_MOST_SEVERE_STATUS_OF_PAUSING_INCIDENT: string = translationKey(
+  "Of what still pauses this monitor, {{incident}} puts it in the most severe status, so the monitor is in that status.",
+);
+export const IN_MOST_SEVERE_STATUS_OF_PAUSING_MAINTENANCE: string =
+  translationKey(
+    "Of what still pauses this monitor, scheduled maintenance ({{event}}) puts it in the most severe status, so the monitor is in that status.",
+  );
 // OpenStackProjectPages writes these two, from here.
 export const OPENSTACK_PROJECT_USES_INCIDENT: string = translationKey(
   "Something this project uses has an incident.",
@@ -309,6 +328,14 @@ const MONITOR_STATUS_NOTES: ReadonlyArray<StatusChangeNote> = [
   { written: MONITORING_RESUMED },
   { written: BACK_IN_STATUS_OF_INCIDENT },
   { written: BACK_IN_STATUS_OF_MAINTENANCE },
+  /*
+   * The maintenance ones before the incident ones: an incident's link could
+   * otherwise be read as "Scheduled maintenance (...)".
+   */
+  { written: IN_STATUS_OF_PAUSING_MAINTENANCE },
+  { written: IN_MOST_SEVERE_STATUS_OF_PAUSING_MAINTENANCE },
+  { written: IN_STATUS_OF_PAUSING_INCIDENT },
+  { written: IN_MOST_SEVERE_STATUS_OF_PAUSING_INCIDENT },
   { written: OPENSTACK_PROJECT_USES_INCIDENT },
   { written: OPENSTACK_PROJECT_USES_BACK },
   {

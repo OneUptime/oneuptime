@@ -14,6 +14,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import ScheduledMaintenanceCustomField from "../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import MonitorService from "./MonitorService";
+import MonitorIncidentPause from "../Utils/Monitor/MonitorIncidentPause";
 import LinkedAffectedResources, {
   LinkedAffectedResource,
   LinkedAffectedResourceRelation,
@@ -2927,12 +2928,28 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
     }
 
     if (item.changeMonitorStatusToId && item.projectId) {
-      // change status of all the monitors.
+      /*
+       * Every monitor of the event is put in its status, except one that
+       * incidents declared by hand, or other events, hold in a more severe
+       * status: a monitor several hold is in the most severe of theirs
+       * (MonitorIncidentPause, #11432), and takes this event's once they let
+       * go of it. Starting an event used to put its status over an open
+       * incident's more severe one.
+       */
+      const monitorIds: Array<ObjectID> =
+        await MonitorIncidentPause.getMonitorsTakingStatus({
+          projectId: item.projectId,
+          monitorIds:
+            item.monitors?.map((monitor: Monitor) => {
+              return new ObjectID(monitor._id || "");
+            }) || [],
+          monitorStatusId: item.changeMonitorStatusToId,
+          writer: { scheduledMaintenanceId: item.id },
+        });
+
       await MonitorService.changeMonitorStatus(
         item.projectId,
-        item.monitors?.map((monitor: Monitor) => {
-          return new ObjectID(monitor._id || "");
-        }) || [],
+        monitorIds,
         item.changeMonitorStatusToId,
         true, // notify owners
         "Changed because of maintenance event: " + item.id.toString(),

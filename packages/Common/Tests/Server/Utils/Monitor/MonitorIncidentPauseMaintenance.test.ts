@@ -16,6 +16,10 @@ import ObjectID from "../../../../Types/ObjectID";
 import {
   BACK_IN_STATUS_OF_INCIDENT,
   BACK_IN_STATUS_OF_MAINTENANCE,
+  IN_MOST_SEVERE_STATUS_OF_PAUSING_INCIDENT,
+  IN_MOST_SEVERE_STATUS_OF_PAUSING_MAINTENANCE,
+  IN_STATUS_OF_PAUSING_INCIDENT,
+  IN_STATUS_OF_PAUSING_MAINTENANCE,
   MONITORING_PAUSED_BY_INCIDENTS,
   MONITORING_PAUSED_BY_INCIDENTS_AND_MAINTENANCE,
   MONITORING_PAUSED_FOR_MAINTENANCE,
@@ -63,9 +67,6 @@ const OFFLINE_STATUS_ID: ObjectID = new ObjectID(
 );
 const UNDER_MAINTENANCE_STATUS_ID: ObjectID = new ObjectID(
   "11301000-0000-4000-8000-0000000000b2",
-);
-const DEGRADED_STATUS_ID: ObjectID = new ObjectID(
-  "11301000-0000-4000-8000-0000000000b3",
 );
 
 function incidentWith(data: {
@@ -743,99 +744,121 @@ describe("getUptimeRootCause: what pauses the monitor, as links", () => {
   });
 });
 
-describe("the status of what still holds the monitor, when the rest lets go", () => {
-  test("an incident still pausing it: the newest one that sets a status, with the note", async () => {
-    const back: { monitorStatusId: ObjectID; rootCause: string } | null =
-      await MonitorIncidentPause.getStatusOfIncidentsStillPausing(
-        stateWith({
-          incidents: [
-            incidentWith({
-              id: INCIDENT_ONE,
-              prefixed: "INC-9",
-              changeMonitorStatusToId: OFFLINE_STATUS_ID,
-            }),
-            incidentWith({
-              id: INCIDENT_TWO,
-              prefixed: "INC-10",
-              changeMonitorStatusToId: DEGRADED_STATUS_ID,
-            }),
-            incidentWith({ id: ObjectID.generate().toString() }),
-          ],
+/*
+ * What still holds the monitor in a status of its own once the rest lets go
+ * (#11432): the most severe status of what pauses it (pickHeldStatus, in
+ * MonitorHeldStatus.test.ts), and the note that says why on the Status
+ * Timeline - the one incident or event that sets it, or, when several set a
+ * status, the one whose status is the most severe. The notes the moves back
+ * wrote before (#11301) are still read for the rows that hold them.
+ */
+describe("the note of the status what still holds the monitor puts it in", () => {
+  test("an incident still pausing it, alone in setting a status: it is still open", async () => {
+    const rootCause: string = await MonitorIncidentPause.getHeldStatusRootCause(
+      {
+        monitorStatusId: OFFLINE_STATUS_ID,
+        incident: incidentWith({
+          id: INCIDENT_TWO,
+          prefixed: "INC-10",
+          changeMonitorStatusToId: OFFLINE_STATUS_ID,
         }),
-      );
+        isMostSevereOfSeveral: false,
+      },
+    );
 
-    expect(back?.monitorStatusId.toString()).toBe(
-      DEGRADED_STATUS_ID.toString(),
+    expect(rootCause).toBe(
+      `${incidentLink(INCIDENT_TWO, "INC-10")} is still open, so the monitor is in the status it puts it in.`,
     );
-    expect(back?.rootCause).toBe(
-      `Scheduled maintenance is over, and ${incidentLink(INCIDENT_TWO, "INC-10")} is still open, so the monitor is back in the status the incident puts it in.`,
+    expect(readStatusChangeNote(rootCause)?.note.written).toBe(
+      IN_STATUS_OF_PAUSING_INCIDENT,
     );
-    expect(readStatusChangeNote(back!.rootCause)?.note.written).toBe(
-      BACK_IN_STATUS_OF_INCIDENT,
+    expect(readStatusChangeNote(rootCause)?.values).toEqual({
+      incident: incidentLink(INCIDENT_TWO, "INC-10"),
+    });
+  });
+
+  test("an incident whose status is the most severe of several: says so", async () => {
+    const rootCause: string = await MonitorIncidentPause.getHeldStatusRootCause(
+      {
+        monitorStatusId: OFFLINE_STATUS_ID,
+        incident: incidentWith({
+          id: INCIDENT_ONE,
+          prefixed: "INC-9",
+          changeMonitorStatusToId: OFFLINE_STATUS_ID,
+        }),
+        isMostSevereOfSeveral: true,
+      },
+    );
+
+    expect(rootCause).toBe(
+      `Of what still pauses this monitor, ${incidentLink(INCIDENT_ONE, "INC-9")} puts it in the most severe status, so the monitor is in that status.`,
+    );
+    expect(readStatusChangeNote(rootCause)?.note.written).toBe(
+      IN_MOST_SEVERE_STATUS_OF_PAUSING_INCIDENT,
     );
   });
 
-  test("incidents that set no status, or none pausing it: nothing to go back to", async () => {
-    expect(
-      await MonitorIncidentPause.getStatusOfIncidentsStillPausing(
-        stateWith({ incidents: [incidentWith({ id: INCIDENT_ONE })] }),
-      ),
-    ).toBeNull();
-    expect(
-      await MonitorIncidentPause.getStatusOfIncidentsStillPausing(
-        stateWith({}),
-      ),
-    ).toBeNull();
+  test("maintenance still holding it, alone in setting a status: still in progress", async () => {
+    const rootCause: string = await MonitorIncidentPause.getHeldStatusRootCause(
+      {
+        monitorStatusId: UNDER_MAINTENANCE_STATUS_ID,
+        scheduledMaintenance: eventWith({
+          id: EVENT_TWO,
+          prefixed: "SM-4",
+          changeMonitorStatusToId: UNDER_MAINTENANCE_STATUS_ID,
+        }),
+        isMostSevereOfSeveral: false,
+      },
+    );
+
+    expect(rootCause).toBe(
+      `Scheduled maintenance (${eventLink(EVENT_TWO, "SM-4")}) is still in progress, so the monitor is in the status it puts it in.`,
+    );
+    expect(readStatusChangeNote(rootCause)?.note.written).toBe(
+      IN_STATUS_OF_PAUSING_MAINTENANCE,
+    );
+    expect(readStatusChangeNote(rootCause)?.values).toEqual({
+      event: eventLink(EVENT_TWO, "SM-4"),
+    });
   });
 
-  test("maintenance still holding it: the newest event that sets a status, with the note", async () => {
-    const back: { monitorStatusId: ObjectID; rootCause: string } | null =
-      await MonitorIncidentPause.getStatusOfMaintenanceStillHolding(
-        stateWith({
-          events: [
-            eventWith({
-              id: EVENT_ONE,
-              prefixed: "SM-3",
-              changeMonitorStatusToId: UNDER_MAINTENANCE_STATUS_ID,
-            }),
-            eventWith({
-              id: EVENT_TWO,
-              prefixed: "SM-4",
-              changeMonitorStatusToId: DEGRADED_STATUS_ID,
-            }),
-          ],
+  test("maintenance whose status is the most severe of several: read as the maintenance one, never as an incident's", async () => {
+    const rootCause: string = await MonitorIncidentPause.getHeldStatusRootCause(
+      {
+        monitorStatusId: UNDER_MAINTENANCE_STATUS_ID,
+        scheduledMaintenance: eventWith({
+          id: EVENT_ONE,
+          number: 3,
+          changeMonitorStatusToId: UNDER_MAINTENANCE_STATUS_ID,
         }),
-      );
+        isMostSevereOfSeveral: true,
+      },
+    );
 
-    expect(back?.monitorStatusId.toString()).toBe(
-      DEGRADED_STATUS_ID.toString(),
+    expect(rootCause).toBe(
+      `Of what still pauses this monitor, scheduled maintenance (${eventLink(EVENT_ONE, "#3")}) puts it in the most severe status, so the monitor is in that status.`,
     );
-    expect(back?.rootCause).toBe(
-      `Scheduled maintenance (${eventLink(EVENT_TWO, "SM-4")}) is still in progress, so the monitor is back in the status it puts it in.`,
+    expect(readStatusChangeNote(rootCause)?.note.written).toBe(
+      IN_MOST_SEVERE_STATUS_OF_PAUSING_MAINTENANCE,
     );
-    expect(readStatusChangeNote(back!.rootCause)?.note.written).toBe(
-      BACK_IN_STATUS_OF_MAINTENANCE,
-    );
+    expect(readStatusChangeNote(rootCause)?.values).toEqual({
+      event: eventLink(EVENT_ONE, "#3"),
+    });
   });
 
-  test("events that set no status, or maintenance that no longer pauses it: nothing to go back to", async () => {
+  test("the notes the moves back wrote before #11432 still read, for the rows that hold them", () => {
+    const incident: string = incidentLink(INCIDENT_TWO, "INC-10");
+    const event: string = eventLink(EVENT_TWO, "SM-4");
+
     expect(
-      await MonitorIncidentPause.getStatusOfMaintenanceStillHolding(
-        stateWith({ events: [eventWith({ id: EVENT_ONE })] }),
-      ),
-    ).toBeNull();
+      readStatusChangeNote(
+        `Scheduled maintenance is over, and ${incident} is still open, so the monitor is back in the status the incident puts it in.`,
+      )?.note.written,
+    ).toBe(BACK_IN_STATUS_OF_INCIDENT);
     expect(
-      await MonitorIncidentPause.getStatusOfMaintenanceStillHolding(
-        stateWith({
-          events: [
-            eventWith({
-              id: EVENT_ONE,
-              changeMonitorStatusToId: UNDER_MAINTENANCE_STATUS_ID,
-            }),
-          ],
-          isPausedForMaintenance: false,
-        }),
-      ),
-    ).toBeNull();
+      readStatusChangeNote(
+        `Scheduled maintenance (${event}) is still in progress, so the monitor is back in the status it puts it in.`,
+      )?.note.written,
+    ).toBe(BACK_IN_STATUS_OF_MAINTENANCE);
   });
 });
