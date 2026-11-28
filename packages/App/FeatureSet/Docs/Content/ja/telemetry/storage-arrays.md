@@ -35,12 +35,12 @@ Pure Storage は 2026 年 2 月に社名を **Everpure** に変更しました�
 ```mermaid title="アレイから OneUptime へ"
 flowchart TB
     collector["Collector"] -->|"FlashArray、<br/>Purity//FA 6.7+"| array["アレイ、<br/>ポート 443"]
-    collector -->|"古い FlashArray、<br/>FlashBlade"| exporter["Pure のエクスポーター"]
+    collector -->|"古い FlashArray、<br/>FlashBlade"| exporter["Pure の<br/>エクスポーター"]
     exporter -->|"API トークン"| array
-    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    collector -->|"ONTAP"| harvest["NetApp<br/>Harvest"]
     harvest -->|"読み取り専用ユーザー、<br/>REST API"| cluster["クラスター、<br/>ポート 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    collector -->|"PowerStore"| dell["Dell's exporter"]
+    collector -->|"PowerStore"| dell["Dell's<br/>exporter"]
     dell -->|"user and password"| array
     array -->|"syslog, port 5514"| syslog["Syslog collector"]
     syslog -->|"OTLP"| oneuptime

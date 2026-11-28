@@ -35,12 +35,12 @@ Um cluster **Dell PowerScale** é lido de outro jeito: o agente consulta cada um
 ```mermaid title="Do array ao OneUptime"
 flowchart TB
     collector["Coletor"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["O array,<br/>porta 443"]
-    collector -->|"FlashArray antigo,<br/>FlashBlade"| exporter["Exportador da Pure"]
+    collector -->|"FlashArray antigo,<br/>FlashBlade"| exporter["Exportador<br/>da Pure"]
     exporter -->|"Token de API"| array
-    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    collector -->|"ONTAP"| harvest["NetApp<br/>Harvest"]
     harvest -->|"usuário somente leitura,<br/>API REST"| cluster["O cluster,<br/>porta 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    collector -->|"PowerStore"| dell["Dell's exporter"]
+    collector -->|"PowerStore"| dell["Dell's<br/>exporter"]
     dell -->|"user and password"| array
     array -->|"syslog, port 5514"| syslog["Syslog collector"]
     syslog -->|"OTLP"| oneuptime
