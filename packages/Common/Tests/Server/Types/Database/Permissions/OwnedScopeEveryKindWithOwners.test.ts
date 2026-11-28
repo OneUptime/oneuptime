@@ -1149,6 +1149,8 @@ const NAMES_A_KIND_AS_IT_IS: Record<string, string> = {
   "CodeRepository.runner":
     "picks the Runner AI works in the repository on: Runners are read in full, so they can be picked",
   "EmailLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "GlobalProbeSnmpTrapReport.probe":
+    "a project's share of the SNMPv3 traps a global probe refused, written by OneUptime alone: probes are read in full",
   "NetworkDeviceDiagnostic.probe": PICKS_A_PROBE,
   "NetworkDeviceDiscoveryScan.probe": PICKS_A_PROBE,
   "DataSecurityScan.probe": PICKS_A_PROBE,
@@ -1160,6 +1162,8 @@ const NAMES_A_KIND_AS_IT_IS: Record<string, string> = {
   "RunnerJob.targetAgent":
     "work handed to a Runner, read with the runbook run or the AI run it is for",
   "SmsLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "StorageArrayConnection.collectionProbe": PICKS_A_PROBE,
+  "StorageArrayConnectionTest.probe": PICKS_A_PROBE,
   "TelegramLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
   "UserOnCallShiftReminderLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
   "OpenStackCloudCheck.probe": PICKS_A_PROBE,
@@ -1174,6 +1178,8 @@ const NAMES_A_KIND_AS_IT_IS: Record<string, string> = {
     "an approval message OneUptime sent about an episode's public note, kept by OneUptime alone until the note is decided: no member reads or writes it",
   "WorkspaceUserGroup.onCallDutyPolicySchedules":
     "a Slack or Microsoft Teams user group kept in step with schedules: an integration setting that changes nothing about them",
+  "XcpNgConnection.collectionProbe": PICKS_A_PROBE,
+  "XcpNgConnectionTest.probe": PICKS_A_PROBE,
 };
 
 // Whether the Owned scope reaches a model's records by owners of some record.
