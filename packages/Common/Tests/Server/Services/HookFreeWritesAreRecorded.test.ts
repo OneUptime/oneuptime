@@ -197,6 +197,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "(module) OnCallDutyPolicyScheduleLayer": Why.Migration,
     },
+  /*
+   * The schedule layers' weekly windows stored on other days than they
+   * name, moved onto those days or their days filled in (#11455).
+   */
+  "packages/App/FeatureSet/Workers/DataMigrations/MoveWeeklyWindowsOntoTheirDays.ts":
+    {
+      "(module) OnCallDutyPolicyScheduleLayer": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers.ts":
     {
       "recordNotifiedStatusPagesSoFar Incident": Why.Bookkeeping,
