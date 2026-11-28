@@ -69,7 +69,9 @@ flowchart TB
 | **Rotationen börjar** | Det datum och den tid då lagrets rotation börjar. |
 | **Rotera varje** | Hur ofta jouren går över till nästa person i lagret. |
 | **Tid för första överlämning** | Den första överlämningen till nästa person, vid eller efter starten. Senare överlämningar följer varje rotationsintervall. |
-| **Begränsningar** | De tider lagret har jour: **Inga begränsningar**, **Specifika tider på dygnet** eller **Specifika tider i veckan**, i schemats tidszon. Utanför dem tar lägre lager över. |
+| **Begränsningar** | De tider lagret har jour (**Aktiva tider**): **Inga begränsningar**, **Specifika tider på dygnet** eller **Specifika tider i veckan**, i schemats tidszon. Utanför dem tar lägre lager över. |
+
+Med aktiva tider är varje tidsfönster ett eget pass. Från 17:00 till 07:00 är ett pass, som slutar 07:00 nästa morgon: i **Tidslinje för jourscheman**, i mejlen, i mobilappen och i Slack och Microsoft Teams på samma sätt, i schemats tidszon och även de nätter klockan ställs om. En persons tur är alla hens tidsfönster fram till nästa överlämning, och hen får besked en gång åt varje håll: "You are now on-call" när det första fönstret i turen börjar, med när fönstret slutar och när turen gör det, och "You are no longer on-call" när det sista fönstret slutar, inte vid varje fönster. Vill du bli påmind före varje fönster väljer du en tid under **Påminn mig före pass**, som [Kalenderflöden](/docs/on-call/calendar-feeds#påminnelser-och-meddelanden-om-ny-tilldelning) beskriver. När någon annan har jour mellan två av fönstren, genom en åsidosättning eller ett lägre lager, eller en ändring av lagren ger nästa fönster till någon annan, är det en överlämning och meddelas som en. Jourtiden registreras fortfarande fönster för fönster, och jourpolicyns kanaler och flöde säger fortfarande varje gång vem som har jour.
 
 För att ändra vilket lager som kommer först använder du pilarna på ett lagers kort: **Flytta lager uppåt (högre prioritet)** eller **Flytta lager nedåt (lägre prioritet)**.
 
@@ -111,7 +113,10 @@ Jourscheman är resursen `/api/on-call-duty-policy-schedule`; deras lager och pe
 
 - Att skapa ett schema med `firstLayerUsers` (en lista med användar-id:n, i den ordning de turas om) i dess `miscDataProps` ger det dess första lager, som instrumentpanelen gör: **Layer 1**, med jour från och med nu, dygnet runt. `firstLayerRotation` anger hur länge varje pass varar, som en rotation som `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; utan den en vecka. Varje användare måste vara medlem i projektet och anroparen måste få skapa lager, annars skapas inte schemat.
 - Ett schema som skapas utan dem har inga lager, som tidigare; Terraforms resurs för scheman skickar dem inte.
-- Ett lager som skapas utan `rotation` lämnar över dagligen, som det alltid har gjort.
+- Ett lager som skapas utan `rotation` lämnar över varje vecka, och ett utan `restrictionTimes` har jour dygnet runt, som ett nytt lager i instrumentpanelen börjar.
+- Ett lagers `restrictionTimes`, dess aktiva tider, anger typen under `restrictionType`: `None` (jour dygnet runt), `Daily` eller `Weekly`. `restictionType`, den äldre stavningen utan det andra "r", läses också, och varje svar har typen under båda, så att en klient eller en Terraform-konfiguration skriven med någon av dem fortsätter att fungera; lagret sparas med `restrictionType`.
+- En skrivning som skulle ge ett lager jour vid ingen tidpunkt avvisas med en `400` som nämner nyckeln: en typ som saknas, är okänd eller skiljer sig mellan de två stavningarna (en uppdatering tar den som avviker från lagrets nuvarande typ); ett `Daily`-fönster vars `startTime` och `endTime` inte är datum och tider (`"09:00"` ensamt avvisas); en `Weekly`-begränsning utan `weeklyRestrictionTimes`; eller ett fönster som öppnar och stänger vid samma tid. En `rotation` vars `intervalType` inte är `Hour`, `Day`, `Week`, `Month` eller `Year` avvisas på samma sätt.
+- Ett lager som sparades innan sådana skrivningar avvisades, utan en typ som lästes, hade aldrig jour. En uppgradering av OneUptime läser varje sådant lager efter de tider det innehåller, sparar det så och räknar på nytt ut vem som har jour i dess schema, så att dess personer larmas från och med då och får besked om det.
 - En ändring av ett schemas lager och personerna i dem, gjord med API:et eller Terraform, meddelas som en ändring: vem som har jour räknas ut när lagren har varit oförändrade i en halv minut, och den som går på eller av jour, eller är näst på tur, får veta det en gång, inte en gång per lager eller person som skrivs. Larm går till den som lagren sätter i jour så snart varje ändring är sparad.
 - För att ändra på en gång vem som tar pass i ett schemas lager, som **Spara ändringar** på sidan **Lager** gör, läser du lagren med `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` och skickar tillbaka dem, ändrade, till `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. De anger varje lager som schemat behåller, det med högst prioritet först, vart och ett med sina personer i passordning: den som redan är i ett lager med sitt `layerUserId`, den som läggs till med bara `userId`. `deletedLayerIds` anger de lager som ska tas bort.
 - En sparning skrivs helt eller inte alls, och vem som har jour räknas ut en gång, direkt. En som görs efter att någon annan har ändrat lagren avvisas med 409, eftersom dess `basedOnVersion` inte längre är lagrens: läs lagren igen och gör ändringen på det som finns nu. Terraform-resursen `oneuptime_on_call_schedule_layers` sparar ett schemas lager på det här sättet.
@@ -129,6 +134,28 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
     }
   }'
 ```

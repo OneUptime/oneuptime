@@ -37,6 +37,7 @@
 | `Not an ID` | 引用記錄，而不是寫它的名稱：請參閱[該寫 ID 的地方寫了名稱](#該寫-id-的地方寫了名稱) |
 | `.tf` 檔案中有來自儀表板的 JSON | 把它寫成 HCL：請參閱[來自儀表板的 JSON](#來自儀表板的-json) |
 | `no available releases match the given constraints` | 使用版本範圍，而不是單一確切版本：請參閱[從未發佈過的版本](#從未發佈過的版本) |
+| `checksum list has unexpected SHA-256 hash` | 使用該提供者的其他版本：請參閱[總和檢查碼不符的版本](#總和檢查碼不符的版本) |
 | `x509: certificate signed by unknown authority` | 信任你的憑證授權單位：請參閱[憑證](#憑證) |
 | `invalid character '<' looking for beginning of value` | 讓 `oneuptime_url` 指向 OneUptime 本身：請參閱[傳回網頁而不是 API](#傳回網頁而不是-api) |
 | `connection refused` 或 `Client.Timeout exceeded` | 檢查位址、網路和 Proxy：請參閱[連線失敗](#連線失敗) |
@@ -111,9 +112,9 @@ This network device references records that are not in this project: Network Sit
 
 團隊、標籤、待命策略和待命排程在專案中各自擁有獨一無二的名稱，不分大小寫和空格，許多其他類型也是如此，例如事件嚴重程度、監測器狀態和狀態頁。建立或重新命名時使用同類其他記錄已有的名稱，會得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 或 `Incident Severity with the same name already exists.` 先前就同名的記錄會保留名稱，儀表板中團隊、標籤、待命策略和待命排程的清單會標示它們。
 
-要求名稱唯一的專案（新專案預設如此，見**專案設定 → 基礎 → 專案 → 名稱唯一**）會對監測器、範本、API 金鑰以及你命名的大多數其他類型執行同樣的規則：`Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` 在專案提出這項要求之前就已同名的記錄會保留名稱，直到被重新命名，那張卡片會列出它們。
+要求名稱唯一的專案（新專案預設如此，見**專案設定 → 基礎 → 專案 → 名稱唯一**）會對監測器、範本、API 金鑰以及你命名的大多數其他類型執行同樣的規則：`Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` 在專案提出這項要求之前就已同名的記錄會保留名稱，直到被重新命名：那張卡片會列出它們，它們自己的清單也會標示它們。
 
-Terraform 會平行執行同一次 apply 中的變更，因此如果建立或重新命名時使用的名稱正被另一個資源在同一次 apply 中透過重新命名或刪除讓出，在那個資源仍占用該名稱時可能會被拒絕。此時提供者會在最多 30 秒內再次請求，因此重新命名鏈（例如 A 改為 B，同時 B 改為 C）可以在一次 apply 中完成，接手被該 apply 刪除之資源名稱的資源也是如此。互換（A 改為 B、B 改為 A），或任何最終回到起點的重新命名鏈，則永遠無法完成，設定之外的記錄占用的名稱也是如此，例如 OneUptime 隨專案建立的嚴重程度：30 秒後 apply 會失敗，並顯示 `The name was still taken after asking again for 30 seconds.` 請為資源取一個沒有人使用的名稱，或用 `terraform import` 匯入占用該名稱的記錄。如果是互換，請先把其中一個重新命名為沒有人使用的名稱，套用，然後再完成其餘變更。
+Terraform 會平行執行同一次 apply 中的變更，因此如果建立或重新命名時使用的名稱正被另一個資源在同一次 apply 中透過重新命名或刪除讓出，在那個資源仍占用該名稱時可能會被拒絕。此時提供者會在最多 30 秒內再次請求，因此重新命名鏈（例如 A 改為 B，同時 B 改為 C）可以在一次 apply 中完成，接手被該 apply 刪除之資源名稱的資源也是如此。互換（A 改為 B、B 改為 A），或任何最終回到起點的重新命名鏈，則永遠無法完成，設定之外的記錄占用的名稱也是如此，例如 OneUptime 隨專案建立的嚴重程度：30 秒後 apply 會失敗，並顯示 `The name was still taken after asking again for 30 seconds.` 請為資源取一個沒有人使用的名稱，或用 `terraform import` 匯入占用該名稱的記錄。如果你的 API 金鑰可以讀取該記錄，錯誤會指出該記錄並提供要執行的命令，例如 `terraform import oneuptime_monitor.<name> <id>`：匯入 apply 正在建立的資源；如果 apply 是在重新命名資源，則匯入一個獨立的資源。如果是互換，請先把其中一個重新命名為沒有人使用的名稱，套用，然後再完成其餘變更。
 
 已封存的記錄會保留其名稱，apply 對正在使用的記錄所做的任何操作都不會讓出該名稱。建立或重新命名為該名稱會立即失敗，並說明在哪裡取消封存該記錄：請取消封存，或另選一個名稱。
 
@@ -238,6 +239,14 @@ terraform {
 ```
 
 在自架的 OneUptime 上，請把範圍的上限設為你的 OneUptime 版本，如[自架設定](/docs/terraform/self-hosted#選擇提供者版本)所示。[登錄檔使用](/docs/terraform/registry#版本如何編號)說明了版本的編號方式。
+
+### 總和檢查碼不符的版本
+
+`checksum list has unexpected SHA-256 hash` 表示該發行版本為這個版本提供的檔案，並不是版本發佈時登錄檔讀取的那些檔案。登錄檔會保留它當時讀取的總和檢查碼，`init` 會用這些總和檢查碼核對每一次下載。14.3.0、16.0.0、17.0.0、17.1.0 和 17.2.0 的檔案，以及 11.x 到 14.0.x 中一些較舊版本的檔案，在登錄檔讀取之後又被建置並上傳了一次，所以 `init` 在每個平台上都會拒絕這些版本，Terraform 和 OpenTofu 都一樣。鎖定檔也繞不過去：`init` 會在讀取鎖定檔之前，先把登錄檔的總和檢查碼與該發行版本的總和檢查碼進行比較。
+
+請使用其他版本：17.3.0 或更新的版本，或是 15.0.0。允許較新版本的範圍會透過 `terraform init -upgrade` 選取它。這樣的版本重新發佈時，會作為下一個修補版本發佈，例如 17.2.0 對應 17.2.1，裡面是同一個提供者，允許該修補的範圍會選取它。
+
+要在使用某個版本之前檢查它，請參閱[驗證某個版本的總和檢查碼](/docs/terraform/registry#驗證某個版本的總和檢查碼)。
 
 ## 連線到自架的 OneUptime
 

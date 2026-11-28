@@ -140,6 +140,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_SERVICE_TOKEN` | 是 | 来自 **项目设置 → 遥测与 APM → 摄取密钥** 的摄取密钥。 |
 | `DOCKER_HOST_NAME` | 否 | 主机在 OneUptime 中的名称。默认为 `docker-host`，因此请为每台主机设置自己的名称。 |
 | `DOCKER_API_VERSION` | 否 | 代理使用的 Docker Engine API 版本。默认为空：代理会与守护进程协商版本，因此从 20.10 起的每个 Docker Engine 都能使用。仅在需要固定某个版本时才设置它（见 [故障排查](#故障排查)）。 |
+| `ONEUPTIME_LOG_OPERATOR_1` 到 `ONEUPTIME_LOG_OPERATOR_5` | 否 | 你自己的 Collector operators，每个都以 JSON 形式提供，用于代理读取不了的日志格式。请参阅 [读取自定义日志格式](#读取自定义日志格式)。 |
 
 要更改某个值，请移除代理并重新运行其命令（Docker CLI），或者编辑 `docker-compose.yml` 并运行 `docker compose up -d`（Docker Compose）。
 
@@ -201,6 +202,33 @@ services:
 ```
 
 然后重启 Docker 并重新创建容器。容器会一直使用创建时的日志驱动，因此仅重启它是不够的。
+
+## 读取自定义日志格式
+
+代理能读取大多数程序所写格式中的级别。对于它读取不了的格式，例如公司内部的格式，最多可以给它五个你自己的 Collector operators，每个都以 JSON 形式写在 `ONEUPTIME_LOG_OPERATOR_1` 到 `ONEUPTIME_LOG_OPERATOR_5` 中。它们会作用于每一条容器日志行，时机是在代理读取其容器和流之后，在读取该行的级别之前。要设置某行的级别，请把它以代理能读取的词写入 `attributes.severity_text`，例如 `ERROR`、`warn` 或 `critical`，并把该行交给代理的第一步 `severity-router`。自行设置严重性的 operator（例如 `severity_parser`）的结果会被覆盖：代理会在你的 operators 之后读取每一行的级别。
+
+对于 `<<E>> payment failed` 这样以字母表示级别的行：
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+Collector 遇到无法构建的 operator 时不会启动，因此请在代理运行它们之前先检查：
+
+- 带着这些变量运行 `install.sh` 时，它会先用 Collector 自己的 `validate` 检查它们，然后才改动你现有的代理。如果 Collector 拒绝它们，脚本会停止并给出 Collector 的消息，你的代理继续运行。
+- 使用 Docker Compose 时，把它们写入 `docker-compose.yml` 旁边的 `.env`，每个值都用单引号括起来，然后运行 `docker compose up -d`。`oneuptime-docker-agent-config-check` 服务会先运行同样的检查，只有检查通过，代理才会启动。
+- 使用 Docker CLI 时，请自己运行检查，带上代理的其他变量，然后用同样的 `-e` 参数启动代理：
+
+```bash
+docker run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e DOCKER_HOST_NAME="my-docker-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/docker-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Kubernetes 代理](/docs/telemetry/kubernetes-agent#读取自定义日志格式) 解释了示例中的 operators，Kubernetes 代理也接受这些 operators。
 
 ## 升级代理
 

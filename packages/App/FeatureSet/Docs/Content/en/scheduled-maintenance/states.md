@@ -72,7 +72,7 @@ The header's buttons are named after your states. While the event waits, it offe
 
 An event starts when it moves from a state where it waits into **Ongoing**, or straight into a state of yours placed between **Ongoing** and **Ended**. Then:
 
-- **Its monitors stop being checked**, and change to its **Change Monitor Status to**, if it has one. A monitor you add to the event while it runs changes too.
+- **Its monitors stop being checked**, and change to its **Change Monitor Status to**, if it has one. A monitor you add to the event while it runs changes too. Without one, they keep their status, and their uptime, status pages and SLOs leave the time out until the event ends.
 - **Its status pages list it as in progress**, and its subscribers are told: at its time if **When the event starts** is on, and by hand as the dialog's **Notify Status Page Subscribers** says.
 - **Its owners are told**, if they turned the state change notification on, and the event appears under **Ongoing Maintenance Events**.
 

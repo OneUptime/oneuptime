@@ -160,6 +160,7 @@ const NetworkEventDetails: FunctionComponent<ComponentProps> = (
                   getNetworkQuickActionRoute(NetworkQuickAction.AddDevice, {
                     address: row.sourceIp || "",
                     probeId: row.probeId,
+                    siteId: row.siteId,
                   }),
                 );
               }}

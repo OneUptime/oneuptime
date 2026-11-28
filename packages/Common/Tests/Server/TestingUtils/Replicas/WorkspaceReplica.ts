@@ -276,9 +276,18 @@ async function setUp(args: JSONObject): Promise<JSONObject> {
   if (line) {
     tune(line, "RELEASED_FOR_AT_MOST_MS", args["releasedForAtMostMs"]);
     tune(line, "STALLED_AFTER_MS", args["stalledAfterMs"]);
-    tune(line, "ASKED_EVERY_MS", 20);
-    tune(line, "KEPT_EVERY_MS", 300);
-    tune(line, "LOOKED_AFTER_EVERY_MS", 200);
+
+    /*
+     * How often a server asks, says it still posts or holds, and looks
+     * after the lines: quick here, unless the test asks for the times
+     * every App server runs with (realTimes, #11314).
+     */
+    if (!args["realTimes"]) {
+      tune(line, "ASKED_EVERY_MS", 20);
+      tune(line, "KEPT_EVERY_MS", 300);
+      tune(line, "LOOKED_AFTER_EVERY_MS", 200);
+    }
+
     tune(line, "KEY_PREFIX", args["keyPrefix"]);
   }
 
@@ -313,6 +322,16 @@ async function setUp(args: JSONObject): Promise<JSONObject> {
   return {
     replica: NAME,
     takesOver: Boolean(takingOver.takeOverForStoppedServers),
+    // The times this server runs with, as set up.
+    times: line
+      ? {
+          heldForAtMostMs: WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS,
+          stalledAfterMs: line.STALLED_AFTER_MS,
+          keptEveryMs: line.KEPT_EVERY_MS,
+          lookedAfterEveryMs: line.LOOKED_AFTER_EVERY_MS,
+          askedEveryMs: line.ASKED_EVERY_MS,
+        }
+      : null,
   };
 }
 

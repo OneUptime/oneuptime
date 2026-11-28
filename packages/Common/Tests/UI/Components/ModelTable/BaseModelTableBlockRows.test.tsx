@@ -75,6 +75,7 @@ import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { keepProjectPermissionsInTab } from "../../../Helpers/TabProjectPermissions";
+import UniqueNamesApi from "../../../../UI/Utils/UniqueNamesApi";
 
 type Row = {
   _id: string;
@@ -142,6 +143,17 @@ const blockedSentence: BlockedSentenceFunction = (
     permission,
   ]).join(", ")}.`;
 };
+
+/*
+ * A list of a kind Require Unique Names holds asks which of its records share
+ * a name, to mark them (#11021): none do here.
+ */
+beforeEach(() => {
+  jest.spyOn(UniqueNamesApi, "readSharedNames").mockResolvedValue({
+    groups: [],
+    createdAt: {},
+  });
+});
 
 describe("BaseModelTable with block rows in the snapshot", () => {
   const props: BaseModelTableProps<Monitor> = {

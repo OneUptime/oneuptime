@@ -6,6 +6,7 @@ En monitormall är en sparad monitorkonfiguration (en typ, kriterier, ett interv
 - [Skapa en mall](#skapa-en-mall): Fyra steg, som Skapa monitor.
 - [Skapa monitorer från den](#skapa-monitorer-från-en-mall): Ett klick, eller länka monitorer du redan har.
 - [Synkronisera ändringar](#synkronisera-ändringar-till-länkade-monitorer): Vad varje synkroniseringsknapp kopierar.
+- [Flytta monitorer till en annan mall](#flytta-monitorer-till-en-annan-mall): En bättre mall, och varje monitor behåller sin historik.
 - [Behåll värden för varje monitor](#behåll-värden-för-varje-monitor): Skydda ett mål eller huvuden mot en synkronisering.
 :::
 
@@ -55,7 +56,7 @@ Mallen läggs till i listan. Öppna den för att se dess sida, med ett kort för
 ## Skapa monitorer från en mall
 
 - **Ny monitor.** Klicka på **Skapa monitor** på mallens rad i listan, eller på **Skapa övervakning från mall** på dess sida. **Skapa monitor** öppnas med mallens typ och inställningar ifyllda; ändra det du behöver och skapa den. Den nya monitorn länkas till mallen.
-- **Monitorer du redan har.** Under **Länkade monitorer** klickar du på **Länka befintliga monitorer** och väljer dem. De behåller sina inställningar tills du synkroniserar.
+- **Monitorer du redan har.** Under **Länkade monitorer** klickar du på **Länka befintliga monitorer** och väljer dem. Med **Använd mallens kriterier och intervall** påslaget får de mallens kriterier, intervall och sondöverensstämmelse när de länkas; avstängt behåller de sina inställningar tills du synkroniserar. En monitor som är länkad till en annan mall flyttas till den här.
 
 Värden som angetts under **Standardvärden för anpassade fält** skrivs till varje monitor som skapas från mallen, även monitorer som regler för automatisk import och larmpolicyer skapar från den.
 
@@ -70,9 +71,60 @@ Att redigera en mall ändrar bara mallen. För att kopiera en ändring till de l
 | **Synkronisera etiketter till länkade monitorer** | Etiketterna och inget annat | Allt annat |
 | **Synkronisera anpassade fält till länkade monitorer** | De anpassade fält som mallen har ett standardvärde för, i stället för det varje monitor hade | Anpassade fält som mallen lämnar tomma, och allt annat |
 
-För att synkronisera en enskild monitor klickar du på **Synkronisera från mall** på dess rad under **Länkade monitorer**. Det kopierar kriterierna och steginställningarna (utom skyddade fält), övervakningsintervallet, minsta sondöverensstämmelse och etiketterna, och lämnar monitorns namn, beskrivning och värden i anpassade fält orörda. **Avlänka från mall** kopplar loss en monitor; den behåller sina inställningar.
+För att synkronisera en enskild monitor klickar du på **Synkronisera från mall** på dess rad under **Länkade monitorer**. Det kopierar kriterierna och steginställningarna (utom skyddade fält), övervakningsintervallet, minsta sondöverensstämmelse och etiketterna, och lämnar monitorns namn, beskrivning och värden i anpassade fält orörda. Om du vill koppla loss en monitor, se [Avlänka monitorer från en mall](#avlänka-monitorer-från-en-mall).
 
 Efter en synkronisering anger en sammanfattning hur många monitorer som uppdaterades. **Delvis synkroniserad** betyder att några länkade monitorer fortfarande har den tidigare konfigurationen, oftast för att dina behörigheter inte täcker dem.
+
+## Flytta monitorer till en annan mall
+
+När en bättre mall ersätter en annan flyttar du monitorerna till den i stället för att ta bort dem. Varje monitor behåller sitt namn, sin statushistorik, sina etiketter, ägare och incidenter, och får den nya mallens kriterier.
+
+:::steps
+### Välj monitorerna
+
+Öppna mallen som de är länkade till nu. Under **Länkade monitorer** väljer du monitorerna, eller alla. Du kan också välja monitorer i monitorlistan, filtrerad på valfri kolumn.
+
+### Flytta dem
+
+Under **Massåtgärder** klickar du på **Flytta till en annan mall** (i monitorlistan **Länka till mall**). Välj mallen.
+
+### Låt mallens inställningar vara på
+
+Låt **Använd mallens kriterier och intervall** vara påslaget, så att varje monitor får mallens kriterier, steginställningar, intervall och sondöverensstämmelse nu. Avstängt behåller varje monitor sina egna tills du synkroniserar. Bekräfta sedan.
+:::
+
+Det här gör flytten:
+
+- Monitorernas kriterier, intervall och sondöverensstämmelse ersätts av mallens. En öppen incident eller ett öppet larm som de gamla kriterierna var inställda på att lösa automatiskt löses, och de nya kriterierna öppnar en ny om problemet finns kvar. Varje monitor för nätverksenheter fortsätter att bevaka sin egen enhet, och varje adress- eller URL-monitor fortsätter att kontrollera sin egen enhets adress.
+- Namn, beskrivningar, statushistorik, etiketter, ägare, värden i anpassade fält och kopplingar till incidenter förblir som de är.
+- En monitor som en import, en regel för automatisk import eller en larmpolicy för nätverket har skapat behåller mallen den skapades från. Den regeln skapar den aldrig igen, och en larmpolicy släpper den: den tar inte längre bort eller ersätter den.
+- En enhet har en monitor från varje mall. När en enhet redan har en monitor som skapats för den från den nya mallen utelämnas dess andra monitor, och ändringen namnger den som står i vägen: ta bort en av de två och flytta sedan igen.
+- En monitor av en annan typ än mallens utelämnas.
+
+Ändringen körs på servern, upp till 10 000 monitorer i taget, och visar sitt förlopp: vad som flyttades, vad som utelämnades och varför, och de öppna incidenter och larm den löste. Att stänga dialogrutan stoppar den inte, och mallens sida visar en ändring som fortfarande pågår. **Stoppa** stoppar den före nästa monitor, och **Försök igen** gör ett nytt försök med de monitorer som misslyckades eller inte nåddes.
+
+> [!TIP]
+> Ska enheterna från en regel för automatisk import flyttas till en ny mall? Flytta monitorerna först och peka sedan regeln mot den nya mallen. I omvänd ordning ger regeln varje enhet en andra monitor, från den nya mallen, bredvid den den redan har.
+
+## Avlänka monitorer från en mall
+
+Klicka på **Avlänka från mall** på en monitors rad under **Länkade monitorer**, eller välj monitorer där eller i monitorlistan och använd **Avlänka från mall** under **Massåtgärder**. Välj vad monitorerna behåller:
+
+| Val | Vad monitorerna gör efteråt |
+| --- | --- |
+| **Behåll deras inställningar** | De fortsätter att kontrollera och larma med de kriterier de har nu, som egna monitorer, och får inte längre mallens uppdateringar. |
+| **Rensa mallens kriterier från dem** | De fortsätter att kontrollera, men skapar inga incidenter eller larm och sätter ingen status förrän du länkar dem till en mall igen. En öppen incident eller ett öppet larm som deras kriterier var inställda på att lösa automatiskt löses. |
+
+Oavsett val behåller de sina namn, sin statushistorik, sina etiketter, ägare och incidenter, och en regel som skapade dem skapar dem aldrig igen.
+
+## Ta bort en mall
+
+En mall som en larmpolicy för nätverket eller en regel för automatisk import skapar monitorer från kan inte tas bort: peka först policyn eller regeln mot en annan mall. När monitorer är länkade till mallen frågar borttagningen vad som ska hända med dem:
+
+- **Behåll deras inställningar** (standard): borttagningen avlänkar dem, och de fortsätter att kontrollera och larma med de kriterier de har.
+- **Rensa den här mallens kriterier från dem**: var och en avlänkas med sina kriterier rensade, som ovan, och sedan tas mallen bort. När en monitor förblir länkad, till exempel en som dina behörigheter inte täcker, behålls mallen, och dialogrutan anger hur många.
+
+Om du hellre vill flytta monitorerna till en annan mall använder du **Flytta till en annan mall** innan du tar bort den.
 
 ## Behåll värden för varje monitor
 
@@ -174,6 +226,14 @@ Ett skyddat fält kunde inte matchas mot ett steg på en av monitorerna, så syn
 
 :::details Synkroniseringsknapparna är nedtonade
 Ingen monitor är länkad till mallen än. Skapa en monitor från den, eller klicka på **Länka befintliga monitorer** under **Länkade monitorer**.
+:::
+
+:::details En flytt utelämnar en monitor: "Enheten som den här monitorn skapades för har redan en monitor länkad till den här mallen"
+Enheten har en monitor som skapats för den från mallen du flyttar till, oftast för att en regel för automatisk import pekades mot den mallen före flytten. Ta bort den du inte behöver – den nyare har minst historik – och flytta sedan igen.
+:::
+
+:::details Efter att en regel för automatisk import flyttats till en ny mall har enheterna två monitorer
+Regeln gav varje enhet den nya mallens monitor bredvid den den hade. Ta bort de nya monitorerna och flytta sedan de gamla till den nya mallen: de behåller sin historik, och regeln skapar inga igen.
 :::
 
 :::details Sparandet misslyckas med "Unsupported do not sync field"

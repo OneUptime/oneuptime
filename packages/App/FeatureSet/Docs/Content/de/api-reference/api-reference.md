@@ -274,7 +274,7 @@ Ein Projekt, das eindeutige Namen verlangt, wie es ein neues Projekt tut, hält 
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-Eine solche Ablehnung enthält außerdem `takenById`, die ID des Datensatzes, der den Namen hat, wenn Ihr Schlüssel ihn lesen darf. Datensätze, die sich einen Namen teilten, bevor das Projekt eindeutige Namen verlangte, behalten ihn, bis sie umbenannt werden, und ein Update kann mehreren Datensätzen derselben Art nicht denselben Namen geben. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` beantwortet, ob ein Name vergeben ist, bevor Sie ihn senden, und `GET /api/unique-names/duplicates` listet die Namen auf, die das Projekt mehr als einmal hat, Art für Art.
+Eine solche Ablehnung enthält außerdem `takenById`, die ID des Datensatzes, der den Namen hat, wenn Ihr Schlüssel ihn lesen darf. Datensätze, die sich einen Namen teilten, bevor das Projekt eindeutige Namen verlangte, behalten ihn, bis sie umbenannt werden, und ein Update kann mehreren Datensätzen derselben Art nicht denselben Namen geben. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` beantwortet, ob ein Name vergeben ist, bevor Sie ihn senden, und `GET /api/unique-names/duplicates` listet die Namen auf, die das Projekt mehr als einmal hat, Art für Art. `GET /api/shared-names/Monitor`, oder der Tabellenname jeder anderen Art, für die die Einstellung gilt, beantwortet, welche ihrer Datensätze sich einen Namen teilen, so wie die Listen im Dashboard sie markieren: `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`, jede Gruppe zwei oder mehr Datensätze, die Ihr Schlüssel lesen darf, mit dem Zeitpunkt, zu dem jeder angelegt wurde. Archivierte Datensätze werden getrennt von denen gruppiert, die in Dienst sind.
 
 #### Werte, die schon ein anderer Datensatz hat
 
@@ -300,6 +300,16 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 Ein Update, das die Werte eines Datensatzes so schreibt, wie sie bereits sind, ändert nichts: Es startet die Workflows **On Update** des Datensatzes nicht, sendet keine Live-Aktualisierungen und fügt keinen Audit-Protokolleintrag hinzu. `false` über `false` geschrieben zählt als derselbe Wert, ebenso `"false"` über `false` geschrieben, eine als Text geschriebene Zahl, eine Zeit, die als derselbe Zeitpunkt in einem anderen Format geschrieben wird, und Labels, die als dieselben Labels in beliebiger Reihenfolge geschrieben werden. Wenn ein Update einige Werte ändert und andere so zurückschreibt, wie sie sind, listet sein Audit-Protokolleintrag nur die geänderten Werte auf, und **Beobachtete Felder** eines Workflows hört nur diese.
+
+### Als JSON geschriebene Werte
+
+Manche Felder enthalten einen JSON-Wert mit eigener Form, etwa `rotation` und `restrictionTimes` einer Ebene eines Bereitschaftsplans; die API-Referenz führt jede Form bei ihren Datentypen auf. OneUptime liest nur die Schlüssel dieser Form, daher wird ein Wert, der den Schlüssel weglässt, der sagt, was er bedeutet, diesen Schlüssel anders schreibt oder ihm einen Wert gibt, den OneUptime nicht kennt, mit einem `400` abgelehnt, der den Schlüssel nennt, statt als Wert gespeichert zu werden, der nichts bewirkt:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+Ein umbenannter Schlüssel wird weiterhin unter seinem alten Namen gelesen: Die Art der Einschränkung einer Ebene wird unter `restrictionType` geschrieben oder unter der älteren Schreibweise `restictionType`, und eine Antwort enthält beide.
 
 ### Wo ein Projekt gekauft wurde
 

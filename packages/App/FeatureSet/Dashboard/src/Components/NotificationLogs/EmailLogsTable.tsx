@@ -9,9 +9,6 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
-import EmailStatus from "Common/Types/Mail/MailStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -23,6 +20,12 @@ import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { getEmailLogReason } from "../../Utils/EmailLogReason";
+import NotificationLogStatusPill from "./NotificationLogStatusPill";
+import {
+  getNotificationLogStatusFilterOptions,
+  NotificationLogKind,
+  NOTIFICATION_LOGS_DOCUMENTATION,
+} from "./NotificationLogStatus";
 
 /*
  * What View Subject says for an email sent without one: a dialog with an
@@ -81,24 +84,32 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
       field: { status: true },
       title: "Status",
       type: FieldType.Text,
+      /*
+       * What the status means: Success is the mail server's, and the last
+       * OneUptime hears of an email - it does not track delivery (#11138).
+       */
       getElement: (item: EmailLog): ReactElement => {
-        if (item["status"]) {
-          return (
-            <Pill
-              isMinimal={false}
-              color={item["status"] === EmailStatus.Success ? Green : Red}
-              text={item["status"] as string}
-            />
-          );
-        }
-        return <></>;
+        return (
+          <NotificationLogStatusPill
+            kind={NotificationLogKind.Email}
+            status={item.status}
+            statusMessage={item.statusMessage}
+          />
+        );
       },
     },
   ];
 
   const defaultFilters: Array<Filter<EmailLog>> = [
     { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
-    { field: { status: true }, title: "Status", type: FieldType.Dropdown },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Dropdown,
+      filterDropdownOptions: getNotificationLogStatusFilterOptions(
+        NotificationLogKind.Email,
+      ),
+    },
   ];
 
   return (
@@ -160,6 +171,7 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
             : "No email logs."
         }
         showRefreshButton={true}
+        documentationLink={NOTIFICATION_LOGS_DOCUMENTATION}
         columns={defaultColumns}
         filters={defaultFilters}
         actionButtons={[

@@ -146,6 +146,18 @@ import ProbeReportIdentity from "../Probe/ProbeReportIdentity";
 
 import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import { getProbeAgreementRequiredCount } from "../../../Utils/Monitor/ProbeAgreementRule";
+import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
+import CriteriaBands from "./CriteriaBands";
+import EvaluationEventSeries from "./EvaluationEventSeries";
+
+/*
+ * The series the criteria of one evaluation have claimed for one kind of
+ * record (claimUnclaimedSeries): by band (CriteriaBands.getBandKey), each
+ * series claimed in it by its fingerprint, with the name of the criteria
+ * that claimed it.
+ */
+export type SeriesClaims = Map<string, Map<string, string>>;
+
 interface ProbeAgreementResult {
   hasAgreement: boolean;
   agreementCount: number;
@@ -2517,14 +2529,16 @@ export default class MonitorResourceUtil {
 
         /*
          * De-escalation: a host that breaches both "critical" and
-         * "warning" gets one record, from the first (highest priority)
-         * criteria that claims it — criteria are in user-defined order
-         * and the first match is the one that also sets the monitor's
-         * status. Tracked separately for incidents and alerts because a
-         * criteria can create one without the other.
+         * "warning" of one check gets one record, from the first (highest
+         * priority) of those bands that claims it - criteria are in
+         * user-defined order. Only bands of one another share a series
+         * (CriteriaBands, #11349): a criteria that checks something else
+         * claims it for itself, so a busy port and a port logging errors
+         * are two alerts. Tracked separately for incidents and alerts
+         * because a criteria can create one without the other.
          */
-        const seriesClaimedByIncidentCriteria: Set<string> = new Set<string>();
-        const seriesClaimedByAlertCriteria: Set<string> = new Set<string>();
+        const seriesClaimedByIncidentCriteria: SeriesClaims = new Map();
+        const seriesClaimedByAlertCriteria: SeriesClaims = new Map();
 
         for (const matched of criteriaFanOut) {
           const criteriaInstance: MonitorCriteriaInstance | undefined =
@@ -2604,7 +2618,10 @@ export default class MonitorResourceUtil {
                 ? MonitorResourceUtil.claimUnclaimedSeries({
                     matches: matched.perSeriesMatches,
                     claimed: seriesClaimedByIncidentCriteria,
+                    criteriaInstance: criteriaInstance,
+                    kind: MonitorRecordKind.Incident,
                     isClaiming: criteriaInstance.data?.createIncidents === true,
+                    evaluationSummary: evaluationSummary,
                   })
                 : everyEmail.incidents,
               openIncidents,
@@ -2632,7 +2649,10 @@ export default class MonitorResourceUtil {
               ? MonitorResourceUtil.claimUnclaimedSeries({
                   matches: matched.perSeriesMatches,
                   claimed: seriesClaimedByAlertCriteria,
+                  criteriaInstance: criteriaInstance,
+                  kind: MonitorRecordKind.Alert,
                   isClaiming: criteriaInstance.data?.createAlerts === true,
+                  evaluationSummary: evaluationSummary,
                 })
               : everyEmail.alerts,
             openAlerts,
@@ -4112,30 +4132,133 @@ export default class MonitorResourceUtil {
    * (higher-priority) criteria have already claimed.
    *
    * A host breaching both "critical" and "warning" should page once,
-   * from the more severe band. Criteria that create nothing claim
-   * nothing, so a passive recovery criteria never steals a series from
-   * the criteria that would have alerted on it.
+   * from the more severe band: a series an earlier band of this criteria
+   * claimed (CriteriaBands) is left to it, and the evaluation log says so.
+   * A criteria that checks something else is no band of it and claims the
+   * series for itself, so a port above 80% and a port logging errors are
+   * two alerts (#11349). Criteria that create nothing claim nothing, so a
+   * passive recovery criteria never steals a series from the criteria that
+   * would have alerted on it.
    */
-  private static claimUnclaimedSeries(input: {
+  public static claimUnclaimedSeries(input: {
     matches: Array<PerSeriesCriteriaMatch>;
-    claimed: Set<string>;
+    claimed: SeriesClaims;
+    criteriaInstance: MonitorCriteriaInstance;
+    kind: MonitorRecordKind;
     isClaiming: boolean;
+    evaluationSummary: MonitorEvaluationSummary;
   }): Array<PerSeriesCriteriaMatch> {
     if (!input.isClaiming) {
       return input.matches;
     }
 
-    const unclaimed: Array<PerSeriesCriteriaMatch> = input.matches.filter(
-      (match: PerSeriesCriteriaMatch) => {
-        return !input.claimed.has(match.fingerprint);
-      },
+    const bandKey: string = CriteriaBands.getBandKey(
+      input.criteriaInstance.data,
     );
 
+    let claimedInBand: Map<string, string> | undefined =
+      input.claimed.get(bandKey);
+
+    if (!claimedInBand) {
+      claimedInBand = new Map<string, string>();
+      input.claimed.set(bandKey, claimedInBand);
+    }
+
+    const unclaimed: Array<PerSeriesCriteriaMatch> = [];
+
+    for (const match of input.matches) {
+      const claimedBy: string | undefined = claimedInBand.get(
+        match.fingerprint,
+      );
+
+      if (claimedBy === undefined) {
+        unclaimed.push(match);
+        continue;
+      }
+
+      input.evaluationSummary.events.push(
+        MonitorResourceUtil.getLeftToEarlierBandEvent({
+          match: match,
+          kind: input.kind,
+          claimedBy: claimedBy,
+          criteriaId: input.criteriaInstance.data?.id,
+        }),
+      );
+    }
+
     for (const match of unclaimed) {
-      input.claimed.add(match.fingerprint);
+      claimedInBand.set(
+        match.fingerprint,
+        input.criteriaInstance.data?.name || "",
+      );
     }
 
     return unclaimed;
+  }
+
+  /*
+   * What the evaluation log says of a series a criteria leaves to an earlier
+   * band of it (claimUnclaimedSeries): no record of its own, and which
+   * criteria speaks for the series.
+   */
+  public static getLeftToEarlierBandEvent(input: {
+    match: PerSeriesCriteriaMatch;
+    kind: MonitorRecordKind;
+    // The name of the earlier band that claimed the series.
+    claimedBy: string;
+    criteriaId: string | undefined;
+  }): MonitorEvaluationEvent {
+    const criteria: EvaluationSentenceValue = EvaluationEventText.criteriaName(
+      input.claimedBy,
+    );
+
+    const series: string =
+      input.match.fingerprint ===
+      MetricSeriesFingerprint.WholeMonitorFingerprint
+        ? ""
+        : SeriesLabelDisplay.buildInlineSummary(input.match.labels);
+
+    const isAlert: boolean = input.kind === MonitorRecordKind.Alert;
+
+    const title: EvaluationSentence = isAlert
+      ? translatableSentence('Alert left to "{{criteria}}"', {
+          criteria: criteria,
+        })
+      : translatableSentence('Incident left to "{{criteria}}"', {
+          criteria: criteria,
+        });
+
+    let message: EvaluationSentence;
+
+    if (isAlert) {
+      message = series
+        ? translatableSentence(
+            'Skipped creating an alert for this series ({{series}}) because "{{criteria}}", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.',
+            { series: series, criteria: criteria },
+          )
+        : translatableSentence(
+            'Skipped creating an alert because "{{criteria}}", listed before this criteria, checks the same thing and matched too. Two bands of one check open one alert, from the first.',
+            { criteria: criteria },
+          );
+    } else {
+      message = series
+        ? translatableSentence(
+            'Skipped creating an incident for this series ({{series}}) because "{{criteria}}", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.',
+            { series: series, criteria: criteria },
+          )
+        : translatableSentence(
+            'Skipped creating an incident because "{{criteria}}", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.',
+            { criteria: criteria },
+          );
+    }
+
+    return {
+      type: isAlert ? "alert-skipped" : "incident-skipped",
+      ...EvaluationEventSeries.of(input.match.fingerprint),
+      ...EvaluationEventText.from({ title: title, message: message }),
+      relatedCriteriaId: input.criteriaId,
+      at: OneUptimeDate.getCurrentDate(),
+    };
   }
 
   private static async checkProbeAgreement(input: {

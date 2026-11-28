@@ -6,6 +6,7 @@ Eine Monitorvorlage ist eine gespeicherte Monitorkonfiguration (ein Typ, Kriteri
 - [Eine Vorlage erstellen](#eine-vorlage-erstellen): Vier Schritte, wie bei Monitor erstellen.
 - [Monitore daraus erstellen](#monitore-aus-einer-vorlage-erstellen): Ein Klick, oder vorhandene Monitore verknüpfen.
 - [Änderungen synchronisieren](#änderungen-auf-verknüpfte-monitore-synchronisieren): Was jede Synchronisierungsschaltfläche kopiert.
+- [Monitore zu einer anderen Vorlage verschieben](#monitore-zu-einer-anderen-vorlage-verschieben): Eine bessere Vorlage, und jeder Monitor behält seinen Verlauf.
 - [Werte pro Monitor behalten](#werte-pro-monitor-behalten): Ein Ziel oder Header vor einer Synchronisierung schützen.
 :::
 
@@ -55,7 +56,7 @@ Die Vorlage wird der Liste hinzugefügt. Öffnen Sie sie, um ihre Seite mit eine
 ## Monitore aus einer Vorlage erstellen
 
 - **Neuer Monitor.** Klicken Sie in der Liste in der Zeile der Vorlage auf **Monitor erstellen** oder auf ihrer Seite auf **Überwachung aus Vorlage erstellen**. **Monitor erstellen** öffnet sich mit dem Typ und den Einstellungen der Vorlage; ändern Sie, was nötig ist, und erstellen Sie ihn dann. Der neue Monitor ist mit der Vorlage verknüpft.
-- **Monitore, die Sie schon haben.** Klicken Sie unter **Verknüpfte Monitore** auf **Bestehende Monitore verknüpfen** und wählen Sie sie aus. Sie behalten ihre Einstellungen, bis Sie synchronisieren.
+- **Monitore, die Sie schon haben.** Klicken Sie unter **Verknüpfte Monitore** auf **Bestehende Monitore verknüpfen** und wählen Sie sie aus. Ist **Kriterien und Intervall der Vorlage verwenden** eingeschaltet, übernehmen sie beim Verknüpfen die Kriterien, das Intervall und die Sondenübereinstimmung der Vorlage; ausgeschaltet behalten sie ihre Einstellungen, bis Sie synchronisieren. Ein Monitor, der mit einer anderen Vorlage verknüpft ist, wechselt zu dieser.
 
 Werte, die unter **Standardwerte für benutzerdefinierte Felder** gesetzt sind, werden in jeden aus der Vorlage erstellten Monitor geschrieben, auch in Monitore, die Regeln für den automatischen Import und Warnungsrichtlinien aus ihr erstellen.
 
@@ -70,9 +71,60 @@ Eine Vorlage zu bearbeiten ändert nur die Vorlage. Um eine Änderung auf die ve
 | **Beschriftungen mit verknüpften Monitoren synchronisieren** | Die Beschriftungen, und sonst nichts | Alles andere |
 | **Benutzerdefinierte Felder mit verknüpften Monitoren synchronisieren** | Die benutzerdefinierten Felder, für die die Vorlage einen Standardwert hat, anstelle dessen, was jeder Monitor hatte | Benutzerdefinierte Felder, die die Vorlage leer lässt, und alles andere |
 
-Um einen einzelnen Monitor zu synchronisieren, klicken Sie in seiner Zeile unter **Verknüpfte Monitore** auf **Aus Vorlage synchronisieren**. Das kopiert die Kriterien und Schritteinstellungen (außer geschützten Feldern), das Überwachungsintervall, die minimale Sondenübereinstimmung und die Beschriftungen und lässt den Namen, die Beschreibung und die Werte benutzerdefinierter Felder des Monitors unverändert. **Verknüpfung mit der Vorlage aufheben** trennt einen Monitor; er behält seine Einstellungen.
+Um einen einzelnen Monitor zu synchronisieren, klicken Sie in seiner Zeile unter **Verknüpfte Monitore** auf **Aus Vorlage synchronisieren**. Das kopiert die Kriterien und Schritteinstellungen (außer geschützten Feldern), das Überwachungsintervall, die minimale Sondenübereinstimmung und die Beschriftungen und lässt den Namen, die Beschreibung und die Werte benutzerdefinierter Felder des Monitors unverändert. Um einen Monitor zu trennen, siehe [Verknüpfung von Monitoren mit einer Vorlage aufheben](#verknüpfung-von-monitoren-mit-einer-vorlage-aufheben).
 
 Nach einer Synchronisierung nennt eine Zusammenfassung, wie viele Monitore aktualisiert wurden. **Teilweise synchronisiert** bedeutet, dass einige verknüpfte Monitore noch die vorherige Konfiguration haben, meist weil Ihre Berechtigungen sie nicht abdecken.
+
+## Monitore zu einer anderen Vorlage verschieben
+
+Wenn eine bessere Vorlage eine andere ersetzt, verschieben Sie deren Monitore zu ihr, statt sie zu löschen. Jeder Monitor behält seinen Namen, seinen Statusverlauf, seine Beschriftungen, Eigentümer und Vorfälle und übernimmt die Kriterien der neuen Vorlage.
+
+:::steps
+### Die Monitore auswählen
+
+Öffnen Sie die Vorlage, mit der sie jetzt verknüpft sind. Wählen Sie unter **Verknüpfte Monitore** die Monitore aus, oder alle. Sie können Monitore auch in der Monitorliste auswählen, gefiltert nach einer beliebigen Spalte.
+
+### Die Monitore verschieben
+
+Klicken Sie unter **Massenaktionen** auf **Zu einer anderen Vorlage verschieben** (in der Monitorliste auf **Mit Vorlage verknüpfen**). Wählen Sie die Vorlage aus.
+
+### Die Einstellungen der Vorlage eingeschaltet lassen
+
+Lassen Sie **Kriterien und Intervall der Vorlage verwenden** eingeschaltet, damit jeder Monitor die Kriterien, Schritteinstellungen, das Intervall und die Sondenübereinstimmung der Vorlage sofort übernimmt. Ausgeschaltet behält jeder seine eigenen, bis Sie synchronisieren. Bestätigen Sie dann.
+:::
+
+Was das Verschieben bewirkt:
+
+- Kriterien, Intervall und Sondenübereinstimmung der Monitore werden durch die der Vorlage ersetzt. Ein offener Vorfall oder eine offene Warnung, die ihre alten Kriterien automatisch beheben sollten, wird behoben, und die neuen Kriterien eröffnen einen neuen Vorfall oder eine neue Warnung, wenn das Problem noch besteht. Jeder Netzwerkgerät-Monitor überwacht weiter sein eigenes Gerät, und jeder Monitor, der eine Adresse oder URL prüft, prüft weiter die Adresse seines eigenen Geräts.
+- Namen, Beschreibungen, Statusverlauf, Beschriftungen, Eigentümer, Werte benutzerdefinierter Felder und Verknüpfungen zu Vorfällen bleiben unverändert.
+- Ein Monitor, den ein Import, eine Regel für den automatischen Import oder eine Netzwerk-Warnungsrichtlinie erstellt hat, behält die Vorlage, aus der er erstellt wurde. Diese Regel erstellt ihn nie wieder, und eine Warnungsrichtlinie gibt ihn frei: Sie löscht oder ersetzt ihn nicht mehr.
+- Ein Gerät hat aus jeder Vorlage einen Monitor. Hat ein Gerät bereits einen aus der neuen Vorlage für es erstellten Monitor, wird sein anderer Monitor ausgelassen, und die Änderung nennt den, der im Weg ist: Löschen Sie einen der beiden und verschieben Sie dann erneut.
+- Ein Monitor mit einem anderen Typ als die Vorlage wird ausgelassen.
+
+Die Änderung läuft auf dem Server, bis zu 10.000 Monitore auf einmal, und zeigt ihren Fortschritt: was verschoben wurde, was ausgelassen wurde und warum, und die offenen Vorfälle und Warnungen, die sie behoben hat. Das Schließen des Dialogs hält sie nicht an, und die Seite der Vorlage zeigt eine Änderung, die noch läuft. **Stoppen** hält sie vor dem nächsten Monitor an, und **Wiederholen** versucht es erneut mit den Monitoren, die fehlgeschlagen sind oder nicht erreicht wurden.
+
+> [!TIP]
+> Sie verschieben die Geräte einer Regel für den automatischen Import zu einer neuen Vorlage? Verschieben Sie zuerst die Monitore und richten Sie dann die Regel auf die neue Vorlage aus. In umgekehrter Reihenfolge gibt die Regel jedem Gerät neben dem vorhandenen einen zweiten Monitor aus der neuen Vorlage.
+
+## Verknüpfung von Monitoren mit einer Vorlage aufheben
+
+Klicken Sie in der Zeile eines Monitors unter **Verknüpfte Monitore** auf **Verknüpfung mit der Vorlage aufheben**, oder wählen Sie dort oder in der Monitorliste Monitore aus und verwenden Sie **Verknüpfung mit der Vorlage aufheben** unter **Massenaktionen**. Wählen Sie, was die Monitore behalten:
+
+| Auswahl | Was die Monitore danach tun |
+| --- | --- |
+| **Einstellungen behalten** | Sie prüfen und warnen weiter mit den Kriterien, die sie jetzt haben, als eigenständige Monitore, und erhalten keine Aktualisierungen der Vorlage mehr. |
+| **Kriterien der Vorlage von ihnen entfernen** | Sie prüfen weiter, lösen aber keine Vorfälle oder Warnungen aus und setzen keinen Status, bis Sie sie wieder mit einer Vorlage verknüpfen. Ein offener Vorfall oder eine offene Warnung, die ihre Kriterien automatisch beheben sollten, wird behoben. |
+
+In beiden Fällen behalten sie ihre Namen, ihren Statusverlauf, ihre Beschriftungen, Eigentümer und Vorfälle, und eine Regel, die sie erstellt hat, erstellt sie nie wieder.
+
+## Eine Vorlage löschen
+
+Eine Vorlage, aus der eine Netzwerk-Warnungsrichtlinie oder eine Regel für den automatischen Import Monitore bereitstellt, lässt sich nicht löschen: Richten Sie die Richtlinie oder die Regel zuerst auf eine andere Vorlage aus. Sind Monitore mit der Vorlage verknüpft, fragt das Löschen, was mit ihnen geschehen soll:
+
+- **Einstellungen behalten** (Standard): Das Löschen hebt ihre Verknüpfung auf, und sie prüfen und warnen weiter mit den Kriterien, die sie haben.
+- **Kriterien dieser Vorlage von ihnen entfernen**: Bei jedem wird die Verknüpfung aufgehoben und seine Kriterien werden entfernt, wie oben, und dann wird die Vorlage gelöscht. Bleibt ein Monitor verknüpft, etwa einer, den Ihre Berechtigungen nicht abdecken, wird die Vorlage behalten, und der Dialog nennt, wie viele.
+
+Um die Monitore stattdessen zu einer anderen Vorlage zu verschieben, verwenden Sie **Zu einer anderen Vorlage verschieben**, bevor Sie sie löschen.
 
 ## Werte pro Monitor behalten
 
@@ -174,6 +226,14 @@ Ein geschütztes Feld konnte keinem Schritt eines der Monitore zugeordnet werden
 
 :::details Die Synchronisierungsschaltflächen sind ausgegraut
 Noch ist kein Monitor mit der Vorlage verknüpft. Erstellen Sie einen Monitor aus ihr oder klicken Sie unter **Verknüpfte Monitore** auf **Bestehende Monitore verknüpfen**.
+:::
+
+:::details Ein Verschieben lässt einen Monitor aus: „Das Gerät, für das dieser Monitor erstellt wurde, hat bereits einen mit dieser Vorlage verknüpften Monitor“
+Das Gerät hat bereits einen aus der Zielvorlage für es erstellten Monitor, meist weil eine Regel für den automatischen Import vor dem Verschieben auf diese Vorlage ausgerichtet wurde. Löschen Sie den, den Sie nicht brauchen – der neuere hat den kürzesten Verlauf –, und verschieben Sie dann erneut.
+:::
+
+:::details Nachdem eine Regel für den automatischen Import auf eine neue Vorlage umgestellt wurde, haben Geräte zwei Monitore
+Die Regel hat jedem Gerät neben seinem bisherigen Monitor den Monitor der neuen Vorlage gegeben. Löschen Sie die neuen Monitore und verschieben Sie dann die alten zur neuen Vorlage: Sie behalten ihren Verlauf, und die Regel erstellt keinen erneut.
 :::
 
 :::details Speichern schlägt fehl mit „Unsupported do not sync field“

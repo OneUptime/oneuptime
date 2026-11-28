@@ -38,8 +38,11 @@ import {
 } from "Common/UI/Components/Workflow/WorkflowRunGate";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { useRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
+import { getRecordLabelIds } from "Common/UI/Utils/RecordLabelLock";
 import WorkflowStatusBar, {
   WorkflowSaveState,
 } from "Common/UI/Components/Workflow/WorkflowStatusBar";
@@ -307,11 +310,26 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * there is nothing honest to say, so the switch is offered and the server
    * decides.
    */
+  /*
+   * On the workflow's page, what its labels leave the reader (#11259): a
+   * Workflow Admin limited to some labels changes only the workflows
+   * carrying one of them, and sees any other one as a view, saying why.
+   */
+  const workflowOptions: PermissionGateOptions | undefined =
+    useRecordGateOptions(new WorkflowModel(), modelId);
+
   const enabledSwitchGate: PermissionGateResult = useMemo(() => {
     return PermissionGate.check(new WorkflowModel(), ModelAction.Update, {
+      ...(workflowOptions || {}),
       verb: "edit",
     });
-  }, []);
+  }, [workflowOptions]);
+
+  // Refused on this workflow by its labels, though the reader edits others.
+  const labelLockedReason: string | undefined =
+    enabledSwitchGate.isRefusedOnRecord
+      ? enabledSwitchGate.disabledReason
+      : undefined;
 
   /*
    * A workflow that runs as more than Default (#9695) is changed, and run
@@ -352,7 +370,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * error dialog. Read on every render, like the run gates.
    */
   const editLockedReason: string | undefined =
-    getLockedReason(getWorkflowEditGate()) || runAsLock.change;
+    getLockedReason(getWorkflowEditGate()) ||
+    labelLockedReason ||
+    runAsLock.change;
   const isViewOnly: boolean = Boolean(editLockedReason);
 
   /*
@@ -568,6 +588,12 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           // Who may change it and run it by hand (#9695).
           runAs: true,
           runAsCustomRoleId: true,
+          /*
+           * Its labels' ids: a key read only on the workflows carrying some
+           * labels is left out of the others (#11259), and is hidden there,
+           * not missing.
+           */
+          labels: { _id: true },
           ...webhookSecretKeySelect,
           ...incomingEmailSecretKeySelect,
         },
@@ -584,13 +610,29 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * only to who may change it: anyone else is told the address is
          * hidden, as anyone who may not read the column is.
          */
+        const workflowLabelIds: Array<string> | null = getRecordLabelIds(
+          workflow,
+          "labels",
+        );
+
         setCanSeeWebhookSecretKey(
-          Boolean(webhookSecretKeySelect.webhookSecretKey) && !lock.change,
+          Boolean(webhookSecretKeySelect.webhookSecretKey) &&
+            !lock.change &&
+            PermissionGate.mayReadColumnOnRecord(
+              new WorkflowModel(),
+              "webhookSecretKey",
+              workflowLabelIds,
+            ),
         );
         setWebhookSecretKey(workflow.webhookSecretKey || "");
         setCanSeeIncomingEmailSecretKey(
           Boolean(incomingEmailSecretKeySelect.incomingEmailSecretKey) &&
-            !lock.change,
+            !lock.change &&
+            PermissionGate.mayReadColumnOnRecord(
+              new WorkflowModel(),
+              "incomingEmailSecretKey",
+              workflowLabelIds,
+            ),
         );
         setIncomingEmailSecretKey(
           workflow.incomingEmailSecretKey?.toString() || "",

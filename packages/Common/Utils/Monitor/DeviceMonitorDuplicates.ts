@@ -28,7 +28,12 @@ import DeviceUrlTarget from "./DeviceUrlTarget";
  * So a monitor OneUptime is about to make for a device duplicates one the
  * device already has when:
  *
- *   1. it is made from the same template - any kind of monitor; or
+ *   1. it is made from the same template - any kind of monitor. A monitor
+ *      is the template's when it is linked to it, and also when it was
+ *      created from it and a person has since linked it to another
+ *      template or unlinked it (Monitor.createdFromMonitorTemplateId,
+ *      issues #11260, #11266): the rule that made it never makes it again,
+ *      and never undoes what the person chose; or
  *   2. it is a target monitor (DEVICE_TARGET_MONITOR_TYPES), and the device
  *      already has a monitor of that same kind that checks the same thing on
  *      it - from another template, from none, or bound to the device as its
@@ -69,7 +74,14 @@ export interface DeviceMonitorFacts {
   id: string;
   name: string;
   monitorType: string;
+  // The template it is linked to now.
   monitorTemplateId?: string | undefined;
+  /*
+   * The template it was created from, when a person has linked it to
+   * another since or unlinked it (Monitor.createdFromMonitorTemplateId). It
+   * is that template's monitor too.
+   */
+  createdFromMonitorTemplateId?: string | undefined;
   /*
    * What it checks on the device, for the kinds that can check it more than
    * once (getDeviceMonitorCheckKeys): the ports of a Port or NTP monitor, one
@@ -189,6 +201,8 @@ export function toDeviceMonitorFacts(monitor: Monitor): DeviceMonitorFacts {
     name: monitor.name || "",
     monitorType: String(monitor.monitorType || ""),
     monitorTemplateId: monitor.monitorTemplateId?.toString() || undefined,
+    createdFromMonitorTemplateId:
+      monitor.createdFromMonitorTemplateId?.toString() || undefined,
     checkKeys: getDeviceMonitorCheckKeys({
       monitorType: monitor.monitorType,
       monitorSteps: monitor.monitorSteps,
@@ -217,15 +231,52 @@ export function toDeviceMonitorCandidate(data: {
   };
 }
 
+/*
+ * The templates a device's monitor is the monitor of, as stored: the one it
+ * is linked to, then the one it was created from when a person has moved it
+ * off that one since (rule 1 at the top). Each once, however it is cased.
+ */
+export function getTemplatesOfDeviceMonitor(
+  monitor: Pick<
+    DeviceMonitorFacts,
+    "monitorTemplateId" | "createdFromMonitorTemplateId"
+  >,
+): Array<string> {
+  const templateIds: Array<string> = [];
+
+  for (const templateId of [
+    monitor.monitorTemplateId,
+    monitor.createdFromMonitorTemplateId,
+  ]) {
+    if (
+      templateId &&
+      !templateIds.some((listed: string): boolean => {
+        return listed.toLowerCase() === templateId.toLowerCase();
+      })
+    ) {
+      templateIds.push(templateId);
+    }
+  }
+
+  return templateIds;
+}
+
 function isSameTemplate(
   candidate: DeviceMonitorCandidate,
   monitor: DeviceMonitorFacts,
 ): boolean {
-  return Boolean(
-    candidate.monitorTemplateId &&
-      monitor.monitorTemplateId &&
-      candidate.monitorTemplateId.toLowerCase() ===
-        monitor.monitorTemplateId.toLowerCase(),
+  const candidateTemplateId: string = (
+    candidate.monitorTemplateId || ""
+  ).toLowerCase();
+
+  if (!candidateTemplateId) {
+    return false;
+  }
+
+  return getTemplatesOfDeviceMonitor(monitor).some(
+    (templateId: string): boolean => {
+      return templateId.toLowerCase() === candidateTemplateId;
+    },
   );
 }
 

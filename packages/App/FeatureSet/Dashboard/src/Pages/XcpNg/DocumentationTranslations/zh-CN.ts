@@ -54,6 +54,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_NAME` | 否 | 这个 Xen Orchestra 在 OneUptime 中的名称，显示在它每个资源池的设置中（默认：其地址） |",
   "| `XO_TLS_SERVER_NAME` | No | The name Xen Orchestra's certificate is checked against, when `XO_ADDRESS` is an address the certificate does not list |":
     "| `XO_TLS_SERVER_NAME` | 否 | 当 `XO_ADDRESS` 是证书中未列出的地址时，用来校验 Xen Orchestra 证书的名称 |",
+  "| `XCP_NG_AGENT_CONTAINER_NAME` | No | The agent's container name (default: `oneuptime-xcp-ng-agent`). A second Xen Orchestra's agent on the same machine needs one of its own: the install script names a new agent after its folder unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AGENT_CONTAINER_NAME` | 否 | 代理的容器名称（默认：`oneuptime-xcp-ng-agent`）。同一台机器上第二个 Xen Orchestra 的代理需要自己的容器名称：除非你自行设置，否则安装脚本会按新代理的文件夹为它命名，并在你再次运行脚本时保留该名称 |",
   "| `XO_URL` | Install script | Xen Orchestra's address as typed; the script derives `XO_SCHEME` and `XO_ADDRESS` from it |":
     "| `XO_URL` | 安装脚本 | 按输入原样保存的 Xen Orchestra 地址；脚本从中推导出 `XO_SCHEME` 和 `XO_ADDRESS` |",
   "| `XO_TLS_FINGERPRINT` | Install script | The SHA-256 fingerprint of Xen Orchestra's own certificate, when the agent trusts that certificate and nothing else |":
@@ -82,6 +84,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `LOG_LEVEL` | 否 | AI 代理的日志级别：`debug`、`info`（默认）、`warn` 或 `error` |",
   "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
     "| `COMPOSE_PROFILES` | 否 | `xcp-ng-ai-agent` 会启动 AI 代理；安装脚本会在设置了读取令牌时写入它 |",
+  "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-xcp-ng-ai-agent`). The install script names a second Xen Orchestra's AI agent after its collector (`oneuptime-xcp-ng-ai-agent-lab` beside `oneuptime-xcp-ng-agent-lab`) unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理的容器名称（默认：`oneuptime-xcp-ng-ai-agent`）。除非你自行设置，否则安装脚本会按第二个 Xen Orchestra 的收集器为其 AI 代理命名（`oneuptime-xcp-ng-ai-agent-lab` 与 `oneuptime-xcp-ng-agent-lab` 并列），并在你再次运行脚本时保留该名称 |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "代理用 `docker-compose.yml` 旁边的 `xo-ca.pem` 校验 Xen Orchestra 的证书。",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":
@@ -117,8 +121,10 @@ const TRANSLATION: SetupGuideTranslation = {
     "OneUptime 为每个资源池添加四个 0/1 序列，供警报模板读取：`xcp_ng.host.running`、`xcp_ng.host.enabled`、`xcp_ng.vm.running` 和 `xcp_ng.vm.stopped_after_running`（过去一天内运行过、现已停止或暂停的虚拟机）。它还会给每个数据点加上 `xcp_ng.scope`（`pool`、`host`、`vm`、`sr`、`vdi` 或 `xostor`）和 `xcp_ng.id`（该对象的 UUID），监视器和仪表板据此筛选。",
   "Not kept: Xen Orchestra's own process series (`xo_*`), which belong to no pool, and a host's power read over IPMI, which the plugin sends without its pool. Each VM's estimated share of it is kept.":
     "不保留的内容：不属于任何资源池的 Xen Orchestra 自身进程序列（`xo_*`），以及通过 IPMI 读取、插件发送时不带资源池的主机功率。其中每台虚拟机的估算份额会保留。",
-  "One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with its own `container_name` in its `docker-compose.yml`:":
-    "一个代理读取一个 Xen Orchestra 及其管理的每个资源池。对于第二个 Xen Orchestra，请在单独的文件夹中安装第二个代理，并在其 `docker-compose.yml` 中使用它自己的 `container_name`：",
+  "One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with a container name of its own — two containers cannot share one:":
+    "一个代理读取一个 Xen Orchestra 及其管理的每个资源池。对于第二个 Xen Orchestra，请在单独的文件夹中安装第二个代理，并使用它自己的容器名称——两个容器不能共用一个名称：",
+  "Without `XCP_NG_AGENT_CONTAINER_NAME`, the script names the container after the folder. It keeps the name in that agent's `.env`, so running the script again to upgrade the agent keeps it, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. With Docker Compose, set `XCP_NG_AGENT_CONTAINER_NAME` in each agent's `.env` instead.":
+    "若未设置 `XCP_NG_AGENT_CONTAINER_NAME`，脚本会按文件夹为容器命名。它会把名称保存在该代理的 `.env` 中，所以再次运行脚本来升级代理时会保留它；而你曾在 `docker-compose.yml` 中编辑过 `container_name` 的代理，也会保留那个名称。使用 Docker Compose 时，请改为在每个代理的 `.env` 中设置 `XCP_NG_AGENT_CONTAINER_NAME`。",
   "Don't let two Xen Orchestras that manage the same pool both be read: the pool is one pool in OneUptime, by its UUID, and would be reported twice.":
     "不要同时读取管理同一资源池的两个 Xen Orchestra：按其 UUID，该资源池在 OneUptime 中是同一个资源池，会被报告两次。",
   "Any resource attribute prefixed with `oneuptime.label.` becomes a project label on each pool the agent reads: `oneuptime.label.<dimension>=<value>` is the label `<dimension>:<value>`. Add them to the `resource` processor in `otel-collector-config.yaml`, next to `oneuptime.agent.version`:":

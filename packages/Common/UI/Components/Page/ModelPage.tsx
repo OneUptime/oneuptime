@@ -6,6 +6,18 @@ import { subscribeToModelHeaderChanged } from "./ModelHeaderEvents";
 import { nameRecordInTrail } from "./RecordNameInTrail";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import PermissionGate, { ModelLabelLock } from "../../Utils/PermissionGate";
+import {
+  RecordAccessScope,
+  RecordAccessScopeContext,
+  useRecordAccessScope,
+} from "../../Utils/RecordAccessScope";
+import {
+  getRecordLabelAccessScope,
+  getRecordLabelIds,
+  mergeRecordAccessScopes,
+  useLabelNames,
+} from "../../Utils/RecordLabelLock";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
 import Link from "../../../Types/Link";
@@ -20,6 +32,7 @@ import React, {
   MutableRefObject,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -70,6 +83,12 @@ interface LoadedModelHeader {
    */
   recordNumber?: string | undefined;
   labels: Array<Label>;
+  /*
+   * The ids of the labels the record was read with, or null when it was
+   * read without them: a model with no labels, or a reader the server
+   * leaves them out for. What its labels lock is said only of these.
+   */
+  labelIds?: Array<string> | null | undefined;
   error: string;
 }
 
@@ -243,6 +262,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
         header = {
           ...header,
           labels: loadedLabels,
+          labelIds: labelsColumn ? getRecordLabelIds(item, labelsColumn) : null,
           headingName: `${recordName as string}`,
           recordName: typeof recordName === "string" ? recordName : undefined,
           recordNumber: getRecordNumber(item, numberColumns),
@@ -395,6 +415,51 @@ const ModelPage: <TBaseModel extends BaseModel>(
     recordNumber: shownHeader ? shownHeader.recordNumber : undefined,
   });
 
+  /*
+   * WHAT THE RECORD'S LABELS LOCK ON ITS PAGES (#11259): a reader whose
+   * permission to change or delete records of this kind is limited to some
+   * labels, or blocked on some, sees the record's Edit and Delete - and
+   * every other gate on its pages that asks about the record
+   * (usePrivateRecordGateOptions) - locked where the server would refuse
+   * them, with why (Utils/RecordLabelLock). Read with the header, which
+   * reads the labels already; asked again with it when the record's labels
+   * are saved (ModelHeaderEvents). An answer the server gave for the record
+   * (RecordAccessScopeProvider, around an incident's pages) stands for the
+   * tables it answers.
+   */
+  const pageModel: TBaseModel = new props.modelType();
+  const labelLock: ModelLabelLock | null =
+    PermissionGate.getLabelLock(pageModel);
+  const lockLabelNames: ReadonlyMap<string, string> = useLabelNames(
+    labelLock ? labelLock.labelIds : [],
+  );
+  const outerRecordAccess: RecordAccessScope | null = useRecordAccessScope();
+
+  const labelAccess: RecordAccessScope | null = getRecordLabelAccessScope({
+    tableName: pageModel.tableName,
+    recordId: modelIdString,
+    lock: labelLock,
+    recordLabelIds: shownHeader ? shownHeader.labelIds || null : null,
+    nouns: {
+      singularName: pageModel.singularName || "",
+      pluralName: pageModel.pluralName || "",
+    },
+    labelNames: lockLabelNames,
+    translator: translator,
+  });
+
+  /*
+   * The same object while what it says stays the same, so a gate that keeps
+   * what it worked out from it (usePrivateRecordGateOptions) keeps it.
+   */
+  const labelAccessKey: string = labelAccess
+    ? JSON.stringify(labelAccess.tables)
+    : "";
+
+  const recordAccess: RecordAccessScope | null = useMemo(() => {
+    return mergeRecordAccessScopes(outerRecordAccess, labelAccess);
+  }, [outerRecordAccess, labelAccessKey]);
+
   return (
     <Page
       {...props}
@@ -406,7 +471,11 @@ const ModelPage: <TBaseModel extends BaseModel>(
       isTitleTranslated={pageTitle.isTitleTranslated}
       recordHeading={recordHeading}
       recordTitle={recordTitle}
-    />
+    >
+      <RecordAccessScopeContext.Provider value={recordAccess}>
+        {props.children}
+      </RecordAccessScopeContext.Provider>
+    </Page>
   );
 };
 

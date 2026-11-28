@@ -607,12 +607,29 @@ describe("adding a store you run: the Kind, and only the fields that kind reads"
     );
   });
 
+  const MORE_FIELDS: { id: string; title: string } = {
+    id: "more-fields",
+    title: "More fields",
+  };
+
   const scanFields: Fields<DataStore> = getStoreScanMethodFields({
-    section: { id: "more-fields", title: "More fields" },
+    collapsibleSection: MORE_FIELDS,
     kindOf: (values: FormValues<DataStore>): string | undefined => {
       return values.kind as string | undefined;
     },
     translator: ENGLISH,
+  });
+
+  /*
+   * Folded with the fields beside them: Add a Store You Run is then three
+   * rows - Name, Kind and More fields - as the form steps guard counts it.
+   */
+  test("every scan field folds into the section it is handed, none of its own", () => {
+    expect(scanFields).toHaveLength(3);
+
+    for (const field of scanFields) {
+      expect(field.collapsibleSection).toBe(MORE_FIELDS);
+    }
   });
 
   function fieldOf(name: string): Field<DataStore> {

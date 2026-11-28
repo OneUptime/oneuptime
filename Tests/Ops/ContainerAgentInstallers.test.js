@@ -86,7 +86,22 @@ case "$1" in
     exit 0
     ;;
   run)
+    # The collector's validate over the agent's config (issue #11225):
+    # recorded, and answered as STUB_VALIDATE_EXIT and _OUTPUT say.
+    if printf '%s\\n' "$@" | grep -qx validate; then
+      printf '%s\\n' "$@" > "$STUB_DIR/run-validate.args"
+      [ -n "\${STUB_VALIDATE_OUTPUT-}" ] && printf '%s\\n' "$STUB_VALIDATE_OUTPUT"
+      exit "\${STUB_VALIDATE_EXIT:-0}"
+    fi
     printf '%s\\n' "$@" > "$STUB_DIR/run-$(printf '%s' "$*" | sed -n 's/.*--name \\([^ ]*\\).*/\\1/p').args"
+    exit 0
+    ;;
+  compose)
+    # The Swarm agent's Compose config check, run before anything changes.
+    if printf '%s\\n' "$@" | grep -q -- '-config-check$'; then
+      [ -n "\${STUB_VALIDATE_OUTPUT-}" ] && printf '%s\\n' "$STUB_VALIDATE_OUTPUT"
+      exit "\${STUB_VALIDATE_EXIT:-0}"
+    fi
     exit 0
     ;;
 esac
@@ -220,6 +235,119 @@ describe.each(DOCKER_AND_PODMAN)(
       expect(args[args.length - 1]).toMatch(
         /^oneuptime\/(docker|podman)-agent:release$/,
       );
+    });
+  },
+);
+
+/*
+ * Log operators of your own (issue #11225): ONEUPTIME_LOG_OPERATOR_1 to _5,
+ * each one collector operator as JSON. A set one is run through the
+ * collector's own validate, in the agent's image and with the agent's
+ * settings, before the agent you have is touched; a bad one stops the script
+ * with the collector's message, so no agent restarts forever on it.
+ */
+const INHOUSE_OPERATOR =
+  '{"type":"regex_parser","id":"inhouse-level","regex":"^<<(?P<severity_text>[DIWEF])>> "}';
+const ROUTER_OPERATOR =
+  '{"type":"router","id":"sev-route","routes":[{"output":"severity-router","expr":"body matches \\"^SEV1 \\""}],"default":"severity-router"}';
+
+describe.each(DOCKER_AND_PODMAN)(
+  "$agent install.sh: log operators of your own",
+  ({ agent, collector, aiAgent, env }) => {
+    const script = path.join(AGENTS_DIR, agent, "install.sh");
+    const validateArgs = (result) => {
+      const file = path.join(result.dir, "run-validate.args");
+
+      return fs.existsSync(file)
+        ? fs.readFileSync(file, "utf8").split("\n")
+        : null;
+    };
+    const operatorsIn = (args) => {
+      return flagValues(args, "-e").filter((value) => {
+        return value.startsWith("ONEUPTIME_LOG_OPERATOR_");
+      });
+    };
+
+    test("none set: nothing is checked, and none is passed", () => {
+      const result = run("bash", script, env);
+
+      expect(result.status).toBe(0);
+      expect(validateArgs(result)).toBeNull();
+      expect(operatorsIn(result.runArgs(collector))).toEqual([]);
+    });
+
+    test("set ones are checked by the collector's validate, then passed to the collector alone", () => {
+      const result = run("bash", script, {
+        ...env,
+        ONEUPTIME_LOG_OPERATOR_1: INHOUSE_OPERATOR,
+        ONEUPTIME_LOG_OPERATOR_3: ROUTER_OPERATOR,
+      });
+      const check = validateArgs(result).filter((arg) => {
+        return arg.length > 0;
+      });
+
+      expect(result.status).toBe(0);
+      expect(result.output).toContain(
+        "The collector accepts your 2 log operator(s).",
+      );
+      // In the agent's image, over the config it ships, with its settings.
+      expect(check.slice(-3)).toEqual([
+        expect.stringMatching(/^oneuptime\/(docker|podman)-agent:release$/),
+        "validate",
+        "--config=/etc/otelcol-contrib/config.yaml",
+      ]);
+      expect(check).toContain("--rm");
+      expect(operatorsIn(check)).toEqual([
+        `ONEUPTIME_LOG_OPERATOR_1=${INHOUSE_OPERATOR}`,
+        `ONEUPTIME_LOG_OPERATOR_3=${ROUTER_OPERATOR}`,
+      ]);
+      expect(flagValues(check, "-e")).toContain(
+        "ONEUPTIME_URL=https://oneuptime.example.com",
+      );
+      expect(operatorsIn(result.runArgs(collector))).toEqual([
+        `ONEUPTIME_LOG_OPERATOR_1=${INHOUSE_OPERATOR}`,
+        `ONEUPTIME_LOG_OPERATOR_3=${ROUTER_OPERATOR}`,
+      ]);
+      expect(operatorsIn(result.runArgs(aiAgent))).toEqual([]);
+    });
+
+    test("an empty one is not passed, as the collector would stop on it", () => {
+      const result = run("bash", script, {
+        ...env,
+        ONEUPTIME_LOG_OPERATOR_2: "",
+      });
+
+      expect(result.status).toBe(0);
+      expect(validateArgs(result)).toBeNull();
+      expect(operatorsIn(result.runArgs(collector))).toEqual([]);
+    });
+
+    test("one the collector refuses stops the install, with its message, and leaves the agent you have", () => {
+      const result = run("bash", script, {
+        ...env,
+        ONEUPTIME_LOG_OPERATOR_1:
+          '{"type":"regex_parser","regex":"^(?P<severity_text>[A-Z"}',
+        STUB_VALIDATE_EXIT: "1",
+        STUB_VALIDATE_OUTPUT:
+          'Error: failed to build pipelines: failed to create "filelog" receiver for data type "logs": compiling regex: error parsing regexp: missing closing ]: `[A-Z`',
+      });
+      const engineLog = fs.readFileSync(
+        path.join(result.dir, "engine.log"),
+        "utf8",
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.output).toContain(
+        "Error: the agent's collector refuses your log operators (ONEUPTIME_LOG_OPERATOR_1 to _5):",
+      );
+      expect(result.output).toContain(
+        '  Error: failed to build pipelines: failed to create "filelog" receiver for data type "logs": compiling regex: error parsing regexp: missing closing ]: `[A-Z`',
+      );
+      expect(result.output).toContain("The agent you have was left as it was.");
+      // Not removed, not started again.
+      expect(engineLog).not.toContain(`rm -f ${collector}`);
+      expect(result.runArgs(collector)).toBeNull();
+      expect(result.runArgs(aiAgent)).toBeNull();
     });
   },
 );
@@ -424,9 +552,15 @@ describe("DockerSwarmAgent install.sh: where its files come from", () => {
    * and the install directory, with `oneuptimeAnswer` (Utils/AgentFilesCurlStub)
    * standing for an older or a failing OneUptime.
    */
-  function runSwarm({ env = {}, answers, shell = "sh", oneuptimeAnswer }) {
-    const dir = scratch();
-    const bin = installStubs(dir);
+  function runSwarm({
+    env = {},
+    answers,
+    shell = "sh",
+    oneuptimeAnswer,
+    in: existing,
+  }) {
+    const dir = existing || scratch();
+    const bin = existing ? path.join(dir, "bin") : installStubs(dir);
 
     if (oneuptimeAnswer) {
       fs.writeFileSync(path.join(dir, "oneuptime.answer"), oneuptimeAnswer);
@@ -563,5 +697,111 @@ describe("DockerSwarmAgent install.sh: where its files come from", () => {
     );
     expect(fs.existsSync(path.join(result.dir, "agent", ".env"))).toBe(false);
     expect(result.requested.join("\n")).not.toContain("githubusercontent");
+  });
+
+  /*
+   * Log operators of your own (issue #11225), kept in .env single-quoted, so
+   * Compose takes each as written. The new .env is checked by the Compose
+   * file's config check, the collector's validate, before it replaces the old
+   * one, so a bad operator stops the install and the agent you have runs on.
+   */
+  const SWARM_ANSWERS = "https://oneuptime.example.com\ningest-key\nmy-swarm\n";
+
+  test("a log operator goes into .env single-quoted, once the config check passes", () => {
+    const result = runSwarm({
+      answers: SWARM_ANSWERS,
+      env: { ONEUPTIME_LOG_OPERATOR_1: INHOUSE_OPERATOR },
+    });
+    const engineLog = fs.readFileSync(
+      path.join(result.dir, "engine.log"),
+      "utf8",
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.envLine("ONEUPTIME_LOG_OPERATOR_1")).toBe(
+      `'${INHOUSE_OPERATOR}'`,
+    );
+    expect(engineLog).toContain(
+      "compose --env-file .env.new run --rm oneuptime-docker-swarm-agent-config-check",
+    );
+    expect(fs.existsSync(path.join(result.dir, "agent", ".env.new"))).toBe(
+      false,
+    );
+    expect(
+      (
+        fs.statSync(path.join(result.dir, "agent", ".env")).mode & 0o777
+      ).toString(8),
+    ).toBe("600");
+  });
+
+  test("no log operator: none is written and nothing is checked", () => {
+    const result = runSwarm({ answers: SWARM_ANSWERS });
+    const engineLog = fs.readFileSync(
+      path.join(result.dir, "engine.log"),
+      "utf8",
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.envLine("ONEUPTIME_LOG_OPERATOR_1")).toBeUndefined();
+    expect(engineLog).not.toContain("config-check");
+  });
+
+  test("one the collector refuses stops the install and keeps the .env it had", () => {
+    const first = runSwarm({
+      answers: SWARM_ANSWERS,
+      env: { ONEUPTIME_LOG_OPERATOR_1: INHOUSE_OPERATOR },
+    });
+    const before = fs.readFileSync(
+      path.join(first.dir, "agent", ".env"),
+      "utf8",
+    );
+    const second = runSwarm({
+      in: first.dir,
+      answers: SWARM_ANSWERS,
+      env: {
+        ONEUPTIME_LOG_OPERATOR_2: '{"type":"regex_parse"}',
+        STUB_VALIDATE_EXIT: "1",
+        STUB_VALIDATE_OUTPUT: "'operators[1]' unsupported type 'regex_parse'",
+      },
+    });
+
+    expect(second.status).toBe(1);
+    expect(second.output).toContain(
+      "Error: the agent's collector refuses your log operators (ONEUPTIME_LOG_OPERATOR_1 to _5):",
+    );
+    expect(second.output).toContain(
+      "  'operators[1]' unsupported type 'regex_parse'",
+    );
+    expect(fs.readFileSync(path.join(first.dir, "agent", ".env"), "utf8")).toBe(
+      before,
+    );
+    expect(fs.existsSync(path.join(first.dir, "agent", ".env.new"))).toBe(
+      false,
+    );
+  });
+
+  test("an operator .env holds is kept when the script runs again without it", () => {
+    const first = runSwarm({
+      answers: SWARM_ANSWERS,
+      env: { ONEUPTIME_LOG_OPERATOR_1: INHOUSE_OPERATOR },
+    });
+    const second = runSwarm({ in: first.dir, answers: SWARM_ANSWERS });
+
+    expect(second.status).toBe(0);
+    expect(second.envLine("ONEUPTIME_LOG_OPERATOR_1")).toBe(
+      `'${INHOUSE_OPERATOR}'`,
+    );
+  });
+
+  test("an operator holding a single quote is refused, as .env cannot keep it", () => {
+    const result = runSwarm({
+      answers: SWARM_ANSWERS,
+      env: { ONEUPTIME_LOG_OPERATOR_1: '{"type":"add","value":"it\'s"}' },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.output).toContain(
+      "Error: ONEUPTIME_LOG_OPERATOR_1 holds a single quote, which .env cannot keep.",
+    );
   });
 });

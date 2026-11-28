@@ -12,6 +12,7 @@ import KeyedConcurrencyLimiter, {
 } from "../KeyedConcurrencyLimiter";
 import logger from "../Logger";
 import AppMetrics from "../Telemetry/AppMetrics";
+import ProbeAlarmLog, { ProbeAlarm } from "./ProbeAlarmLog";
 import ProbeSchedulingFleetMetrics from "./ProbeSchedulingFleetMetrics";
 import ProbeSchedulingLane, {
   PROBE_SCHEDULING_LANES,
@@ -20,6 +21,13 @@ import ProbeSchedulingMetricsInstance, {
   ProbeSchedulingLaneState,
   ProbeSchedulingMetrics,
 } from "./ProbeSchedulingMetrics";
+import {
+  ProbeSchedulingOutcome,
+  ProbeSchedulingRefusalAlarm,
+  RefusalAlarmNotice,
+  RefusalAlarmNoticeKind,
+  getRefusalAlarmText,
+} from "./ProbeSchedulingRefusalAlarm";
 
 /*
  * THE PROBES' SCHEDULING REQUESTS (issues #7920 and #10819).
@@ -73,6 +81,13 @@ import ProbeSchedulingMetricsInstance, {
  * times the App replicas, and adding replicas adds their slots
  * (/metrics/probe-scheduling, ProbeSchedulingMetrics, says how full they
  * are).
+ *
+ * The busy warning is a warn line, once a minute per lane. A lane that has
+ * refused most of its requests for minutes - a replica that hands out no
+ * work, whatever the reason - raises an alarm, an error line every few
+ * minutes (ProbeSchedulingRefusalAlarm, ProbeAlarmLog): on 27 November 2026
+ * every replica had lost its slots for twelve hours, and the warning was
+ * all that said so, on servers that log errors only.
  */
 
 export const PROBE_SCHEDULING_BUSY_MESSAGE: string =
@@ -193,6 +208,8 @@ export class ProbeSchedulingLimiter {
     ProbeSchedulingLane,
     BusyWarning
   >();
+  private refusalAlarm: ProbeSchedulingRefusalAlarm =
+    new ProbeSchedulingRefusalAlarm();
   public readonly metrics: ProbeSchedulingMetrics;
 
   public constructor(
@@ -311,12 +328,14 @@ export class ProbeSchedulingLimiter {
       );
 
       this.metrics.recordSlotWait(lane, Date.now() - startedAt);
+      this.noteOutcome(lane, ProbeSchedulingOutcome.Granted);
 
       return release;
     } catch (error) {
       if (error instanceof ProbeSchedulingBusyError) {
         this.metrics.recordRefusal(lane, error.reason);
         this.noteBusy(lane);
+        this.noteOutcome(lane, ProbeSchedulingOutcome.Refused);
       }
       throw error;
     }
@@ -390,6 +409,45 @@ export class ProbeSchedulingLimiter {
 
     warning.lastWarnedAt = now;
     warning.busySinceLastWarning = 0;
+  }
+
+  /*
+   * Counts a request given a slot or answered busy towards the lane's
+   * refusal alarm, and says what that raised or ended. Never throws: an
+   * alarm must not cost a probe its answer.
+   */
+  private noteOutcome(
+    lane: ProbeSchedulingLane,
+    outcome: ProbeSchedulingOutcome,
+  ): void {
+    try {
+      for (const notice of this.refusalAlarm.record(lane, outcome)) {
+        this.sayRefusalAlarm(notice);
+      }
+    } catch {
+      // Nothing to say it with.
+    }
+  }
+
+  private sayRefusalAlarm(notice: RefusalAlarmNotice): void {
+    const state: ProbeSchedulingLaneState = this.laneState(notice.lane);
+    const text: string = getRefusalAlarmText({
+      notice: notice,
+      lane: {
+        name: LANE_NAME[notice.lane],
+        setting: LANE_SETTING[notice.lane],
+        running: state.running,
+        waiting: state.waiting,
+        slots: state.maxConcurrentRequests,
+      },
+    });
+
+    if (notice.kind === RefusalAlarmNoticeKind.Over) {
+      ProbeAlarmLog.over(ProbeAlarm.SchedulingRefused, text);
+      return;
+    }
+
+    ProbeAlarmLog.raise(ProbeAlarm.SchedulingRefused, text);
   }
 }
 

@@ -371,9 +371,11 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
       ],
       Probe: [
         "checksLastLateAt",
+        "checksLastLateDueAt",
         "checksLateSince",
         "connectionStatus",
         "devicePollsLastLateAt",
+        "devicePollsLastLateDueAt",
         "devicePollsLateSince",
         "iconFileId",
         "isGlobalProbe",

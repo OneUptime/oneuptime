@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddVMwareHealthSettingsAndSwapRates1809187791560
+export class AddVMwareHealthSettingsAndSwapRates1809187811157
   implements MigrationInterface
 {
-  public name = "AddVMwareHealthSettingsAndSwapRates1809187791560";
+  public name = "AddVMwareHealthSettingsAndSwapRates1809187811157";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

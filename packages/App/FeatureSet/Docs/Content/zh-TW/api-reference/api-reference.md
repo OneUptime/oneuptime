@@ -274,7 +274,7 @@ Incident Severity with the same name already exists.
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-這類拒絕還包含 `takenById`，即占用該名稱的記錄的 ID，前提是你的金鑰可以讀取該記錄。在專案要求名稱唯一之前就已同名的記錄會保留名稱，直到被重新命名；一次更新也不能為多筆同類記錄設定同一個名稱。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` 會在你傳送之前回答名稱是否已被占用，`GET /api/unique-names/duplicates` 依類型列出專案中被多次使用的名稱。
+這類拒絕還包含 `takenById`，即占用該名稱的記錄的 ID，前提是你的金鑰可以讀取該記錄。在專案要求名稱唯一之前就已同名的記錄會保留名稱，直到被重新命名；一次更新也不能為多筆同類記錄設定同一個名稱。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` 會在你傳送之前回答名稱是否已被占用，`GET /api/unique-names/duplicates` 依類型列出專案中被多次使用的名稱。`GET /api/shared-names/Monitor`（或該設定涵蓋的任何其他類型的資料表名稱）會像儀表板中的清單標示它們那樣，回答該類型的哪些記錄同名：`{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`，每個群組是你的金鑰可以讀取的兩筆或更多記錄，並附有每筆記錄的建立時間。已封存的記錄與正在使用的記錄分開分組。
 
 #### 其他記錄已在使用的值
 
@@ -300,6 +300,16 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 以記錄現有的值寫入的更新不會改變任何東西：它不會啟動記錄的 **On Update** 工作流程，不會傳送即時更新，也不會新增稽核日誌項目。寫在 `false` 上的 `false` 算作相同的值，寫在 `false` 上的 `"false"`、以文字寫入的數字、以另一種格式寫入的同一時刻，以及以任意順序寫入的相同標籤也都一樣。當更新變更了一些值、又把另一些值按原樣寫回時，其稽核日誌項目只會列出變更了的值，工作流程的 **要關注的欄位** 也只會收到這些值。
+
+### 以 JSON 撰寫的值
+
+有些欄位保存具有自身結構的 JSON 值，例如待命排程中層的 `rotation` 和 `restrictionTimes`；API 參考在其資料類型中列出了每種結構。OneUptime 只讀取該結構中的鍵，因此一個值如果漏掉了說明其含義的鍵、以別的拼法寫了該鍵，或給了 OneUptime 不認識的值，就會被拒絕並回傳指明該鍵的 `400`，而不是被儲存為一個毫無作用的值：
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+改名的鍵仍會依舊名讀取：層的限制類型寫在 `restrictionType` 下，或寫在其舊拼法 `restictionType` 下，回應中兩者都有。
 
 ### 專案的購買管道
 

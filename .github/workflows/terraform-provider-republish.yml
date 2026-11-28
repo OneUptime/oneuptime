@@ -104,3 +104,15 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY: ${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}
         run: bash ./Scripts/TerraformProvider/publish-terraform-provider.sh --republish-from "$FROM" --version "$VERSION"
+
+  # What the registries read for the version just published, against what
+  # its release serves, as release.yml checks every version it publishes
+  # (terraform-provider-registry-checksums.yml, #11016): the republished
+  # version installs only when they match.
+  check-registries:
+    needs: republish-terraform-provider
+    permissions:
+      contents: read
+    uses: ./.github/workflows/terraform-provider-registry-checksums.yml
+    with:
+      version: ${{ inputs.version }}

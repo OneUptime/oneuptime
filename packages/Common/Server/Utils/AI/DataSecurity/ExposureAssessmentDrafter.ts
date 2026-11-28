@@ -3,6 +3,12 @@ import { SecurityCaseFeedEventType } from "../../../../Models/DatabaseModels/Sec
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Purple500 } from "../../../../Types/BrandColors";
 import OneUptimeDate from "../../../../Types/Date";
+import {
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  getReadsFromOutside,
+  withoutLogPrincipals,
+} from "../../../../Types/DataSecurity/AccessLogReads";
 import { BreachPlace } from "../../../../Types/DataSecurity/BreachLaws";
 import { ComplianceFact } from "../../../../Types/DataSecurity/ComplianceFacts";
 import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecurityAiFeatures";
@@ -14,9 +20,11 @@ import {
   editExposureDraft,
   EXPOSURE_DRAFT_PART_TITLES,
   ExposureAssessmentStarter,
+  ExposureAssessmentView,
   ExposureDraftAnswer,
   ExposureDraftPart,
   ExposureDraftSection,
+  ExposureReadsLogged,
   getDraftableExposureParts,
   getStaleExposureDraftParts,
   HeldExposureDrafts,
@@ -45,6 +53,11 @@ import ExposureAssessmentReader, {
   NOT_ABOUT_A_STORE_MESSAGE,
   ReadExposure,
 } from "../../DataSecurity/ExposureAssessmentReader";
+import {
+  JOB_LOG_READ_LIMITS,
+  PERSON_LOG_READ_LIMITS,
+  S3LogReadLimitsInTime,
+} from "../../DataSecurity/Cloud/Aws/AwsS3AccessLogs";
 import FeedPersonName from "../../Feed/FeedPersonName";
 import logger from "../../Logger";
 import ProjectLanguage from "../../Notification/ProjectLanguage";
@@ -571,6 +584,163 @@ export default class ExposureAssessmentDrafter {
     return await this.read({ ...data, now });
   }
 
+  /*
+   * A person asks OneUptime to read the store's own access logs for the
+   * exposure's window (#10951): as far as a request's time lets it, kept on
+   * the case, the timeline saying what they show - counted, never who.
+   */
+  @CaptureSpan()
+  public static async readLogsForPerson(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    now?: Date | undefined;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    if (
+      !(await ExposureAssessmentReader.mayChange({
+        securityCaseId: data.securityCaseId,
+        props: data.props,
+      }))
+    ) {
+      throw new NotAuthorizedException(CHANGE_REFUSED_MESSAGE);
+    }
+
+    const scope: ExposureCaseScope =
+      await ExposureAssessmentReader.readScope(data);
+
+    if (!scope.stored) {
+      throw new BadDataException(NOT_ASSESSED_MESSAGE);
+    }
+
+    await this.readAndKeepLogs({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      scope,
+      stored: scope.stored,
+      limits: PERSON_LOG_READ_LIMITS,
+      userId: data.props.userId || undefined,
+      now: data.now,
+    });
+
+    return await this.read({ ...data, now: data.now });
+  }
+
+  /*
+   * ...and Data Security reads them on its own as it assesses a case
+   * (ExposureAssessmentRun), longer and further, so the write-up rests on
+   * what they say. Only for a store whose reads are logged. Never throws.
+   */
+  @CaptureSpan()
+  public static async readLogsOnItsOwn(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    now?: Date | undefined;
+  }): Promise<ExposureLogRead | null> {
+    try {
+      const scope: ExposureCaseScope = await ExposureAssessmentReader.readScope(
+        {
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+          props: ROOT,
+        },
+      );
+
+      if (!scope.stored) {
+        return null;
+      }
+
+      return await this.readAndKeepLogs({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+        scope,
+        stored: scope.stored,
+        limits: JOB_LOG_READ_LIMITS,
+        onlyWhereLogged: true,
+        now: data.now,
+      });
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not read the access logs for security case ${data.securityCaseId.toString()}'s exposure: ${error}`,
+      );
+
+      return null;
+    }
+  }
+
+  // The logs read for the window as it is now, kept on the case over what it holds now.
+  private static async readAndKeepLogs(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    scope: ExposureCaseScope;
+    stored: StoredExposureAssessment;
+    limits: S3LogReadLimitsInTime;
+    // On its own: only a store whose reads are logged; a person learns why otherwise.
+    onlyWhereLogged?: boolean | undefined;
+    userId?: ObjectID | undefined;
+    now?: Date | undefined;
+  }): Promise<ExposureLogRead | null> {
+    const context: AssessmentContext = await this.readContext({
+      projectId: data.projectId,
+      scope: data.scope,
+      stored: data.stored,
+      now: data.now,
+    });
+
+    if (
+      data.onlyWhereLogged &&
+      context.read.view.reads.logged !== ExposureReadsLogged.Logged
+    ) {
+      return null;
+    }
+
+    const logRead: ExposureLogRead =
+      await ExposureAssessmentReader.readAccessLogs({
+        projectId: data.projectId,
+        dataStoreId: new ObjectID(data.stored.dataStoreId),
+        window: context.read.view.window,
+        limits: data.limits,
+        now: data.now,
+      });
+    const fresh: SecurityCase | null = await SecurityCaseService.findOneBy({
+      query: { _id: data.securityCaseId, projectId: data.projectId },
+      select: { _id: true, exposureAssessment: true },
+      props: ROOT,
+    });
+    const previous: StoredExposureAssessment | null =
+      readStoredExposureAssessment(fresh?.exposureAssessment);
+
+    if (!previous || previous.dataStoreId !== data.stored.dataStoreId) {
+      return logRead;
+    }
+
+    await this.save(data.securityCaseId, { ...previous, logRead });
+
+    const outside: number = getReadsFromOutside(logRead).reads;
+    const isRead: boolean = logRead.status === ExposureLogReadStatus.Read;
+
+    await this.writeTimeline({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      userId: data.userId,
+      color: Gray500,
+      line: async (byWhom: MarkdownText | null): Promise<MarkdownText> => {
+        const said: MarkdownText = !isRead
+          ? mdText`they could not be read.`
+          : outside > 0
+            ? mdText`they show ${String(outside)} reads from outside your accounts${logRead.isComplete ? "" : ", in the part read so far"}.`
+            : logRead.isComplete
+              ? mdText`they show no read from outside your accounts.`
+              : mdText`the part read so far shows no read from outside your accounts.`;
+
+        return byWhom
+          ? mdText`**${byWhom}** read the store's access logs for the exposure's window: ${said}`
+          : mdText`Data Security read the store's access logs for the exposure's window: ${said}`;
+      },
+    });
+
+    return logRead;
+  }
+
   // The store the assessment is about: the one it keeps, the one asked for, or the case's only one.
   private static pickStore(
     scope: ExposureCaseScope,
@@ -619,6 +789,7 @@ export default class ExposureAssessmentDrafter {
       placesNamed: data.stored.peopleLiveIn?.places as
         | Array<BreachPlace>
         | undefined,
+      logRead: data.stored.logRead,
       now: data.now,
     });
 
@@ -855,13 +1026,35 @@ export default class ExposureAssessmentDrafter {
           props: data.props,
         })
       : [];
+    /*
+     * Who read the store, by name, only for a reader who may see who can
+     * reach it; everyone else gets the counts (#10951).
+     */
+    const mayReadAccess: boolean = ExposureAssessmentReader.mayReadAccess(
+      data.props,
+    );
+    const view: ExposureAssessmentView | null = data.context?.read.view || null;
+    const shownStored: StoredExposureAssessment | null =
+      stored && stored.logRead && !mayReadAccess
+        ? { ...stored, logRead: withoutLogPrincipals(stored.logRead) }
+        : stored;
+    const shownView: ExposureAssessmentView | null =
+      view && view.reads.fromLogs && !mayReadAccess
+        ? {
+            ...view,
+            reads: {
+              ...view.reads,
+              fromLogs: withoutLogPrincipals(view.reads.fromLogs),
+            },
+          }
+        : view;
 
     return {
       securityCaseId: data.scope.securityCaseId.toString(),
       stores: data.scope.stores,
       dataStoreId: stored?.dataStoreId,
-      assessment: stored,
-      view: data.context?.read.view || null,
+      assessment: shownStored,
+      view: shownView,
       facts,
       staleParts: getStaleExposureDraftParts({ assessment: stored, facts }),
       editors,

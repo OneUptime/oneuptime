@@ -13,6 +13,13 @@ import {
   getOfferedDraft,
 } from "../../../../Utils/DataSecurity/DataTypeProposal";
 import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import {
+  AccessLogCounts,
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  formatBytesInEnglish,
+  getReadsFromOutside,
+} from "../../../../Types/DataSecurity/AccessLogReads";
 import { MAX_DESCRIBE_SENTENCE_LENGTH } from "../../../../Types/DataSecurity/DataTypeDescribe";
 import {
   CheckRemediation,
@@ -111,13 +118,16 @@ import {
 import {
   BreachLawId,
   BreachLawRule,
+  BreachPlace,
   getBreachLawRule,
+  isUsStateRule,
 } from "../../../../Types/DataSecurity/BreachLaws";
 import {
   describeBreachCheckInEnglish,
   describeBreachDeadlineInEnglish,
   describeBreachPlaceInEnglish,
   EXPOSURE_DRAFT_PART_ASKS,
+  BreachObligationStatus,
   ExposureAssessmentView,
   ExposureDataType,
   ExposureDraftPart,
@@ -5050,6 +5060,20 @@ export function exposureAssessmentFacts(data: {
     });
   }
 
+  /*
+   * What the store's access logs say (#10951), when OneUptime read them for
+   * the window as it is now: counts only - never a principal, an address or
+   * an object's name, which the read keeps apart.
+   */
+  const logRead: ExposureLogRead | undefined =
+    view.reads.isFromLogsCurrent &&
+    view.reads.fromLogs?.status === ExposureLogReadStatus.Read
+      ? view.reads.fromLogs
+      : undefined;
+  const fromOutside: AccessLogCounts | undefined = logRead
+    ? getReadsFromOutside(logRead)
+    : undefined;
+
   list.add({
     key: "exposure:reads",
     kind: ComplianceFactKind.ExposureReads,
@@ -5058,6 +5082,26 @@ export function exposureAssessmentFacts(data: {
     outsideAccounts: view.reads.outsideAccounts,
     outsideAccountsUsedInWindow: view.reads.outsideAccountsUsedInWindow,
     isTreatedAsRead: view.reads.isTreatedAsRead,
+    ...(logRead && fromOutside
+      ? {
+          logsRead: true,
+          logsComplete: logRead.isComplete,
+          logFilesRead: logRead.logFilesRead,
+          logsReadThrough: logRead.isComplete ? undefined : logRead.readThrough,
+          readsFromOutside: fromOutside.reads,
+          anonymousReads: logRead.anonymous.reads,
+          anonymousAddresses: logRead.anonymous.addresses,
+          outsideAccountReads: logRead.outside.reads,
+          outsideAccountsThatRead: logRead.outside.accounts,
+          unplacedReads: logRead.unknown.reads,
+          objectsReadFromOutside: fromOutside.objects,
+          sentToOutside:
+            fromOutside.bytes > 0
+              ? formatBytesInEnglish(fromOutside.bytes)
+              : undefined,
+          listingsFromOutside: logRead.listingsFromOutside,
+        }
+      : {}),
   });
 
   if (view.whose.placesNamed && view.whose.placesNamed.length > 0) {
@@ -5093,12 +5137,40 @@ export function exposureAssessmentFacts(data: {
       });
     });
 
+  /*
+   * A US state's notice is a fact of its own where a person said some of
+   * the people live in that state (#10952). The others - every state's,
+   * while nobody said which - are counted in one fact: fifty states' rows
+   * would crowd the rest out of the draft's facts, and a draft names a
+   * state's law only once its people are known to live there.
+   */
+  const named: ReadonlyArray<BreachPlace> = view.whose.placesNamed || [];
+  const statesIfPeopleLiveThere: Set<BreachPlace> = new Set();
+  let noticesIfPeopleLiveThere: number = 0;
+
   for (const obligation of view.obligations) {
     if (!isKnownObligation(obligation)) {
       continue;
     }
 
     const rule: BreachLawRule = getBreachLawRule(obligation.ruleId);
+
+    if (
+      isUsStateRule(rule) &&
+      !(rule.places || []).some((place: BreachPlace): boolean => {
+        return named.includes(place);
+      })
+    ) {
+      if (obligation.status === BreachObligationStatus.MayApply) {
+        noticesIfPeopleLiveThere += 1;
+
+        for (const place of rule.places || []) {
+          statesIfPeopleLiveThere.add(place);
+        }
+      }
+
+      continue;
+    }
 
     list.add({
       key: `obligation:${rule.id}`,
@@ -5119,6 +5191,15 @@ export function exposureAssessmentFacts(data: {
         .filter((check: string): boolean => {
           return check.length > 0;
         }),
+    });
+  }
+
+  if (noticesIfPeopleLiveThere > 0) {
+    list.add({
+      key: "obligation:us-states",
+      kind: ComplianceFactKind.UsStateLaws,
+      states: statesIfPeopleLiveThere.size,
+      notices: noticesIfPeopleLiveThere,
     });
   }
 

@@ -3,6 +3,7 @@ import AIService from "../../../Server/Services/AIService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import SpanService from "../../../Server/Services/SpanService";
 import FixPerformanceTaskTrigger from "../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
+import CodeFixPersonRepository from "../../../Server/Utils/AI/CodeFix/CodeFixPersonRepository";
 import SubjectCodeFixRun from "../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import CodeFixStartGate, {
   CodeFixStart,
@@ -39,12 +40,14 @@ import ObjectID from "../../../Types/ObjectID";
 import UserType from "../../../Types/UserType";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
-  NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
   parseTracePerformanceFixSuggestion,
-  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
-  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
   TracePerformanceFixSuggestion,
 } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import {
+  NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
 import { AnalyzableSpan } from "../../../Utils/Traces/SpanTreeAnalyzer";
 import {
   HEALTH_CHECK,
@@ -197,7 +200,7 @@ beforeEach(() => {
    * tests below (#11075).
    */
   jest
-    .spyOn(FixPerformanceTaskTrigger, "getUsableRepositories")
+    .spyOn(CodeFixPersonRepository, "getUsableRepositories")
     .mockResolvedValue({
       connectedCount: 1,
       usable: [
@@ -255,7 +258,8 @@ describe("POST /ai-investigation/performance-fix-suggestion", () => {
     expect(findBy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { traceId: TRACE_ID },
-        props: memberProps(),
+        // The user's own, read in the request's project (see below).
+        props: { ...memberProps(), isMultiTenantRequest: false },
       }),
     );
 
@@ -488,8 +492,11 @@ describe("POST /ai-investigation/create-performance-fix-task", () => {
         traceId: TRACE_ID,
         serviceName: "checkout-service",
         userId: USER_ID,
-        // Whose repositories the fix may use: the caller's own (#11075).
-        props: memberProps(),
+        /*
+         * Whose repositories the fix may use: the caller's own (#11075),
+         * in the request's project (see below).
+         */
+        props: { ...memberProps(), isMultiTenantRequest: false },
       }),
     );
     expect(
@@ -660,7 +667,7 @@ describe("POST /ai-investigation/create-performance-fix-task holds the repositor
   beforeEach(() => {
     asked = [];
     // The real weighing of the member's repositories, below the outer default.
-    jest.mocked(FixPerformanceTaskTrigger.getUsableRepositories).mockRestore();
+    jest.mocked(CodeFixPersonRepository.getUsableRepositories).mockRestore();
 
     jest
       .spyOn(SpanService, "findBy")
@@ -814,7 +821,8 @@ describe("POST /ai-investigation/create-performance-fix-task holds the repositor
     );
     expect(asked.length).toBeGreaterThan(0);
     for (const props of asked) {
-      expect(props).toEqual(memberProps());
+      // The caller's own, in the request's project (see below).
+      expect(props).toEqual({ ...memberProps(), isMultiTenantRequest: false });
     }
   });
 
@@ -878,5 +886,88 @@ describe("POST /ai-investigation/create-performance-fix-task holds the repositor
     expect(
       parseTracePerformanceFixSuggestion(call.json as JSONObject).offer,
     ).toBe(SuggestionOffer.None);
+  });
+});
+
+/*
+ * A request across the caller's projects (the is-multi-tenant-query
+ * header) has the span store answer from every project the person belongs
+ * to. Both routes make the fix in the request's own project, in one of its
+ * repositories, so they read the trace in that project only - else a trace
+ * of another project the person can read would become a fix here: its
+ * spans in the run and the pull request, read by everyone with access to
+ * this project's repository. Every other Fix with AI route reads so
+ * (pinPropsToTenant).
+ */
+describe("a request across the caller's projects reads the trace in the request's own project only", () => {
+  type PropsOf = { props: DatabaseCommonInteractionProps };
+
+  function acrossProjects(): DatabaseCommonInteractionProps {
+    return { ...memberProps(), isMultiTenantRequest: true };
+  }
+
+  function pinned(): DatabaseCommonInteractionProps {
+    return { ...memberProps(), isMultiTenantRequest: false };
+  }
+
+  test("the suggestion reads the trace's spans in the request's project", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(acrossProjects());
+    const findBy: jest.SpyInstance = jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+
+    const call: Call = await post(SUGGESTION_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect((findBy.mock.calls[0]![0] as PropsOf).props).toEqual(pinned());
+  });
+
+  test("a trace only another of the caller's projects has is not found, and nothing is made", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(acrossProjects());
+    // The span store as it answers: across projects only when asked to.
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockImplementation(async (data: unknown): Promise<Array<Span>> => {
+        return (data as PropsOf).props.isMultiTenantRequest
+          ? storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE)
+          : [];
+      });
+    const create: jest.SpyInstance = jest
+      .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromTrace")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(create).not.toHaveBeenCalled();
+    expect((call.thrown as Error).message).toBe(
+      "Trace not found (or you do not have access to it).",
+    );
+  });
+
+  test("the fix reads the spans in the request's project, and weighs the repository under the same props", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(acrossProjects());
+    const findBy: jest.SpyInstance = jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    const runId: ObjectID = ObjectID.generate();
+    const create: jest.SpyInstance = jest
+      .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromTrace")
+      .mockResolvedValue({ id: runId } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(call.json).toEqual({ aiRunId: runId.toString() });
+    expect((findBy.mock.calls[0]![0] as PropsOf).props).toEqual(pinned());
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: PROJECT_ID, props: pinned() }),
+    );
   });
 });

@@ -274,7 +274,7 @@ Et prosjekt som krever unike navn, slik et nytt prosjekt gjør, holder de fleste
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-En slik avvisning har også `takenById`, ID-en til posten som har navnet, når nøkkelen din kan lese den. Poster som delte et navn før prosjektet krevde unike navn, beholder det til de får nytt navn, og én oppdatering kan ikke gi flere poster av samme slag samme navn. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` svarer på om et navn er tatt før du sender det, og `GET /api/unique-names/duplicates` viser navnene prosjektet har mer enn én gang, slag for slag.
+En slik avvisning har også `takenById`, ID-en til posten som har navnet, når nøkkelen din kan lese den. Poster som delte et navn før prosjektet krevde unike navn, beholder det til de får nytt navn, og én oppdatering kan ikke gi flere poster av samme slag samme navn. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` svarer på om et navn er tatt før du sender det, og `GET /api/unique-names/duplicates` viser navnene prosjektet har mer enn én gang, slag for slag. `GET /api/shared-names/Monitor`, eller tabellnavnet til et hvilket som helst annet slag innstillingen gjelder for, svarer på hvilke av postene som deler et navn, slik dashbordets lister merker dem: `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`, der hver gruppe er to eller flere poster nøkkelen din kan lese, med når hver ble laget. Arkiverte poster grupperes for seg, atskilt fra postene i drift.
 
 #### Verdier som en annen post allerede har
 
@@ -300,6 +300,16 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 En oppdatering som skriver en posts verdier slik de allerede er, endrer ingenting: den starter ikke postens **On Update**-arbeidsflyter, sender ikke liveoppdateringer og legger ikke til en oppføring i revisjonsloggen. `false` skrevet over `false` regnes som samme verdi, og det samme gjør `"false"` skrevet over `false`, et tall skrevet som tekst, et tidspunkt skrevet som samme øyeblikk i et annet format og etiketter skrevet som de samme etikettene i vilkårlig rekkefølge. Når en oppdatering endrer noen verdier og skriver andre tilbake slik de er, viser revisjonsloggoppføringen bare verdiene som ble endret, og en arbeidsflyts **Felt som overvåkes** hører bare dem.
+
+### Verdier skrevet som JSON
+
+Noen felt inneholder en JSON-verdi med sin egen form, for eksempel `rotation` og `restrictionTimes` for et lag i en vaktplan; API-referansen viser hver form under datatypene sine. OneUptime leser bare nøklene i den formen, så en verdi som utelater nøkkelen som sier hva den betyr, staver den nøkkelen på en annen måte eller gir den en verdi OneUptime ikke kjenner, avvises med en `400` som nevner nøkkelen, i stedet for å lagres som en verdi som ikke gjør noe:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+En nøkkel som får nytt navn, leses fortsatt under det gamle navnet: begrensningstypen til et lag skrives under `restrictionType`, eller under den eldre stavemåten `restictionType`, og et svar har begge.
 
 ### Hvor et prosjekt ble kjøpt
 

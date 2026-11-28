@@ -63,7 +63,9 @@ flowchart LR
 
 Den er slått på i et nytt prosjekt. Et prosjekt som fantes fra før, beholder den slått av, fordi prosjektets API-klienter og Terraform-konfigurasjoner kan regne med navn som gjentar seg: slå den på når du er klar.
 
-Under bryteren viser kortet hvert navn prosjektet allerede har mer enn én gang, slag for slag, med en lenke til hver post og dagen den ble laget. Å slå bryteren på avviser ingenting som finnes: de postene fortsetter å virke til noen gir dem nytt navn, og bare en ny post eller en navneendring trenger et eget navn. Å lagre en post med sitt eget navn igjen, uansett store og små bokstaver, er ingen navneendring.
+Under bryteren viser kortet hvert navn prosjektet allerede har mer enn én gang, slag for slag, med en lenke til hver post og dagen den ble laget. Et OpenStack-budsjett åpnes på skyens **Forbruk**-side, og et sammendrag for et arbeidsområde på fanen **Sammendrag** på Slack-, Microsoft Teams- eller Mattermost-siden det hører til. AI-agenter har ingen side i dashbordet, så kortet nevner dem uten lenke og sier det. Å slå bryteren på avviser ingenting som finnes: de postene fortsetter å virke til noen gir dem nytt navn, og bare en ny post eller en navneendring trenger et eget navn. Å lagre en post med sitt eget navn igjen, uansett store og små bokstaver, er ingen navneendring.
+
+Listen til hvert slag merker også de postene, med **Samme navn som en annen post av typen monitor** (eller mal, nøkkel og så videre) og dagen hver ble laget, og sier over listen hvor mange det er. En liste merker bare postene du kan åpne.
 
 Uansett hva bryteren sier, varsler et skjema mens du skriver et navn som en annen post av samme slag allerede har, og lenker til den posten. Så lenge bryteren er slått på, sier varselet også at lagringen ville blitt avvist.
 
@@ -118,7 +120,7 @@ En etikett som har samme navn som en annen etikett fra før navn måtte være fo
 **Prosjektinnstillinger → Varslinger** inneholder hvordan prosjektet sender varslinger:
 
 - **Varslingskanaler**: kortet **Varslingskanaler** slår SMS, telefonsamtaler, WhatsApp og Telegram på eller av for prosjektet. Alle fire er av fra start. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på. Siden har også, sammenfoldet under **Flere innstillinger**, hvordan medlemmer tilkalles som standard, i **Standardrekkefølge for nye medlemmer** og **Telefon for folk på vakt** (se [Standardrekkefølgen](/docs/notifications/on-call-rules#standardrekkefølgen)), om vaktanrop skiller taleposten fra en person, i **Talepost ved vaktanrop** (se [Talepost ved vaktanrop](/docs/self-hosted/twilio-integration#talepost-ved-vaktanrop)), prosjektets egne e-postservere i **Egendefinerte SMTP-konfigurasjoner** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integrasjon](/docs/self-hosted/twilio-integration)). I OneUptime Cloud har den saldoen som disse meldingene betales fra: se [Forhåndsbetalte saldoer](/docs/configuration/billing#forhåndsbetalte-saldoer).
-- **Varslingslogger**: hver varsling prosjektet har sendt, med én fane per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** og **Arbeidsområde**. Fanen **Webhook** beholder bare skjemaet og verten i hver adresse: resten er webhookens hemmelighet.
+- **Varslingslogger**: hver varsling prosjektet har sendt, med én fane per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** og **Arbeidsområde**. Fanen **Webhook** beholder bare skjemaet og verten i hver adresse: resten er webhookens hemmelighet. Hva hver status betyr: [Varslingslogger](/docs/notifications/notification-logs).
 - **Mobilapper**: hvor du får appene for iOS og Android. Se [Apper – Oversikt](/docs/mobile-desktop-apps/index).
 
 ## Slett prosjektet

@@ -22,15 +22,19 @@ export enum NetworkQuickAction {
 }
 
 /*
- * "&address=10.9.9.9&probe=<id>": what an Add Device link can fill in - the
- * Traffic page's "Add as device" for an address that is sending flows.
+ * "&address=10.9.9.9&probe=<id>&site=<id>": what an Add Device link can fill
+ * in - the Traffic page's "Add as device" for an address that is sending
+ * flows, and an event's for an address sending traps, with the site whose
+ * default SNMPv3 credentials signed them (#11174).
  */
 export const NETWORK_QUICK_ACTION_ADDRESS_PARAM: string = "address";
 export const NETWORK_QUICK_ACTION_PROBE_PARAM: string = "probe";
+export const NETWORK_QUICK_ACTION_SITE_PARAM: string = "site";
 
 export interface AddDevicePrefill {
   address?: string | undefined;
   probeId?: string | undefined;
+  siteId?: string | undefined;
 }
 
 // An address is an IP or a hostname: letters, digits, dots, dashes, colons.
@@ -56,6 +60,7 @@ export function readAddDevicePrefill(
   const prefill: AddDevicePrefill = {};
   const address: string | null = params.get(NETWORK_QUICK_ACTION_ADDRESS_PARAM);
   const probeId: string | null = params.get(NETWORK_QUICK_ACTION_PROBE_PARAM);
+  const siteId: string | null = params.get(NETWORK_QUICK_ACTION_SITE_PARAM);
 
   if (address && ADDRESS_PATTERN.test(address)) {
     prefill.address = address;
@@ -63,6 +68,10 @@ export function readAddDevicePrefill(
 
   if (probeId && UUID_PATTERN.test(probeId)) {
     prefill.probeId = probeId.toLowerCase();
+  }
+
+  if (siteId && UUID_PATTERN.test(siteId)) {
+    prefill.siteId = siteId.toLowerCase();
   }
 
   return prefill;
