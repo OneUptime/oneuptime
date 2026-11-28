@@ -97,7 +97,7 @@ Elke sonde luistert naar syslog op poort 5140, via UDP en via TCP. Via TCP is ee
 
 1. een apparaat dat de sonde bevraagt en waarvan de hostnaam dat adres is (of ernaar resolvet), of dat het vermeldt onder **Overige adressen** op zijn **Instellingen**-pagina;
 2. op je eigen (aangepaste) sonde, elk apparaat in het project met dat adres, of met de hostnaam die het bericht draagt als precies één apparaat die naam heeft;
-3. anders wordt het bericht op je eigen sonde bewaard voor de Gebeurtenissen-pagina van het netwerk, onder **Stuurt syslog, nog geen apparaat**, tot je zegt bij welk apparaat het hoort. Een globale sonde gooit het weg.
+3. anders wordt het bericht op je eigen sonde bewaard voor de Gebeurtenissen-pagina van het netwerk, onder **Stuurt syslog of SNMP-traps, nog geen apparaat**, tot je zegt bij welk apparaat het hoort. Een globale sonde gooit het weg.
 
 Een regel van een onbekend adres die geen syslog-prioriteit heeft en geen gebeurtenis is, wordt voor ruis gehouden en weggegooid.
 
@@ -223,10 +223,10 @@ Vanaf het tabblad **Gebeurtenissen** van een apparaat bewaken de monitors alleen
 
 ## Adressen die nog geen apparaat zijn
 
-Syslog kan binnenkomen voordat het apparaat dat het stuurt aan OneUptime is toegevoegd. Op je eigen sonde wordt het bewaard, de gebeurtenissen ervan staan op de Gebeurtenissen-pagina van het netwerk met de naam die het apparaat zichzelf geeft, en het adres staat onder **Stuurt syslog, nog geen apparaat**:
+Syslog en SNMP-traps kunnen binnenkomen voordat het apparaat dat ze stuurt aan OneUptime is toegevoegd. Op je eigen sonde worden ze bewaard, en op een globale sonde geldt dat ook voor een SNMPv3-trap die met de eigen inloggegevens van je project is ondertekend. Hun gebeurtenissen staan op de Gebeurtenissen-pagina van het netwerk met de naam die het apparaat zichzelf geeft, en het adres staat onder **Stuurt syslog of SNMP-traps, nog geen apparaat**, met wat het stuurt: syslog, SNMP-traps of beide. Een eigen trap van een leverancier die geen gebeurtenis is, staat alleen in Logboeken, en zijn afzender wordt toch vermeld:
 
-- **Toevoegen als apparaat** opent **Apparaat toevoegen** met het adres en de sonde al ingevuld. De berichten die al binnenkwamen blijven op de pagina van het netwerk; nieuwe gaan naar het apparaat.
-- **Het is een van mijn apparaten** voegt het adres toe aan de **Overige adressen** van een apparaat: gebruik dit als een apparaat dat je al toevoegde vanaf een ander adres verstuurt, zoals een loopback. Zijn berichten gaan vanaf de volgende minuut naar dat apparaat.
+- **Toevoegen als apparaat** opent **Apparaat toevoegen** met het adres en de sonde al ingevuld, en ook de locatie als zijn traps zijn ondertekend met de standaard-SNMPv3-inloggegevens van die locatie. Wat al binnenkwam, blijft waar het is; wat daarna komt, gaat naar het apparaat.
+- **Het is een van mijn apparaten** voegt het adres toe aan de **Overige adressen** van een apparaat: gebruik dit als een apparaat dat je al toevoegde vanaf een ander adres verstuurt, zoals een loopback. Zijn syslog en SNMP-traps gaan vanaf de volgende minuut naar dat apparaat.
 
 Meerdere apparaten achter één NAT-adres delen dat adres, dus hun berichten gaan naar het ene apparaat dat het heeft, tenzij een bericht zijn eigen apparaat noemt.
 
@@ -254,7 +254,7 @@ Een pipeline hoort bij zijn project. Om er een in een ander project te gebruiken
 
 Als een Gebeurtenissen-pagina nog steeds de installatiestappen toont:
 
-- **Ontvangt de sonde iets?** De Gebeurtenissen-pagina van het netwerk vermeldt onder **Stuurt syslog, nog geen apparaat** elk adres dat in de periode syslog stuurde. Staat het apparaat daar, dan verstuurt het vanaf een adres dat niet zijn hostnaam is: voeg dat adres toe aan zijn **Overige adressen**.
+- **Ontvangt de sonde iets?** De Gebeurtenissen-pagina van het netwerk vermeldt onder **Stuurt syslog of SNMP-traps, nog geen apparaat** elk adres dat in de periode syslog of SNMP-traps stuurde. Staat het apparaat daar, dan verstuurt het vanaf een adres dat niet zijn hostnaam is: voeg dat adres toe aan zijn **Overige adressen**.
 - **Firewalls en Docker.** Sta poort 5140 toe van het apparaat naar de sonde, en publiceer de poort als de sonde in Docker draait. Veel apparaten sturen naar poort 514 tenzij je iets anders opgeeft.
 - **De log van de sonde.** Bij het opstarten logt de sonde op welke poort hij luistert, of dat hij die niet kon openen. Als hij berichten weggooit boven `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`, logt hij één keer per minuut hoeveel.
 - **Een globale sonde.** Een apparaat dat door een globale sonde wordt bevraagd, kan er vanuit een privénetwerk geen syslog naartoe sturen. Draai een aangepaste sonde in het netwerk van het apparaat en kies die in de instellingen van het apparaat.

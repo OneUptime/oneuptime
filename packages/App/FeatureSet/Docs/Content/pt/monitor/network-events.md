@@ -97,7 +97,7 @@ Toda sonda escuta syslog na porta 5140, por UDP e por TCP. Por TCP uma mensagem 
 
 1. um dispositivo consultado pela sonda cujo nome do host é esse endereço (ou resolve para ele), ou que o lista em **Outros endereços** na sua página de **Configurações**;
 2. na sua própria sonda (personalizada), qualquer dispositivo do projeto com esse endereço, ou com o nome do host que a mensagem traz quando exatamente um dispositivo tem esse nome;
-3. caso contrário, na sua própria sonda, a mensagem é guardada para a página de Eventos da rede, em **Enviando syslog, ainda não é um dispositivo**, até você dizer a qual dispositivo ela pertence. Uma sonda global a descarta.
+3. caso contrário, na sua própria sonda, a mensagem é guardada para a página de Eventos da rede, em **Enviando syslog ou traps SNMP, ainda não é um dispositivo**, até você dizer a qual dispositivo ela pertence. Uma sonda global a descarta.
 
 Uma linha de um endereço desconhecido que não tem prioridade syslog e não é um evento é tomada por ruído e descartada.
 
@@ -223,10 +223,10 @@ A partir da aba **Eventos** de um dispositivo, os monitores observam só esse di
 
 ## Endereços que ainda não são dispositivos
 
-O syslog pode chegar antes de o dispositivo que o envia ser adicionado ao OneUptime. Na sua própria sonda ele é guardado, os eventos dele ficam na página de Eventos da rede com o nome que o dispositivo dá a si mesmo, e o endereço dele é listado em **Enviando syslog, ainda não é um dispositivo**:
+O syslog e os traps SNMP podem chegar antes de o dispositivo que os envia ser adicionado ao OneUptime. Na sua própria sonda eles são guardados, e em uma sonda global também é guardado um trap SNMPv3 assinado com as credenciais do seu próprio projeto. Os eventos deles ficam na página de Eventos da rede com o nome que o dispositivo dá a si mesmo, e o endereço é listado em **Enviando syslog ou traps SNMP, ainda não é um dispositivo**, com o que ele envia: syslog, traps SNMP ou ambos. Um trap próprio de um fabricante que não é um evento só está em Registros, e o remetente dele é listado do mesmo jeito:
 
-- **Adicionar como dispositivo** abre **Adicionar dispositivo** com o endereço e a sonda já preenchidos. As mensagens que já chegaram ficam na página da rede; as novas vão para o dispositivo.
-- **É um dos meus dispositivos** adiciona o endereço aos **Outros endereços** de um dispositivo: use quando um dispositivo que você já adicionou envia de outro endereço, como uma loopback. As mensagens dele vão para esse dispositivo a partir do minuto seguinte.
+- **Adicionar como dispositivo** abre **Adicionar dispositivo** com o endereço e a sonda já preenchidos, e também o site quando os traps dele foram assinados com as credenciais SNMPv3 padrão desse site. O que já chegou fica onde está; o que vier depois vai para o dispositivo.
+- **É um dos meus dispositivos** adiciona o endereço aos **Outros endereços** de um dispositivo: use quando um dispositivo que você já adicionou envia de outro endereço, como uma loopback. O syslog e os traps SNMP dele vão para esse dispositivo a partir do minuto seguinte.
 
 Vários dispositivos atrás de um mesmo endereço NAT compartilham esse endereço, então as mensagens deles vão para o único dispositivo que o tem, a menos que uma mensagem nomeie o próprio dispositivo.
 
@@ -254,7 +254,7 @@ Um pipeline pertence ao seu projeto. Para usar um em outro projeto, crie-o lá c
 
 Se uma página de Eventos ainda mostra os passos de configuração:
 
-- **A sonda está recebendo alguma coisa?** A página de Eventos da rede lista em **Enviando syslog, ainda não é um dispositivo** cada endereço que enviou syslog no intervalo de tempo. Se o dispositivo estiver lá, ele envia de um endereço que não é o nome do host dele: adicione esse endereço aos **Outros endereços** dele.
+- **A sonda está recebendo alguma coisa?** A página de Eventos da rede lista em **Enviando syslog ou traps SNMP, ainda não é um dispositivo** cada endereço que enviou syslog ou traps SNMP no intervalo de tempo. Se o dispositivo estiver lá, ele envia de um endereço que não é o nome do host dele: adicione esse endereço aos **Outros endereços** dele.
 - **Firewalls e Docker.** Permita a porta 5140 do dispositivo para a sonda, e publique a porta se a sonda rodar no Docker. Muitos dispositivos enviam para a porta 514 se nada lhes for dito.
 - **O log da sonda.** Ao iniciar, a sonda registra no log a porta em que escuta, ou que não conseguiu abri-la. Quando descarta mensagens acima de `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`, registra quantas, uma vez por minuto.
 - **Uma sonda global.** Um dispositivo consultado por uma sonda global não consegue enviar syslog para ela a partir de uma rede privada. Execute uma sonda personalizada na rede do dispositivo e escolha-a nas configurações do dispositivo.

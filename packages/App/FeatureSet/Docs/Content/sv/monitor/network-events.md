@@ -97,7 +97,7 @@ Varje sond lyssnar efter syslog på port 5140, över UDP och över TCP. Över TC
 
 1. en enhet som sonden pollar vars värdnamn är den adressen (eller slås upp till den), eller som har den under **Övriga adresser** på sin **Inställningar**-sida;
 2. på din egen (anpassade) sond, vilken enhet som helst i projektet med den adressen, eller med värdnamnet som meddelandet bär när exakt en enhet har det namnet;
-3. annars sparas meddelandet på din egen sond för nätverkets Händelser-sida, under **Skickar syslog, ännu inte en enhet**, tills du anger vilken enhet det hör till. En global sond kastar det.
+3. annars sparas meddelandet på din egen sond för nätverkets Händelser-sida, under **Skickar syslog eller SNMP-traps, ännu inte en enhet**, tills du anger vilken enhet det hör till. En global sond kastar det.
 
 En rad från en okänd adress som saknar syslog-prioritet och inte är en händelse räknas som brus och kastas.
 
@@ -223,10 +223,10 @@ Från en enhets **Händelser**-flik bevakar monitorerna bara den enheten. För v
 
 ## Adresser som inte är enheter ännu
 
-Syslog kan komma innan enheten som skickar det har lagts till i OneUptime. På din egen sond sparas det, dess händelser finns på nätverkets Händelser-sida med namnet enheten ger sig själv, och adressen listas under **Skickar syslog, ännu inte en enhet**:
+Syslog och SNMP-traps kan komma innan enheten som skickar dem har lagts till i OneUptime. På din egen sond sparas de, och på en global sond gäller det också en SNMPv3-trap som är signerad med ditt projekts egna autentiseringsuppgifter. Deras händelser finns på nätverkets Händelser-sida med namnet enheten ger sig själv, och adressen listas under **Skickar syslog eller SNMP-traps, ännu inte en enhet**, med vad den skickar: syslog, SNMP-traps eller båda. En leverantörs egen trap som inte är någon händelse finns bara i Loggar, och dess avsändare listas ändå:
 
-- **Lägg till som enhet** öppnar **Lägg till enhet** med adressen och sonden ifyllda. Meddelandena som redan har kommit stannar på nätverkets sida; nya går till enheten.
-- **Det är en av mina enheter** lägger till adressen bland en enhets **Övriga adresser**: använd den när en enhet du redan har lagt till skickar från en annan adress, till exempel en loopback. Dess meddelanden går till den enheten från och med nästa minut.
+- **Lägg till som enhet** öppnar **Lägg till enhet** med adressen och sonden ifyllda, och även platsen när dess traps signerades med platsens standardautentiseringsuppgifter för SNMPv3. Det som redan har kommit stannar där det är; det som kommer sedan går till enheten.
+- **Det är en av mina enheter** lägger till adressen bland en enhets **Övriga adresser**: använd den när en enhet du redan har lagt till skickar från en annan adress, till exempel en loopback. Dess syslog och SNMP-traps går till den enheten från och med nästa minut.
 
 Flera enheter bakom en och samma NAT-adress delar den adressen, så deras meddelanden går till den enda enhet som har den, om inte ett meddelande nämner sin egen enhet.
 
@@ -254,7 +254,7 @@ En pipeline tillhör sitt projekt. För att använda en i ett annat projekt skap
 
 Om en Händelser-sida fortfarande visar sina konfigurationssteg:
 
-- **Tar sonden emot något alls?** Nätverkets Händelser-sida listar under **Skickar syslog, ännu inte en enhet** varje adress som har skickat syslog i tidsintervallet. Om enheten står där skickar den från en adress som inte är dess värdnamn: lägg till den adressen bland dess **Övriga adresser**.
+- **Tar sonden emot något alls?** Nätverkets Händelser-sida listar under **Skickar syslog eller SNMP-traps, ännu inte en enhet** varje adress som har skickat syslog eller SNMP-traps i tidsintervallet. Om enheten står där skickar den från en adress som inte är dess värdnamn: lägg till den adressen bland dess **Övriga adresser**.
 - **Brandväggar och Docker.** Tillåt port 5140 från enheten till sonden, och publicera porten om sonden körs i Docker. Många enheter skickar till port 514 om de inte får veta något annat.
 - **Sondens logg.** Vid start loggar sonden porten den lyssnar på, eller att den inte kunde öppna den. När den kastar meddelanden över `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` loggar den hur många, en gång i minuten.
 - **En global sond.** En enhet som pollas av en global sond kan inte skicka syslog till den från ett privat nätverk. Kör en anpassad sond i enhetens nätverk och välj den i enhetens inställningar.

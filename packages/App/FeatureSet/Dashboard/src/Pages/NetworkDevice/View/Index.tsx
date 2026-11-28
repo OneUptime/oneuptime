@@ -421,10 +421,12 @@ const NetworkDeviceView: FunctionComponent<
               },
             },
             /*
-             * The engine its agent answered its last SNMPv3 poll as
-             * (#11172): what its SNMPv3 traps are sent as, which tells
-             * them apart from those of devices that share its address.
-             * Hidden until an SNMPv3 poll reads one.
+             * The engine its agent answered its last poll as (#11172): what
+             * its SNMPv3 traps are sent as, which tells them apart from
+             * those of devices that share its address. An SNMPv3 poll
+             * learns it; since #11405 a v1 or v2c poll reads it too, over
+             * the device's community or by SNMPv3 discovery. Hidden until
+             * a poll reads one.
              */
             {
               field: {
@@ -432,7 +434,7 @@ const NetworkDeviceView: FunctionComponent<
               },
               title: "SNMPv3 Engine ID",
               description:
-                "Read from its SNMPv3 polls. It tells this device's SNMPv3 traps apart from those of devices that send from the same address.",
+                "Read by its polls, over any SNMP version. It tells this device's SNMPv3 traps apart from those of devices that send from the same address.",
               fieldType: FieldType.Element,
               showIf: (item: NetworkDevice): boolean => {
                 return Boolean(item.snmpEngineId);

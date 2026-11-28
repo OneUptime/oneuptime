@@ -68398,5 +68398,6 @@
   "Syslog and SNMP traps from {{address}} will go to the device you pick. The address is added to its Other Addresses, where you can remove it again.": "Syslog and SNMP traps from {{address}} will go to the device you pick. The address is added to its Other Addresses, where you can remove it again.",
   "Which device sends from this address?": "Which device sends from this address?",
   "Which device sends these SNMP traps?": "Which device sends these SNMP traps?",
-  "last trap {{time}}": "last trap {{time}}"
+  "last trap {{time}}": "last trap {{time}}",
+  "Read by its polls, over any SNMP version. It tells this device's SNMPv3 traps apart from those of devices that send from the same address.": "Read by its polls, over any SNMP version. It tells this device's SNMPv3 traps apart from those of devices that send from the same address."
 }
