@@ -124,7 +124,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "Share of the combined RAM of the connected ESXi hosts in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The line below shows used and total RAM at the latest point.",
   ),
   overviewDatastores: translationKey(
-    "How full your fullest datastore is (used space as a share of capacity) at its latest report, however old, named below; until the inventory loads, the fullest over the last 5 minutes of the range. Amber from 80%, red from 90%: the levels that mark the vCenter Degraded and Unhealthy.",
+    "How full your fullest datastore is (used space as a share of capacity) at its latest report, however old, named below; until the inventory loads, the fullest over the last 5 minutes of the range. Amber from 80%, red from 90% (or your Health Rules): what marks the vCenter Degraded and Unhealthy.",
   ),
   overviewVmCpuReady: translationKey(
     "CPU Ready is the share of time a VM was ready to run but had to wait for a physical CPU. Averaged across powered-on VMs over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data), with the busiest VM below; amber from 5%, red from 10%.",
@@ -146,7 +146,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- Overview: the hero's health and connection pills -------------------
   overviewVCenterHealth: translationKey(
-    "Unhealthy while something needs someone now (an ESXi host vCenter cannot reach, a critical alarm, a datastore more than 90% full, a VM whose memory the host is swapping out), Degraded while something needs a look. Needs attention lists each, the most urgent first; unknown while the vCenter is disconnected.",
+    "Unhealthy while something needs someone now (an ESXi host vCenter cannot reach, a critical alarm, a datastore more than 90% full, a VM the host swaps out now), Degraded while something needs a look. Needs attention lists each, the most urgent first; unknown while the vCenter is disconnected.",
   ),
   overviewAgentStatus: translationKey(
     "Whether data is arriving for this vCenter - from the probe that collects it, or from the OneUptime VMware agent; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While it is disconnected the numbers on this page stop updating and may be out of date.",
@@ -228,7 +228,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "Share of this VM's configured virtual CPU capacity in use, with the amount in MHz or GHz, from the latest report. CPU is only reported while the VM is on, so a VM that is now off shows its last reading.",
   ),
   vmCpuReady: translationKey(
-    "Share of time this VM was ready to run but had to wait for a physical CPU, from its latest report (for a VM that is now off, its last reading). Above 10% it is flagged as CPU contention: the host is too busy and the VM is slowed down.",
+    "Share of time this VM was ready to run but had to wait for a physical CPU, from its latest report (for a VM that is now off, its last reading). Above 10% (or your Health Rules) it is flagged as CPU contention: the host is too busy and the VM is slowed down.",
   ),
   vmMemory: translationKey(
     "Memory the VM's operating system is actively using, as estimated by ESXi, against the memory configured for the VM, with the share in use, from the latest report.",
@@ -251,7 +251,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "Space still free on this datastore: its capacity minus the used space, from the latest report.",
   ),
   datastoreUsedPercent: translationKey(
-    "Used space as a share of this datastore's capacity, from the latest report. Flagged amber from 80% and red from 90%, the levels that mark the vCenter Degraded and Unhealthy.",
+    "Used space as a share of this datastore's capacity, from the latest report. Flagged amber from 80% and red from 90% (or your Health Rules), the levels that mark the vCenter Degraded and Unhealthy.",
   ),
   datastoreGrowthForecast: translationKey(
     "Days until this datastore is full if it keeps growing at the rate seen over the last 24 hours, using a straight-line fit. Shown only when usage is growing and would fill within a year, or as Full now once it is full.",
@@ -329,6 +329,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "Guest memory the VMs in this pool are actively using, as estimated by ESXi, from its latest report. N/A when the pool has sent no data in the last 15 minutes.",
   ),
   resourcePoolListBalloonedSwapped: translationKey(
-    "Memory ESXi took back from this pool's VMs through the balloon driver, then memory of theirs in the host's swap file, from the last report. Amber while the host swaps the pool's memory out; memory left from earlier is not.",
+    "Memory ESXi took back from this pool's VMs through the balloon driver because a host was short of RAM, then their memory in the host's swap file, from the last report. Amber while the host swaps the pool's memory out, not for memory left from earlier.",
   ),
 };

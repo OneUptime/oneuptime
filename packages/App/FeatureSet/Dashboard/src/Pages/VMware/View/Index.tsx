@@ -114,6 +114,7 @@ import {
   hasFreshMetrics,
 } from "../Utils/VMwareResourceUtils";
 import {
+  VMWARE_CPU_READY_WARNING_PERCENT,
   getVMwareThresholdLine,
   VMwareHostState,
   findVMwareDatacenter,
@@ -1927,17 +1928,12 @@ const VMwareVCenterOverview: FunctionComponent<
           }
           percent={s.vmCpuReadyAvgPercent}
           /*
-           * CPU ready is a contention signal, not a utilization: red past
-           * the VM CPU ready rule (10%), amber from half of it.
+           * CPU ready is a contention signal, not a utilization: the
+           * average across VMs against VMware's guidance, amber at 5 and red
+           * at 10 - no finding of a VM's own, which Needs attention judges by
+           * the project's rule.
            */
-          thresholds={{
-            warn: getVMwareThresholdLine(
-              rules.vmCpuReadyWarningPercent === null
-                ? null
-                : rules.vmCpuReadyWarningPercent / 2,
-            ),
-            danger: getVMwareThresholdLine(rules.vmCpuReadyWarningPercent),
-          }}
+          thresholds={{ warn: 5, danger: VMWARE_CPU_READY_WARNING_PERCENT }}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewVmCpuReady}
         />
       </div>
