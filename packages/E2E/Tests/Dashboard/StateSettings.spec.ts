@@ -287,12 +287,20 @@ test.describe("State, severity and monitor status settings", () => {
         ready: gripOf(list, "Resolved"),
       });
 
-      // A titled card that says what the order means.
-      await expect(page.getByTestId("card-details-heading")).toHaveText(
+      /*
+       * A titled card that says what the order means: the card that holds
+       * the states. The page's other card, under it, is the Incidents
+       * Declared by Hand switch (#11137).
+       */
+      const statesCard: Locator = page
+        .getByTestId("card")
+        .filter({ has: gripOf(list, "Resolved") });
+      await expect(statesCard).toHaveCount(1);
+      await expect(statesCard.getByTestId("card-details-heading")).toHaveText(
         "Incident States",
       );
       await expect(
-        page.getByText(
+        statesCard.getByText(
           "Incidents only ever move down this list. Drag a state to change where it sits. A new state is added just above the resolved state.",
         ),
       ).toBeVisible();
