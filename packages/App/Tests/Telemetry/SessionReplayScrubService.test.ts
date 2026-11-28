@@ -2,7 +2,10 @@ import { scrubRegExpFromBuiltIn } from "Common/Types/Telemetry/ScrubRule";
 import { describe, expect, jest, test } from "@jest/globals";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import ScrubHashToken from "Common/Server/Utils/Telemetry/ScrubHashToken";
+import { compileScrubRule } from "Common/Server/Utils/Telemetry/ScrubEngine/CompiledScrubRule";
+import ScrubRuleValueCounter from "Common/Server/Utils/Telemetry/ScrubRuleValueCounter";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
+import LogScrubField from "Common/Types/Log/LogScrubField";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -655,5 +658,329 @@ describe("SessionReplayScrubService.scrubEvents leaves rrweb plumbing alone", ()
     await SessionReplayScrubService.scrubEvents(events, [PHONE_REDACT]);
 
     expect(JSON.stringify(events)).not.toContain("555-123-4567");
+  });
+});
+
+/*
+ * A SESSION'S TAGS, AS THE PROJECT'S RULES LEAVE THEM (#11458).
+ *
+ * The recorder never masks a tag, and everyone who can list sessions reads
+ * the session's tags column, so ingest runs the application's rules over
+ * the tags before they are stored, exactly as the one log engine runs them
+ * over a log's attributes: that is what Data Security's coverage says a
+ * rule does to a tag. The recording keeps a copy of the tags too (its
+ * oneuptime.tags markers), which gets what the tags column gets.
+ */
+describe("SessionReplayScrubService.scrubTags (#11458)", () => {
+  const APPLICATION_ID: string = "0193b0a1-0000-7000-8000-0000000b1458";
+  const EMAIL: string = "noor.haddad@acmecorp.io";
+
+  // A rule as LogScrubRuleService compiles it, keys and all.
+  function compiled(rule: Partial<LogScrubRule>): CompiledScrubRule {
+    const saved: LogScrubRule = new LogScrubRule();
+
+    saved._id = ObjectID.generate().toString();
+    saved.projectId = PROJECT_ID;
+    saved.scrubAction = LogScrubAction.Mask;
+    saved.fieldsToScrub = LogScrubField.Attributes;
+    Object.assign(saved, rule);
+
+    return compileScrubRule(saved)!;
+  }
+
+  function emailMask(): CompiledScrubRule {
+    return compiled({ patternType: LogScrubPatternType.Email });
+  }
+
+  function scrub(
+    tags: Record<string, string>,
+    rules: Array<CompiledScrubRule>,
+  ): Record<string, string> {
+    return SessionReplayScrubService.scrubTags({
+      tags,
+      compiledRules: rules,
+      rumApplicationId: APPLICATION_ID,
+      appVersion: "2026.11.28",
+      countValues: false,
+    });
+  }
+
+  test("a pattern rule whose fields reach the attributes hides what it finds in a tag's value, keys as the page wrote them", () => {
+    const scrubbed: Record<string, string> = scrub(
+      { Customer: `owner ${EMAIL}`, build: "2026.11.28" },
+      [emailMask()],
+    );
+
+    expect(Object.keys(scrubbed)).toEqual(["Customer", "build"]);
+    expect(scrubbed["Customer"]!.startsWith("owner ")).toBe(true);
+    expect(scrubbed["Customer"]).not.toContain(EMAIL);
+    expect(scrubbed["build"]).toBe("2026.11.28");
+  });
+
+  test("a rule reading both, or left at its default, reaches the tags too; one reading only bodies does not", () => {
+    for (const fieldsToScrub of [LogScrubField.Both, ""]) {
+      expect(
+        scrub({ customer: EMAIL }, [
+          compiled({
+            patternType: LogScrubPatternType.Email,
+            fieldsToScrub: fieldsToScrub as LogScrubField,
+          }),
+        ])["customer"],
+      ).not.toBe(EMAIL);
+    }
+
+    expect(
+      scrub({ customer: EMAIL }, [
+        compiled({
+          patternType: LogScrubPatternType.Email,
+          fieldsToScrub: LogScrubField.Body,
+        }),
+      ]),
+    ).toEqual({ customer: EMAIL });
+  });
+
+  test("a Redact rule leaves what Redact leaves, a Hash rule the project's token", () => {
+    const redacted: Record<string, string> = scrub({ customer: EMAIL }, [
+      compiled({
+        patternType: LogScrubPatternType.Email,
+        scrubAction: LogScrubAction.Redact,
+      }),
+    ]);
+    const hashed: Record<string, string> = scrub({ customer: EMAIL }, [
+      compiled({
+        patternType: LogScrubPatternType.Email,
+        scrubAction: LogScrubAction.Hash,
+      }),
+    ]);
+
+    expect(redacted["customer"]).toBe("[REDACTED]");
+    expect(hashed["customer"]).toMatch(/^\[HASHED:[0-9a-f]{16}\]$/);
+  });
+
+  test("a Sensitive Attribute Keys rule hides the whole value of a tag whose key looks secret", () => {
+    const scrubbed: Record<string, string> = scrub(
+      { api_token: "tok_live_9f8e7d6c5b4a", tier: "gold" },
+      [
+        compiled({
+          patternType: LogScrubPatternType.SensitiveKeys,
+          scrubAction: LogScrubAction.Redact,
+        }),
+      ],
+    );
+
+    expect(scrubbed).toEqual({ api_token: "[REDACTED]", tier: "gold" });
+  });
+
+  test("a Named Attributes rule hides the whole tag it names, by key or dotted prefix, and no other", () => {
+    const scrubbed: Record<string, string> = scrub(
+      {
+        customer_name: "Noor Haddad",
+        "customer_name.first": "Noor",
+        plan: "Noor's plan",
+      },
+      [
+        compiled({
+          patternType: LogScrubPatternType.NamedKeys,
+          scrubAction: LogScrubAction.Redact,
+          attributeKeys: ["customer_name"],
+        }),
+      ],
+    );
+
+    expect(scrubbed).toEqual({
+      customer_name: "[REDACTED]",
+      "customer_name.first": "[REDACTED]",
+      plan: "Noor's plan",
+    });
+  });
+
+  test("a pattern rule that names attributes reads only the tags it names", () => {
+    const scrubbed: Record<string, string> = scrub(
+      { owner: EMAIL, contact: EMAIL },
+      [
+        compiled({
+          patternType: LogScrubPatternType.Email,
+          attributeKeys: ["owner"],
+        }),
+      ],
+    );
+
+    expect(scrubbed["owner"]).not.toBe(EMAIL);
+    expect(scrubbed["contact"]).toBe(EMAIL);
+  });
+
+  test("a rule for one service hides nothing in a session's tags: a session is no service's", () => {
+    expect(
+      scrub({ customer: EMAIL }, [
+        compiled({
+          patternType: LogScrubPatternType.Email,
+          serviceId: ObjectID.generate(),
+        }),
+      ]),
+    ).toEqual({ customer: EMAIL });
+  });
+
+  test("with no rule, or no tag, the very map comes back; the map handed in is never changed", () => {
+    const tags: Record<string, string> = { customer: EMAIL };
+
+    expect(scrub(tags, [])).toBe(tags);
+    expect(scrub({}, [emailMask()])).toEqual({});
+
+    const kept: Record<string, string> = { customer: EMAIL };
+    const scrubbed: Record<string, string> = scrub(kept, [emailMask()]);
+
+    expect(kept).toEqual({ customer: EMAIL });
+    expect(scrubbed).not.toBe(kept);
+  });
+
+  test("each value a rule changes is counted under the application and the session's app version; with counting off, none is", () => {
+    const add: jest.SpiedFunction<typeof ScrubRuleValueCounter.add> = jest
+      .spyOn(ScrubRuleValueCounter, "add")
+      .mockImplementation((): void => {});
+    const rule: CompiledScrubRule = emailMask();
+
+    SessionReplayScrubService.scrubTags({
+      tags: { owner: EMAIL, contact: "rafa.ortiz@acmecorp.io", tier: "gold" },
+      compiledRules: [rule],
+      rumApplicationId: APPLICATION_ID,
+      appVersion: " 4.2.0 ",
+    });
+
+    expect(add).toHaveBeenCalledTimes(1);
+    expect(add).toHaveBeenCalledWith({
+      projectId: PROJECT_ID.toString().toLowerCase(),
+      signal: "log",
+      serviceId: APPLICATION_ID,
+      serviceVersion: "4.2.0",
+      counts: [[String(rule.rule._id).toLowerCase(), 2]],
+    });
+
+    add.mockClear();
+    scrub({ owner: EMAIL }, [rule]);
+
+    expect(add).not.toHaveBeenCalled();
+
+    // A version past what the counter keeps is no version.
+    SessionReplayScrubService.scrubTags({
+      tags: { owner: EMAIL },
+      compiledRules: [rule],
+      rumApplicationId: APPLICATION_ID,
+      appVersion: "v".repeat(500),
+    });
+
+    expect(add.mock.calls[0]![0].serviceVersion).toBe("");
+
+    add.mockRestore();
+  });
+});
+
+describe("SessionReplayScrubService.scrubTagMarkers (#11458)", () => {
+  const EMAIL: string = "noor.haddad@acmecorp.io";
+
+  function named(keys: Array<string>): CompiledScrubRule {
+    const saved: LogScrubRule = new LogScrubRule();
+
+    saved._id = ObjectID.generate().toString();
+    saved.projectId = PROJECT_ID;
+    saved.patternType = LogScrubPatternType.NamedKeys;
+    saved.scrubAction = LogScrubAction.Redact;
+    saved.fieldsToScrub = LogScrubField.Attributes;
+    saved.attributeKeys = keys;
+
+    return compileScrubRule(saved)!;
+  }
+
+  // The browser recorder's marker: { tags: {...} }.
+  function browserMarker(tags: Record<string, string>): JSONObject {
+    return {
+      type: 5,
+      timestamp: 1,
+      data: { tag: "oneuptime.tags", payload: { tags } },
+    };
+  }
+
+  // React Native's: the map itself.
+  function mobileMarker(tags: Record<string, string>): JSONObject {
+    return {
+      type: 5,
+      timestamp: 2,
+      data: { tag: "oneuptime.tags", payload: tags },
+    };
+  }
+
+  test("a Named Attributes rule, which no walker reads, hides the tag it names in the browser's and React Native's markers", async () => {
+    const events: Array<JSONValue> = [
+      browserMarker({ customer_name: "Noor Haddad", build: "1" }),
+      mobileMarker({ customer_name: "Noor Haddad", build: "2" }),
+    ];
+    const result: SessionReplayScrubResult =
+      await SessionReplayScrubService.scrubEvents(events, [
+        named(["customer_name"]),
+      ]);
+
+    expect(result.isComplete).toBe(true);
+    expect(result.stringsScrubbed).toBe(2);
+    expect(events).toEqual([
+      browserMarker({ customer_name: "[REDACTED]", build: "1" }),
+      mobileMarker({ customer_name: "[REDACTED]", build: "2" }),
+    ]);
+  });
+
+  test("the walker's own rules still reach a marker's values: an email in a tag is hidden there as in the tags column", async () => {
+    const events: Array<JSONValue> = [browserMarker({ customer: EMAIL })];
+
+    await SessionReplayScrubService.scrubEvents(events, [EMAIL_REDACT]);
+
+    expect(JSON.stringify(events)).not.toContain(EMAIL);
+  });
+
+  test("every other custom event, and a marker that is no map of texts, is left as it is", () => {
+    const events: Array<JSONValue> = [
+      {
+        type: 5,
+        timestamp: 3,
+        data: {
+          tag: "oneuptime.custom",
+          payload: { name: "checkout", properties: { customer_name: "Noor" } },
+        },
+      },
+      {
+        type: 3,
+        timestamp: 4,
+        data: {
+          tag: "oneuptime.tags",
+          payload: { tags: { customer_name: "Noor" } },
+        },
+      },
+      {
+        type: 5,
+        timestamp: 5,
+        data: { tag: "oneuptime.tags", payload: "Noor" },
+      },
+      {
+        type: 5,
+        timestamp: 6,
+        data: { tag: "oneuptime.tags", payload: { tags: { customer_name: 7 } } },
+      },
+      "not an event",
+      null,
+    ];
+    const before: string = JSON.stringify(events);
+
+    expect(
+      SessionReplayScrubService.scrubTagMarkers(events, [
+        named(["customer_name"]),
+      ]),
+    ).toBe(0);
+    expect(JSON.stringify(events)).toBe(before);
+  });
+
+  test("with no rule, a marker is left as it is", () => {
+    const events: Array<JSONValue> = [
+      browserMarker({ customer_name: "Noor Haddad" }),
+    ];
+
+    expect(SessionReplayScrubService.scrubTagMarkers(events, [])).toBe(0);
+    expect(events).toEqual([browserMarker({ customer_name: "Noor Haddad" })]);
   });
 });
