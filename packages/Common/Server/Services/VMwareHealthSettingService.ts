@@ -2,9 +2,11 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/VMwareHealthSetting";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
+  VMWARE_HEALTH_MAX_EVALUATION_MINUTES,
   VMWARE_HEALTH_PERCENT_RULE_KEYS,
   VMWARE_HEALTH_RULE_KEYS,
   VMwareHealthRuleKey,
+  isVMwareHealthPeriodRuleKey,
 } from "../../Types/VMware/VMwareHealthRules";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -23,6 +25,7 @@ export const VMWARE_HEALTH_PERCENT_ERROR: string =
   "A percent threshold is a whole number from 0 to 100, or empty to turn its rule off.";
 export const VMWARE_HEALTH_AMOUNT_ERROR: string =
   "A threshold is a whole number from 0, or empty to turn its rule off.";
+export const VMWARE_HEALTH_PERIOD_ERROR: string = `A wait is a whole number of minutes from 0 to ${VMWARE_HEALTH_MAX_EVALUATION_MINUTES}. 0 judges the latest report.`;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -46,6 +49,18 @@ export class Service extends DatabaseService<Model> {
       );
       const threshold: number =
         typeof value === "number" ? value : Number(value);
+
+      // A period ("for at least N minutes", #11469): 0 to the longest wait.
+      if (isVMwareHealthPeriodRuleKey(key as VMwareHealthRuleKey)) {
+        if (
+          !Number.isInteger(threshold) ||
+          threshold < 0 ||
+          threshold > VMWARE_HEALTH_MAX_EVALUATION_MINUTES
+        ) {
+          throw new BadDataException(VMWARE_HEALTH_PERIOD_ERROR);
+        }
+        continue;
+      }
 
       if (
         !Number.isInteger(threshold) ||

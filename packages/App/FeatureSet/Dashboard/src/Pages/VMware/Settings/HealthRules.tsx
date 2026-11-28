@@ -1,10 +1,18 @@
 import PageComponentProps from "../../PageComponentProps";
 import { forgetProjectVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
+import VMwareHealthRuleOverridesCard from "./HealthRuleOverrides";
+import {
+  VALUE_FOR_MINUTES,
+  VALUE_LATEST_REPORT,
+} from "../Utils/VMwareHealthRuleWords";
 import VMwareHealthSetting from "Common/Models/DatabaseModels/VMwareHealthSetting";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ObjectID from "Common/Types/ObjectID";
 import { VMwareHealthRuleKey } from "Common/Types/VMware/VMwareHealthRules";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ModelField from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { VMWARE_HEALTH_MAX_EVALUATION_MINUTES } from "Common/Types/VMware/VMwareHealthRules";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
@@ -34,6 +42,11 @@ import React, {
  * Swapping is its own card because it is three rules: memory ESXi left in
  * its swap file from earlier pressure is not swapping, and only the host
  * swapping memory out now is critical (Common/Types/VMware/VMwareHealthRules).
+ *
+ * Each card's rules can wait "for at least N minutes" before they mark a
+ * part (#11469): folded under More fields in its dialog, since most people
+ * judge the latest report. Under the cards, Overrides lists the vCenters,
+ * clusters, hosts and VMs with rules of their own, and where each applies.
  */
 
 export const HEALTH_RULES_NOT_MADE: string = translationKey(
@@ -56,7 +69,27 @@ async function readSettingId(projectId: ObjectID): Promise<ObjectID | null> {
   return result.data[0]?.id || null;
 }
 
-type ThresholdUnit = "percent" | "kibPerSecond" | "mebibytes";
+type ThresholdUnit = "percent" | "kibPerSecond" | "mebibytes" | "minutes";
+
+/*
+ * A card's wait, folded under More fields in its dialog: a part is marked
+ * once every report for that long was past the card's thresholds.
+ */
+function getPeriodFormField(data: {
+  key: keyof VMwareHealthSetting & string;
+  description: string;
+}): ModelField<VMwareHealthSetting> {
+  return {
+    field: { [data.key]: true } as ModelField<VMwareHealthSetting>["field"],
+    title: "For At Least (Minutes)",
+    fieldType: FormFieldSchemaType.Number,
+    required: false,
+    placeholder: "0",
+    description: data.description,
+    validation: { minValue: 0, maxValue: VMWARE_HEALTH_MAX_EVALUATION_MINUTES },
+    collapsibleSection: getAdvancedFormSection<VMwareHealthSetting>(),
+  };
+}
 
 const VMwareHealthRulesPage: FunctionComponent<
   PageComponentProps
@@ -122,6 +155,16 @@ const VMwareHealthRulesPage: FunctionComponent<
     value: unknown,
     unit: ThresholdUnit,
   ): string => {
+    // A wait: "For at least 10 min", or the latest report for 0 or nothing.
+    if (unit === "minutes") {
+      const minutes: number = Number(value);
+      if (!Number.isFinite(minutes) || minutes <= 0 || value === null) {
+        return translator.translateText(VALUE_LATEST_REPORT) || VALUE_LATEST_REPORT;
+      }
+      return translator.translateTemplate(VALUE_FOR_MINUTES, {
+        minutes: translator.formatNumber(minutes),
+      });
+    }
     if (value === null || value === undefined || value === "") {
       return translator.translateText(OFF) || OFF;
     }
@@ -222,9 +265,14 @@ const VMwareHealthRulesPage: FunctionComponent<
               "In percent: a host whose memory is busier needs a look. Leave empty to turn this off.",
             validation: { minValue: 0, maxValue: 100 },
           },
+          getPeriodFormField({
+            key: "hostEvaluationMinutes",
+            description:
+              "How long a host must stay busy before it needs a look. 0 judges the latest report.",
+          }),
         ]}
         modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
+          showDetailsInNumberOfColumns: 3,
           modelType: VMwareHealthSetting,
           id: "vmware-health-rules-hosts-detail",
           modelId: settingId,
@@ -238,6 +286,11 @@ const VMwareHealthRulesPage: FunctionComponent<
               key: "hostMemoryWarningPercent",
               title: "Memory Warning Above",
               unit: "percent",
+            }),
+            thresholdField({
+              key: "hostEvaluationMinutes",
+              title: "For At Least",
+              unit: "minutes",
             }),
           ],
         }}
@@ -273,9 +326,14 @@ const VMwareHealthRulesPage: FunctionComponent<
               "In percent: a datastore fuller than this needs someone now. Leave empty to turn this off.",
             validation: { minValue: 0, maxValue: 100 },
           },
+          getPeriodFormField({
+            key: "datastoreEvaluationMinutes",
+            description:
+              "How long a datastore must stay that full before it is marked. 0 judges the latest report.",
+          }),
         ]}
         modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
+          showDetailsInNumberOfColumns: 3,
           modelType: VMwareHealthSetting,
           id: "vmware-health-rules-datastores-detail",
           modelId: settingId,
@@ -289,6 +347,11 @@ const VMwareHealthRulesPage: FunctionComponent<
               key: "datastoreCriticalPercent",
               title: "Critical Above",
               unit: "percent",
+            }),
+            thresholdField({
+              key: "datastoreEvaluationMinutes",
+              title: "For At Least",
+              unit: "minutes",
             }),
           ],
         }}
@@ -334,9 +397,14 @@ const VMwareHealthRulesPage: FunctionComponent<
               "In MiB: more memory than this left in the swap file, with nothing swapping now, needs a look. Leave empty to turn this off.",
             validation: { minValue: 0 },
           },
+          getPeriodFormField({
+            key: "vmSwapEvaluationMinutes",
+            description:
+              "How long a VM's swapping must last before it is marked. 0 judges the latest report.",
+          }),
         ]}
         modelDetailProps={{
-          showDetailsInNumberOfColumns: 3,
+          showDetailsInNumberOfColumns: 4,
           modelType: VMwareHealthSetting,
           id: "vmware-health-rules-vm-swapping-detail",
           modelId: settingId,
@@ -355,6 +423,11 @@ const VMwareHealthRulesPage: FunctionComponent<
               key: "vmSwappedWarningMebibytes",
               title: "Swapped Earlier: Warning Above",
               unit: "mebibytes",
+            }),
+            thresholdField({
+              key: "vmSwapEvaluationMinutes",
+              title: "For At Least",
+              unit: "minutes",
             }),
           ],
         }}
@@ -390,9 +463,14 @@ const VMwareHealthRulesPage: FunctionComponent<
               "In percent of the time: a VM that waits longer for a free physical CPU needs a look. Leave empty to turn this off.",
             validation: { minValue: 0, maxValue: 100 },
           },
+          getPeriodFormField({
+            key: "vmMemoryCpuEvaluationMinutes",
+            description:
+              "How long the ballooning or CPU ready must last before the VM needs a look. 0 judges the latest report.",
+          }),
         ]}
         modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
+          showDetailsInNumberOfColumns: 3,
           modelType: VMwareHealthSetting,
           id: "vmware-health-rules-vm-memory-cpu-detail",
           modelId: settingId,
@@ -406,6 +484,11 @@ const VMwareHealthRulesPage: FunctionComponent<
               key: "vmCpuReadyWarningPercent",
               title: "CPU Ready: Warning Above",
               unit: "percent",
+            }),
+            thresholdField({
+              key: "vmMemoryCpuEvaluationMinutes",
+              title: "For At Least",
+              unit: "minutes",
             }),
           ],
         }}
@@ -431,9 +514,14 @@ const VMwareHealthRulesPage: FunctionComponent<
               "In KiB/s: the host swapping a pool's memory out faster than this needs a look. 0 is any swapping out.",
             validation: { minValue: 0 },
           },
+          getPeriodFormField({
+            key: "resourcePoolEvaluationMinutes",
+            description:
+              "How long the swapping out must last before the pool needs a look. 0 judges the latest report.",
+          }),
         ]}
         modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
+          showDetailsInNumberOfColumns: 2,
           modelType: VMwareHealthSetting,
           id: "vmware-health-rules-resource-pools-detail",
           modelId: settingId,
@@ -443,9 +531,16 @@ const VMwareHealthRulesPage: FunctionComponent<
               title: "Swapping Out: Warning Above",
               unit: "kibPerSecond",
             }),
+            thresholdField({
+              key: "resourcePoolEvaluationMinutes",
+              title: "For At Least",
+              unit: "minutes",
+            }),
           ],
         }}
       />
+
+      <VMwareHealthRuleOverridesCard onChanged={onSaveSuccess} />
     </Fragment>
   );
 };

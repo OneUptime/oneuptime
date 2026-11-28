@@ -433,9 +433,10 @@ function setupIngestMocks(data: {
   const bulkUpsert: jest.SpyInstance = jest
     .spyOn(VMwareResourceService, "bulkUpsert")
     .mockResolvedValue(undefined);
+  // The judged swap rates it wrote: none, unless a test says otherwise.
   const bulkUpdateLatestMetrics: jest.SpyInstance = jest
     .spyOn(VMwareResourceService, "bulkUpdateLatestMetrics")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue([]);
   const updateLastSeen: jest.SpyInstance = jest
     .spyOn(VMwareVCenterService, "updateLastSeen")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

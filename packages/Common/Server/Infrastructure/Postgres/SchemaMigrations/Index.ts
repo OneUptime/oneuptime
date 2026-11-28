@@ -1231,6 +1231,7 @@ import { AddProjectCallVoice1809187801300 } from "./1809187801300-AddProjectCall
 import { AddVMwareHealthSettingsAndSwapRates1809187811157 } from "./1809187811157-AddVMwareHealthSettingsAndSwapRates";
 import { AddProjectSecurityTrustPrivateAddresses1809187811240 } from "./1809187811240-AddProjectSecurityTrustPrivateAddresses";
 import { AddVMwareSwapRateSource1809187811468 } from "./1809187811468-AddVMwareSwapRateSource";
+import { AddVMwareHealthRuleOverridesAndEvaluationPeriods1809187811469 } from "./1809187811469-AddVMwareHealthRuleOverridesAndEvaluationPeriods";
 
 export default [
   InitialMigration,
@@ -2466,4 +2467,5 @@ export default [
   AddVMwareHealthSettingsAndSwapRates1809187811157,
   AddProjectSecurityTrustPrivateAddresses1809187811240,
   AddVMwareSwapRateSource1809187811468,
+  AddVMwareHealthRuleOverridesAndEvaluationPeriods1809187811469,
 ];

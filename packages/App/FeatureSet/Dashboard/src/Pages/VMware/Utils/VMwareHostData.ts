@@ -302,6 +302,8 @@ export interface VMwareBusyVirtualMachine {
   memoryBytes: number | null;
   memoryLimitBytes: number | null;
   cpuReadyPercent: number | null;
+  // The VM's row: its own rules judge it (#11469).
+  row?: VMwareResourceModel | undefined;
 }
 
 function displayName(row: VMwareResourceModel): string {
@@ -349,6 +351,7 @@ export function getBusiestVMwareVirtualMachines(data: {
       memoryBytes: toFiniteNumber(row.latestMemoryBytes),
       memoryLimitBytes: toFiniteNumber(row.maxMemoryBytes),
       cpuReadyPercent: toFiniteNumber(row.cpuReadinessPercent),
+      row: row,
     });
   }
 

@@ -140,6 +140,7 @@ import VMwareVCenterService from "./VMwareVCenterService";
 import VMwareResourceService from "./VMwareResourceService";
 import VMwareVCenterLabelRuleService from "./VMwareVCenterLabelRuleService";
 import VMwareHealthSettingService from "./VMwareHealthSettingService";
+import VMwareHealthRuleOverrideService from "./VMwareHealthRuleOverrideService";
 import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
 import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
@@ -859,6 +860,7 @@ const services: Array<BaseService> = [
   VMwareResourceService,
   VMwareVCenterLabelRuleService,
   VMwareHealthSettingService,
+  VMwareHealthRuleOverrideService,
   VMwareVCenterOwnerRuleService,
   VMwareVCenterOwnerTeamService,
   VMwareVCenterOwnerUserService,

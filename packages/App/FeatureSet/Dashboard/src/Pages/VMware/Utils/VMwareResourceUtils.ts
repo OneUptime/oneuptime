@@ -11,6 +11,12 @@ import {
   MEBIBYTE,
   VMwareHealthRules,
 } from "Common/Types/VMware/VMwareHealthRules";
+import {
+  VMWARE_HEALTH_RULE_SCOPE_RULES,
+  VMwareHealthRuleBook,
+  isVMwareHealthRuleBook,
+  readVMwareHealthRuleOverrideValue,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
 import URL from "Common/Types/API/URL";
@@ -247,6 +253,9 @@ export function displayStatusForResource(row: VMwareResourceModel): string {
 }
 
 const INVENTORY_SELECT: Record<string, boolean> = {
+  // Which vCenter's rules judge the part, and its last readings (#11469).
+  vmwareVCenterId: true,
+  healthReadings: true,
   kind: true,
   externalId: true,
   name: true,
@@ -361,22 +370,73 @@ export async function fetchVMwareInventoryRows(options: {
  */
 export const VMWARE_ATTENTION_READ_LIMIT: number = 500;
 
+// The project's rule book, or rules already resolved (VMwareHealth's input).
+type VMwareHealthRulesInput = VMwareHealthRules | VMwareHealthRuleBook;
+
+/*
+ * The rules a read of a vCenter's VMs must catch every VM of: the
+ * project's, with each threshold as low as any override in the vCenter has
+ * it (#11469) - a VM with stricter rules of its own, its host's or its
+ * cluster's is read too, and each VM's own rules then judge what came back.
+ * A rule is off only where it is off everywhere.
+ */
+export function getVMwareStrictestVirtualMachineRules(
+  rules: VMwareHealthRulesInput,
+  vmwareVCenterId?: ObjectID | string | null | undefined,
+): VMwareHealthRules {
+  if (!isVMwareHealthRuleBook(rules)) {
+    return rules;
+  }
+  const strictest: VMwareHealthRules = { ...rules.project };
+  const vcenterId: string = vmwareVCenterId ? vmwareVCenterId.toString() : "";
+  for (const override of rules.overrides) {
+    if (vcenterId && override.vmwareVCenterId !== vcenterId) {
+      continue;
+    }
+    for (const key of VMWARE_HEALTH_RULE_SCOPE_RULES[override.scope]) {
+      const read: { isSet: boolean; value: number | null } =
+        readVMwareHealthRuleOverrideValue(key, override.rules?.[key]);
+      if (!read.isSet || read.value === null) {
+        continue;
+      }
+      const current: number | null = strictest[key];
+      strictest[key] =
+        current === null ? read.value : Math.min(current, read.value);
+    }
+  }
+  return strictest;
+}
+
 /*
  * What to read for each of VMwareHealth's rules for a VM that is on: its
  * swapped memory (any, which covers swapping out and what is left from
- * earlier), reading swapped memory back (a VM that has read all of it back
- * holds none), ballooning and CPU ready past their thresholds. A rule
- * turned off reads nothing.
+ * earlier), swapping out now (vSphere's rate can move with nothing left
+ * swapped), reading swapped memory back (a VM that has read all of it back
+ * holds none), ballooning and CPU ready past their thresholds - each at
+ * the strictest threshold any of the VMs read is judged by. A rule turned
+ * off reads nothing.
  */
 export function getVMwareAttentionConditions(
-  rules: VMwareHealthRules,
+  input: VMwareHealthRulesInput,
+  vmwareVCenterId?: ObjectID | string | null | undefined,
 ): Array<Record<string, unknown>> {
+  const rules: VMwareHealthRules = getVMwareStrictestVirtualMachineRules(
+    input,
+    vmwareVCenterId,
+  );
   const conditions: Array<Record<string, unknown>> = [];
   if (
     rules.vmSwapOutCriticalKibPerSecond !== null ||
     rules.vmSwappedWarningMebibytes !== null
   ) {
     conditions.push({ memorySwappedBytes: new GreaterThan<number>(0) });
+  }
+  if (rules.vmSwapOutCriticalKibPerSecond !== null) {
+    conditions.push({
+      memorySwapOutBytesPerSecond: new GreaterThan<number>(
+        rules.vmSwapOutCriticalKibPerSecond * KIBIBYTE,
+      ),
+    });
   }
   if (rules.vmSwapInWarningKibPerSecond !== null) {
     conditions.push({
@@ -417,7 +477,8 @@ export async function fetchVMwareVirtualMachinesThatMayNeedAttention(options: {
   hostName?: string | undefined;
   clusterName?: string | undefined;
   datacenterName?: string | undefined;
-  rules: VMwareHealthRules;
+  // The project's rule book, or rules already resolved.
+  rules: VMwareHealthRulesInput;
 }): Promise<Array<VMwareResourceModel>> {
   const base: Record<string, unknown> = {
     vmwareVCenterId: options.vmwareVCenterId,
@@ -438,7 +499,7 @@ export async function fetchVMwareVirtualMachinesThatMayNeedAttention(options: {
   }
 
   const conditions: Array<Record<string, unknown>> =
-    getVMwareAttentionConditions(options.rules);
+    getVMwareAttentionConditions(options.rules, options.vmwareVCenterId);
 
   const results: Array<ListResult<VMwareResourceModel>> = await Promise.all(
     conditions.map(
@@ -607,6 +668,10 @@ export function toInfrastructureResource(
     externalId: row.externalId || "",
     kind: row.kind || "",
   };
+  // Whose rules judge the row (#11469).
+  if (row.vmwareVCenterId) {
+    additionalAttributes["vmwareVCenterId"] = row.vmwareVCenterId.toString();
+  }
   if (row.datacenterName) {
     additionalAttributes["datacenterName"] = row.datacenterName;
   }

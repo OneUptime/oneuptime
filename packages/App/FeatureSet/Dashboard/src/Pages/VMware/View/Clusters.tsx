@@ -18,8 +18,7 @@ import {
   getVMwareUsageBarThresholds,
   toVMwareListResources,
 } from "../../../Components/VMware/VMwareResourceColumns";
-import { useVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
-import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
+import { useVMwareHealthRuleBook } from "../Utils/VMwareHealthRulesStore";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -33,12 +32,15 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 const VMwareVCenterClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);

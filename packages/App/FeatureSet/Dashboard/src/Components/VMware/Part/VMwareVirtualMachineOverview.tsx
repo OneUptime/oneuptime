@@ -41,11 +41,17 @@ import {
   formatPercent,
 } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
 import { VMwarePartRoutes } from "./VMwarePartRoutes";
-import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { useVMwareHealthRuleBook } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import {
   VMwareHealthRules,
   isPastVMwareHealthThreshold,
 } from "Common/Types/VMware/VMwareHealthRules";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import {
+  getVMwareRulesOf,
+} from "../../../Pages/VMware/Utils/VMwareHealth";
 
 /*
  * A virtual machine's Overview: whether it needs attention, how busy it is
@@ -158,7 +164,7 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const ruleBook: VMwareHealthRuleBook = useVMwareHealthRuleBook();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -178,6 +184,9 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
       </p>
     );
   }
+
+  // The VM's own rules, or its host's, cluster's or vCenter's (#11469).
+  const rules: VMwareHealthRules = getVMwareRulesOf(ruleBook, row);
 
   const hosts: Array<VMwareResource> = props.hostRow ? [props.hostRow] : [];
   const isTemplate: boolean = row.isTemplate === true;

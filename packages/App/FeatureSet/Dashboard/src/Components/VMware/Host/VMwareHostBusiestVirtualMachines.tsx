@@ -18,12 +18,15 @@ import {
   VMwareHostVirtualMachineSummary,
 } from "../../../Pages/VMware/Utils/VMwareHostData";
 import { getVMwareCpuReadyPercentTone } from "../../../Pages/VMware/Utils/VMwarePartFacts";
-import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
-import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
+import { useVMwareHealthRuleBook } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import {
   formatBytes,
   formatPercent,
 } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
+import {
+  VMwareHealthRuleBook,
+  getVMwareHealthRulesForPart,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * What is keeping an ESXi host busy: its running virtual machines using the
@@ -53,7 +56,7 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -155,7 +158,7 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
                           </Link>
                           {getVMwareCpuReadyPercentTone(
                             vm.cpuReadyPercent,
-                            rules,
+                            getVMwareHealthRulesForPart(rules, vm.row || {}),
                           ) === "warning" ? (
                             <Pill
                               text={translator.translateTemplate(
@@ -207,7 +210,12 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
                             data-testid="vmware-host-busy-vm-cpu-bar"
                             className={`h-1.5 rounded-full ${getThresholdBarColor(
                               percent,
-                              getVMwareUsageBarThresholds(rules).cpu,
+                              getVMwareUsageBarThresholds(
+                                getVMwareHealthRulesForPart(
+                                  rules,
+                                  vm.row || {},
+                                ),
+                              ).cpu,
                               "bg-green-500",
                             )}`}
                             style={{ width: `${percent}%` }}

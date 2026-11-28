@@ -22,8 +22,10 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 import { getVMwareResourcePoolMemoryTone } from "../../../Components/VMware/VMwareResourceColumns";
-import { useVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
-import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
+import { useVMwareHealthRuleBook } from "../Utils/VMwareHealthRulesStore";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * Resource pools are list-only (no detail page): the receiver reports a
@@ -34,7 +36,7 @@ const VMwareVCenterResourcePools: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);

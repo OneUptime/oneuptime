@@ -10,6 +10,7 @@ import {
 } from "Common/Types/VMware/VMwareHealthRules";
 import {
   VMWARE_HOST_SATURATION_PERCENT,
+  VMwareHealthRulesInput,
   VMwareHostState,
   assessVMwareHost,
   findVMwareDatacenter,
@@ -333,7 +334,7 @@ export function sortVMwareHostsForGlance(data: {
   hosts: Array<VMwareResource>;
   datacenters: Array<VMwareResource>;
   now: Date;
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }): Array<VMwareResource> {
   const rankOf: (host: VMwareResource) => number = (
     host: VMwareResource,

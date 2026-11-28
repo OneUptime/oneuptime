@@ -51,13 +51,15 @@ import {
 } from "../../../Components/VMware/Part/VMwarePartRoutes";
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
-import { useVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
-import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
+import { useVMwareHealthRuleBook } from "../Utils/VMwareHealthRulesStore";
 import VMwareHostReportNotice from "../../../Components/VMware/Host/VMwareHostReportNotice";
 import VMwareHostOverviewTab from "../../../Components/VMware/Host/VMwareHostOverviewTab";
 import VMwareHostVirtualMachinesTab from "../../../Components/VMware/Host/VMwareHostVirtualMachinesTab";
 import VMwareHostMetricsTab from "../../../Components/VMware/Host/VMwareHostMetricsTab";
 import VMwareHostLogsTab from "../../../Components/VMware/Host/VMwareHostLogsTab";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * An ESXi host inside its vCenter: as deep as a host's page outside VMware,
@@ -83,7 +85,7 @@ export const VMWARE_HOST_TAB_LOGS: string = "Logs";
 const VMwareVCenterHostDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
   /*
    * Route shape: .../vmware/:modelId/hosts/:subModelId — subModelId is
    * the percent-encoded inventory externalId ("host/<dc>/<host>"), not

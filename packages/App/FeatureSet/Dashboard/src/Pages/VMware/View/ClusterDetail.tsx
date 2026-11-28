@@ -48,14 +48,16 @@ import {
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
 import {
-  readCurrentProjectVMwareHealthRules,
-  useVMwareHealthRules,
+  readCurrentProjectVMwareHealthRuleBook,
+  useVMwareHealthRuleBook,
 } from "../Utils/VMwareHealthRulesStore";
-import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import {
   VMwareHostsTable,
   VMwareVirtualMachinesTable,
 } from "../../../Components/VMware/VMwareResourceTables";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 export const VMWARE_CLUSTER_TAB_OVERVIEW: string = "Overview";
 export const VMWARE_CLUSTER_TAB_HOSTS: string = "ESXi Hosts";
@@ -66,7 +68,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
   // The charts draw their titles and legends as given: hand them the reader's words.
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -148,7 +150,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
           now: OneUptimeDate.getCurrentDate(),
           clusterName: name,
           datacenterName: datacenterName,
-          rules: await readCurrentProjectVMwareHealthRules(),
+          rules: await readCurrentProjectVMwareHealthRuleBook(),
         }),
       ]);
       setRow(inventoryRow);

@@ -7,6 +7,10 @@ import OneUptimeDate from "../../Types/Date";
 import { VMwareResourceKind } from "../../Types/Monitor/MonitorStepVMwareMonitor";
 import { VMwareSwapRateSource } from "../../Types/VMware/VMwareSwapRates";
 import {
+  VMWARE_HEALTH_READINGS_KEEP_SECONDS,
+  VMWARE_HEALTH_READINGS_MAX,
+} from "../../Types/VMware/VMwareHealthReadings";
+import {
   truncateLongText,
   truncateShortText,
 } from "../Utils/Database/TruncateColumnValue";
@@ -228,6 +232,67 @@ function swapRateSourceSql(): string {
           WHEN ${NOTHING_TO_COMPARE} THEN NULL
           ELSE '${VMwareSwapRateSource.Derived}'
         END`;
+}
+
+/*
+ * WHAT A PART READ LATELY, FOR "FOR AT LEAST N MINUTES" (#11469).
+ *
+ * The health rules can wait before they mark a part: every report for that
+ * long past the threshold. So the UPDATE keeps each judged part's last
+ * readings on its row (healthReadings, Common/Types/VMware
+ * /VMwareHealthReadings): this report's reading appended, readings older
+ * than VMWARE_HEALTH_READINGS_KEEP_SECONDS dropped, the newest
+ * VMWARE_HEALTH_READINGS_MAX kept. A reading holds what this report itself
+ * carried - never a value kept from an earlier one - so a host that did not
+ * report its CPU, or a VM that was off, breaks a run rather than stretching
+ * it. The same report again replaces its reading; an older one is never
+ * written (the UPDATE's guard).
+ */
+const HEALTH_READING_KINDS: string = `('${VMwareResourceKind.Host}', '${VMwareResourceKind.VirtualMachine}', '${VMwareResourceKind.Datastore}', '${VMwareResourceKind.ResourcePool}')`;
+
+const REPORT_SECONDS: string = `EXTRACT(EPOCH FROM v."observedAt")::bigint`;
+
+// The report says something of the part's swapping: an amount, or vSphere's rates.
+const REPORT_SAYS_SWAP: string = `(v."swap" IS NOT NULL OR v."swapOutRate" IS NOT NULL OR v."swapInRate" IS NOT NULL)`;
+
+function healthReadingSql(data: { swapOut: string; swapIn: string }): string {
+  return `jsonb_strip_nulls(jsonb_build_object(
+            't', ${REPORT_SECONDS},
+            'cpu', CASE WHEN p."kind" = '${VMwareResourceKind.Host}' THEN v."cpu" END,
+            'mem', CASE WHEN p."kind" = '${VMwareResourceKind.Host}' THEN v."memPct" END,
+            'disk', CASE WHEN p."kind" = '${VMwareResourceKind.Datastore}' THEN COALESCE(
+              v."diskPct",
+              CASE WHEN v."maxDisk" > 0 THEN v."disk"::numeric * 100 / v."maxDisk" END
+            ) END,
+            'so', CASE WHEN p."kind" IN ('${VMwareResourceKind.VirtualMachine}', '${VMwareResourceKind.ResourcePool}') AND ${REPORT_SAYS_SWAP} THEN (${data.swapOut}) END,
+            'si', CASE WHEN p."kind" = '${VMwareResourceKind.VirtualMachine}' AND ${REPORT_SAYS_SWAP} THEN (${data.swapIn}) END,
+            'sw', CASE WHEN p."kind" = '${VMwareResourceKind.VirtualMachine}' THEN v."swap" END,
+            'bl', CASE WHEN p."kind" = '${VMwareResourceKind.VirtualMachine}' THEN v."balloon" END,
+            'rd', CASE WHEN p."kind" = '${VMwareResourceKind.VirtualMachine}' THEN v."cpuReady" END
+          ))`;
+}
+
+function healthReadingsSql(data: { swapOut: string; swapIn: string }): string {
+  return `CASE WHEN p."kind" IN ${HEALTH_READING_KINDS} THEN (
+          SELECT COALESCE(jsonb_agg(kept."reading" ORDER BY kept."t"), '[]'::jsonb)
+          FROM (
+            SELECT entry."reading", entry."t"
+            FROM (
+              SELECT earlier."reading", (earlier."reading"->>'t')::bigint AS "t"
+              FROM jsonb_array_elements(
+                CASE WHEN jsonb_typeof(p."healthReadings") = 'array' THEN p."healthReadings" ELSE '[]'::jsonb END
+              ) AS earlier("reading")
+              WHERE jsonb_typeof(earlier."reading") = 'object'
+                AND (earlier."reading"->>'t') ~ '^[0-9]{1,12}$'
+                AND (earlier."reading"->>'t')::bigint < ${REPORT_SECONDS}
+                AND (earlier."reading"->>'t')::bigint >= ${REPORT_SECONDS} - ${VMWARE_HEALTH_READINGS_KEEP_SECONDS}
+              UNION ALL
+              SELECT ${healthReadingSql(data)}, ${REPORT_SECONDS}
+            ) AS entry
+            ORDER BY entry."t" DESC
+            LIMIT ${VMWARE_HEALTH_READINGS_MAX}
+          ) AS kept
+        ) ELSE p."healthReadings" END`;
 }
 
 // The kinds whose swap rates OneUptime writes as its own metrics.
@@ -706,6 +771,17 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
+      const swapOut: string = swapRateSql({
+        column: "memorySwapOutBytesPerSecond",
+        measured: "swapOutRate",
+        moved: `GREATEST(v."swap" - p."memorySwappedBytes", 0)`,
+      });
+      const swapIn: string = swapRateSql({
+        column: "memorySwapInBytesPerSecond",
+        measured: "swapInRate",
+        moved: `GREATEST(p."memorySwappedBytes" - v."swap", 0)`,
+      });
+
       const sql: string = `
         UPDATE "VMwareResource" AS p
         SET
@@ -723,17 +799,10 @@ export class Service extends DatabaseService<Model> {
           "cpuReadinessPercent" = COALESCE(v."cpuReady", p."cpuReadinessPercent"),
           "memoryBalloonedBytes" = COALESCE(v."balloon", p."memoryBalloonedBytes"),
           "memorySwappedBytes" = COALESCE(v."swap", p."memorySwappedBytes"),
-          "memorySwapOutBytesPerSecond" = ${swapRateSql({
-            column: "memorySwapOutBytesPerSecond",
-            measured: "swapOutRate",
-            moved: `GREATEST(v."swap" - p."memorySwappedBytes", 0)`,
-          })},
-          "memorySwapInBytesPerSecond" = ${swapRateSql({
-            column: "memorySwapInBytesPerSecond",
-            measured: "swapInRate",
-            moved: `GREATEST(p."memorySwappedBytes" - v."swap", 0)`,
-          })},
+          "memorySwapOutBytesPerSecond" = ${swapOut},
+          "memorySwapInBytesPerSecond" = ${swapIn},
           "memorySwapRateSource" = ${swapRateSourceSql()},
+          "healthReadings" = ${healthReadingsSql({ swapOut, swapIn })},
           "hostCount" = COALESCE(v."hostCnt", p."hostCount"),
           "effectiveHostCount" = COALESCE(v."effHostCnt", p."effectiveHostCount"),
           "poweredOnHostCount" = COALESCE(v."onHostCnt", p."poweredOnHostCount"),

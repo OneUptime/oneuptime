@@ -24,13 +24,19 @@ import {
   toVMwareNumber,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
 import { VMWARE_DATASTORE_ALERT_TEMPLATE_IDS } from "../../../Pages/VMware/Utils/VMwarePartFacts";
-import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { useVMwareHealthRuleBook } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import {
   formatBytes,
   formatPercent,
 } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
 import { VMwarePartRoutes } from "./VMwarePartRoutes";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import {
+  getVMwareRulesOf,
+} from "../../../Pages/VMware/Utils/VMwareHealth";
 
 /*
  * A datastore's Overview: whether it needs attention, how full it is and
@@ -65,7 +71,7 @@ const VMwareDatastoreOverview: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   // Where the bar turns amber and red: the project's datastore rules.
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const ruleBook: VMwareHealthRuleBook = useVMwareHealthRuleBook();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -85,6 +91,9 @@ const VMwareDatastoreOverview: FunctionComponent<ComponentProps> = (
       </p>
     );
   }
+
+  // The datastore's vCenter's rules, where they differ (#11469).
+  const rules: VMwareHealthRules = getVMwareRulesOf(ruleBook, row);
 
   const used: number | null = toVMwareNumber(row.latestDiskBytes);
   const total: number | null = toVMwareNumber(row.maxDiskBytes);

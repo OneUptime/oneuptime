@@ -28,12 +28,17 @@ import {
 } from "../../../Pages/VMware/Utils/VMwareHealth";
 import { VMwareHostVirtualMachineSummary } from "../../../Pages/VMware/Utils/VMwareHostData";
 import { isVMwareRootResourcePool } from "../../../Pages/VMware/Utils/VMwarePartFacts";
-import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
-import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
+import { useVMwareHealthRuleBook } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import {
   formatBytes,
   formatMhz,
 } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import {
+  VMwareHealthRulesInput,
+} from "../../../Pages/VMware/Utils/VMwareHealth";
 
 /*
  * The top of a vCenter part's page - an ESXi host, a virtual machine, a
@@ -141,7 +146,7 @@ export function getVMwarePartHeroStatus(data: {
   hosts: Array<VMwareResource>;
   now: Date;
   // The project's health rules (VMware > Settings > Health Rules).
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }): ResourcePartStatus | undefined {
   const row: VMwareResource | null = data.row;
   if (data.isRowRead === false) {
@@ -193,7 +198,7 @@ const VMwarePartHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;

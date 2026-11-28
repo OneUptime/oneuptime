@@ -493,6 +493,9 @@ import VMwareVCenterLabelRuleService, {
 import VMwareHealthSettingService, {
   Service as VMwareHealthSettingServiceType,
 } from "Common/Server/Services/VMwareHealthSettingService";
+import VMwareHealthRuleOverrideService, {
+  Service as VMwareHealthRuleOverrideServiceType,
+} from "Common/Server/Services/VMwareHealthRuleOverrideService";
 import IoTFleetLabelRuleService, {
   Service as IoTFleetLabelRuleServiceType,
 } from "Common/Server/Services/IoTFleetLabelRuleService";
@@ -1750,6 +1753,7 @@ import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxCluster
 import OpenStackCloudLabelRule from "Common/Models/DatabaseModels/OpenStackCloudLabelRule";
 import VMwareVCenterLabelRule from "Common/Models/DatabaseModels/VMwareVCenterLabelRule";
 import VMwareHealthSetting from "Common/Models/DatabaseModels/VMwareHealthSetting";
+import VMwareHealthRuleOverride from "Common/Models/DatabaseModels/VMwareHealthRuleOverride";
 import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
@@ -3753,6 +3757,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<VMwareHealthSetting, VMwareHealthSettingServiceType>(
         VMwareHealthSetting,
         VMwareHealthSettingService,
+      ).getRouter(),
+    );
+
+    // A vCenter's, cluster's, host's or VM's own health rules (#11469).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareHealthRuleOverride, VMwareHealthRuleOverrideServiceType>(
+        VMwareHealthRuleOverride,
+        VMwareHealthRuleOverrideService,
       ).getRouter(),
     );
 

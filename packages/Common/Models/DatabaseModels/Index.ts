@@ -661,6 +661,7 @@ import XcpNgPoolLabelRule from "./XcpNgPoolLabelRule";
 import VMwareVCenterOwnerRule from "./VMwareVCenterOwnerRule";
 import VMwareVCenterLabelRule from "./VMwareVCenterLabelRule";
 import VMwareHealthSetting from "./VMwareHealthSetting";
+import VMwareHealthRuleOverride from "./VMwareHealthRuleOverride";
 import RunbookOwnerRule from "./RunbookOwnerRule";
 import RunbookLabelRule from "./RunbookLabelRule";
 import WorkflowOwnerRule from "./WorkflowOwnerRule";
@@ -1020,6 +1021,7 @@ const AllModelTypes: Array<{
   VMwareVCenterOwnerRule,
   VMwareVCenterLabelRule,
   VMwareHealthSetting,
+  VMwareHealthRuleOverride,
   RunbookOwnerRule,
   RunbookLabelRule,
   WorkflowOwnerRule,

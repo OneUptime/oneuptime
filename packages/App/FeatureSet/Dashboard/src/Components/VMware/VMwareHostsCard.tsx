@@ -28,13 +28,19 @@ import {
   formatBytes,
   formatMhz,
 } from "../../Pages/VMware/Utils/VMwareResourceUtils";
-import { useVMwareHealthRules } from "../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { useVMwareHealthRuleBook } from "../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import {
   VMwareHealthRules,
   isPastVMwareHealthThreshold,
 } from "Common/Types/VMware/VMwareHealthRules";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import {
+  getVMwareRulesOf,
+} from "../../Pages/VMware/Utils/VMwareHealth";
 
 /*
  * A vCenter's ESXi hosts at a glance - what vCenter's own Hosts tab opens
@@ -80,7 +86,7 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
   const listClassName: string = useCardRuledListClassName();
   const testId: string = props.testId || "vmware-hosts-card";
 
@@ -184,6 +190,11 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
         <ul className={listClassName}>
           {shown.map((host: VMwareResource): ReactElement => {
             const externalId: string = host.externalId || "";
+            // The host's own rules, or its cluster's or vCenter's (#11469).
+            const hostRules: VMwareHealthRules = getVMwareRulesOf(
+              rules,
+              host,
+            );
             const name: string = getVMwareHostName(host) || externalId;
             const datacenter: VMwareResource | null = findVMwareDatacenter(
               props.datacenters,
@@ -324,13 +335,13 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
                       key: "cpu",
                       label: "CPU",
                       percent: load.cpuPercent,
-                      threshold: rules.hostCpuWarningPercent,
+                      threshold: hostRules.hostCpuWarningPercent,
                     })}
                     {renderBar({
                       key: "memory",
                       label: "Memory",
                       percent: load.memoryPercent,
-                      threshold: rules.hostMemoryWarningPercent,
+                      threshold: hostRules.hostMemoryWarningPercent,
                     })}
                   </div>
                 </ResourcePartRow>

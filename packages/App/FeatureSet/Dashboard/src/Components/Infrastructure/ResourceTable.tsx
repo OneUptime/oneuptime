@@ -101,6 +101,18 @@ export interface InfrastructureResource {
    * filesystem when it is a disk of its own.
    */
   secondaryStorageUsage?: ResourceStorageUsage | undefined;
+  /*
+   * The lines this row's CPU and Memory bars change colour at, when the
+   * product's rules for this one part differ from the table's
+   * (metricThresholds): a VMware host whose cluster has rules of its own
+   * (#11469). Unset, the table's lines.
+   */
+  metricThresholds?:
+    | {
+        cpu?: ResourceMetricThresholds | undefined;
+        memory?: ResourceMetricThresholds | undefined;
+      }
+    | undefined;
 }
 
 export interface ResourceStorageUsage {
@@ -1043,7 +1055,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
           }
           const pct: number = Math.min(resource.cpuUtilization, 100);
           const cpuThresholds: ResourceMetricThresholds | undefined =
-            props.metricThresholds?.cpu;
+            resource.metricThresholds?.cpu || props.metricThresholds?.cpu;
           return (
             <div className="flex items-center gap-2 min-w-[120px]">
               <div className="flex-1 bg-gray-200 rounded-full h-2">
@@ -1099,6 +1111,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
              * past its alert's 85%.
              */
             const utilizationThresholds: ResourceMetricThresholds | undefined =
+              resource.metricThresholds?.memory ||
               props.metricThresholds?.memory;
             return (
               <div className="min-w-[140px]">
@@ -1143,6 +1156,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
               100,
             );
             const memoryThresholds: ResourceMetricThresholds | undefined =
+              resource.metricThresholds?.memory ||
               props.metricThresholds?.memory;
             return (
               <div className="min-w-[140px]">

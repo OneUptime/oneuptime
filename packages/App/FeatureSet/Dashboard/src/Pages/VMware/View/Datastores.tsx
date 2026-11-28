@@ -27,11 +27,17 @@ import {
   getStorageUsage,
 } from "Common/Utils/Storage/StorageUsage";
 import { getVMwareDatastoreUsageThresholds } from "../Utils/VMwareHealth";
-import { useVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
-import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
+import { useVMwareHealthRuleBook } from "../Utils/VMwareHealthRulesStore";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
+import {
+  VMwareHealthRuleBook,
+  getVMwareHealthRulesForPart,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import {
+  getVMwarePartOfResource,
+} from "../../../Components/VMware/VMwareResourceColumns";
 
 const DATASTORE_NOT_REPORTED: string = translationKey("Not reported");
 
@@ -41,7 +47,8 @@ const DATASTORE_NOT_REPORTED: string = translationKey("Not reported");
  */
 function withDatastoreUsage(
   resource: InfrastructureResource,
-  rules: VMwareHealthRules,
+  // The book: each datastore's own vCenter's rules draw its bar (#11469).
+  rules: VMwareHealthRuleBook,
 ): InfrastructureResource {
   return {
     ...resource,
@@ -51,7 +58,9 @@ function withDatastoreUsage(
           capacity: resource.additionalAttributes["maxDiskBytes"],
           used: resource.additionalAttributes["diskBytes"],
         },
-        getVMwareDatastoreUsageThresholds(rules),
+        getVMwareDatastoreUsageThresholds(
+          getVMwareHealthRulesForPart(rules, getVMwarePartOfResource(resource)),
+        ),
       ),
       noUsageText: DATASTORE_NOT_REPORTED,
     },
@@ -64,7 +73,7 @@ const VMwareVCenterDatastores: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   // Where each bar turns amber and red: the project's datastore rules.
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);

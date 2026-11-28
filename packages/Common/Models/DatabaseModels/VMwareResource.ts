@@ -14,6 +14,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
+import { JSONObject } from "../../Types/JSON";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -986,6 +987,31 @@ export default class VMwareResource extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public memorySwapRateSource?: string = undefined;
+
+  /*
+   * The part's last readings of what the health rules judge (#11469), so a
+   * rule can wait "for at least N minutes" (VMwareHealthReadings says what
+   * each holds): one per report, newest last, written by ingest with the
+   * latest metrics. Host, VM, datastore and resource pool rows only.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    canReadOnRelationQuery: true,
+    title: "Health Readings",
+    description:
+      "The part's last readings of what the VMware health rules judge, one per report for up to 45 minutes, oldest first: t (Unix seconds), cpu and mem (a host's, percent), disk (a datastore's, percent), so and si (swap out and in, bytes per second), sw and bl (swapped and ballooned memory, bytes), rd (CPU ready, percent).",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public healthReadings?: Array<JSONObject> = undefined;
 
   @ColumnAccessControl({
     create: [],

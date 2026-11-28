@@ -1,4 +1,4 @@
-import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { useVMwareHealthRuleBook } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import React, {
   FunctionComponent,
@@ -86,6 +86,12 @@ import {
   VMwareHostNetworkAdaptersCard,
   VMwareHostStorageDevicesCard,
 } from "./VMwareHostDeviceTables";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import {
+  getVMwareRulesOf,
+} from "../../../Pages/VMware/Utils/VMwareHealth";
 
 /*
  * A tile's bar turns amber where the host's Needs attention does - past
@@ -170,7 +176,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const ruleBook: VMwareHealthRuleBook = useVMwareHealthRuleBook();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -300,6 +306,10 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
     : undefined;
 
   const row: VMwareResourceModel | null = props.row;
+  // The host's own rules, or its cluster's or vCenter's (#11469).
+  const rules: VMwareHealthRules = row
+    ? getVMwareRulesOf(ruleBook, row)
+    : ruleBook.project;
 
   /*
    * A host vCenter cannot reach, or one that is off or in standby, reports

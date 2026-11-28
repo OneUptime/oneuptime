@@ -18,7 +18,7 @@ import ResourcePartDetailsCard, {
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import VMwareHostsCard from "../VMwareHostsCard";
-import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { useVMwareHealthRuleBook } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import {
   VMWARE_CLUSTER_HEADROOM_GAP_WORDS,
@@ -47,6 +47,12 @@ import {
   formatPercent,
 } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
 import { VMwarePartRoutes } from "./VMwarePartRoutes";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import {
+  getVMwareRulesOf,
+} from "../../../Pages/VMware/Utils/VMwareHealth";
 
 /*
  * A cluster's Overview: what in it needs attention (the cluster, its hosts
@@ -93,7 +99,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const ruleBook: VMwareHealthRuleBook = useVMwareHealthRuleBook();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -113,6 +119,9 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
       </p>
     );
   }
+
+  // The cluster's own rules, or its vCenter's, where they differ (#11469).
+  const rules: VMwareHealthRules = getVMwareRulesOf(ruleBook, row);
 
   const fresh: boolean = hasFreshVMwareReadings(row, props.now);
   const total: number | null = fresh ? toVMwareNumber(row.hostCount) : null;

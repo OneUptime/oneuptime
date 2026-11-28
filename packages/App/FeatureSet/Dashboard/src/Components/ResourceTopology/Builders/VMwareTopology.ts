@@ -37,6 +37,7 @@ import {
   VMWARE_READINGS_STALE_MS,
   VMwareAssessment,
   VMwareDatacenterFinding,
+  VMwareHealthRulesInput,
   VMwareHostState,
   assessVMwareClusterWithHosts,
   assessVMwareDatastore,
@@ -44,6 +45,7 @@ import {
   assessVMwareVirtualMachine,
   findVMwareDatacenter,
   getVMwareDatacenterFindings,
+  getVMwareRulesOf,
   getVMwareDatastoreStatus,
   getVMwareHostState,
   getVMwareHostStatus,
@@ -106,8 +108,11 @@ export interface VMwareTopologyInput {
   now: Date;
   /* Rows in the inventory, when more were there than were read. */
   totalRows?: number | undefined;
-  // The project's health rules (VMware > Settings > Health Rules).
-  rules?: VMwareHealthRules | undefined;
+  /*
+   * The project's health rules (VMware > Settings > Health Rules) and their
+   * overrides: each part is judged, and its facts toned, by its own (#11469).
+   */
+  rules?: VMwareHealthRulesInput | undefined;
 }
 
 /* `vcenter.vm.id` for a VM, `vcenter.host.name` for a host, ...: the URL id. */
@@ -176,7 +181,7 @@ interface VMwareTopologyContext {
   datacenters: Array<VMwareResource>;
   hosts: Array<VMwareResource>;
   now: Date;
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }
 
 function assessDatacenter(
@@ -253,11 +258,15 @@ function assessCluster(
 
 function usageFacts(
   row: VMwareResource,
-  rules?: VMwareHealthRules | undefined,
+  input?: VMwareHealthRulesInput | undefined,
 ): Array<ResourceTopologyFact> {
   const facts: Array<ResourceTopologyFact> = [];
   const cpu: number | null = toFiniteNumber(row.latestCpuPercent);
   const memory: number | null = toFiniteNumber(row.latestMemoryPercent);
+  // The host's own rules: its cluster's or vCenter's where they differ (#11469).
+  const rules: VMwareHealthRules | undefined = input
+    ? getVMwareRulesOf(input, row)
+    : undefined;
   const cpuLine: number | null = rules
     ? rules.hostCpuWarningPercent
     : VMWARE_HOST_SATURATION_PERCENT;

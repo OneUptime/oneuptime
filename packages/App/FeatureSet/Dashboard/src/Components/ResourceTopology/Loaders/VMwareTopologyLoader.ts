@@ -1,5 +1,5 @@
 import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
-import { readCurrentProjectVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { readCurrentProjectVMwareHealthRuleBook } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -24,6 +24,9 @@ import { ResourceTopologyData } from "../ResourceTopologyPage";
  */
 
 export const VMWARE_TOPOLOGY_SELECT: Record<string, boolean> = {
+  // Which vCenter's rules judge the part, and its last readings (#11469).
+  vmwareVCenterId: true,
+  healthReadings: true,
   kind: true,
   externalId: true,
   name: true,
@@ -108,7 +111,7 @@ export async function loadVMwareTopology(
           issues: issues?.records || [],
           now: new Date(),
           totalRows: rows.count,
-          rules: await readCurrentProjectVMwareHealthRules(),
+          rules: await readCurrentProjectVMwareHealthRuleBook(),
         }),
       },
     ],

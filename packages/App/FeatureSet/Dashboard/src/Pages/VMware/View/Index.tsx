@@ -122,15 +122,21 @@ import {
   getVMwareDatastorePercent,
   getVMwareHealth,
   getVMwareHostProblemItems,
+  getVMwareRulesOf,
   getVMwareHostState,
   hasFreshVMwareReadings,
   isVMwareHostRunning,
 } from "../Utils/VMwareHealth";
 import {
-  readCurrentProjectVMwareHealthRules,
-  useVMwareHealthRules,
+  readCurrentProjectVMwareHealthRuleBook,
+  useVMwareHealthRuleBook,
 } from "../Utils/VMwareHealthRulesStore";
 import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
+import {
+  VMWARE_HEALTH_RULE_VCENTER_PART_KIND,
+  VMwareHealthRuleBook,
+  resolveVMwareHealthRules,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
 import ResourceAttentionPill, {
   ComponentProps as ResourceAttentionPillProps,
 } from "../../../Components/ResourcePart/ResourceAttentionPill";
@@ -188,6 +194,11 @@ interface TopRow {
   percent: number;
   // A host's share of its own memory in use, which colours its memory bar.
   memoryPercent?: number | null | undefined;
+  /*
+   * Where a host's bar turns amber: its own rules, its cluster's or its
+   * vCenter's where they differ from the project's (#11469).
+   */
+  warningPercent?: number | null | undefined;
 }
 
 // A top consumer's bar, by its tone (VMwareUsageTone).
@@ -271,8 +282,17 @@ const VMwareVCenterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  /*
+   * The vCenter's own rules, for what is the vCenter's as a whole: its
+   * datastores' fullest, the lines of a host list a host's own rules do not
+   * say (#11469).
+   */
+  const vcenterRules: VMwareHealthRules = resolveVMwareHealthRules(rules, {
+    kind: VMWARE_HEALTH_RULE_VCENTER_PART_KIND,
+    vmwareVCenterId: modelId,
+  });
 
   // A word the page draws itself, in the reader's language.
   const tx: (text: string) => string = (text: string): string => {
@@ -353,8 +373,8 @@ const VMwareVCenterOverview: FunctionComponent<
     try {
       const now: Date = OneUptimeDate.getCurrentDate();
       const routes: VMwarePartRoutes = getVMwarePartRoutes(modelId);
-      const projectRules: VMwareHealthRules =
-        await readCurrentProjectVMwareHealthRules();
+      const projectRules: VMwareHealthRuleBook =
+        await readCurrentProjectVMwareHealthRuleBook();
 
       const [partRows, attentionVms, cpuReadyVms, counts]: [
         Array<VMwareResourceModel>,
@@ -442,6 +462,8 @@ const VMwareVCenterOverview: FunctionComponent<
         cpuPercent: number | null;
         memoryBytes: number | null;
         memoryPercent: number | null;
+        // The host's own rules (#11469).
+        rules: VMwareHealthRules;
       }> = [];
       for (const host of hosts) {
         const datacenter: VMwareResourceModel | null = findVMwareDatacenter(
@@ -468,6 +490,7 @@ const VMwareVCenterOverview: FunctionComponent<
           memoryPercent: number | null;
         } = getVMwareHostLoad({ host: host, datacenter: datacenter, now: now });
         hostRows.push({
+          rules: getVMwareRulesOf(projectRules, host),
           externalId: host.externalId || "",
           name: displayNameForResource(host),
           context: host.clusterName || host.datacenterName || "",
@@ -513,6 +536,7 @@ const VMwareVCenterOverview: FunctionComponent<
             context: h.context,
             value: h.cpuPercent ?? 0,
             percent: h.cpuPercent ?? 0,
+            warningPercent: h.rules.hostCpuWarningPercent,
           };
         });
 
@@ -543,6 +567,7 @@ const VMwareVCenterOverview: FunctionComponent<
                   ? ((h.memoryBytes ?? 0) / maxMemory) * 100
                   : 0,
             memoryPercent: h.memoryPercent,
+            warningPercent: h.rules.hostMemoryWarningPercent,
           };
         });
 
@@ -570,6 +595,9 @@ const VMwareVCenterOverview: FunctionComponent<
             context: vm.hostName || "",
             value: ready,
             percent: ready,
+            // The VM's own CPU ready rule (#11469).
+            warningPercent: getVMwareRulesOf(projectRules, vm)
+              .vmCpuReadyWarningPercent,
           };
         });
 
@@ -1904,8 +1932,10 @@ const VMwareVCenterOverview: FunctionComponent<
           }
           percent={worstDatastorePercent}
           thresholds={{
-            warn: getVMwareThresholdLine(rules.datastoreWarningPercent),
-            danger: getVMwareThresholdLine(rules.datastoreCriticalPercent),
+            warn: getVMwareThresholdLine(vcenterRules.datastoreWarningPercent),
+            danger: getVMwareThresholdLine(
+              vcenterRules.datastoreCriticalPercent,
+            ),
           }}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewDatastores}
         />
@@ -2324,7 +2354,9 @@ const VMwareVCenterOverview: FunctionComponent<
                   toneOf: (row: TopRow): VMwareUsageTone => {
                     return getVMwareHostLoadTone(
                       row.value,
-                      rules.hostCpuWarningPercent,
+                      row.warningPercent === undefined
+                        ? vcenterRules.hostCpuWarningPercent
+                        : row.warningPercent,
                     );
                   },
                   emptyMessage: "No host CPU data available.",
@@ -2348,7 +2380,9 @@ const VMwareVCenterOverview: FunctionComponent<
                   toneOf: (row: TopRow): VMwareUsageTone => {
                     return getVMwareHostLoadTone(
                       row.memoryPercent,
-                      rules.hostMemoryWarningPercent,
+                      row.warningPercent === undefined
+                        ? vcenterRules.hostMemoryWarningPercent
+                        : row.warningPercent,
                     );
                   },
                   emptyMessage: "No host memory data available.",
@@ -2371,7 +2405,7 @@ const VMwareVCenterOverview: FunctionComponent<
                     return formatPercent(row.value);
                   },
                   toneOf: (row: TopRow): VMwareUsageTone => {
-                    return getVMwareDatastoreFullTone(row.value, rules);
+                    return getVMwareDatastoreFullTone(row.value, vcenterRules);
                   },
                   emptyMessage: "No datastore capacity data available.",
                 }),
@@ -2392,7 +2426,15 @@ const VMwareVCenterOverview: FunctionComponent<
                     return formatPercent(row.value);
                   },
                   toneOf: (row: TopRow): VMwareUsageTone => {
-                    return getVMwareCpuReadyPercentTone(row.value, rules);
+                    return getVMwareCpuReadyPercentTone(
+                      row.value,
+                      row.warningPercent === undefined
+                        ? vcenterRules
+                        : {
+                            ...vcenterRules,
+                            vmCpuReadyWarningPercent: row.warningPercent,
+                          },
+                    );
                   },
                   emptyMessage:
                     "No CPU ready data available — reported only for powered-on VMs.",

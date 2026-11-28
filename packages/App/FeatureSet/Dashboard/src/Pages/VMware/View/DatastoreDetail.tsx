@@ -52,8 +52,10 @@ import {
 } from "../../../Components/VMware/Part/VMwarePartRoutes";
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
-import { useVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
-import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
+import { useVMwareHealthRuleBook } from "../Utils/VMwareHealthRulesStore";
+import {
+  VMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * Window for the client-side linear growth fit — same 24 h window as
@@ -65,7 +67,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
   // The charts draw their titles and legends as given: hand them the reader's words.
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;

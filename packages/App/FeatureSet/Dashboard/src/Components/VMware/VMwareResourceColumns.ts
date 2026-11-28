@@ -15,8 +15,15 @@ import {
   isPastVMwareHealthThreshold,
 } from "Common/Types/VMware/VMwareHealthRules";
 import {
+  VMwareHealthRulePart,
+  getVMwareHealthRulesForPart,
+  isVMwareHealthRuleBook,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import {
   VMWARE_HOST_SATURATION_PERCENT,
   VMwareAssessment,
+  VMwareHealthRulesInput,
+  getVMwareRulesOf,
   getVMwareThresholdLine,
   assessVMwareClusterWithHosts,
   assessVMwareHost,
@@ -55,8 +62,11 @@ export interface VMwareListContext {
   datacenters: Array<VMwareResource>;
   hosts: Array<VMwareResource>;
   now: Date;
-  // The project's health rules (VMware > Settings > Health Rules).
-  rules?: VMwareHealthRules | undefined;
+  /*
+   * The project's health rules (VMware > Settings > Health Rules) and their
+   * overrides (#11469): each row is judged, and its bars drawn, by its own.
+   */
+  rules?: VMwareHealthRulesInput | undefined;
 }
 
 // The lines a host's and a VM's CPU and memory bars change colour at.
@@ -65,18 +75,47 @@ export const VMWARE_USAGE_BAR_THRESHOLDS: ResourceMetricThresholds = {
 };
 
 /*
- * The same lines at the project's rules: a CPU bar turns amber where a busy
- * host's CPU is a finding, a memory bar where its memory is.
+ * The same lines at the rules: a CPU bar turns amber where a busy host's CPU
+ * is a finding, a memory bar where its memory is. Handed the book, the
+ * project's own; a row draws its part's (getVMwareRowBarThresholds).
  */
 export function getVMwareUsageBarThresholds(
-  rules: VMwareHealthRules | undefined,
+  rules: VMwareHealthRulesInput | undefined,
 ): { cpu: ResourceMetricThresholds; memory: ResourceMetricThresholds } {
-  const resolved: VMwareHealthRules = rules || DEFAULT_VMWARE_HEALTH_RULES;
+  const resolved: VMwareHealthRules = !rules
+    ? DEFAULT_VMWARE_HEALTH_RULES
+    : isVMwareHealthRuleBook(rules)
+      ? rules.project
+      : rules;
   return {
     cpu: { warning: getVMwareThresholdLine(resolved.hostCpuWarningPercent) },
     memory: {
       warning: getVMwareThresholdLine(resolved.hostMemoryWarningPercent),
     },
+  };
+}
+
+// A row's own bar lines: its part's rules, its vCenter's, cluster's or host's (#11469).
+function getVMwareRowBarThresholds(
+  row: VMwareResource,
+  context: VMwareListContext,
+): { cpu: ResourceMetricThresholds; memory: ResourceMetricThresholds } {
+  return getVMwareUsageBarThresholds(getVMwareRulesOf(context.rules, row));
+}
+
+// Where a list's row sits, for its part's rules (#11469).
+export function getVMwarePartOfResource(
+  resource: InfrastructureResource,
+): VMwareHealthRulePart {
+  const attributes: Record<string, string> = resource.additionalAttributes;
+  return {
+    vmwareVCenterId: attributes["vmwareVCenterId"] || null,
+    kind: attributes["kind"] || null,
+    externalId: attributes["externalId"] || null,
+    name: resource.name,
+    datacenterName: attributes["datacenterName"] || null,
+    clusterName: attributes["clusterName"] || null,
+    hostName: attributes["hostName"] || null,
   };
 }
 
@@ -132,7 +171,10 @@ export function toVMwareListResource(
        */
       const isRunning: boolean = isVMwareHostRunning(state);
       const shown: InfrastructureResource = isRunning
-        ? resource
+        ? {
+            ...resource,
+            metricThresholds: getVMwareRowBarThresholds(row, context),
+          }
         : { ...resource, cpuUtilization: null, memoryUsageBytes: null };
       return withStatus(
         shown,
@@ -162,7 +204,7 @@ export function toVMwareListResource(
         now: Date;
         hosts: Array<VMwareResource>;
         datacenters: Array<VMwareResource>;
-        rules: VMwareHealthRules | undefined;
+        rules: VMwareHealthRulesInput | undefined;
       } = {
         vm: row,
         now: context.now,
@@ -183,7 +225,10 @@ export function toVMwareListResource(
               cpuReadinessPercent: "",
             },
           }
-        : resource;
+        : {
+            ...resource,
+            metricThresholds: getVMwareRowBarThresholds(row, context),
+          };
       return withStatus(
         shown,
         getVMwareVirtualMachineStatus(vmContext),
@@ -207,6 +252,7 @@ export function toVMwareListResource(
           cpuUtilization: usage.cpuPercent,
           memoryUsageBytes: usage.memoryUsedBytes,
           memoryLimitBytes: usage.memoryEffectiveBytes,
+          metricThresholds: getVMwareRowBarThresholds(row, context),
         },
         getVMwareClusterStatus({
           cluster: row,
@@ -250,12 +296,15 @@ export function toVMwareListResources(
 // A VM's CPU Ready cell: amber past its rule (10%), as Needs attention.
 export function getVMwareCpuReadyTone(
   resource: InfrastructureResource,
-  rules?: VMwareHealthRules | undefined,
+  rules?: VMwareHealthRulesInput | undefined,
 ): ResourceColumnTone | undefined {
   const ready: number | null = toVMwareNumber(
     resource.additionalAttributes["cpuReadinessPercent"],
   );
-  return getVMwareCpuReadyPercentTone(ready, rules) === "warning"
+  return getVMwareCpuReadyPercentTone(
+    ready,
+    getVMwareHealthRulesForPart(rules, getVMwarePartOfResource(resource)),
+  ) === "warning"
     ? "warning"
     : undefined;
 }
@@ -282,10 +331,12 @@ export function getVMwareClusterHostsTone(
  */
 export function getVMwareResourcePoolMemoryTone(
   resource: InfrastructureResource,
-  rules?: VMwareHealthRules | undefined,
+  rules?: VMwareHealthRulesInput | undefined,
 ): ResourceColumnTone | undefined {
-  const threshold: number | null = (rules || DEFAULT_VMWARE_HEALTH_RULES)
-    .resourcePoolSwapOutWarningKibPerSecond;
+  const threshold: number | null = getVMwareHealthRulesForPart(
+    rules,
+    getVMwarePartOfResource(resource),
+  ).resourcePoolSwapOutWarningKibPerSecond;
   const swapOut: number | null = toVMwareNumber(
     resource.additionalAttributes["memorySwapOutBytesPerSecond"],
   );

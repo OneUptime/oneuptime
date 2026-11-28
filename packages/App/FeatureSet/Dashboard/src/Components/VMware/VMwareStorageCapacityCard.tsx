@@ -6,8 +6,12 @@ import StorageUsageBar, {
 } from "Common/UI/Components/StorageUsage/StorageUsageBar";
 import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 import { getVMwareVCenterStorageUsage } from "../../Pages/VMware/Utils/VMwareHealth";
-import { useVMwareHealthRules } from "../../Pages/VMware/Utils/VMwareHealthRulesStore";
-import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
+import { useVMwareHealthRuleBook } from "../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import {
+  VMWARE_HEALTH_RULE_VCENTER_PART_KIND,
+  VMwareHealthRuleBook,
+  resolveVMwareHealthRules,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * HOW MUCH OF A VCENTER'S STORAGE IS USED, ALL OF IT TOGETHER (#9646).
@@ -27,6 +31,7 @@ import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 export interface ComponentProps {
   vcenter: Pick<
     VMwareVCenter,
+    | "_id"
     | "datastoreCapacityBytes"
     | "datastoreUsedBytes"
     | "datastoreCount"
@@ -38,11 +43,15 @@ const VMwareStorageCapacityCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   // Amber and red at the project's datastore rules.
-  const rules: VMwareHealthRules = useVMwareHealthRules();
+  const rules: VMwareHealthRuleBook = useVMwareHealthRuleBook();
   const usage: StorageUsage | null = getVMwareVCenterStorageUsage({
     datastoreUsedBytes: props.vcenter.datastoreUsedBytes,
     datastoreCapacityBytes: props.vcenter.datastoreCapacityBytes,
-    rules,
+    // The vCenter's own rules, where it has them (#11469).
+    rules: resolveVMwareHealthRules(rules, {
+      kind: VMWARE_HEALTH_RULE_VCENTER_PART_KIND,
+      vmwareVCenterId: props.vcenter._id || null,
+    }),
   });
   const datastoreCount: number = Number(props.vcenter.datastoreCount) || 0;
 

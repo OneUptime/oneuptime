@@ -22,7 +22,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * Health Rules is opened, read by every vCenter page that says what needs
  * attention (Common/Types/VMware/VMwareHealthRules says what each threshold
  * is). A threshold left empty turns its rule off. A project with no row has
- * the defaults.
+ * the defaults. A vCenter, a cluster, a host or a VM can replace some of
+ * them (VMwareHealthRuleOverride, #11469).
  *
  * Who may change it: those who may change a vCenter.
  */
@@ -316,4 +317,104 @@ export default class VMwareHealthSetting extends BaseModel {
     default: DEFAULT_VMWARE_HEALTH_RULES.resourcePoolSwapOutWarningKibPerSecond,
   })
   public resourcePoolSwapOutWarningKibPerSecond?: number = undefined;
+
+  /*
+   * For at least N minutes (#11469): how long each group's rules - a card
+   * on the page - must hold before they mark a part. 0, the default, judges
+   * the latest report. Up to VMWARE_HEALTH_MAX_EVALUATION_MINUTES.
+   */
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Busy ESXi Hosts: For At Least",
+    description:
+      "How many minutes an ESXi host's CPU or memory must stay above its threshold before it needs a look. 0: the latest report.",
+    defaultValue: DEFAULT_VMWARE_HEALTH_RULES.hostEvaluationMinutes,
+    isDefaultValueColumn: true,
+    example: "10",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    default: DEFAULT_VMWARE_HEALTH_RULES.hostEvaluationMinutes,
+  })
+  public hostEvaluationMinutes?: number = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Full Datastores: For At Least",
+    description:
+      "How many minutes a datastore must stay fuller than its threshold before it is marked. 0: the latest report.",
+    defaultValue: DEFAULT_VMWARE_HEALTH_RULES.datastoreEvaluationMinutes,
+    isDefaultValueColumn: true,
+    example: "10",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    default: DEFAULT_VMWARE_HEALTH_RULES.datastoreEvaluationMinutes,
+  })
+  public datastoreEvaluationMinutes?: number = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "VM Swapping: For At Least",
+    description:
+      "How many minutes a VM's swapping must stay past its threshold before it is marked. 0: the latest report.",
+    defaultValue: DEFAULT_VMWARE_HEALTH_RULES.vmSwapEvaluationMinutes,
+    isDefaultValueColumn: true,
+    example: "10",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    default: DEFAULT_VMWARE_HEALTH_RULES.vmSwapEvaluationMinutes,
+  })
+  public vmSwapEvaluationMinutes?: number = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "VM Ballooning and CPU Ready: For At Least",
+    description:
+      "How many minutes a VM's ballooning or CPU ready must stay past its threshold before it needs a look. 0: the latest report.",
+    defaultValue: DEFAULT_VMWARE_HEALTH_RULES.vmMemoryCpuEvaluationMinutes,
+    isDefaultValueColumn: true,
+    example: "10",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    default: DEFAULT_VMWARE_HEALTH_RULES.vmMemoryCpuEvaluationMinutes,
+  })
+  public vmMemoryCpuEvaluationMinutes?: number = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Resource Pool Swapping: For At Least",
+    description:
+      "How many minutes the host must keep swapping a resource pool's memory out before it needs a look. 0: the latest report.",
+    defaultValue: DEFAULT_VMWARE_HEALTH_RULES.resourcePoolEvaluationMinutes,
+    isDefaultValueColumn: true,
+    example: "10",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    default: DEFAULT_VMWARE_HEALTH_RULES.resourcePoolEvaluationMinutes,
+  })
+  public resourcePoolEvaluationMinutes?: number = undefined;
 }

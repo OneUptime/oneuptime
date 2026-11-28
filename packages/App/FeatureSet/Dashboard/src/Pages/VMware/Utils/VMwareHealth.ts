@@ -14,9 +14,22 @@ import {
   DEFAULT_VMWARE_HEALTH_RULES,
   KIBIBYTE,
   MEBIBYTE,
+  VMwareHealthRuleKey,
   VMwareHealthRules,
+  getVMwareHealthEvaluationMinutes,
   isPastVMwareHealthThreshold,
 } from "Common/Types/VMware/VMwareHealthRules";
+import {
+  VMwareHealthRuleBook,
+  getVMwareHealthRulesForPart,
+} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import {
+  VMwareHealthReading,
+  VMwareHealthReadingField,
+  VMwareHeldReading,
+  hasVMwareReadingHeldFor,
+  readVMwareHealthReadings,
+} from "Common/Types/VMware/VMwareHealthReadings";
 import { VMwareSwapRateSource } from "Common/Types/VMware/VMwareSwapRates";
 import {
   ResourceAttentionFact,
@@ -78,8 +91,17 @@ import { VMWARE_METRIC_STALE_MS } from "./VMwareHostData";
  * below takes the project's rules, these defaults where it is not handed
  * them. Each default is the level its alert template fires at
  * (Common/Types/Monitor/VMwareAlertTemplates), so a part on this list is one
- * its alert would page about - except swapping, which the template reads as
- * an amount.
+ * its alert would page about.
+ *
+ * A page hands its rules as the project's rule book (#11469): the project's
+ * rules and the overrides of its vCenters, clusters, hosts and VMs. Each
+ * function resolves the rules of the part it judges
+ * (getVMwareHealthRulesForPart): its VM's, host's, cluster's or vCenter's
+ * where they have their own, rule by rule, the most specific winning. And a
+ * group of rules can wait "for at least N minutes": the part is marked only
+ * once every report for that long was past the threshold, by the readings
+ * ingest keeps on its row (VMwareHealthReadings), and Needs attention says
+ * when it began.
  *
  * WHERE A HOST'S STATE COMES FROM. vCenter reports a host's CPU and memory
  * use only while the host is connected: for a host that crashed, lost power
@@ -131,6 +153,7 @@ export function getVMwareThresholdLine(threshold: number | null): number {
 export function getVMwareDatastoreUsageThresholds(
   rules: VMwareHealthRules = DEFAULT_VMWARE_HEALTH_RULES,
 ): StorageUsageThresholds {
+  // Resolved for the datastore, or the vCenter, the bar is of (#11469).
   return {
     warningPercent: getVMwareThresholdLine(rules.datastoreWarningPercent),
     criticalPercent: getVMwareThresholdLine(rules.datastoreCriticalPercent),
@@ -174,6 +197,7 @@ export function getVMwareVmStorageUsage(data: {
 export function getVMwareVCenterStorageUsage(data: {
   datastoreUsedBytes: StorageReadingValue;
   datastoreCapacityBytes: StorageReadingValue;
+  // The vCenter's own rules (resolved for it, #11469).
   rules?: VMwareHealthRules | undefined;
 }): StorageUsage | null {
   return getStorageUsage(
@@ -209,6 +233,75 @@ export enum VMwareHostState {
 export interface VMwareAssessment {
   severity: ResourceAttentionSeverity | null;
   reasons: Array<ResourceAttentionText>;
+  /*
+   * When the earliest of the findings that waited for their period began to
+   * hold (#11469); none for findings judged on the latest report.
+   */
+  since?: Date | undefined;
+}
+
+/*
+ * The rules a judgement is handed: the project's rule book, which it
+ * resolves for the part (VMwareHealthRuleOverrides), or rules already
+ * resolved.
+ */
+export type VMwareHealthRulesInput = VMwareHealthRules | VMwareHealthRuleBook;
+
+// The rules a part is judged by.
+export function getVMwareRulesOf(
+  rules: VMwareHealthRulesInput | null | undefined,
+  part: VMwareResource,
+): VMwareHealthRules {
+  return getVMwareHealthRulesForPart(rules, part);
+}
+
+// Whether one rule marks a part, and since when when it waited.
+interface VMwareRuleCheck {
+  isPast: boolean;
+  since: Date | null;
+}
+
+/*
+ * One rule, its period and all (#11469): the latest reading past the
+ * threshold, and - when the rule's group waits - every reading for that
+ * long past it too. Both in the reading's own unit.
+ */
+function checkVMwareRule(data: {
+  rules: VMwareHealthRules;
+  key: VMwareHealthRuleKey;
+  reading: number | null;
+  threshold: number | null;
+  readings: Array<VMwareHealthReading>;
+  field: VMwareHealthReadingField;
+}): VMwareRuleCheck {
+  if (!isPastVMwareHealthThreshold(data.reading, data.threshold)) {
+    return { isPast: false, since: null };
+  }
+  const minutes: number = getVMwareHealthEvaluationMinutes(
+    data.rules,
+    data.key,
+  );
+  if (minutes <= 0) {
+    return { isPast: true, since: null };
+  }
+  const held: VMwareHeldReading = hasVMwareReadingHeldFor({
+    readings: data.readings,
+    field: data.field,
+    threshold: data.threshold,
+    minutes: minutes,
+  });
+  return { isPast: held.isHeld, since: held.isHeld ? held.since : null };
+}
+
+// The earliest of the times rules began to hold, if any did.
+function earliestOf(dates: Array<Date | null>): Date | undefined {
+  let earliest: Date | undefined = undefined;
+  for (const date of dates) {
+    if (date && (!earliest || date.getTime() < earliest.getTime())) {
+      earliest = date;
+    }
+  }
+  return earliest;
 }
 
 /*
@@ -248,6 +341,8 @@ export type VMwareListRouteFor = (
 ) => Route | undefined;
 
 const REASON_NO_USAGE: string = translationKey("No CPU or memory use reported");
+// When a rule that waits began to hold (#11469): "Began 12 minutes ago".
+export const SINCE_RULE_BEGAN: string = translationKey("Began {{time}}");
 const REASON_CPU_AT: string = translationKey("CPU at {{percent}}");
 const REASON_MEMORY_AT: string = translationKey("Memory at {{percent}}");
 const REASON_PERCENT_FULL: string = translationKey("{{percent}} full");
@@ -662,9 +757,9 @@ export function assessVMwareHost(data: {
   host: VMwareResource;
   datacenter: VMwareResource | null;
   now: Date;
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }): VMwareAssessment {
-  const rules: VMwareHealthRules = data.rules || DEFAULT_VMWARE_HEALTH_RULES;
+  const rules: VMwareHealthRules = getVMwareRulesOf(data.rules, data.host);
   const state: VMwareHostState = getVMwareHostState(data);
 
   if (state === VMwareHostState.NotResponding) {
@@ -684,25 +779,48 @@ export function assessVMwareHost(data: {
   }
 
   const reasons: Array<ResourceAttentionText> = [];
+  const sinces: Array<Date | null> = [];
   const cpu: number | null = toVMwareNumber(data.host.latestCpuPercent);
   const memory: number | null = toVMwareNumber(data.host.latestMemoryPercent);
+  const readings: Array<VMwareHealthReading> = readVMwareHealthReadings(
+    data.host.healthReadings,
+  );
 
-  if (isPastVMwareHealthThreshold(cpu, rules.hostCpuWarningPercent)) {
+  const cpuCheck: VMwareRuleCheck = checkVMwareRule({
+    rules,
+    key: "hostCpuWarningPercent",
+    reading: cpu,
+    threshold: rules.hostCpuWarningPercent,
+    readings,
+    field: "cpu",
+  });
+  if (cpuCheck.isPast) {
     reasons.push({
       text: REASON_CPU_AT,
       values: { percent: formatVMwareReasonPercent(cpu!) },
     });
+    sinces.push(cpuCheck.since);
   }
-  if (isPastVMwareHealthThreshold(memory, rules.hostMemoryWarningPercent)) {
+  const memoryCheck: VMwareRuleCheck = checkVMwareRule({
+    rules,
+    key: "hostMemoryWarningPercent",
+    reading: memory,
+    threshold: rules.hostMemoryWarningPercent,
+    readings,
+    field: "mem",
+  });
+  if (memoryCheck.isPast) {
     reasons.push({
       text: REASON_MEMORY_AT,
       values: { percent: formatVMwareReasonPercent(memory!) },
     });
+    sinces.push(memoryCheck.since);
   }
 
   return {
     severity: reasons.length > 0 ? ResourceAttentionSeverity.Warning : null,
     reasons: reasons,
+    since: earliestOf(sinces),
   };
 }
 
@@ -771,17 +889,24 @@ export function isVMwareVirtualMachineDisconnected(data: {
  */
 export function assessVMwareSwappedMemory(data: {
   activity: VMwareSwapActivity;
+  // Resolved for the VM.
   rules: VMwareHealthRules;
+  // The VM's last readings, for a rule that waits (#11469).
+  readings?: Array<VMwareHealthReading> | undefined;
 }): VMwareAssessment {
   const activity: VMwareSwapActivity = data.activity;
   const rules: VMwareHealthRules = data.rules;
+  const readings: Array<VMwareHealthReading> = data.readings || [];
 
-  if (
-    isPastVMwareHealthThreshold(
-      activity.swapOutBytesPerSecond,
-      kibPerSecond(rules.vmSwapOutCriticalKibPerSecond),
-    )
-  ) {
+  const swapOut: VMwareRuleCheck = checkVMwareRule({
+    rules,
+    key: "vmSwapOutCriticalKibPerSecond",
+    reading: activity.swapOutBytesPerSecond,
+    threshold: kibPerSecond(rules.vmSwapOutCriticalKibPerSecond),
+    readings,
+    field: "so",
+  });
+  if (swapOut.isPast) {
     return {
       severity: ResourceAttentionSeverity.Critical,
       reasons: [
@@ -792,14 +917,18 @@ export function assessVMwareSwappedMemory(data: {
           },
         },
       ],
+      since: swapOut.since || undefined,
     };
   }
-  if (
-    isPastVMwareHealthThreshold(
-      activity.swapInBytesPerSecond,
-      kibPerSecond(rules.vmSwapInWarningKibPerSecond),
-    )
-  ) {
+  const swapIn: VMwareRuleCheck = checkVMwareRule({
+    rules,
+    key: "vmSwapInWarningKibPerSecond",
+    reading: activity.swapInBytesPerSecond,
+    threshold: kibPerSecond(rules.vmSwapInWarningKibPerSecond),
+    readings,
+    field: "si",
+  });
+  if (swapIn.isPast) {
     return {
       severity: ResourceAttentionSeverity.Warning,
       reasons: [
@@ -810,14 +939,18 @@ export function assessVMwareSwappedMemory(data: {
           },
         },
       ],
+      since: swapIn.since || undefined,
     };
   }
-  if (
-    isPastVMwareHealthThreshold(
-      activity.swappedBytes,
-      mebibytes(rules.vmSwappedWarningMebibytes),
-    )
-  ) {
+  const swapped: VMwareRuleCheck = checkVMwareRule({
+    rules,
+    key: "vmSwappedWarningMebibytes",
+    reading: activity.swappedBytes,
+    threshold: mebibytes(rules.vmSwappedWarningMebibytes),
+    readings,
+    field: "sw",
+  });
+  if (swapped.isPast) {
     return {
       severity: ResourceAttentionSeverity.Warning,
       reasons: [
@@ -828,6 +961,7 @@ export function assessVMwareSwappedMemory(data: {
           },
         },
       ],
+      since: swapped.since || undefined,
     };
   }
   return { severity: null, reasons: [] };
@@ -839,10 +973,10 @@ export function assessVMwareVirtualMachine(data: {
   // The hosts and datacenters the page has: a VM on a host vCenter lost is not judged.
   hosts?: Array<VMwareResource> | undefined;
   datacenters?: Array<VMwareResource> | undefined;
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }): VMwareAssessment {
   const vm: VMwareResource = data.vm;
-  const rules: VMwareHealthRules = data.rules || DEFAULT_VMWARE_HEALTH_RULES;
+  const rules: VMwareHealthRules = getVMwareRulesOf(data.rules, vm);
   if (
     vm.isTemplate === true ||
     vm.isPoweredOn !== true ||
@@ -854,49 +988,72 @@ export function assessVMwareVirtualMachine(data: {
 
   const reasons: Array<ResourceAttentionText> = [];
   const severities: Array<ResourceAttentionSeverity> = [];
+  const sinces: Array<Date | null> = [];
   const ballooned: number | null = toVMwareNumber(vm.memoryBalloonedBytes);
   const ready: number | null = toVMwareNumber(vm.cpuReadinessPercent);
+  const readings: Array<VMwareHealthReading> = readVMwareHealthReadings(
+    vm.healthReadings,
+  );
 
   const swap: VMwareAssessment = assessVMwareSwappedMemory({
     activity: getVMwareSwapActivity(vm),
     rules,
+    readings,
   });
   if (swap.severity) {
     reasons.push(...swap.reasons);
     severities.push(swap.severity);
+    sinces.push(swap.since || null);
   }
-  if (
-    isPastVMwareHealthThreshold(
-      ballooned,
-      mebibytes(rules.vmBalloonedWarningMebibytes),
-    )
-  ) {
+  const balloonCheck: VMwareRuleCheck = checkVMwareRule({
+    rules,
+    key: "vmBalloonedWarningMebibytes",
+    reading: ballooned,
+    threshold: mebibytes(rules.vmBalloonedWarningMebibytes),
+    readings,
+    field: "bl",
+  });
+  if (balloonCheck.isPast) {
     reasons.push({
       text: REASON_BALLOONED,
       values: { amount: formatVMwareReasonBytes(ballooned!) },
     });
     severities.push(ResourceAttentionSeverity.Warning);
+    sinces.push(balloonCheck.since);
   }
-  if (isPastVMwareHealthThreshold(ready, rules.vmCpuReadyWarningPercent)) {
+  const readyCheck: VMwareRuleCheck = checkVMwareRule({
+    rules,
+    key: "vmCpuReadyWarningPercent",
+    reading: ready,
+    threshold: rules.vmCpuReadyWarningPercent,
+    readings,
+    field: "rd",
+  });
+  if (readyCheck.isPast) {
     reasons.push({
       text: REASON_CPU_READY,
       values: { percent: formatVMwareReasonPercent(ready!) },
     });
     severities.push(ResourceAttentionSeverity.Warning);
+    sinces.push(readyCheck.since);
   }
 
   return {
     severity: mergeResourceAttentionSeverity(severities),
     reasons: reasons,
+    since: earliestOf(sinces),
   };
 }
 
 export function assessVMwareDatastore(data: {
   datastore: VMwareResource;
   now: Date;
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }): VMwareAssessment {
-  const rules: VMwareHealthRules = data.rules || DEFAULT_VMWARE_HEALTH_RULES;
+  const rules: VMwareHealthRules = getVMwareRulesOf(
+    data.rules,
+    data.datastore,
+  );
   if (!hasFreshVMwareReadings(data.datastore, data.now)) {
     return { severity: null, reasons: [] };
   }
@@ -908,11 +1065,38 @@ export function assessVMwareDatastore(data: {
     text: REASON_PERCENT_FULL,
     values: { percent: formatVMwareReasonPercent(percent) },
   };
-  if (isPastVMwareHealthThreshold(percent, rules.datastoreCriticalPercent)) {
-    return { severity: ResourceAttentionSeverity.Critical, reasons: [reason] };
+  const readings: Array<VMwareHealthReading> = readVMwareHealthReadings(
+    data.datastore.healthReadings,
+  );
+  const critical: VMwareRuleCheck = checkVMwareRule({
+    rules,
+    key: "datastoreCriticalPercent",
+    reading: percent,
+    threshold: rules.datastoreCriticalPercent,
+    readings,
+    field: "disk",
+  });
+  if (critical.isPast) {
+    return {
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [reason],
+      since: critical.since || undefined,
+    };
   }
-  if (isPastVMwareHealthThreshold(percent, rules.datastoreWarningPercent)) {
-    return { severity: ResourceAttentionSeverity.Warning, reasons: [reason] };
+  const warning: VMwareRuleCheck = checkVMwareRule({
+    rules,
+    key: "datastoreWarningPercent",
+    reading: percent,
+    threshold: rules.datastoreWarningPercent,
+    readings,
+    field: "disk",
+  });
+  if (warning.isPast) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [reason],
+      since: warning.since || undefined,
+    };
   }
   return { severity: null, reasons: [] };
 }
@@ -926,21 +1110,24 @@ export function assessVMwareDatastore(data: {
 export function assessVMwareResourcePool(data: {
   pool: VMwareResource;
   now: Date;
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }): VMwareAssessment {
-  const rules: VMwareHealthRules = data.rules || DEFAULT_VMWARE_HEALTH_RULES;
+  const rules: VMwareHealthRules = getVMwareRulesOf(data.rules, data.pool);
   if (!hasFreshVMwareReadings(data.pool, data.now)) {
     return { severity: null, reasons: [] };
   }
   const swapOut: number | null = toVMwareNumber(
     data.pool.memorySwapOutBytesPerSecond,
   );
-  if (
-    isPastVMwareHealthThreshold(
-      swapOut,
-      kibPerSecond(rules.resourcePoolSwapOutWarningKibPerSecond),
-    )
-  ) {
+  const check: VMwareRuleCheck = checkVMwareRule({
+    rules,
+    key: "resourcePoolSwapOutWarningKibPerSecond",
+    reading: swapOut,
+    threshold: kibPerSecond(rules.resourcePoolSwapOutWarningKibPerSecond),
+    readings: readVMwareHealthReadings(data.pool.healthReadings),
+    field: "so",
+  });
+  if (check.isPast) {
     return {
       severity: ResourceAttentionSeverity.Warning,
       reasons: [
@@ -949,6 +1136,7 @@ export function assessVMwareResourcePool(data: {
           values: { rate: formatVMwareReasonRate(swapOut!) },
         },
       ],
+      since: check.since || undefined,
     };
   }
   return { severity: null, reasons: [] };
@@ -1373,7 +1561,7 @@ export function getVMwareHostStatus(data: {
   host: VMwareResource;
   datacenter: VMwareResource | null;
   now: Date;
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }): ResourcePartStatus {
   const state: VMwareHostState = getVMwareHostState(data);
   switch (state) {
@@ -1425,7 +1613,7 @@ export function getVMwareVirtualMachineStatus(data: {
   // The hosts and datacenters the page has: what tells a disconnected VM.
   hosts?: Array<VMwareResource> | undefined;
   datacenters?: Array<VMwareResource> | undefined;
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }): ResourcePartStatus {
   const vm: VMwareResource = data.vm;
   if (vm.isTemplate === true) {
@@ -1459,7 +1647,7 @@ export function getVMwareVirtualMachineStatus(data: {
 export function getVMwareDatastoreStatus(data: {
   datastore: VMwareResource;
   now: Date;
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }): ResourcePartStatus {
   if (!toVMwareDate(data.datastore.metricsUpdatedAt)) {
     return noDataYetStatus();
@@ -1586,8 +1774,11 @@ export function getVMwareAttentionItems(data: {
   now: Date;
   routeFor: VMwareRouteFor;
   listRouteFor?: VMwareListRouteFor | undefined;
-  // The project's health rules (VMware > Settings > Health Rules).
-  rules?: VMwareHealthRules | undefined;
+  /*
+   * The project's health rules (VMware > Settings > Health Rules) and their
+   * overrides: each part is judged by its own.
+   */
+  rules?: VMwareHealthRulesInput | undefined;
 }): Array<ResourceAttentionItem> {
   const items: Array<ResourceAttentionItem> = [];
   const known: Array<VMwareResource> = [
@@ -1690,6 +1881,10 @@ export function getVMwareAttentionItems(data: {
       detail: detailOf(row),
       severity: assessment.severity,
       reasons: assessment.reasons,
+      // A rule that waited says when it began to hold (#11469).
+      ...(assessment.since
+        ? { since: { at: assessment.since, template: SINCE_RULE_BEGAN } }
+        : {}),
       route:
         kind === VMwareResourceKind.ResourcePool
           ? data.listRouteFor
@@ -1742,7 +1937,7 @@ export function getVMwareHostProblemItems(data: {
   state: VMwareHostProblemState;
   now: Date;
   routeFor: VMwareRouteFor;
-  rules?: VMwareHealthRules | undefined;
+  rules?: VMwareHealthRulesInput | undefined;
 }): Array<ResourceAttentionItem> {
   const ofKind: (kind: VMwareResourceKind) => Array<VMwareResource> = (
     kind: VMwareResourceKind,
