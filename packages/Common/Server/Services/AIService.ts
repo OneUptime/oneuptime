@@ -815,6 +815,11 @@ export interface AILogResponse {
    * presenting a cut-off answer as complete.
    */
   stopReason?: LLMCompletionResponse["stopReason"];
+  /*
+   * Set when the reply carried the model's reasoning, which content leaves
+   * out (LLMService.toAnswer): what joining the parts of one answer needs.
+   */
+  reasoning?: LLMCompletionResponse["reasoning"];
   llmLog: LlmLog;
 }
 
@@ -1819,6 +1824,15 @@ export class Service extends BaseService {
       logEntry.completionTokens = response.usage?.completionTokens || 0;
       logEntry.cachedInputTokens = response.usage?.cachedInputTokens || 0;
       logEntry.cacheCreationTokens = response.usage?.cacheCreationTokens || 0;
+      /*
+       * The answer, never the model's reasoning (LLMService.toAnswer leaves
+       * it out of content): the log shows what the feature was given, which
+       * a long reasoning would push out of the preview; the reasoning is
+       * scratch work that can repeat whatever the prompt held, and every
+       * member of the project reads AI Logs; and its tokens are still in
+       * completionTokens, as the provider counted them. A provider's raw
+       * answer, reasoning and all, is what Test LLM Provider shows.
+       */
       logEntry.responsePreview = storeContentPreviews
         ? response.content.substring(0, 2000) // Store first 2000 chars
         : LLM_LOG_PREVIEW_NOT_KEPT;
@@ -1896,6 +1910,7 @@ export class Service extends BaseService {
         content: response.content,
         toolCalls: response.toolCalls,
         stopReason: response.stopReason,
+        ...(response.reasoning ? { reasoning: response.reasoning } : {}),
         llmLog: savedLog,
       };
     } catch (error) {

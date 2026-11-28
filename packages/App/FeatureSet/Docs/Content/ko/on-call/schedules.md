@@ -69,7 +69,9 @@ flowchart TB
 | **로테이션 시작 시점** | 레이어의 로테이션이 시작되는 날짜와 시각. |
 | **교대 주기** | 온콜이 레이어의 다음 사람에게 넘어가는 주기. |
 | **첫 인계 시간** | 다음 사람에게 넘기는 첫 인계입니다. 시작 시점이거나 그 이후입니다. 이후의 인계는 로테이션 간격마다 이루어집니다. |
-| **제한** | 레이어가 온콜을 맡는 시간입니다. 스케줄의 시간대 기준으로 **제한 없음**, **하루 중 특정 시간**, **주중 특정 시간** 중 하나입니다. 그 시간 밖에서는 아래 레이어가 이어받습니다. |
+| **제한** | 레이어가 온콜을 맡는 시간(**활성 시간**)입니다. 스케줄의 시간대 기준으로 **제한 없음**, **하루 중 특정 시간**, **주중 특정 시간** 중 하나입니다. 그 시간 밖에서는 아래 레이어가 이어받습니다. |
+
+활성 시간이 있으면 시간대 하나하나가 별도의 근무입니다. 17:00부터 07:00까지는 다음 날 아침 07:00에 끝나는 하나의 근무이며, **스케줄 타임라인** , 이메일, 모바일 앱, Slack과 Microsoft Teams 어디서나 똑같고, 스케줄의 시간대 기준이며 시계가 바뀌는 밤에도 그렇습니다. 한 사람의 차례는 다음 인계까지의 모든 시간대이고, 알림은 각 방향으로 한 번씩 받습니다. 차례의 첫 시간대가 시작될 때 그 시간대와 차례가 끝나는 시각과 함께 "You are now on-call"을, 마지막 시간대가 끝날 때 "You are no longer on-call"을 받으며, 시간대마다 받지는 않습니다. 시간대마다 미리 알림을 받으려면 [캘린더 피드](/docs/on-call/calendar-feeds#알림과-재배정-알림)에서 설명하는 대로 **근무 전 알림** 에서 시간을 고르세요. 두 시간대 사이에 재정의나 아래 레이어를 통해 다른 사람이 온콜을 맡거나, 레이어 변경으로 다음 시간대가 다른 사람에게 가면 그것은 인계이며 인계로 알려집니다. 온콜 시간은 계속 시간대별로 기록되고, 온콜 정책의 채널과 피드는 계속 매번 누가 온콜인지 알립니다.
 
 어떤 레이어가 먼저 올지 바꾸려면 레이어 카드의 화살표인 **레이어를 위로 이동(우선순위 높임)** 또는 **레이어를 아래로 이동(우선순위 낮춤)** 을 사용합니다.
 
@@ -111,7 +113,10 @@ API에서는 사용자 재정의( `/api/on-call-duty-policy-user-override` )를 
 
 - `miscDataProps` 에 `firstLayerUsers` (교대하는 순서대로 나열한 사용자 ID 목록)를 넣어 스케줄을 만들면, 대시보드와 같이 첫 번째 레이어가 생깁니다. 지금부터 24시간 온콜인 **Layer 1** 입니다. `firstLayerRotation` 은 1회 담당 기간을 `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}` 와 같은 로테이션으로 지정하며, 없으면 1주입니다. 모든 사용자가 프로젝트 구성원이어야 하고 호출자가 레이어를 만들 수 있어야 하며, 그렇지 않으면 스케줄이 만들어지지 않습니다.
 - 이것들 없이 만든 스케줄에는 이전처럼 레이어가 없으며, Terraform의 스케줄 리소스는 이것들을 보내지 않습니다.
-- `rotation` 없이 만든 레이어는 늘 그래 왔듯이 매일 인계합니다.
+- `rotation` 없이 만든 레이어는 매주 인계하고, `restrictionTimes` 가 없는 레이어는 24시간 온콜입니다. 대시보드에서 새 레이어가 시작되는 방식과 같습니다.
+- 레이어의 `restrictionTimes` (활성 시간)는 종류를 `restrictionType` 에 적습니다: `None` (24시간 온콜), `Daily` 또는 `Weekly` 입니다. 두 번째 "r"이 없는 예전 철자 `restictionType` 도 읽으며, 모든 응답은 두 키 모두에 종류를 담으므로 어느 쪽으로 쓴 클라이언트나 Terraform 구성도 계속 동작합니다. 레이어는 `restrictionType` 으로 저장됩니다.
+- 레이어가 어느 시각에도 온콜이 되지 않게 하는 쓰기는 키를 밝히는 `400` 으로 거부됩니다. 종류가 없거나, 알 수 없거나, 두 철자에서 서로 다른 경우(업데이트는 레이어의 현재 종류와 다른 쪽을 택합니다), `startTime` 과 `endTime` 이 날짜와 시각이 아닌 `Daily` 시간대( `"09:00"` 만으로는 거부됩니다), `weeklyRestrictionTimes` 가 없는 `Weekly` 제한, 같은 시각에 시작하고 끝나는 시간대입니다. `intervalType` 이 `Hour` , `Day` , `Week` , `Month` , `Year` 중 하나가 아닌 `rotation` 도 같은 방식으로 거부됩니다.
+- 이런 쓰기가 거부되기 전에, 읽히는 종류 없이 저장된 레이어는 한 번도 온콜인 적이 없었습니다. OneUptime을 업그레이드하면 그런 레이어를 각각 담긴 시간에 따라 읽어 그대로 저장하고, 그 스케줄에서 누가 온콜인지 다시 계산하므로, 그 레이어의 사람들은 그때부터 호출되고 그 사실을 알림으로 받습니다.
 - API 또는 Terraform으로 스케줄의 레이어와 레이어의 사람을 바꾸면 하나의 변경으로 알립니다. 누가 당번인지는 레이어가 30초 동안 바뀌지 않은 뒤에 계산되므로, 당번이 되거나 당번에서 빠지거나 다음 차례인 사람은 기록된 레이어나 사람마다가 아니라 한 번만 알림을 받습니다. 호출은 각 변경이 저장되는 즉시 레이어가 당번으로 정한 사람에게 갑니다.
 - **레이어** 페이지의 **변경 사항 저장** 처럼 스케줄 레이어에서 차례를 맡는 사람을 한 번에 바꾸려면, `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` 로 레이어를 읽고 바꾼 다음 `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers` 로 다시 보냅니다. 여기에는 스케줄이 유지하는 모든 레이어가 우선순위가 높은 순서로, 각 레이어의 사람들이 차례 순서로 들어 있습니다. 이미 레이어에 있는 사람은 `layerUserId` 로, 추가하는 사람은 `userId` 만으로 지정합니다. `deletedLayerIds` 에는 삭제할 레이어를 넣습니다.
 - 저장은 전부 기록되거나 전혀 기록되지 않으며, 누가 당번인지는 한 번만, 즉시 계산됩니다. 다른 사람이 레이어를 바꾼 뒤에 한 저장은 그 `basedOnVersion` 이 더 이상 레이어의 것이 아니므로 409로 거부됩니다. 레이어를 다시 읽고 지금 있는 내용에 변경을 적용하세요. Terraform의 `oneuptime_on_call_schedule_layers` 리소스는 이 방식으로 스케줄의 레이어를 저장합니다.
@@ -129,6 +134,28 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
     }
   }'
 ```

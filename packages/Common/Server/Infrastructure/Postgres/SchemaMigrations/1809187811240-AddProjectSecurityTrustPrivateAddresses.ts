@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * it without rewriting a row of "Project", so the lock lasts an instant
  * (Docs/migrations/README.md).
  */
-export class AddProjectSecurityTrustPrivateAddresses1809187791240
+export class AddProjectSecurityTrustPrivateAddresses1809187811240
   implements MigrationInterface
 {
-  public name: string = "AddProjectSecurityTrustPrivateAddresses1809187791240";
+  public name: string = "AddProjectSecurityTrustPrivateAddresses1809187811240";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

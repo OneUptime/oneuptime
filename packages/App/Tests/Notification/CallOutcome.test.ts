@@ -66,9 +66,9 @@ describe("each final status Twilio sends", () => {
     });
   });
 
-  test("completed: it was answered - the log stays Success and the notification sent, until the person presses 1", () => {
+  test("completed: it was answered - the log moves on from Calling to Success, and the notification stays sent until the person presses 1", () => {
     expect(outcomeOf("completed", "42")).toEqual({
-      callStatus: null,
+      callStatus: CallStatus.Success,
       notificationStatus: null,
       sentence: "The call was answered and lasted 42 seconds.",
       deliveryStatus: NotificationDeliveryStatus.Answered,

@@ -123,7 +123,7 @@ Vorlagen lesen die letzten 5 Minuten, sofern die Tabelle nichts anderes sagt. Ei
 | VM CPU Ready Contention | Virtuelle Maschine | Warnung | `vcenter.vm.cpu.readiness`, Avg pro VM | Über 10 %: Die VM war bereit zu laufen, aber der Host hatte keinen physischen Kern für sie. Im Gast unsichtbar | Bei 9 % oder darunter |
 | VM Memory Saturation | Virtuelle Maschine | Warnung | `vcenter.vm.memory.utilization`, Avg pro VM | Über 90 % ihres Arbeitsspeichers: Der Gast beginnt gleich auszulagern | Bei 81 % oder darunter |
 | VM Memory Ballooning | Virtuelle Maschine | Warnung | `vcenter.vm.memory.ballooned`, Max pro VM | Über 0: Dem Host fehlt Arbeitsspeicher, und er holt ihn von diesem Gast zurück | Bei 0 |
-| VM Memory Swapping | Virtuelle Maschine | Kritisch | `vcenter.vm.memory.swapped`, Max pro VM | Über 0: Der Host lagert den Arbeitsspeicher der VM aus, das letzte Mittel nach Ballooning und Komprimierung | Bei 0 |
+| VM Memory Swapping | Virtuelle Maschine | Kritisch | `vcenter.vm.memory.swapped`, Max pro VM | Über 0: Ein Teil des Arbeitsspeichers der VM liegt in der Swap-Datei des Hosts, gerade ausgelagert oder von früherem Speicherdruck übrig, denn ESXi behält ihn dort, bis die VM darauf zugreift. Die Übersicht des vCenters unterscheidet beides: siehe [Ausgelagerter Arbeitsspeicher ist keine laufende Auslagerung](/docs/telemetry/vmware#ausgelagerter-arbeitsspeicher-ist-keine-laufende-auslagerung) | Bei 0 |
 | VM Disk Latency High | Virtuelle Maschine | Warnung | `vcenter.vm.disk.latency.max`, Max pro VM | Über 50 ms: Anwendungen im Gast laufen bei E/A in Zeitüberschreitungen | Bei 45 ms oder darunter |
 | VM Disk Usage High | Virtuelle Maschine | Warnung | `vcenter.vm.disk.utilization`, Avg pro VM | Über 90 % ihres bereitgestellten Speichers belegt: Eine Thin-Provisioned-VM steht kurz davor, ihre volle Größe zu beanspruchen | Bei 81 % oder darunter |
 | Datastore Capacity Warning | Datenspeicher | Warnung | `vcenter.datastore.disk.utilization`, Avg pro `resource.vcenter.datastore.name` | Über 80 %: eine frühe Warnung, da Thin-Disks und Snapshots den Rest schnell verbrauchen | Bei 72 % oder darunter |
@@ -214,7 +214,7 @@ Die Metriken unten sind der Katalog, den das Monitorformular anbietet. Die Einhe
 | `vcenter.vm.disk.utilization`              | `%`           | Prozentsatz (0–100) des bereitgestellten Speichers der VM, der auf dem Datenspeicher belegt ist — eine Thin-Provisioned-VM nahe 100 % steht kurz davor, ihre volle Größe zu beanspruchen |
 | `vcenter.vm.memory.ballooned`              | `MiBy`        | Gastspeicher, den der Balloon-Treiber (VMware Tools) von der VM zurückgeholt hat. Über 0 bedeutet, dass dem ESXi-Host Arbeitsspeicher fehlt                                    |
 | `vcenter.vm.memory.granted`                | `MiBy`        | Maschinenspeicher, den der Host der VM gewährt hat. _Standardmäßig aus_ — aktivieren Sie `vcenter.vm.memory.granted`                                                          |
-| `vcenter.vm.memory.swapped`                | `MiBy`        | Arbeitsspeicher, den die VM aus der Swap-Datei des Hosts erhält — das letzte Mittel nach Ballooning und Komprimierung; jeder Wert über 0 bedeutet, dass die VM für RAM mit Datenträgerlatenz bezahlt |
+| `vcenter.vm.memory.swapped`                | `MiBy`        | Arbeitsspeicher, den die VM aus der Swap-Datei des Hosts erhält — das letzte Mittel nach Ballooning und Komprimierung. ESXi behält eine ausgelagerte Seite, bis die VM darauf zugreift, daher kann ein Wert über 0 von früherem Speicherdruck übrig sein |
 | `vcenter.vm.memory.swapped_ssd`            | `KiBy`        | Arbeitsspeicher der VM, der in den Flash-Swap-Cache des Hosts ausgelagert wurde — weniger schmerzhaft als die Swap-Datei, aber dennoch Speicherdruck                           |
 | `vcenter.vm.memory.usage`                  | `MiBy`        | Arbeitsspeicher, den der Gast der VM aktiv nutzt. Wird für eingeschaltete und ausgeschaltete VMs gleichermaßen gesendet (0, wenn aus)                                           |
 | `vcenter.vm.memory.utilization`            | `%`           | Speicherauslastung der VM als Prozentsatz (0–100) ihres konfigurierten Arbeitsspeichers                                                                                        |
@@ -241,7 +241,7 @@ Die Metriken unten sind der Katalog, den das Monitorformular anbietet. Die Einhe
 | `vcenter.resource_pool.memory.ballooned` | `MiBy`     | Vom Balloon-Treiber über alle VMs im Pool zurückgeholter Arbeitsspeicher                                                                                                 |
 | `vcenter.resource_pool.memory.granted`   | `MiBy`     | Den VMs des Pools gewährter Hostspeicher, aufgefächert nach `type` (`private` / `shared` — gemeinsame Seiten werden durch Transparent Page Sharing dedupliziert)          |
 | `vcenter.resource_pool.memory.shares`    | `{shares}` | Am Pool konfigurierte Speicheranteile                                                                                                                                    |
-| `vcenter.resource_pool.memory.swapped`   | `MiBy`     | Arbeitsspeicher, den die VMs des Pools aus dem Swap-Bereich der ESXi-Hosts erhalten — jeder Wert über 0 bedeutet, dass mindestens eine VM im Pool vom Host ausgelagert wird |
+| `vcenter.resource_pool.memory.swapped`   | `MiBy`     | Arbeitsspeicher, den die VMs des Pools aus dem Swap-Bereich der ESXi-Hosts erhalten — ein Wert über 0 bedeutet, dass mindestens eine VM im Pool Arbeitsspeicher im Host-Swap hat, jetzt oder von früher |
 | `vcenter.resource_pool.memory.usage`     | `MiBy`     | Vom Pool genutzter Arbeitsspeicher, aufgefächert nach `type` (`guest` / `host` / `overhead`) bei neueren Collector-Builds; ältere Builds senden eine einzige Serie ohne Typ. Filtern Sie `type = guest` |
 
 ### vSAN
@@ -288,7 +288,7 @@ Einige Kriterien als Ausgangspunkt:
 - **Ein Datenspeicher läuft voll:** `vcenter.datastore.disk.utilization`, Durchschnitt, gruppiert nach `resource.vcenter.datastore.name`, **Größer als** `80`.
 - **Ein Cluster hat einen Host verloren:** `vcenter.cluster.host.count` gefiltert auf `effective = false`, Maximum, gruppiert nach `resource.vcenter.cluster.name`, **Größer als** `0`.
 - **Weniger VMs laufen als erwartet:** `vcenter.cluster.vm.count` gefiltert auf `power_state = on` und `resource.vcenter.cluster.name = Production`, Summe, **Kleiner als** die Anzahl, die Sie erwarten.
-- **Eine VM wird vom Host ausgelagert:** `vcenter.vm.memory.swapped`, Maximum, gruppiert nach `resource.vcenter.vm.name`, **Größer als** `0`.
+- **Eine VM hat viel Arbeitsspeicher im Host-Swap:** `vcenter.vm.memory.swapped`, Maximum, gruppiert nach `resource.vcenter.vm.name`, **Größer als** `1024`. Ein paar MiB können dort noch lange liegen, nachdem der Speicherdruck vorbei ist, daher verhindert ein Schwellenwert über 0, dass von früher übriger Arbeitsspeicher die Kriterien auslöst.
 
 ### Standardkriterien
 

@@ -1,4 +1,5 @@
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
+import TelemetryInsertBackpressure from "Common/Server/Utils/Telemetry/TelemetryInsertBackpressure";
 
 export default class AppQueueService {
   /*
@@ -18,7 +19,11 @@ export default class AppQueueService {
     ]: [number, number, number, number, number] = await Promise.all([
       Queue.getQueueBacklogSize(QueueName.Worker),
       Queue.getQueueBacklogSize(QueueName.Workflow),
-      Queue.getQueueBacklogSize(QueueName.Telemetry),
+      /*
+       * Without its bulk telemetry while ClickHouse is refusing inserts:
+       * more pods cannot store it faster (TelemetryInsertBackpressure).
+       */
+      TelemetryInsertBackpressure.getTelemetryBacklogForScaling(),
       Queue.getQueueBacklogSize(QueueName.Runbook),
       Queue.getQueueBacklogSize(QueueName.AIInvestigation),
     ]);

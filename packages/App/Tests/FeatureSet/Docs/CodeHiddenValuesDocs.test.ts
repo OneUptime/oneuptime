@@ -94,7 +94,7 @@ describe("the Ask AI page on a code change that writes placeholders where values
     const bullet: string = codeChangesSectionOf("en");
 
     for (const said of [
-      "Ask AI is never shown values that look like secrets or personal data, such as IP addresses, email addresses and keys: it reads a placeholder such as `[redacted-ip]` in their place.",
+      "Ask AI is never shown values that look like secrets or personal data, such as IP addresses, email addresses, phone numbers, Social Security numbers and keys: it reads a placeholder such as `[redacted-ip]` in their place.",
       "When its version keeps such a line exactly as it was shown, OneUptime writes the value back as the file has it, and the card says nothing of it.",
       "A placeholder stays on a line Ask AI changed, on a line that reads the same as another line with a different value, and in a new file.",
       "A placeholder the file on the branch already has does not count.",
@@ -119,10 +119,12 @@ describe("the Ask AI page on a code change that writes placeholders where values
       readRepoFile("Common/Server/Utils/AI/Toolbox/CodeFilesSeen.ts"),
     );
 
-    // IP addresses, email addresses and keys are hidden, as placeholders such as [redacted-ip].
+    // IP addresses, email addresses, phone and Social Security numbers and keys are hidden, as placeholders such as [redacted-ip].
     for (const placeholder of [
       'placeholder: "[redacted-ip]"',
       'placeholder: "[redacted-email]"',
+      'placeholder: "[redacted-phone]"',
+      'placeholder: "[redacted-ssn]"',
       'placeholder: "[redacted-aws-key]"',
       'const PRIVATE_KEY_PLACEHOLDER: string = "[redacted-private-key]"',
     ]) {

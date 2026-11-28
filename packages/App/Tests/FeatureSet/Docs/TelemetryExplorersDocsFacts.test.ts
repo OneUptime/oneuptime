@@ -110,6 +110,16 @@ import {
   SERVICE_RECEIVING_DATA_LABEL,
   SERVICE_WAITING_FOR_DATA_LABEL,
 } from "Common/Types/Service/ServiceTelemetryStatus";
+import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
+import ObjectID from "Common/Types/ObjectID";
+import MetricPipelineRuleType from "Common/Types/Metrics/MetricPipelineRuleType";
+import MetricPipelineEngine, {
+  MutableMetricRow,
+} from "Common/Server/Utils/Telemetry/MetricPipelineEngine";
+import {
+  buildMetricScrubFilters,
+  METRIC_REDACT_REPLACEMENT,
+} from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1783,14 +1793,19 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
     ]);
     expect(engine).toContain("HIDING_RULE_TYPES.has(rule.ruleType");
     expect(page).toContain(
-      "A Drop, Remove Attribute or Redact Attribute rule, which hides data, also matches its regular expression in a value read as Data Security reads it: with its percent-escapes read, as a form writes a URL's query string, with a plus sign for each space, with every script's digits read as ASCII digits, and with a number's fullwidth signs and separators read as ASCII ones. The other rules match the value as it is written.",
+      "A Drop, Remove Attribute or Redact Attribute rule, which hides data, also matches its regular expression in a value read as Data Security reads it: with its percent-escapes read, as a form writes a URL's query string, with a plus sign for each space, with every script's digits read as ASCII digits, with a number's fullwidth signs and separators and the other dashes between its digits read as ASCII ones, and with fullwidth letters read as ASCII ones. The other rules match the value as it is written.",
     );
-    // The readings those rules try a value in, the query string's and the fullwidth forms' among them (#11199, #11115).
+    // The readings those rules try a value in: a Custom Regex rule's, the query string's, the fullwidth forms' and letters' among them (#11199, #11115, #11385).
+    expect(engine).toContain(
+      "const PATTERN_READINGS: ReadingNeeds = CUSTOM_PATTERN_READINGS;",
+    );
     const readings: string = between(
-      engine,
-      "const PATTERN_READINGS: ReadingNeeds = {",
+      readPackageFile("Common/Types/Telemetry/ScrubRule.ts"),
+      "export const CUSTOM_PATTERN_READINGS: ReadingNeeds = {",
       "};",
     );
+
+    expect(readings).toContain("readsFullwidthLetters: true");
 
     expect(readings).toContain("readsPercentEncoded: true");
     expect(readings).toContain("readsPlusAsSpace: true");
@@ -1817,6 +1832,43 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
     expect(page).toContain(
       "The **Redact Attribute** rule [Data Security](/docs/data-security/telemetry) makes for an IP address, an email address, a card number, a phone number or a Social Security number in an attribute uses it.",
     );
+  });
+
+  /*
+   * #11383: a Matches Pattern Type filter reads a value under the
+   * attribute's key, as a scrub rule of that Pattern Type does - a
+   * national number alone under `user.phone` is a phone number, and the
+   * same number under a key that names nothing is not.
+   */
+  it("says a Matches Pattern Type filter reads a value under the attribute's key", () => {
+    expect(page).toContain(
+      "found as a log or trace scrub rule of that **Pattern Type** finds one, under the attribute's key: a national phone number alone under `user.phone` is one.",
+    );
+
+    const leftUnder: (key: string) => unknown = (key: string): unknown => {
+      const rule: MetricPipelineRule = new MetricPipelineRule();
+
+      rule.id = ObjectID.generate();
+      rule.ruleType = MetricPipelineRuleType.RedactAttribute;
+      rule.addAttributeKey = key;
+      // The filter Data Security's Scrub It gives the rule: Matches Pattern Type, on its key.
+      rule.filters = buildMetricScrubFilters("phone-number", key);
+
+      const row: MutableMetricRow | null = MetricPipelineEngine.applyRules(
+        {
+          name: "signups",
+          attributes: { [key]: "02012345678" },
+          attributeKeys: [key],
+        },
+        [rule],
+        [],
+      );
+
+      return (row?.attributes as JSONObject | undefined)?.[key];
+    };
+
+    expect(leftUnder("user.phone")).toBe(METRIC_REDACT_REPLACEMENT);
+    expect(leftUnder("order.id")).toBe("02012345678");
   });
 
   it("opens the metric list on the past hour", () => {

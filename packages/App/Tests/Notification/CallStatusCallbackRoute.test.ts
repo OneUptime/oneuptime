@@ -29,7 +29,8 @@ import type { Mock } from "jest-mock";
  * Every call CallService places through Twilio for a project names this
  * route as its status callback, with the call's log id and a token only
  * that log holds. When the call ends, Twilio posts its final status here:
- * the call's log moves on from Success - Missed Call, Busy, Error - and the
+ * the call's log moves on from Calling (#11138) - Success for an answered
+ * call, Missed Call, Busy, Error - and the
  * on-call notification it was made for, while it is only sent, becomes Not
  * Answered or Error, whose own hooks tell the record's feed ("Nitin did not
  * answer the phone call"). The route is a public webhook: no sign-in, no
@@ -436,7 +437,8 @@ beforeEach(() => {
   callLog = new CallLog();
   callLog.id = CALL_LOG_ID;
   callLog.projectId = PROJECT_ID;
-  callLog.status = CallStatus.Success;
+  // Placed, and ringing: what CallService writes until Twilio says how it ended (#11138).
+  callLog.status = CallStatus.Calling;
   callLog.statusMessage = PLACED_MESSAGE;
   callLog.statusCallbackToken = TOKEN;
   callLog.userOnCallLogTimelineId = NOTIFICATION_ID;
@@ -494,7 +496,7 @@ function expectRefusedAsItWas(answer: Answer): void {
   expect(sendEmptySuccess).not.toHaveBeenCalled();
   expectNothingWritten();
   expectNothingCounted();
-  expect(callLog!.status).toBe(CallStatus.Success);
+  expect(callLog!.status).toBe(CallStatus.Calling);
   expect(callLog!.statusMessage).toBe(PLACED_MESSAGE);
   expect(notification!.status).toBe(UserNotificationStatus.Sent);
 }
@@ -534,7 +536,7 @@ describe("a call that was not answered", () => {
       id: CALL_LOG_ID,
       data: { status: CallStatus.MissedCall, statusMessage: message },
       expectedData: {
-        status: CallStatus.Success,
+        status: CallStatus.Calling,
         statusMessage: PLACED_MESSAGE,
       },
     });
@@ -616,16 +618,16 @@ describe("a call that could not be connected", () => {
 });
 
 describe("a call that was answered", () => {
-  test("stays Success, and its notification sent - only the message says how long it lasted", async () => {
+  test("moves on from Calling to Success, and its notification stays sent - the message says how long it lasted", async () => {
     await callback(ended("completed", { CallDuration: "42" }));
 
     const message: string = `Call ID: ${CALL_SID}. The call was answered and lasted 42 seconds.`;
 
     expect(logWrite()).toEqual({
       id: CALL_LOG_ID,
-      data: { statusMessage: message },
+      data: { status: CallStatus.Success, statusMessage: message },
       expectedData: {
-        status: CallStatus.Success,
+        status: CallStatus.Calling,
         statusMessage: PLACED_MESSAGE,
       },
     });
@@ -638,10 +640,83 @@ describe("a call that was answered", () => {
     await callback(ended("completed", { CallDuration: "42" }));
 
     expect(logWrite()["expectedData"]).toEqual({
-      status: CallStatus.Success,
+      status: CallStatus.Calling,
       statusMessage: null,
     });
   });
+});
+
+/*
+ * A call placed by a server from before Calling was written (#11138) - its
+ * log says Success while it rings - that ends once the server is updated:
+ * its outcome is written all the same, over the Success it was placed with.
+ */
+describe("a call placed as Success, before Calling was written", () => {
+  beforeEach(() => {
+    callLog!.status = CallStatus.Success;
+  });
+
+  test("rang out: a missed call, written over the Success it was placed with", async () => {
+    await callback(ended("no-answer"));
+
+    expect(logWrite()).toEqual({
+      id: CALL_LOG_ID,
+      data: {
+        status: CallStatus.MissedCall,
+        statusMessage: `Call ID: ${CALL_SID}. The call was not answered: it rang out.`,
+      },
+      expectedData: {
+        status: CallStatus.Success,
+        statusMessage: PLACED_MESSAGE,
+      },
+    });
+    expect((notificationUpdate()["data"] as JSONObject)["status"]).toBe(
+      UserNotificationStatus.NotAnswered,
+    );
+  });
+
+  test("answered: Success, with how long it lasted", async () => {
+    await callback(ended("completed", { CallDuration: "42" }));
+
+    expect(logWrite()).toEqual({
+      id: CALL_LOG_ID,
+      data: {
+        status: CallStatus.Success,
+        statusMessage: `Call ID: ${CALL_SID}. The call was answered and lasted 42 seconds.`,
+      },
+      expectedData: {
+        status: CallStatus.Success,
+        statusMessage: PLACED_MESSAGE,
+      },
+    });
+  });
+
+  test("could not be connected: an error", async () => {
+    await callback(ended("failed"));
+
+    expect((logWrite()["data"] as JSONObject)["status"]).toBe(CallStatus.Error);
+  });
+});
+
+describe("a call whose log moved on is left", () => {
+  test.each([
+    CallStatus.MissedCall,
+    CallStatus.Busy,
+    CallStatus.Voicemail,
+    CallStatus.Error,
+    CallStatus.LowBalance,
+  ])(
+    "a log that says %s takes no other outcome",
+    async (status: CallStatus) => {
+      callLog!.status = status;
+      callLog!.statusMessage = `Call ID: ${CALL_SID}. Something else ended it.`;
+
+      await callback(ended("completed", { CallDuration: "42" }));
+
+      expectNothingWritten();
+      expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    },
+  );
 });
 
 describe("what is never written over", () => {

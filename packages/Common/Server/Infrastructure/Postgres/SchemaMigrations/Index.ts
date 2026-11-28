@@ -1224,7 +1224,12 @@ import { AddExternalMcpToolReadOnlyMarks1809187791081 } from "./1809187791081-Ad
 import { AddMonitorProbeableIndex1809187791119 } from "./1809187791119-AddMonitorProbeableIndex";
 import { AddProjectSecurityAccessLogFormat1809187791129 } from "./1809187791129-AddProjectSecurityAccessLogFormat";
 import { AddProbeLastLateDueAt1809187791200 } from "./1809187791200-AddProbeLastLateDueAt";
-import { AddProjectSecurityTrustPrivateAddresses1809187791240 } from "./1809187791240-AddProjectSecurityTrustPrivateAddresses";
+import { AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201 } from "./1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds";
+import { AddScheduleRosterTurnAndRestrictionTypeKey1809187791269 } from "./1809187791269-AddScheduleRosterTurnAndRestrictionTypeKey";
+import { AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260 } from "./1809187801260-AddMonitorTemplateChangesAndCreatedFromTemplate";
+import { AddProjectCallVoice1809187801300 } from "./1809187801300-AddProjectCallVoice";
+import { AddVMwareHealthSettingsAndSwapRates1809187811157 } from "./1809187811157-AddVMwareHealthSettingsAndSwapRates";
+import { AddProjectSecurityTrustPrivateAddresses1809187811240 } from "./1809187811240-AddProjectSecurityTrustPrivateAddresses";
 
 export default [
   InitialMigration,
@@ -2453,5 +2458,10 @@ export default [
   AddMonitorProbeableIndex1809187791119,
   AddProjectSecurityAccessLogFormat1809187791129,
   AddProbeLastLateDueAt1809187791200,
-  AddProjectSecurityTrustPrivateAddresses1809187791240,
+  AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201,
+  AddScheduleRosterTurnAndRestrictionTypeKey1809187791269,
+  AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260,
+  AddProjectCallVoice1809187801300,
+  AddVMwareHealthSettingsAndSwapRates1809187811157,
+  AddProjectSecurityTrustPrivateAddresses1809187811240,
 ];

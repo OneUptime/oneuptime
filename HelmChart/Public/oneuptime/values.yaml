@@ -1486,6 +1486,15 @@ twilio:
     name:
     # The key of that Secret that holds the auth token.
     authTokenKey: authToken
+  # The voice the server's calls speak with, with accountSid or without it:
+  # one of Polly.Joanna-Neural, Polly.Matthew-Neural, Polly.Amy-Neural,
+  # Polly.Brian-Neural, Google.en-US-Neural2-F or Google.en-US-Neural2-J. A
+  # call to someone who reads OneUptime in another language speaks it, in a
+  # voice of that language of the same kind. Twilio charges the account extra
+  # for these voices. Set, it is the voice, and Admin Dashboard > Settings >
+  # Call and SMS shows it read-only; leave it empty to choose the voice there.
+  # See https://oneuptime.com/docs/self-hosted/twilio-integration#the-voice-calls-speak-with
+  callVoice:
 
 # How this server sends its own email - what Admin Dashboard > Settings >
 # Emails otherwise sets up. Set serverType, and the settings are the ones these
@@ -1589,6 +1598,21 @@ alerts:
 # clients do not retry, but no data is queued or persisted.
 telemetry:
   disableIngestion: false
+  # Telemetry waits in Valkey until a worker stores it. A project with this
+  # many batches of one signal (logs, traces, metrics, profiles, security
+  # events) already waiting is answered 429 with a Retry-After for that
+  # signal alone - its senders send the batches again later - while every
+  # other project carries on. A healthy queue holds almost nothing of any
+  # project, so only a flood, or ingest stopped for long, gets here: on
+  # 2026-11-27 one project's metrics flood was 93% of a 700,000-job queue,
+  # grew Valkey to 35 GB and took the probes down with it. 0 turns it off.
+  projectQueueLimit: 10000
+  # Every project's logs, traces, metrics, profiles and security events are
+  # answered 429 the same way while Valkey uses more than this share of its
+  # maxmemory, keeping the rest for probe check results, the Worker and
+  # Workflow queues and the caches. Needs a maxmemory (valkey.maxmemory,
+  # derived from valkey.master.resources.limits.memory). 0 turns it off.
+  valkeyMemoryLimitPercent: 85
 
 # Incoming Request monitors whose criteria group by a payload field evaluate
 # every request they receive, in order: each waits in Valkey until its
@@ -2578,7 +2602,10 @@ app:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
-    # Scale up when combined queue backlog (waiting + delayed jobs across worker + workflow + telemetry + runbook) exceeds this threshold
+    # Scale up when combined queue backlog (waiting + delayed jobs across worker + workflow + telemetry + runbook) exceeds this threshold.
+    # While ClickHouse is refusing telemetry inserts the backlog leaves out the
+    # bulk telemetry waiting for it, which more pods could not store faster
+    # (see worker.keda.queueSizeThreshold).
     queueSizeThreshold: 10
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, app.resources.requests.cpu must also be set.
@@ -2686,6 +2713,11 @@ worker:
   keda:
     enabled: false
     minReplicas: 1
+    # Every worker pod runs up to telemetryFanInMaxConcurrentInserts ClickHouse
+    # INSERTs, so maxReplicas x that is the most the fleet sends ClickHouse at
+    # once: keep it under ~60% of ClickHouse's max_concurrent_queries
+    # (docs/production-checklist.md), or set telemetryWriter.enabled to make it
+    # a constant.
     maxReplicas: 100
     # /metrics/queue-size reports the GLOBAL queue backlog (waiting + delayed
     # jobs across worker + workflow + telemetry + runbook) and KEDA reads it as
@@ -2698,6 +2730,14 @@ worker:
     # counts delayed jobs, and every cron repeatable holds one, so it never
     # falls to zero: set this high enough that the idle floor alone cannot pin
     # the fleet at maxReplicas.
+    #
+    # While ClickHouse is refusing telemetry inserts (overloaded, too many
+    # parts, out of reach) the backlog leaves out the bulk telemetry waiting
+    # for it - more pods could not store it faster, and each would add
+    # inserts to the ClickHouse refusing them, as on 2026-11-27 when the
+    # workers went from 10 to 139. The monitoring work and the other queues
+    # still count, and the telemetry counts again two minutes after the last
+    # refused insert.
     queueSizeThreshold: 25
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, worker.resources.requests.cpu must also be set.

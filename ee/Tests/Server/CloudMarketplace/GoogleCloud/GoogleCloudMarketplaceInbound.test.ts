@@ -41,8 +41,14 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
     __esModule: true,
     ...jest.requireActual("Common/Server/EnvironmentConfig"),
     GoogleCloudMarketplaceProviderId: "oneuptime-public",
+    GoogleCloudMarketplaceServiceName:
+      "oneuptime.endpoints.oneuptime-public.cloud.goog",
   };
 });
+
+// The provider's other product, bought on the same account: its Kubernetes app.
+const OTHER_PRODUCT: string =
+  "oneuptime-enterprise.endpoints.oneuptime-public.cloud.goog";
 
 jest.mock("Common/Server/Services/MarketplaceSubscriptionService", () => {
   return {
@@ -582,6 +588,54 @@ describe("GoogleCloudMarketplaceInbound.handleEvent", () => {
     await inbound.handleEvent(event({ eventType: "ENTITLEMENT_CANCELLED" }));
 
     expect(reportFinalUsage).not.toHaveBeenCalled();
+  });
+
+  it("leaves alone a new order of another product, even from a buyer who has signed up", async () => {
+    api.getEntitlement.mockResolvedValue(
+      entitlement({
+        id: "ent-k8s",
+        state: "ENTITLEMENT_ACTIVATION_REQUESTED",
+        product: OTHER_PRODUCT,
+        plan: "enterprise",
+      }),
+    );
+    findPurchase.mockResolvedValue(linkedPurchase());
+
+    await inbound.handleEvent(
+      event({
+        eventType: "ENTITLEMENT_CREATION_REQUESTED",
+        entitlementId: "ent-k8s",
+      }),
+    );
+
+    expect(api.approveEntitlement).not.toHaveBeenCalled();
+    expect(recordPurchase).not.toHaveBeenCalled();
+  });
+
+  it("does not move this product's purchase onto another product's order, or end it with that order", async () => {
+    // As production had it: the other product's order had been recorded on the purchase.
+    findPurchase.mockResolvedValue(
+      linkedPurchase({ externalEntitlementId: "ent-k8s" }),
+    );
+
+    for (const state of ["ENTITLEMENT_ACTIVE", "ENTITLEMENT_CANCELLED"]) {
+      api.getEntitlement.mockResolvedValue(
+        entitlement({
+          id: "ent-k8s",
+          state: state,
+          product: OTHER_PRODUCT,
+          plan: "enterprise",
+        }),
+      );
+
+      await inbound.handleEvent(
+        event({ eventType: state, entitlementId: "ent-k8s" }),
+      );
+    }
+
+    expect(reportFinalUsage).not.toHaveBeenCalled();
+    expect(recordPurchase).not.toHaveBeenCalled();
+    expect(updatePurchase).not.toHaveBeenCalled();
   });
 
   it("ignores an old order of the account ending, while a newer one bills", async () => {

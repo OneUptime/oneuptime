@@ -1,4 +1,7 @@
-import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
+import {
+  ScrubRegExp,
+  scrubRegExpUnderKey,
+} from "Common/Types/Telemetry/ScrubRule";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
@@ -499,15 +502,22 @@ export default class SessionReplayScrubService {
       }
     }
 
-    result = this.scrubString(result, compiledRules, state);
+    result = this.scrubString(result, compiledRules, state, key);
 
     return result;
   }
 
+  /*
+   * The value-shaped rules over one string. `key`: the property or DOM
+   * attribute it is the value of, when it is one - a pattern rule reads it
+   * as that key says (ScrubRegExp.underKey, #11383), as a log rule reads an
+   * attribute: a Phone Number rule hides 02012345678 under `data-phone`.
+   */
   private static scrubString(
     value: string,
     compiledRules: Array<CompiledScrubRule>,
     state: SessionReplayScrubResult,
+    key?: string | undefined,
   ): string {
     if (!value) {
       return value;
@@ -537,8 +547,13 @@ export default class SessionReplayScrubService {
 
       const action: string =
         (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        key,
+        result,
+      );
 
-      const replaced: string = compiled.regex.replace(
+      const replaced: string = regex.replace(
         result,
         (match: string): string => {
           return this.applyScrubAction(
@@ -546,7 +561,7 @@ export default class SessionReplayScrubService {
             action,
             patternType,
             compiled.rule.projectId,
-            compiled.regex,
+            regex,
           );
         },
       );

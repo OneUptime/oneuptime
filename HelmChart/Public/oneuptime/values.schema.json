@@ -2238,6 +2238,22 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "callVoice": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        null,
+                        "",
+                        "Polly.Joanna-Neural",
+                        "Polly.Matthew-Neural",
+                        "Polly.Amy-Neural",
+                        "Polly.Brian-Neural",
+                        "Google.en-US-Neural2-F",
+                        "Google.en-US-Neural2-J"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -2548,6 +2564,17 @@
             "properties": {
                 "disableIngestion": {
                     "type": "boolean"
+                },
+                "projectQueueLimit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Batches of one signal a project may have waiting in the telemetry queue before more of that signal are answered 429 with a Retry-After. 0 turns it off."
+                },
+                "valkeyMemoryLimitPercent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "description": "Share of Valkey's maxmemory above which every project's bulk telemetry is answered 429 with a Retry-After. 0 turns it off."
                 }
             },
             "additionalProperties": false

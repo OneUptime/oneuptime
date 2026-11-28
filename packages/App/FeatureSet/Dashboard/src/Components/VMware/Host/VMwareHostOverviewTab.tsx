@@ -1,3 +1,5 @@
+import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -42,7 +44,7 @@ import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
-  VMWARE_HOST_SATURATION_PERCENT,
+  getVMwareThresholdLine,
   getVMwareHostState,
   isVMwareIssueAbout,
   knowsVMwareHostVirtualMachineStates,
@@ -86,13 +88,19 @@ import {
 } from "./VMwareHostDeviceTables";
 
 /*
- * A tile's bar turns amber where the host's alerts and Needs attention do,
- * past 90%, and never red: a busy host is one to look at.
+ * A tile's bar turns amber where the host's Needs attention does - past
+ * 90%, or the line the project's rule sets, none when it turned the rule
+ * off - and never red: a busy host is one to look at.
  */
-const SATURATION_THRESHOLDS: { warn: number; danger: number } = {
-  warn: VMWARE_HOST_SATURATION_PERCENT,
-  danger: Number.POSITIVE_INFINITY,
-};
+function saturationThresholds(threshold: number | null): {
+  warn: number;
+  danger: number;
+} {
+  return {
+    warn: getVMwareThresholdLine(threshold),
+    danger: Number.POSITIVE_INFINITY,
+  };
+}
 
 /*
  * An ESXi host's Overview: the same story the host page outside VMware
@@ -162,6 +170,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const rules: VMwareHealthRules = useVMwareHealthRules();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -378,7 +387,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
               : undefined
           }
           percent={tiles.cpuPercent}
-          thresholds={SATURATION_THRESHOLDS}
+          thresholds={saturationThresholds(rules.hostCpuWarningPercent)}
           description={VMWARE_METRIC_DESCRIPTIONS.hostCpu}
         />
         <GoldenMetricTile
@@ -394,7 +403,7 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
               : undefined
           }
           percent={tiles.memoryPercent}
-          thresholds={SATURATION_THRESHOLDS}
+          thresholds={saturationThresholds(rules.hostMemoryWarningPercent)}
           description={VMWARE_METRIC_DESCRIPTIONS.hostMemory}
         />
         <GoldenMetricTile

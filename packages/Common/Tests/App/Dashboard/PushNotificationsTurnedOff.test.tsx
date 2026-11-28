@@ -144,6 +144,7 @@ function vars(disablePushNotifications: boolean): GlobalConfigVars {
     disablePushNotifications: disablePushNotifications,
     // The server sends email; only its push is in question here.
     canSendEmail: true,
+    canProjectsChooseCallVoice: false,
   };
 }
 

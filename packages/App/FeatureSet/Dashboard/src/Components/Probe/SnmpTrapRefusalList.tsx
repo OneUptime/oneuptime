@@ -1,11 +1,16 @@
+import SnmpEngineIdValue from "./SnmpEngineIdValue";
 import {
+  SNMP_TRAP_REFUSAL_ENGINE_ID_FIX,
   SNMP_TRAP_REFUSAL_FIXES,
   SNMP_TRAP_REFUSAL_HEADLINE,
   SNMP_TRAP_REFUSAL_REASONS,
   SNMP_TRAP_REFUSAL_WHEN,
 } from "./SnmpTrapReceiverCopy";
 import OneUptimeDate from "Common/Types/Date";
-import { SnmpTrapRefusal } from "Common/Types/Probe/SnmpTrapReceiver";
+import {
+  SnmpTrapRefusal,
+  SnmpTrapRefusalReason,
+} from "Common/Types/Probe/SnmpTrapReceiver";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -13,6 +18,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   refusals: Array<SnmpTrapRefusal>;
   dataTestId?: string | undefined;
+  /*
+   * The probe's SNMPv3 engine ID, where the list is drawn away from the
+   * probe's own page: an inform sent to another engine ID then says the
+   * right one, to copy (#11173).
+   */
+  probeEngineId?: string | undefined;
 }
 
 /*
@@ -55,11 +66,27 @@ const SnmpTrapRefusalList: FunctionComponent<ComponentProps> = (
             <p className="text-sm font-medium text-gray-900 break-words">
               {headline}
             </p>
-            <p className="mt-1 text-sm text-gray-600">
-              {translator.translateText(
-                SNMP_TRAP_REFUSAL_FIXES[refusal.reason],
-              )}
-            </p>
+            {props.probeEngineId &&
+            refusal.reason === SnmpTrapRefusalReason.UnknownEngineId ? (
+              <div
+                className="mt-1 space-y-1"
+                data-testid="snmp-trap-refusal-engine-id-fix"
+              >
+                <p className="text-sm text-gray-600">
+                  {translator.translateText(SNMP_TRAP_REFUSAL_ENGINE_ID_FIX)}
+                </p>
+                <SnmpEngineIdValue
+                  engineId={props.probeEngineId}
+                  dataTestId="snmp-trap-refusal-probe-engine-id"
+                />
+              </div>
+            ) : (
+              <p className="mt-1 text-sm text-gray-600">
+                {translator.translateText(
+                  SNMP_TRAP_REFUSAL_FIXES[refusal.reason],
+                )}
+              </p>
+            )}
             <p className="mt-1 text-xs text-gray-500">
               {translator.translateTemplate(SNMP_TRAP_REFUSAL_WHEN, {
                 time: OneUptimeDate.fromNow(

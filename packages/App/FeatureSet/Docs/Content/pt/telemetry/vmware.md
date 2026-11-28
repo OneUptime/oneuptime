@@ -185,7 +185,7 @@ Everything is ready. Begin running and processing data.
 
 ### Encontrar o vCenter no OneUptime
 
-Nada é enviado até a primeira passagem completa pelo inventário terminar, então aguarde um intervalo de coleta (2 minutos por padrão). Depois abra **Produtos → Infraestrutura → VMware → Todos os vCenters**: o vCenter está lá, com seus datacenters, clusters, hosts ESXi, máquinas virtuais, datastores e pools de recursos. A sua página **Topologia** desenha tudo em um único mapa, marcando o que requer atenção: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
+Nada é enviado até a primeira passagem completa pelo inventário terminar, então aguarde um intervalo de coleta (2 minutos por padrão). Depois abra **Produtos → Infraestrutura → VMware → Todos os vCenters**: o vCenter está lá, com seus datacenters, clusters, hosts ESXi, máquinas virtuais, datastores e pools de recursos. A sua página **Topologia** desenha tudo em um único mapa, marcando o que requer atenção: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso). Em **Inventário**, cada VM, host ESXi, cluster e datastore é um item com o nome que o vCenter dá a ele, e sob o nome aparece onde ele fica: o host e o cluster de uma VM, o cluster e o datacenter de um host.
 :::
 
 ## Variáveis de ambiente
@@ -246,7 +246,7 @@ O receiver não envia nenhuma métrica de estado de energia de uma VM. Ele envia
 
 A página **Visão geral** responde primeiro "este vCenter está saudável?". O cabeçalho diz se os dados estão chegando e como o vCenter está: **Íntegro**, **Degradado** enquanto algo precisa de uma olhada, **Não íntegro** enquanto algo precisa de alguém agora, ou **Integridade desconhecida** enquanto o vCenter está desconectado, pois o último relatório dele deixou de ser a verdade. Os chips contam os datacenters, os clusters, os hosts ESXi que o vCenter alcança do total, as VMs ligadas do total, os modelos e os datastores, e todos, exceto os datacenters, abrem a sua lista.
 
-Em seguida vem **Requer atenção**: tudo o que precisa de alguém, o mais urgente primeiro, cada item com o motivo e a um passo da sua página. Um host ESXi que o vCenter não alcança, um datastore mais de 90 % cheio e uma VM cuja memória o host passa para o disco são críticos. Um host mais de 90 % ocupado, um datastore mais de 80 % cheio, uma VM que espera uma CPU livre ou da qual o host toma memória de volta, um cluster com hosts que não são efetivos ou sem a memória para perder um deles, e os alarmes que o vCenter conta em cada datacenter precisam de uma olhada. Cada limite é aquele em que o seu [modelo de alerta](/docs/monitor/vmware-monitor#modelos-de-alerta-prontos) dispara. Quando nada requer atenção, não há cartão.
+Em seguida vem **Requer atenção**: tudo o que precisa de alguém, o mais urgente primeiro, cada item com o motivo e a um passo da sua página. Um host ESXi que o vCenter não alcança, um datastore mais de 90 % cheio e uma VM cuja memória o host está enviando para swap agora são críticos. Um host mais de 90 % ocupado, um datastore mais de 80 % cheio, uma VM que espera uma CPU livre, da qual o host toma memória de volta, ou que lê de volta memória do swap ou mantém mais de 1 GiB nele, um cluster com hosts que não são efetivos ou sem a memória para perder um deles, e os alarmes que o vCenter conta em cada datacenter precisam de uma olhada. Cada limite é um que o seu projeto pode alterar ou desativar: veja [Regras de integridade](#regras-de-integridade). Quando nada requer atenção, não há cartão.
 
 Abaixo ficam os hosts efetivos, a CPU e a memória dos hosts ponderadas pela capacidade, o datastore mais cheio e o pior tempo de CPU ready de uma VM, com os seus gráficos; **Hosts ESXi**, o estado e a carga de cada host a um passo da sua página; e os maiores consumidores.
 
@@ -263,6 +263,37 @@ O vCenter informa o uso de CPU e memória de um host apenas enquanto o host est�
 | **Energia desligada ou em espera** | Não informa uso nenhum, e o datacenter dele tem hosts desligados e outros em espera. |
 | **Nenhum uso informado** | Não informa uso nenhum, e o que o datacenter dele conta não diz por quê. Precisa de uma olhada. |
 | **Não reportando** | O vCenter não o informa há mais de 15 minutos. |
+
+### Memória em swap não é swap em andamento
+
+`vcenter.vm.memory.swapped` é quanto da memória de uma VM está no arquivo de swap do host dela. O ESXi deixa uma página em swap lá até a VM acessá-la de novo, então uma VM pode manter alguns MiB em swap por semanas depois que a pressão de memória que os levou para lá passou. A memória que ficou de antes não é um problema por si só: o host enviando memória para swap agora é.
+
+Nem o receiver `vcenter` do agente nem uma sonda enviam uma taxa de swap, então o OneUptime a calcula a partir de como a memória em swap de uma VM muda entre dois relatórios. A página de uma VM diz em que sentido ela se move, em **Swap agora**. Com as regras padrão:
+
+| Memória em swap de uma VM | O que Requer atenção diz |
+| --- | --- |
+| Cresce: o host está enviando-a para swap agora | Crítico |
+| Diminui mais rápido que 1 MiB/s: a VM lê de volta memória do swap | Precisa de uma olhada |
+| Fica igual, mais de 1 GiB | Precisa de uma olhada, como em swap desde antes |
+| Fica igual, 1 GiB ou menos | Nada |
+
+Uma taxa precisa de dois relatórios com menos de 15 minutos de intervalo, então o primeiro relatório de uma VM, ou um depois de uma interrupção, diz apenas quanto está em swap. Um pool de recursos só precisa de uma olhada enquanto a memória dele está sendo enviada para swap.
+
+### Regras de integridade
+
+Cada limite acima é uma regra que o seu projeto pode alterar: abra **Produtos → Infraestrutura → VMware** e depois **Configurações → Regras de integridade**. As regras valem para cada vCenter do projeto: **Requer atenção**, a página de cada objeto, a coluna Status e as barras das listas, e a Topologia. Os blocos da Visão geral que fazem a média entre hosts ou VMs mantêm limites próprios. Deixe um limite vazio para desativar a regra dele. O que não tem limite é sempre mostrado: um host que o vCenter não alcança, um cluster sem a memória para perder um host e os alarmes que o vCenter conta.
+
+| Cartão | Regra | Padrão |
+| --- | --- | --- |
+| **Hosts ESXi ocupados** | CPU, memória | Um aviso acima de 90 % em cada uma |
+| **Datastores cheios** | Espaço usado | Um aviso acima de 80 %, crítico acima de 90 % |
+| **Swap das VMs** | Envio para swap agora | Crítico acima de 0 KiB/s: qualquer envio |
+| **Swap das VMs** | Leitura de volta da memória em swap | Um aviso acima de 1024 KiB/s |
+| **Swap das VMs** | Em swap desde antes, nenhum swap agora | Um aviso acima de 1024 MiB |
+| **Ballooning e CPU Ready das VMs** | Memória recuperada por ballooning, CPU ready | Um aviso acima de 0 MiB (qualquer ballooning), acima de 10 % |
+| **Swap dos pools de recursos** | Envio para swap agora | Um aviso acima de 0 KiB/s: qualquer envio |
+
+Os padrões são os limites em que os [modelos de alerta](/docs/monitor/vmware-monitor#modelos-de-alerta-prontos) disparam, exceto o swap: o modelo VM Memory Swapping dispara com qualquer memória em swap. Alterar uma regra muda o que as páginas marcam, não os seus monitores, que mantêm os próprios critérios.
 
 ### Hosts ESXi
 
@@ -285,7 +316,7 @@ Os seis alertas do host (um host que não responde, saturação de CPU e de mem�
 
 Máquinas virtuais desligadas e modelos também aparecem na lista. O vCenter só informa contadores de CPU de VMs ligadas, então as colunas de CPU delas mostram N/A em vez de um zero enganoso.
 
-A página de uma VM diz o que ela está fazendo (**Em execução**, **Energia desligada**, **Modelo**, ou **Desconectado** enquanto o vCenter não alcança o host dela) e onde ela roda, com o host e o cluster dela a um passo. A **Visão geral** dela tem **Requer atenção** para a VM, a CPU, o CPU ready, a memória e o disco dela, os incidentes e alertas abertos nela, quais dos sete alertas de VM estão ativados, e os detalhes dela. **Métricas** tem os gráficos dela.
+A página de uma VM diz o que ela está fazendo (**Em execução**, **Energia desligada**, **Modelo**, ou **Desconectado** enquanto o vCenter não alcança o host dela) e onde ela roda, com o host e o cluster dela a um passo. A **Visão geral** dela tem **Requer atenção** para a VM, a CPU, o CPU ready, a memória e o disco dela, os incidentes e alertas abertos nela, quais dos sete alertas de VM estão ativados, e os detalhes dela, com quanto da memória dela está em swap e se o host a está movendo agora (**Swap agora**). **Métricas** tem os gráficos dela.
 
 ### Datastores
 

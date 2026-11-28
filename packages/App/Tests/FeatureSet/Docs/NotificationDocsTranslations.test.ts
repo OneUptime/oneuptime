@@ -9,6 +9,7 @@ import {
   KEPT_AS_WRITTEN,
   NOTIFICATIONS_GROUP_TITLE_OVERRIDES,
   NOTIFICATIONS_NAV_GROUP,
+  NOTIFICATION_LOGS,
   NOTIFICATION_METHODS,
   NOTIFICATION_PAGES,
   NOTIFICATION_SETTINGS,
@@ -26,7 +27,11 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import { drawnActionLabel, isActionLabel } from "./DocsDashboardLabels";
+import {
+  drawnActionLabel,
+  drawnLabelOnPage,
+  isActionLabel,
+} from "./DocsDashboardLabels";
 import {
   PATH_SEPARATOR,
   boldLabels,
@@ -120,6 +125,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, ReadonlyArray<number>> = {
   [NOTIFICATION_METHODS]: [24],
   [PERSONAL_ON_CALL_RULES]: [22],
   [NOTIFICATION_SETTINGS]: [25],
+  [NOTIFICATION_LOGS]: [24],
 };
 
 /*
@@ -193,6 +199,8 @@ function dashboardPaths(page: string): Array<Array<string>> {
  * Every bold label and menu path of the Dashboard that the English page
  * names, as the English page writes it and as a page in the language must:
  * [English bold, drawn bold]. A Persian path is one bold span per segment.
+ * A label whose screen looks up a key of its own - a WhatsApp message's
+ * Read, not the verb - is drawn by that key (LABELS_DRAWN_BY_OWN_KEY).
  */
 function englishBoldDrawings(
   language: string,
@@ -200,7 +208,10 @@ function englishBoldDrawings(
 ): Array<[string, string]> {
   return [
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
+      return [
+        `**${label}**`,
+        `**${drawnLabelOnPage(language, page, label, drawnActionLabel)}**`,
+      ];
     }),
     ...dashboardPaths(page).map((segments: Array<string>): [string, string] => {
       return [drawnPath("en", segments), drawnPath(language, segments)];

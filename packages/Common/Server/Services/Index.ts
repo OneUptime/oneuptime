@@ -139,6 +139,7 @@ import CephClusterOwnerTeamService from "./CephClusterOwnerTeamService";
 import VMwareVCenterService from "./VMwareVCenterService";
 import VMwareResourceService from "./VMwareResourceService";
 import VMwareVCenterLabelRuleService from "./VMwareVCenterLabelRuleService";
+import VMwareHealthSettingService from "./VMwareHealthSettingService";
 import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
 import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
@@ -261,6 +262,7 @@ import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogServi
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ProbeService from "./ProbeService";
 import ProbeOwnerTeamService from "./ProbeOwnerTeamService";
+import GlobalProbeSnmpTrapReportService from "./GlobalProbeSnmpTrapReportService";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
 import AIAgentService from "./AIAgentService";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
@@ -856,6 +858,7 @@ const services: Array<BaseService> = [
   VMwareVCenterService,
   VMwareResourceService,
   VMwareVCenterLabelRuleService,
+  VMwareHealthSettingService,
   VMwareVCenterOwnerRuleService,
   VMwareVCenterOwnerTeamService,
   VMwareVCenterOwnerUserService,
@@ -927,6 +930,7 @@ const services: Array<BaseService> = [
   ProjectSmtpConfigService,
   ProbeService,
   ProbeOwnerTeamService,
+  GlobalProbeSnmpTrapReportService,
   ProbeOwnerUserService,
   AIAgentService,
   AIAgentOwnerUserService,

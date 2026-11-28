@@ -7,6 +7,7 @@ OneUptime 提供程序发布在 [Terraform Registry](https://registry.terraform.
 - [版本如何编号](#版本如何编号): 提供程序的版本就是发布它的 OneUptime 发布版本。
 - [锁文件](#锁文件): 每台机器安装的版本和校验和。
 - [迁移到更新的版本](#迁移到更新的版本): 阅读变更内容，下载新版本，然后运行计划。
+- [验证某个版本的校验和](#验证某个版本的校验和): 按 `init` 的方式手动检查一个版本。
 :::
 
 ## 发布了什么
@@ -57,6 +58,8 @@ terraform {
 
 已发布的版本永远不会改变：注册表会保留它们最初下载的内容的校验和，`init` 会用这些校验和核对每一次下载。需要修复的版本会作为下一个补丁版本重新发布，范围会包含它，该发布的说明会写明它替换的是哪个版本。
 
+每个版本发布之后，以及此后的每一天，OneUptime 都会针对每个平台，把两个注册表保留的校验和与该发布提供的文件进行比较。
+
 ## 锁文件
 
 `terraform init` 会把它选定的版本及其下载内容的校验和记录在 `.terraform.lock.hcl` 中。请提交这个文件：这样每台机器和每次 CI 运行都会安装完全相同的版本，直到你选择另一个版本。校验和覆盖注册表发布的每个平台，所以一个锁文件可以同时用于 Linux、macOS 和 Windows 机器。
@@ -95,6 +98,29 @@ terraform init -upgrade
 :::
 
 在自托管 OneUptime 上，请先升级 OneUptime，再提高提供程序范围的终点。
+
+## 验证某个版本的校验和
+
+只有当你所用平台的三个 SHA-256 校验和一致时，`init` 才会安装该版本：版本发布时注册表保留的那个、该发布的 `SHA256SUMS` 中 zip 所在的那一行，以及 zip 本身。它还会检查 `SHA256SUMS` 是否由 OneUptime 的密钥签名，该密钥的指纹以 `9D87 E494 AC01 6697` 结尾。要自己检查一个版本，请在第一行设置它的版本、你的系统和你的架构：
+
+```bash
+VERSION=17.3.0 OS=linux ARCH=amd64
+ZIP=terraform-provider-oneuptime_${VERSION}_${OS}_${ARCH}.zip
+SUMS=terraform-provider-oneuptime_${VERSION}_SHA256SUMS
+curl -s https://registry.terraform.io/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH > registry.json
+jq -r .shasum registry.json
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$ZIP"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS.sig"
+grep "$ZIP" "$SUMS"
+sha256sum "$ZIP"
+jq -r '.signing_keys.gpg_public_keys[0].ascii_armor' registry.json | gpg --import
+gpg --verify "$SUMS.sig" "$SUMS"
+```
+
+它打印的三个校验和必须相同，`gpg` 必须显示 `Good signature from "OneUptime <key@oneuptime.com>"`。在 macOS 上，用 `shasum -a 256` 代替 `sha256sum`。当注册表的校验和与另外两个不同时，`init` 会拒绝该版本：参阅[校验和不匹配的版本](/docs/terraform/troubleshooting#校验和不匹配的版本)。
+
+OpenTofu 的注册表保留的是同样的校验和：可以从 `https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH` 读取它自己的校验和。它没有该提供程序的密钥，所以 `tofu init` 会检查校验和，并跳过签名。
 
 ## 代码在哪里
 

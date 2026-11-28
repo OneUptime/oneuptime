@@ -147,6 +147,12 @@ describe("LLMService request timeout and retry policy", () => {
     },
   );
 
+  /*
+   * stream is not among these: it says only how the answer travels, and a
+   * streamed answer is read whole into the same answer (LLMStreamedAnswer,
+   * issue #11255), so a protected request streams when the operator asks -
+   * LLMServiceModelReasoning covers it.
+   */
   test("protected OpenAI-compatible requests cannot have workflow-owned fields overridden", async () => {
     const postSpy: PostSpy = mockPost(providerCases[0]!.response);
 
@@ -162,7 +168,6 @@ describe("LLMService request timeout and retry policy", () => {
         temperature: 1,
         max_tokens: 99_999,
         n: 50,
-        stream: true,
         tools: [{ type: "function", function: { name: "unsafe_tool" } }],
         tool_choice: "required",
         best_of: 10,

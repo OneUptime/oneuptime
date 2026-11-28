@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddProjectSecurityTrustPrivateAddresses1809187791240 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187791240-AddProjectSecurityTrustPrivateAddresses";
+import { AddProjectSecurityTrustPrivateAddresses1809187811240 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187811240-AddProjectSecurityTrustPrivateAddresses";
 import Project from "../../../../Models/DatabaseModels/Project";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -42,13 +42,13 @@ function timestampOf(migration: unknown): number {
 
 function up(): Promise<Array<string>> {
   return statementsOf((runner: QueryRunner) => {
-    return new AddProjectSecurityTrustPrivateAddresses1809187791240().up(
+    return new AddProjectSecurityTrustPrivateAddresses1809187811240().up(
       runner,
     );
   });
 }
 
-describe("AddProjectSecurityTrustPrivateAddresses1809187791240", () => {
+describe("AddProjectSecurityTrustPrivateAddresses1809187811240", () => {
   test("adds the column to Project, on for every project there is, as generated, and nothing else", async () => {
     expect(await up()).toEqual([
       `ALTER TABLE "Project" ADD "securityTrustPrivateAddresses" boolean NOT NULL DEFAULT true`,
@@ -79,7 +79,7 @@ describe("AddProjectSecurityTrustPrivateAddresses1809187791240", () => {
   test("down drops what up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddProjectSecurityTrustPrivateAddresses1809187791240().down(
+        return new AddProjectSecurityTrustPrivateAddresses1809187811240().down(
           runner,
         );
       }),
@@ -94,22 +94,22 @@ describe("AddProjectSecurityTrustPrivateAddresses1809187791240", () => {
     expect(
       registered.filter((candidate: unknown): boolean => {
         return (
-          candidate === AddProjectSecurityTrustPrivateAddresses1809187791240
+          candidate === AddProjectSecurityTrustPrivateAddresses1809187811240
         );
       }),
     ).toHaveLength(1);
 
     const position: number = registered.indexOf(
-      AddProjectSecurityTrustPrivateAddresses1809187791240,
+      AddProjectSecurityTrustPrivateAddresses1809187811240,
     );
 
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
     ).toBeLessThan(
-      timestampOf(AddProjectSecurityTrustPrivateAddresses1809187791240),
+      timestampOf(AddProjectSecurityTrustPrivateAddresses1809187811240),
     );
     expect(
-      new AddProjectSecurityTrustPrivateAddresses1809187791240().name,
-    ).toBe("AddProjectSecurityTrustPrivateAddresses1809187791240");
+      new AddProjectSecurityTrustPrivateAddresses1809187811240().name,
+    ).toBe("AddProjectSecurityTrustPrivateAddresses1809187811240");
   });
 });

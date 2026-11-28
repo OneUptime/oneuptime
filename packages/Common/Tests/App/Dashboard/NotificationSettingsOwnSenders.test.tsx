@@ -206,6 +206,7 @@ import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
 import { FoldedSectionItem } from "../../../UI/Components/FoldedSection/FoldedSectionItem";
 import {
   listedNames,
@@ -217,6 +218,8 @@ const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 beforeEach(() => {
   recorded.length = 0;
   billingEnabledForTest = false;
+  // GET /global-config/vars, which says whether projects choose a call voice (#11065).
+  standInForGlobalConfig();
 
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")

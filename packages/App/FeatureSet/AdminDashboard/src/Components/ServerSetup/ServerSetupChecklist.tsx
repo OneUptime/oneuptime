@@ -499,6 +499,16 @@ export const getServerSetupRow: (data: {
         providerSaid(check.sentThrough, check.reason);
       }
 
+      /*
+       * What else the server says of them, as it wrote it, by the
+       * variable's name: a voice GLOBAL_TWILIO_CALL_VOICE names that
+       * OneUptime does not offer (#11064), which leaves calls in the
+       * account's default voice.
+       */
+      for (const note of check.notes || []) {
+        checked.push({ template: note, values: {} });
+      }
+
       if (check.status === ServerSetupStatus.NotSetUp) {
         actions.push({
           kind: "route",

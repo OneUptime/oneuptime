@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -21,10 +22,57 @@ import { BrowserRouter } from "react-router-dom";
 import TelemetryImprovementCard, {
   TELEMETRY_IMPROVEMENT_SUGGESTION_PATH,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/TelemetryImprovementCard";
+import { CodeRepositoriesQuery } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
+import { TELEMETRY_AI_FIX_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
+import {
+  FakeCodeRepository,
+  answerRepositoriesById,
+  answerRepositoriesQuery,
+} from "./CodeRepositoriesServer";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
+import { PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE } from "../../../Utils/Suggestions/TelemetryImprovementSuggestion";
+
+/*
+ * The connected repositories the person may read, as Code's routes answer
+ * the confirmation's repository search (#11209).
+ */
+const codeRepositories: {
+  items: Array<FakeCodeRepository>;
+  reads: Array<CodeRepositoriesQuery>;
+} = { items: [], reads: [] };
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getRepositories: async (query: CodeRepositoriesQuery) => {
+          codeRepositories.reads.push(query);
+
+          return answerRepositoriesQuery({
+            repositories: codeRepositories.items,
+            query,
+          });
+        },
+        getRepositoriesById: async (ids: Array<string>) => {
+          return answerRepositoriesById({
+            repositories: codeRepositories.items,
+            ids,
+          });
+        },
+      },
+    };
+  },
+);
 
 /*
  * "Improve logging / tracing with AI" under a service's logs and traces: the
@@ -332,5 +380,289 @@ describe("Improve logging / tracing with AI", () => {
         .getAttribute("href"),
     ).toContain(RUN_ID);
     expect(screen.queryByTestId("telemetry-improvement-card")).toBeNull();
+  });
+});
+
+/*
+ * A REPOSITORY TO PICK BEFORE THE IMPROVEMENT STARTS (#11209).
+ *
+ * The improvement is a code task on the person's behalf, made only in a
+ * repository they may use in Code. When several of theirs are connected
+ * and none is named like the service, the server says so (the suggestion's
+ * `repositories`), and the confirmation asks which holds the service's
+ * code - from a search of those on the server - before it starts.
+ */
+describe("a repository to pick before the improvement starts", () => {
+  const REPOSITORIES: Array<{ id: string; name: string }> = [
+    { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+    { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+  ];
+
+  beforeEach(() => {
+    codeRepositories.reads = [];
+    codeRepositories.items = [
+      ...REPOSITORIES,
+      // Not connected: no pick may name it.
+      { id: "51000000-0000-4000-8000-000000000009", name: "archive-site" },
+      // Connected, but not one the person may ask OneUptime AI in.
+      { id: "51000000-0000-4000-8000-000000000008", name: "vault" },
+    ].map((repository: { id: string; name: string }): FakeCodeRepository => {
+      return {
+        id: repository.id,
+        name: repository.name,
+        organizationName: "acme",
+        repositoryName: repository.name,
+        isConnected: repository.name !== "archive-site",
+        canAsk: repository.name !== "vault",
+        provider: "GitHub",
+        stats: {
+          working: 0,
+          waitingForYou: 0,
+          openPullRequests: 0,
+          taskCount: 0,
+        },
+      };
+    });
+  });
+
+  const WITH_REPOSITORIES: JSONObject = {
+    offer: "Act",
+    aiRunId: null,
+    repositories: REPOSITORIES,
+  };
+
+  function dialog(): HTMLElement {
+    return screen.getByRole("dialog");
+  }
+
+  async function confirmIt(
+    taskType: "ImproveLogging" | "ImproveTracing" = "ImproveLogging",
+  ): Promise<void> {
+    const card: HTMLElement = await screen.findByTestId(
+      "telemetry-improvement-card",
+    );
+
+    fireEvent.click(
+      within(card).getByRole("button", {
+        name:
+          taskType === "ImproveLogging" ? /Improve Logging/ : /Improve Tracing/,
+      }),
+    );
+  }
+
+  function picker(): HTMLElement {
+    return within(dialog()).getByTestId("telemetry-improvement-repository");
+  }
+
+  function confirmButton(name: string = "Improve Logging"): HTMLElement {
+    return within(dialog()).getByRole("button", { name });
+  }
+
+  async function pick(name: string): Promise<void> {
+    await act(async () => {
+      fireEvent.focus(within(picker()).getByRole("combobox"));
+    });
+
+    const option: HTMLElement = await screen.findByRole("option", {
+      name: new RegExp(name),
+    });
+
+    await act(async () => {
+      fireEvent.click(option);
+    });
+  }
+
+  test("the confirmation asks which repository holds the service's code, in a trace fix's words", async () => {
+    answer(WITH_REPOSITORIES);
+    renderCard();
+
+    await confirmIt();
+
+    expect(picker()).toHaveTextContent(TELEMETRY_AI_FIX_COPY.pickRepository);
+    expect(within(picker()).getByRole("combobox")).toHaveAccessibleName(
+      TELEMETRY_AI_FIX_COPY.pickRepository,
+    );
+    expect(within(picker()).getByRole("combobox")).toHaveAttribute(
+      "placeholder",
+      TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder,
+    );
+    // Asked under the confirmation's own question.
+    expect(dialog()).toHaveTextContent(
+      "Are you sure you want to improve logging?",
+    );
+  });
+
+  test("its button waits for the pick, and nothing starts", async () => {
+    answer(WITH_REPOSITORIES);
+    renderCard();
+
+    await confirmIt();
+
+    expect(confirmButton()).toBeDisabled();
+    fireEvent.click(confirmButton());
+
+    // Give a request the chance it must not take.
+    await new Promise((resolve: (value: unknown) => void) => {
+      setTimeout(resolve, 20);
+    });
+    expect(posts(CREATE_PATH)).toHaveLength(0);
+  });
+
+  test("picked, the improvement starts in the pick", async () => {
+    answer(WITH_REPOSITORIES);
+    renderCard();
+
+    await confirmIt();
+    await pick("checkout-api");
+
+    expect(confirmButton()).toBeEnabled();
+    fireEvent.click(confirmButton());
+
+    await screen.findByTestId("telemetry-improvement-progress");
+    expect(posts(CREATE_PATH)[0]!.data).toEqual({
+      telemetryServiceId: SERVICE_ID.toString(),
+      taskType: "ImproveLogging",
+      repositoryId: "51000000-0000-4000-8000-000000000001",
+    });
+  });
+
+  test("tracing's too", async () => {
+    answer({ ...WITH_REPOSITORIES });
+    renderCard("ImproveTracing");
+
+    await confirmIt("ImproveTracing");
+    await pick("billing");
+    fireEvent.click(confirmButton("Improve Tracing"));
+
+    await screen.findByTestId("telemetry-improvement-progress");
+    expect(posts(CREATE_PATH)[0]!.data).toEqual({
+      telemetryServiceId: SERVICE_ID.toString(),
+      taskType: "ImproveTracing",
+      repositoryId: "51000000-0000-4000-8000-000000000002",
+    });
+  });
+
+  test("its search offers the connected repositories the person may ask OneUptime AI to work in - the ones the improvement takes", async () => {
+    answer(WITH_REPOSITORIES);
+    renderCard();
+
+    await confirmIt();
+    await act(async () => {
+      fireEvent.focus(within(picker()).getByRole("combobox"));
+    });
+    await screen.findByRole("option", { name: /billing/ });
+
+    expect(
+      screen.getAllByRole("option").map((option: HTMLElement): string => {
+        return option.textContent || "";
+      }),
+    ).toEqual([
+      expect.stringContaining("billing"),
+      expect.stringContaining("checkout-api"),
+    ]);
+    expect(codeRepositories.reads[codeRepositories.reads.length - 1]).toEqual(
+      expect.objectContaining({ group: "connected", askableOnly: true }),
+    );
+  });
+
+  test("no repositories to pick from: the confirmation asks nothing more, and names none", async () => {
+    answer({ offer: "Act", aiRunId: null, repositories: [] });
+    renderCard();
+
+    await confirmIt();
+
+    expect(
+      within(dialog()).queryByTestId("telemetry-improvement-repository"),
+    ).toBeNull();
+    expect(confirmButton()).toBeEnabled();
+    fireEvent.click(confirmButton());
+
+    await screen.findByTestId("telemetry-improvement-progress");
+    expect(posts(CREATE_PATH)[0]!.data).not.toHaveProperty("repositoryId");
+  });
+
+  test("one repository is no choice: nothing more asked", async () => {
+    answer({ offer: "Act", aiRunId: null, repositories: [REPOSITORIES[0]!] });
+    renderCard();
+
+    await confirmIt();
+
+    expect(
+      within(dialog()).queryByTestId("telemetry-improvement-repository"),
+    ).toBeNull();
+  });
+
+  test.each([
+    ["no longer one the person may read", PICKED_REPOSITORY_NOT_FOUND_MESSAGE],
+    [
+      "no longer one the person may ask OneUptime AI to work in",
+      PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+    ],
+    ["no longer connected", PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE],
+  ])(
+    "a pick the server refused as %s is dropped, said, and the next confirmation waits for another",
+    async (_name: string, refusal: string) => {
+      answer(WITH_REPOSITORIES, async () => {
+        throw new HTTPErrorResponse(422, { message: refusal }, {});
+      });
+      renderCard();
+
+      await confirmIt();
+      await pick("checkout-api");
+      fireEvent.click(confirmButton());
+
+      expect(await screen.findByText(refusal)).toBeInTheDocument();
+
+      await confirmIt();
+      expect(confirmButton()).toBeDisabled();
+      expect(within(picker()).queryByText("checkout-api")).toBeNull();
+    },
+  );
+
+  test("any other refusal keeps the pick, to try again", async () => {
+    const credits: string = "This project's AI credits are used up.";
+    answer(WITH_REPOSITORIES, async () => {
+      throw new HTTPErrorResponse(400, { message: credits }, {});
+    });
+    renderCard();
+
+    await confirmIt();
+    await pick("checkout-api");
+    fireEvent.click(confirmButton());
+
+    expect(await screen.findByText(credits)).toBeInTheDocument();
+
+    await confirmIt();
+    expect(confirmButton()).toBeEnabled();
+    // The pick is read again by its id, and named.
+    expect(
+      await within(picker()).findByText("checkout-api"),
+    ).toBeInTheDocument();
+  });
+
+  test("a second repository connected since the card read its choices: why, and the confirmation then asks the pick", async () => {
+    answer(
+      { offer: "Act", aiRunId: null, repositories: [] },
+      async () => {
+        throw new HTTPErrorResponse(
+          400,
+          { message: PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE },
+          {},
+        );
+      },
+      WITH_REPOSITORIES,
+    );
+    renderCard();
+
+    await confirmIt();
+    fireEvent.click(confirmButton());
+
+    expect(
+      await screen.findByText(PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE),
+    ).toBeInTheDocument();
+
+    await confirmIt();
+    expect(picker()).toHaveTextContent(TELEMETRY_AI_FIX_COPY.pickRepository);
+    expect(confirmButton()).toBeDisabled();
   });
 });

@@ -715,6 +715,45 @@ describe("what done was checked against", () => {
     expect(actionsOf(sms)).toEqual(["undo | Undo | secondary"]);
   });
 
+  /*
+   * GLOBAL_TWILIO_CALL_VOICE naming a voice OneUptime does not offer
+   * (#11064): said under SMS and calls as the server wrote it, by the
+   * variable's name, after what was checked, whatever the row stands at -
+   * and the row's status and actions are what they would be without it.
+   */
+  test("a call voice the environment variable names wrongly is said under SMS and calls, as the server wrote it", () => {
+    const problem: string =
+      'GLOBAL_TWILIO_CALL_VOICE: "alice" is not a voice OneUptime offers, so calls speak with your Twilio account\'s default voice.';
+
+    for (const overrides of [
+      {},
+      {
+        sms: channel(ServerSendingChannel.SMS, ServerSendingState.Working),
+        call: channel(ServerSendingChannel.Call, ServerSendingState.Working),
+      },
+      {
+        sms: channel(ServerSendingChannel.SMS, ServerSendingState.Working),
+        call: channel(ServerSendingChannel.Call, ServerSendingState.Failing),
+      },
+    ] as Array<Partial<ServerSetupFacts>>) {
+      const without: ServerSetupRow = row(
+        rowsFor(answerFor(overrides)),
+        ServerSetupCheckId.SmsAndCalls,
+      );
+      const sms: ServerSetupRow = row(
+        rowsFor(answerFor({ ...overrides, callVoiceProblem: problem })),
+        ServerSetupCheckId.SmsAndCalls,
+      );
+
+      expect(sms.checked.map(words)).toEqual([
+        ...without.checked.map(words),
+        problem,
+      ]);
+      expect(words(sms.status)).toBe(words(without.status));
+      expect(actionsOf(sms)).toEqual(actionsOf(without));
+    }
+  });
+
   test("a choice whose maker is not known says when", () => {
     const backups: ServerSetupRow = row(
       rowsFor(

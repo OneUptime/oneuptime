@@ -107,7 +107,8 @@ Ihre Alarme werden in Ihrer Sprache geschrieben: der, die Sie im Sprachmenü unt
 | --- | --- |
 | E-Mail, SMS, Push-Benachrichtigungen und Telegram | Ihre Sprache |
 | Ihre eigenen Nachrichten in Slack, Microsoft Teams und Mattermost | Ihre Sprache |
-| Telefonanrufe und WhatsApp | Englisch |
+| Telefonanrufe | Ihre Sprache, wenn das Twilio-Konto, das anruft, mit einer der Stimmen von OneUptime spricht; sonst Englisch. Siehe [Was ein Anruf sagt](/docs/notifications/on-call-rules#was-ein-anruf-sagt) |
+| WhatsApp | Englisch |
 
 Was sich ändert, sind die Worte von OneUptime: Betreffzeilen, Überschriften, Schaltflächen und Sätze sowie die Namen, mit denen jedes neue Projekt startet, etwa Identifiziert und Kritischer Vorfall. Was Ihr Team geschrieben hat, bleibt, wie es geschrieben wurde: Titel, Beschreibungen, Grundursachen und die Namen von Projekten, Teams und Status, die Ihr Projekt selbst benannt hat. Eine SMS in einer Sprache mit eigener Schrift, etwa Russisch, Japanisch oder Persisch, braucht mehr Teile als eine auf Englisch.
 
@@ -122,7 +123,7 @@ Sie sind Eigentümer des Datensatzes, direkt oder über ein Team, oder der Daten
 :::
 
 :::details Meine Alarme sind auf Englisch, das Dashboard aber nicht
-Das Dashboard folgt Ihrem Browser, bis Sie eine Sprache wählen. Wählen Sie sie im Sprachmenü unten auf jeder Seite oder unter **Sprache** im **Benutzerprofil**. Telefonanrufe und WhatsApp-Nachrichten bleiben auf Englisch.
+Das Dashboard folgt Ihrem Browser, bis Sie eine Sprache wählen. Wählen Sie sie im Sprachmenü unten auf jeder Seite oder unter **Sprache** im **Benutzerprofil**. WhatsApp-Nachrichten bleiben auf Englisch, ebenso Telefonanrufe über ein Twilio-Konto, das seine Standardstimme behält.
 :::
 
 :::details Ich habe eine Telefonnummer hinzugefügt, aber sie steht nicht in meinen Regeln

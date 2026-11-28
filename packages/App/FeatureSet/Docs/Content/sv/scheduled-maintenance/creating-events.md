@@ -63,7 +63,7 @@ Ingenting skickas förrän du väljer en statussida: en händelse som inte visas
 | **Ägare**                            | **Underhållsdetaljer**       | Ingen                           | Personer och team som äger händelsen och får veta om den.                        |
 | **Etiketter**                        | **Underhållsdetaljer**       | Inga                            | Etiketter som regler och filter kan matcha på.                                   |
 | **Monitorer**                        | **Berörda resurser** | Inga                          | De monitorer som inte kontrolleras medan händelsen pågår.                        |
-| **Ändra övervakningsstatus till**    | **Berörda resurser** | Ingen ändring                 | Den status monitorerna visar under händelsen. Efterfrågas så snart en monitor är vald. |
+| **Ändra övervakningsstatus till**    | **Berörda resurser** | Ingen ändring                 | Den status monitorerna visar under händelsen, och som deras upptid räknar. Utan en behåller de sin status och deras upptid utesluter tiden. Efterfrågas så snart en monitor är vald. |
 | **Andra påverkade resurser**         | **Berörda resurser** | Inga                          | Värdar, kluster, databaser, nätverksplatser, tjänster och mer.                   |
 | **Visa händelse på dessa statussidor** | **Berörda resurser** | Inga                        | De enda statussidor som kan visa händelsen eller meddela sina prenumeranter.     |
 | **Aviseringar till prenumeranter**   | **Berörda resurser** | Publicerad direkt, alla tre tillfällen på, inga påminnelser | När händelsen visas på de sidorna, och när deras prenumeranter får veta. |

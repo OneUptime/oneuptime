@@ -237,7 +237,7 @@ En värdmonitor täcker alla diskar som värden rapporterar. Mallarna High Files
 Varje kriterium kontrolleras för varje disk:
 
 - Medan en disks incident är öppen öppnar kriteriet som öppnade den ingen annan för den disken. En annan disk som uppfyller kriteriet öppnar en egen.
-- En disk som uppfyller två kriterier, till exempel ett över 98 % och ett över 90 %, får en incident, från det första av dem i listan. Lägg det strängare först.
+- En disk som uppfyller två kriterier på samma mätvärde, till exempel ett över 98 % och ett över 90 %, får en incident, från det första av dem i listan. Lägg det strängare först. Kriterier på olika mätvärden öppnar var sin egen incident för disken.
 - En disks incident löses när just den disken slutar uppfylla kriteriet som öppnade den, oavsett vad de andra diskarna gör.
 - Monitorn har en enda status. Ett kriterium som ändrar den till en annan status, till exempel **Offline**, sätter den så snart en disk uppfyller det. Kriteriet som tar tillbaka monitorn till dess **Standardstatus för övervakning** väntar på diskarna som uppfyllde ett sådant kriterium, och matchar när var och en av dem uppfyller det, oavsett vad de andra diskarna gör. En disk som sjunker från 96 % till 89 % håller därför monitorn **Offline** tills den är på eller under 81 %, återställningsmarginalen på 10 %, även om dess incident löses så snart den inte längre är över 90 %. **Serier** visar den disken som **Håller statusen**. En disk som inte längre rapporteras håller inte längre statusen.
 

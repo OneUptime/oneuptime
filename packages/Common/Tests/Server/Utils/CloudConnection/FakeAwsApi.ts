@@ -252,6 +252,9 @@ export interface FakeBucket {
   encryption?: { algorithm: string; kmsKeyId?: string | undefined } | undefined;
   versioning?: "Enabled" | "Suspended" | undefined;
   loggingTarget?: string | undefined;
+  // Where its server access logs go under the target, and how they are keyed (#10951).
+  loggingPrefix?: string | undefined;
+  loggingPartitioned?: boolean | undefined;
   ownership?: string | undefined;
   // The names of the buckets its replication rules copy to.
   replicateTo?: Array<string> | undefined;
@@ -1199,7 +1202,15 @@ function bucketAnswer(data: {
       return xml(
         `<BucketLoggingStatus ${S3_XMLNS}>${
           bucket.loggingTarget
-            ? `<LoggingEnabled><TargetBucket>${bucket.loggingTarget}</TargetBucket><TargetPrefix>logs/</TargetPrefix></LoggingEnabled>`
+            ? `<LoggingEnabled><TargetBucket>${bucket.loggingTarget}</TargetBucket><TargetPrefix>${
+                bucket.loggingPrefix === undefined
+                  ? "logs/"
+                  : bucket.loggingPrefix
+              }</TargetPrefix>${
+                bucket.loggingPartitioned
+                  ? "<TargetObjectKeyFormat><PartitionedPrefix><PartitionDateSource>EventTime</PartitionDateSource></PartitionedPrefix></TargetObjectKeyFormat>"
+                  : ""
+              }</LoggingEnabled>`
             : ""
         }</BucketLoggingStatus>`,
       );
@@ -1246,9 +1257,14 @@ function bucketAnswer(data: {
         Number(data.url.searchParams.get("continuation-token") || "0") || 0;
       const encode: boolean =
         data.url.searchParams.get("encoding-type") === "url";
+      // start-after: the keys after it, by key (#10951).
+      const startAfter: string = data.url.searchParams.get("start-after") || "";
       const matching: Array<FakeObject> = (bucket.objects || [])
         .filter((object: FakeObject): boolean => {
-          return object.key.startsWith(prefix);
+          return (
+            object.key.startsWith(prefix) &&
+            (!startAfter || object.key > startAfter)
+          );
         })
         .sort((a: FakeObject, b: FakeObject): number => {
           return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;

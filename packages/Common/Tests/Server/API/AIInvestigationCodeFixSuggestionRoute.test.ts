@@ -81,6 +81,7 @@ const SUGGESTION: InvestigationCodeFixSuggestion = {
   aiRunId: null,
   isAutomatic: false,
   automaticBlocker: AutomaticCodeFixBlocker.FixOff,
+  repositories: [],
 };
 
 const sendJsonMock: jest.Mock =

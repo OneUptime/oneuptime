@@ -107,7 +107,8 @@ Le vostre chiamate sono scritte nella vostra lingua: quella che scegliete nel me
 | --- | --- |
 | E-mail, SMS, notifiche push e Telegram | La vostra lingua |
 | I vostri messaggi personali su Slack, Microsoft Teams e Mattermost | La vostra lingua |
-| Telefonate e WhatsApp | Inglese |
+| Telefonate | La vostra lingua, quando l'account Twilio che chiama parla con una delle voci di OneUptime; altrimenti inglese. Vedete [Cosa dice una telefonata](/docs/notifications/on-call-rules#cosa-dice-una-telefonata) |
+| WhatsApp | Inglese |
 
 Cambiano le parole di OneUptime: oggetti, titoli, pulsanti e frasi, e i nomi con cui parte ogni nuovo progetto, come Identificato e Incidente critico. Ciò che ha scritto il vostro team resta com'è: titoli, descrizioni, cause principali e i nomi di progetti, team e stati che il vostro progetto ha nominato. Un SMS in una lingua con un proprio alfabeto, come il russo, il giapponese o il persiano, occupa più parti di uno in inglese.
 
@@ -122,7 +123,7 @@ Siete proprietari dell'elemento, direttamente o tramite un team, oppure l'elemen
 :::
 
 :::details Le mie chiamate sono in inglese, ma la dashboard no
-La dashboard segue il vostro browser finché non scegliete una lingua. Sceglietela nel menu delle lingue in fondo a ogni pagina, o in **Lingua** in **Profilo utente**. Le telefonate e i messaggi WhatsApp restano in inglese.
+La dashboard segue il vostro browser finché non scegliete una lingua. Sceglietela nel menu delle lingue in fondo a ogni pagina, o in **Lingua** in **Profilo utente**. I messaggi WhatsApp restano in inglese, e così le telefonate tramite un account Twilio che mantiene la sua voce predefinita.
 :::
 
 :::details Ho aggiunto un numero di telefono, ma non è nelle mie regole
