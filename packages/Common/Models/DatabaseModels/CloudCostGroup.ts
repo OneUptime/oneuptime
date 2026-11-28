@@ -288,7 +288,7 @@ export default class CloudCostGroup extends BaseModel {
     title: "Order",
     required: false,
     description:
-      "Where the group is among its view's groups: 1 is the first, and a cost falls into the first group whose rules match it. A new group without a number goes to the end. In the dashboard, drag the groups to reorder them.",
+      "Where the group is among its view's groups, lowest number first: a cost falls into the first group whose rules match it. A new group is added to the end of the list. Setting a number places it there and moves no other one: two at one number are read the older first. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.Number,
