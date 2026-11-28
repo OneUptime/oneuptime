@@ -37,6 +37,10 @@ import Permission, {
   PermissionHelper,
   UserPermission,
 } from "../../../../Types/Permission";
+import LabelAccess, {
+  RecordOwners,
+} from "../../../../Types/LabelAccess/LabelAccess";
+import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
 import logger from "../../../Utils/Logger";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
@@ -48,6 +52,18 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 export interface ColumnKeptToOwners {
   column: string;
   teamIds: Array<ObjectID>;
+}
+
+/*
+ * A table whose rows take their owners from a kind's records
+ * (OwnedScopePermission.getTablesOwnedThrough): by the key naming the
+ * record ("_id" for the kind itself), and the operations on it the Owned
+ * scope narrows.
+ */
+export interface TableOwnedThrough {
+  tableName: string;
+  key: string;
+  operations: Array<DatabaseRequestType>;
 }
 
 /*
@@ -321,51 +337,221 @@ export default class OwnedScopePermission {
         props,
       );
 
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
-    const applicableRows: Array<UserPermission> = userPermissions.filter(
-      (p: UserPermission) => {
-        return effectivePermissions.includes(p.permission);
-      },
-    );
-
-    if (applicableRows.length === 0) {
-      /*
-       * No grant applies — the existing table-level check will reject this
-       * request. Leave the query untouched.
-       */
-      return null;
-    }
-
     /*
-     * If any applicable row is non-Owned (All / Labels / undefined), the
-     * Owned rows are not all there is: a row over the whole project grants
-     * broader access than Owned and the Owned constraint is moot, and rows
-     * limited to labels reach their records beside what the Owned rows own
-     * (AccessControlPermission.getLabelGrantForModel). Rows for
-     * scope-exempt permissions (e.g. ProjectOwner) are treated as broader
-     * grants regardless of their stored scope, since scoping doesn't apply
-     * to them.
+     * By the rule the Dashboard locks a record's changes by too
+     * (LabelAccess.getOwnedOnlyRows, #11436): no applicable row at all - the
+     * table-level check refuses the request - or one that is not Owned (All,
+     * Labels, none): a row over the whole project grants broader access
+     * than Owned and the Owned constraint is moot, and rows limited to
+     * labels reach their records beside what the Owned rows own
+     * (AccessControlPermission.getLabelGrantForModel). Rows of scope-exempt
+     * permissions (Project Owner) are broader grants whatever their stored
+     * scope, since scoping does not apply to them.
      */
-    const hasNonOwnedGrant: boolean = applicableRows.some(
-      (p: UserPermission) => {
-        if (!PermissionHelper.isScopeApplicable(p.permission)) {
-          return true;
-        }
-        return p.scope !== PermissionScope.Owned;
-      },
+    return LabelAccess.getOwnedOnlyRows(
+      LabelAccess.readRows(
+        DatabaseCommonInteractionPropsUtil.getUserPermissions(
+          props,
+          PermissionType.Allow,
+        ),
+      ),
+      effectivePermissions,
     );
+  }
 
-    if (hasNonOwnedGrant) {
-      return null;
+  /*
+   * THE TEAMS WHOSE RECORDS THE CALLER'S GRANTS SCOPED TO OWNED REACH, of
+   * every permission: the teams of their allow rows scoped to Owned, of
+   * permissions a scope applies to - never their other teams. Any one
+   * operation's are among these (getOwningTeamIds, LabelGrant.ownedTeamIds),
+   * so what these teams own is all the Owned scope can weigh on a record
+   * (getOwnersOf). Empty for root and a master admin.
+   */
+  public static getTeamIdsOfOwnedRows(
+    props: DatabaseCommonInteractionProps,
+  ): Array<ObjectID> {
+    if (props.isRoot || props.isMasterAdmin) {
+      return [];
     }
 
-    return applicableRows;
+    return OwnedScopePermission.getTeamIdsOfRows(
+      LabelAccess.readRows(
+        DatabaseCommonInteractionPropsUtil.getUserPermissions(
+          props,
+          PermissionType.Allow,
+        ),
+      ).owned,
+    );
   }
+
+  /*
+   * WHO OWNS EACH OF `resourceIds`, records of a kind with owner tables of
+   * its own, as far as the Owned scope weighs it (#11436): whether the
+   * caller owns it themselves, and which of `teamIds` - the teams of the
+   * grants being weighed (getTeamIdsOfOwnedRows) - own it. Read by the very
+   * lookups the scope narrows by (findOwnerRows, getAllowedResourceIds), in
+   * the request's project, kept to `resourceIds`. A record no one of them
+   * owns is answered as owned by nobody; one of another kind, or of no
+   * kind with owner tables, is not answered at all.
+   */
+  public static async getOwnersOf(data: {
+    modelType: { new (): BaseModel };
+    props: DatabaseCommonInteractionProps;
+    teamIds: ReadonlyArray<ObjectID>;
+    resourceIds: ReadonlyArray<string>;
+  }): Promise<Map<string, RecordOwners>> {
+    const owners: Map<string, RecordOwners> = new Map<string, RecordOwners>();
+
+    const kind: string | undefined = OwnedScopePermission.getClassName(
+      data.modelType,
+    );
+    const registryEntry: OwnerTablePair | undefined = kind
+      ? this.getOwnerTableRegistry().get(kind)
+      : undefined;
+
+    const resourceIds: Array<string> = Array.from(
+      new Set<string>(
+        data.resourceIds
+          .map((id: string): string => {
+            return id.toString().trim().toLowerCase();
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    );
+
+    if (!registryEntry || resourceIds.length === 0) {
+      return owners;
+    }
+
+    for (const id of resourceIds) {
+      owners.set(id, { isOwnedByCaller: false, teamIds: [] });
+    }
+
+    const rows: { byCaller: Array<string>; byTeam: Array<[string, string]> } =
+      await OwnedScopePermission.findOwnerRows({
+        registryEntry: registryEntry,
+        props: data.props,
+        teamIds: data.teamIds,
+        resourceIds: resourceIds,
+      });
+
+    for (const resourceId of rows.byCaller) {
+      const known: RecordOwners | undefined = owners.get(resourceId);
+
+      if (known) {
+        known.isOwnedByCaller = true;
+      }
+    }
+
+    for (const [resourceId, teamId] of rows.byTeam) {
+      const known: RecordOwners | undefined = owners.get(resourceId);
+
+      if (known && teamId && !known.teamIds.includes(teamId)) {
+        (known.teamIds as Array<string>).push(teamId);
+      }
+    }
+
+    return owners;
+  }
+
+  /*
+   * THE TABLES WHOSE ROWS TAKE THEIR OWNERS FROM A KIND'S RECORDS, and the
+   * operations of each the Owned scope narrows (narrowsRecords) - so who
+   * owns a record decides those operations on its rows too (#11435,
+   * #11436): the kind itself, by its id; its owner tables (MonitorOwnerUser)
+   * and every model that takes its owners from it (@OwnedThrough - a
+   * monitor's probes, its status timeline), by the key that names it. Worked
+   * out once per kind from the models, by the scope's own reading of them
+   * (getOwnedThrough).
+   */
+  public static getTablesOwnedThrough(modelType: {
+    new (): BaseModel;
+  }): Array<TableOwnedThrough> {
+    const kind: string | undefined =
+      OwnedScopePermission.getClassName(modelType);
+
+    if (!kind) {
+      return [];
+    }
+
+    const cached: Array<TableOwnedThrough> | undefined =
+      OwnedScopePermission.tablesOwnedThrough.get(kind);
+
+    if (cached) {
+      return cached;
+    }
+
+    const operationsNarrowed: (
+      tableModelType: { new (): BaseModel },
+      operations: ReadonlyArray<DatabaseRequestType>,
+    ) => Array<DatabaseRequestType> = (
+      tableModelType: { new (): BaseModel },
+      operations: ReadonlyArray<DatabaseRequestType>,
+    ): Array<DatabaseRequestType> => {
+      return operations.filter((operation: DatabaseRequestType): boolean => {
+        return OwnedScopePermission.narrowsRecords(tableModelType, operation);
+      });
+    };
+
+    const tables: Array<TableOwnedThrough> = [
+      {
+        tableName: new modelType().tableName || kind,
+        key: "_id",
+        operations: operationsNarrowed(modelType, [
+          DatabaseRequestType.Read,
+          DatabaseRequestType.Update,
+          DatabaseRequestType.Delete,
+        ]),
+      },
+    ];
+
+    for (const tableModelType of AllModelTypes as Array<{
+      new (): BaseModel;
+    }>) {
+      if (tableModelType === modelType) {
+        continue;
+      }
+
+      const ownedThrough: OwnedThroughMetadata | null =
+        OwnedScopePermission.getOwnedThrough(tableModelType);
+
+      if (
+        !ownedThrough ||
+        !ownedThrough.parentModels.some((parentModel: unknown): boolean => {
+          return OwnedScopePermission.getClassName(parentModel) === kind;
+        })
+      ) {
+        continue;
+      }
+
+      const tableName: string | null = new tableModelType().tableName;
+
+      if (!tableName) {
+        continue;
+      }
+
+      tables.push({
+        tableName: tableName,
+        key: ownedThrough.fkColumn,
+        operations: operationsNarrowed(tableModelType, [
+          DatabaseRequestType.Create,
+          DatabaseRequestType.Read,
+          DatabaseRequestType.Update,
+          DatabaseRequestType.Delete,
+        ]),
+      });
+    }
+
+    OwnedScopePermission.tablesOwnedThrough.set(kind, tables);
+
+    return tables;
+  }
+
+  // getTablesOwnedThrough, by kind: the models do not change.
+  private static tablesOwnedThrough: Map<string, Array<TableOwnedThrough>> =
+    new Map<string, Array<TableOwnedThrough>>();
 
   /*
    * WHETHER THE OWNED SCOPE NARROWS `type` ON THIS MODEL'S RECORDS - or
@@ -1433,53 +1619,19 @@ export default class OwnedScopePermission {
         continue;
       }
 
-      const fkColumn: string = registryEntry.fkColumn;
+      const owned: { byCaller: Array<string>; byTeam: Array<[string, string]> } =
+        await OwnedScopePermission.findOwnerRows({
+          registryEntry: registryEntry,
+          props: props,
+          teamIds: teamIds,
+        });
 
-      /*
-       * User-ownership lookup. Skipped for non-user callers (API keys,
-       * Probes with no userId); those evaluate `Owned` as `All` elsewhere.
-       */
-      if (props.userId) {
-        const userOwnedRows: Array<BaseModel> =
-          await registryEntry.ownerUserService.findBy({
-            query: {
-              userId: props.userId,
-              ...(props.tenantId ? { projectId: props.tenantId } : {}),
-            },
-            select: { [fkColumn]: true },
-            props: { isRoot: true },
-            skip: 0,
-            limit: LIMIT_MAX,
-          });
-        for (const row of userOwnedRows) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const value: ObjectID | undefined = (row as any)[fkColumn];
-          if (value) {
-            seen.add(value.toString());
-          }
-        }
+      for (const resourceId of owned.byCaller) {
+        seen.add(resourceId);
       }
 
-      // Team-ownership lookup: the granting teams only.
-      if (teamIds.length > 0) {
-        const teamOwnedRows: Array<BaseModel> =
-          await registryEntry.ownerTeamService.findBy({
-            query: {
-              teamId: QueryHelper.any([...teamIds]),
-              ...(props.tenantId ? { projectId: props.tenantId } : {}),
-            },
-            select: { [fkColumn]: true },
-            props: { isRoot: true },
-            skip: 0,
-            limit: LIMIT_MAX,
-          });
-        for (const row of teamOwnedRows) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const value: ObjectID | undefined = (row as any)[fkColumn];
-          if (value) {
-            seen.add(value.toString());
-          }
-        }
+      for (const [resourceId] of owned.byTeam) {
+        seen.add(resourceId);
       }
     }
 
@@ -1498,5 +1650,99 @@ export default class OwnedScopePermission {
       result.push(new ObjectID(id));
     }
     return result;
+  }
+
+  /*
+   * THE OWNER ROWS OF ONE KIND WITH OWNER TABLES the Owned scope weighs:
+   * the resources the caller owns themselves, and the ones of `teamIds` -
+   * the teams of the grants being weighed - each with the team owning it,
+   * read as OneUptime in the request's project. Kept to `resourceIds` when
+   * given (getOwnersOf, for the records on a page), every resource
+   * otherwise (getAllowedResourceIds, to narrow a query by). One rule for
+   * both: what a page is told it owns is what a write is narrowed to.
+   *
+   * The caller's own rows are looked up only for a person: an API key or a
+   * probe owns nothing themselves.
+   */
+  private static async findOwnerRows(data: {
+    registryEntry: OwnerTablePair;
+    props: DatabaseCommonInteractionProps;
+    teamIds: ReadonlyArray<ObjectID>;
+    resourceIds?: ReadonlyArray<string> | undefined;
+  }): Promise<{ byCaller: Array<string>; byTeam: Array<[string, string]> }> {
+    const fkColumn: string = data.registryEntry.fkColumn;
+    const inProject: Dictionary<unknown> = data.props.tenantId
+      ? { projectId: data.props.tenantId }
+      : {};
+    const inResources: Dictionary<unknown> = data.resourceIds
+      ? { [fkColumn]: QueryHelper.any([...data.resourceIds]) }
+      : {};
+    const isKeptToResources: boolean = Boolean(data.resourceIds);
+
+    const byCaller: Array<string> = [];
+    const byTeam: Array<[string, string]> = [];
+
+    if (data.props.userId) {
+      const userOwnedRows: Array<BaseModel> =
+        await data.registryEntry.ownerUserService.findBy({
+          query: {
+            userId: data.props.userId,
+            ...inProject,
+            ...inResources,
+          },
+          select: { [fkColumn]: true },
+          props: { isRoot: true },
+          skip: 0,
+          limit: LIMIT_MAX,
+        });
+
+      for (const row of userOwnedRows) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const value: ObjectID | undefined = (row as any)[fkColumn];
+
+        if (value) {
+          byCaller.push(
+            isKeptToResources
+              ? value.toString().toLowerCase()
+              : value.toString(),
+          );
+        }
+      }
+    }
+
+    if (data.teamIds.length > 0) {
+      const teamOwnedRows: Array<BaseModel> =
+        await data.registryEntry.ownerTeamService.findBy({
+          query: {
+            teamId: QueryHelper.any([...data.teamIds]),
+            ...inProject,
+            ...inResources,
+          },
+          select: isKeptToResources
+            ? { [fkColumn]: true, teamId: true }
+            : { [fkColumn]: true },
+          props: { isRoot: true },
+          skip: 0,
+          limit: LIMIT_MAX,
+        });
+
+      for (const row of teamOwnedRows) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const value: ObjectID | undefined = (row as any)[fkColumn];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const teamId: ObjectID | undefined = (row as any)["teamId"];
+
+        if (value) {
+          byTeam.push([
+            isKeptToResources
+              ? value.toString().toLowerCase()
+              : value.toString(),
+            teamId ? teamId.toString().toLowerCase() : "",
+          ]);
+        }
+      }
+    }
+
+    return { byCaller: byCaller, byTeam: byTeam };
   }
 }

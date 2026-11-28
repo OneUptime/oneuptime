@@ -1583,31 +1583,13 @@ export default class AccessControlPermission {
     });
   }
 
-  // Whether every record `grant` reaches is one `within` reaches.
+  /*
+   * Whether every record `grant` reaches is one `within` reaches, by the
+   * rule the Dashboard tells a column kept to labels by too
+   * (LabelAccess.isGrantWithin, #11437).
+   */
   public static isGrantWithin(grant: LabelGrant, within: LabelGrant): boolean {
-    const withinLabels: Set<string> = new Set<string>(
-      within.labelIds.map((labelId: ObjectID): string => {
-        return labelId.toString().toLowerCase();
-      }),
-    );
-
-    const labelsWithin: boolean = grant.labelIds.every(
-      (labelId: ObjectID): boolean => {
-        return withinLabels.has(labelId.toString().toLowerCase());
-      },
-    );
-
-    if (!labelsWithin || grant.ownedTeamIds === null) {
-      return labelsWithin;
-    }
-
-    return (
-      within.ownedTeamIds !== null &&
-      OwnedScopePermission.isTeamListWithin(
-        grant.ownedTeamIds,
-        within.ownedTeamIds,
-      )
-    );
+    return LabelAccess.isGrantWithin(grant, within);
   }
 
   /*
