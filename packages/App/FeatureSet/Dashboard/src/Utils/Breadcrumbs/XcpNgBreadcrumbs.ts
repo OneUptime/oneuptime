@@ -75,6 +75,27 @@ export function getXcpNgBreadcrumbs(path: string): Array<Link> | undefined {
       "View Pool",
       "Topology",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS, [
+      "Project",
+      "XCP-ng",
+      "View Pool",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_POOL_VIEW_AI_LOGS, [
+      "Project",
+      "XCP-ng",
+      "View Pool",
+      "AI",
+      "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_POOL_VIEW_AI_AGENT, [
+      "Project",
+      "XCP-ng",
+      "View Pool",
+      "AI",
+      "AI agent",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_POOL_VIEW_INSIGHTS, [
       "Project",
       "XCP-ng",
@@ -194,6 +215,17 @@ export function getXcpNgBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "XCP-ng",
       "Archived",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_CONNECTIONS, [
+      "Project",
+      "XCP-ng",
+      "Connections",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_CONNECTION_VIEW, [
+      "Project",
+      "XCP-ng",
+      "Connections",
+      "View Connection",
     ]),
   };
   return breadcrumpLinksMap[path];

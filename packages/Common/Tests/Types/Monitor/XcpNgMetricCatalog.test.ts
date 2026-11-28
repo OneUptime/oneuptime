@@ -128,11 +128,19 @@ describe("XcpNgMetricCatalog", () => {
   });
 
   test("the derived series are flagged as OneUptime's", () => {
+    // A VM's backups and a host's patches are theirs; the rest, availability.
+    const categories: Record<string, string> = {
+      [XcpNgDerivedSeries.VmBackupOverdue]: "VM",
+      [XcpNgDerivedSeries.HostMissingPatches]: "Host",
+    };
     for (const name of Object.values(XcpNgDerivedSeries)) {
       const metric: XcpNgMetricDefinition | undefined =
         getXcpNgMetricByMetricName(name);
       expect(metric?.isDerivedByOneUptime).toBe(true);
-      expect(metric?.category).toBe("Availability");
+      expect([name, metric?.category]).toEqual([
+        name,
+        categories[name] || "Availability",
+      ]);
     }
     expect(
       ALL.filter((m: XcpNgMetricDefinition) => {

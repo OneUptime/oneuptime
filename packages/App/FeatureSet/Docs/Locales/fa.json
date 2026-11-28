@@ -424,6 +424,7 @@
     "Podman Agent": "عامل Podman",
     "Proxmox Agent": "عامل Proxmox",
     "XCP-ng Agent": "عامل XCP-ng",
+    "XCP-ng Without an Agent": "XCP-ng بدون عامل",
     "Ceph Agent": "عامل Ceph",
     "Storage Array Agent": "عامل آرایه ذخیره‌سازی",
     "Docker Swarm Agent": "عامل Docker Swarm",

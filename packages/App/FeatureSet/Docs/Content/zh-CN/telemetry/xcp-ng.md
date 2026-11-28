@@ -1,6 +1,6 @@
 # XCP-ng 代理
 
-OneUptime 的 XCP-ng 代理监控由 Xen Orchestra 管理的 XCP-ng 资源池：它们的主机、虚拟机、存储库和虚拟磁盘。它是一个标准的 OpenTelemetry Collector，使用插件的密钥读取 Xen Orchestra 自带的 OpenMetrics 插件，并把读到的内容发送到 OneUptime，每个资源池都会连同其清单出现在那里。资源池或 Xen Orchestra 的任何密码都不会到达代理。[XCP-ng 监视器](/docs/monitor/xcp-ng-monitor) 会针对传入的数据发出警报。
+OneUptime 的 XCP-ng 代理监控由 Xen Orchestra 管理的 XCP-ng 资源池：它们的主机、虚拟机、存储库和虚拟磁盘。它是一个标准的 OpenTelemetry Collector，使用插件的密钥读取 Xen Orchestra 自带的 OpenMetrics 插件，并把读到的内容发送到 OneUptime，每个资源池都会连同其清单出现在那里。资源池或 Xen Orchestra 的任何密码都不会到达代理。[XCP-ng 监视器](/docs/monitor/xcp-ng-monitor) 会针对传入的数据发出警报。 要无需安装任何东西、由 OneUptime 探测器读取同样的资源池，请参阅[无需代理的 XCP-ng](/docs/telemetry/xcp-ng-agentless)。
 
 :::cards
 - [安装代理](#安装代理): 启用插件，然后使用安装脚本或 Docker Compose。
@@ -197,6 +197,17 @@ key = '/etc/ssl/xo/key.pem'
 | `XO_TLS_FINGERPRINT` | 安装脚本 | Xen Orchestra 自己证书的 SHA-256 指纹，格式与 `openssl x509 -fingerprint -sha256` 的输出相同，冒号可省略，用于代理只信任该证书的情况。安装脚本会拒绝与之不符的证书。 |
 | `XO_CA_FILE` | 安装脚本 | 签发 Xen Orchestra 证书的 CA 证书包；安装脚本会用它校验证书，并把它复制到 `xo-ca.pem`。 |
 | `XO_TLS_SERVER_NAME` | 否 | 当 `XO_ADDRESS` 是证书中未写明的地址时，用来校验 Xen Orchestra 证书的名称。留空：使用 `XO_ADDRESS` 中的主机。 |
+| `ONEUPTIME_AI_XO_READ_TOKEN` | 否 | 只持有内置 **Read only** 角色副本的 Xen Orchestra 用户的令牌：设置后 [AI 代理](#ai-代理) 就会运行，并用它读取。 |
+| `ONEUPTIME_AI_XO_WRITE_TOKEN` | 否 | 仅用于修复：另一个用户的令牌，其角色允许这些修复。没有它，AI 代理不会更改任何内容。 |
+| `XCP_NG_POOL_ID` | 否 | AI 代理所服务资源池的 XAPI UUID。留空：其读取令牌能看到的唯一资源池。 |
+| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | 否 | 覆盖 `XCP_NG_POOL_ID`，作为 AI 代理注册时使用的资源池。 |
+| `ONEUPTIME_AI_INVESTIGATION` | 否 | `true` 或 `false`：OneUptime AI 在调查时能否运行 AI 代理的只读命令。留空：开启。 |
+| `ONEUPTIME_AI_FIXES` | 否 | `off`、`ask-for-approval`、`automatic` 或 `bypass-approval`：OneUptime AI 可以如何应用修复。留空：允许写入时为 `ask-for-approval`，否则为 `off`。 |
+| `ONEUPTIME_AI_ALLOW_WRITES` | 否 | `true` 让 AI 代理使用更改令牌应用修复。其他任何值都会让它保持只读。 |
+| `ONEUPTIME_AI_WRITE_TARGETS` | 否 | 修复可以触及的 `vm/<uuid>`、`host/<uuid>`、`pbd/<uuid>` 或 `schedule/<uuid>`，以逗号分隔，`*` 匹配任意字符序列。留空：全部。 |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | 否 | 同上，用于 OneUptime AI 绝不能更改的内容，无论由谁批准：AI 代理运行所在的虚拟机，以及 Xen Orchestra 自己的虚拟机。 |
+| `LOG_LEVEL` | 否 | AI 代理的日志级别：`debug`、`info`（默认）、`warn` 或 `error`。 |
+| `COMPOSE_PROFILES` | 否 | `xcp-ng-ai-agent` 会启动 AI 代理。安装脚本会在设置了读取令牌时写入它，未设置时将其移除。 |
 
 ## 代理采集的内容
 
@@ -226,6 +237,17 @@ OneUptime 会在每个资源池的数据到达时为其派生四个 0/1 序列�
 | `xcp_ng.host.enabled` | 主机已启用；处于维护模式或正在疏散、XAPI 不会在其上启动任何虚拟机时为 0 |
 | `xcp_ng.vm.running` | 虚拟机为 Running；为 Halted、Paused 或 Suspended 时为 0 |
 | `xcp_ng.vm.stopped_after_running` | 过去 24 小时内运行过的虚拟机为 Halted 或 Paused |
+
+如果有探测器连接到 Xen Orchestra 或资源池的 XAPI，OneUptime 还会根据探测器在指标之外读取的内容派生以下序列；代理不读取其中任何内容：
+
+| 序列 | 值 |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | 资源池的 HA 开启时为 1，否则为 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | HA 仍能承受一台主机故障时为 1，否则为 0：通过 XAPI 是 HA 自己的计划，通过 Xen Orchestra 是除故障主机之外还有一台已启动且已启用的主机 |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | HA 设置为可承受的主机故障数（仅通过 XAPI） |
+| `xcp_ng.pool.ha.plan_exists_for` | 当前计划覆盖的主机故障数（仅通过 XAPI） |
+| `xcp_ng.vm.backup_overdue` | 计划备份作业所包含的虚拟机在其间隔再加四分之一（至少一小时）内没有成功备份时为 1（仅通过 Xen Orchestra） |
+| `xcp_ng.host.missing_patches` | 主机缺少的补丁数，每六小时检查一次（仅通过 Xen Orchestra） |
 
 它还会在每个数据点上打上 `xcp_ng.scope`（`pool`、`host`、`vm`、`sr`、`vdi` 或 `xostor`）和 `xcp_ng.id`（该对象的 UUID），监视器和仪表板会按它们过滤：请参阅 [资源标识](/docs/monitor/xcp-ng-monitor#资源标识)。
 
@@ -285,6 +307,19 @@ processors:
 一个代理读取一个 Xen Orchestra 及其管理的每个资源池。要从同一台机器读取第二个 Xen Orchestra，请在单独的文件夹中用单独的 `.env` 安装第二个代理，例如 `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh`，并为它指定自己的 `container_name`，写在它的 `docker-compose.yml` 中（例如 `oneuptime-xcp-ng-agent-lab`）：两个容器不能同名。给每个代理指定自己的 `XO_NAME`，这样每个资源池的 **设置** 会显示是哪个 Xen Orchestra 在读取它，并用 `-d` 把文件夹传给诊断脚本。
 
 切勿让两个代理通过同时管理同一资源池的两个 Xen Orchestra 读取该资源池：按其 UUID 它在 OneUptime 中是一个资源池，会被重复报告。
+
+## AI 代理
+
+代理的 `docker-compose.yml` 还包含 **XCP-ng AI 代理** `oneuptime-xcp-ng-ai-agent`（镜像 `oneuptime/resource-ai-agent:release`），位于 `xcp-ng-ai-agent` profile 下。当 OneUptime AI 调查某个资源池上的事件或警报时，它会通过该代理运行只读的 `xo-cli` REST 命令，例如 `xo-cli rest get vms fields=name_label,power_state filter=power_state:Halted` 或 `xo-cli rest get pbds fields=attached,host,SR filter=!attached?`，并且只有在你允许时才会应用修复，例如启动虚拟机或接入存储库的 PBD。其中并没有 `xo-cli` 二进制文件：每条命令都会变成对 Xen Orchestra REST API 的恰好一次调用，使用采集器所用的地址和 `xo-ca.pem`。它会出现在 OneUptime 中该资源池的 **AI 代理** 页面上。
+
+- **它需要一个自己的只读令牌。** OpenMetrics 密钥只能读取指标，因此 AI 代理使用 `ONEUPTIME_AI_XO_READ_TOKEN` 读取 Xen Orchestra 的 REST API（Xen Orchestra 6.9 或更高版本），这是一个只持有内置 **Read only** 角色副本的 Xen Orchestra 用户的令牌。设置好它后运行 `install.sh`，或者在首次安装询问时输入它：脚本会询问 Xen Orchestra 是否认识该令牌，把它保存在权限为 600 的 `.env` 中，并启动 AI 代理。在代理运行任何内容之前，以及每 5 分钟，它都会检查该令牌只能读取：管理员的令牌，或其角色允许更改的令牌，什么都不会运行。
+- **每个 AI 代理对应一个资源池。** `XCP_NG_POOL_ID` 是它所服务的资源池，即资源池的 **设置** 中显示的 XAPI UUID。留空时，它服务其令牌能看到的唯一资源池。对于拥有多个资源池的 Xen Orchestra，代理的 README 说明了如何为每个资源池再运行一个。由探测器读取的资源池不需要 XCP-ng 代理：README 还说明了如何从同一个 `docker-compose.yml` 为它单独运行 AI 代理。
+- **AI 调查默认开启。** 代理连接后，OneUptime AI 会用它来调查该资源池上的事件和警报，资源池的 **概览** 会显示代理的状态。要停止，请在代理运行的位置设置 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理页面上 **AI 可以执行的操作** 下的 **更改** 会显示方法），或者不提供令牌。
+- **修复需要第二个令牌。** 除非你设置 `ONEUPTIME_AI_ALLOW_WRITES=true` 和 `ONEUPTIME_AI_XO_WRITE_TOKEN`（另一个用户的令牌，其角色允许这些修复，即 **VMs power state manager** 角色的副本，并添加代理 README 中列出的权限），否则代理是只读的。它只用于更改本身，不作他用。`ONEUPTIME_AI_WRITE_TARGETS`（`vm/<uuid>`、`host/<uuid>`、`pbd/<uuid>`、`schedule/<uuid>`）限制修复可以触及的内容；请把代理运行所在虚拟机以及 Xen Orchestra 自己虚拟机的 UUID 放入 `ONEUPTIME_AI_PROTECTED_TARGETS`。`ONEUPTIME_AI_FIXES`（位于同一个 `.env` 中）决定修复如何运行——`ask-for-approval`（由人逐一批准）、`automatic` 或 `bypass-approval`——AI 代理页面会以只读方式显示它（[由代理设置的 AI 可以执行的操作](/docs/ai/infrastructure-ai-agents#ai-可以做什么由代理设置)）。
+- **它像采集器一样检查 Xen Orchestra 的证书**，依据其 subjectAltName，且只对照 `xo-ca.pem`，因此 Xen Orchestra 为自己生成的证书在这里同样会被拒绝（[Xen Orchestra 的证书](#xen-orchestra-的证书)）。它从不通过 `http://` 读取 Xen Orchestra：否则它的令牌会以未加密的形式在网络上传输。
+- 它以 UID 1000 运行，没有任何 capability，根文件系统为只读，从不读取 Xen Orchestra 的用户、角色、服务器、插件或远程存储，从不按保存机密的属性筛选，也从不编辑、删除、还原或克隆任何东西。
+
+它可以运行什么、修复如何工作以及如何排查问题，请参阅 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#xcp-ng-资源池)。代理的 README 中有两个令牌所需的角色和权限。
 
 ## 作为 systemd 服务运行
 
@@ -381,9 +416,10 @@ Xen Orchestra 只报告它所连接的资源池，而代理只读取这个 Xen O
 
 Xen Orchestra 的 OpenMetrics 插件提供的是指标，因此你在 XCP-ng 资源池中关注的部分内容还不在其中：
 
-- 除 XOSTOR 之外的 **告警**、**HA 状态**、**资源池主节点**、**缺失的补丁**、**备份** 和 **快照**，以及主机物理接口（PIF）的 **链路状态**。它们来自 Xen Orchestra 的 REST API，见 [#10997](https://github.com/OneUptime/oneuptime/issues/10997)。
-- **没有 Xen Orchestra 的资源池**，或位于没有插件所需 Premium 许可证的 XOA 之后的资源池：它们直接通过 XAPI 读取，见 [#10999](https://github.com/OneUptime/oneuptime/issues/10999)。
-- **无需代理即可连接**，从 OneUptime 探测器连接，就像 VMware 那样：[#10996](https://github.com/OneUptime/oneuptime/issues/10996)。
+- 除 XOSTOR 之外的 **告警**、**HA 状态**、**资源池主节点**、**缺失的补丁** 和 **备份**：OneUptime 探测器从 Xen Orchestra 的 REST API 或资源池的 XAPI 读取它们（[#10997](https://github.com/OneUptime/oneuptime/issues/10997)），参见[无需代理的 XCP-ng](/docs/telemetry/xcp-ng-agentless)。
+- 每台虚拟机的 **快照** 和主机物理接口（PIF）的 **链路状态**，目前也还没有探测器读取它们（[#11328](https://github.com/OneUptime/oneuptime/issues/11328)）。
+- **没有 Xen Orchestra 的资源池**，或位于没有插件所需 Premium 许可证的 XOA 之后的资源池：OneUptime 探测器直接通过 XAPI 读取它们（[#10999](https://github.com/OneUptime/oneuptime/issues/10999)），请参阅[无需代理的 XCP-ng](/docs/telemetry/xcp-ng-agentless)。
+- **无需代理即可连接**：OneUptime 探测器自己读取 Xen Orchestra 的插件，就像 VMware 那样（[#10996](https://github.com/OneUptime/oneuptime/issues/10996)），见同一页面。
 
 ## 后续步骤
 

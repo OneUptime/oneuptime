@@ -27,6 +27,7 @@ Börja med frågan som rutan ska besvara:
 | Tar sig folk igenom ett flöde, och kommer de tillbaka? | **Tratt** eller **Kvarhållning av användare** |
 | I vilket tillstånd är våra kluster och värdar? | En widget i gruppen Infrastruktur |
 | Var i världen finns vårt nätverk, och vad är nere? | **Nätverkskarta** |
+| Vad kostar våra moln, och vilket team spenderar pengarna? | **Molnkostnad** |
 | En rubrik, en anteckning, tiden på ett annat kontor? | **Text** eller **Klocka** |
 | Data som finns utanför OneUptime? | En widget i gruppen Externa datakällor |
 | Något som ingen widget täcker? | **HTML**, när du är säker på att ingen annan widget gör det |
@@ -200,8 +201,9 @@ Var och en av de här widgetarna listar resurserna som en agent eller en collect
 | **XCP-ng** | **Värdar**, **VM:ar** | XCP-ng-agenten |
 | **Ceph** | **OSD:er**, som en vägg färgad efter tillstånd, och **Pools** | Ceph-agenten |
 | **Lagringsarrayer** | **Volymer**, och **Hårdvara** som en vägg färgad efter status | Lagringsarray-agenten |
+| **Molnkostnader** | **Molnkostnad**, en summa, en uppdelning eller en trend för utgifterna | Kostnaderna som dina [molnkonton](/docs/telemetry/cloud-accounts) rapporterar |
 
-Använd dem för en sida som blandar tillståndet i din infrastruktur med telemetrin från arbetslasterna som körs på den.
+Använd dem för en sida som blandar tillståndet i din infrastruktur med telemetrin från arbetslasterna som körs på den. Widgeten Molnkostnad är ingen lista: se [Molnkostnader](#molnkostnader).
 
 ### Network Map
 
@@ -214,6 +216,19 @@ Ovanför kartan står hur många platser som är nere, eftersom en röd prick p�
 **Inställningar**: titel, kart- eller listvy, högsta antal ritade platser, om platsnamn ska skrivas ut, och filter efter platstyp och efter status. Platsnamn försvinner automatiskt när kartan blir för full för att de ska gå att läsa; verktygstipset namnger fortfarande varje markör.
 
 En plats visas bara om den har koordinater. Lägg till latitud och longitud på platsen (eller importera dem från en CSV) för att fästa den.
+
+## Molnkostnader
+
+### Molnkostnad
+
+Vad dina moln kostar, bredvid tjänsterna som spenderar pengarna, för instrumentpanelens tidsintervall. Den läser samma siffror som **Moln → Utgifter → Kostnader** och en kostnadsgrupps sida, för samma dagar.
+
+- **Täcker**: alla konton, ett **Konto**, en **Kostnadsgrupp** eller en **Kostnadsvy**. Välj kontot, gruppen eller vyn i inställningen under.
+- **Visa**: en summa mot perioden innan, en uppdelning av de största delarna eller en trend för varje dags utgifter.
+- **Dela upp efter**: tjänster, regioner, konton eller resurser. Uppdelningen av en kostnadsvy listar dess grupper och det som ingen grupp tar.
+- **Kostnadsbas**: fakturerad, amorterad eller netto. Tom är det projektets, som Kostnader öppnas med.
+
+Siffrorna är i den valuta som de flesta av dina konton faktureras i. Att se den kräver detsamma som att se Kostnader: var och en ser det de får läsa. En offentlig instrumentpanel visar bara rubriken. Se [Molnkostnader och besparingar](/docs/telemetry/cloud-costs#rapporter-och-exporter) för rapporter och exporter av samma siffror.
 
 ## Externa datakällor
 
@@ -250,7 +265,7 @@ Via API:et och Terraform är ordningen widgetens `arguments.sort`: en kolumn och
 
 En [offentlig instrumentpanel](/docs/dashboards/sharing) ritar de flesta widgetar för sina besökare, och var och en visar bara det den har ställts in att visa. Några få kan inte visas utan en inloggad session:
 
-- **Loggdiagram**, **Spårdiagram**, **Spårtabell**, **Säkerhetshändelser**, **Flöde av säkerhetshändelser**, **Tratt** och **Kvarhållning av användare** säger på sin plats att de inte är tillgängliga på offentliga instrumentpaneler.
+- **Loggdiagram**, **Spårdiagram**, **Spårtabell**, **Säkerhetshändelser**, **Flöde av säkerhetshändelser**, **Tratt**, **Kvarhållning av användare** och **Molnkostnad** säger på sin plats att de inte är tillgängliga på offentliga instrumentpaneler.
 - Widgetarna i Externa datakällor visar sina data när de läser **Det här projektets mätvärden (PromQL)**, aldrig sina frågor. En widget med en extern datakälla utelämnas helt från en offentlig instrumentpanel.
 
 ## När en widget inte kan visas

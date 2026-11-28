@@ -1,7 +1,10 @@
 import DataStoreService from "../../Services/DataStoreService";
 import { SubscriptionStatusUtil } from "../../../Types/Billing/SubscriptionStatus";
 import OneUptimeDate from "../../../Types/Date";
-import { DataStoreProvider } from "../../../Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreKind,
+  DataStoreProvider,
+} from "../../../Types/DataSecurity/DataStoreKind";
 import ObjectID from "../../../Types/ObjectID";
 import {
   DATA_SECURITY_PROBE_CLAIM_IN_MINUTES,
@@ -203,6 +206,8 @@ export async function isDataStoreContentScannableByProbe(data: {
 export async function setAsideUnscannableStores(data: {
   probeId: ObjectID;
   currentDate: Date;
+  // The kinds this probe may be handed (getProbeClaimableKinds): every kind a probe samples unless said.
+  kinds?: ReadonlyArray<DataStoreKind> | undefined;
 }): Promise<SetAsideCounts> {
   const rows: unknown = await DataStoreService.getRepository().manager.query(
     getClaimSetAsideStatement({
@@ -226,7 +231,7 @@ export async function setAsideUnscannableStores(data: {
       currentDate: data.currentDate,
       ruleParameters: [
         DataStoreProvider.SelfManaged,
-        [...PROBE_SCANNABLE_KINDS],
+        [...(data.kinds || PROBE_SCANNABLE_KINDS)],
         SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
       ],
     }),
@@ -238,6 +243,12 @@ export async function setAsideUnscannableStores(data: {
 export async function claimDueDataStoresForProbe(data: {
   probeId: ObjectID;
   limit: number;
+  /*
+   * The kinds this probe may be handed, by what it declares
+   * (getProbeClaimableKinds): a search cluster only to a probe whose build
+   * reads one (#11140). Every kind a probe samples unless said.
+   */
+  kinds?: ReadonlyArray<DataStoreKind> | undefined;
 }): Promise<Array<ClaimedDataStore>> {
   if (data.limit <= 0) {
     return [];
@@ -254,7 +265,7 @@ export async function claimDueDataStoresForProbe(data: {
     [
       data.probeId.toString(),
       DataStoreProvider.SelfManaged,
-      [...PROBE_SCANNABLE_KINDS],
+      [...(data.kinds || PROBE_SCANNABLE_KINDS)],
       now,
       SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
       Math.floor(data.limit),
@@ -270,6 +281,7 @@ export async function claimDueDataStoresForProbe(data: {
       return await setAsideUnscannableStores({
         probeId: data.probeId,
         currentDate: now,
+        kinds: data.kinds,
       });
     },
   });

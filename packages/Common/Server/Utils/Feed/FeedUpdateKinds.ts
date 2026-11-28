@@ -250,19 +250,24 @@ export const SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS: Readonly<
   [ScheduledMaintenanceFeedEventType.PrivateNote]:
     NotificationRuleUpdateKind.PrivateNotes,
   /*
-   * Kept to the event's feed today. Posted one day, each gets an update of
+   * Kept to the event's feed today. Posted one day, it gets an update of
    * its own on the scheduled maintenance rules' Updates step.
    */
   [ScheduledMaintenanceFeedEventType.ScheduledMaintenanceUpdated]:
     NotificationRuleUpdateKind.Other,
+  /*
+   * Posted since #11223, as every other kind's owners are: their own box on
+   * the Updates step, Owners - not Everything else, so a rule that chose
+   * its updates before keeps posting what it did.
+   */
   [ScheduledMaintenanceFeedEventType.OwnerUserAdded]:
-    NotificationRuleUpdateKind.Other,
+    NotificationRuleUpdateKind.Owners,
   [ScheduledMaintenanceFeedEventType.OwnerTeamAdded]:
-    NotificationRuleUpdateKind.Other,
+    NotificationRuleUpdateKind.Owners,
   [ScheduledMaintenanceFeedEventType.OwnerUserRemoved]:
-    NotificationRuleUpdateKind.Other,
+    NotificationRuleUpdateKind.Owners,
   [ScheduledMaintenanceFeedEventType.OwnerTeamRemoved]:
-    NotificationRuleUpdateKind.Other,
+    NotificationRuleUpdateKind.Owners,
   [ScheduledMaintenanceFeedEventType.RootCause]:
     NotificationRuleUpdateKind.Other,
   [ScheduledMaintenanceFeedEventType.RemediationNotes]:

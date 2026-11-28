@@ -74,8 +74,26 @@ export interface AppReplicaStats {
   metrics: JSONObject | null;
 }
 
+/*
+ * What a replica is doing at one moment (issue #11121): the probe
+ * scheduling work lane's requests running and waiting, the monitor
+ * fetches it has answered and the connections it has accepted since it
+ * started, the connections it holds open, and the answers it sent with
+ * "Connection: close".
+ */
+export interface AppReplicaSample {
+  replica: number;
+  running: number;
+  waiting: number;
+  monitorListAnswered: number;
+  connectionsAccepted: number;
+  connectionsOpen: number;
+  closingAnswers: number;
+}
+
 export type AppReplicaMessage =
   | { type: "stats"; id: number }
+  | { type: "sample"; id: number }
   | { type: "reset" }
   | { type: "profile-start" }
   | { type: "profile-stop"; file: string }
@@ -93,6 +111,10 @@ const BUSY_PERCENT: number = Math.min(
 const timings: Map<string, Timing> = new Map<string, Timing>();
 const answers: Map<string, number> = new Map<string, number>();
 let slotRefusals: number = 0;
+// Since the process started, for samples: never reset.
+let monitorListAnswered: number = 0;
+let connectionsAccepted: number = 0;
+let closingAnswers: number = 0;
 let cpuAtReset: NodeJS.CpuUsage = process.cpuUsage();
 let resetAt: number = Date.now();
 const eventLoopDelay: IntervalHistogram = monitorEventLoopDelay({
@@ -490,6 +512,16 @@ async function main(): Promise<void> {
         record(`request:${route}`, performance.now() - startedAt);
         const answer: string = `${route} ${res.statusCode}`;
         answers.set(answer, (answers.get(answer) || 0) + 1);
+
+        if (route === "/probe-ingest/monitor/list") {
+          monitorListAnswered++;
+        }
+
+        if (
+          String(res.getHeader("connection") || "").toLowerCase() === "close"
+        ) {
+          closingAnswers++;
+        }
       });
 
       // The probe's key, as checked: see the comment at the top.
@@ -505,10 +537,27 @@ async function main(): Promise<void> {
     },
   );
 
+  /*
+   * A probe's check result, which the probe sends on the connections it
+   * asks for work on (ProbeDispatchProbes, postResults): answered at once.
+   * Storing it is not what the benchmark measures.
+   */
+  app.post(
+    "/probe-ingest/probe/response/ingest",
+    (_req: ExpressRequest, res: ExpressResponse): void => {
+      res.status(200).send({});
+    },
+  );
+
   app.use(["/probe-ingest"], ProbeIngestMonitorAPI);
 
   const server: http.Server = http.createServer(app);
-  server.keepAliveTimeout = 65_000;
+  // As the App's own server keeps a connection (Common/Server/Utils/Express).
+  server.keepAliveTimeout = 75_000;
+  server.headersTimeout = 76_000;
+  server.on("connection", (): void => {
+    connectionsAccepted++;
+  });
 
   await new Promise<void>((resolve: () => void): void => {
     server.listen(0, "127.0.0.1", resolve);
@@ -526,6 +575,20 @@ async function main(): Promise<void> {
     };
 
     switch (message.type) {
+      case "sample":
+        server.getConnections((_error: Error | null, open: number): void => {
+          const sample: AppReplicaSample = {
+            replica: REPLICA,
+            running: ProbeSchedulingLimiterInstance.runningCount(),
+            waiting: ProbeSchedulingLimiterInstance.waitingCount(),
+            monitorListAnswered: monitorListAnswered,
+            connectionsAccepted: connectionsAccepted,
+            connectionsOpen: open || 0,
+            closingAnswers: closingAnswers,
+          };
+          answer({ type: "sample", id: message.id, sample: sample });
+        });
+        return;
       case "stats":
         readMetrics(origin)
           .then((metrics: JSONObject | null): void => {

@@ -12,8 +12,11 @@ import {
 import {
   DEFAULT_TELEMETRY_ENTITY_LABEL,
   ResolvedTelemetryEntity,
+  TelemetryEntityChipMarks,
   TelemetryEntityNameMap,
+  getTelemetryEntityChipMarks,
   getTelemetryEntityTypeLabel,
+  withTelemetryEntityChipMarks,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import { getAttributeDisplayName } from "../Components/Logs/LogsAttributeFilterChips";
 import {
@@ -328,6 +331,11 @@ export const resolveExceptionChipDisplay: (data: {
   facetDisplayNames?: Record<string, string> | undefined;
   scopeEntityId?: string | undefined;
   scopeEntityType?: ServiceType | undefined;
+  /*
+   * The ids every read answered nothing for: a chip naming one reads "No
+   * longer available", never its id (#11213).
+   */
+  notFound?: ReadonlySet<string> | undefined;
 }) => ActiveFilter = (data: {
   chip: ActiveFilter;
   config: FacetConfig | undefined;
@@ -335,6 +343,7 @@ export const resolveExceptionChipDisplay: (data: {
   facetDisplayNames?: Record<string, string> | undefined;
   scopeEntityId?: string | undefined;
   scopeEntityType?: ServiceType | undefined;
+  notFound?: ReadonlySet<string> | undefined;
 }): ActiveFilter => {
   const chip: ActiveFilter = data.chip;
 
@@ -374,23 +383,38 @@ export const resolveExceptionChipDisplay: (data: {
   const resolved: ResolvedTelemetryEntity | undefined =
     data.entityNames?.[chip.value];
 
-  const displayValue: string =
+  const knownName: string | undefined =
     mappedName ||
     data.facetDisplayNames?.[chip.value] ||
     getCarriedDisplayValue(chip) ||
-    resolved?.name ||
-    chip.value;
+    undefined;
+
+  const displayValue: string = knownName || resolved?.name || chip.value;
+
+  /*
+   * Gone once every read of its id answered nothing, archived when its
+   * record is (#11213). The chip keeps its id, and still filters by it.
+   */
+  const marks: TelemetryEntityChipMarks = getTelemetryEntityChipMarks({
+    id: chip.value,
+    knownName: knownName,
+    names: data.entityNames,
+    notFound: data.notFound,
+  });
 
   if (isTypedResourceFacetKey(chip.facetKey)) {
-    return {
-      ...chip,
-      displayKey:
-        data.config?.title ||
-        getResourceFacetDefinition(chip.facetKey)?.label ||
-        chip.displayKey ||
-        chip.facetKey,
-      displayValue,
-    };
+    return withTelemetryEntityChipMarks(
+      {
+        ...chip,
+        displayKey:
+          data.config?.title ||
+          getResourceFacetDefinition(chip.facetKey)?.label ||
+          chip.displayKey ||
+          chip.facetKey,
+        displayValue,
+      },
+      marks,
+    );
   }
 
   /*
@@ -410,7 +434,10 @@ export const resolveExceptionChipDisplay: (data: {
     ? getTelemetryEntityTypeLabel(data.scopeEntityType)
     : resolved?.typeLabel || fallbackKey;
 
-  return { ...chip, displayKey, displayValue };
+  return withTelemetryEntityChipMarks(
+    { ...chip, displayKey, displayValue },
+    marks,
+  );
 };
 
 /*

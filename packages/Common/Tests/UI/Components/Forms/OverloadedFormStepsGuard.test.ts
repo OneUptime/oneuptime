@@ -98,6 +98,17 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
       "Only what the check picked on the step before reads ever shows: the column, with the accepted values of an Invalid Percent check, the pattern of a Format Mismatch Percent check, or the table and column an Orphan Count check refers to; a Custom SQL check's query in place of a column; then Segment By. Four rows at most (an Orphan Count check's); the others are alternatives, never on screen together.",
   },
   /*
+   * A scheduled cost report (#11009): what it covers is one question, and
+   * the record it names is one picker of three.
+   */
+  {
+    file: `${DASHBOARD}/Pages/Cloud/Reports.tsx`,
+    form: "ModelTable: Cloud > Reports",
+    step: "report",
+    reason:
+      "Covers picks every account, one account, a cost group or a cost view, and only the one picker that answer names - Account, Cost Group or Cost View - ever shows under it: the three are alternatives, never on screen together. The step shows five rows at most - the name, Covers, that picker, the period and the More fields line that folds the cost basis - and four for every account.",
+  },
+  /*
    * A Twilio config asks what the account is used for on its Basic step
    * (Dashboard Components/CallSMS/TwilioConfigUseCopy), and this step then
    * shows the fields of that answer alone.

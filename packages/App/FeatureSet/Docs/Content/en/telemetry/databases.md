@@ -454,8 +454,19 @@ Its own variables, in the same `.env` (the compose file passes them to the AI ag
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | A PEM CA bundle, mounted into the container (see the commented `volumes` of `oneuptime-database-ai-agent`), to verify the server's certificate against when `DATABASE_TLS_INSECURE=false` |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | the collector's identity | Registers the AI agent as another database than the collector's: its id in OneUptime, or `<engine>\|<address>:<port>`. Leave it empty |
 | `LOG_LEVEL` | `info` | The AI agent's log level: `debug`, `info`, `warn` or `error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true` lets the agent read this server's databases for Data Observability; anything else leaves it off |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | the monitoring login | The login Data Observability reads the catalog with. Written as it is: its `$` are not doubled |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | That login's password; single-quote it |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false` runs no data check: the catalog alone |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | the catalog login | The login data checks read rows with |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | That login's password; single-quote it |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true` runs Custom SQL and Failing Rows checks |
 
 What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#database-servers).
+
+### Data Observability through the same agent
+
+The same agent can read this server's PostgreSQL, MySQL and MariaDB databases for [Data Observability](/docs/data-observability/index): their tables and columns, freshness and volume, schema changes, and the checks you set up. It reads with logins of its own environment and statements it builds itself, read-only, and sends back no row and no login. It is off until you set `ONEUPTIME_DATA_OBSERVABILITY=true` in the same `.env`. [Connect a Database](/docs/data-observability/connect#through-a-database-agent) says how to choose the agent and which logins to give it.
 
 ## Kubernetes
 

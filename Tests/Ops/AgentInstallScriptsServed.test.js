@@ -165,8 +165,9 @@ function fetchedFiles(entry) {
        * download_agent_file handing its own argument on.
        */
       const list = /^AGENT_FILES="([^"]+)"$/m.exec(script);
+      const names = list ? list[1].split(" ") : [];
 
-      for (const file of list ? list[1].split(" ") : []) {
+      for (const file of names) {
         if (file === "$PLATFORM_CONFIGS") {
           // Its PLATFORMS table's collector configs: each line's first field.
           for (const config of platformTableConfigs(script)) {

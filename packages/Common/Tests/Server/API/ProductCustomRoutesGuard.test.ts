@@ -437,6 +437,35 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     },
   },
   /*
+   * Costs' breakdown and its FOCUS export (#11009): both read the costs as
+   * the caller may read them, a project API key's script included.
+   */
+  "packages/Common/Server/API/CloudCostAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/breakdown`": READ,
+      "`${path}/export`": READ,
+    },
+  },
+  /*
+   * A scheduled cost report (#11009): its preview reads what it would say
+   * now; Send Me a Copy sends it, so it names Cloud.
+   */
+  "packages/Common/Server/API/CloudCostReportAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/:reportId/preview`": READ,
+    },
+  },
+  // A budget's page reads its period, and the Forecast page a forecast (#11008).
+  "packages/Common/Server/API/CloudBudgetAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/forecast`": READ,
+      "`${path}/:budgetId/spend`": READ,
+    },
+  },
+  /*
    * Acting on savings (#11010): every route registers through its post
    * helper, which refuses a change while Cloud is off, and the pull request
    * while Code is too. Each call is decided here.
@@ -1438,7 +1467,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "An AI agent's or a Runner's own, with its key: it reports on the work OneUptime handed it. OneUptime AI starts no work on a record of a product switched off, nor hands a code fix out while Code is (AIRunService), and no runbook starts from inside OneUptime while Runbooks is (RunbookStarter).",
+      "An AI agent's or a Runner's own, with its key: it reports on the work OneUptime handed it. OneUptime AI starts no work on a record of a product switched off, nor hands a code fix out while Code is (AIRunService), and no runbook starts from inside OneUptime while Runbooks is (RunbookStarter). A database server's agent takes the Data Observability reads its own server is due and reports what it read, as a probe does (ProbeIngest/DataObservability.ts): the server's infrastructure reading, never a person's write.",
       {
         "packages/Common/Server/API/AIAgentAPI.ts": 1,
         "packages/Common/Server/API/AIAgentCodeTaskAPI.ts": 1,
@@ -1449,7 +1478,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/AIAgentTelemetryAPI.ts": 2,
         "packages/App/FeatureSet/Runbook/API/RunnerIngress.ts": 6,
         "packages/App/FeatureSet/Runbook/API/KubernetesAiAgentIngress.ts": 6,
-        "packages/App/FeatureSet/Runbook/API/ResourceAiAgentIngress.ts": 6,
+        "packages/App/FeatureSet/Runbook/API/ResourceAiAgentIngress.ts": 8,
       },
     ),
     ...decided(
@@ -1478,6 +1507,10 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/SnmpTrapReceiver.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Syslog.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts": 3,
+        // The XCP-ng connections it reads and tests (#10996, #10999), as a vCenter's.
+        "packages/App/FeatureSet/Telemetry/API/ProbeIngest/XcpNgCollection.ts": 3,
+        // The storage array connections it reads and tests (Dell PowerMax, #11004).
+        "packages/App/FeatureSet/Telemetry/API/ProbeIngest/StorageArrayCollection.ts": 3,
         "packages/Probe/API/IncomingRequestIngress.ts": 2,
       },
     ),

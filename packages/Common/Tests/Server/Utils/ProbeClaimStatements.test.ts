@@ -13,12 +13,14 @@ jest.mock("../../../Server/Utils/Logger", () => {
 });
 
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgConnection from "../../../Models/DatabaseModels/XcpNgConnection";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
 import MonitorTestService from "../../../Server/Services/MonitorTestService";
 import NetworkDeviceDiagnosticService from "../../../Server/Services/NetworkDeviceDiagnosticService";
 import PacketCaptureService from "../../../Server/Services/PacketCaptureService";
 import VMwareVCenterConnectionTestService from "../../../Server/Services/VMwareVCenterConnectionTestService";
+import XcpNgConnectionTestService from "../../../Server/Services/XcpNgConnectionTestService";
 import OpenStackConnectionTestStore, {
   OpenStackConnectionTestService,
 } from "../../../Server/Utils/OpenStack/OpenStackConnectionTestStore";
@@ -31,6 +33,7 @@ import OpenStackProbeCollectionStore, {
   OpenStackCollectionCloudService,
 } from "../../../Server/Utils/OpenStack/OpenStackProbeCollectionStore";
 import VMwareProbeCollectionStore from "../../../Server/Utils/VMware/VMwareProbeCollectionStore";
+import XcpNgProbeCollectionStore from "../../../Server/Utils/XcpNg/XcpNgProbeCollectionStore";
 import ObjectID from "../../../Types/ObjectID";
 import {
   CapturedStatement,
@@ -121,6 +124,30 @@ const CLAIMS: Array<ProbeClaim> = [
         {
           probeId: PROBE_ID,
           runningVMwareVCenterIds: [RUNNING_ID, "not-an-id"],
+          limit: LIMIT,
+        },
+      );
+
+      return statements;
+    },
+  },
+  // A Xen Orchestra or a pool's XAPI, read from a probe (#10996, #10999).
+  {
+    name: "XCP-ng collection",
+    table: "XcpNgConnection",
+    alias: "c",
+    nextColumn: "nextCollectionAt",
+    firstCte: "due",
+    hasRunningIds: true,
+    run: async (): Promise<Array<CapturedStatement>> => {
+      const service: ReturnType<typeof claimingService> = claimingService();
+      const statements: Array<CapturedStatement> = captureClaimQueries(service);
+
+      await XcpNgProbeCollectionStore.claimDueConnections(
+        service as unknown as DatabaseService<XcpNgConnection>,
+        {
+          probeId: PROBE_ID,
+          runningXcpNgConnectionIds: [RUNNING_ID, "not-an-id"],
           limit: LIMIT,
         },
       );
@@ -317,7 +344,7 @@ describe.each(CLAIMS)("the $name claim", (claim: ProbeClaim) => {
 /*
  * THE CLAIMS OF A PROBE'S ON-DEMAND JOBS ARE ONE STATEMENT TOO (OneUptime
  * issue #7392): the monitor tests started from the dashboard, a device's
- * diagnostics, packet captures, and the VMware and OpenStack connection
+ * diagnostics, packet captures, and the VMware, OpenStack and XCP-ng connection
  * tests. Each was a transaction of a SELECT ... FOR UPDATE SKIP LOCKED and
  * an UPDATE of the ids: four round trips on every probe tick, even with
  * nothing pending. Each now locks its pending rows FOR NO KEY UPDATE SKIP
@@ -395,6 +422,23 @@ const ON_DEMAND_CLAIMS: Array<OnDemandClaim> = [
       );
 
       await VMwareVCenterConnectionTestService.claimPendingTests({
+        probeId: PROBE_ID,
+        limit: LIMIT,
+      });
+
+      return statements;
+    },
+  },
+  {
+    name: "XCP-ng connection test",
+    table: "XcpNgConnectionTest",
+    alias: "t",
+    run: async (): Promise<Array<CapturedStatement>> => {
+      const statements: Array<CapturedStatement> = captureClaimQueries(
+        XcpNgConnectionTestService,
+      );
+
+      await XcpNgConnectionTestService.claimPendingTests({
         probeId: PROBE_ID,
         limit: LIMIT,
       });

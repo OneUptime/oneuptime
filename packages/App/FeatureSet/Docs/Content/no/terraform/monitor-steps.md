@@ -11,7 +11,7 @@
 
 ## Slik bedømmes en sjekk
 
-Hver sjekk gir et resultat: svaret fra en sonde, returverdien fra et skript eller telemetrien sjekken leser. Trinnets kriterier bedømmer det så i sin rekkefølge. Det første kriteriet der filtrene stemmer, bestemmer hva som skjer: det kan endre monitorens status, åpne hendelser og åpne varsler. Kriteriene etter det blir ikke vurdert for den sjekken.
+Hver sjekk gir et resultat: svaret fra en sonde, returverdien fra et skript eller telemetrien sjekken leser. Trinnets kriterier bedømmer det så i sin rekkefølge. Det første kriteriet der filtrene stemmer, bestemmer hva som skjer: det kan endre monitorens status, åpne hendelser og åpne varsler. Kriteriene etter det blir ikke vurdert for den sjekken, med mindre det ikke endrer noen status (`change_monitor_status` av): da vurderes kriteriene etter det som endrer statusen, bare for statusen, og det første av dem som stemmer, setter den. Gjør ingen det, går monitoren til standardstatusen sin.
 
 ```mermaid title="Slik bedømmes hver sjekk"
 flowchart TB

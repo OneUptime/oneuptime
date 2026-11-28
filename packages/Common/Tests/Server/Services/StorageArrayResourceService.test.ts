@@ -20,6 +20,8 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 import StorageArrayResourceService, {
   CRITICAL_HARDWARE_STATUSES,
   HARDWARE_KINDS,
+  getHardwareKinds,
+  getUnhealthyHardwareStatuses,
   ParsedStorageArrayResource,
   StorageArrayInventorySummary,
   UNHEALTHY_HARDWARE_STATUSES,
@@ -843,21 +845,33 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
     expect(sql).toContain('COUNT(DISTINCT lower(h."externalId"))');
     expect(sql).toContain('GROUP BY "kind"');
     /*
-     * Every registered platform's words for a part that is not well: the
-     * shipped ones first, then those a platform declares of its own
-     * (PowerStore's node states, and a NAS server not started).
+     * Every registered platform's words for a part that is not well, and
+     * every platform's hardware kinds: the shipped ones first, then those a
+     * platform declares of its own (PowerStore's node states and a NAS
+     * server not started; a PowerScale node in attention, a smartfailing
+     * drive; a PowerScale's nodes as hardware).
      */
     const statuses: Array<string> = getUnhealthyHardwareStatuses();
     expect(params).toEqual([
       PROJECT_ID.toString(),
       ARRAY_ID.toString(),
       statuses,
-      HARDWARE_KINDS,
+      getHardwareKinds(),
     ]);
     expect(statuses.slice(0, UNHEALTHY_HARDWARE_STATUSES.length)).toEqual(
       UNHEALTHY_HARDWARE_STATUSES,
     );
-    expect(statuses.slice(UNHEALTHY_HARDWARE_STATUSES.length)).toEqual([
+    /*
+     * The platforms' own words follow in the order they are registered:
+     * Pure's add none, then PowerStore's, then ONTAP's (an ONTAP disk is
+     * broken, a shelf part in error).
+     */
+    expect(
+      statuses.slice(
+        UNHEALTHY_HARDWARE_STATUSES.length,
+        UNHEALTHY_HARDWARE_STATUSES.length + 6,
+      ),
+    ).toEqual([
       "prepare_failed",
       "disconnected",
       "uninitialized",
@@ -866,6 +880,24 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
       "not started",
     ]);
     expect(HARDWARE_KINDS).toEqual(["Hardware", "Drive", "Controller"]);
+    for (const word of ["broken", "error", "offline"]) {
+      expect(statuses).toContain(word);
+    }
+    // A PowerScale node in attention, a drive smartfailing or dead.
+    for (const word of ["attention", "smartfail", "dead"]) {
+      expect(statuses).toContain(word);
+    }
+    /*
+     * A port that is down is no problem by itself on any platform (a
+     * PowerStore's uncabled ports are down): ONTAP's health monitor raises
+     * the ones that matter (#11189).
+     */
+    for (const word of ["healthy", "normal", "online", "spare", "up", "down"]) {
+      expect(statuses).not.toContain(word);
+    }
+    const kinds: Array<string> = getHardwareKinds();
+    expect(kinds.slice(0, HARDWARE_KINDS.length)).toEqual(HARDWARE_KINDS);
+    expect(kinds).toContain("Node");
   });
 
   test("parses the text counts and the distinct unhealthy component count every row carries", async () => {

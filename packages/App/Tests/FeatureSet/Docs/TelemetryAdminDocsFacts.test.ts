@@ -110,6 +110,7 @@ import {
 } from "Common/Types/Telemetry/ScrubRule";
 import { isScrubHashToken } from "Common/Types/Telemetry/ScrubHashTokenFormat";
 import { getScrubRuleFingerprint } from "Common/Types/Telemetry/ScrubRuleProof";
+import { buildScrubPatternForDataType } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
   DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE,
@@ -2389,15 +2390,20 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     const examples: Record<string, Array<string>> = {
       // In another script too (#10960).
       [LogScrubPatternType.Email]: ["jane@example.com", "张伟@example.com"],
-      // In another script's digits too (#10960).
+      // In another script's digits too (#10960), and typed wholly in fullwidth (#11115).
       [LogScrubPatternType.CreditCard]: [
         "4111 1111 1111 1111",
         "４１１１ １１１１ １１１１ １１１１",
+        "４１１１－１１１１－１１１１－１１１１",
       ],
       // In another script's digits too (#11030).
       [LogScrubPatternType.SSN]: ["123-45-6789", "１２３-４５-６７８９"],
-      // An international one too (#11025).
-      [LogScrubPatternType.PhoneNumber]: ["555-123-4567", "+44 20 7946 0958"],
+      // An international one too (#11025), and one typed wholly in fullwidth (#11115).
+      [LogScrubPatternType.PhoneNumber]: [
+        "555-123-4567",
+        "+44 20 7946 0958",
+        "＋８１ ３－１２３４－５６７８",
+      ],
       /*
        * Public ones: a private address is no one's, and is kept (#10393). One
        * group each side of "::" is an address too (#10466).
@@ -2476,35 +2482,70 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     };
 
     expect(rowOf("SSN (Social Security Number)")).toContain(
-      "also set apart by dots or spaces and in another script's digits",
+      "also set apart by dots or spaces, in a URL, in another script's digits, such as `１２３-４５-６７８９`, and typed wholly in fullwidth, and nine digits in a row beside a word that names them",
     );
-    for (const value of ["536.22.8731", "536 22 8731", "٥٣٦-٢٢-٨٧٣١"]) {
+    for (const value of [
+      "536.22.8731",
+      "536 22 8731",
+      "٥٣٦-٢٢-٨٧٣١",
+      // In a URL, with %20 or a form's "+" between its groups (#11199).
+      "536%2022%208731",
+      "536+22+8731",
+      // Typed wholly in fullwidth (#11115).
+      "５３６－２２－８７３１",
+      "５３６　２２　８７３１",
+    ]) {
       expect({ value, left: leftOf(LogScrubPatternType.SSN, value) }).toEqual({
         value,
         left: "",
       });
     }
+    // Nine digits in a row beside a word that names them, and not beside none (#11114).
+    expect(leftOf(LogScrubPatternType.SSN, "SSN 536221234")).toBe("SSN ");
+    expect(leftOf(LogScrubPatternType.SSN, "ref 536221234")).toBe(
+      "ref 536221234",
+    );
 
     expect(rowOf("Phone Number")).toContain(
-      "international ones in the groups people write them in, also in a percent-encoded URL and in another script's digits, but not a decimal, a time zone's offset or a version",
+      "international ones in the groups people write them in, also in a percent-encoded URL, as a form writes one, in another script's digits and typed wholly in fullwidth, such as `＋８１ ３－１２３４－５６７８`, and a national number beside a word that names it, but not a decimal, a time zone's offset or a version",
     );
     for (const value of [
       "+49 30 123456",
       "+44 (0)20 7946 0958",
       "%2B44%2020%207946%200958",
+      // As a form writes one, a "+" for each space (#11199).
+      "%2B44+20+7946+0958",
       "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨",
+      // Typed wholly in fullwidth, an ideographic space too (#11115).
+      "＋８１　３－１２３４－５６７８",
+      "（４１５）３２１－８７３１",
     ]) {
       expect({
         value,
         left: leftOf(LogScrubPatternType.PhoneNumber, value),
       }).toEqual({ value, left: "" });
     }
-    for (const value of ["+51.507217", "UTC +1 2026-11-24", "v1.2.3+build.5"]) {
+    for (const value of [
+      "+51.507217",
+      "UTC +1 2026-11-24",
+      "v1.2.3+build.5",
+      "＋５１．５０７２１７",
+    ]) {
       expect({
         value,
         left: leftOf(LogScrubPatternType.PhoneNumber, value),
       }).toEqual({ value, left: value });
     }
+    // A national number beside a word that names it, and not beside none (#11114).
+    expect(leftOf(LogScrubPatternType.PhoneNumber, "tel 02012345678")).toBe(
+      "tel ",
+    );
+    expect(leftOf(LogScrubPatternType.PhoneNumber, "order 02012345678")).toBe(
+      "order 02012345678",
+    );
+    expect(rowOf("Custom Regex")).toContain(
+      "in another script's digits and typed wholly in fullwidth",
+    );
   });
 
   it("redacts, masks or hashes the example as the page shows, and redacts unless told otherwise", () => {
@@ -2688,9 +2729,27 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "jane@example.com",
       "jos%C3%A9%40example.com",
       "josé@example.com",
+      "4111+1111+1111+1111",
+      "4111 1111 1111 1111",
+      "＋８１ ３－１２３４－５６７８",
+      "+81 3-1234-5678",
       "[HASHED:8c87b489]",
       "ENCRYPTION_SECRET",
     ]);
+
+    // A number typed wholly in fullwidth and in ASCII share one (#11115).
+    const phoneHash: { rule: LogScrubRule; regex: ScrubRegExp } = scrubRule(
+      LogScrubPatternType.PhoneNumber,
+      LogScrubAction.Hash,
+    );
+
+    phoneHash.rule.projectId = projectId;
+    expect(scrubbedBody("＋８１ ３－１２３４－５６７８", [phoneHash])).toBe(
+      scrubbedBody("+81 3-1234-5678", [phoneHash]),
+    );
+    expect(scrubbedBody("+81 3-1234-5678", [phoneHash])).toMatch(
+      /^\[HASHED:[0-9a-f]{16}\]$/,
+    );
 
     // An email address percent-encoded, and a card in another script's digits, have the plain value's token (#10935, #10960).
     const emailHash: { rule: LogScrubRule; regex: ScrubRegExp } = scrubRule(
@@ -2736,6 +2795,15 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(
       scrubbedBody("４１１１ １１１１ １１１１ １１１１", [cardHash]),
     ).toBe(scrubbedBody("4111 1111 1111 1111", [cardHash]));
+    // A card written in a URL and written plainly share one (#11199).
+    for (const written of [
+      "4111+1111+1111+1111",
+      "4111%201111%201111%201111",
+    ]) {
+      expect(scrubbedBody(written, [cardHash])).toBe(
+        scrubbedBody("4111 1111 1111 1111", [cardHash]),
+      );
+    }
     expect(scrubbedBody("::ffff:203.0.113.7", [hashRule()])).toBe(
       scrubbedBody("203.0.113.7", [hashRule()]),
     );
@@ -2805,10 +2873,38 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Redact),
     ];
 
-    expect(inlineCodes(item)).toEqual(["４１１１ １１１１ １１１１ １１１１"]);
+    expect(inlineCodes(item)).toEqual([
+      "４１１１ １１１１ １１１１ １１１１",
+      "4111%201111%201111%201111",
+      "4111+1111+1111+1111",
+      "/pay?card=4111+1111+1111+1111",
+      "４１１１－１１１１－１１１１－１１１１",
+    ]);
     expect(scrubbedBody("４１１１ １１１１ １１１１ １１１１", redact)).toBe(
       "[REDACTED]",
     );
+    // Typed wholly in fullwidth, its groups apart by fullwidth hyphens or ideographic spaces (#11115).
+    expect(scrubbedBody("４１１１－１１１１－１１１１－１１１１", redact)).toBe(
+      "[REDACTED]",
+    );
+    expect(scrubbedBody("４１１１　１１１１　１１１１　１１１１", redact)).toBe(
+      "[REDACTED]",
+    );
+    expect(item).toContain(
+      "a card typed wholly in fullwidth, its groups apart by fullwidth hyphens or ideographic spaces",
+    );
+    // In a URL, its groups apart by an escaped space or a form's "+", the rest of the URL kept (#11199).
+    expect(scrubbedBody("4111%201111%201111%201111", redact)).toBe(
+      "[REDACTED]",
+    );
+    expect(scrubbedBody("/pay?card=4111+1111+1111+1111", redact)).toBe(
+      "/pay?card=[REDACTED]",
+    );
+    expect(
+      scrubbedBody("4111+1111+1111+1111", [
+        scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Mask),
+      ]),
+    ).toBe("****-****-****-1111");
     // An American Express number, in groups of four, six and five.
     expect(scrubbedBody("card 3782 822463 10005", redact)).toBe(
       "card [REDACTED]",
@@ -2834,8 +2930,15 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(codes).toEqual([
       "\\+44 \\d{2} \\d{4} \\d{4}",
       "%2B44%2020%207946%200958",
+      "%2B44+20+7946+0958",
       "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨",
+      // Typed wholly in fullwidth (#11115).
+      "＋４４ ２０ ７９４６ ０９５８",
+      "DE44+5001+0517+5407+3249+31",
     ]);
+    expect(item).toContain(
+      "then with a number's fullwidth plus sign, hyphens, parentheses, full stops, slashes and ideographic spaces read as ASCII ones",
+    );
 
     const pattern: string = codes[0]!;
     const customOf: (action: string) => {
@@ -2857,7 +2960,7 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     expect(checkScrubRuleCustomRegex(pattern)).toBeNull();
 
-    for (const written of codes.slice(1)) {
+    for (const written of codes.slice(1, 5)) {
       expect({
         written,
         stored: scrubbedBody(`GET /callback?to=${written}&step=2`, [
@@ -2874,7 +2977,89 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     }
 
     expect(item).toContain(
-      "The **Custom Regex** rules **Scrub It** makes for other data types, such as a GitHub token or an IBAN, read a value the same ways.",
+      "The **Custom Regex** rules **Scrub It** makes for other data types, such as a GitHub token or an IBAN, read a value the same ways, so an IBAN typed into a form, such as `DE44+5001+0517+5407+3249+31`, is hidden whole.",
+    );
+
+    // Scrub It's IBAN rule hides the IBAN a form wrote whole, the rest of the URL kept (#11199).
+    const ibanPattern: string = buildScrubPatternForDataType("iban")!;
+    const iban: { rule: LogScrubRule; regex: ScrubRegExp } = {
+      rule: scrubRule(LogScrubPatternType.Custom, LogScrubAction.Redact).rule,
+      regex: getRegexForPattern(
+        LogScrubPatternType.Custom,
+        ibanPattern,
+      ) as ScrubRegExp,
+    };
+
+    iban.rule.customRegex = ibanPattern;
+    expect(scrubbedBody(`GET /payout?iban=${codes[5]}&step=2`, [iban])).toBe(
+      "GET /payout?iban=[REDACTED]&step=2",
+    );
+  });
+
+  /*
+   * #11115, #11114: what the Phone Number and SSN list item says those
+   * rules hide - a number typed wholly in fullwidth, a national number or
+   * nine digits beside the word that names them - and what it says they
+   * keep, through the log rule ingest runs.
+   */
+  it("hides the phone and Social Security numbers its list item names, typed in fullwidth or beside their words, and keeps those it says it keeps", () => {
+    const item: string = listItemOf(
+      page,
+      "A Phone Number or SSN rule hides what Data Security calls one.",
+    );
+    const phone: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.PhoneNumber, LogScrubAction.Redact),
+    ];
+    const ssn: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.SSN, LogScrubAction.Redact),
+    ];
+
+    expect(inlineCodes(item)).toEqual([
+      "＋８１ ３－１２３４－５６７８",
+      "５３６－２２－８７３１",
+      "tel 02012345678",
+      "SSN 536221234",
+      "order 02012345678",
+      "ref 536221234",
+      "user.phone",
+    ]);
+
+    // Typed wholly in fullwidth: hidden whole.
+    expect(scrubbedBody("＋８１ ３－１２３４－５６７８", phone)).toBe(
+      "[REDACTED]",
+    );
+    expect(scrubbedBody("５３６－２２－８７３１", ssn)).toBe("[REDACTED]");
+    // Beside the word that names it: the number hidden, the word kept.
+    expect(scrubbedBody("tel 02012345678", phone)).toBe("tel [REDACTED]");
+    expect(scrubbedBody("SSN 536221234", ssn)).toBe("SSN [REDACTED]");
+    // Beside no such word: kept.
+    expect(scrubbedBody("order 02012345678", phone)).toBe("order 02012345678");
+    expect(scrubbedBody("ref 536221234", ssn)).toBe("ref 536221234");
+    // Alone in an attribute whose key names it: kept, unless the own pattern finds it, as any ten digits.
+    const attributesAfter: (value: string) => JSONObject = (
+      value: string,
+    ): JSONObject => {
+      return LogScrubRuleService.scrubLog(
+        { body: "sms sent", attributes: { "user.phone": value } },
+        phone as never,
+      )["attributes"] as JSONObject;
+    };
+
+    expect(attributesAfter("02012345678")).toEqual({
+      "user.phone": "02012345678",
+    });
+    expect(attributesAfter("0201234567")).toEqual({
+      "user.phone": "[REDACTED]",
+    });
+    expect(item).toContain("as it finds any ten digits");
+    // Masked to its last four digits, in ASCII.
+    expect(
+      scrubbedBody("tel ０２０１２３４５６７８", [
+        scrubRule(LogScrubPatternType.PhoneNumber, LogScrubAction.Mask),
+      ]),
+    ).toBe("tel ***-***-5678");
+    expect(item).toContain(
+      "**Mask** keeps the last four digits, written as ASCII digits.",
     );
   });
 

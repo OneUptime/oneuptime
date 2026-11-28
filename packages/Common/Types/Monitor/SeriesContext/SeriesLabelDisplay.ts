@@ -215,6 +215,19 @@ const FriendlyLabelNames: Record<string, string> = {
   "xen_orchestra.name": "Xen Orchestra",
   "xcp_ng.scope": "Object Type",
   "xcp_ng.id": "Object UUID",
+  /*
+   * #10997: what the pool's alarm and backup records carry, which the
+   * XcpNgEventAlertTemplates group by - the object or the job by name
+   * first, the UUIDs after.
+   */
+  "xcp_ng.object.name": "Object",
+  "xcp_ng.object.uuid": "Object UUID",
+  "xcp_ng.object.type": "Object Type",
+  "xcp_ng.message.name": "Message",
+  "xcp_ng.alarm.variable": "Alarm",
+  "xcp_ng.backup.job.name": "Backup Job",
+  "xcp_ng.backup.failed_vms": "Failed VMs",
+  "xcp_ng.backup.job.id": "Backup Job ID",
   host_name: "Host",
   host_id: "Host UUID",
   vm_name: "VM",
@@ -260,6 +273,14 @@ const FriendlyLabelNames: Record<string, string> = {
   local_pod: "Pod",
   summary: "Alert Summary",
   appliance_id: "Appliance",
+  /*
+   * Dell PowerScale names a node by `node` (above), a drive bay by
+   * `drive` ("ps-prod-2 bay 5"), a quota by `quota` (its path, and whose
+   * quota it is) and a protocol's figures by `protocol` (nfs3, smb2, ...).
+   */
+  drive: "Drive",
+  quota: "Quota",
+  protocol: "Protocol",
 
   // --- IoT ---
   "iot.fleet.name": "Fleet",
@@ -425,6 +446,9 @@ const LabelPriority: Record<string, number> = {
   local_pod: 25,
   summary: 25,
   appliance_id: 25,
+  drive: 25,
+  quota: 25,
+  protocol: 25,
   host: 30,
   "device.id": 25,
   "device.name": 25,
@@ -463,6 +487,14 @@ const LabelPriority: Record<string, number> = {
   sr: 27,
   host_name: 30,
   "xcp_ng.id": 31,
+  "xcp_ng.object.name": 25,
+  "xcp_ng.backup.job.name": 25,
+  "xcp_ng.backup.failed_vms": 26,
+  "xcp_ng.message.name": 27,
+  "xcp_ng.alarm.variable": 28,
+  "xcp_ng.object.uuid": 32,
+  "xcp_ng.backup.job.id": 33,
+  "xcp_ng.object.type": 55,
   "xcp_ng.scope": 55,
   "xcp_ng.pool.name": 75,
   "xen_orchestra.name": 80,

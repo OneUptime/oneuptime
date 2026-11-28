@@ -1029,6 +1029,7 @@ describe("ResourceAiAccessService.getResourcesForSubject", () => {
         "podmanHosts",
         "proxmoxClusters",
         "vmwareVCenters",
+        "xcpNgPools",
       ].sort(),
     );
     expect(alertFind).not.toHaveBeenCalled();

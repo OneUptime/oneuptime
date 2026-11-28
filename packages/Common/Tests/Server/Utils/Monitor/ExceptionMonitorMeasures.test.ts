@@ -307,6 +307,56 @@ describe("ExceptionMonitorMeasureReader.read", () => {
     expect(occurrenceCalls[0]!.query["projectId"]).toBe(PROJECT_ID);
   });
 
+  /*
+   * #11334: the check's window holds its start and not its end, so a group
+   * first seen - or back - on the edge between two checks is new in one
+   * check, the later, and the day before the window stops where it starts.
+   */
+  test("new and regressed groups: from the window's start up to its end, not included", async () => {
+    groupCounts = [3, 1];
+
+    await read([CheckOn.NewExceptionCount, CheckOn.RegressedExceptionCount]);
+
+    for (const column of ["firstSeenAt", "regressedAt"]) {
+      const call: { query: Record<string, unknown> } | undefined =
+        groupCalls.find((candidate: { query: Record<string, unknown> }) => {
+          return column in candidate.query;
+        });
+
+      expect(call).toBeDefined();
+
+      const raw: {
+        getSql: (alias: string) => string;
+        objectLiteralParameters: Record<string, unknown>;
+      } = call!.query[column] as never;
+      const sql: string = raw.getSql(`"TelemetryException"."${column}"`);
+
+      expect(sql).toContain(`"TelemetryException"."${column}" >= :`);
+      expect(sql).toContain(`"TelemetryException"."${column}" < :`);
+      expect(sql).not.toContain("<=");
+      expect(
+        Object.values(raw.objectLiteralParameters).map(
+          (value: unknown): string => {
+            return new Date(value as Date).toISOString();
+          },
+        ),
+      ).toEqual(["2026-10-30T11:55:00.000Z", "2026-10-30T12:00:00.000Z"]);
+    }
+  });
+
+  test("the day before the window ends where the window starts, which the window holds itself", async () => {
+    await read([CheckOn.ExceptionCountIncreasePercent]);
+
+    const time: InBetween<Date> = occurrenceCalls[0]!.query[
+      "time"
+    ] as InBetween<Date>;
+
+    expect(time.includesEnd).toBe(false);
+    expect(new Date(time.endValue).toISOString()).toBe(
+      "2026-10-30T11:55:00.000Z",
+    );
+  });
+
   test("all three, read together", async () => {
     groupCounts = [2, 1];
     const measures: ExceptionMonitorMeasures = await read([
@@ -432,6 +482,28 @@ describe("the sessions a share is taken of", () => {
     expect(query["exceptionType"]).toBeUndefined();
     expect(query["message"]).toBeUndefined();
     expect(query["environment"]).toBeUndefined();
+  });
+
+  test("both session counts read the check's window, its end left out", async () => {
+    await read([CheckOn.SessionsWithExceptionsPercent]);
+
+    const spanWindow: InBetween<Date> = spanSessionReads[0]!.query[
+      "startTime"
+    ] as InBetween<Date>;
+    const exceptionWindow: InBetween<Date> = exceptionSessionReads[0]!.query[
+      "time"
+    ] as InBetween<Date>;
+
+    for (const window of [spanWindow, exceptionWindow]) {
+      expect(window).toBeInstanceOf(InBetween);
+      expect(window.includesEnd).toBe(false);
+      expect(new Date(window.startValue).toISOString()).toBe(
+        "2026-10-30T11:55:00.000Z",
+      );
+      expect(new Date(window.endValue).toISOString()).toBe(
+        "2026-10-30T12:00:00.000Z",
+      );
+    }
   });
 
   test("the sessions with an exception are the monitor's own occurrences', every filter with them", async () => {
@@ -597,6 +669,24 @@ describe("the infrastructure entity filter on new and regressed exceptions", () 
     expect(read.limit).toBe(ENTITY_FINGERPRINT_LIMIT);
     expect(read.skip).toBe(0);
     expect(read.props).toEqual({ isRoot: true });
+  });
+
+  test("the fingerprints are read over the check's window, its end left out", async () => {
+    await ExceptionMonitorMeasureReader.read({
+      projectId: PROJECT_ID,
+      monitorStep: stepWith([CheckOn.NewExceptionCount]),
+      config: config({ entityKeys: [HOST] }),
+      countQuery: { projectId: PROJECT_ID, entityKeys: new Includes([HOST]) },
+      exceptionCount: 0,
+      evaluateUntil: UNTIL,
+    });
+
+    const time: InBetween<Date> = (
+      fingerprintReads[0]!.query as Record<string, unknown>
+    )["time"] as InBetween<Date>;
+
+    expect(time.includesEnd).toBe(false);
+    expect(new Date(time.endValue).toISOString()).toBe(UNTIL.toISOString());
   });
 
   test("the window is the monitor's own, whatever time the count query carries", async () => {

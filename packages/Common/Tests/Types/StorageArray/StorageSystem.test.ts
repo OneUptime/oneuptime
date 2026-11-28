@@ -48,12 +48,28 @@ const POWERSTORE_ALIASES: Array<string> = [
   "powerstore",
 ];
 
+// What an ONTAP agent may stamp (#11001), Amazon FSx for NetApp ONTAP's too.
+const ONTAP_ALIASES: Array<string> = [
+  "netapp.ontap",
+  "netapp_ontap",
+  "netapp-ontap",
+  "netapp.cdot",
+  "netapp.fas",
+  "netapp.aff",
+  "netapp.fsx",
+  "aws.fsx_ontap",
+  "ontap",
+];
+
 describe("StorageSystem enum", () => {
-  test("carries the two launch platforms and Dell PowerStore, with vendor.product values", () => {
+  test("carries exactly the shipped platforms with vendor.product values", () => {
     expect(Object.entries(StorageSystem)).toEqual([
       ["PureStorageFlashArray", "purestorage.flasharray"],
       ["PureStorageFlashBlade", "purestorage.flashblade"],
       ["DellPowerStore", "dell.powerstore"],
+      ["NetAppOntap", "netapp.ontap"],
+      ["DellPowerMax", "dell.powermax"],
+      ["DellPowerScale", "dell.powerscale"],
     ]);
   });
 
@@ -62,6 +78,9 @@ describe("StorageSystem enum", () => {
       StorageSystem.PureStorageFlashArray,
       StorageSystem.PureStorageFlashBlade,
       StorageSystem.DellPowerStore,
+      StorageSystem.NetAppOntap,
+      StorageSystem.DellPowerMax,
+      StorageSystem.DellPowerScale,
     ]);
   });
 
@@ -84,7 +103,7 @@ describe("StorageSystemUtil.isKnownSystem", () => {
     ["an alias", "purefa"],
     ["an upper-case canonical value", "PURESTORAGE.FLASHARRAY"],
     ["a padded canonical value", " purestorage.flasharray "],
-    ["another platform", "netapp.ontap"],
+    ["another platform", "hitachi.vsp"],
     ["the empty string", ""],
   ])(
     "%s is not known (only normalized values are)",
@@ -127,6 +146,18 @@ describe("StorageSystemUtil.normalize", () => {
     },
   );
 
+  test.each(ONTAP_ALIASES)(
+    "ONTAP alias %p normalizes to netapp.ontap",
+    (alias: string) => {
+      expect(StorageSystemUtil.normalize(alias)).toBe(
+        StorageSystem.NetAppOntap,
+      );
+      expect(StorageSystemUtil.normalize(alias.toUpperCase())).toBe(
+        StorageSystem.NetAppOntap,
+      );
+    },
+  );
+
   test.each([
     ["PureFA", StorageSystem.PureStorageFlashArray],
     ["  purefa  ", StorageSystem.PureStorageFlashArray],
@@ -153,7 +184,7 @@ describe("StorageSystemUtil.normalize", () => {
   });
 
   test.each([
-    ["NetApp.ONTAP", "netapp.ontap"],
+    ["Hitachi.VSP", "hitachi.vsp"],
     ["Dell.PowerMax", "dell.powermax"],
     ["hpe_alletra-9000", "hpe_alletra-9000"],
     ["  IBM.FlashSystem  ", "ibm.flashsystem"],
@@ -202,6 +233,7 @@ describe("StorageSystemUtil.normalize", () => {
       ...FLASHARRAY_ALIASES,
       ...FLASHBLADE_ALIASES,
       ...POWERSTORE_ALIASES,
+      ...ONTAP_ALIASES,
     ];
     expect(new Set(all).size).toBe(all.length);
   });
@@ -221,6 +253,8 @@ describe("StorageSystemUtil.fromMetricName", () => {
     ["powerstore_cluster", StorageSystem.DellPowerStore],
     ["powerstore_volume_logical_used", StorageSystem.DellPowerStore],
     ["powerstore_metricFcPort_avg_read_iops", StorageSystem.DellPowerStore],
+    ["netapp_volume_size_used", StorageSystem.NetAppOntap],
+    ["netapp_metadata_component_status", StorageSystem.NetAppOntap],
   ])("%s belongs to %s", (metricName: string, expected: StorageSystem) => {
     expect(StorageSystemUtil.fromMetricName(metricName)).toBe(expected);
   });
@@ -231,6 +265,8 @@ describe("StorageSystemUtil.fromMetricName", () => {
     ["a Ceph metric", "ceph_health_status"],
     ["a dotted OTel metric", "vcenter.host.cpu.usage"],
     ["a prefix in the middle", "my_purefa_info"],
+    // What Harvest serves without the agent's global_prefix.
+    ["an unprefixed Harvest series", "volume_size_used"],
     ["the empty string", ""],
   ])("returns null for %s", (_: string, metricName: string) => {
     expect(StorageSystemUtil.fromMetricName(metricName)).toBeNull();
@@ -265,6 +301,36 @@ describe("StorageSystemUtil.fromMetricName", () => {
 });
 
 describe("StorageSystemUtil display helpers", () => {
+  test("display, short and vendor names of NetApp ONTAP", () => {
+    expect(StorageSystemUtil.getDisplayName(StorageSystem.NetAppOntap)).toBe(
+      "NetApp ONTAP",
+    );
+    expect(StorageSystemUtil.getShortName(StorageSystem.NetAppOntap)).toBe(
+      "ONTAP",
+    );
+    expect(StorageSystemUtil.getVendorName(StorageSystem.NetAppOntap)).toBe(
+      "NetApp",
+    );
+    expect(StorageSystemUtil.getMetricPrefix(StorageSystem.NetAppOntap)).toBe(
+      "netapp_",
+    );
+  });
+
+  test("display, short and vendor names of Dell PowerScale", () => {
+    expect(StorageSystemUtil.getDisplayName(StorageSystem.DellPowerScale)).toBe(
+      "Dell PowerScale",
+    );
+    expect(StorageSystemUtil.getShortName(StorageSystem.DellPowerScale)).toBe(
+      "PowerScale",
+    );
+    expect(StorageSystemUtil.getVendorName(StorageSystem.DellPowerScale)).toBe(
+      "Dell",
+    );
+    expect(
+      StorageSystemUtil.getMetricPrefix(StorageSystem.DellPowerScale),
+    ).toBe("powerscale_");
+  });
+
   test("display, short and vendor names of the launch platforms", () => {
     expect(
       StorageSystemUtil.getDisplayName(StorageSystem.PureStorageFlashArray),
@@ -287,6 +353,15 @@ describe("StorageSystemUtil display helpers", () => {
     expect(StorageSystemUtil.getVendorName(StorageSystem.DellPowerStore)).toBe(
       "Dell",
     );
+    expect(StorageSystemUtil.getDisplayName(StorageSystem.DellPowerMax)).toBe(
+      "Dell PowerMax",
+    );
+    expect(StorageSystemUtil.getShortName(StorageSystem.DellPowerMax)).toBe(
+      "PowerMax",
+    );
+    expect(StorageSystemUtil.getVendorName(StorageSystem.DellPowerMax)).toBe(
+      "Dell",
+    );
     for (const system of [
       StorageSystem.PureStorageFlashArray,
       StorageSystem.PureStorageFlashBlade,
@@ -302,11 +377,9 @@ describe("StorageSystemUtil display helpers", () => {
   });
 
   test("an unknown platform is shown under its own value", () => {
-    expect(StorageSystemUtil.getDisplayName("netapp.ontap")).toBe(
-      "netapp.ontap",
-    );
-    expect(StorageSystemUtil.getShortName("netapp.ontap")).toBe("netapp.ontap");
-    expect(StorageSystemUtil.getVendorName("netapp.ontap")).toBe("Unknown");
+    expect(StorageSystemUtil.getDisplayName("hitachi.vsp")).toBe("hitachi.vsp");
+    expect(StorageSystemUtil.getShortName("hitachi.vsp")).toBe("hitachi.vsp");
+    expect(StorageSystemUtil.getVendorName("hitachi.vsp")).toBe("Unknown");
   });
 
   test("a missing platform reads Unknown, never an empty string", () => {
@@ -336,8 +409,9 @@ describe("StorageSystemUtil display helpers", () => {
       undefined,
       "",
       "purefa",
-      "netapp.ontap",
+      "hitachi.vsp",
       StorageSystem.DellPowerStore,
+      StorageSystem.NetAppOntap,
     ]) {
       expect(StorageSystemUtil.isFlashArray(value)).toBe(false);
       expect(StorageSystemUtil.isFlashBlade(value)).toBe(false);

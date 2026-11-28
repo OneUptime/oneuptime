@@ -18,10 +18,12 @@ import ServiceType from "../../../Types/Telemetry/ServiceType";
 import { getBaseFacetKey } from "../../../Types/Telemetry/FacetExcludeKey";
 import {
   DEFAULT_TELEMETRY_ENTITY_LABEL,
+  getTelemetryEntityChipMarks,
   getTelemetryEntityDisplay,
   ResolvedTelemetryEntity,
   TELEMETRY_ENTITY_TYPES,
   TelemetryEntityNameMap,
+  withTelemetryEntityChipMarks,
 } from "../../Utils/Telemetry/TelemetryEntityNames";
 import { ActiveFilter, FacetData, FacetValue } from "./types";
 
@@ -133,6 +135,35 @@ export const getLoadedLogsEntityName: (
   return undefined;
 };
 
+/*
+ * Whether the record the viewer's preloaded maps hold for a resource facet
+ * value is archived (#11213): a chip naming it says so.
+ */
+export const isLoadedLogsEntityArchived: (
+  facetKey: string,
+  id: string,
+  maps: LogsEntityLookupMaps,
+) => boolean = (
+  facetKey: string,
+  id: string,
+  maps: LogsEntityLookupMaps,
+): boolean => {
+  const record: { isArchived?: boolean | undefined } | undefined =
+    isServiceFacetKey(facetKey)
+      ? maps.serviceMap[id]
+      : facetKey === "hostId"
+        ? maps.hostMap?.[id]
+        : facetKey === "dockerHostId"
+          ? maps.dockerHostMap?.[id]
+          : facetKey === "podmanHostId"
+            ? maps.podmanHostMap?.[id]
+            : facetKey === "kubernetesClusterId"
+              ? maps.kubernetesClusterMap?.[id]
+              : undefined;
+
+  return record?.isArchived === true;
+};
+
 export interface LoadedLogsResourceEntity {
   name: string;
   entityType: ServiceType;
@@ -203,19 +234,24 @@ const hasParentResolvedDisplay: (filter: ActiveFilter) => boolean = (
  *   4. the generic resolver — for Service-keyed chips the key becomes the
  *      entity's type ("RUM Application"), for the typed resource facets the
  *      key ("Host") is already right and only the value changes;
- *   5. otherwise the chip is returned as it came in.
- * Non-resource chips are never touched. A chip that leaves a resource out
- * (`!hostId`, FacetExcludeKey) is named exactly as one that keeps it: the
- * value is the same kind of id.
+ *   5. otherwise the chip is returned as it came in - marked gone once
+ *      every read of its id answered nothing (`notFoundIds`, #11213), so it
+ *      reads "No longer available" rather than its id.
+ * A chip naming an archived record is marked archived. Non-resource chips
+ * are never touched. A chip that leaves a resource out (`!hostId`,
+ * FacetExcludeKey) is named exactly as one that keeps it: the value is the
+ * same kind of id.
  */
 export const enrichLogsActiveFilter: (
   filter: ActiveFilter,
   maps: LogsEntityLookupMaps,
   entityNameMap: TelemetryEntityNameMap | undefined,
+  notFoundIds?: ReadonlySet<string> | undefined,
 ) => ActiveFilter = (
   filter: ActiveFilter,
   maps: LogsEntityLookupMaps,
   entityNameMap: TelemetryEntityNameMap | undefined,
+  notFoundIds?: ReadonlySet<string> | undefined,
 ): ActiveFilter => {
   const facetKey: string = getBaseFacetKey(filter.facetKey);
 
@@ -229,10 +265,22 @@ export const enrichLogsActiveFilter: (
     maps,
   );
   if (loadedName) {
-    return { ...filter, displayValue: loadedName };
+    return withTelemetryEntityChipMarks(
+      { ...filter, displayValue: loadedName },
+      getTelemetryEntityChipMarks({
+        id: filter.value,
+        knownName: loadedName,
+        isKnownArchived: isLoadedLogsEntityArchived(
+          facetKey,
+          filter.value,
+          maps,
+        ),
+      }),
+    );
   }
 
-  if (hasParentResolvedDisplay(filter)) {
+  // Named, or marked, by the page that handed it over: as it came.
+  if (hasParentResolvedDisplay(filter) || filter.isNotFound) {
     return filter;
   }
 
@@ -246,19 +294,34 @@ export const enrichLogsActiveFilter: (
     const loadedResource: LoadedLogsResourceEntity | undefined =
       findLoadedLogsResourceEntity(filter.value, maps);
     if (loadedResource) {
-      return {
-        ...filter,
-        displayKey: loadedResource.typeLabel,
-        displayValue: loadedResource.name,
-      };
+      // Named: gone no more.
+      return withTelemetryEntityChipMarks(
+        {
+          ...filter,
+          displayKey: loadedResource.typeLabel,
+          displayValue: loadedResource.name,
+        },
+        {},
+      );
     }
   }
 
   const resolved: ResolvedTelemetryEntity | undefined =
     entityNameMap?.[filter.value];
   if (!resolved) {
-    return filter;
+    // Gone, once every read of it has answered nothing (#11213).
+    return withTelemetryEntityChipMarks(
+      filter,
+      getTelemetryEntityChipMarks({
+        id: filter.value,
+        names: entityNameMap,
+        notFound: notFoundIds,
+      }),
+    );
   }
+
+  const marks: ReturnType<typeof getTelemetryEntityChipMarks> =
+    getTelemetryEntityChipMarks({ id: filter.value, names: entityNameMap });
 
   if (isServiceFacetKey(facetKey)) {
     const display: { key: string; value: string } = getTelemetryEntityDisplay({
@@ -266,23 +329,31 @@ export const enrichLogsActiveFilter: (
       nameMap: entityNameMap,
       fallbackKey: filter.displayKey,
     });
-    return { ...filter, displayKey: display.key, displayValue: display.value };
+    return withTelemetryEntityChipMarks(
+      { ...filter, displayKey: display.key, displayValue: display.value },
+      marks,
+    );
   }
 
-  return { ...filter, displayValue: resolved.name };
+  return withTelemetryEntityChipMarks(
+    { ...filter, displayValue: resolved.name },
+    marks,
+  );
 };
 
 export const enrichLogsActiveFilters: (
   filters: Array<ActiveFilter> | undefined,
   maps: LogsEntityLookupMaps,
   entityNameMap: TelemetryEntityNameMap | undefined,
+  notFoundIds?: ReadonlySet<string> | undefined,
 ) => Array<ActiveFilter> = (
   filters: Array<ActiveFilter> | undefined,
   maps: LogsEntityLookupMaps,
   entityNameMap: TelemetryEntityNameMap | undefined,
+  notFoundIds?: ReadonlySet<string> | undefined,
 ): Array<ActiveFilter> => {
   return (filters || []).map((filter: ActiveFilter): ActiveFilter => {
-    return enrichLogsActiveFilter(filter, maps, entityNameMap);
+    return enrichLogsActiveFilter(filter, maps, entityNameMap, notFoundIds);
   });
 };
 

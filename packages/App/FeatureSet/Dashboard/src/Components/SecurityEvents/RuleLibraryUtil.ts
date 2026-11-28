@@ -32,6 +32,10 @@ import SigmaRuleSetParser, {
 } from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import { isRuleFromLibraryEntry } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
 import {
+  ProjectRuleState,
+  getRecommendedRulesNotAdded as getRecommendedRulesNotAddedOf,
+} from "Common/Utils/SecurityEvent/RecommendedDetectionRules";
+import {
   DetectionRuleShape,
   readDetectionRuleShape,
 } from "./DetectionRuleShape";
@@ -523,17 +527,17 @@ export function getFilteredLibraryRuleViews(data: {
   });
 }
 
-// The recommended rules the project has no rule of yet.
+/*
+ * The recommended rules the project has no rule of yet, as the Overview and
+ * the upgrade that adds a new recommended rule read them (#11037).
+ */
 export function getRecommendedRulesNotAdded(
   existingRules: ReadonlyArray<ExistingRule>,
 ): Array<DetectionRuleLibraryEntry> {
-  return DETECTION_RULE_LIBRARY.filter(
-    (entry: DetectionRuleLibraryEntry): boolean => {
-      return (
-        isRecommendedDetectionRule(entry) &&
-        !isLibraryRuleAdded(entry, existingRules)
-      );
-    },
+  return getRecommendedRulesNotAddedOf(
+    existingRules.map((rule: ExistingRule): ProjectRuleState => {
+      return typeof rule === "string" ? { name: rule } : rule;
+    }),
   );
 }
 

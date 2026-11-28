@@ -1,11 +1,12 @@
 # Configurar Seguridad de datos
 
-Seguridad de datos lee solo lo que le permites. Cada conexión a la nube se lee en uno de tres niveles, una base de datos que gestionas se lee con una cadena de conexión que le das, y la telemetría no necesita nada. Esta página explica qué permite leer a OneUptime cada opción, los permisos exactos que concede y qué guarda OneUptime de lo que lee.
+Seguridad de datos lee solo lo que le permites. Cada conexión a la nube se lee en uno de tres niveles, una base de datos o un clúster de búsqueda que gestionas se lee con una cadena de conexión que le das, y la telemetría no necesita nada. Esta página explica qué permite leer a OneUptime cada opción, los permisos exactos que concede y qué guarda OneUptime de lo que lee.
 
 :::cards
 - [Elegir un nivel](#elegir-un-nivel-para-cada-conexión): Desactivado, Solo configuración, o Configuración y muestras de contenido.
 - [Qué concede cada nivel](#qué-concede-cada-nivel): Las acciones de AWS, y los roles de Azure y Google Cloud.
-- [Escanear una base de datos que gestionas](#escanear-una-base-de-datos-que-gestionas): Una cadena de conexión de solo lectura, o una sonda en tu red.
+- [Escanear un almacén que gestionas](#escanear-un-almacén-que-gestionas): Una cadena de conexión de solo lectura, o una sonda en tu red.
+- [Qué comprueba OneUptime en un almacén que gestionas](#qué-comprueba-oneuptime-en-un-almacén-que-gestionas): Si responde sin credenciales, preguntado desde donde se ejecuta su escaneo.
 - [Qué guarda OneUptime](#qué-guarda-oneuptime): Recuentos, ubicaciones y muestras enmascaradas, nunca un valor.
 - [Dejar que Seguridad de datos cierre una exposición](#dejar-que-seguridad-de-datos-cierre-una-exposición): Las únicas escrituras que se le pueden dar a una conexión, desactivadas hasta que las actives.
 :::
@@ -173,17 +174,75 @@ Un escaneo lee un poco de un almacén, dentro de los límites del proyecto, y se
 - **Los buckets y contenedores** se muestrean por tipo, no por cantidad. Primero se listan los nombres de los objetos, como máximo diez veces tantos como el escaneo puede leer y nunca más de 200.000. Cada nombre se convierte en su patrón, con las fechas, los UUID, las secuencias hexadecimales largas y los números convertidos en `*`, así que `exports/2026-10-27/users-0001.csv` es `exports/*/users-*.csv`. Se leen los objetos más recientes de cada patrón, uno de cada patrón antes que un segundo de cualquiera, y como máximo 5 de un mismo patrón. Cada objeto se lee desde el principio: como máximo **Bytes por objeto** de él, y **Bytes por escaneo** en total. Un escaneo muestrea como máximo 10 contenedores de una cuenta de almacenamiento de Azure.
 - **Los archivos se leen según lo que son.** CSV y TSV por columna, JSON y JSON lines por ruta, `.env`, `.ini`, `.properties`, TOML y YAML por clave, XML y HTML como su texto, los archivos de Word, Excel y PowerPoint por su texto y sus celdas, y todo lo demás como texto libre. Un archivo gzip se descomprime primero. Las imágenes, Parquet, Avro, PDF y otros formatos binarios no se leen, y el escaneo lo indica.
 - **Los datasets y las bases de datos** se leen tabla por tabla: como máximo **Tablas por escaneo** tablas, y **Filas por tabla** filas de cada una.
+- **Los clústeres de búsqueda** se leen índice por índice, como una base de datos se lee tabla por tabla: como máximo **Tablas por escaneo** índices, y **Filas por tabla** documentos de cada uno, los más recientes primero cuando el índice tiene un `@timestamp`. Un flujo de datos se lee como un solo índice, y los índices cuyos nombres solo difieren en fechas o números, como `logs-2026.11.26` y `logs-2026.11.27`, como uno, en el más reciente que contiene documentos. Los índices propios del clúster, cuyo nombre empieza por un punto, no se leen. Cada solicitud es un GET, así que el escaneo no puede escribir en el clúster, sea lo que sea lo que pueda hacer su usuario.
 
 Cada escaneo guarda un registro de lo que leyó, por nombre: los objetos, tablas o servicios, nunca su contenido. Lo que no pudo leer (una solicitud que la nube rechazó, el plazo, el presupuesto de bytes) es una advertencia en el escaneo, y el escaneo se marca como **Completado parcialmente**.
 
 La **Vista general** de un almacén dice cuándo se escanea su contenido la próxima vez. **Próximo escaneo de contenido** es la hora a la que algo lo escanea, **Previsto ahora** mientras espera su turno, y **Atrasado** cuando lleva una hora pendiente. Si no, dice por qué nada lo escaneará: **Desactivado** mientras **Escanear contenido** está desactivado para el almacén o el proyecto, o mientras el almacén ya no se encuentra; **Sin escanear** cuando OneUptime no puede tomar muestras de ese tipo de almacén, o su sonda no puede escanearlo; y **Esperando** mientras su sonda está desconectada. La telemetría de un servicio se escanea **Cada hora**, con el escaneo de telemetría del proyecto. **Escanear ahora** está desactivado, con el motivo, para un almacén que nada escanearía. Un escaneo en curso cuando se desactiva el escaneo de contenido, o cuando se suspende el proyecto, no guarda nada de lo que encontró.
 
-## Escanear una base de datos que gestionas
+## Escanear un almacén que gestionas
 
-Seguridad de datos muestrea bases de datos PostgreSQL, MySQL y SQL Server, de una de dos formas. Una base de datos que supervisa el producto de bases de datos, o una con la que hablan tus servicios en el mapa de servicios, ya es un almacén. Una base de datos que ningún escaneo encuentra, añádela tú mismo como almacén.
+Seguridad de datos muestrea bases de datos PostgreSQL, MySQL y SQL Server, y clústeres de Elasticsearch y OpenSearch, de una de dos formas. Una base de datos que supervisa el producto de bases de datos, o una con la que hablan tus servicios en el mapa de servicios, ya es un almacén. Añade tú mismo cualquier otro, con **Añadir un almacén que gestionas** en **Almacenes de datos**: en cuanto eliges su **Tipo**, el formulario dice qué comprobará OneUptime en él y qué no puede comprobar, y solo pide lo que ese tipo lee. Un tipo que OneUptime no muestrea, como MongoDB o Redis, no lleva cadena de conexión: se lista con sus propietarios, etiquetas y sensibilidad, y su exposición indica **No se puede comprobar**.
 
-- **Desde los workers de OneUptime.** En los **Ajustes** del almacén, pon en **Cadena de conexión** una que solo pueda leer, como `postgresql://reader:password@db.internal:5432/app`. Se cifra en reposo y la API nunca la devuelve. Dale un usuario de base de datos que pueda leer y nada más.
-- **Desde una sonda en tu red.** Elige la sonda en **Escanear desde la sonda**, y escribe en **Variable de conexión de la sonda** el nombre de la variable de entorno de esa sonda que contiene la cadena de conexión. La sonda lee la base de datos desde dentro de tu red y envía solo lo que encontró: la cadena de conexión nunca llega a OneUptime. Consulta [Sondas personalizadas](/docs/probe/custom-probe) para ejecutar una sonda.
+- **Desde los workers de OneUptime.** En los **Ajustes** del almacén, pon en **Cadena de conexión** una que solo pueda leer, como `postgresql://reader:password@db.internal:5432/app`, o `https://reader:password@search.internal:9200` para un clúster de búsqueda. Se cifra en reposo y la API nunca la devuelve. Dale un usuario que pueda leer y nada más. En OneUptime Cloud, los workers solo llegan a direcciones de internet.
+- **Desde una sonda en tu red.** Elige la sonda en **Escanear desde la sonda**, y escribe en **Variable de conexión de la sonda** el nombre de la variable de entorno de esa sonda que contiene la cadena de conexión. La sonda lee el almacén desde dentro de tu red y envía solo lo que encontró: la cadena de conexión nunca llega a OneUptime. Consulta [Sondas personalizadas](/docs/probe/custom-probe) para ejecutar una sonda. A una sonda de una versión anterior solo se le entregan bases de datos: actualízala para que escanee un clúster de búsqueda.
+
+### La cadena de conexión de un clúster de búsqueda
+
+Elasticsearch y OpenSearch no tienen una cadena de conexión propia, así que OneUptime toma la dirección del clúster, tal como llega a él curl, con un usuario de solo lectura en ella, o una clave de API de Elasticsearch detrás, escrita `id:key` o como el valor codificado que entrega Elasticsearch:
+
+```text
+https://reader:password@search.internal:9200
+https://search.internal:9200?api_key=<id>:<key>
+https://reader:password@search.internal:9200?verify_certificate=false
+```
+
+`verify_certificate=false` acepta un certificado que no firmó ninguna autoridad, como el que crea Elasticsearch la primera vez que arranca: úsalo solo en una red de confianza. Detrás de la dirección no puede ir nada más. Para un clúster cuyo certificado firmó tu propia autoridad, da la dirección como JSON, con el certificado de esa autoridad:
+
+```json
+{
+  "url": "https://search.internal:9200",
+  "username": "reader",
+  "password": "password",
+  "caCertificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+}
+```
+
+`apiKey` ocupa el lugar de `username` y `password`, y `"verifyCertificate": false` el del certificado.
+
+Da al usuario un rol que pueda leer y nada más. En Elasticsearch:
+
+```bash
+curl -u elastic -X PUT "https://search.internal:9200/_security/role/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster":["monitor"],"indices":[{"names":["*"],"privileges":["read","view_index_metadata","monitor"]}]}'
+```
+
+En OpenSearch, con su plugin de seguridad:
+
+```bash
+curl -u admin -X PUT "https://search.internal:9200/_plugins/_security/api/roles/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster_permissions":["cluster_monitor"],"index_permissions":[{"index_patterns":["*"],"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]}]}'
+```
+
+Luego da a un usuario ese rol, y solo ese rol. Restringe `*` a los índices que se deben escanear.
+
+### Qué comprueba OneUptime en un almacén que gestionas
+
+Un almacén de una cuenta en la nube se comprueba a partir de los ajustes que guarda su nube. Un almacén que gestionas no tiene ninguno que OneUptime pueda leer, así que un clúster de Elasticsearch u OpenSearch se comprueba a partir de lo que responde en su propia dirección. Con cada escaneo de contenido, desde donde se ejecuta el escaneo, se le pregunta sin credenciales:
+
+| Pregunta | Qué indica |
+| --- | --- |
+| Quién pregunta: `/_security/_authenticate` en Elasticsearch, `/_plugins/_security/authinfo` en OpenSearch | Si pide credenciales |
+| Una búsqueda que no devuelve documentos, solo si los hay | Si cualquiera que llegue a él puede leer sus documentos |
+| Su dirección por HTTP simple, cuando su cadena de conexión es HTTPS | Si acepta conexiones sin TLS |
+
+No se escribe nada en él, así que a un clúster con usuarios y roles no se le puede preguntar si su usuario anónimo puede escribir: esa línea de su **Configuración** indica **No se puede comprobar**. Uno sin ningún control de acceso acepta todas las solicitudes, también las escrituras. Un clúster que responde a cualquiera no supera [Cualquiera que llegue a él puede leerlo sin credenciales](/docs/data-security/checks-and-issues#exposición).
+
+Desde dónde se ejecuta el escaneo decide qué más se puede saber. Los workers de OneUptime Cloud solo llegan a direcciones de internet, así que un clúster que escanean es accesible desde internet, y su exposición lo dice. Desde una sonda, o desde un OneUptime que alojas tú, el escaneo se ejecuta dentro de una red, y desde ahí no se puede saber si internet llega al clúster: su exposición indica **Desconocido**, y su **Vista general** dice por qué. Su cifrado en reposo, sus copias de seguridad y su registro de accesos son cosa de sus servidores, no se ven desde su dirección y no se comprueban.
+
+Una base de datos que gestionas se muestrea, no se le pregunta, y cómo se puede llegar a ella no se comprueba: su exposición indica **No se puede comprobar**, igual que la de un tipo que OneUptime no muestrea. Hasta que un almacén se comprueba por primera vez, su exposición indica **Aún sin comprobar**, así que un almacén que espera su primera comprobación nunca se confunde con uno que no se puede comprobar.
 
 ## Qué guarda OneUptime
 
@@ -244,11 +303,15 @@ Los ajustes de Seguridad de datos son un único conjunto por proyecto, en la sec
 ## Solución de problemas
 
 :::details Un almacén dice que su contenido no se escaneó
-El escaneo dice por qué: «El escaneo de contenido necesita el permiso de contenido de la conexión, o una cadena de conexión para una base de datos». Pon la conexión del almacén en **Configuración y muestras de contenido** y vuelve a ejecutar su comando, o da a la base de datos una cadena de conexión. Comprueba también que **Escanear contenido** está activado para el almacén y en los ajustes del proyecto.
+El escaneo dice por qué: «El escaneo de contenido necesita el permiso de contenido de la conexión, o una cadena de conexión para un almacén que gestionas». Pon la conexión del almacén en **Configuración y muestras de contenido** y vuelve a ejecutar su comando, o da al almacén que gestionas una cadena de conexión. Comprueba también que **Escanear contenido** está activado para el almacén y en los ajustes del proyecto.
 :::
 
 :::details Una comprobación dice que no puede saberlo
 Un dato que el lector no pudo leer (un permiso que el rol no tiene, una API que no está activada) es desconocido, nunca supuesto. Su comprobación informa de que no puede saberlo, y un problema que abrió sigue abierto: nadie puede concluir que un problema está corregido porque OneUptime no pudo mirar. Las advertencias de la lectura de la configuración dicen qué no pudo leer. Vuelve a ejecutar el comando de la conexión para conceder lo que falta.
+:::
+
+:::details La exposición de un almacén indica No se puede comprobar
+OneUptime no tiene forma de leer cómo se puede llegar a un almacén de ese tipo: una base de datos que gestionas, o un tipo que no muestrea. No es un fallo, y no se abre ningún problema por ello. Sus **Ajustes** dicen qué se comprueba en él, en **Qué comprueba OneUptime**. Un almacén cuya exposición indica **Aún sin comprobar** es uno que OneUptime puede comprobar y aún no ha comprobado: un clúster de búsqueda antes de su primer escaneo de contenido, o un almacén de una cuenta en la nube antes de la primera lectura de la configuración de su conexión.
 :::
 
 :::details No aparecen buckets de S3 ni datasets de BigQuery

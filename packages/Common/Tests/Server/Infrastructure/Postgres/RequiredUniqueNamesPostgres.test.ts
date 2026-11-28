@@ -10,6 +10,7 @@ import {
 } from "@jest/globals";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../../Models/DatabaseModels/Index";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorGroup from "../../../../Models/DatabaseModels/MonitorGroup";
 import Project from "../../../../Models/DatabaseModels/Project";
 import TableView from "../../../../Models/DatabaseModels/TableView";
@@ -17,6 +18,7 @@ import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatab
 import { AddProjectRequireUniqueNames1809187640000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187640000-AddProjectRequireUniqueNames";
 import { AddUniqueNameIndexes1809187640010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187640010-AddUniqueNameIndexes";
 import MonitorGroupService from "../../../../Server/Services/MonitorGroupService";
+import MonitorService from "../../../../Server/Services/MonitorService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import TableViewService from "../../../../Server/Services/TableViewService";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
@@ -24,6 +26,7 @@ import RequiredUniqueNames from "../../../../Server/Utils/Database/RequiredUniqu
 import logger from "../../../../Server/Utils/Logger";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { DuplicateNamesOfKind } from "../../../../Types/Database/RequiredUniqueNames";
+import { SharedNamesAnswer } from "../../../../Types/Database/SharedNames";
 import { getUniqueNameWhenRequiredColumn } from "../../../../Types/Database/UniqueNameWhenRequired";
 import API from "../../../../Utils/API";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
@@ -569,6 +572,128 @@ describePostgres("Require Unique Names, on Postgres", () => {
           props: member(REQUIRING_PROJECT_ID),
         }),
       ).toBeNull();
+    });
+  });
+
+  /*
+   * #11021: the twins every list of a kind the setting holds marks - the
+   * real query, on real rows: names as the rule compares them, in the
+   * project, archived records apart from those in service, deleted ones
+   * none, read back with the reader's own permissions, with when each was
+   * made.
+   */
+  describe("the twins a list marks", () => {
+    async function insertMonitor(
+      projectId: ObjectID,
+      name: string,
+      isArchived: boolean = false,
+    ): Promise<string> {
+      const rows: Array<{ _id: string }> = await database.query(
+        `INSERT INTO ${tableOf(Monitor)} ("projectId", "name", "isArchived") VALUES ($1, $2, $3) RETURNING "_id"`,
+        [projectId.toString(), name, isArchived],
+      );
+
+      return rows[0]!._id;
+    }
+
+    const sortedGroups: (
+      groups: Array<Array<string>>,
+    ) => Array<Array<string>> = (
+      groups: Array<Array<string>>,
+    ): Array<Array<string>> => {
+      return groups
+        .map((group: Array<string>): Array<string> => {
+          return [...group].sort();
+        })
+        .sort((a: Array<string>, b: Array<string>): number => {
+          return a[0]!.localeCompare(b[0]!);
+        });
+    };
+
+    beforeEach(async () => {
+      await database.query(`TRUNCATE ${tableOf(Monitor)}`);
+    });
+
+    test("are the records whose names read alike, those in service and the archived ones apart, with when each was made", async () => {
+      const first: string = await insertMonitor(
+        REQUIRING_PROJECT_ID,
+        "API Health Check",
+      );
+      const second: string = await insertMonitor(
+        REQUIRING_PROJECT_ID,
+        "  api   health CHECK ",
+      );
+      const archived: string = await insertMonitor(
+        REQUIRING_PROJECT_ID,
+        "API health check",
+        true,
+      );
+      const archivedTwin: string = await insertMonitor(
+        REQUIRING_PROJECT_ID,
+        "api health check",
+        true,
+      );
+      await insertMonitor(REQUIRING_PROJECT_ID, "Checkout");
+      // Another project's monitor of the name is no twin here.
+      await insertMonitor(LETTING_PROJECT_ID, "API Health Check");
+
+      const answer: SharedNamesAnswer =
+        await RequiredUniqueNames.findTwinsOfKind({
+          service: MonitorService,
+          projectId: REQUIRING_PROJECT_ID,
+          props: member(REQUIRING_PROJECT_ID),
+        });
+
+      expect(sortedGroups(answer.groups)).toEqual(
+        sortedGroups([
+          [first, second],
+          [archived, archivedTwin],
+        ]),
+      );
+      expect(Object.keys(answer.createdAt || {}).sort()).toEqual(
+        [first, second, archived, archivedTwin].sort(),
+      );
+      for (const date of Object.values(answer.createdAt || {})) {
+        expect(isNaN(new Date(date).getTime())).toBe(false);
+      }
+    });
+
+    test("one in service whose only namesake is archived, or deleted, is no twin", async () => {
+      const live: string = await insertMonitor(REQUIRING_PROJECT_ID, "Billing");
+      await insertMonitor(REQUIRING_PROJECT_ID, "billing", true);
+      const deleted: string = await insertMonitor(
+        REQUIRING_PROJECT_ID,
+        "BILLING",
+      );
+      await database.query(
+        `UPDATE ${tableOf(Monitor)} SET "deletedAt" = now() WHERE "_id" = $1`,
+        [deleted],
+      );
+
+      const answer: SharedNamesAnswer =
+        await RequiredUniqueNames.findTwinsOfKind({
+          service: MonitorService,
+          projectId: REQUIRING_PROJECT_ID,
+          props: member(REQUIRING_PROJECT_ID),
+        });
+
+      expect(answer.groups).toEqual([]);
+      expect(JSON.stringify(answer)).not.toContain(live);
+    });
+
+    test("a kind with no archive counts every record of a name together, whatever the project requires", async () => {
+      const first: string = await insertGroup(LETTING_PROJECT_ID, "Edge");
+      const second: string = await insertGroup(LETTING_PROJECT_ID, "edge ");
+      await insertGroup(LETTING_PROJECT_ID, "Core");
+
+      const answer: SharedNamesAnswer =
+        await RequiredUniqueNames.findTwinsOfKind({
+          service: MonitorGroupService,
+          projectId: LETTING_PROJECT_ID,
+          props: member(LETTING_PROJECT_ID),
+        });
+
+      expect(sortedGroups(answer.groups)).toEqual([[first, second].sort()]);
     });
   });
 

@@ -1,9 +1,8 @@
 import Profile from "../../Models/AnalyticsModels/Profile";
-import InBetween from "../BaseDatabase/InBetween";
 import Includes from "../BaseDatabase/Includes";
 import Query from "../BaseDatabase/Query";
 import Search from "../BaseDatabase/Search";
-import OneUptimeDate from "../Date";
+import TelemetryCheckWindow from "./TelemetryCheckWindow";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
@@ -84,13 +83,12 @@ export class MonitorStepProfileMonitorUtil {
       query.profileType = new Search(monitorStepProfileMonitor.profileType);
     }
 
+    // Its start and not its end, as every check's window (TelemetryCheckWindow).
     if (monitorStepProfileMonitor.lastXSecondsOfProfiles) {
-      const endDate: Date = evaluateUntil || OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveSeconds(
-        endDate,
-        monitorStepProfileMonitor.lastXSecondsOfProfiles * -1,
+      query.startTime = TelemetryCheckWindow.ofSeconds(
+        monitorStepProfileMonitor.lastXSecondsOfProfiles,
+        evaluateUntil,
       );
-      query.startTime = new InBetween(startDate, endDate);
     }
 
     return query;

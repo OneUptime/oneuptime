@@ -1,5 +1,9 @@
 import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
-import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import {
+  DataObservabilityAgentState,
+  DataObservabilityCollector,
+  DataObservabilityStoreSummary,
+} from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -35,6 +39,15 @@ const StoreStatusPill: FunctionComponent<ComponentProps> = (
 
   if (props.isCollecting) {
     return <Pill text="Collecting" tone={PillTone.Info} isPulsing={true} />;
+  }
+
+  // Read through a Database Agent that cannot read it now (#11148): nothing is collected until it can.
+  if (
+    props.store.collector === DataObservabilityCollector.DatabaseAgent &&
+    props.store.agentState &&
+    props.store.agentState !== DataObservabilityAgentState.Ready
+  ) {
+    return <Pill text="Database Agent not ready" tone={PillTone.Warning} />;
   }
 
   if (props.store.status === "Failed") {

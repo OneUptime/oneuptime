@@ -133,6 +133,14 @@ export interface McpToolDescription {
    * asked to approve a call of it are told the server does not say.
    */
   saysWhetherItReads?: boolean | undefined;
+  /*
+   * The server marks it as one that may change something: readOnlyHint
+   * false, or destructiveHint true. Such a tool is never marked read-only
+   * by a Project Admin (issue #11081): the server is taken at its word.
+   * mcp-go writes both out for every tool its author did not annotate, so
+   * every tool of such a server says so.
+   */
+  serverMarksAsChange?: boolean | undefined;
 }
 
 export interface McpToolList {
@@ -228,6 +236,9 @@ export function readMcpToolDescription(
         : { type: "object", properties: {} },
     readsOnly: annotations["readOnlyHint"] === true,
     saysWhetherItReads: typeof annotations["readOnlyHint"] === "boolean",
+    serverMarksAsChange:
+      annotations["readOnlyHint"] === false ||
+      annotations["destructiveHint"] === true,
   };
 
   const title: string | undefined =

@@ -12,7 +12,9 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeCapability from "Common/Types/Probe/ProbeCapability";
-import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
+import MonitorProbeService, {
+  ClaimedMonitorProbe,
+} from "Common/Server/Services/MonitorProbeService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Express, {
   ExpressRequest,
@@ -25,7 +27,6 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
@@ -215,20 +216,23 @@ router.post(
        * oldest due ones nobody else holds (FOR NO KEY UPDATE SKIP LOCKED, see
        * claimMonitorProbesForProbing). Instances of the same probe never
        * pick up the same monitors, and claims made at once each get the
-       * next ones, never nothing (#10819).
+       * next ones, never nothing (#10819). The same statement hands back
+       * each claimed monitor as the probe is handed it, oldest due first:
+       * the answer takes no second read (#11120). Each one's next check is
+       * written by the claim too.
        */
-      const claimedMonitorProbeIds: Array<ObjectID> =
+      const claimed: Array<ClaimedMonitorProbe> =
         await MonitorProbeService.claimMonitorProbesForProbing({
           probeId: probeId,
           limit: limit,
         });
 
       logger.debug(
-        `Claimed ${claimedMonitorProbeIds.length} monitor probes for probing`,
+        `Claimed ${claimed.length} monitor probes for probing`,
         getLogAttributesFromRequest(req as any),
       );
 
-      if (claimedMonitorProbeIds.length === 0) {
+      if (claimed.length === 0) {
         logger.debug(
           "No monitors to probe",
           getLogAttributesFromRequest(req as any),
@@ -242,48 +246,12 @@ router.post(
         );
       }
 
-      // Fetch the full monitor details for the claimed monitors
-      const monitorProbes: Array<MonitorProbe> =
-        await MonitorProbeService.findBy({
-          query: {
-            _id: QueryHelper.any(claimedMonitorProbeIds),
-          },
-          select: {
-            nextPingAt: true,
-            probeId: true,
-            monitorId: true,
-            monitor: {
-              monitorSteps: true,
-              monitorType: true,
-              monitoringInterval: true,
-              projectId: true,
-            },
-          },
-          // Every row claimed: never more than the claim may hand out.
-          limit: claimedMonitorProbeIds.length,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      logger.debug(
-        "Fetched monitor list",
-        getLogAttributesFromRequest(req as any),
-      );
-      logger.debug(monitorProbes, getLogAttributesFromRequest(req as any));
-
-      /*
-       * nextPingAt is now computed during claimMonitorProbesForProbing,
-       * so no second update is needed here.
-       */
-
-      const monitors: Array<Monitor> = monitorProbes
-        .map((monitorProbe: MonitorProbe) => {
-          return monitorProbe.monitor!;
+      const monitors: Array<Monitor> = claimed
+        .map((claimedMonitorProbe: ClaimedMonitorProbe): Monitor => {
+          return claimedMonitorProbe.monitor;
         })
-        .filter((monitor: Monitor) => {
-          return Boolean(monitor._id);
+        .filter((monitor: Monitor): boolean => {
+          return Boolean(monitor?._id);
         });
 
       /*

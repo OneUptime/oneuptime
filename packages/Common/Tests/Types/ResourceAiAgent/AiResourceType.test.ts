@@ -26,7 +26,7 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 describe("AiResourceType enum", () => {
-  test("has exactly the twelve resource types, each value equal to its name", () => {
+  test("has exactly the thirteen resource types, each value equal to its name", () => {
     expect(Object.values(AiResourceType)).toEqual([
       "DockerHost",
       "PodmanHost",
@@ -40,6 +40,7 @@ describe("AiResourceType enum", () => {
       "AzureSubscription",
       "GoogleCloudProject",
       "OpenStackCloud",
+      "XcpNgPool",
     ]);
 
     for (const [name, value] of Object.entries(AiResourceType)) {
@@ -61,6 +62,7 @@ describe("AiResourceType enum", () => {
       AiResourceType.AzureSubscription,
       AiResourceType.GoogleCloudProject,
       AiResourceType.OpenStackCloud,
+      AiResourceType.XcpNgPool,
     ]);
     expect(new Set(ALL_AI_RESOURCE_TYPES).size).toBe(
       ALL_AI_RESOURCE_TYPES.length,
@@ -138,6 +140,11 @@ describe("parseAiResourceType", () => {
     ["openstack", AiResourceType.OpenStackCloud],
     ["google-cloud", AiResourceType.GoogleCloudProject],
     ["google_cloud", AiResourceType.GoogleCloudProject],
+    ["xcp-ng", AiResourceType.XcpNgPool],
+    ["xcp_ng", AiResourceType.XcpNgPool],
+    ["xcpng", AiResourceType.XcpNgPool],
+    ["XCP-ng", AiResourceType.XcpNgPool],
+    ["xen-orchestra", AiResourceType.XcpNgPool],
   ])(
     "reads the agent alias %p as %s",
     (alias: string, expected: AiResourceType) => {
@@ -211,6 +218,7 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       ["Azure subscription", "Cloud AI agent", "azure"],
       ["Google Cloud project", "Cloud AI agent", "gcp"],
       ["OpenStack cloud", "OpenStack AI agent", "openstack"],
+      ["XCP-ng pool", "XCP-ng AI agent", "xcp-ng"],
     ]);
   });
 
@@ -235,13 +243,14 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
     ).toEqual(["Cloud AI agent", "Cloud AI agent", "Cloud AI agent"]);
   });
 
-  test("the cloud accounts come after the others, an OpenStack cloud after them, and are told apart", () => {
+  test("the cloud accounts come after the others, an OpenStack cloud and an XCP-ng pool after them, and are told apart", () => {
     expect(CLOUD_AI_RESOURCE_TYPES).toEqual(
-      ALL_AI_RESOURCE_TYPES.slice(-4, -1),
+      ALL_AI_RESOURCE_TYPES.slice(-5, -2),
     );
-    expect(ALL_AI_RESOURCE_TYPES[ALL_AI_RESOURCE_TYPES.length - 1]).toBe(
+    expect(ALL_AI_RESOURCE_TYPES.slice(-2)).toEqual([
       AiResourceType.OpenStackCloud,
-    );
+      AiResourceType.XcpNgPool,
+    ]);
 
     for (const type of ALL_AI_RESOURCE_TYPES) {
       expect(isCloudAiResourceType(type)).toBe(
@@ -253,7 +262,7 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
     expect(isCloudAiResourceType(undefined)).toBe(false);
   });
 
-  test("a Host and a cloud agent find their own identity; the others are told it", () => {
+  test("a Host, a cloud agent and an XCP-ng agent find their own identity; the others are told it", () => {
     expect(
       ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
         return isIdentityResolvedByAgent(type);
@@ -263,6 +272,7 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       AiResourceType.AwsAccount,
       AiResourceType.AzureSubscription,
       AiResourceType.GoogleCloudProject,
+      AiResourceType.XcpNgPool,
     ]);
   });
 
@@ -376,6 +386,10 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
         "openstack endpoint list",
         "openstack compute service list",
       ],
+      XcpNgPool: [
+        "xo-cli rest get pools fields=name_label,master,HA_enabled",
+        "xo-cli rest get hosts fields=name_label,power_state,enabled",
+      ],
     });
   });
 
@@ -417,6 +431,7 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       AzureSubscription: ["AZURE_SUBSCRIPTION_ID"],
       GoogleCloudProject: ["GOOGLE_CLOUD_PROJECT"],
       OpenStackCloud: ["OPENSTACK_CLOUD_NAME"],
+      XcpNgPool: ["XCP_NG_POOL_ID"],
     });
   });
 
@@ -441,6 +456,7 @@ describe("AI_RESOURCE_TYPE_INFO", () => {
       AzureSubscription: [],
       GoogleCloudProject: [],
       OpenStackCloud: ["openstack"],
+      XcpNgPool: [],
     });
   });
 });

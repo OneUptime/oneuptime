@@ -264,6 +264,13 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "otel-collector-config.powerstore.yaml",
       "powerstore-exporter.Dockerfile",
       "powerstore-syslog.yaml",
+      // NetApp ONTAP, through NetApp Harvest: its config and its templates.
+      "otel-collector-config.netapp-ontap.yaml",
+      "netapp-harvest.yml",
+      "netapp-harvest-rest.yaml",
+      "netapp-harvest-keyperf.yaml",
+      "netapp-harvest-restperf.yaml",
+      "otel-collector-config.powerscale.yaml",
       "systemd/oneuptime-storage-array-agent.service",
       TROUBLESHOOT_SCRIPT_FILE,
     ],

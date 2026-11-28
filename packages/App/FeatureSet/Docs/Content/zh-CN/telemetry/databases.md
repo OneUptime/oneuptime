@@ -454,8 +454,19 @@ Database Agent 的 `docker-compose.yml` 还会运行 **数据库 AI 代理**，�
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | 挂载到容器中的 PEM CA 证书包（见 `oneuptime-database-ai-agent` 中被注释掉的 `volumes`），在 `DATABASE_TLS_INSECURE=false` 时用于验证服务器证书 |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Collector 的身份标识 | 将 AI 代理注册为与 Collector 不同的数据库：它在 OneUptime 中的 id，或 `<engine>\|<address>:<port>`。请留空 |
 | `LOG_LEVEL` | `info` | AI 代理的日志级别：`debug`、`info`、`warn` 或 `error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true` 允许代理为数据可观测性读取此服务器的数据库；其他任何值都使其保持关闭 |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | 监控登录账号 | 数据可观测性读取目录所用的登录账号。按原样写入：其中的 `$` 不需要写成两个 |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | 该登录账号的密码；请用单引号括起 |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false` 不运行任何数据检查：只读取目录 |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | 目录登录账号 | 数据检查读取行所用的登录账号 |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | 该登录账号的密码；请用单引号括起 |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true` 运行自定义 SQL 和失败的行检查 |
 
 它可以运行什么、修复如何工作以及如何排查它的问题：[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#数据库服务器)。
+
+### 通过同一个代理使用数据可观测性
+
+同一个代理还可以为 [数据可观测性](/docs/data-observability/index) 读取此服务器上的 PostgreSQL、MySQL 和 MariaDB 数据库：它们的表和列、新鲜度和数据量、架构变更，以及你设置的检查。它以只读方式读取，使用其自身环境中的登录账号和自行构建的语句，不会返回任何行或登录账号。在你于同一个 `.env` 中设置 `ONEUPTIME_DATA_OBSERVABILITY=true` 之前，它保持关闭。[连接数据库](/docs/data-observability/connect#通过-database-agent) 说明了如何选择代理以及要给它哪些登录账号。
 
 ## Kubernetes
 
