@@ -35,7 +35,10 @@ import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
 import QueryHelper from "../QueryHelper";
 import QueryUtil from "../QueryUtil";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import CallerPlan from "../../../Utils/Billing/CallerPlan";
 import Dictionary from "../../../../Types/Dictionary";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
+import RelationReadersUtil from "../../../../Types/Database/RelationReadersUtil";
 
 /*
  * Built once per invocation and threaded through the per-column loop; never
@@ -78,6 +81,18 @@ export type { LabelGrant };
 export interface ColumnKeptToLabels {
   column: string;
   grant: LabelGrant;
+}
+
+/*
+ * The columns of the records a relation reaches that a read selects
+ * through it and the caller reads there on some labels only
+ * (AccessControlPermission.getRelatedColumnsKeptToLabels, #11438).
+ */
+export interface RelatedColumnsKeptToLabels {
+  // The relation the read selects them through: "probe".
+  relation: string;
+  relatedModelType: { new (): BaseModel };
+  kept: Array<ColumnKeptToLabels>;
 }
 
 export default class AccessControlPermission {
@@ -1163,9 +1178,9 @@ export default class AccessControlPermission {
    * at a time.
    *
    * None for root and a master admin, a model that carries no labels, and a
-   * read across projects: each project's rows narrow such a read as before
-   * (TenantPermission), whose rows a read of one project's grants could not
-   * withhold by.
+   * read across projects, whose rows are of several projects, each weighed
+   * by its own project's grants: getColumnsKeptToLabelsByProject works such
+   * a read out a project at a time (#11438).
    */
   public static getColumnsKeptToLabels<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -1242,6 +1257,516 @@ export default class AccessControlPermission {
     }
 
     return kept;
+  }
+
+  /*
+   * THE COLUMNS KEPT TO LABELS OF A READ ACROSS PROJECTS (#11438), by
+   * project: getColumnsKeptToLabels with each of the caller's projects' own
+   * rows (CallerPlan.inProjectWithoutPlan), as TenantPermission narrows each
+   * project's query with them. Such a read no longer narrows a project's
+   * records by a column read there on some labels only: it reads every
+   * record each project's grants reach, and leaves the column out of the
+   * rows of that project its grant there does not reach
+   * (withholdColumnsKeptToLabelsByProject). Projects that keep no column
+   * are left out. Empty for anything but a read across projects of a
+   * labelled model by a person or a key.
+   */
+  public static getColumnsKeptToLabelsByProject<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    select: Select<TBaseModel> | null | undefined,
+    props: DatabaseCommonInteractionProps,
+  ): Map<string, Array<ColumnKeptToLabels>> {
+    const byProject: Map<string, Array<ColumnKeptToLabels>> = new Map<
+      string,
+      Array<ColumnKeptToLabels>
+    >();
+
+    if (
+      !select ||
+      props.isRoot ||
+      props.isMasterAdmin ||
+      !props.isMultiTenantRequest ||
+      !new modelType().getAccessControlColumn()
+    ) {
+      return byProject;
+    }
+
+    for (const projectId of props.userGlobalAccessPermission?.projectIds ||
+      []) {
+      const kept: Array<ColumnKeptToLabels> =
+        AccessControlPermission.getColumnsKeptToLabels(
+          modelType,
+          select,
+          CallerPlan.inProjectWithoutPlan(props, projectId),
+        );
+
+      if (kept.length > 0) {
+        byProject.set(LabelAccess.readId(projectId), kept);
+      }
+    }
+
+    return byProject;
+  }
+
+  /*
+   * withholdColumnsKeptToLabels for a read across projects (#11438): each
+   * row's columns kept to labels in its own project left out where that
+   * project's grant does not reach the row, a project at a time. A row read
+   * without its project - which cannot be told whose grants weigh it - is
+   * left without every column kept in any project: never more than the
+   * caller may read.
+   */
+  public static async withholdColumnsKeptToLabelsByProject<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    rows: Array<TBaseModel>;
+    keptByProject: ReadonlyMap<string, ReadonlyArray<ColumnKeptToLabels>>;
+    props: DatabaseCommonInteractionProps;
+    // The ids, in lower case, of the rows a query finds.
+    findIds: (query: Query<TBaseModel>) => Promise<Array<string>>;
+  }): Promise<Array<TBaseModel>> {
+    if (data.rows.length === 0 || data.keptByProject.size === 0) {
+      return data.rows;
+    }
+
+    const tenantColumn: string | null = new data.modelType().getTenantColumn();
+
+    const everyKept: Set<string> = new Set<string>();
+
+    for (const kept of data.keptByProject.values()) {
+      for (const column of kept) {
+        everyKept.add(column.column);
+      }
+    }
+
+    const rowsByProject: Map<string, Array<TBaseModel>> = new Map<
+      string,
+      Array<TBaseModel>
+    >();
+
+    for (const row of data.rows) {
+      const projectId: string = tenantColumn
+        ? LabelAccess.readId(
+            (row as unknown as Dictionary<unknown>)[tenantColumn],
+          )
+        : "";
+
+      if (!projectId) {
+        for (const column of everyKept) {
+          (row as unknown as Dictionary<unknown>)[column] = undefined;
+        }
+
+        continue;
+      }
+
+      const projectRows: Array<TBaseModel> = rowsByProject.get(projectId) || [];
+      projectRows.push(row);
+      rowsByProject.set(projectId, projectRows);
+    }
+
+    for (const [projectId, projectRows] of rowsByProject.entries()) {
+      const kept: ReadonlyArray<ColumnKeptToLabels> | undefined =
+        data.keptByProject.get(projectId);
+
+      if (!kept || kept.length === 0) {
+        continue;
+      }
+
+      await AccessControlPermission.withholdColumnsKeptToLabels({
+        modelType: data.modelType,
+        rows: projectRows,
+        kept: kept,
+        props: CallerPlan.inProjectWithoutPlan(
+          data.props,
+          new ObjectID(projectId),
+        ),
+        findIds: data.findIds,
+      });
+    }
+
+    return data.rows;
+  }
+
+  /*
+   * THE COLUMNS OF RELATED RECORDS A READ SELECTS THROUGH A RELATION THAT
+   * THE CALLER READS ON SOME LABELS ONLY (#11438): a column held to its own
+   * read through a relation (RelationReaders.ColumnReaders - a probe's SNMP
+   * trap report, read through the network device that names the probe) of
+   * a model that carries labels, for a caller whose grant to read it there
+   * is limited to labels. The select's check weighs such a column by
+   * whether its read is held at all (QueryPermission
+   * .checkRelationQueryPermission), so it was read on every related record,
+   * those outside the grant's labels too. Now it is left out of the related
+   * records the grant does not reach (withholdRelatedColumnsKeptToLabels),
+   * as a column of the model's own is (withholdColumnsKeptToLabels).
+   *
+   * A column every reader of the relation reads (canReadOnRelationQuery
+   * alone - a probe's name, the label a joined row is shown by) is the
+   * relation's, and an id or a time the related record's read: neither is
+   * weighed here. None for root and a master admin, and for a read across
+   * projects, whose related records are weighed by each project's grants
+   * (getRelatedColumnsKeptToLabelsByProject).
+   */
+  public static getRelatedColumnsKeptToLabels<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    select: Select<TBaseModel> | null | undefined,
+    props: DatabaseCommonInteractionProps,
+  ): Array<RelatedColumnsKeptToLabels> {
+    if (
+      !select ||
+      props.isRoot ||
+      props.isMasterAdmin ||
+      !props.tenantId ||
+      props.isMultiTenantRequest
+    ) {
+      return [];
+    }
+
+    const model: BaseModel = new modelType();
+    const relations: Array<RelatedColumnsKeptToLabels> = [];
+    let context: AccessControlPermissionContext | null = null;
+
+    for (const [relation, value] of Object.entries(
+      select as Dictionary<unknown>,
+    )) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        continue;
+      }
+
+      const metadata: { type?: TableColumnType; modelType?: unknown } =
+        model.getTableColumnMetadata(relation) || {};
+
+      if (
+        (metadata.type !== TableColumnType.Entity &&
+          metadata.type !== TableColumnType.EntityArray) ||
+        typeof metadata.modelType !== "function"
+      ) {
+        continue;
+      }
+
+      const relatedModelType: { new (): BaseModel } = metadata.modelType as {
+        new (): BaseModel;
+      };
+      const relatedModel: BaseModel = new relatedModelType();
+
+      if (!relatedModel.getAccessControlColumn()) {
+        continue;
+      }
+
+      const columnAccessControl: Dictionary<ColumnAccessControl> =
+        relatedModel.getColumnAccessControlForAllColumns();
+
+      const kept: Array<ColumnKeptToLabels> = [];
+
+      for (const [column, isSelected] of Object.entries(
+        value as Dictionary<unknown>,
+      )) {
+        if (
+          isSelected !== true ||
+          !RelationReadersUtil.isHeldToItsOwnRead(
+            relatedModel.getTableColumnMetadata(column),
+          )
+        ) {
+          continue;
+        }
+
+        const readPermissions: Array<Permission> =
+          columnAccessControl[column]?.read || [];
+
+        if (readPermissions.length === 0) {
+          continue;
+        }
+
+        context = context ?? this.buildPermissionContext(props);
+
+        const grant: LabelGrant = this.getGrantByPermissions(
+          relatedModelType,
+          DatabaseRequestType.Read,
+          this.getColumnGrantingPermissions(
+            relatedModelType,
+            DatabaseRequestType.Read,
+            readPermissions,
+            context.held,
+          ),
+          context,
+        );
+
+        if (grant.labelIds.length === 0) {
+          continue;
+        }
+
+        kept.push({ column: column, grant: grant });
+      }
+
+      if (kept.length > 0) {
+        relations.push({
+          relation: relation,
+          relatedModelType: relatedModelType,
+          kept: kept,
+        });
+      }
+    }
+
+    return relations;
+  }
+
+  /*
+   * getRelatedColumnsKeptToLabels for a read across projects (#11438), by
+   * project, as getColumnsKeptToLabelsByProject works out a model's own.
+   */
+  public static getRelatedColumnsKeptToLabelsByProject<
+    TBaseModel extends BaseModel,
+  >(
+    modelType: { new (): TBaseModel },
+    select: Select<TBaseModel> | null | undefined,
+    props: DatabaseCommonInteractionProps,
+  ): Map<string, Array<RelatedColumnsKeptToLabels>> {
+    const byProject: Map<string, Array<RelatedColumnsKeptToLabels>> = new Map<
+      string,
+      Array<RelatedColumnsKeptToLabels>
+    >();
+
+    if (
+      !select ||
+      props.isRoot ||
+      props.isMasterAdmin ||
+      !props.isMultiTenantRequest
+    ) {
+      return byProject;
+    }
+
+    for (const projectId of props.userGlobalAccessPermission?.projectIds ||
+      []) {
+      const kept: Array<RelatedColumnsKeptToLabels> =
+        AccessControlPermission.getRelatedColumnsKeptToLabels(
+          modelType,
+          select,
+          CallerPlan.inProjectWithoutPlan(props, projectId),
+        );
+
+      if (kept.length > 0) {
+        byProject.set(LabelAccess.readId(projectId), kept);
+      }
+    }
+
+    return byProject;
+  }
+
+  /*
+   * LEAVES THE RELATED COLUMNS KEPT TO LABELS (getRelatedColumnsKeptToLabels)
+   * OUT OF THE RELATED RECORDS THEIR GRANTS DO NOT REACH, on the rows a read
+   * hands back: which related records a grant reaches is asked of the
+   * database by the condition a read of their own table would be narrowed
+   * by (addGrantToQuery), once per grant, in one lookup of their ids
+   * (`findRelatedIds`, a read as OneUptime). A related record read without
+   * its id is left without the columns too. For a read across projects,
+   * each row's related records are weighed by its own project's grants
+   * (`keptByProject`); a row read without its project, by none - left
+   * without every such column.
+   */
+  public static async withholdRelatedColumnsKeptToLabels<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    rows: Array<TBaseModel>;
+    // One project's read.
+    kept?: ReadonlyArray<RelatedColumnsKeptToLabels> | undefined;
+    // A read across projects, by project.
+    keptByProject?:
+      | ReadonlyMap<string, ReadonlyArray<RelatedColumnsKeptToLabels>>
+      | undefined;
+    props: DatabaseCommonInteractionProps;
+    findRelatedIds: (
+      relatedModelType: { new (): BaseModel },
+      query: Query<BaseModel>,
+    ) => Promise<Array<string>>;
+  }): Promise<Array<TBaseModel>> {
+    if (data.rows.length === 0) {
+      return data.rows;
+    }
+
+    if (data.kept && data.kept.length > 0) {
+      await AccessControlPermission.withholdRelatedColumnsOfRows({
+        rows: data.rows,
+        kept: data.kept,
+        props: data.props,
+        findRelatedIds: data.findRelatedIds,
+      });
+    }
+
+    if (!data.keptByProject || data.keptByProject.size === 0) {
+      return data.rows;
+    }
+
+    const tenantColumn: string | null = new data.modelType().getTenantColumn();
+    const rowsByProject: Map<string, Array<TBaseModel>> = new Map<
+      string,
+      Array<TBaseModel>
+    >();
+
+    for (const row of data.rows) {
+      const projectId: string = tenantColumn
+        ? LabelAccess.readId(
+            (row as unknown as Dictionary<unknown>)[tenantColumn],
+          )
+        : "";
+
+      if (!projectId) {
+        for (const kept of data.keptByProject.values()) {
+          AccessControlPermission.withholdRelatedColumnsOfRow({
+            row: row,
+            kept: kept,
+            isReached: (): boolean => {
+              return false;
+            },
+          });
+        }
+
+        continue;
+      }
+
+      const projectRows: Array<TBaseModel> = rowsByProject.get(projectId) || [];
+      projectRows.push(row);
+      rowsByProject.set(projectId, projectRows);
+    }
+
+    for (const [projectId, projectRows] of rowsByProject.entries()) {
+      const kept: ReadonlyArray<RelatedColumnsKeptToLabels> | undefined =
+        data.keptByProject.get(projectId);
+
+      if (!kept || kept.length === 0) {
+        continue;
+      }
+
+      await AccessControlPermission.withholdRelatedColumnsOfRows({
+        rows: projectRows,
+        kept: kept,
+        props: CallerPlan.inProjectWithoutPlan(
+          data.props,
+          new ObjectID(projectId),
+        ),
+        findRelatedIds: data.findRelatedIds,
+      });
+    }
+
+    return data.rows;
+  }
+
+  // The related records each row of `rows` names through `relation`.
+  private static getRelatedRecords(
+    row: unknown,
+    relation: string,
+  ): Array<Dictionary<unknown>> {
+    const value: unknown = (row as Dictionary<unknown>)[relation];
+    const values: Array<unknown> = Array.isArray(value) ? value : [value];
+
+    return values.filter((related: unknown): related is Dictionary<unknown> => {
+      return Boolean(related) && typeof related === "object";
+    });
+  }
+
+  private static async withholdRelatedColumnsOfRows<
+    TBaseModel extends BaseModel,
+  >(data: {
+    rows: Array<TBaseModel>;
+    kept: ReadonlyArray<RelatedColumnsKeptToLabels>;
+    props: DatabaseCommonInteractionProps;
+    findRelatedIds: (
+      relatedModelType: { new (): BaseModel },
+      query: Query<BaseModel>,
+    ) => Promise<Array<string>>;
+  }): Promise<void> {
+    for (const relation of data.kept) {
+      const relatedIds: Array<string> = [];
+
+      for (const row of data.rows) {
+        for (const related of AccessControlPermission.getRelatedRecords(
+          row,
+          relation.relation,
+        )) {
+          const id: string = LabelAccess.readId(related["_id"] || related["id"]);
+
+          if (id && !relatedIds.includes(id)) {
+            relatedIds.push(id);
+          }
+        }
+      }
+
+      // Each grant's related records looked up once.
+      const reachedByGrant: Map<string, Set<string>> = new Map<
+        string,
+        Set<string>
+      >();
+
+      for (const kept of relation.kept) {
+        const key: string = AccessControlPermission.getGrantKey(kept.grant);
+
+        if (reachedByGrant.has(key)) {
+          continue;
+        }
+
+        let reached: Set<string> = new Set<string>();
+
+        if (relatedIds.length > 0) {
+          const query: Query<BaseModel> = await this.addGrantToQuery(
+            relation.relatedModelType,
+            { _id: QueryHelper.any(relatedIds) } as Query<BaseModel>,
+            kept.grant,
+            data.props,
+          );
+
+          reached = new Set<string>(
+            (await data.findRelatedIds(relation.relatedModelType, query)).map(
+              (id: string): string => {
+                return LabelAccess.readId(id);
+              },
+            ),
+          );
+        }
+
+        reachedByGrant.set(key, reached);
+      }
+
+      for (const row of data.rows) {
+        AccessControlPermission.withholdRelatedColumnsOfRow({
+          row: row,
+          kept: [relation],
+          isReached: (column: ColumnKeptToLabels, relatedId: string) => {
+            return Boolean(
+              relatedId &&
+                reachedByGrant
+                  .get(AccessControlPermission.getGrantKey(column.grant))
+                  ?.has(relatedId),
+            );
+          },
+        });
+      }
+    }
+  }
+
+  // One row's related records, without each kept column the grant does not reach.
+  private static withholdRelatedColumnsOfRow(data: {
+    row: unknown;
+    kept: ReadonlyArray<RelatedColumnsKeptToLabels>;
+    isReached: (column: ColumnKeptToLabels, relatedId: string) => boolean;
+  }): void {
+    for (const relation of data.kept) {
+      for (const related of AccessControlPermission.getRelatedRecords(
+        data.row,
+        relation.relation,
+      )) {
+        const relatedId: string = LabelAccess.readId(
+          related["_id"] || related["id"],
+        );
+
+        for (const column of relation.kept) {
+          if (!data.isReached(column, relatedId)) {
+            related[column.column] = undefined;
+          }
+        }
+      }
+    }
   }
 
   /*
@@ -1419,8 +1944,10 @@ export default class AccessControlPermission {
    * model (getColumnsKeptToLabels): where the other records fall in it says
    * what they hold, one guess at a time - as an order by a column kept to its
    * owners is refused (OwnedScopePermission.checkSortOnColumnsKeptToOwners).
-   * A read across projects narrows by such a column instead, and is left to
-   * do so.
+   * A read across projects leaves such a column out of the rows of each
+   * project its grant there does not reach, as one project's read does
+   * (#11438), and is refused the same order when one of its projects keeps
+   * the column so (getColumnsKeptToLabelsByProject).
    */
   public static checkSortOnColumnsKeptToLabels<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -1447,12 +1974,19 @@ export default class AccessControlPermission {
       ordered[column] = true;
     }
 
-    const kept: Array<ColumnKeptToLabels> =
-      AccessControlPermission.getColumnsKeptToLabels(
-        modelType,
-        ordered as Select<TBaseModel>,
-        props,
-      );
+    const kept: Array<ColumnKeptToLabels> = props.isMultiTenantRequest
+      ? Array.from(
+          AccessControlPermission.getColumnsKeptToLabelsByProject(
+            modelType,
+            ordered as Select<TBaseModel>,
+            props,
+          ).values(),
+        ).flat()
+      : AccessControlPermission.getColumnsKeptToLabels(
+          modelType,
+          ordered as Select<TBaseModel>,
+          props,
+        );
 
     if (kept.length === 0) {
       return;
