@@ -10,6 +10,7 @@ import ShortLink from "../../../Models/DatabaseModels/ShortLink";
 import URL from "../../../Types/API/URL";
 import { ONEUPTIME_PRODUCT_NAME } from "../../../Types/Branding/ProductBranding";
 import CallRequest, {
+  CallInLanguage,
   CallRequestMessage,
 } from "../../../Types/Call/CallRequest";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
@@ -61,7 +62,6 @@ import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { DEFAULT_READER_LANGUAGE } from "../../../Types/ReaderLanguage";
 import { Translator } from "../../../Types/Translator";
-import { hasCallVoiceForLanguage } from "../../../Types/Call/CallVoice";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
 import {
@@ -100,7 +100,7 @@ import WhatsAppService from "../../Services/WhatsAppService";
 import WorkspaceUserNotificationService from "../../Services/WorkspaceUserNotificationService";
 import { ExecuteNotificationRuleOptions } from "../../Services/UserNotificationRuleService";
 import logger from "../Logger";
-import { getCallTranslator } from "../ServerTranslation";
+import getCallInLanguage from "../Call/CallInLanguage";
 import PushNotificationUtil from "../PushNotificationUtil";
 import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -1098,21 +1098,23 @@ export default class OnCallTestPageDelivery {
       }),
     };
 
-    const language: string =
-      data.translator?.language || DEFAULT_READER_LANGUAGE;
-
-    if (
-      language !== DEFAULT_READER_LANGUAGE &&
-      hasCallVoiceForLanguage(language)
-    ) {
-      callRequest.inLanguage = {
-        language: language,
-        data: this.getCallData({
+    /*
+     * Persian too: Twilio says it in English, which no voice of its speaks
+     * Persian, and a call and SMS gateway picks its own voice (#11459).
+     */
+    const inLanguage: CallInLanguage | undefined = getCallInLanguage(
+      data.translator?.language,
+      (callTranslator: Translator): CallRequestMessage["data"] => {
+        return this.getCallData({
           context: data.context,
           responseUrl: responseUrl,
-          translator: getCallTranslator(language),
-        }),
-      };
+          translator: callTranslator,
+        });
+      },
+    );
+
+    if (inLanguage) {
+      callRequest.inLanguage = inLanguage;
     }
 
     return callRequest;
