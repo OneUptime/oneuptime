@@ -2574,7 +2574,7 @@ describe.each(
     for (const places of [undefined, [BreachPlace.UnitedStates]]) {
       const unknown: BreachObligation = applied(statute.id, {
         dataTypeIds: ["us-ssn", "person-name"],
-        places,
+        ...(places ? { places } : {}),
       });
 
       expect(unknown.status).toBe(BreachObligationStatus.MayApply);
