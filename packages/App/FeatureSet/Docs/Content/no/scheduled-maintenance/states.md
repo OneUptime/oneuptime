@@ -72,7 +72,7 @@ Knappene i overskriften er oppkalt etter tilstandene dine. Mens hendelsen venter
 
 En hendelse starter når den går fra en tilstand der den venter, til **Pågående**, eller rett til en egen tilstand plassert mellom **Pågående** og **Avsluttet**. Da:
 
-- **Monitorene dens slutter å bli sjekket**, og går over til **Endre monitorstatus til**, hvis den har en. En monitor du legger til hendelsen mens den pågår, går også over. Uten en beholder de statusen sin, og oppetiden, statussidene og SLO-ene deres utelater tiden til hendelsen slutter.
+- **Monitorene dens slutter å bli sjekket**, og går over til **Endre monitorstatus til**, hvis den har en, med mindre en hendelse erklært for hånd eller en annen vedlikeholdshendelse holder en av dem i en mer alvorlig status. En monitor du legger til hendelsen mens den pågår, går også over. Uten en beholder de statusen sin, og oppetiden, statussidene og SLO-ene deres utelater tiden til hendelsen slutter.
 - **Statussidene dens viser den som pågående**, og abonnentene får beskjed: i tide hvis **Når hendelsen starter** er på, og manuelt slik **Varsle statussideabonnenter** i dialogen sier.
 - **Eierne får beskjed**, hvis de har slått på varslingen om tilstandsendring, og hendelsen vises under **Pågående vedlikeholdshendelser**.
 

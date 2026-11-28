@@ -72,7 +72,7 @@ Sidhuvudets knappar är namngivna efter dina tillstånd. Medan händelsen vänta
 
 En händelse börjar när den går från ett tillstånd där den väntar till **Pågående**, eller direkt till ett eget tillstånd placerat mellan **Pågående** och **Avslutad**. Då:
 
-- **Dess monitorer slutar kontrolleras**, och går över till dess **Ändra övervakningsstatus till**, om den har en. En monitor som du lägger till händelsen medan den pågår går också över. Utan en behåller de sin status, och deras upptid, statussidor och SLO:er utesluter tiden tills händelsen slutar.
+- **Dess monitorer slutar kontrolleras**, och går över till dess **Ändra övervakningsstatus till**, om den har en, såvida inte en incident som deklarerats för hand eller en annan händelse håller en av dem i en allvarligare status. En monitor som du lägger till händelsen medan den pågår går också över. Utan en behåller de sin status, och deras upptid, statussidor och SLO:er utesluter tiden tills händelsen slutar.
 - **Dess statussidor visar den som pågående**, och dess prenumeranter får veta: i tid om **När händelsen börjar** är på, och manuellt som dialogens **Meddela statussideprenumeranter** säger.
 - **Dess ägare får veta**, om de har slagit på aviseringen om tillståndsändringar, och händelsen visas under **Pågående underhållshändelser**.
 

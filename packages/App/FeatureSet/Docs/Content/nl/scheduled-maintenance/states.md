@@ -72,7 +72,7 @@ De knoppen van de kop zijn naar je statussen genoemd. Zolang de gebeurtenis wach
 
 Een gebeurtenis start wanneer ze van een status waarin ze wacht naar **Lopend** gaat, of rechtstreeks naar een eigen status tussen **Lopend** en **Beëindigd**. Dan:
 
-- **Haar monitoren worden niet meer gecontroleerd** en gaan naar haar **Monitorstatus wijzigen naar**, als ze die heeft. Een monitor die je tijdens het werk aan de gebeurtenis toevoegt, verandert ook. Heeft ze er geen, dan houden ze hun status, en laten hun beschikbaarheid, statuspagina's en SLO's de tijd weg tot de gebeurtenis eindigt.
+- **Haar monitoren worden niet meer gecontroleerd** en gaan naar haar **Monitorstatus wijzigen naar**, als ze die heeft, tenzij een met de hand gemeld incident of een andere gebeurtenis er een in een ernstigere status vasthoudt. Een monitor die je tijdens het werk aan de gebeurtenis toevoegt, verandert ook. Heeft ze er geen, dan houden ze hun status, en laten hun beschikbaarheid, statuspagina's en SLO's de tijd weg tot de gebeurtenis eindigt.
 - **Haar statuspagina's tonen haar als lopend**, en haar abonnees krijgen bericht: op tijd als **Wanneer de gebeurtenis begint** aanstaat, en met de hand zoals **Statuspagina-abonnees op de hoogte stellen** in het dialoogvenster zegt.
 - **Haar eigenaren krijgen bericht**, als ze de melding over statuswijzigingen hebben aangezet, en de gebeurtenis verschijnt onder **Lopende onderhoudsgebeurtenissen**.
 

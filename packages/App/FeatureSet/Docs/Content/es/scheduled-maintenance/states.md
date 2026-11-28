@@ -72,7 +72,7 @@ Los botones de la cabecera llevan el nombre de tus estados. Mientras el evento e
 
 Un evento empieza cuando pasa de un estado en el que espera a **En curso**, o directamente a un estado propio situado entre **En curso** y **Finalizado**. Entonces:
 
-- **Sus monitores dejan de comprobarse** y pasan a su **Cambiar el estado del monitor a**, si tiene uno. Un monitor que añades al evento mientras está en marcha también cambia. Si no tiene ninguno, conservan su estado, y su tiempo de actividad, sus páginas de estado y sus SLO excluyen ese tiempo hasta que termina el evento.
+- **Sus monitores dejan de comprobarse** y pasan a su **Cambiar el estado del monitor a**, si tiene uno, salvo que un incidente declarado a mano u otro evento retenga a uno de ellos en un estado más grave. Un monitor que añades al evento mientras está en marcha también cambia. Si no tiene ninguno, conservan su estado, y su tiempo de actividad, sus páginas de estado y sus SLO excluyen ese tiempo hasta que termina el evento.
 - **Sus páginas de estado lo muestran en curso**, y se avisa a sus suscriptores: a su hora si **Cuando empieza el evento** está activado, y a mano según indique **Notificar a suscriptores de la página de estado** en el diálogo.
 - **Se avisa a sus propietarios**, si activaron la notificación de cambio de estado, y el evento aparece en **Eventos de mantenimiento en curso**.
 

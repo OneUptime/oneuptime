@@ -72,7 +72,7 @@ Os botões do cabeçalho levam o nome dos seus estados. Enquanto o evento espera
 
 Um evento começa quando passa de um estado em que espera para **Em andamento**, ou direto para um estado próprio colocado entre **Em andamento** e **Encerrado**. Então:
 
-- **Seus monitores deixam de ser verificados** e mudam para o **Alterar status do monitor para** dele, se houver. Um monitor que você adiciona ao evento enquanto ele acontece também muda. Se não houver, eles mantêm o seu status, e o tempo de atividade, as páginas de status e os SLOs deles deixam esse tempo de fora até o evento terminar.
+- **Seus monitores deixam de ser verificados** e mudam para o **Alterar status do monitor para** dele, se houver, a menos que um incidente declarado manualmente ou outro evento retenha um deles em um status mais grave. Um monitor que você adiciona ao evento enquanto ele acontece também muda. Se não houver, eles mantêm o seu status, e o tempo de atividade, as páginas de status e os SLOs deles deixam esse tempo de fora até o evento terminar.
 - **Suas páginas de status o listam como em andamento**, e os assinantes são avisados: no horário se **Quando o evento começa** estiver ativado, e à mão conforme diz **Notificar assinantes da página de status** na caixa de diálogo.
 - **Seus proprietários são avisados**, se ativaram a notificação de mudança de estado, e o evento aparece em **Eventos de manutenção em andamento**.
 

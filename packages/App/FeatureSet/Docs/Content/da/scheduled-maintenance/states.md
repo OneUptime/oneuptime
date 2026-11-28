@@ -72,7 +72,7 @@ Headerens knapper er opkaldt efter dine tilstande. Mens begivenheden venter, til
 
 En begivenhed starter, når den går fra en tilstand, hvor den venter, til **Igangværende**, eller direkte til en af dine egne tilstande mellem **Igangværende** og **Afsluttet**. Så:
 
-- **Dens monitorer holder op med at blive kontrolleret** og skifter til dens **Skift monitorstatus til**, hvis den har en. En monitor, du føjer til begivenheden, mens den står på, skifter også. Uden en beholder de deres status, og deres oppetid, statussider og SLO'er udelader tiden, indtil begivenheden slutter.
+- **Dens monitorer holder op med at blive kontrolleret** og skifter til dens **Skift monitorstatus til**, hvis den har en, medmindre en hændelse, der er erklæret i hånden, eller en anden begivenhed holder en af dem i en mere alvorlig status. En monitor, du føjer til begivenheden, mens den står på, skifter også. Uden en beholder de deres status, og deres oppetid, statussider og SLO'er udelader tiden, indtil begivenheden slutter.
 - **Dens statussider viser den som igangværende**, og dens abonnenter får besked: til tiden, hvis **Når begivenheden starter** er slået til, og manuelt, som **Underret statussideabonnenter** i dialogen siger.
 - **Dens ejere får besked**, hvis de har slået notifikationen om tilstandsskift til, og begivenheden vises under **Igangværende vedligeholdelseshændelser**.
 
