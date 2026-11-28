@@ -277,7 +277,8 @@
       "clearSignInModalDescription": "Deletes their password, passkeys, security keys, authenticator apps and backup codes, and turns off two factor authentication. This cannot be undone.",
       "clearSignInMasterAdminConfirmation": "This person is a master admin. I understand they will need SSO or a password reset link to sign in.",
       "clearSignInModalSubmit": "Clear Sign-In Settings",
-      "clearSignInSuccess": "Sign-in settings cleared. The sessions they signed in to without SSO have ended."
+      "clearSignInSuccess": "Sign-in settings cleared. The sessions they signed in to without SSO have ended.",
+      "clearSignInAlreadyCleared": "Their sign-in settings were already cleared."
     },
     "userProjects": {
       "title": "User Projects",
@@ -4164,6 +4165,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.",
   "Cleared the sign-in settings of {{count}} people.": "Cleared the sign-in settings of {{count}} people.",
   "Cleared the sign-in settings of {{count}} people._one": "Cleared the sign-in settings of {{count}} person.",
+  "These people's sign-in settings were already cleared.": "These people's sign-in settings were already cleared.",
   "Made by {{name}} on {{date}}": "Made by {{name}} on {{date}}",
   "Made on {{date}}": "Made on {{date}}",
   "Ends in {{hint}}": "Ends in {{hint}}",

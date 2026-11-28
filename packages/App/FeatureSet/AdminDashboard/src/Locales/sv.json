@@ -277,7 +277,8 @@
       "clearSignInModalDescription": "Raderar personens lösenord, passnycklar, säkerhetsnycklar, autentiseringsappar och reservkoder och stänger av tvåfaktorsautentisering. Det går inte att ångra.",
       "clearSignInMasterAdminConfirmation": "Den här personen är huvudadministratör. Jag förstår att personen behöver SSO eller en länk för återställning av lösenord för att logga in.",
       "clearSignInModalSubmit": "Rensa inloggningsinställningar",
-      "clearSignInSuccess": "Inloggningsinställningar rensade. Sessionerna som personen loggade in i utan SSO har avslutats."
+      "clearSignInSuccess": "Inloggningsinställningar rensade. Sessionerna som personen loggade in i utan SSO har avslutats.",
+      "clearSignInAlreadyCleared": "Deras inloggningsinställningar hade redan rensats."
     },
     "userProjects": {
       "title": "Användarens projekt",
@@ -4164,6 +4165,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Deras lösenord, passnycklar, säkerhetsnycklar, autentiseringsappar och reservkoder raderas. Det går inte att ångra. Huvudadministratörer behåller sina.",
   "Cleared the sign-in settings of {{count}} people.": "Inloggningsinställningarna för {{count}} personer har rensats.",
   "Cleared the sign-in settings of {{count}} people._one": "Inloggningsinställningarna för {{count}} person har rensats.",
+  "These people's sign-in settings were already cleared.": "Inloggningsinställningarna för de här personerna hade redan rensats.",
   "Made by {{name}} on {{date}}": "Skapad av {{name}} den {{date}}",
   "Made on {{date}}": "Skapad den {{date}}",
   "Ends in {{hint}}": "Slutar på {{hint}}",

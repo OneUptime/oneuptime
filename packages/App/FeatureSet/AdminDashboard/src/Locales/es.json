@@ -277,7 +277,8 @@
       "clearSignInModalDescription": "Elimina su contraseña, llaves de acceso, llaves de seguridad, aplicaciones de autenticación y códigos de respaldo, y desactiva la autenticación de dos factores. Esto no se puede deshacer.",
       "clearSignInMasterAdminConfirmation": "Esta persona es administrador maestro. Entiendo que necesitará SSO o un enlace de restablecimiento de contraseña para iniciar sesión.",
       "clearSignInModalSubmit": "Borrar configuración de inicio de sesión",
-      "clearSignInSuccess": "Configuración de inicio de sesión borrada. Las sesiones que inició sin SSO han terminado."
+      "clearSignInSuccess": "Configuración de inicio de sesión borrada. Las sesiones que inició sin SSO han terminado.",
+      "clearSignInAlreadyCleared": "Su configuración de inicio de sesión ya se había borrado."
     },
     "userProjects": {
       "title": "Proyectos del usuario",
@@ -4164,6 +4165,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Se eliminan sus contraseñas, llaves de acceso, llaves de seguridad, aplicaciones de autenticación y códigos de respaldo. Esto no se puede deshacer. Los administradores maestros conservan los suyos.",
   "Cleared the sign-in settings of {{count}} people.": "Se borró la configuración de inicio de sesión de {{count}} personas.",
   "Cleared the sign-in settings of {{count}} people._one": "Se borró la configuración de inicio de sesión de {{count}} persona.",
+  "These people's sign-in settings were already cleared.": "La configuración de inicio de sesión de estas personas ya se había borrado.",
   "Made by {{name}} on {{date}}": "Creada por {{name}} el {{date}}",
   "Made on {{date}}": "Creada el {{date}}",
   "Ends in {{hint}}": "Termina en {{hint}}",

@@ -277,7 +277,8 @@
       "clearSignInModalDescription": "Löscht ihr Passwort, ihre Passkeys, Sicherheitsschlüssel, Authenticator-Apps und Backup-Codes und deaktiviert die Zwei-Faktor-Authentifizierung. Das lässt sich nicht rückgängig machen.",
       "clearSignInMasterAdminConfirmation": "Diese Person ist Master-Administrator. Mir ist bewusst, dass sie zum Anmelden SSO oder einen Passwort-Zurücksetzungslink braucht.",
       "clearSignInModalSubmit": "Anmeldeeinstellungen löschen",
-      "clearSignInSuccess": "Anmeldeeinstellungen gelöscht. Die Sitzungen, in denen die Person ohne SSO angemeldet war, wurden beendet."
+      "clearSignInSuccess": "Anmeldeeinstellungen gelöscht. Die Sitzungen, in denen die Person ohne SSO angemeldet war, wurden beendet.",
+      "clearSignInAlreadyCleared": "Die Anmeldeeinstellungen dieser Person wurden bereits gelöscht."
     },
     "userProjects": {
       "title": "Benutzerprojekte",
@@ -4164,6 +4165,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Ihre Passwörter, Passkeys, Sicherheitsschlüssel, Authenticator-Apps und Backup-Codes werden gelöscht. Das lässt sich nicht rückgängig machen. Master-Administratoren behalten ihre.",
   "Cleared the sign-in settings of {{count}} people.": "Die Anmeldeeinstellungen von {{count}} Personen wurden gelöscht.",
   "Cleared the sign-in settings of {{count}} people._one": "Die Anmeldeeinstellungen von {{count}} Person wurden gelöscht.",
+  "These people's sign-in settings were already cleared.": "Die Anmeldeeinstellungen dieser Personen wurden bereits gelöscht.",
   "Made by {{name}} on {{date}}": "Erstellt von {{name}} am {{date}}",
   "Made on {{date}}": "Erstellt am {{date}}",
   "Ends in {{hint}}": "Endet auf {{hint}}",

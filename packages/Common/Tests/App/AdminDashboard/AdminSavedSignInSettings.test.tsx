@@ -102,11 +102,13 @@ let asked: Array<Asked> = [];
 let counts: Array<number | Error> = [];
 let clearAnswer: HTTPResponse<JSONObject> | HTTPErrorResponse;
 let toasts: Array<string> = [];
+let infoToasts: Array<string> = [];
 
 beforeEach(() => {
   asked = [];
   counts = [];
   toasts = [];
+  infoToasts = [];
   clearAnswer = new HTTPResponse<JSONObject>(200, { peopleCleared: 3 }, {});
 
   getJestSpyOn(API, "fetch").mockImplementation(
@@ -143,6 +145,10 @@ beforeEach(() => {
       return "toast";
     },
   );
+  getJestSpyOn(Toast, "info").mockImplementation((title: unknown): string => {
+    infoToasts.push(String(title));
+    return "toast";
+  });
 });
 
 afterEach(() => {
@@ -349,6 +355,36 @@ describe("clearing them", () => {
     expect(toasts).toEqual(["Cleared the sign-in settings of 1 person."]);
   });
 
+  test.each([
+    ["en", "These people's sign-in settings were already cleared."],
+    ["de", "Die Anmeldeeinstellungen dieser Personen wurden bereits gelöscht."],
+  ])(
+    "%s says the sign-in settings were already cleared when nobody was counted",
+    async (locale: string, message: string) => {
+      counts = [3, 0];
+      clearAnswer = new HTTPResponse<JSONObject>(200, { peopleCleared: 0 }, {});
+
+      await renderIn(locale);
+
+      fireEvent.click(clearButton());
+      await flush();
+
+      fireEvent.click(
+        within(screen.getByRole("dialog")).getByTestId(
+          "modal-footer-submit-button",
+        ),
+      );
+      await flush();
+
+      expect(infoToasts).toEqual([message]);
+      expect(toasts).toEqual([]);
+      expect(asked[asked.length - 1]!.method).toBe(HTTPMethod.GET);
+      expect(
+        screen.queryByTestId(SAVED_SIGN_IN_SETTINGS_TEST_ID),
+      ).not.toBeInTheDocument();
+    },
+  );
+
   test("an answer that is not one says no count it was not given", async () => {
     counts = [3, 0];
     clearAnswer = new HTTPResponse<JSONObject>(200, { cleared: "yes" }, {});
@@ -366,6 +402,7 @@ describe("clearing them", () => {
     await flush();
 
     expect(toasts).toEqual([]);
+    expect(infoToasts).toEqual([]);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

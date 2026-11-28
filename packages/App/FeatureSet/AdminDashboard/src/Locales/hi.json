@@ -277,7 +277,8 @@
       "clearSignInModalDescription": "उनका पासवर्ड, पासकी, सुरक्षा कुंजियाँ, ऑथेंटिकेटर ऐप और बैकअप कोड हटाता है, और दो-कारक प्रमाणीकरण बंद करता है। इसे पहले जैसा नहीं किया जा सकता।",
       "clearSignInMasterAdminConfirmation": "यह व्यक्ति मास्टर एडमिन है। मुझे पता है कि साइन इन करने के लिए उन्हें SSO या पासवर्ड रीसेट लिंक की ज़रूरत होगी।",
       "clearSignInModalSubmit": "साइन-इन सेटिंग्स हटाएँ",
-      "clearSignInSuccess": "साइन-इन सेटिंग्स हटा दी गईं। बिना SSO के साइन इन किए गए उनके सेशन खत्म हो गए हैं।"
+      "clearSignInSuccess": "साइन-इन सेटिंग्स हटा दी गईं। बिना SSO के साइन इन किए गए उनके सेशन खत्म हो गए हैं।",
+      "clearSignInAlreadyCleared": "उनकी साइन-इन सेटिंग्स पहले ही हटाई जा चुकी थीं।"
     },
     "userProjects": {
       "title": "उपयोगकर्ता की परियोजनाएँ",
@@ -4164,6 +4165,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "उनके पासवर्ड, पासकी, सुरक्षा कुंजियाँ, ऑथेंटिकेटर ऐप और बैकअप कोड हटा दिए जाते हैं। इसे पहले जैसा नहीं किया जा सकता। मास्टर एडमिन अपने रखते हैं।",
   "Cleared the sign-in settings of {{count}} people.": "{{count}} लोगों की साइन-इन सेटिंग्स हटा दी गईं।",
   "Cleared the sign-in settings of {{count}} people._one": "{{count}} व्यक्ति की साइन-इन सेटिंग्स हटा दी गईं।",
+  "These people's sign-in settings were already cleared.": "इन लोगों की साइन-इन सेटिंग्स पहले ही हटाई जा चुकी थीं।",
   "Made by {{name}} on {{date}}": "{{name}} ने {{date}} को बनाई",
   "Made on {{date}}": "{{date}} को बनाई गई",
   "Ends in {{hint}}": "अंत में {{hint}}",

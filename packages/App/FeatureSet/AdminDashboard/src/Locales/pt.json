@@ -277,7 +277,8 @@
       "clearSignInModalDescription": "Exclui a senha, as chaves de acesso, as chaves de segurança, os apps autenticadores e os códigos de backup da pessoa e desativa a autenticação de dois fatores. Isso não pode ser desfeito.",
       "clearSignInMasterAdminConfirmation": "Esta pessoa é administradora principal. Entendo que ela precisará de SSO ou de um link de redefinição de senha para entrar.",
       "clearSignInModalSubmit": "Limpar configurações de login",
-      "clearSignInSuccess": "Configurações de login apagadas. As sessões em que a pessoa entrou sem SSO foram encerradas."
+      "clearSignInSuccess": "Configurações de login apagadas. As sessões em que a pessoa entrou sem SSO foram encerradas.",
+      "clearSignInAlreadyCleared": "As configurações de login dessa pessoa já tinham sido apagadas."
     },
     "userProjects": {
       "title": "Projetos do usuário",
@@ -4164,6 +4165,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "As senhas, chaves de acesso, chaves de segurança, apps autenticadores e códigos de backup delas são excluídos. Isso não pode ser desfeito. Os administradores principais mantêm os seus.",
   "Cleared the sign-in settings of {{count}} people.": "As configurações de login de {{count}} pessoas foram apagadas.",
   "Cleared the sign-in settings of {{count}} people._one": "As configurações de login de {{count}} pessoa foram apagadas.",
+  "These people's sign-in settings were already cleared.": "As configurações de login dessas pessoas já tinham sido apagadas.",
   "Made by {{name}} on {{date}}": "Criada por {{name}} em {{date}}",
   "Made on {{date}}": "Criada em {{date}}",
   "Ends in {{hint}}": "Termina em {{hint}}",

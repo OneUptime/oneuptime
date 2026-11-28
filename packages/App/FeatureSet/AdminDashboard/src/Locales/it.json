@@ -277,7 +277,8 @@
       "clearSignInModalDescription": "Elimina la sua password, le passkey, le chiavi di sicurezza, le app di autenticazione e i codici di backup, e disattiva l'autenticazione a due fattori. Non si può annullare.",
       "clearSignInMasterAdminConfirmation": "Questa persona è un amministratore principale. Sono consapevole che le servirà l'SSO o un link di reimpostazione della password per accedere.",
       "clearSignInModalSubmit": "Cancella impostazioni di accesso",
-      "clearSignInSuccess": "Impostazioni di accesso cancellate. Le sessioni in cui aveva effettuato l'accesso senza SSO sono terminate."
+      "clearSignInSuccess": "Impostazioni di accesso cancellate. Le sessioni in cui aveva effettuato l'accesso senza SSO sono terminate.",
+      "clearSignInAlreadyCleared": "Le sue impostazioni di accesso erano già state cancellate."
     },
     "userProjects": {
       "title": "Progetti dell'utente",
@@ -4164,6 +4165,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Le loro password, passkey, chiavi di sicurezza, app di autenticazione e codici di backup vengono eliminati. Non si può annullare. Gli amministratori principali mantengono i propri.",
   "Cleared the sign-in settings of {{count}} people.": "Le impostazioni di accesso di {{count}} persone sono state cancellate.",
   "Cleared the sign-in settings of {{count}} people._one": "Le impostazioni di accesso di {{count}} persona sono state cancellate.",
+  "These people's sign-in settings were already cleared.": "Le impostazioni di accesso di queste persone erano già state cancellate.",
   "Made by {{name}} on {{date}}": "Creata da {{name}} il {{date}}",
   "Made on {{date}}": "Creata il {{date}}",
   "Ends in {{hint}}": "Termina con {{hint}}",

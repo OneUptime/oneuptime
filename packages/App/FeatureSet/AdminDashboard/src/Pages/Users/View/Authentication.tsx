@@ -10,7 +10,12 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserAuthenticationStatus from "Common/Types/UserAuthenticationStatus";
 import TwoFactorAuthStatus from "Common/Types/TwoFactorAuthStatus";
-import { CLEAR_LOCAL_SIGN_IN_ACTION } from "Common/Types/SSO/LocalSignInClearing";
+import {
+  CLEAR_LOCAL_SIGN_IN_ACTION,
+  ClearLocalSignInAnswer,
+  hasLocalSignInSettings,
+  readClearLocalSignInAnswer,
+} from "Common/Types/SSO/LocalSignInClearing";
 import { SsoManagedBy } from "Common/Types/SSO/SsoManagedSignIn";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import UserUtil from "Common/UI/Utils/User";
@@ -112,7 +117,9 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
     useState<boolean>(false);
   const [isClearingSignIn, setIsClearingSignIn] = useState<boolean>(false);
   const [clearSignInError, setClearSignInError] = useState<string>("");
-  const [clearSignInSuccess, setClearSignInSuccess] = useState<string>("");
+  const [clearSignInResult, setClearSignInResult] = useState<
+    "cleared" | "alreadyCleared" | null
+  >(null);
 
   // Their own settings are in User Profile, and never cleared from here.
   const isOwnAccount: boolean =
@@ -296,12 +303,12 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
   /*
    * Clears their password, passkeys, security keys, authenticator apps,
    * backup codes and two factor authentication, then reads the status
-   * again: every count above it has just changed.
+   * again, including when another clear reached them first.
    */
   const clearSignIn: () => Promise<void> = async (): Promise<void> => {
     setIsClearingSignIn(true);
     setClearSignInError("");
-    setClearSignInSuccess("");
+    setClearSignInResult(null);
 
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -317,7 +324,16 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
         throw response;
       }
 
-      setClearSignInSuccess(t("pages.userAuthentication.clearSignInSuccess"));
+      const answer: ClearLocalSignInAnswer | null = readClearLocalSignInAnswer(
+        response.data,
+      );
+
+      if (answer) {
+        setClearSignInResult(
+          hasLocalSignInSettings(answer.cleared) ? "cleared" : "alreadyCleared",
+        );
+      }
+
       setShowClearSignInModal(false);
       setIsMasterAdminConfirmed(false);
 
@@ -706,7 +722,7 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
                 : undefined,
               onClick: () => {
                 setClearSignInError("");
-                setClearSignInSuccess("");
+                setClearSignInResult(null);
                 setIsMasterAdminConfirmed(false);
                 setShowClearSignInModal(true);
               },
@@ -714,8 +730,19 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
           ]}
         >
           <div className="mt-3">
-            {clearSignInSuccess ? (
-              <Alert type={AlertType.SUCCESS} title={clearSignInSuccess} />
+            {clearSignInResult ? (
+              <Alert
+                type={
+                  clearSignInResult === "cleared"
+                    ? AlertType.SUCCESS
+                    : AlertType.INFO
+                }
+                title={
+                  clearSignInResult === "cleared"
+                    ? t("pages.userAuthentication.clearSignInSuccess")
+                    : t("pages.userAuthentication.clearSignInAlreadyCleared")
+                }
+              />
             ) : (
               <></>
             )}
