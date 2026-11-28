@@ -75,8 +75,8 @@ export interface RecordLabelLockNouns {
 /*
  * Why a record's labels refuse an operation, in the reader's language - the
  * sentence after the lock's first. Labels are named as the project wrote
- * them; one whose name is not known yet, or cannot be read, leaves the
- * sentence that names none.
+ * them; while no name is known yet, or none can be read, the sentence names
+ * none.
  */
 export function getLabelRefusalSentence(data: {
   verdict: LabelVerdict;
@@ -98,14 +98,15 @@ export function getLabelRefusalSentence(data: {
       return name.trim().length > 0;
     });
 
-  const isEveryLabelNamed: boolean =
-    names.length > 0 && names.length === data.verdict.labelIds.length;
-
+  /*
+   * The labels named are those whose names were read: a label deleted since
+   * has none, and no record carries it any more.
+   */
   const named: (template: string, unnamed: string) => string = (
     template: string,
     unnamed: string,
   ): string => {
-    if (!isEveryLabelNamed) {
+    if (names.length === 0) {
       return translator.translateTemplate(unnamed, { items: items });
     }
 

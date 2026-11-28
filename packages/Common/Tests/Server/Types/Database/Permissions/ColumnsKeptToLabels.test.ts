@@ -19,6 +19,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
+import getJestMockFunction, { MockFunction } from "../../../../MockType";
 import {
   getLabelListsKeptTo,
   getLabelsKeptTo,
@@ -550,10 +551,8 @@ describe("withholdColumnsKeptToLabels", () => {
   });
 
   test("nothing is looked up with nothing kept, or no rows", async () => {
-    const findIds: jest.Mock<() => Promise<Array<string>>> = jest.fn(
-      async (): Promise<Array<string>> => {
-        return [];
-      },
+    const findIds: MockFunction = getJestMockFunction().mockResolvedValue(
+      [] as never,
     );
 
     await AccessControlPermission.withholdColumnsKeptToLabels({

@@ -12,7 +12,8 @@ import LabelAccess, {
 } from "../../../Types/LabelAccess/LabelAccess";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
-import { describe, expect, jest, test } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../MockType";
+import { describe, expect, test } from "@jest/globals";
 
 /*
  * THE LABEL RULE THE SERVER AND THE DASHBOARD BOTH DECIDE BY (#11259).
@@ -316,9 +317,8 @@ describe("LabelAccess.getGrant: the labels an operation's grants are limited to"
   });
 
   test("the Owned scope is asked about only when an Owned grant stands beside labels", () => {
-    const ownedScopeNarrows: jest.Mock<() => boolean> = jest.fn(() => {
-      return true;
-    });
+    const ownedScopeNarrows: MockFunction =
+      getJestMockFunction().mockReturnValue(true);
 
     LabelAccess.getGrant({
       rows: LabelAccess.readRows(CUSTOMER_ROWS),

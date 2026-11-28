@@ -47,6 +47,7 @@ import {
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
 import { keepProjectPermissionsInTab } from "../../Helpers/TabProjectPermissions";
+import { getJestSpyOn } from "../../Spy";
 import { ON_HIGHEST_PLAN } from "../../Server/TestingUtils/RequestPlan";
 
 /*
@@ -390,6 +391,31 @@ describe("the reason a lock gives, in the reader's words", () => {
     ).toBe("A team you are on blocks this on monitors labelled Legacy.");
   });
 
+  test("names the labels that still exist: one deleted since has no name, and no record carries it", () => {
+    signInAs([
+      row(Permission.Viewer, { scope: PermissionScope.All }),
+      row(Permission.MonitorMember, {
+        scope: PermissionScope.Labels,
+        labelIds: [LABEL_X, LABEL_Y],
+      }),
+    ]);
+
+    expect(
+      getRecordLabelRefusal({
+        lock: PermissionGate.getLabelLock(new Monitor()),
+        action: ModelAction.Delete,
+        recordLabelIds: [],
+        nouns: NOUNS,
+        // Y was deleted: its name was read as none.
+        labelNames: names([
+          [LABEL_X, "Production"],
+          [LABEL_Y, ""],
+        ]),
+        translator: translator,
+      }),
+    ).toBe("Your permission is limited to monitors labelled Production.");
+  });
+
   test("names no label while the names are not read, rather than an id", () => {
     signInAs(CUSTOMER);
 
@@ -598,14 +624,15 @@ describe("a record's label ids, as it was read", () => {
 
 describe("label names, read once for the page", () => {
   test("each label is asked for once, however many locks name it", async () => {
-    const getList: jest.SpiedFunction<typeof ModelAPI.getList> = jest
-      .spyOn(ModelAPI, "getList")
-      .mockImplementation((async () => {
-        const label: Label = new Label();
-        label._id = LABEL_X;
-        label.name = "Production";
-        return { data: [label], count: 1, skip: 0, limit: 1 };
-      }) as never);
+    const getList: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      ModelAPI,
+      "getList",
+    ).mockImplementation((async () => {
+      const label: Label = new Label();
+      label._id = LABEL_X;
+      label.name = "Production";
+      return { data: [label], count: 1, skip: 0, limit: 1 };
+    }) as never);
 
     await Promise.all([
       readLabelNames([LABEL_X]),
@@ -620,11 +647,12 @@ describe("label names, read once for the page", () => {
   });
 
   test("a label that cannot be read is not asked for again, and has no name", async () => {
-    const getList: jest.SpiedFunction<typeof ModelAPI.getList> = jest
-      .spyOn(ModelAPI, "getList")
-      .mockImplementation((async () => {
-        return { data: [], count: 0, skip: 0, limit: 1 };
-      }) as never);
+    const getList: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      ModelAPI,
+      "getList",
+    ).mockImplementation((async () => {
+      return { data: [], count: 0, skip: 0, limit: 1 };
+    }) as never);
 
     await readLabelNames([LABEL_Y]);
     await readLabelNames([LABEL_Y]);
