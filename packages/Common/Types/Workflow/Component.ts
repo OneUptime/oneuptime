@@ -216,8 +216,8 @@ export interface Argument {
   /**
    * When true, the resolved value is replaced with a redaction marker in this
    * component's WorkflowLog argument entry. The real value is still passed to
-   * the component at runtime. If it is reused by another component, that
-   * component's own argument metadata controls its logging.
+   * the component at runtime. An argument is the step's own input: what a
+   * later step may be handed is what a step returns (ReturnValue.isSensitive).
    */
   isSensitive?: boolean | undefined;
   placeholder?: string | undefined;
@@ -422,8 +422,11 @@ export interface ReturnValue {
   required: boolean;
   /**
    * When true, the returned value is available to downstream components but is
-   * redacted from this component's WorkflowLog return-value entry. A downstream
-   * component may still log the resolved value under its own metadata.
+   * redacted from this component's WorkflowLog return-value entry - and stays
+   * redacted for the rest of the run (#11476): a downstream component handed
+   * it logs the redaction marker in its place, and its text is taken out of
+   * every later line of the run's log and trace (RunWorkflow,
+   * SensitiveValues).
    */
   isSensitive?: boolean | undefined;
   placeholder?: string | undefined;

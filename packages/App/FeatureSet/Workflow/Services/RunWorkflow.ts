@@ -107,9 +107,12 @@ import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import {
   WORKFLOW_LOG_REDACTED_VALUE,
+  getSecretValuesForRedaction,
   getSecretWorkflowVariableValues,
   redactSecretsFromString,
 } from "../Utils/SecretRedaction";
+import SensitiveValues from "../Utils/SensitiveValues";
+import { cutLogText, cutLogValues } from "Common/Types/Workflow/RunLogValues";
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
@@ -418,6 +421,17 @@ export interface RunStack {
 
 export default class RunWorkflow {
   private logs: Array<string> = [];
+  /*
+   * The secret contents of the run's variables, once they are read: taken
+   * out of every value the log writes before it is cut (#11476), and out of
+   * the whole log again before it is stored (cleanLogs).
+   */
+  private secrets: Array<string> = [];
+  /*
+   * The values steps marked sensitive and returned, carried to the end of
+   * the run so a later step handed one does not log it (SensitiveValues).
+   */
+  private sensitiveValues: SensitiveValues = new SensitiveValues();
   private workflowId: ObjectID | null = null;
   // For the audit trail of what the run's steps change (WorkflowPrincipal).
   private workflowName: string | null = null;
@@ -907,6 +921,9 @@ export default class RunWorkflow {
       const storageMap: StorageMap = getVariableResult.storageMap;
       variables = getVariableResult.variables;
 
+      // Taken out of every value the log writes from now on, before it is cut.
+      this.secrets = getSecretWorkflowVariableValues(variables);
+
       /*
        * A workflow that runs as more than Default reads only its own
        * variables (#9695): anyone who may edit workflow variables may change
@@ -939,6 +956,20 @@ export default class RunWorkflow {
         };
         fifoStackOfComponentsPendingExecution = [...resumeState.pendingStack];
         componentsExecuted.push(...resumeState.executedComponents);
+
+        /*
+         * What the steps before the Sleep marked sensitive is sensitive still
+         * (#11476): carried again from the values the run kept, by each
+         * step's own metadata.
+         */
+        for (const [componentId, kept] of Object.entries(
+          storageMap.local.components,
+        )) {
+          this.sensitiveValues.carry(
+            kept?.returnValues,
+            runStack.stack[componentId]?.node.metadata?.returnValues,
+          );
+        }
       } else {
         fifoStackOfComponentsPendingExecution = [executeComponentId];
       }
@@ -1055,9 +1086,11 @@ export default class RunWorkflow {
 
         this.log("Component Args:");
         this.log(
-          redactSensitiveComponentValuesForLogs(
-            args,
-            stackItem.node.metadata.arguments,
+          this.sensitiveValues.redactCarriedValues(
+            redactSensitiveComponentValuesForLogs(
+              args,
+              stackItem.node.metadata.arguments,
+            ),
           ),
         );
         this.log("Component Logs: " + executeComponentId);
@@ -1141,9 +1174,11 @@ export default class RunWorkflow {
         this.log("Completed Execution Component: " + executeComponentId);
         this.log("Data Returned");
         this.log(
-          redactSensitiveComponentValuesForLogs(
-            result.returnValues,
-            stackItem.node.metadata.returnValues,
+          this.sensitiveValues.redactCarriedValues(
+            redactSensitiveComponentValuesForLogs(
+              result.returnValues,
+              stackItem.node.metadata.returnValues,
+            ),
           ),
         );
         this.log("Executing Port: " + (result.executePort?.title || "<None>"));
@@ -1151,6 +1186,12 @@ export default class RunWorkflow {
         storageMap.local.components[stackItem.node.id] = {
           returnValues: result.returnValues,
         };
+
+        // What it marked sensitive stays so in every step after it (#11476).
+        this.sensitiveValues.carry(
+          result.returnValues,
+          stackItem.node.metadata.returnValues,
+        );
 
         const portToBeExecuted: Port | undefined = result.executePort;
 
@@ -1395,7 +1436,8 @@ export default class RunWorkflow {
   }
 
   public cleanLogs(variables: Array<WorkflowVariable>): void {
-    const secrets: Array<string> = getSecretWorkflowVariableValues(variables);
+    // The variables' secrets, and what the run's steps marked sensitive.
+    const secrets: Array<string> = this.getRedactions(variables);
 
     this.logs = this.logs.map((log: string) => {
       return redactSecretsFromString(log, secrets);
@@ -1433,15 +1475,16 @@ export default class RunWorkflow {
     errorMessage?: string | undefined;
   }): void {
     const completedAt: Date = OneUptimeDate.getCurrentDate();
-    const secrets: Array<string> = getSecretWorkflowVariableValues(
-      params.variables,
-    );
+    // The variables' secrets, and what earlier steps marked sensitive (#11476).
+    const secrets: Array<string> = this.getRedactions(params.variables);
 
     // What the log may show of the returned values, before any is cut short.
     const loggableReturnValues: JSONObject = redactSecretValues(
-      redactSensitiveComponentValuesForLogs(
-        params.returnValues,
-        params.node.metadata?.returnValues || [],
+      this.sensitiveValues.redactCarriedValues(
+        redactSensitiveComponentValuesForLogs(
+          params.returnValues,
+          params.node.metadata?.returnValues || [],
+        ),
       ),
       secrets,
     ) as JSONObject;
@@ -1479,9 +1522,11 @@ export default class RunWorkflow {
       durationInMs: completedAt.getTime() - params.startedAt.getTime(),
       argumentValues: truncateTraceValues(
         redactSecretValues(
-          redactSensitiveComponentValuesForLogs(
-            params.args,
-            params.node.metadata?.arguments || [],
+          this.sensitiveValues.redactCarriedValues(
+            redactSensitiveComponentValuesForLogs(
+              params.args,
+              params.node.metadata?.arguments || [],
+            ),
           ),
           secrets,
         ) as JSONObject,
@@ -2383,6 +2428,33 @@ export default class RunWorkflow {
     };
   }
 
+  /*
+   * Everything taken out of what the run writes down: the secrets of its
+   * variables (those given, or the run's own once read) and the values its
+   * steps marked sensitive so far. Longest first (getSecretValuesForRedaction).
+   */
+  private getRedactions(variables?: Array<WorkflowVariable>): Array<string> {
+    const secrets: Array<string> = variables
+      ? getSecretWorkflowVariableValues(variables)
+      : this.secrets;
+
+    if (this.sensitiveValues.isEmpty()) {
+      return secrets;
+    }
+
+    return getSecretValuesForRedaction([
+      ...secrets,
+      ...this.sensitiveValues.getTexts(),
+    ]);
+  }
+
+  /*
+   * One line of the run's text log (#11476): a message as it is, a value as
+   * its JSON - an object's values each on its own. Secrets and the values
+   * steps marked sensitive are taken out of all of it first, then each value
+   * is cut to MAX_LOG_VALUE_LENGTH characters with how much was left out,
+   * so a secret the cut would split is still taken out whole.
+   */
   public log(data: string | JSONObject | JSONArray | Error | JSONValue): void {
     if (!this.logs) {
       this.logs = [];
@@ -2392,23 +2464,30 @@ export default class RunWorkflow {
       data = data.getMessage();
     }
 
+    const redactions: Array<string> = this.getRedactions();
+    let line: string;
+
     if (typeof data === "string") {
-      this.logs.push(
-        OneUptimeDate.getCurrentDateAsFormattedString({
-          showSeconds: true,
-        }) +
-          ": " +
-          data,
+      line = cutLogText(redactSecretsFromString(data, redactions));
+    } else if (data && typeof data === "object" && !Array.isArray(data)) {
+      line = JSON.stringify(
+        cutLogValues(
+          redactSecretValues(data as JSONValue, redactions) as JSONObject,
+        ),
       );
     } else {
-      this.logs.push(
-        OneUptimeDate.getCurrentDateAsFormattedString({
-          showSeconds: true,
-        }) +
-          ": " +
-          JSON.stringify(data),
+      line = cutLogText(
+        redactSecretsFromString(String(JSON.stringify(data)), redactions),
       );
     }
+
+    this.logs.push(
+      OneUptimeDate.getCurrentDateAsFormattedString({
+        showSeconds: true,
+      }) +
+        ": " +
+        line,
+    );
   }
 
   /**
