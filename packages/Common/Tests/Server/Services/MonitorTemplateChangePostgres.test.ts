@@ -23,6 +23,7 @@ import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentStateTimelineService from "../../../Server/Services/IncidentStateTimelineService";
 import MonitorTemplateService from "../../../Server/Services/MonitorTemplateService";
 import NetworkAlertPolicyEngineService from "../../../Server/Services/NetworkAlertPolicyEngineService";
+import NetworkAlertPolicyService from "../../../Server/Services/NetworkAlertPolicyService";
 import NetworkDeviceAutoImportRuleEngineService from "../../../Server/Services/NetworkDeviceAutoImportRuleEngineService";
 import logger from "../../../Server/Utils/Logger";
 import MonitorTemplateChangeRunner from "../../../Server/Utils/Monitor/MonitorTemplateChangeRunner";
@@ -1154,6 +1155,259 @@ describePostgres(
 
       expect(Number(total[0]!.count)).toBe(150);
     }, 1200000);
+
+    /*
+     * #11452. Pointing a policy at another template used to delete every
+     * monitor it made from the old one and make a new one per device: each
+     * lost its status history, labels, owners and incident links. Now the
+     * policy's save records a change that moves them, as OneUptime, and the
+     * engine's own passes meanwhile neither delete them nor make others.
+     */
+    test(`a network alert policy pointed at another template moves its ${FLEET_SIZE} monitors there, each keeping its id, history, labels, owners and incident links, and the policy's (#11452)`, async () => {
+      const old: { template: MonitorTemplate; criteria: Criteria } =
+        await saveTemplate({
+          name: "Warehouse switch pack",
+          prefix: "wp",
+          interval: "*/5 * * * *",
+        });
+      const better: { template: MonitorTemplate; criteria: Criteria } =
+        await saveTemplate({
+          name: "Warehouse switch pack v2",
+          prefix: "wp2",
+          interval: "*/2 * * * *",
+        });
+
+      const policy: NetworkAlertPolicy = new NetworkAlertPolicy();
+      policy.projectId = projectId;
+      policy.name = "Warehouse switches";
+      policy.isEnabled = true;
+      policy.monitorTemplateId = old.template.id!;
+      policy.scope = {};
+      const savedPolicy: NetworkAlertPolicy =
+        await database.manager.save(policy);
+
+      const fleet: Array<FleetMonitor> = await seedFleet({
+        count: FLEET_SIZE,
+        template: old.template,
+        prefix: "WP",
+        subnet: 23,
+        networkAlertPolicyId: savedPolicy.id!,
+      });
+      const monitorIds: Array<ObjectID> = fleet.map(
+        (member: FleetMonitor): ObjectID => {
+          return member.monitorId;
+        },
+      );
+
+      // Three switches are down: incidents the old pack opened, set to resolve on their own.
+      const openIncidents: Array<string> = [];
+
+      for (const member of fleet.slice(5, 8)) {
+        const incidentId: ObjectID = ObjectID.generate();
+        openIncidents.push(incidentId.toString());
+
+        await database.query(
+          `INSERT INTO "${schema}"."Incident" ("_id", "version", "projectId", "title", "slug", "currentIncidentStateId", "incidentSeverityId", "createdCriteriaId", "createdIncidentTemplateId") VALUES ($1, 1, $2, 'Switch offline', $3, $4, $5, $6, $7)`,
+          [
+            incidentId.toString(),
+            projectId.toString(),
+            `switch-offline-${incidentId.toString()}`,
+            createdStateId.toString(),
+            incidentSeverityId.toString(),
+            old.criteria.offlineCriteriaId,
+            old.criteria.offlineIncidentTemplateId,
+          ],
+        );
+        await database.query(
+          `INSERT INTO "${schema}"."IncidentMonitor" ("incidentId", "monitorId") VALUES ($1, $2)`,
+          [incidentId.toString(), member.monitorId.toString()],
+        );
+      }
+
+      const resolved: Array<{ incidentId: string; rootCause: string }> = [];
+      jest
+        .spyOn(IncidentStateTimelineService, "create")
+        .mockImplementation((async (data: {
+          data: IncidentStateTimeline;
+        }): Promise<IncidentStateTimeline> => {
+          resolved.push({
+            incidentId: data.data.incidentId!.toString(),
+            rootCause: data.data.rootCause || "",
+          });
+          return data.data;
+        }) as never);
+
+      const before: Record<string, number> = await historyOf(monitorIds);
+
+      expect(before).toMatchObject({
+        Monitor: FLEET_SIZE,
+        MonitorLabel: FLEET_SIZE,
+        MonitorOwnerUser: FLEET_SIZE,
+        MonitorStatusTimeline: FLEET_SIZE * 2,
+      });
+
+      // The person who edits policies points it at the better pack, as the form saves it.
+      const policyEditor: DatabaseCommonInteractionProps = {
+        ...personProps,
+        userTenantAccessPermission: {
+          [projectId.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: projectId,
+            permissions: [
+              ...personProps.userTenantAccessPermission![projectId.toString()]!
+                .permissions,
+              ...[
+                Permission.ReadNetworkAlertPolicy,
+                Permission.EditNetworkAlertPolicy,
+                Permission.CreateProjectMonitor,
+              ].map((permission: Permission): UserPermission => {
+                return {
+                  _type: "UserPermission",
+                  permission: permission,
+                  labelIds: [],
+                  isBlockPermission: false,
+                };
+              }),
+            ],
+          },
+        },
+      };
+
+      await NetworkAlertPolicyService.updateOneById({
+        id: savedPolicy.id!,
+        data: {
+          monitorTemplate: better.template,
+        } as never,
+        props: policyEditor,
+      });
+
+      /*
+       * The engine's passes while the monitors wait to move - the save's
+       * own, and the five-minute sweep: on the old code this deleted every
+       * one of them and made a new one per device.
+       */
+      const meanwhile: Awaited<
+        ReturnType<typeof NetworkAlertPolicyEngineService.syncPolicy>
+      > = await NetworkAlertPolicyEngineService.syncPolicy({
+        policyId: savedPolicy.id!,
+        stampTemplateSyncedOnCleanPass: true,
+      });
+
+      expect(meanwhile).toMatchObject({
+        monitorsCreated: 0,
+        monitorsDeleted: 0,
+        monitorsAdopted: 0,
+      });
+      expect(await historyOf(monitorIds)).toEqual(before);
+
+      // The change the save recorded, the policy's own.
+      const pending: Array<MonitorTemplateChange> =
+        await MonitorTemplateChangeRunner.findActiveChangesOfAlertPolicy({
+          projectId: projectId,
+          policyId: savedPolicy.id!,
+        });
+
+      expect(pending).toHaveLength(1);
+      expect(pending[0]!.monitorTemplateId?.toString()).toBe(
+        better.template.id!.toString(),
+      );
+      expect(pending[0]!.createdByUserId?.toString()).toBe(userId.toString());
+      expect((pending[0]!.monitorIds || []).length).toBe(FLEET_SIZE);
+
+      const startedAt: number = Date.now();
+
+      await MonitorTemplateChangeRunner.runProjectChanges(projectId);
+
+      const tookMs: number = Date.now() - startedAt;
+
+      const change: MonitorTemplateChangeView =
+        MonitorTemplateChangeRunner.toView({
+          row: await MonitorTemplateChangeRunner.findChange({
+            changeId: pending[0]!.id!,
+            projectId: projectId,
+          }),
+          allLines: true,
+        });
+
+      expect(change.status).toBe(MonitorTemplateChangeStatus.Completed);
+      expect(change.networkAlertPolicyName).toBe("Warehouse switches");
+      expect(change.progress).toMatchObject({
+        total: FLEET_SIZE,
+        changed: FLEET_SIZE,
+        skipped: 0,
+        failed: 0,
+        resolvedIncidents: 3,
+      });
+
+      const moved: Map<string, Monitor> = await monitorsById(monitorIds);
+
+      expect(moved.size).toBe(FLEET_SIZE);
+
+      for (const member of fleet) {
+        const monitor: Monitor = moved.get(member.monitorId.toString())!;
+
+        expect({
+          linkedTo: monitor.monitorTemplateId?.toString(),
+          createdFrom: monitor.createdFromMonitorTemplateId?.toString(),
+          policy: monitor.networkAlertPolicyId?.toString(),
+          device: deviceOfSteps(monitor),
+          criteria: criteriaIdsOf(monitor),
+          interval: monitor.monitoringInterval,
+        }).toEqual({
+          linkedTo: better.template.id!.toString(),
+          createdFrom: better.template.id!.toString(),
+          policy: savedPolicy.id!.toString(),
+          device: member.deviceId.toString(),
+          criteria: better.criteria.criteriaIds,
+          interval: "*/2 * * * *",
+        });
+      }
+
+      expect(await historyOf(monitorIds)).toEqual(before);
+
+      expect(
+        resolved
+          .map((entry: { incidentId: string }): string => {
+            return entry.incidentId;
+          })
+          .sort(),
+      ).toEqual([...openIncidents].sort());
+      expect(resolved[0]!.rootCause).toContain(
+        "was linked to the template **Warehouse switch pack v2**",
+      );
+
+      // Every monitor runs the better pack: Template Synced says so.
+      const stamped: NetworkAlertPolicy | null = await database.manager.findOne(
+        NetworkAlertPolicy,
+        {
+          where: { _id: savedPolicy.id!.toString() } as never,
+          select: { _id: true, templateSyncedAt: true } as never,
+        },
+      );
+
+      expect(stamped?.templateSyncedAt).toBeTruthy();
+
+      // And the policy's next pass finds every device covered, by the same monitor.
+      const after: Awaited<
+        ReturnType<typeof NetworkAlertPolicyEngineService.syncPolicy>
+      > = await NetworkAlertPolicyEngineService.syncPolicy({
+        policyId: savedPolicy.id!,
+      });
+
+      expect(after).toMatchObject({
+        monitorsCreated: 0,
+        monitorsDeleted: 0,
+        monitorsAdopted: 0,
+      });
+
+      const total: Array<{ count: string }> = await database.query(
+        `SELECT count(*) AS count FROM "${schema}"."Monitor" WHERE "projectId" = $1 AND "deletedAt" IS NULL`,
+        [projectId.toString()],
+      );
+
+      expect(Number(total[0]!.count)).toBe(FLEET_SIZE);
+      expect(tookMs).toBeLessThan(FLEET_SIZE * 250);
+    }, 3600000);
 
     test("a device that has the better template's monitor already keeps both, and the change names the one in the way", async () => {
       const old: { template: MonitorTemplate; criteria: Criteria } =

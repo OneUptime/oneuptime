@@ -12,6 +12,9 @@ import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorTemplateChangeService from "../../../../Server/Services/MonitorTemplateChangeService";
 import MonitorTemplateService from "../../../../Server/Services/MonitorTemplateService";
+import NetworkAlertPolicyEngineService from "../../../../Server/Services/NetworkAlertPolicyEngineService";
+import NetworkAlertPolicyService from "../../../../Server/Services/NetworkAlertPolicyService";
+import NetworkAlertPolicy from "../../../../Models/DatabaseModels/NetworkAlertPolicy";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../../Models/DatabaseModels/MonitorTemplate";
@@ -22,6 +25,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import { JSONObject } from "../../../../Types/JSON";
 import {
   MAX_MONITORS_PER_TEMPLATE_CHANGE,
+  MONITOR_NO_LONGER_THE_POLICYS,
   MONITOR_TEMPLATE_CHANGE_VIEW_LINE_LIMIT,
   MonitorTemplateChangeKind,
   MonitorTemplateChangeLine,
@@ -84,6 +88,23 @@ jest.mock("../../../../Server/Services/MonitorTemplateService", () => {
       linkMonitor: jest.fn(),
       unlinkMonitor: jest.fn(),
       deleteOneById: jest.fn(),
+    },
+  };
+});
+
+jest.mock("../../../../Server/Services/NetworkAlertPolicyService", () => {
+  return {
+    __esModule: true,
+    default: { findOneBy: jest.fn() },
+  };
+});
+
+jest.mock("../../../../Server/Services/NetworkAlertPolicyEngineService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findMonitorsToMoveToPolicyTemplate: jest.fn(),
+      onPolicyMonitorsMoved: jest.fn(),
     },
   };
 });
@@ -198,6 +219,8 @@ interface FakeDatabase {
   stillLinkedCount: number;
   deletedTemplates: Array<string>;
   monitorNames: Map<string, string>;
+  // The network alert policy each monitor carries, by id.
+  policyOf: Map<string, string>;
 }
 
 let db: FakeDatabase;
@@ -259,14 +282,18 @@ function installFakes(): void {
     );
   }) as never);
 
-  changeService["findBy"]!.mockImplementation((async (): Promise<
-    Array<MonitorTemplateChange>
-  > => {
+  changeService["findBy"]!.mockImplementation((async (data: {
+    query: Record<string, unknown>;
+  }): Promise<Array<MonitorTemplateChange>> => {
     return Array.from(db.changes.values()).filter(
       (row: MonitorTemplateChange): boolean => {
+        const policyId: unknown = data.query?.["networkAlertPolicyId"];
+
         return (
-          row.status === MonitorTemplateChangeStatus.Queued ||
-          row.status === MonitorTemplateChangeStatus.Running
+          (row.status === MonitorTemplateChangeStatus.Queued ||
+            row.status === MonitorTemplateChangeStatus.Running) &&
+          (!policyId ||
+            row.networkAlertPolicyId?.toString() === String(policyId))
         );
       },
     );
@@ -290,10 +317,27 @@ function installFakes(): void {
     MonitorTemplateService as unknown as Record<string, jest.Mock>;
 
   templateService["readTemplateToLinkOrUnlink"]!.mockImplementation(
-    (async (): Promise<MonitorTemplate> => {
+    (async (data: {
+      monitorTemplateId: ObjectID;
+    }): Promise<MonitorTemplate> => {
       if (!db.template) {
         throw new BadDataException("This monitor template does not exist.");
       }
+
+      // Another template of the project, as asked for by its id.
+      if (
+        data.monitorTemplateId &&
+        data.monitorTemplateId.toString() !== db.template.id?.toString()
+      ) {
+        const other: MonitorTemplate = new MonitorTemplate(
+          data.monitorTemplateId,
+        );
+        other.projectId = db.template.projectId!;
+        other.monitorType = db.template.monitorType!;
+        other.templateName = "Another template";
+        return other;
+      }
+
       return db.template;
     }) as never,
   );
@@ -371,6 +415,12 @@ function installFakes(): void {
 
     const monitor: Monitor = new Monitor(data.id);
     monitor.name = name;
+    const policyId: string | undefined = db.policyOf.get(data.id.toString());
+
+    if (policyId) {
+      monitor.networkAlertPolicyId = new ObjectID(policyId);
+    }
+
     return monitor;
   }) as never);
 
@@ -415,6 +465,7 @@ beforeEach(() => {
     stillLinkedCount: 0,
     deletedTemplates: [],
     monitorNames: new Map<string, string>(),
+    policyOf: new Map<string, string>(),
   };
 
   personProps = propsWith(MONITOR_EDITOR);
@@ -1063,5 +1114,284 @@ describe("a change as the Dashboard draws it", () => {
     expect(
       MonitorTemplateChangeRunner.toView({ row: row, allLines: true }).lines,
     ).toHaveLength(ids.length);
+  });
+});
+
+/*
+ * A NETWORK ALERT POLICY POINTED AT ANOTHER TEMPLATE MOVES ITS MONITORS THERE
+ * (issue #11452): a change of the policy's own, started by its save, run as
+ * OneUptime so every monitor stays the policy's, whoever saved it.
+ */
+describe("a network alert policy's change", () => {
+  const POLICY_ID: ObjectID = new ObjectID(
+    "dd000000-0000-4000-8000-000000000001",
+  );
+  const OTHER_TEMPLATE_ID: ObjectID = new ObjectID(
+    "cc000000-0000-4000-8000-000000000002",
+  );
+
+  let toMove: Array<string>;
+
+  function policyRow(templateId: ObjectID = TEMPLATE_ID): NetworkAlertPolicy {
+    const policy: NetworkAlertPolicy = new NetworkAlertPolicy(POLICY_ID);
+    policy.projectId = PROJECT_ID;
+    policy.name = "Warehouse switches";
+    policy.monitorTemplateId = templateId;
+    return policy;
+  }
+
+  beforeEach(() => {
+    toMove = monitorIds(3);
+
+    for (const [index, id] of toMove.entries()) {
+      db.monitorNames.set(id, `WHSW0${index + 1}`);
+      db.policyOf.set(id, POLICY_ID.toString());
+    }
+
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(policyRow() as never);
+    (
+      NetworkAlertPolicyEngineService.findMonitorsToMoveToPolicyTemplate as unknown as jest.Mock
+    )
+      .mockReset()
+      .mockImplementation((async (): Promise<Array<string>> => {
+        return toMove;
+      }) as never);
+    (
+      NetworkAlertPolicyEngineService.onPolicyMonitorsMoved as unknown as jest.Mock
+    )
+      .mockReset()
+      .mockResolvedValue(undefined as never);
+  });
+
+  async function startForPolicy(
+    userId: ObjectID | null = PERSON_ID,
+  ): Promise<MonitorTemplateChange | null> {
+    return await MonitorTemplateChangeRunner.startForAlertPolicy({
+      projectId: PROJECT_ID,
+      policyId: POLICY_ID,
+      userId: userId,
+    });
+  }
+
+  test("records a change of the policy's monitors to move, with the template's settings, as the policy's, and queues it", async () => {
+    const row: MonitorTemplateChange | null = await startForPolicy();
+
+    expect(row!.status).toBe(MonitorTemplateChangeStatus.Queued);
+    expect(row!.monitorIds).toEqual(toMove);
+    expect(row!.monitorTemplateId?.toString()).toBe(TEMPLATE_ID.toString());
+    expect(row!.networkAlertPolicyId?.toString()).toBe(POLICY_ID.toString());
+    expect(row!.networkAlertPolicyName).toBe("Warehouse switches");
+    // Who to show as having asked: the person who saved the policy.
+    expect(row!.createdByUserId?.toString()).toBe(PERSON_ID.toString());
+    expect(row!.settings).toEqual({
+      kind: MonitorTemplateChangeKind.Link,
+      applyTemplateSettings: true,
+      clearTemplateSettings: false,
+      deleteTemplateWhenDone: false,
+    });
+    expect(Queue.addJob).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        NetworkAlertPolicyEngineService.findMonitorsToMoveToPolicyTemplate as unknown as jest.Mock
+      ).mock.calls[0]![0],
+    ).toEqual({
+      policy: expect.objectContaining({ id: POLICY_ID }),
+      limit: MAX_MONITORS_PER_TEMPLATE_CHANGE,
+    });
+  });
+
+  test("is started for a save no person made too: an API key, Terraform", async () => {
+    const row: MonitorTemplateChange | null = await startForPolicy(null);
+
+    expect(row!.createdByUserId).toBeUndefined();
+    expect(row!.networkAlertPolicyId?.toString()).toBe(POLICY_ID.toString());
+  });
+
+  test("is not started when nothing is to move, or the policy names no template", async () => {
+    toMove = [];
+
+    expect(await startForPolicy()).toBeNull();
+
+    const noTemplate: NetworkAlertPolicy = policyRow();
+    delete noTemplate.monitorTemplateId;
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(noTemplate as never);
+
+    expect(await startForPolicy()).toBeNull();
+    expect(db.changes.size).toBe(0);
+  });
+
+  test("is not started twice: a change of the policy to the same template still running covers it", async () => {
+    await startForPolicy();
+
+    expect(await startForPolicy()).toBeNull();
+    expect(db.changes.size).toBe(1);
+  });
+
+  test("stops a change of the policy to the template it named before, whose monitors are the new one's", async () => {
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(policyRow(OTHER_TEMPLATE_ID) as never);
+    const earlier: MonitorTemplateChange = (await startForPolicy())!;
+
+    // The earlier one got going before the policy was pointed elsewhere.
+    earlier.status = MonitorTemplateChangeStatus.Running;
+
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(policyRow(TEMPLATE_ID) as never);
+    const later: MonitorTemplateChange | null = await startForPolicy();
+
+    expect(later!.monitorTemplateId?.toString()).toBe(TEMPLATE_ID.toString());
+    expect(
+      db.changes.get(earlier.id!.toString())!.stopRequestedAt,
+    ).toBeTruthy();
+  });
+
+  test("stops a queued one at once, every monitor not reached", async () => {
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(policyRow(OTHER_TEMPLATE_ID) as never);
+    const earlier: MonitorTemplateChange = (await startForPolicy())!;
+
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(policyRow(TEMPLATE_ID) as never);
+    await startForPolicy();
+
+    const stopped: MonitorTemplateChange = db.changes.get(
+      earlier.id!.toString(),
+    )!;
+
+    expect(stopped.status).toBe(MonitorTemplateChangeStatus.Stopped);
+    expect(progressOf(stopped).notReached).toBe(3);
+  });
+
+  test("moves each monitor as OneUptime, with the template's settings, and never reads a person's permissions", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+    const memberProps: jest.Mock =
+      WorkspaceActionAuthorization.getProjectMemberProps as unknown as jest.Mock;
+    memberProps.mockClear();
+
+    expect(await run(row.id!)).toBe("done");
+
+    expect(
+      db.linked.map((link: { monitorId: string }): string => {
+        return link.monitorId;
+      }),
+    ).toEqual(toMove);
+
+    for (const link of db.linked) {
+      expect(link.props).toEqual({ isRoot: true, tenantId: PROJECT_ID });
+      expect(link.apply).toBe(true);
+    }
+
+    expect(memberProps).not.toHaveBeenCalled();
+    expect(row.status).toBe(MonitorTemplateChangeStatus.Completed);
+    expect(progressOf(row)).toMatchObject({ total: 3, changed: 3 });
+  });
+
+  test("leaves out a monitor someone moved or unlinked since: it is theirs, and the policy let it go", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+    db.policyOf.delete(toMove[1]!);
+
+    await run(row.id!);
+
+    expect(
+      db.linked.map((link: { monitorId: string }): string => {
+        return link.monitorId;
+      }),
+    ).toEqual([toMove[0], toMove[2]]);
+    expect(resultsOf(row).lines).toEqual([
+      {
+        monitorId: toMove[1],
+        monitorName: "WHSW02",
+        outcome: MonitorTemplateChangeOutcome.Skipped,
+        reason: MONITOR_NO_LONGER_THE_POLICYS,
+      },
+    ]);
+  });
+
+  test("tells the policy its fleet runs the template once every monitor moved", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+
+    await run(row.id!);
+
+    expect(
+      NetworkAlertPolicyEngineService.onPolicyMonitorsMoved,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      policyId: POLICY_ID,
+      monitorTemplateId: TEMPLATE_ID,
+    });
+  });
+
+  test("tells it nothing while a monitor failed or was left out", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+    db.outcomeOf = (monitorId: string): MonitorTemplateLinkResult | Error => {
+      return monitorId === toMove[2]
+        ? new Error("Postgres went away")
+        : changed();
+    };
+
+    await run(row.id!);
+
+    expect(progressOf(row)).toMatchObject({ changed: 2, failed: 1 });
+    expect(
+      NetworkAlertPolicyEngineService.onPolicyMonitorsMoved,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("a retry is the policy's too, and runs as OneUptime", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+    db.outcomeOf = (monitorId: string): MonitorTemplateLinkResult | Error => {
+      return monitorId === toMove[0]
+        ? new Error("Postgres went away")
+        : changed();
+    };
+
+    await run(row.id!);
+
+    db.outcomeOf = (): MonitorTemplateLinkResult => {
+      return changed();
+    };
+    db.linked = [];
+
+    const retried: MonitorTemplateChange =
+      await MonitorTemplateChangeRunner.retry({
+        projectId: PROJECT_ID,
+        props: personProps,
+        changeId: row.id!,
+      });
+
+    expect(retried.networkAlertPolicyId?.toString()).toBe(POLICY_ID.toString());
+    expect(retried.networkAlertPolicyName).toBe("Warehouse switches");
+    expect(retried.monitorIds).toEqual([toMove[0]]);
+
+    await run(retried.id!);
+
+    expect(db.linked).toEqual([
+      {
+        monitorId: toMove[0],
+        props: { isRoot: true, tenantId: PROJECT_ID },
+        apply: true,
+      },
+    ]);
+  });
+
+  test("says whose it is in its view", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+    const view: MonitorTemplateChangeView = MonitorTemplateChangeRunner.toView({
+      row: row,
+    });
+
+    expect(view).toMatchObject({
+      networkAlertPolicyId: POLICY_ID.toString(),
+      networkAlertPolicyName: "Warehouse switches",
+      isAutoImportRulePointed: false,
+    });
   });
 });

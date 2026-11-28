@@ -1,6 +1,7 @@
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateChange from "../../../Models/DatabaseModels/MonitorTemplateChange";
+import NetworkAlertPolicy from "../../../Models/DatabaseModels/NetworkAlertPolicy";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
@@ -13,6 +14,7 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   ACTIVE_MONITOR_TEMPLATE_CHANGE_STATUSES,
   MAX_MONITORS_PER_TEMPLATE_CHANGE,
+  MONITOR_NO_LONGER_THE_POLICYS,
   MONITOR_NOT_REACHED_FAILED,
   MONITOR_NOT_REACHED_STOPPED,
   MONITOR_TEMPLATE_CHANGE_VIEW_LINE_LIMIT,
@@ -40,6 +42,8 @@ import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import MonitorService from "../../Services/MonitorService";
 import MonitorTemplateChangeService from "../../Services/MonitorTemplateChangeService";
 import MonitorTemplateService from "../../Services/MonitorTemplateService";
+import NetworkAlertPolicyEngineService from "../../Services/NetworkAlertPolicyEngineService";
+import NetworkAlertPolicyService from "../../Services/NetworkAlertPolicyService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import TablePermission from "../../Types/Database/Permissions/TablePermission";
 import CallerPlan from "../Billing/CallerPlan";
@@ -82,6 +86,16 @@ import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorizat
  * read from the database at the time and again every half a minute, so
  * someone who lost the right to change monitors half-way stops changing
  * them half-way. A monitor they may not change is left out, with why.
+ *
+ * OR AS ONEUPTIME, FOR A NETWORK ALERT POLICY (issue #11452). Pointing a
+ * policy at another template moves its monitors there: the policy's save
+ * starts a change of them (startForAlertPolicy) that links each to the
+ * template with its criteria, interval and probe agreement, as OneUptime -
+ * the policy's monitors are OneUptime's to keep in step with its template,
+ * whoever saved it, an API key and Terraform included - so every one keeps
+ * its history, labels, owners and incidents, and stays the policy's. One a
+ * person moved or unlinked meanwhile is the person's, and is left out. Once
+ * every one is moved, the policy's Template Synced says so.
  */
 
 export const MONITOR_TEMPLATE_CHANGE_JOB: string =
@@ -189,7 +203,10 @@ function isRefusalOfThePerson(error: unknown): boolean {
 interface ChangeRunState {
   row: MonitorTemplateChange;
   projectId: ObjectID;
-  userId: ObjectID;
+  // The person it acts as; none for a network alert policy's change.
+  userId: ObjectID | null;
+  // A network alert policy's change: as OneUptime, the monitors its own.
+  alertPolicyId: ObjectID | null;
   props: DatabaseCommonInteractionProps;
   propsReadAt: number;
   settings: MonitorTemplateChangeSettings;
@@ -208,6 +225,10 @@ const CHANGE_SELECT: { [key: string]: boolean } = {
   projectId: true,
   monitorTemplateId: true,
   monitorTemplateName: true,
+  networkAlertPolicyId: true,
+  networkAlertPolicyName: true,
+  networkDeviceAutoImportRuleId: true,
+  networkDeviceAutoImportRuleName: true,
   status: true,
   settings: true,
   monitorIds: true,
@@ -322,6 +343,116 @@ export default class MonitorTemplateChangeRunner {
   }
 
   /*
+   * A network alert policy pointed at another template moves its monitors
+   * there (issue #11452): a change of every monitor of the policy that is on
+   * another template, on a device the policy covers, linked to the template
+   * it names with its settings, as OneUptime. Started by the policy's save
+   * (NetworkAlertPolicyService.onUpdateSuccess), whoever made it: `userId` is
+   * who to show as having asked, when a person did.
+   *
+   * A change of the policy to the same template still running covers it:
+   * none is started. One to another template - the policy pointed somewhere
+   * else before it finished - is stopped, and its monitors are this one's.
+   * Null when nothing is to move.
+   */
+  public static async startForAlertPolicy(data: {
+    projectId: ObjectID;
+    policyId: ObjectID;
+    userId?: ObjectID | null | undefined;
+  }): Promise<MonitorTemplateChange | null> {
+    const policy: NetworkAlertPolicy | null =
+      await NetworkAlertPolicyService.findOneBy({
+        query: {
+          _id: data.policyId,
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+          monitorTemplateId: true,
+          scope: true,
+        },
+        props: { isRoot: true },
+      });
+
+    if (!policy?.id || !policy.projectId || !policy.monitorTemplateId) {
+      return null;
+    }
+
+    const active: Array<MonitorTemplateChange> =
+      await this.findActiveChangesOfAlertPolicy({
+        projectId: data.projectId,
+        policyId: policy.id,
+      });
+
+    if (
+      active.some((row: MonitorTemplateChange): boolean => {
+        return (
+          row.monitorTemplateId?.toString() ===
+          policy.monitorTemplateId!.toString()
+        );
+      })
+    ) {
+      return null;
+    }
+
+    for (const row of active) {
+      await this.requestStop(row);
+    }
+
+    const monitorIds: Array<string> =
+      await NetworkAlertPolicyEngineService.findMonitorsToMoveToPolicyTemplate({
+        policy: policy,
+        limit: MAX_MONITORS_PER_TEMPLATE_CHANGE,
+      });
+
+    if (monitorIds.length === 0) {
+      return null;
+    }
+
+    const template: MonitorTemplate =
+      await MonitorTemplateService.readTemplateToLinkOrUnlink({
+        monitorTemplateId: policy.monitorTemplateId,
+        props: { isRoot: true },
+      });
+
+    return await this.record({
+      projectId: data.projectId,
+      userId: data.userId || null,
+      settings: {
+        kind: MonitorTemplateChangeKind.Link,
+        applyTemplateSettings: true,
+        clearTemplateSettings: false,
+        deleteTemplateWhenDone: false,
+      },
+      template: template,
+      monitorIds: monitorIds,
+      retryOfChangeId: null,
+      alertPolicy: { id: policy.id, name: policy.name || "" },
+    });
+  }
+
+  // A network alert policy's changes that have not finished, oldest first.
+  public static async findActiveChangesOfAlertPolicy(data: {
+    projectId: ObjectID;
+    policyId: ObjectID;
+  }): Promise<Array<MonitorTemplateChange>> {
+    return await MonitorTemplateChangeService.findBy({
+      query: {
+        projectId: data.projectId,
+        networkAlertPolicyId: data.policyId,
+        status: new Includes([...ACTIVE_MONITOR_TEMPLATE_CHANGE_STATUSES]),
+      },
+      select: CHANGE_SELECT as never,
+      sort: { createdAt: SortOrder.Ascending },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  }
+
+  /*
    * Try again what a change did not do: a new change of its failed and
    * unreached monitors, with its settings. Anyone who may change monitors
    * may retry one, as anyone may stop one.
@@ -366,7 +497,8 @@ export default class MonitorTemplateChangeRunner {
     const template: MonitorTemplate | null = row.monitorTemplateId
       ? await MonitorTemplateService.readTemplateToLinkOrUnlink({
           monitorTemplateId: row.monitorTemplateId,
-          props: data.props,
+          // A policy's change is OneUptime's, whoever retries it.
+          props: row.networkAlertPolicyId ? { isRoot: true } : data.props,
         })
       : null;
 
@@ -387,6 +519,14 @@ export default class MonitorTemplateChangeRunner {
       template: template,
       monitorIds: monitorIds,
       retryOfChangeId: row.id!,
+      ...(row.networkAlertPolicyId
+        ? {
+            alertPolicy: {
+              id: row.networkAlertPolicyId,
+              name: row.networkAlertPolicyName || "",
+            },
+          }
+        : {}),
     });
   }
 
@@ -410,6 +550,19 @@ export default class MonitorTemplateChangeRunner {
       return row;
     }
 
+    await this.requestStop(row);
+
+    return await this.findChange({
+      changeId: data.changeId,
+      projectId: data.projectId,
+    });
+  }
+
+  /*
+   * A queued change stops at once, every monitor not reached; a running one
+   * is asked to stop before its next monitor.
+   */
+  private static async requestStop(row: MonitorTemplateChange): Promise<void> {
     if (row.status === MonitorTemplateChangeStatus.Queued) {
       const monitorIds: Array<string> = readMonitorTemplateChangeMonitorIds(
         row.monitorIds,
@@ -446,20 +599,18 @@ export default class MonitorTemplateChangeRunner {
         props: { isRoot: true },
       });
     }
-
-    return await this.findChange({
-      changeId: data.changeId,
-      projectId: data.projectId,
-    });
   }
 
   private static async record(data: {
     projectId: ObjectID;
-    userId: ObjectID;
+    // Who asked; none for a policy's change no person saved.
+    userId: ObjectID | null;
     settings: MonitorTemplateChangeSettings;
     template: MonitorTemplate | null;
     monitorIds: Array<string>;
     retryOfChangeId: ObjectID | null;
+    // A network alert policy's change (#11452).
+    alertPolicy?: { id: ObjectID; name: string } | undefined;
   }): Promise<MonitorTemplateChange> {
     const row: MonitorTemplateChange = new MonitorTemplateChange();
     row.projectId = data.projectId;
@@ -473,8 +624,17 @@ export default class MonitorTemplateChangeRunner {
     row.progress = emptyMonitorTemplateChangeProgress(
       data.monitorIds.length,
     ) as unknown as JSONObject;
-    row.createdByUserId = data.userId;
+
+    if (data.userId) {
+      row.createdByUserId = data.userId;
+    }
+
     row.resumeCount = 0;
+
+    if (data.alertPolicy) {
+      row.networkAlertPolicyId = data.alertPolicy.id;
+      row.networkAlertPolicyName = data.alertPolicy.name.substring(0, 100);
+    }
 
     if (data.template?.id) {
       row.monitorTemplateId = data.template.id;
@@ -835,9 +995,38 @@ export default class MonitorTemplateChangeRunner {
       await this.deleteTemplateIfUnlinked(state);
     }
 
+    if (state.alertPolicyId) {
+      await this.finishAlertPolicyMove(state);
+    }
+
     await this.complete(state, MonitorTemplateChangeStatus.Completed);
 
     return "done";
+  }
+
+  /*
+   * A network alert policy's change, done: with every monitor moved - none
+   * left out or failed - the policy's fleet runs the template it names, and
+   * its Template Synced says so (onPolicyMonitorsMoved, which looks again).
+   */
+  private static async finishAlertPolicyMove(
+    state: ChangeRunState,
+  ): Promise<void> {
+    const progress: MonitorTemplateChangeProgress = state.progress;
+
+    if (
+      !state.alertPolicyId ||
+      !state.row.monitorTemplateId ||
+      progress.changed + progress.unchanged < progress.total
+    ) {
+      return;
+    }
+
+    await NetworkAlertPolicyEngineService.onPolicyMonitorsMoved({
+      projectId: state.projectId,
+      policyId: state.alertPolicyId,
+      monitorTemplateId: state.row.monitorTemplateId,
+    });
   }
 
   /*
@@ -854,6 +1043,19 @@ export default class MonitorTemplateChangeRunner {
         outcome: MonitorTemplateChangeOutcome.Skipped,
         reason:
           "This monitor was not recognised. Reload the page, select the monitors again, then try again.",
+      });
+      return;
+    }
+
+    if (
+      state.alertPolicyId &&
+      !(await this.isStillThePolicys(state, monitorId))
+    ) {
+      this.recordLine(state, {
+        monitorId: monitorId,
+        monitorName: await this.readMonitorNameAsPerson(state, monitorId),
+        outcome: MonitorTemplateChangeOutcome.Skipped,
+        reason: MONITOR_NO_LONGER_THE_POLICYS,
       });
       return;
     }
@@ -907,6 +1109,32 @@ export default class MonitorTemplateChangeRunner {
 
     state.progress.resolvedIncidents += result.resolvedIncidentCount;
     state.progress.resolvedAlerts += result.resolvedAlertCount;
+  }
+
+  /*
+   * A network alert policy's change: whether the monitor is still the
+   * policy's. One a person moved to another template, or unlinked, since is
+   * the person's (MonitorTemplateChangeProvenance): it is left as they
+   * chose. One that is gone is left to the link, which says so.
+   */
+  private static async isStillThePolicys(
+    state: ChangeRunState,
+    monitorId: string,
+  ): Promise<boolean> {
+    const monitor: Monitor | null = await MonitorService.findOneById({
+      id: new ObjectID(monitorId),
+      select: { _id: true, networkAlertPolicyId: true },
+      props: { isRoot: true },
+    });
+
+    if (!monitor) {
+      return true;
+    }
+
+    return (
+      monitor.networkAlertPolicyId?.toString() ===
+      state.alertPolicyId?.toString()
+    );
   }
 
   // A monitor's name for its line, when the person may read it.
@@ -1212,6 +1440,30 @@ export default class MonitorTemplateChangeRunner {
       ...(results.templateDeleteError
         ? { templateDeleteError: results.templateDeleteError }
         : {}),
+      ...(data.row.networkAlertPolicyId
+        ? { networkAlertPolicyId: data.row.networkAlertPolicyId.toString() }
+        : {}),
+      ...(data.row.networkAlertPolicyName
+        ? { networkAlertPolicyName: data.row.networkAlertPolicyName }
+        : {}),
+      ...(data.row.networkDeviceAutoImportRuleId
+        ? {
+            autoImportRuleId: data.row.networkDeviceAutoImportRuleId.toString(),
+          }
+        : {}),
+      ...(data.row.networkDeviceAutoImportRuleName
+        ? { autoImportRuleName: data.row.networkDeviceAutoImportRuleName }
+        : {}),
+      isAutoImportRulePointed: results.isAutoImportRulePointed === true,
+      ...(results.autoImportRuleMonitorsLeftCount
+        ? {
+            autoImportRuleMonitorsLeftCount:
+              results.autoImportRuleMonitorsLeftCount,
+          }
+        : {}),
+      ...(results.autoImportRuleError
+        ? { autoImportRuleError: results.autoImportRuleError }
+        : {}),
       ...(data.row.createdAt
         ? { createdAt: new Date(data.row.createdAt).toISOString() }
         : {}),
@@ -1279,19 +1531,28 @@ export default class MonitorTemplateChangeRunner {
   private static async prepare(
     row: MonitorTemplateChange,
   ): Promise<ChangeRunState> {
-    if (!row.createdByUserId) {
+    const alertPolicyId: ObjectID | null = row.networkAlertPolicyId || null;
+
+    if (!alertPolicyId && !row.createdByUserId) {
       throw new BadDataException(
         "The person who asked for this change is no longer in OneUptime, so it was stopped. What it changed is kept.",
       );
     }
 
     const projectId: ObjectID = row.projectId!;
-    const props: DatabaseCommonInteractionProps = await this.readPersonProps(
-      row.createdByUserId,
-      projectId,
-    );
 
-    this.assertCanChangeMonitors(props);
+    /*
+     * A network alert policy's change acts as OneUptime: the policy's
+     * monitors are OneUptime's to keep in step with its template, and so
+     * they stay the policy's (MonitorTemplateChangeProvenance).
+     */
+    const props: DatabaseCommonInteractionProps = alertPolicyId
+      ? { isRoot: true, tenantId: projectId }
+      : await this.readPersonProps(row.createdByUserId!, projectId);
+
+    if (!alertPolicyId) {
+      this.assertCanChangeMonitors(props);
+    }
 
     const settings: MonitorTemplateChangeSettings =
       readMonitorTemplateChangeSettings(row.settings);
@@ -1334,7 +1595,8 @@ export default class MonitorTemplateChangeRunner {
     return {
       row: row,
       projectId: projectId,
-      userId: row.createdByUserId,
+      userId: row.createdByUserId || null,
+      alertPolicyId: alertPolicyId,
       props: props,
       propsReadAt: this.now(),
       settings: settings,
@@ -1362,9 +1624,12 @@ export default class MonitorTemplateChangeRunner {
   }
 
   private static async refreshPropsIfDue(state: ChangeRunState): Promise<void> {
+    // A policy's change is OneUptime's: there is no person to read again.
     if (
+      !state.userId ||
+      state.alertPolicyId ||
       this.now() - state.propsReadAt <
-      MONITOR_TEMPLATE_CHANGE_PERMISSION_REFRESH_MS
+        MONITOR_TEMPLATE_CHANGE_PERMISSION_REFRESH_MS
     ) {
       return;
     }

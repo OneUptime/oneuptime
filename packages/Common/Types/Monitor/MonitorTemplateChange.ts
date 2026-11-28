@@ -134,10 +134,20 @@ export const MONITOR_NOT_REACHED_FAILED: string = translationKey(
   "The change stopped before it finished.",
 );
 
+/*
+ * A network alert policy's change (#11452): a monitor someone moved to
+ * another template, or unlinked, since the policy was pointed at its new
+ * template is no longer the policy's, and is left as they chose.
+ */
+export const MONITOR_NO_LONGER_THE_POLICYS: string = translationKey(
+  "Moved to another template or unlinked by someone since, so the policy let it go.",
+);
+
 // Every reason the change writes itself, for the Dashboard to word them all.
 export const MONITOR_TEMPLATE_CHANGE_OWN_REASONS: ReadonlyArray<string> = [
   MONITOR_NOT_REACHED_STOPPED,
   MONITOR_NOT_REACHED_FAILED,
+  MONITOR_NO_LONGER_THE_POLICYS,
 ];
 
 // What one link or unlink did (MonitorTemplateService).
@@ -179,6 +189,15 @@ export interface MonitorTemplateChangeResults {
    */
   templateStillLinkedCount?: number | undefined;
   templateDeleteError?: string | undefined;
+  /*
+   * An auto import rule's change (#11451): the rule was pointed at the
+   * template once every one of its devices' monitors was on it; or how many
+   * were still on its old template, so it was kept on it; or why pointing it
+   * was refused.
+   */
+  isAutoImportRulePointed?: boolean | undefined;
+  autoImportRuleMonitorsLeftCount?: number | undefined;
+  autoImportRuleError?: string | undefined;
 }
 
 // The counts the progress bar and the summary are drawn from.
@@ -217,6 +236,21 @@ export interface MonitorTemplateChangeView {
   // deleteTemplateWhenDone, when the template was kept: why (see the results).
   templateStillLinkedCount?: number | undefined;
   templateDeleteError?: string | undefined;
+  /*
+   * A network alert policy's change (#11452): the policy whose monitors move
+   * to the template it now names, as OneUptime, staying the policy's.
+   */
+  networkAlertPolicyId?: string | undefined;
+  networkAlertPolicyName?: string | undefined;
+  /*
+   * An auto import rule's change (#11451): the rule whose devices' monitors
+   * move, pointed at the template once they all are on it (see the results).
+   */
+  autoImportRuleId?: string | undefined;
+  autoImportRuleName?: string | undefined;
+  isAutoImportRulePointed: boolean;
+  autoImportRuleMonitorsLeftCount?: number | undefined;
+  autoImportRuleError?: string | undefined;
   createdAt?: string | undefined;
   startedAt?: string | undefined;
   completedAt?: string | undefined;
@@ -327,6 +361,20 @@ export function readMonitorTemplateChangeResults(
     ...(typeof results["templateDeleteError"] === "string" &&
     results["templateDeleteError"]
       ? { templateDeleteError: results["templateDeleteError"] as string }
+      : {}),
+    ...(results["isAutoImportRulePointed"] === true
+      ? { isAutoImportRulePointed: true }
+      : {}),
+    ...(toCount(results["autoImportRuleMonitorsLeftCount"]) > 0
+      ? {
+          autoImportRuleMonitorsLeftCount: toCount(
+            results["autoImportRuleMonitorsLeftCount"],
+          ),
+        }
+      : {}),
+    ...(typeof results["autoImportRuleError"] === "string" &&
+    results["autoImportRuleError"]
+      ? { autoImportRuleError: results["autoImportRuleError"] as string }
       : {}),
   };
 }
@@ -477,8 +525,56 @@ export function readMonitorTemplateChangeView(
       ? { templateStillLinkedCount: toCount(view["templateStillLinkedCount"]) }
       : {}),
     templateDeleteError: readText("templateDeleteError"),
+    networkAlertPolicyId: readText("networkAlertPolicyId"),
+    networkAlertPolicyName: readText("networkAlertPolicyName"),
+    autoImportRuleId: readText("autoImportRuleId"),
+    autoImportRuleName: readText("autoImportRuleName"),
+    isAutoImportRulePointed: view["isAutoImportRulePointed"] === true,
+    ...(toCount(view["autoImportRuleMonitorsLeftCount"]) > 0
+      ? {
+          autoImportRuleMonitorsLeftCount: toCount(
+            view["autoImportRuleMonitorsLeftCount"],
+          ),
+        }
+      : {}),
+    autoImportRuleError: readText("autoImportRuleError"),
     createdAt: readText("createdAt"),
     startedAt: readText("startedAt"),
     completedAt: readText("completedAt"),
   };
+}
+
+/*
+ * Whether a change is one the Monitors list shows (#11454): still running,
+ * or finished in the last `recentMs` with monitors left out, failed or not
+ * reached, or failed as a whole - what someone who closed its dialog would
+ * want to come back to. A change that went well is done with once it is.
+ */
+export const MONITOR_TEMPLATE_CHANGE_RECENT_MS: number = 60 * 60 * 1000;
+
+export function isMonitorTemplateChangeWorthShowing(data: {
+  view: MonitorTemplateChangeView;
+  now: number;
+  recentMs?: number | undefined;
+}): boolean {
+  if (isMonitorTemplateChangeActive(data.view.status)) {
+    return true;
+  }
+
+  const completedAt: number = new Date(data.view.completedAt || "").getTime();
+
+  if (
+    !Number.isFinite(completedAt) ||
+    data.now - completedAt >
+      (data.recentMs ?? MONITOR_TEMPLATE_CHANGE_RECENT_MS)
+  ) {
+    return false;
+  }
+
+  const progress: MonitorTemplateChangeProgress = data.view.progress;
+
+  return (
+    data.view.status === MonitorTemplateChangeStatus.Failed ||
+    progress.skipped + progress.failed + progress.notReached > 0
+  );
 }
