@@ -189,7 +189,42 @@ interface ProjectForm {
   element: JsxElementLike;
 }
 
-// <ModelFormModal<Project> ...> and <ModelTable modelType={Project} isCreateable={true}>.
+/*
+ * A ModelFormModal that edits a project it is given, and so creates none: it
+ * names the project (modelIdToEdit) and its form is an update
+ * (formProps' formType: FormType.Update) - a setting of the project's own,
+ * such as Security Events' access log format (#11048). Both, or it creates.
+ */
+function editsAGivenProject(element: JsxElementLike): boolean {
+  const formProps: ts.JsxAttribute | undefined = attribute(
+    element,
+    "formProps",
+  );
+  const formPropsObject: ts.Expression | undefined =
+    formProps?.initializer && ts.isJsxExpression(formProps.initializer)
+      ? formProps.initializer.expression
+      : undefined;
+  const isUpdate: boolean = Boolean(
+    formPropsObject &&
+      ts.isObjectLiteralExpression(formPropsObject) &&
+      formPropsObject.properties.some(
+        (property: ts.ObjectLiteralElementLike): boolean => {
+          return (
+            ts.isPropertyAssignment(property) &&
+            property.name.getText() === "formType" &&
+            property.initializer.getText() === "FormType.Update"
+          );
+        },
+      ),
+  );
+
+  return Boolean(attributeExpression(element, "modelIdToEdit")) && isUpdate;
+}
+
+/*
+ * <ModelFormModal<Project> ...> that creates one, and <ModelTable
+ * modelType={Project} isCreateable={true}>.
+ */
 const PROJECT_FORMS: Array<ProjectForm> = SOURCES.flatMap(
   (source: SourceFile): Array<ProjectForm> => {
     return jsxElements(source)
@@ -199,7 +234,7 @@ const PROJECT_FORMS: Array<ProjectForm> = SOURCES.flatMap(
           attributeExpression(element, "modelType") === "Project";
 
         if (name === "ModelFormModal") {
-          return isProject;
+          return isProject && !editsAGivenProject(element);
         }
 
         if (name === "ModelTable") {
@@ -257,6 +292,42 @@ describe("Every form that creates a project", () => {
     ).toEqual(
       expect.arrayContaining([BUILDER, BILLING_PAGE, ...PROJECT_CREATE_FORMS]),
     );
+  });
+
+  /*
+   * The project forms that only edit a project they are given, which the
+   * test below leaves out: each names the project and is an update, so it
+   * asks for no plan or promo code.
+   */
+  it("leaves out only the forms that edit a project they are given", () => {
+    const edits: Array<string> = SOURCES.flatMap(
+      (source: SourceFile): Array<string> => {
+        return jsxElements(source)
+          .filter((element: JsxElementLike): boolean => {
+            return (
+              tagName(element) === "ModelFormModal" &&
+              attributeExpression(element, "modelType") === "Project" &&
+              editsAGivenProject(element)
+            );
+          })
+          .map((): string => {
+            return source.file;
+          });
+      },
+    );
+
+    expect([...new Set(edits)].sort()).toEqual([
+      "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/TrustedProxies/AccessLogFormatDetails.tsx",
+    ]);
+    for (const file of edits) {
+      const text: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, file),
+        "utf8",
+      );
+
+      expect(text).not.toContain("getCreateProjectFormFields");
+      expect(text).not.toMatch(/promo/i);
+    }
   });
 
   it("is one of the known create-project forms", () => {
