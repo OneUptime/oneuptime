@@ -5,7 +5,7 @@ import PermissionGate, {
   PermissionGateResult,
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
-import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
+import { useRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import {
   getDisplayNameColumn,
   getRecordDisplayName,
@@ -121,7 +121,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
    * may make them (PrivateRecordScope).
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
-    usePrivateRecordGateOptions(model);
+    useRecordGateOptions(model, props.modelId);
   /*
    * The delete card used to be rendered for everybody: a viewer got a live
    * "Delete <X>" button, a confirmation dialog, and then a refusal from the

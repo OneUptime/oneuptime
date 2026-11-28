@@ -51,17 +51,23 @@ export function canConfigureUnattendedKubernetesAiAccess(): boolean {
  * Resetting the agent revokes its key; the pod registers again on its own.
  * The server gates the route on the admin set - counting a block on any of
  * them as a refusal, labelled or not - and on an edit of THIS cluster
- * (decided for its own row, labels and owners included). The snapshot
- * cannot tell a cluster's labels, so the menu offers it to whoever holds
- * the admin set and may edit clusters at all; the server refuses the rest
- * in its own words.
+ * (decided for its own row, labels and owners included). The menu offers
+ * it to whoever holds the admin set and may edit this cluster by its labels
+ * (`clusterOptions`, #11259); the server refuses the rest in its own words.
  */
-export function canResetKubernetesAiAgent(): boolean {
+export function canResetKubernetesAiAgent(
+  // What the cluster's page says of it: its labels (#11259).
+  clusterOptions?: PermissionGateOptions | undefined,
+): boolean {
   return (
     holdsKubernetesAiAccessPermission(KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS, {
       labelledBlocksRefuse: true,
     }) &&
-    PermissionGate.check(new KubernetesCluster(), ModelAction.Update).isAllowed
+    PermissionGate.check(
+      new KubernetesCluster(),
+      ModelAction.Update,
+      clusterOptions,
+    ).isAllowed
   );
 }
 
@@ -96,12 +102,20 @@ export function canReadKubectlJobs(): boolean {
  * The connection test spends the agent's time, so its endpoint requires
  * edit access to the cluster (KubernetesClusterAiAccessAPI:
  * assertCanEditCluster), decided there for the cluster's own row - its
- * labels and owners included. The snapshot cannot tell those, so the
- * button follows KubernetesCluster's update ACL, and a member whose edit
- * does not reach this cluster is told so when the server refuses.
+ * labels and owners included. The button follows KubernetesCluster's
+ * update ACL and, on the cluster's page, its labels (`clusterOptions`,
+ * #11259); a member whose edit does not reach the cluster's owners is told
+ * so when the server refuses.
  */
-export function getAccessTestPermissionGate(): PermissionGateResult {
-  return PermissionGate.check(new KubernetesCluster(), ModelAction.Update);
+export function getAccessTestPermissionGate(
+  // What the cluster's page says of it: its labels (#11259).
+  clusterOptions?: PermissionGateOptions | undefined,
+): PermissionGateResult {
+  return PermissionGate.check(
+    new KubernetesCluster(),
+    ModelAction.Update,
+    clusterOptions,
+  );
 }
 
 // Who may edit the cluster, and so run the test.

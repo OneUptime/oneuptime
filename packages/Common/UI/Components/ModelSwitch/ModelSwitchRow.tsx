@@ -8,8 +8,10 @@ import ObjectID from "../../../Types/ObjectID";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
+  PermissionGateOptions,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { useRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Alert, { AlertType } from "../Alerts/Alert";
@@ -235,14 +237,18 @@ const getSwitchUpdateGate: (data: {
   model: BaseModel;
   column: string;
   childSwitches?: Array<ModelSwitchChild> | undefined;
+  // What the page says of the record it switches (useRecordGateOptions).
+  options?: PermissionGateOptions | undefined;
 }) => PermissionGateResult = (data: {
   model: BaseModel;
   column: string;
   childSwitches?: Array<ModelSwitchChild> | undefined;
+  options?: PermissionGateOptions | undefined;
 }): PermissionGateResult => {
   const ownGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
     data.model,
     data.column,
+    data.options,
   );
 
   if (!ownGate.isAllowed) {
@@ -253,6 +259,7 @@ const getSwitchUpdateGate: (data: {
     const childGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
       data.model,
       child.column,
+      data.options,
     );
 
     if (!childGate.isAllowed) {
@@ -316,10 +323,21 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
 
   const modelIdString: string = props.modelId.toString();
 
+  /*
+   * On the record's page, what its labels leave the reader (#11259): the
+   * switch of a monitor outside the labels a role is limited to is locked,
+   * with why, as its Edit is.
+   */
+  const recordOptions: PermissionGateOptions | undefined = useRecordGateOptions(
+    model,
+    props.modelId,
+  );
+
   const updateGate: PermissionGateResult = getSwitchUpdateGate({
     model: model,
     column: props.column,
     childSwitches: props.childSwitches,
+    options: recordOptions,
   });
 
   /*

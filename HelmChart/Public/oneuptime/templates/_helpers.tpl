@@ -2167,6 +2167,19 @@ values are set. Secrets can come from an existing Kubernetes secret.
   value: {{ default false $.Values.telemetry.disableIngestion | squote }}
 
 {{- /*
+  When a project's telemetry, or everyone's, is answered 429 for the queue's
+  sake (TelemetryIngestShedding): every pod that takes telemetry decides it,
+  so every pod reads the same block. Read through `dig` so a values file
+  written before these keys existed still renders, and `int64` so a large
+  number is not written in exponent form.
+*/}}
+- name: TELEMETRY_INGEST_PROJECT_QUEUE_LIMIT
+  value: {{ dig "projectQueueLimit" 10000 ($.Values.telemetry | default dict) | int64 | squote }}
+
+- name: TELEMETRY_INGEST_VALKEY_MEMORY_LIMIT_PERCENT
+  value: {{ dig "valkeyMemoryLimitPercent" 85 ($.Values.telemetry | default dict) | int64 | squote }}
+
+{{- /*
   The products every project offers as the server starts (#6815): a starting
   value for Admin Dashboard > Settings > Products, which wins once saved.
 */}}

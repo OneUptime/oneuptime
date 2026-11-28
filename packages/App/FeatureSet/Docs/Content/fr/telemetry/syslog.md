@@ -206,8 +206,8 @@ Le message lui-même reste dans le corps du log. Un message au format d'un const
 
 | Sévérité syslog | Code | Sévérité OneUptime |
 | --- | --- | --- |
-| Emergency, Alert | `0`, `1` | `Fatal` |
-| Critical, Error | `2`, `3` | `Error` |
+| Emergency | `0` | `Fatal` |
+| Alert, Critical, Error | `1`, `2`, `3` | `Error` |
 | Warning | `4` | `Warning` |
 | Notice, Informational | `5`, `6` | `Information` |
 | Debug | `7` | `Debug` |

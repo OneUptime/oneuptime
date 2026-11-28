@@ -189,11 +189,21 @@ function describePost(text: string): string {
   return text.slice(0, 80);
 }
 
+// The times an App server runs with, as it says once set up.
+interface ReplicaTimes {
+  heldForAtMostMs: number;
+  stalledAfterMs: number;
+  keptEveryMs: number;
+  lookedAfterEveryMs: number;
+  askedEveryMs: number;
+}
+
 // An App server: a process of its own, asked over its IPC channel.
 class Replica {
   public stderr: string = "";
   public exited: Promise<number | null>;
   public heardAt: Array<number> = [];
+  public times: ReplicaTimes | null = null;
 
   private nextId: number = 1;
   private answers: Map<
@@ -455,8 +465,13 @@ async function startServers(
   );
 
   await Promise.all(
-    started.map((replica: Replica): Promise<JSONObject> => {
-      return replica.ask("setUp", { keyPrefix: KEY_PREFIX, ...times });
+    started.map(async (replica: Replica): Promise<void> => {
+      const setUp: JSONObject = await replica.ask("setUp", {
+        keyPrefix: KEY_PREFIX,
+        ...times,
+      });
+
+      replica.times = (setUp["times"] as unknown as ReplicaTimes) || null;
     }),
   );
 
@@ -725,8 +740,8 @@ describe("a server killed outright loses none of the messages it held (#11235)",
     ).toBeGreaterThanOrEqual(STALLED_MS - 500);
   });
 
-  test("REGRESSION (#11235): the server running the create chain is killed while its own message waits: the other server posts it, once the hold has run out", async () => {
-    const HELD_MS: number = 3000;
+  test("REGRESSION (#11235, #11314): the server running the create chain is killed while its own message waits: the other server posts it once the killed server has said nothing for STALLED_AFTER_MS, long before the hold runs out", async () => {
+    const HELD_MS: number = 120_000;
     const STALLED_MS: number = 1500;
     const [creating, other] = await startServers(["A", "B"], {
       heldForAtMostMs: HELD_MS,
@@ -740,7 +755,6 @@ describe("a server killed outright loses none of the messages it held (#11235)",
         // It is killed below.
       });
     await creating!.paused();
-    const heldFrom: number = Date.now();
 
     // "Added team Platform to the Incident as the owner" has its place in the line.
     await waitUntil("the owner message has its ticket", async () => {
@@ -749,15 +763,21 @@ describe("a server killed outright loses none of the messages it held (#11235)",
 
     // Killed with its chain half way, before "Incident Created".
     await creating!.kill();
+    const killedAt: number = Date.now();
 
     await slack.waitFor(1, 40_000);
     await pause(1000);
 
     // The other server, with no message of its own in the line, posts it.
     expect(slack.said()).toEqual(["B: Platform added"]);
-    expect(other!.heardAt[0]! - heldFrom).toBeGreaterThanOrEqual(
-      HELD_MS - 1000,
+
+    // Once its holder could have stopped saying it holds the line, not after the hold.
+    const postedAfter: number = other!.heardAt[0]! - killedAt;
+
+    expect(postedAfter).toBeGreaterThanOrEqual(
+      STALLED_MS - creating!.times!.keptEveryMs - 500,
     );
+    expect(postedAfter).toBeLessThan(HELD_MS / 10);
   });
 
   test("the other server is killed while its message waits last in the line: the creating server posts it, with nothing of its own left waiting", async () => {
@@ -1091,8 +1111,8 @@ describe("a maintenance event's and an on-call policy's owner lines, across serv
     expect(await theLine(POLICY_LINE)).toEqual({});
   });
 
-  test("REGRESSION (#11224): the server announcing an on-call policy is killed while its creator's line waits: the other server posts it, once the hold has run out", async () => {
-    const HELD_MS: number = 3000;
+  test("REGRESSION (#11224, #11314): the server announcing an on-call policy is killed while its creator's line waits: the other server posts it once the killed server has said nothing for STALLED_AFTER_MS, long before the hold runs out", async () => {
+    const HELD_MS: number = 120_000;
     const STALLED_MS: number = 1500;
     const [creating, other] = await startServers(["A", "B"], {
       eventType: NotificationRuleEventType.OnCallDutyPolicy,
@@ -1107,7 +1127,6 @@ describe("a maintenance event's and an on-call policy's owner lines, across serv
         // It is killed below.
       });
     await creating!.paused();
-    const heldFrom: number = Date.now();
 
     // The creator's line has its place in the line, with what it says.
     await waitUntil(
@@ -1119,14 +1138,232 @@ describe("a maintenance event's and an on-call policy's owner lines, across serv
 
     // Killed with the policy unannounced: "On-Call Policy Created" never goes out.
     await creating!.kill();
+    const killedAt: number = Date.now();
 
     await slack.waitFor(1, 40_000);
     await pause(1000);
 
     // The other server, with no message of its own in the line, posts it.
     expect(slack.said()).toEqual(["B: owner added"]);
-    expect(other!.heardAt[0]! - heldFrom).toBeGreaterThanOrEqual(
-      HELD_MS - 1000,
+
+    const postedAfter: number = other!.heardAt[0]! - killedAt;
+
+    expect(postedAfter).toBeGreaterThanOrEqual(
+      STALLED_MS - creating!.times!.keptEveryMs - 500,
     );
+    expect(postedAfter).toBeLessThan(HELD_MS / 10);
+  });
+});
+
+/*
+ * THE SERVER RUNNING A CREATE CHAIN SAYS IT STILL HOLDS THE RECORD'S LINE
+ * (#11314).
+ *
+ * A server killed outright before its record's Created message used to
+ * hold every other message about the record for the whole of its hold -
+ * five minutes - before the other servers posted them. Now it says it
+ * still holds the line every KEPT_EVERY_MS, on a timer of its own, and once
+ * it has said nothing for STALLED_AFTER_MS another server moves the line on
+ * and posts what it held, in order, once. Here with the times every App
+ * server runs with (realTimes): about 15 seconds, at most the time a look
+ * after the lines takes more. A server that is only slow, or frozen for
+ * less than that and resumed, keeps its line.
+ */
+describe("the server running the create chain says it still holds the record's line (#11314)", () => {
+  // How long after its holder was killed a line may move on at the earliest and at the latest.
+  function window(times: ReplicaTimes): { from: number; to: number } {
+    return {
+      // It said it holds the line KEPT_EVERY_MS before it was killed, at the most.
+      from: times.stalledAfterMs - times.keptEveryMs - 1000,
+      // And the look that finds it stopped comes LOOKED_AFTER_EVERY_MS after, at the most.
+      to: times.stalledAfterMs + times.lookedAfterEveryMs + 2000,
+    };
+  }
+
+  test("REGRESSION (#11314): SIGKILLed before Incident Created, with the other server's message waiting: within about 15 seconds the other server posts the killed server's message and its own, in order, each once - not after five minutes", async () => {
+    const [creating, other] = await startServers(["A", "B"], {
+      realTimes: true,
+    });
+    const times: ReplicaTimes = other!.times!;
+
+    // The times every App server runs with: a five-minute hold, fifteen seconds to stall.
+    expect(times.heldForAtMostMs).toBe(5 * 60 * 1000);
+    expect(times.stalledAfterMs).toBe(15 * 1000);
+
+    void creating!
+      .ask("createIncident", { pauseBeforeCreated: true })
+      .catch((): void => {
+        // It is killed below.
+      });
+    await creating!.paused();
+
+    // "Added team Platform to the Incident as the owner" waits first, then the Incident Commander.
+    await waitUntil("the owner message has its ticket", async () => {
+      return Number((await theLine())["tickets"] || 0) >= 1;
+    });
+    await other!.ask("assignCommander");
+
+    // Killed outright, its chain half way: no "Incident Created", and no word more.
+    await creating!.kill();
+    const killedAt: number = Date.now();
+
+    await slack.waitFor(2, 60_000);
+    await other!.ask("drained");
+    await pause(1000);
+
+    expect(slack.said()).toEqual([
+      "B: Platform added",
+      "B: Incident Commander",
+    ]);
+
+    const postedAfter: number = other!.heardAt[0]! - killedAt;
+
+    expect(postedAfter).toBeGreaterThanOrEqual(window(times).from);
+    expect(postedAfter).toBeLessThanOrEqual(window(times).to);
+
+    // The line is over, and each message claimed once: the take-over's, and B's own.
+    expect(await theLine()).toEqual({});
+    expect(await theClaims()).toHaveLength(2);
+  });
+
+  test("REGRESSION (#11314): SIGKILLed before Incident Created with only its own message waiting: the other server, looking after the lines, posts it within about 15 to 20 seconds, once", async () => {
+    const [creating, other] = await startServers(["A", "B"], {
+      realTimes: true,
+    });
+    const times: ReplicaTimes = other!.times!;
+
+    void creating!
+      .ask("createIncident", { pauseBeforeCreated: true })
+      .catch((): void => {
+        // It is killed below.
+      });
+    await creating!.paused();
+
+    await waitUntil("the owner message is stored with its ticket", async () => {
+      return Boolean((await theLine())["message:1"]);
+    });
+
+    await creating!.kill();
+    const killedAt: number = Date.now();
+
+    await slack.waitFor(1, 60_000);
+    await pause(1000);
+
+    expect(slack.said()).toEqual(["B: Platform added"]);
+
+    const postedAfter: number = other!.heardAt[0]! - killedAt;
+
+    expect(postedAfter).toBeGreaterThanOrEqual(window(times).from);
+    expect(postedAfter).toBeLessThanOrEqual(window(times).to);
+    expect(await theLine()).toEqual({});
+  });
+
+  test("SIGSTOPped for less than STALLED_AFTER_MS and resumed, it keeps its line: Incident Created first, then what was said meanwhile, in order, each once", async () => {
+    const STALLED_MS: number = 3000;
+    const [creating, other] = await startServers(["A", "B"], {
+      stalledAfterMs: STALLED_MS,
+    });
+
+    const created: Promise<JSONObject> = creating!.ask("createIncident", {
+      pauseAtFirstState: true,
+    });
+    await creating!.paused();
+
+    await other!.ask("assignCommander");
+
+    // Frozen - a long pause, a stalled VM - for half of what its line allows, then back.
+    creating!.freeze();
+    await pause(STALLED_MS / 2);
+    creating!.resume();
+
+    // Well past when it would have stopped, had it not said so again.
+    await pause(STALLED_MS * 2);
+
+    expect(slack.said()).toEqual([]);
+    expect((await theLine())["released"]).toBe("0");
+
+    await creating!.ask("resume");
+    await created;
+    await slack.waitFor(3);
+    await other!.ask("drained");
+    await pause(300);
+
+    expect(slack.said()).toEqual([
+      "A: Incident Created",
+      "B: Incident Commander",
+      "A: Platform added",
+    ]);
+  });
+
+  test("a create chain that is only slow - alive, waiting three times as long as a holder may say nothing - is never cut short: Incident Created comes first", async () => {
+    const STALLED_MS: number = 1500;
+    const [creating, other] = await startServers(["A", "B"], {
+      stalledAfterMs: STALLED_MS,
+    });
+
+    const created: Promise<JSONObject> = creating!.ask("createIncident", {
+      pauseAtFirstState: true,
+    });
+    await creating!.paused();
+
+    await other!.ask("assignCommander");
+
+    await pause(STALLED_MS * 3);
+
+    expect(slack.said()).toEqual([]);
+    expect((await theLine())["released"]).toBe("0");
+
+    await creating!.ask("resume");
+    await created;
+    await slack.waitFor(3);
+    await other!.ask("drained");
+    await pause(300);
+
+    expect(slack.said()).toEqual([
+      "A: Incident Created",
+      "B: Incident Commander",
+      "A: Platform added",
+    ]);
+  });
+
+  test("SIGSTOPped past STALLED_AFTER_MS: what it held is posted for it, in order, once; resumed, it posts none of it again, and its Incident Created comes after", async () => {
+    const STALLED_MS: number = 1500;
+    const [creating, other] = await startServers(["A", "B"], {
+      stalledAfterMs: STALLED_MS,
+    });
+
+    const created: Promise<JSONObject> = creating!.ask("createIncident", {
+      pauseBeforeCreated: true,
+    });
+    await creating!.paused();
+
+    await waitUntil("the owner message has its ticket", async () => {
+      return Number((await theLine())["tickets"] || 0) >= 1;
+    });
+    await other!.ask("assignCommander");
+
+    creating!.freeze();
+
+    await slack.waitFor(2, 30_000);
+    await other!.ask("drained");
+
+    expect(slack.said()).toEqual([
+      "B: Platform added",
+      "B: Incident Commander",
+    ]);
+
+    // It comes back, and its chain goes on to Incident Created.
+    creating!.resume();
+    await creating!.ask("resume");
+    await created;
+    await slack.waitFor(3, 20_000);
+    await creating!.ask("drained");
+    await pause(1000);
+
+    expect(slack.said()).toEqual([
+      "B: Platform added",
+      "B: Incident Commander",
+      "A: Incident Created",
+    ]);
   });
 });

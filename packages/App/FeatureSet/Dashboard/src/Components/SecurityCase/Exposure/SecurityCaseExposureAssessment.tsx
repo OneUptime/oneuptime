@@ -1,6 +1,8 @@
+import { isCaseAboutAStore, isExposureReadRefusal } from "./CaseExposureRead";
 import {
   ASSESS_EXPOSURE,
   ASSESSED_TOAST,
+  EXPOSURE_CARD_PLACE,
   EXPOSURE_TEST_IDS,
   NOT_ASSESSED_DESCRIPTION,
   NOT_ASSESSED_READ_ONLY,
@@ -11,9 +13,7 @@ import {
 } from "./ExposureAssessmentCopy";
 import ExposureAssessmentCard from "./ExposureAssessmentCard";
 import ExposureNoticesCard from "./ExposureNoticesCard";
-import DataSecurityApi, {
-  DataSecurityApiError,
-} from "../../DataSecurity/DataSecurityApi";
+import DataSecurityApi from "../../DataSecurity/DataSecurityApi";
 import {
   DataSecurityExposureAssessmentResponse,
   DataSecurityExposureCaseStore,
@@ -21,11 +21,6 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import {
-  SecurityEntity,
-  SecurityEntityType,
-  readSecurityEntities,
-} from "Common/Types/SecurityCase/SecurityEntity";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Dropdown, {
@@ -83,23 +78,7 @@ export interface ComponentProps {
 }
 
 // Whether a case's entities name a data store: only then is the assessment read.
-export function isCaseAboutAStore(entities: JSONArray | undefined): boolean {
-  return readSecurityEntities(entities).some(
-    (entity: SecurityEntity): boolean => {
-      return entity.type === SecurityEntityType.DataStore;
-    },
-  );
-}
-
-// A refusal of the read: the reader may not read the store's findings.
-function isRefusal(error: unknown): boolean {
-  return (
-    error instanceof DataSecurityApiError &&
-    (error.statusCode === 401 ||
-      error.statusCode === 403 ||
-      error.statusCode === 422)
-  );
-}
+export { isCaseAboutAStore };
 
 const SecurityCaseExposureAssessment: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -135,7 +114,7 @@ const SecurityCaseExposureAssessment: FunctionComponent<ComponentProps> = (
           return;
         }
 
-        if (isRefusal(err)) {
+        if (isExposureReadRefusal(err)) {
           setIsRefused(true);
           return;
         }
@@ -154,7 +133,11 @@ const SecurityCaseExposureAssessment: FunctionComponent<ComponentProps> = (
 
   if (error) {
     return (
-      <Card title={WAS_IT_A_BREACH} description={WAS_IT_A_BREACH_DESCRIPTION}>
+      <Card
+        id={EXPOSURE_CARD_PLACE}
+        title={WAS_IT_A_BREACH}
+        description={WAS_IT_A_BREACH_DESCRIPTION}
+      >
         <ErrorMessage
           message={error}
           onRefreshClick={() => {
@@ -170,7 +153,11 @@ const SecurityCaseExposureAssessment: FunctionComponent<ComponentProps> = (
 
   if (!answer) {
     return (
-      <Card title={WAS_IT_A_BREACH} description={WAS_IT_A_BREACH_DESCRIPTION}>
+      <Card
+        id={EXPOSURE_CARD_PLACE}
+        title={WAS_IT_A_BREACH}
+        description={WAS_IT_A_BREACH_DESCRIPTION}
+      >
         <DetailListSkeleton />
       </Card>
     );
@@ -213,7 +200,11 @@ const SecurityCaseExposureAssessment: FunctionComponent<ComponentProps> = (
     );
 
     return (
-      <Card title={WAS_IT_A_BREACH} description={WAS_IT_A_BREACH_DESCRIPTION}>
+      <Card
+        id={EXPOSURE_CARD_PLACE}
+        title={WAS_IT_A_BREACH}
+        description={WAS_IT_A_BREACH_DESCRIPTION}
+      >
         <EmptyState
           id={EXPOSURE_TEST_IDS.notAssessed}
           size={EmptyStateSize.Inline}

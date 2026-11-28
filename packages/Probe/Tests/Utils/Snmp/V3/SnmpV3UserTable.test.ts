@@ -9,6 +9,7 @@ import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol"
 import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import { SnmpTrapReceiverUser } from "Common/Types/Probe/SnmpTrapReceiver";
+import { SnmpV3CredentialHolders } from "Common/Types/Probe/SnmpV3CredentialHolders";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -100,6 +101,107 @@ describe("replace", () => {
     expect(table.getCandidates(name("Überwachung"), "x")).toHaveLength(1);
     expect(table.getCandidates(name("überwachung"), "x")).toHaveLength(0);
     expect(table.getCandidates(name("Uberwachung"), "x")).toHaveLength(0);
+  });
+});
+
+describe("who holds each user (#11172)", () => {
+  const HELD_BY: SnmpV3CredentialHolders = {
+    projectIds: ["11720000-0000-4000-8000-0000000000a1"],
+    deviceIds: ["11720000-0000-4000-8000-000000000d01"],
+    siteIds: [],
+  };
+
+  test("is kept beside the user, as OneUptime handed it", () => {
+    const table: SnmpV3UserTable = new SnmpV3UserTable();
+    table.replace([{ ...SAN, heldBy: HELD_BY }]);
+
+    expect(
+      table.getCandidates(name("san-monitor"), "10.20.0.5")[0]!.heldBy,
+    ).toEqual(HELD_BY);
+  });
+
+  test("is none when OneUptime did not say (a server older than #11172)", () => {
+    const table: SnmpV3UserTable = new SnmpV3UserTable();
+    table.replace([SAN]);
+
+    expect(
+      table.getCandidates(name("san-monitor"), "10.20.0.5")[0]!.heldBy,
+    ).toBeUndefined();
+  });
+
+  test("one credential handed twice is held by both", () => {
+    const table: SnmpV3UserTable = new SnmpV3UserTable();
+    table.replace([
+      { ...SAN, heldBy: HELD_BY },
+      {
+        ...SAN,
+        addresses: ["10.20.0.6"],
+        heldBy: {
+          projectIds: ["11720000-0000-4000-8000-0000000000a1"],
+          deviceIds: ["11720000-0000-4000-8000-000000000d02"],
+          siteIds: ["11720000-0000-4000-8000-000000000501"],
+        },
+      },
+    ]);
+
+    expect(
+      table.getCandidates(name("san-monitor"), "10.20.0.5")[0]!.heldBy,
+    ).toEqual({
+      projectIds: ["11720000-0000-4000-8000-0000000000a1"],
+      deviceIds: [
+        "11720000-0000-4000-8000-000000000d01",
+        "11720000-0000-4000-8000-000000000d02",
+      ],
+      siteIds: ["11720000-0000-4000-8000-000000000501"],
+    });
+  });
+
+  test("handed twice, once without, is held by nothing known", () => {
+    const table: SnmpV3UserTable = new SnmpV3UserTable();
+    table.replace([{ ...SAN, heldBy: HELD_BY }, { ...SAN }]);
+
+    expect(
+      table.getCandidates(name("san-monitor"), "10.20.0.5")[0]!.heldBy,
+    ).toBeUndefined();
+  });
+
+  test("two users of one name with other keys each keep their own", () => {
+    const other: SnmpV3CredentialHolders = {
+      projectIds: ["11720000-0000-4000-8000-0000000000a1"],
+      deviceIds: ["11720000-0000-4000-8000-000000000d09"],
+      siteIds: [],
+    };
+    const table: SnmpV3UserTable = new SnmpV3UserTable();
+    table.replace([
+      { ...SAN, heldBy: HELD_BY },
+      { ...SAN, privKey: "another-priv-passphrase", heldBy: other },
+    ]);
+
+    expect(
+      table.getCandidates(name("san-monitor"), "x").map((user: UsmUser) => {
+        return user.heldBy;
+      }),
+    ).toEqual([HELD_BY, other]);
+  });
+
+  test("who holds a user is no part of its credential: the same keys keep their derived keys", () => {
+    const table: SnmpV3UserTable = new SnmpV3UserTable();
+    table.replace([{ ...SAN, heldBy: HELD_BY }]);
+    const fingerprint: string = table.getCandidates(
+      name("san-monitor"),
+      "x",
+    )[0]!.fingerprint;
+
+    table.replace([
+      {
+        ...SAN,
+        heldBy: { ...HELD_BY, deviceIds: [] },
+      },
+    ]);
+
+    expect(table.getCandidates(name("san-monitor"), "x")[0]!.fingerprint).toBe(
+      fingerprint,
+    );
   });
 });
 

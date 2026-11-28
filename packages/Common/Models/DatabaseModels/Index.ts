@@ -382,6 +382,7 @@ import IncomingCallLogItem from "./IncomingCallLogItem";
 
 import Probe from "./Probe";
 import ProbeOwnerTeam from "./ProbeOwnerTeam";
+import GlobalProbeSnmpTrapReport from "./GlobalProbeSnmpTrapReport";
 import ProbeOwnerUser from "./ProbeOwnerUser";
 import AIAgent from "./AIAgent";
 import AIAgentOwnerTeam from "./AIAgentOwnerTeam";
@@ -1214,6 +1215,7 @@ const AllModelTypes: Array<{
   CodeRepositoryMintedToken,
 
   ProbeOwnerTeam,
+  GlobalProbeSnmpTrapReport,
   ProbeOwnerUser,
 
   AIAgent,

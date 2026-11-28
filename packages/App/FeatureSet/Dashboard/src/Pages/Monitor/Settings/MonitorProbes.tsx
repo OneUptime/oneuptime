@@ -1,5 +1,8 @@
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import ProbeVersionElement from "../../../Components/Probe/ProbeVersion";
+import SnmpEngineIdValue from "../../../Components/Probe/SnmpEngineIdValue";
+import SnmpTrapReceiverUtil from "Common/Types/Probe/SnmpTrapReceiver";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -188,6 +191,17 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             iconFileId: true,
             // When a disconnected one was last seen, under its Status (#9597).
             lastAlive: true,
+            /*
+             * Whether it is behind, since when and by how much, for its
+             * Status: the global probes said Connected while they were
+             * handed nothing to check.
+             */
+            checksLateSince: true,
+            checksLastLateAt: true,
+            checksLastLateDueAt: true,
+            devicePollsLateSince: true,
+            devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
           }}
           actionButtons={[monitorThisProbeAction]}
           filters={[
@@ -238,6 +252,36 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return <ProbeStatusElement probe={item} />;
               },
             },
+            /*
+             * What a device sending a global probe SNMPv3 informs is given
+             * (#11173): the one fact of its trap receiver that belongs to no
+             * project, which the global probes route hands back alone.
+             */
+            {
+              field: {
+                snmpTrapReceiver: true,
+              },
+              title: "SNMPv3 Engine ID",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              // The route sorts by nothing it hands back whole: by no report.
+              disableSort: true,
+              getElement: (item: Probe): ReactElement => {
+                const engineId: string | undefined =
+                  SnmpTrapReceiverUtil.parseReport(
+                    item.snmpTrapReceiver,
+                  )?.engineId;
+
+                return engineId ? (
+                  <SnmpEngineIdValue
+                    engineId={engineId}
+                    dataTestId="global-probe-snmp-engine-id"
+                  />
+                ) : (
+                  <TableEmptyValue />
+                );
+              },
+            },
           ]}
         />
 
@@ -280,11 +324,13 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           selectMoreFields={{
             key: true,
             iconFileId: true,
-            // Whether it is behind, for its Status (#9488, #9499).
+            // Whether it is behind, and by how much, for its Status (#9488, #9499).
             checksLateSince: true,
             checksLastLateAt: true,
+            checksLastLateDueAt: true,
             devicePollsLateSince: true,
             devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
             // When a disconnected one was last seen, under its Status (#9597).
             lastAlive: true,
           }}

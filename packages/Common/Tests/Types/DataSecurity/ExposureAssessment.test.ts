@@ -4,7 +4,9 @@ import {
   BreachLawFamily,
   BreachLawId,
   BreachPlace,
+  CARD_BRAND_RULE_IDS,
   getBreachLawRule,
+  UNCOVERED_US_STATES,
 } from "../../../Types/DataSecurity/BreachLaws";
 import {
   BreachObligationFact,
@@ -18,10 +20,20 @@ import {
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { getBuiltInDataType } from "../../../Types/DataSecurity/DataTypeCatalog";
 import {
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  ExposureLogUnreadReason,
+  getUnreadLogs,
+} from "../../../Types/DataSecurity/AccessLogReads";
+import {
   addBusinessDays,
+  applyBreachLaw,
   applyBreachLaws,
+  BreachCheckKind,
+  BreachLawFacts,
   BreachObligation,
   BreachObligationStatus,
+  BreachReasonKind,
   buildExposureAssessmentView,
   countObligationsThatMayApply,
   describeBreachCheckInEnglish,
@@ -55,6 +67,7 @@ import {
   getExposureReads,
   getExposureWindow,
   getIssueOpenIntervals,
+  getLogReadFromOutside,
   getMostUrgentObligation,
   getPlacesOfCountries,
   getStaleExposureDraftParts,
@@ -74,6 +87,8 @@ import {
   startExposureAssessment,
   StoredExposureAssessment,
   toStoredExposureAssessmentJson,
+  UNCOVERED_LAW_WORDS,
+  UncoveredLaw,
   UncoveredLawKind,
 } from "../../../Types/DataSecurity/ExposureAssessment";
 import {
@@ -659,6 +674,189 @@ describe("who read it, with and without logs", () => {
     // A public grant is anyone on the internet.
     expect(reads.isPublic).toBe(true);
   });
+
+  /*
+   * #10951: where reads were logged and OneUptime read the store's own
+   * access logs for this window, they say who read it.
+   */
+  function logRead(
+    data: {
+      anonymous?: number;
+      outside?: number;
+      isComplete?: boolean;
+      windowStart?: string;
+      windowEnd?: string;
+    } = {},
+  ): ExposureLogRead {
+    const counts: (reads: number) => {
+      reads: number;
+      bytes: number;
+      objects: number;
+    } = (reads: number) => {
+      return { reads, bytes: reads * 1000, objects: reads ? 1 : 0 };
+    };
+
+    return {
+      ...getUnreadLogs({
+        reason: ExposureLogUnreadReason.NoWindow,
+        now: new Date("2026-11-20T00:00:00Z"),
+      }),
+      status: ExposureLogReadStatus.Read,
+      reason: undefined,
+      windowStart: data.windowStart || window.start,
+      windowEnd: data.windowEnd || window.end,
+      logLocation: "s3://acme-logs/logs/",
+      logFilesRead: 12,
+      isComplete: data.isComplete !== false,
+      anonymous: {
+        ...counts(data.anonymous || 0),
+        addresses: data.anonymous ? 3 : 0,
+      },
+      outside: { ...counts(data.outside || 0), accounts: data.outside ? 1 : 0 },
+    };
+  }
+
+  function readsWith(
+    read: ExposureLogRead | null,
+    accessLogging: boolean | null = true,
+  ): ExposureReads {
+    return getExposureReads({
+      accessLogging,
+      exposureCheckIds: ["public-read"],
+      isStorePublic: true,
+      grants: [],
+      window,
+      now,
+      logRead: read,
+    });
+  }
+
+  test("logs read and reads from outside found: the data was read, and the logs say so", () => {
+    const reads: ExposureReads = readsWith(
+      logRead({ anonymous: 40, outside: 2 }),
+    );
+
+    expect(reads.logged).toBe(ExposureReadsLogged.Logged);
+    expect(reads.isFromLogsCurrent).toBe(true);
+    expect(reads.isReadFromOutside).toBe(true);
+    expect(reads.isTreatedAsRead).toBe(true);
+    expect(reads.fromLogs?.anonymous.reads).toBe(40);
+    expect(getLogReadFromOutside(reads.fromLogs)).toBe(true);
+  });
+
+  test("every log file read and none from outside: not read, as far as the logs say", () => {
+    const reads: ExposureReads = readsWith(logRead());
+
+    expect(reads.isReadFromOutside).toBe(false);
+    expect(reads.isTreatedAsRead).toBe(false);
+  });
+
+  test("part of the logs read and none from outside so far: not known yet", () => {
+    const reads: ExposureReads = readsWith(logRead({ isComplete: false }));
+
+    expect(reads.isReadFromOutside).toBeUndefined();
+    expect(reads.isTreatedAsRead).toBe(false);
+    // Part read with reads found is read, all the same.
+    expect(
+      readsWith(logRead({ isComplete: false, outside: 1 })).isReadFromOutside,
+    ).toBe(true);
+  });
+
+  test("logs read for the window as it was are not for this one, and say nothing of it", () => {
+    const reads: ExposureReads = readsWith(
+      logRead({ outside: 5, windowStart: iso("2026-11-09T00:00:00Z") }),
+    );
+
+    expect(reads.fromLogs).toBeDefined();
+    expect(reads.isFromLogsCurrent).toBe(false);
+    expect(reads.isReadFromOutside).toBeUndefined();
+    expect(reads.isTreatedAsRead).toBe(false);
+  });
+
+  test("a store whose reads are not logged keeps its line: the logs a case kept say nothing", () => {
+    const reads: ExposureReads = readsWith(logRead({ outside: 5 }), false);
+
+    expect(reads.logged).toBe(ExposureReadsLogged.NotLogged);
+    expect(reads.fromLogs).toBeUndefined();
+    expect(reads.isTreatedAsRead).toBe(true);
+    // A read that could not be made answers nothing.
+    expect(
+      getLogReadFromOutside(
+        getUnreadLogs({
+          reason: ExposureLogUnreadReason.NoContentAccess,
+          now,
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("reads from outside in the logs answer the breach laws' check; none found leaves it a person's", () => {
+    const facts: (reads: ExposureReads) => BreachLawFacts = (
+      reads: ExposureReads,
+    ): BreachLawFacts => {
+      return {
+        whose: whose({ dataTypeIds: ["email-address"], countries: ["DE"] }),
+        reads,
+        foundAt: new Date(window.foundAt),
+        now,
+      };
+    };
+    const found: BreachObligation = applyBreachLaw(
+      getBreachLawRule(BreachLawId.GdprAuthority),
+      facts(readsWith(logRead({ anonymous: 40, outside: 2 }))),
+    );
+
+    expect(
+      found.checks.map((check: { kind: BreachCheckKind }) => {
+        return check.kind;
+      }),
+    ).not.toContain(BreachCheckKind.ReadFromOutside);
+    expect(found.reasons).toContainEqual({
+      kind: BreachReasonKind.ReadFromOutsideLogged,
+      records: 42,
+    });
+
+    const none: BreachObligation = applyBreachLaw(
+      getBreachLawRule(BreachLawId.GdprAuthority),
+      facts(readsWith(logRead())),
+    );
+
+    expect(
+      none.checks.map((check: { kind: BreachCheckKind }) => {
+        return check.kind;
+      }),
+    ).toContain(BreachCheckKind.ReadFromOutside);
+    expect(
+      none.reasons.map((reason: { kind: BreachReasonKind }) => {
+        return reason.kind;
+      }),
+    ).not.toContain(BreachReasonKind.ReadFromOutsideLogged);
+  });
+
+  test("a case keeps what it read of the logs, and reads it back", () => {
+    const kept: StoredExposureAssessment | null = readStoredExposureAssessment(
+      JSON.parse(
+        JSON.stringify({
+          ...startExposureAssessment({
+            dataStoreId: "10377000-0000-4000-8000-0000000000b1",
+            startedBy: ExposureAssessmentStarter.DataSecurity,
+            language: "en",
+            now,
+          }),
+          logRead: logRead({ outside: 2 }),
+        }),
+      ),
+    );
+
+    expect(kept?.logRead?.outside.reads).toBe(2);
+    expect(kept?.logRead?.status).toBe(ExposureLogReadStatus.Read);
+    expect(
+      readStoredExposureAssessment({
+        dataStoreId: "10377000-0000-4000-8000-0000000000b1",
+        logRead: { status: "Lost" },
+      })?.logRead,
+    ).toBeUndefined();
+  });
 });
 
 describe("whose data", () => {
@@ -994,9 +1192,12 @@ describe("what the law may ask", () => {
         }),
       ),
     ).toContain(UncoveredLawKind.PeopleElsewhere);
-    // Nobody said where they live: other states may still be involved.
+    // Nobody said where they live: the states left out and the territories may matter.
     expect(kinds(whose({ dataTypeIds: ["email-address"] }))).toEqual([
-      UncoveredLawKind.OtherUsStates,
+      ...(UNCOVERED_US_STATES.length > 0
+        ? [UncoveredLawKind.OtherUsStates]
+        : []),
+      UncoveredLawKind.UsTerritories,
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
     ]);
@@ -1009,6 +1210,139 @@ describe("what the law may ask", () => {
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
     ]);
+  });
+
+  test("the US states the table leaves out are named: every one while nobody said which, else those a person named (#10952)", () => {
+    const leftOut: Array<BreachPlace> = [BreachPlace.Iowa, BreachPlace.Texas];
+    const statesOf: (data: ExposureWhoseData) => Array<BreachPlace> | null = (
+      data: ExposureWhoseData,
+    ): Array<BreachPlace> | null => {
+      return (
+        getUncoveredLaws(data, leftOut).find(
+          (uncovered: UncoveredLaw): boolean => {
+            return uncovered.kind === UncoveredLawKind.OtherUsStates;
+          },
+        )?.states || null
+      );
+    };
+
+    // Nobody said where: every state left out.
+    expect(statesOf(whose({ dataTypeIds: ["us-ssn"] }))).toEqual(leftOut);
+    // The United States without its states, or the old "another US state": every one too.
+    expect(
+      statesOf(
+        whose({ dataTypeIds: ["us-ssn"], places: [BreachPlace.UnitedStates] }),
+      ),
+    ).toEqual(leftOut);
+    expect(
+      statesOf(
+        whose({ dataTypeIds: ["us-ssn"], places: [BreachPlace.OtherUsState] }),
+      ),
+    ).toEqual(leftOut);
+    // The data shows people in the US and nobody named a state.
+    expect(
+      statesOf(
+        whose({
+          dataTypeIds: ["us-ssn"],
+          countries: ["US"],
+          places: [BreachPlace.Eea],
+        }),
+      ),
+    ).toEqual(leftOut);
+    // A person named Iowa and Florida: Iowa is the one left out.
+    expect(
+      statesOf(
+        whose({
+          dataTypeIds: ["us-ssn"],
+          places: [BreachPlace.Iowa, BreachPlace.Florida],
+        }),
+      ),
+    ).toEqual([BreachPlace.Iowa]);
+    /*
+     * A person named only covered states: no state to name, no territory,
+     * and no line on the agencies' notices, which are rows of their own.
+     */
+    const named: Array<UncoveredLawKind> = getUncoveredLaws(
+      whose({ dataTypeIds: ["us-ssn"], places: [BreachPlace.Florida] }),
+      leftOut,
+    ).map((uncovered: UncoveredLaw): UncoveredLawKind => {
+      return uncovered.kind;
+    });
+
+    expect(named).toEqual([
+      UncoveredLawKind.Establishment,
+      UncoveredLawKind.ContractsAndSectors,
+    ]);
+    // The table's own: none left out names no state.
+    expect(
+      getUncoveredLaws(whose({ dataTypeIds: ["us-ssn"] }), []).some(
+        (uncovered: UncoveredLaw): boolean => {
+          return uncovered.kind === UncoveredLawKind.OtherUsStates;
+        },
+      ),
+    ).toBe(false);
+  });
+
+  test("each line of what the table does not cover is words, and the states' line names them", () => {
+    for (const kind of Object.values(UncoveredLawKind)) {
+      expect(UNCOVERED_LAW_WORDS[kind].length).toBeGreaterThan(20);
+    }
+
+    expect(UNCOVERED_LAW_WORDS[UncoveredLawKind.OtherUsStates]).toContain(
+      "{{states}}",
+    );
+    expect(UNCOVERED_LAW_WORDS[UncoveredLawKind.UsTerritories]).toContain(
+      "Guam",
+    );
+    // Each state's notice to the consumer reporting agencies is a row: no line says it is left out.
+    for (const words of Object.values(UNCOVERED_LAW_WORDS)) {
+      expect(words).not.toContain("consumer reporting agencies");
+    }
+  });
+
+  test("the table leaves out West Virginia and Puerto Rico only, whose official sources could not be read (#10952)", () => {
+    expect([...UNCOVERED_US_STATES].sort()).toEqual(
+      [BreachPlace.PuertoRico, BreachPlace.WestVirginia].sort(),
+    );
+  });
+
+  test("card data says which card brands the table does not cover, and names those it does (#10953)", () => {
+    const kinds: Array<UncoveredLawKind> = getUncoveredLaws(
+      whose({
+        dataTypeIds: ["credit-card-number", "card-verification-code"],
+        places: [BreachPlace.Eea],
+      }),
+    ).map((uncovered: { kind: UncoveredLawKind }): UncoveredLawKind => {
+      return uncovered.kind;
+    });
+
+    expect(kinds).toEqual([
+      UncoveredLawKind.OtherCardBrands,
+      UncoveredLawKind.Establishment,
+      UncoveredLawKind.ContractsAndSectors,
+    ]);
+
+    // No card data: no card brand to warn of.
+    expect(
+      getUncoveredLaws(
+        whose({
+          dataTypeIds: ["bank-account-number", "person-name"],
+          places: [BreachPlace.Eea],
+        }),
+      ).map((uncovered: { kind: UncoveredLawKind }): UncoveredLawKind => {
+        return uncovered.kind;
+      }),
+    ).not.toContain(UncoveredLawKind.OtherCardBrands);
+
+    // The words name each brand the table has rows for, and those it has not.
+    const words: string = UNCOVERED_LAW_WORDS[UncoveredLawKind.OtherCardBrands];
+
+    for (const id of CARD_BRAND_RULE_IDS) {
+      expect(words).toContain(getBreachLawRule(id).family);
+    }
+
+    expect(words).toContain("Discover, JCB and UnionPay");
+    expect(words).toContain("ask your acquirer");
   });
 });
 
@@ -1303,6 +1637,183 @@ describe("OneUptime AI's drafts, held to the facts", () => {
         ],
       }),
     ).toEqual(["UK-GDPR"]);
+  });
+
+  test("a card brand is named only when its own rules are among the facts, and a brand the table has no rules for never (#10953)", () => {
+    const brands: Array<ComplianceFact> = [
+      HOLDS,
+      obligationFact({
+        id: "F3",
+        family: BreachLawFamily.Visa,
+        ruleId: BreachLawId.VisaCompromise,
+        law: "Visa What To Do If Compromised Section A.1",
+      }),
+      obligationFact({
+        id: "F4",
+        family: BreachLawFamily.Mastercard,
+        ruleId: BreachLawId.MastercardAdcEvent,
+        law: "Mastercard Security Rules and Procedures Section 10.3.1",
+      }),
+      obligationFact({
+        id: "F5",
+        family: BreachLawFamily.AmericanExpress,
+        ruleId: BreachLawId.AmericanExpressDataIncident,
+        law: "American Express Data Security Operating Policy Section 3.1",
+      }),
+    ];
+
+    expect(
+      getUnfoundedLaws({
+        text: "Notify Visa within three days, Mastercard within 24 hours and American Express (Amex) within 72.",
+        facts: brands,
+      }),
+    ).toEqual([]);
+    // Without their rules in the facts, each brand is a law the draft made up.
+    expect(
+      getUnfoundedLaws({
+        text: "Notify Visa and Mastercard, and Amex.",
+        facts: [HOLDS],
+      }),
+    ).toEqual(["Visa", "Mastercard", "Amex"]);
+    // Brands that publish no deadline: never named, whatever the facts.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell JCB, UnionPay and the Discover Network too.",
+        facts: brands,
+      }),
+    ).toEqual(["JCB", "UnionPay", "Discover Network"]);
+    // "Discover" the word is no brand.
+    expect(
+      getUnfoundedLaws({
+        text: "When you discover a breach, notify Visa.",
+        facts: brands,
+      }),
+    ).toEqual([]);
+  });
+
+  test("a US state's law is named only when its notices are among the facts, by its name or its sections (#10952)", () => {
+    const illinois: Array<ComplianceFact> = [
+      HOLDS,
+      obligationFact({
+        id: "F3",
+        family: BreachLawFamily.Illinois,
+        ruleId: BreachLawId.IllinoisResidents,
+        law: "815 ILCS 530 10(a)",
+      }),
+    ];
+
+    expect(
+      getUnfoundedLaws({
+        text: "Under the Illinois Personal Information Protection Act (815 ILCS 530), tell each Illinois resident.",
+        facts: illinois,
+      }),
+    ).toEqual([]);
+    // Another state's name, or its sections, is a law the draft made up.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell Indiana's attorney general too, under 24-4.9, and Alabama's under 8-38-6.",
+        facts: illinois,
+      }),
+    ).toEqual(["Alabama", "8-38-6", "Indiana", "24-4.9"]);
+    expect(
+      getUnfoundedLaws({
+        text: "Hawaii and Hawaiʻi both name the state; so does 487N-2.",
+        facts: illinois,
+      }),
+    ).toEqual(["Hawaii", "Hawaiʻi", "487N-2"]);
+    // "Arkansas" is not read as "Kansas", nor "Indian" as "Indiana".
+    expect(
+      getUnfoundedLaws({
+        text: "Indian customers were in the store too.",
+        facts: illinois,
+      }),
+    ).toEqual([]);
+  });
+
+  test("Washington, D.C. is the District of Columbia's law, never the state of Washington's (#10952)", () => {
+    const district: Array<ComplianceFact> = [
+      HOLDS,
+      obligationFact({
+        id: "F3",
+        family: BreachLawFamily.DistrictOfColumbia,
+        ruleId: BreachLawId.DistrictOfColumbiaResidents,
+        law: "D.C. Code 28-3852(a)",
+      }),
+    ];
+
+    for (const text of [
+      "Tell each District of Columbia resident, under D.C. Code 28-3852.",
+      "Tell the people in Washington, D.C. affected.",
+      "Tell the people in Washington DC affected.",
+    ]) {
+      expect({
+        text,
+        unfounded: getUnfoundedLaws({ text, facts: district }),
+      }).toEqual({ text, unfounded: [] });
+    }
+
+    // The state of Washington's law is not among these facts.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell the Washington attorney general.",
+        facts: district,
+      }),
+    ).toEqual(["Washington"]);
+    // And the state's facts do not make the District's.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell the people in Washington, D.C. affected.",
+        facts: [
+          HOLDS,
+          obligationFact({
+            id: "F3",
+            family: BreachLawFamily.Washington,
+            ruleId: BreachLawId.WashingtonConsumers,
+            law: "Revised Code of Washington 19.255.010",
+          }),
+        ],
+      }),
+    ).toEqual(["Washington, D.C."]);
+  });
+
+  test("West Virginia is a place, never Virginia's law, and its own sections are a law no fact holds (#10952)", () => {
+    const virginia: Array<ComplianceFact> = [
+      HOLDS,
+      obligationFact({
+        id: "F3",
+        family: BreachLawFamily.Virginia,
+        ruleId: BreachLawId.VirginiaResidents,
+        law: "Code of Virginia 18.2-186.6(B)",
+      }),
+    ];
+
+    // Virginia's law, by its name and its section, rests on its fact.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell each Virginia resident, under Code of Virginia 18.2-186.6.",
+        facts: virginia,
+      }),
+    ).toEqual([]);
+    // West Virginia named as a place is not Virginia's law, whatever the facts.
+    expect(
+      getUnfoundedLaws({
+        text: "Some of the people live in West Virginia.",
+        facts: [HOLDS],
+      }),
+    ).toEqual([]);
+    expect(
+      getUnfoundedLaws({
+        text: "Some of the people live in West Virginia and Virginia.",
+        facts: [HOLDS],
+      }),
+    ).toEqual(["Virginia"]);
+    // West Virginia's own sections are a law the table does not hold.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell them under W. Va. Code 46A-2A-102.",
+        facts: virginia,
+      }),
+    ).toEqual(["46A-2A-102"]);
   });
 
   test("a draft that cites no fact, or says too little, is dropped", () => {

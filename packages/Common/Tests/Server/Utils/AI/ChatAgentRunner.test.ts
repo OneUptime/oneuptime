@@ -862,6 +862,193 @@ describe("ChatAgentRunner.runTurn — history replay", () => {
       answer.indexOf("[A test page was sent"),
     );
   });
+
+  /*
+   * Issue #11255: an answer saved before replies were read for reasoning
+   * holds the model's - a stray "</think>", or the whole of it - and the
+   * model is never fed that as something it said.
+   */
+  test("an answer saved with the model's reasoning in it replays without it", async () => {
+    const history: Array<AIConversationMessage> = [
+      buildHistoryMessage({
+        role: AIChatMessageRole.User,
+        content: "And what should we do now?",
+      }),
+      buildHistoryMessage({
+        role: AIChatMessageRole.Assistant,
+        content:
+          "Okay, the user wants the cause. The deploy came first.\n</think>\n\nThe deploy at 02:38 is the cause [C1].",
+        citations: [buildCitation()],
+      }),
+      buildHistoryMessage({
+        role: AIChatMessageRole.Assistant,
+        content: "</think>I now have a comprehensive picture of this incident.",
+      }),
+      buildHistoryMessage({
+        role: AIChatMessageRole.User,
+        content: "Why do you think <think> tags show up?",
+      }),
+    ];
+
+    const spies: RunnerSpies = installRunnerSpies({ history, titleCount: 5 });
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    const llmRequest: AILogRequest = spies.executeWithLogging.mock
+      .calls[0]?.[0] as AILogRequest;
+    const contents: Array<string> = llmRequest.messages.map(
+      (message: { content: string }) => {
+        return message.content;
+      },
+    );
+
+    // The person's own words are never read for reasoning.
+    expect(contents).toContain("Why do you think <think> tags show up?");
+    expect(contents).toContain(
+      "I now have a comprehensive picture of this incident.",
+    );
+
+    const replayedAnswer: string =
+      contents.find((content: string): boolean => {
+        return content.startsWith("The deploy at 02:38");
+      }) || "";
+
+    expect(replayedAnswer).toContain("The deploy at 02:38 is the cause.");
+    expect(replayedAnswer).toContain("C1 query_incidents");
+
+    for (const content of contents.slice(1)) {
+      expect(content).not.toContain("</think>");
+      expect(content).not.toContain("The deploy came first.");
+    }
+  });
+});
+
+/*
+ * Issue #11255: a model whose chat template opens its reasoning
+ * (DeepSeek-R1, QwQ, Qwen3's thinking models) and thinks for longer than the
+ * output limit writes a first reply that is all reasoning, with no tag in
+ * it. The continuation that reaches "</think>" says so, and the answer is
+ * what came after it.
+ */
+describe("ChatAgentRunner.runTurn — an answer finished in parts, from a model that thinks out loud", () => {
+  const replyWithReasoning: (data: {
+    content: string;
+    stopReason: string;
+    startedInsideReasoning: boolean;
+  }) => AILogResponse = (data: {
+    content: string;
+    stopReason: string;
+    startedInsideReasoning: boolean;
+  }): AILogResponse => {
+    return {
+      ...chatResponse(data.content, data.stopReason),
+      reasoning: { startedInsideReasoning: data.startedInsideReasoning },
+    } as AILogResponse;
+  };
+
+  test("a first reply cut off inside its reasoning is not part of the answer", async () => {
+    const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
+
+    spies.executeWithLogging
+      .mockResolvedValueOnce(
+        chatResponse(
+          "Okay, so the user wants the most likely root cause. The deploy at 02:38",
+          "length",
+        ) as never,
+      )
+      .mockResolvedValueOnce(
+        replyWithReasoning({
+          content: "The deploy at 02:38 is the most likely root cause.",
+          stopReason: "stop",
+          startedInsideReasoning: true,
+        }) as never,
+      );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    const finalized: JSONObject | undefined = findCallWithDataKey(
+      spies.messageUpdateOneBy,
+      "contentInMarkdown",
+    );
+
+    expect(finalized?.["contentInMarkdown"]).toBe(
+      "The deploy at 02:38 is the most likely root cause.",
+    );
+
+    // The model was given its own reply to go on from, as it wrote it.
+    const continuation: AILogRequest = spies.executeWithLogging.mock
+      .calls[1]?.[0] as AILogRequest;
+    const lastTwo: Array<{ role: string; content: string }> =
+      continuation.messages.slice(-2) as Array<{
+        role: string;
+        content: string;
+      }>;
+
+    expect(lastTwo[0]).toEqual({
+      role: "assistant",
+      content:
+        "Okay, so the user wants the most likely root cause. The deploy at 02:38",
+    });
+    expect(lastTwo[1]?.role).toBe("user");
+  });
+
+  test("an answer cut off after its reasoning keeps both parts", async () => {
+    const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
+
+    spies.executeWithLogging
+      .mockResolvedValueOnce(
+        replyWithReasoning({
+          content: "The deploy at 02:38",
+          stopReason: "length",
+          startedInsideReasoning: true,
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        replyWithReasoning({
+          content: " exhausted the connection pool.",
+          stopReason: "stop",
+          startedInsideReasoning: true,
+        }) as never,
+      );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    const finalized: JSONObject | undefined = findCallWithDataKey(
+      spies.messageUpdateOneBy,
+      "contentInMarkdown",
+    );
+
+    expect(finalized?.["contentInMarkdown"]).toBe(
+      "The deploy at 02:38 exhausted the connection pool.",
+    );
+  });
+
+  test("a model with no reasoning has its parts joined as before", async () => {
+    const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
+
+    spies.executeWithLogging
+      .mockResolvedValueOnce(
+        chatResponse("The deploy at 02:38", "length") as never,
+      )
+      .mockResolvedValueOnce(
+        chatResponse(" exhausted the connection pool.", "stop") as never,
+      );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    const finalized: JSONObject | undefined = findCallWithDataKey(
+      spies.messageUpdateOneBy,
+      "contentInMarkdown",
+    );
+
+    expect(finalized?.["contentInMarkdown"]).toBe(
+      "The deploy at 02:38 exhausted the connection pool.",
+    );
+  });
 });
 
 describe("ChatAgentRunner.runTurn — output truncation notice", () => {
@@ -927,6 +1114,42 @@ describe("ChatAgentRunner.runTurn — conversation titles", () => {
       "title",
     );
     expect(titleUpdate?.["title"]).toBe("Checkout Failure Investigation");
+  });
+
+  /*
+   * Issue #11255: a model whose template opens its reasoning spends the
+   * title's small output limit thinking, and its cut-off reply has no tag
+   * that says so: it is no title, and the conversation keeps its name.
+   */
+  test("a title reply the output limit cut off is no title", async () => {
+    const firstUserMessage: AIConversationMessage = buildHistoryMessage({
+      role: AIChatMessageRole.User,
+      content: "Why is checkout failing?",
+    });
+
+    const spies: RunnerSpies = installRunnerSpies({
+      history: [firstUserMessage],
+      historyCount: 2,
+      titleCount: 2,
+    });
+
+    spies.messageFindOneBy.mockResolvedValue(firstUserMessage as never);
+    spies.executeWithLogging
+      .mockResolvedValueOnce(chatResponse("Checkout is failing.") as never)
+      .mockResolvedValueOnce(
+        chatResponse(
+          "Okay, the user wants a title for a conversation about checkout failing. Let me think of",
+          "length",
+        ) as never,
+      );
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    expect(spies.executeWithLogging).toHaveBeenCalledTimes(2);
+    expect(
+      findCallWithDataKey(spies.conversationUpdateOneById, "title"),
+    ).toBeUndefined();
   });
 
   test("a title failure never affects the finished turn", async () => {
