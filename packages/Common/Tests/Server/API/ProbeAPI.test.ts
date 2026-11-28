@@ -250,15 +250,17 @@ describe("ProbeAPI", () => {
       );
     });
 
-    it("should let Settings > Global Probes read whether a global probe is behind, and since when", async () => {
+    it("should let Settings > Global Probes read whether a global probe is behind, since when and by how much", async () => {
       await callGlobalProbes({
         body: {
           select: {
             connectionStatus: true,
             checksLateSince: true,
             checksLastLateAt: true,
+            checksLastLateDueAt: true,
             devicePollsLateSince: true,
             devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
             key: true,
           },
         },
@@ -270,8 +272,10 @@ describe("ProbeAPI", () => {
             connectionStatus: true,
             checksLateSince: true,
             checksLastLateAt: true,
+            checksLastLateDueAt: true,
             devicePollsLateSince: true,
             devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
           },
         }),
       );

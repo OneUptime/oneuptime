@@ -53,15 +53,17 @@ const GLOBAL_PROBE_FIELDS: Array<string> = [
    */
   "isGlobalProbe",
   /*
-   * Whether the probe is behind, and since when (Types/Probe/ProbeBehind),
-   * for Settings > Probes to say so: times OneUptime keeps, read as the
-   * probe's status is. Not in the default select: the probe pickers need
-   * none of them.
+   * Whether the probe is behind, since when and by how much
+   * (Types/Probe/ProbeBehind), for Settings > Probes to say so: times
+   * OneUptime keeps, read as the probe's status is. Not in the default
+   * select: the probe pickers need none of them.
    */
   "checksLateSince",
   "checksLastLateAt",
+  "checksLastLateDueAt",
   "devicePollsLateSince",
   "devicePollsLastLateAt",
+  "devicePollsLastLateDueAt",
 ];
 
 export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {

@@ -67832,5 +67832,13 @@
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} haben denselben Namen wie ein anderer Datensatz vom Typ {{kind}} und sind in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden Datensatz, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} hat denselben Namen wie ein anderer Datensatz vom Typ {{kind}}, und die beiden sind in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden Datensatz, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} hat denselben Namen wie ein anderer Datensatz vom Typ {{kind}}, und die beiden sind in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden Datensatz, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um.",
-  "Fell behind {{time}}": "In Rückstand geraten {{time}}"
+  "Fell behind {{time}}": "In Rückstand geraten {{time}}",
+  "Behind by {{count}} days": "{{count}} Tage im Rückstand",
+  "Behind by {{count}} days_one": "{{count}} Tag im Rückstand",
+  "Behind by {{count}} hours": "{{count}} Stunden im Rückstand",
+  "Behind by {{count}} hours_one": "{{count}} Stunde im Rückstand",
+  "Behind by {{count}} minutes": "{{count}} Minuten im Rückstand",
+  "Behind by {{count}} minutes_one": "{{count}} Minute im Rückstand",
+  "Checks Last Late Due At": "Fälligkeit der ältesten verspäteten Prüfung",
+  "Device Polls Last Late Due At": "Fälligkeit der ältesten verspäteten Geräteabfrage"
 }

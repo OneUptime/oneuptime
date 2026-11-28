@@ -357,13 +357,14 @@ const MonitorProbes: FunctionComponent<
                 // When a disconnected one was last seen (#9597).
                 lastAlive: true,
                 /*
-                 * Whether it is behind on its monitor checks, and since
-                 * when: a probe handed no monitors to check said Connected
-                 * here for twelve hours. Its device polls are not this
-                 * monitor's.
+                 * Whether it is behind on its monitor checks, since when
+                 * and by how much: a probe handed no monitors to check said
+                 * Connected here for twelve hours. Its device polls are not
+                 * this monitor's.
                  */
                 checksLateSince: true,
                 checksLastLateAt: true,
+                checksLastLateDueAt: true,
               },
             },
             title: "Probe Status",

@@ -67832,5 +67832,13 @@
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} مورد ({{kinds}}) با {{kind}} دیگری هم‌نام‌اند و در انتخابگرها نمی‌توان آن‌ها را از هم تشخیص داد. هر کدام را باز کنید تا ببینید کدام کدام است، سپس نام یکی را تغییر دهید.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} با {{kind}} دیگری هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. هر کدام را باز کنید تا ببینید کدام کدام است، سپس نام یکی را تغییر دهید.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} با {{kind}} دیگری هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. هر کدام را باز کنید تا ببینید کدام کدام است، سپس نام یکی را تغییر دهید.",
-  "Fell behind {{time}}": "{{time}} عقب افتاد"
+  "Fell behind {{time}}": "{{time}} عقب افتاد",
+  "Behind by {{count}} days": "{{count}} روز عقب",
+  "Behind by {{count}} days_one": "{{count}} روز عقب",
+  "Behind by {{count}} hours": "{{count}} ساعت عقب",
+  "Behind by {{count}} hours_one": "{{count}} ساعت عقب",
+  "Behind by {{count}} minutes": "{{count}} دقیقه عقب",
+  "Behind by {{count}} minutes_one": "{{count}} دقیقه عقب",
+  "Checks Last Late Due At": "موعد عقب‌مانده‌ترین بررسی",
+  "Device Polls Last Late Due At": "موعد عقب‌مانده‌ترین پرس‌وجوی دستگاه"
 }

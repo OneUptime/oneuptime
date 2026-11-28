@@ -189,14 +189,16 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             // When a disconnected one was last seen, under its Status (#9597).
             lastAlive: true,
             /*
-             * Whether it is behind, and since when, for its Status: the
-             * global probes said Connected while they were handed nothing
-             * to check.
+             * Whether it is behind, since when and by how much, for its
+             * Status: the global probes said Connected while they were
+             * handed nothing to check.
              */
             checksLateSince: true,
             checksLastLateAt: true,
+            checksLastLateDueAt: true,
             devicePollsLateSince: true,
             devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
           }}
           actionButtons={[monitorThisProbeAction]}
           filters={[
@@ -289,11 +291,13 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           selectMoreFields={{
             key: true,
             iconFileId: true,
-            // Whether it is behind, for its Status (#9488, #9499).
+            // Whether it is behind, and by how much, for its Status (#9488, #9499).
             checksLateSince: true,
             checksLastLateAt: true,
+            checksLastLateDueAt: true,
             devicePollsLateSince: true,
             devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
             // When a disconnected one was last seen, under its Status (#9597).
             lastAlive: true,
           }}

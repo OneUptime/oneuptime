@@ -8,6 +8,7 @@ import path from "path";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import ProbeStatusElement, {
+  PROBE_BEHIND_BY,
   PROBE_FELL_BEHIND,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/ProbeStatus";
 import ProbeChecksElement, {
@@ -52,7 +53,8 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  * hours, and a monitor's Probes and Settings > Global Probes said
  * Connected throughout: neither asked whether a probe was behind. They do
  * now, and Behind says when the probe fell behind, the exact time on
- * hover.
+ * hover - and how far behind it is ("Behind by 11 hours"): how long its
+ * longest-waiting check had waited at the latest reading.
  */
 
 const DASHBOARD: string = path.join(
@@ -63,7 +65,13 @@ const DASHBOARD: string = path.join(
 const MINUTE: number = 60 * 1000;
 
 function connectedProbe(
-  data: { lateFor?: number | null; devicesLateFor?: number | null } = {},
+  data: {
+    lateFor?: number | null;
+    devicesLateFor?: number | null;
+    // How long the longest-waiting check had waited at the latest reading.
+    behindBy?: number | null;
+    devicesBehindBy?: number | null;
+  } = {},
 ): Probe {
   const probe: Probe = new Probe();
   probe.connectionStatus = ProbeConnectionStatus.Connected;
@@ -71,11 +79,23 @@ function connectedProbe(
   if (data.lateFor !== undefined && data.lateFor !== null) {
     probe.checksLastLateAt = new Date();
     probe.checksLateSince = new Date(Date.now() - data.lateFor);
+
+    if (data.behindBy !== undefined && data.behindBy !== null) {
+      probe.checksLastLateDueAt = new Date(
+        probe.checksLastLateAt.getTime() - data.behindBy,
+      );
+    }
   }
 
   if (data.devicesLateFor !== undefined && data.devicesLateFor !== null) {
     probe.devicePollsLastLateAt = new Date();
     probe.devicePollsLateSince = new Date(Date.now() - data.devicesLateFor);
+
+    if (data.devicesBehindBy !== undefined && data.devicesBehindBy !== null) {
+      probe.devicePollsLastLateDueAt = new Date(
+        probe.devicePollsLastLateAt.getTime() - data.devicesBehindBy,
+      );
+    }
   }
 
   return probe;
@@ -277,6 +297,125 @@ describe("the probe's status in the Custom Probes list", () => {
   });
 });
 
+describe("how far behind a probe is, in its status", () => {
+  // The status bubble's words, without the marks that isolate a value.
+  function statusText(): string {
+    return withoutIsolateMarks(screen.getByRole("status").textContent || "");
+  }
+
+  test("a probe whose longest-waiting check had waited 15 minutes is Behind by 15 minutes, in amber, since when under it", async () => {
+    await draw(
+      <ProbeStatusElement
+        probe={connectedProbe({ lateFor: 3 * MINUTE, behindBy: 15 * MINUTE })}
+      />,
+    );
+
+    // The figure is held to its word by a no-break space.
+    expect(statusText()).toMatch(/^Behind by 15\sminutes$/);
+    expect(dotColor()).toBe("rgb(255, 191, 83)");
+    expect(
+      withoutIsolateMarks(
+        screen.getByTestId("probe-status-behind-since").textContent || "",
+      ),
+    ).toMatch(/^Fell behind 3\sminutes ago$/);
+  });
+
+  test.each([
+    [61 * 1000, /^Behind by 1\sminute$/],
+    [60 * MINUTE, /^Behind by 1\shour$/],
+    // 2026-11-27: handed nothing from 04:09:46, read at 16:00.
+    [11 * 60 * MINUTE + 50 * MINUTE, /^Behind by 11\shours$/],
+    [3 * 24 * 60 * MINUTE, /^Behind by 3\sdays$/],
+  ])("late by %d ms, it reads %s", async (behindBy: number, reads: RegExp) => {
+    await draw(
+      <ProbeStatusElement
+        probe={connectedProbe({ lateFor: 3 * MINUTE, behindBy })}
+      />,
+    );
+
+    expect(statusText()).toMatch(reads);
+  });
+
+  test("behind on both, it is as far behind as the further of the two", async () => {
+    await draw(
+      <ProbeStatusElement
+        probe={connectedProbe({
+          lateFor: 3 * MINUTE,
+          behindBy: 15 * MINUTE,
+          devicesLateFor: 2 * 60 * MINUTE,
+          devicesBehindBy: 3 * 60 * MINUTE,
+        })}
+      />,
+    );
+
+    expect(statusText()).toMatch(/^Behind by 3\shours$/);
+  });
+
+  test("read as the list hands it a row, as JSON", async () => {
+    const lastLateAt: number = Date.now();
+
+    await draw(
+      <ProbeStatusElement
+        probe={{
+          connectionStatus: ProbeConnectionStatus.Connected,
+          checksLateSince: new Date(lastLateAt - 3 * MINUTE).toISOString(),
+          checksLastLateAt: new Date(lastLateAt).toISOString(),
+          checksLastLateDueAt: new Date(lastLateAt - 15 * MINUTE).toISOString(),
+        }}
+      />,
+    );
+
+    expect(statusText()).toMatch(/^Behind by 15\sminutes$/);
+  });
+
+  test("plain Behind while no due time is kept yet - the probe's first reading after an upgrade", async () => {
+    await draw(
+      <ProbeStatusElement probe={connectedProbe({ lateFor: 3 * MINUTE })} />,
+    );
+
+    expect(statusText()).toBe("Behind");
+  });
+
+  test("a probe that keeps up, or is drawn for its connection only, says nothing of how far behind", async () => {
+    await draw(<ProbeStatusElement probe={connectedProbe()} />);
+    expect(statusText()).toBe("Connected");
+    cleanup();
+
+    await draw(
+      <ProbeStatusElement
+        probe={connectedProbe({ lateFor: 3 * MINUTE, behindBy: 15 * MINUTE })}
+        isConnectionOnly={true}
+      />,
+    );
+    expect(statusText()).toBe("Connected");
+  });
+
+  test.each(["de", "fa", "ja"])(
+    "how far behind reads in %s",
+    async (language: string) => {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+
+      await draw(
+        <ProbeStatusElement
+          probe={connectedProbe({ lateFor: 3 * MINUTE, behindBy: 15 * MINUTE })}
+        />,
+      );
+
+      const locale: Record<string, string> = readDashboardLocale(language);
+      const text: string = statusText();
+
+      for (const words of locale[PROBE_BEHIND_BY.minute.other]!.split(
+        "{{count}}",
+      )) {
+        expect(text).toContain(words.trim());
+      }
+      expect(text).not.toContain("Behind by");
+    },
+  );
+});
+
 describe("Monitor Checks, on the probe's page", () => {
   test("a probe that keeps up is On Time", async () => {
     await draw(<ProbeChecksElement probe={connectedProbe()} />);
@@ -447,9 +586,14 @@ describe("in every language the Dashboard speaks", () => {
     PROBE_CHECKS_COPY.readTheGuide,
     // When it fell behind, under Behind in the lists.
     PROBE_FELL_BEHIND,
+    // How far behind, as its status in the lists: each unit's sentence.
+    PROBE_BEHIND_BY.minute.other,
+    PROBE_BEHIND_BY.hour.other,
+    PROBE_BEHIND_BY.day.other,
     // The model's column titles, which lists and filters show.
     "Checks Late Since",
     "Checks Last Late At",
+    "Checks Last Late Due At",
     // The same of the network devices it polls (#9499).
     PROBE_DEVICE_POLLS_COPY.title,
     PROBE_DEVICE_POLLS_COPY.description,
@@ -457,6 +601,7 @@ describe("in every language the Dashboard speaks", () => {
     PROBE_DEVICE_POLLS_COPY.behindFix,
     "Device Polls Late Since",
     "Device Polls Last Late At",
+    "Device Polls Last Late Due At",
   ];
 
   test.each([...DASHBOARD_LANGUAGES])(
@@ -483,6 +628,19 @@ describe("in every language the Dashboard speaks", () => {
           words,
           same: false,
         });
+      }
+
+      // Each unit's one form too, under its key plus "_one", with its count.
+      for (const template of Object.values(PROBE_BEHIND_BY)) {
+        const key: string = `${template.other}_one`;
+
+        expect(english[key]).toBe(template.one);
+        expect({ language, key, has: typeof locale[key] }).toEqual({
+          language,
+          key,
+          has: "string",
+        });
+        expect(getTemplatePlaceholders(locale[key]!)).toEqual(["count"]);
       }
 
       // The setting is drawn in the slot, never translated or retyped.
@@ -534,14 +692,14 @@ describe("the pages", () => {
     );
   });
 
-  test("a monitor's Probes ask whether each probe is behind on its monitor checks, and since when - not on its device polls", () => {
+  test("a monitor's Probes ask whether each probe is behind on its monitor checks, since when and by how much - not on its device polls", () => {
     const source: string = fs.readFileSync(
       path.join(DASHBOARD, "Pages/Monitor/View/Probes.tsx"),
       "utf8",
     );
 
     expect(source).toMatch(
-      /probe: \{\s*connectionStatus: true,[\s\S]*?checksLateSince: true,\s*checksLastLateAt: true,\s*\},/,
+      /probe: \{\s*connectionStatus: true,[\s\S]*?checksLateSince: true,\s*checksLastLateAt: true,\s*checksLastLateDueAt: true,\s*\},/,
     );
     expect(source).not.toContain("devicePollsLateSince");
     expect(source).toContain('<ProbeStatusElement probe={item["probe"]!} />');
@@ -554,7 +712,7 @@ describe("the pages", () => {
     );
 
     expect(source).toMatch(
-      /"\/probe\/global-probes",[\s\S]*?selectMoreFields=\{\{[^}]*lastAlive: true,[^}]*checksLateSince: true,\s*checksLastLateAt: true,\s*devicePollsLateSince: true,\s*devicePollsLastLateAt: true,\s*\}\}/,
+      /"\/probe\/global-probes",[\s\S]*?selectMoreFields=\{\{[^}]*lastAlive: true,[^}]*checksLateSince: true,\s*checksLastLateAt: true,\s*checksLastLateDueAt: true,\s*devicePollsLateSince: true,\s*devicePollsLastLateAt: true,\s*devicePollsLastLateDueAt: true,\s*\}\}/,
     );
   });
 
@@ -565,7 +723,7 @@ describe("the pages", () => {
     );
 
     expect(source).toMatch(
-      /selectMoreFields=\{\{\s*key: true,\s*iconFileId: true,[^}]*checksLateSince: true,\s*checksLastLateAt: true,\s*devicePollsLateSince: true,\s*devicePollsLastLateAt: true,/,
+      /selectMoreFields=\{\{\s*key: true,\s*iconFileId: true,[^}]*checksLateSince: true,\s*checksLastLateAt: true,\s*checksLastLateDueAt: true,\s*devicePollsLateSince: true,\s*devicePollsLastLateAt: true,\s*devicePollsLastLateDueAt: true,/,
     );
   });
 });

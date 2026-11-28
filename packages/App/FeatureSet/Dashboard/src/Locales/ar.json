@@ -67832,5 +67832,13 @@
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} من {{kinds}} تحمل اسم سجل آخر ({{kind}})، ولا يمكن التمييز بينها في أدوات الاختيار. افتح كلًّا منها لتعرف الفرق بينها، ثم غيّر اسم أحدها.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} سجل ({{kind}}) يحمل اسم سجل آخر ({{kind}})، ولا يمكن التمييز بينهما في أدوات الاختيار. افتح كلًّا منهما لتعرف الفرق بينهما، ثم غيّر اسم أحدهما.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} سجل ({{kind}}) يحمل اسم سجل آخر ({{kind}})، ولا يمكن التمييز بينهما في أدوات الاختيار. افتح كلًّا منهما لتعرف الفرق بينهما، ثم غيّر اسم أحدهما.",
-  "Fell behind {{time}}": "تأخر {{time}}"
+  "Fell behind {{time}}": "تأخر {{time}}",
+  "Behind by {{count}} days": "متأخر بمقدار {{count}} ي",
+  "Behind by {{count}} days_one": "متأخر بمقدار {{count}} يوم",
+  "Behind by {{count}} hours": "متأخر بمقدار {{count}} س",
+  "Behind by {{count}} hours_one": "متأخر بمقدار {{count}} ساعة",
+  "Behind by {{count}} minutes": "متأخر بمقدار {{count}} د",
+  "Behind by {{count}} minutes_one": "متأخر بمقدار {{count}} دقيقة",
+  "Checks Last Late Due At": "موعد أكثر الفحوص تأخرًا",
+  "Device Polls Last Late Due At": "موعد أكثر استطلاعات الأجهزة تأخرًا"
 }
