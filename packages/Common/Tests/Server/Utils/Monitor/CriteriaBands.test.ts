@@ -82,9 +82,12 @@ function port(
   };
 }
 
-const bands: (first: CriteriaFilters, second: CriteriaFilters) => boolean = (
-  first: CriteriaFilters,
-  second: CriteriaFilters,
+const bands: (
+  first: CriteriaFilters | undefined,
+  second: CriteriaFilters | undefined,
+) => boolean = (
+  first: CriteriaFilters | undefined,
+  second: CriteriaFilters | undefined,
 ): boolean => {
   return CriteriaBands.areBandsOfOneAnother(first, second);
 };

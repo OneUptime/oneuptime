@@ -29,7 +29,11 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import { MergedDowntimeTotals } from "../../../Types/StatusPage/MergedDowntimeTotals";
-import { UptimeDailyAggregate } from "../../../Types/StatusPage/UptimeDailyAggregate";
+import {
+  MonitorUptimeDailyAggregate,
+  UptimeDailyAggregate,
+  UptimeDayBucket,
+} from "../../../Types/StatusPage/UptimeDailyAggregate";
 import SloUtil, { TimeSliResult } from "../../../Utils/Slo/SloUtil";
 import { readStatusChangeNote } from "../../../Utils/Monitor/StatusChangeNotes";
 import { getJestSpyOn } from "../../Spy";
@@ -544,11 +548,14 @@ describePostgres(
     /*
      * The event moves into a state, as every move does: a new row of its
      * state timeline, whose onCreateSuccess starts or ends what the state
-     * says.
+     * says. `filledInBetween` is a row slipped in back in the timeline,
+     * between two others, as the API can: it has an end, the start of the
+     * row after.
      */
     async function moveEventInto(
       eventId: ObjectID,
       stateId: ObjectID,
+      filledInBetween?: { startsAt: Date; endsAt: Date },
     ): Promise<void> {
       const row: ScheduledMaintenanceStateTimeline =
         new ScheduledMaintenanceStateTimeline();
@@ -556,18 +563,23 @@ describePostgres(
       row.projectId = projectId;
       row.scheduledMaintenanceId = eventId;
       row.scheduledMaintenanceStateId = stateId;
-      row.startsAt = new Date();
+      row.startsAt = filledInBetween?.startsAt || new Date();
+
+      if (filledInBetween) {
+        row.endsAt = filledInBetween.endsAt;
+      }
 
       await database.query(
         `INSERT INTO "ScheduledMaintenanceStateTimeline"
-       ("_id", "projectId", "scheduledMaintenanceId", "scheduledMaintenanceStateId", "startsAt", "version")
-       VALUES ($1, $2, $3, $4, $5, 1)`,
+       ("_id", "projectId", "scheduledMaintenanceId", "scheduledMaintenanceStateId", "startsAt", "endsAt", "version")
+       VALUES ($1, $2, $3, $4, $5, $6, 1)`,
         [
           row.id.toString(),
           projectId.toString(),
           eventId.toString(),
           stateId.toString(),
           row.startsAt,
+          row.endsAt || null,
         ],
       );
 
@@ -787,16 +799,13 @@ describePostgres(
 
       return aggregate.monitors
         .flatMap(
-          (monitor: { buckets: Array<{ monitoringOffSeconds?: number }> }) => {
+          (monitor: MonitorUptimeDailyAggregate): Array<UptimeDayBucket> => {
             return monitor.buckets;
           },
         )
-        .reduce(
-          (sum: number, bucket: { monitoringOffSeconds?: number }): number => {
-            return sum + (bucket.monitoringOffSeconds || 0);
-          },
-          0,
-        );
+        .reduce((sum: number, bucket: UptimeDayBucket): number => {
+          return sum + (bucket.monitoringOffSeconds || 0);
+        }, 0);
     }
 
     async function sloSli(
@@ -1179,6 +1188,94 @@ describePostgres(
           [underMaintenanceStatusId.toString(), false],
           [operationalStatusId.toString(), false],
         ]);
+      });
+    });
+
+    describe("a state filled in back in an event's timeline", () => {
+      test("an Ongoing row filled in once the event is over pauses nothing: the monitor's time keeps counting", async () => {
+        const monitorId: ObjectID = await seedMonitor();
+        const eventId: ObjectID = await seedEvent({
+          monitorIds: [monitorId],
+          changeMonitorStatusToId: underMaintenanceStatusId,
+        });
+
+        await moveEventInto(eventId, ongoingStateId);
+        await moveEventInto(eventId, endedStateId);
+
+        const before: Array<TimelineRow> = await timeline(monitorId);
+
+        await moveEventInto(eventId, ongoingStateId, {
+          startsAt: new Date(Date.now() - 30 * 60 * 1000),
+          endsAt: new Date(Date.now() - 10 * 60 * 1000),
+        });
+
+        // It used to pause the monitor for good, in the event's status.
+        expect(await pauseFlags(monitorId)).toEqual({
+          maintenance: false,
+          incident: false,
+          statusId: operationalStatusId.toString(),
+        });
+        expect(await timeline(monitorId)).toEqual(before);
+      });
+
+      test("an Ended row filled in once the event is over gives nothing back: the status the monitor's checks set since stays", async () => {
+        const monitorId: ObjectID = await seedMonitor();
+        const eventId: ObjectID = await seedEvent({ monitorIds: [monitorId] });
+
+        await moveEventInto(eventId, ongoingStateId);
+        await moveEventInto(eventId, endedStateId);
+
+        // Its checks find it offline again after the event.
+        await MonitorService.changeMonitorStatus(
+          projectId,
+          [monitorId],
+          offlineStatusId,
+          true,
+          "The API did not respond.",
+          undefined,
+          { isRoot: true },
+        );
+
+        const before: Array<TimelineRow> = await timeline(monitorId);
+        expect(before[before.length - 1]!.monitorStatusId).toBe(
+          offlineStatusId.toString(),
+        );
+
+        await moveEventInto(eventId, endedStateId, {
+          startsAt: new Date(Date.now() - 30 * 60 * 1000),
+          endsAt: new Date(Date.now() - 10 * 60 * 1000),
+        });
+
+        // It used to put the monitor back to operational over that.
+        expect(await pauseFlags(monitorId)).toEqual({
+          maintenance: false,
+          incident: false,
+          statusId: offlineStatusId.toString(),
+        });
+        expect(await timeline(monitorId)).toEqual(before);
+      });
+
+      test("an Ended row filled in while the event is in progress lets go of nothing: its time stays left out", async () => {
+        const monitorId: ObjectID = await seedMonitor();
+        const eventId: ObjectID = await seedEvent({ monitorIds: [monitorId] });
+
+        await moveEventInto(eventId, ongoingStateId);
+
+        const before: Array<TimelineRow> = await timeline(monitorId);
+
+        await moveEventInto(eventId, endedStateId, {
+          startsAt: new Date(Date.now() - 30 * 60 * 1000),
+          endsAt: new Date(Date.now() - 10 * 60 * 1000),
+        });
+
+        // It used to release the monitor, back to operational.
+        expect(await pauseFlags(monitorId)).toEqual({
+          maintenance: true,
+          incident: false,
+          statusId: offlineStatusId.toString(),
+        });
+        expect(await timeline(monitorId)).toEqual(before);
+        expect(before[before.length - 1]!.isMonitoringOff).toBe(true);
       });
     });
 
