@@ -5,6 +5,18 @@ enum LogScrubPatternType {
   PhoneNumber = "phoneNumber",
   IPAddress = "ipAddress",
   /*
+   * What Data Security calls a postal code (#11502): a UK postcode and a
+   * Canadian postal code, and a US ZIP code beside a word that names it or
+   * alone under a key that names it, such as `address.zip`.
+   */
+  PostalCode = "postalCode",
+  /*
+   * What Data Security calls a precise location (#11502): a latitude and
+   * longitude pair, and one coordinate beside a word that names it or
+   * alone under a key that names it, such as `location.lat`.
+   */
+  Coordinates = "coordinates",
+  /*
    * Key-targeted: scrubs the WHOLE value of any attribute whose KEY looks
    * sensitive (password, token, apiKey, authorization, cookie, ...) —
    * catches secrets whose values match no shape-based pattern. Applies to

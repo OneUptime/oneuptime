@@ -68716,5 +68716,11 @@
   "To read Google Workspace groups back, add the scope {{scope}} to the domain-wide delegation of the Google Workspace connection under Security Events → Connections, for an administrator who may read groups.": "Om groepen in Google Workspace terug te lezen, voegt u de scope {{scope}} toe aan de domeinbrede delegatie van de Google Workspace-verbinding onder Beveiligingsgebeurtenissen → Verbindingen, voor een beheerder die groepen mag lezen.",
   "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them.": "Tokens van {{provider}} kunnen de rol {{account}} aannemen als hun claim {{claim}} overeenkomt met een van {{count}} waarden, waaronder {{value}}.",
   "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them._one": "Tokens van {{provider}} kunnen de rol {{account}} aannemen als hun claim {{claim}} overeenkomt met {{count}} waarde: {{value}}.",
-  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.": "Tokens van {{provider}} kunnen de rol {{account}} aannemen als hun claim {{claim}} overeenkomt met {{value}}."
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.": "Tokens van {{provider}} kunnen de rol {{account}} aannemen als hun claim {{claim}} overeenkomt met {{value}}.",
+  "Found By Context": "Gevonden door de context",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "Paren van breedte- en lengtegraad, en één coördinaat naast een woord zoals lat of onder een sleutel zoals location.lat.",
+  "Postal Code": "Postcode",
+  "Scrub coordinates": "Coördinaten opschonen",
+  "Scrub postal codes": "Postcodes opschonen",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "Britse en Canadese postcodes, en Amerikaanse ZIP-codes naast een woord zoals zip of onder een sleutel zoals address.zip."
 }

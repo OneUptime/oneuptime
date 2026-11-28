@@ -126,6 +126,7 @@ import {
 import {
   createDropRuleForFinding,
   CreatedScrubRule,
+  readFoundByOf,
 } from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { getDropMetricImpact } from "../Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -1080,6 +1081,8 @@ export default class DataSecurityAPI extends BaseAPI<
           dataTypeId: finding.dataTypeId!,
           location: finding.location!,
           serviceId: finding.dataStore!.serviceId || null,
+          // A name found only beside its words no pattern drops (#11502).
+          ...readFoundByOf(finding),
           props,
         })) as unknown as JSONObject;
       },
@@ -1121,6 +1124,7 @@ export default class DataSecurityAPI extends BaseAPI<
             dataTypeId: finding.dataTypeId!,
             location: finding.location!,
             serviceId: finding.dataStore!.serviceId || null,
+            ...readFoundByOf(finding),
           });
 
         await DataStoreFindingService.updateColumnsByIdWithoutHooks({

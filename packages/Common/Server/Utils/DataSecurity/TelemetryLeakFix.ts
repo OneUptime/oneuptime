@@ -100,6 +100,7 @@ import ProjectDataTypeNames from "./ProjectDataTypeNames";
 import {
   ScrubCoverage,
   findCoveringScrubRule,
+  readFoundByOf,
   getScrubCoverage,
 } from "./Telemetry/TelemetryScrubCoverage";
 import { getTelemetryStoreOwnerId } from "./Telemetry/TelemetryFindingOccurrences";
@@ -541,6 +542,8 @@ export default class TelemetryLeakFix {
           lastSeenAt: true,
           sampleRecords: true,
           isFoundByModel: true,
+          // How its values were found says whether a rule hides them (#11502).
+          isFoundByContext: true,
         },
         sort: { matchCount: SortOrder.Descending },
         skip: 0,
@@ -585,6 +588,7 @@ export default class TelemetryLeakFix {
           location: finding.location,
           // A RUM application's records are sent under its own id.
           serviceId: store.serviceId || getTelemetryStoreOwnerId(store),
+          ...readFoundByOf(finding),
         }) !== null;
       const issue: DataSecurityIssue | null = issueOfFinding({
         issues,

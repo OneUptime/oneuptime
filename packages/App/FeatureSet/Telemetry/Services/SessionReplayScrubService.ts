@@ -1,6 +1,6 @@
 import {
   ScrubRegExp,
-  scrubRegExpUnderKey,
+  scrubRegExpUnderKeys,
 } from "Common/Types/Telemetry/ScrubRule";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
@@ -12,6 +12,7 @@ import LogScrubRuleService from "./LogScrubRuleService";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import ScrubAction from "Common/Server/Utils/Telemetry/ScrubAction";
 import { getScrubRulesOfRecord } from "Common/Types/Telemetry/ScrubRuleScope";
+import { getHintsOfKey } from "Common/Utils/Telemetry/ScrubBuiltInPatterns";
 import { CompiledScrubRule as EngineCompiledScrubRule } from "Common/Server/Utils/Telemetry/ScrubEngine/CompiledScrubRule";
 import LogScrubEngine from "Common/Server/Utils/Telemetry/ScrubEngine/LogScrubEngine";
 import { SessionReplayCustomEventTag } from "Common/Types/Rum/SessionReplayCustomEvents";
@@ -93,6 +94,17 @@ const MAX_NODES: number = 250_000;
  */
 const walkBudgets: WeakMap<SessionReplayScrubResult, EventLoopBudget> =
   new WeakMap<SessionReplayScrubResult, EventLoopBudget>();
+
+/*
+ * The form fields a walk has seen, by node id, and the attributes that name
+ * each one's value (#11501): what an input event for that node is read
+ * under. One for each walk, so a chunk's input events read the fields its
+ * own snapshot and mutations serialized.
+ */
+const formFieldsOfWalks: WeakMap<
+  SessionReplayScrubResult,
+  Map<number, ReadonlyArray<string>>
+> = new WeakMap<SessionReplayScrubResult, Map<number, ReadonlyArray<string>>>();
 
 /*
  * Strings longer than this are not regex-scanned. A 2MB inlined stylesheet
@@ -214,6 +226,49 @@ const PLUMBING_ATTRIBUTE_NAMES: ReadonlySet<string> = new Set<string>([
 
 const DATA_URI_PREFIX: RegExp = /^data:/i;
 
+/*
+ * ---- What names a form field's value (#11501). ----
+ *
+ * A pattern rule reads a value under the key it is held under, as Data
+ * Security reads a field's name (ScrubRegExp.underKey, #11383): a Phone
+ * Number rule hides a national number under `data-phone`. But a form
+ * field's typed value is recorded under `value`, and as an input event's
+ * `text`, while what names it sits beside it: `<input name="phone">`,
+ * `type="tel"`, `autocomplete="postal-code"`, `id="customerPhone"`. So a
+ * form field's value - in its serialized node, in a mutation of its
+ * attributes and in the input events rrweb records for it by node id - is
+ * read under each of these attributes too, as its key: a Sensitive
+ * Attribute Keys rule hides the value of an input named `api_token`.
+ */
+const FORM_FIELD_TAGS: ReadonlySet<string> = new Set<string>([
+  "input",
+  "textarea",
+  "select",
+]);
+
+// The attributes of a form field that name its value, in the order they are read.
+const VALUE_NAMING_ATTRIBUTES: ReadonlyArray<string> = [
+  "name",
+  "id",
+  "autocomplete",
+  "type",
+];
+
+// The attribute of a form field that holds what was typed or chosen in it.
+const VALUE_ATTRIBUTE: string = "value";
+
+// The longest naming attribute read: a field's name is never a paragraph.
+const MAX_NAMING_KEY_LENGTH: number = 256;
+
+// rrweb's incremental source of an input event: { source: 5, id, text }.
+const INPUT_EVENT_SOURCE: number = 5;
+
+/*
+ * The most form fields one walk remembers the names of, for the input
+ * events after them: a page holds a few hundred at most.
+ */
+const MAX_REMEMBERED_FORM_FIELDS: number = 10_000;
+
 interface WalkContext {
   /*
    * True while walking the `attributes` map of a serialized node or an
@@ -221,6 +276,11 @@ interface WalkContext {
    * plumbing list applies instead of the structural one.
    */
   isAttributeMap: boolean;
+  /*
+   * In a form field's attributes map: the attributes that name its value,
+   * as keys its `value` is read under too (#11501).
+   */
+  valueKeys?: ReadonlyArray<string> | undefined;
 }
 
 export interface SessionReplayScrubResult {
@@ -462,6 +522,7 @@ export default class SessionReplayScrubService {
     }
 
     walkBudgets.set(state, new EventLoopBudget());
+    formFieldsOfWalks.set(state, new Map<number, ReadonlyArray<string>>());
 
     await this.walkArray(events, compiledRules, 0, state, {
       isAttributeMap: false,
@@ -473,6 +534,113 @@ export default class SessionReplayScrubService {
     }
 
     return state;
+  }
+
+  /*
+   * The attributes of a form field's map that name its value - its name,
+   * id, autocomplete and type, as written (#11501) - none for a map that
+   * names nothing.
+   */
+  private static namingKeysOf(attributes: JSONObject): Array<string> {
+    // Each naming attribute's value, by its name in lower case: the first one written.
+    const byName: Map<string, string> = new Map<string, string>();
+
+    for (const attribute of Object.keys(attributes)) {
+      const value: JSONValue | undefined = attributes[attribute];
+      const name: string = attribute.toLowerCase();
+
+      if (
+        typeof value === "string" &&
+        VALUE_NAMING_ATTRIBUTES.includes(name) &&
+        !byName.has(name)
+      ) {
+        byName.set(name, value);
+      }
+    }
+
+    const keys: Array<string> = [];
+
+    for (const name of VALUE_NAMING_ATTRIBUTES) {
+      const key: string = (byName.get(name) || "")
+        .trim()
+        .slice(0, MAX_NAMING_KEY_LENGTH);
+
+      if (key && !keys.includes(key)) {
+        keys.push(key);
+      }
+    }
+
+    return keys;
+  }
+
+  /*
+   * What names the value of a node being walked, when it is a form field's
+   * (#11501): a serialized input, textarea or select - remembered by its
+   * node id for the input events after it - or a mutation of one's
+   * attributes, by the id it names.
+   */
+  private static valueKeysOfNode(
+    node: JSONObject,
+    state: SessionReplayScrubResult,
+  ): ReadonlyArray<string> | undefined {
+    const attributes: JSONValue | undefined = node["attributes"];
+
+    if (
+      !attributes ||
+      typeof attributes !== "object" ||
+      Array.isArray(attributes)
+    ) {
+      return undefined;
+    }
+
+    const fields: Map<number, ReadonlyArray<string>> | undefined =
+      formFieldsOfWalks.get(state);
+    const id: JSONValue | undefined = node["id"];
+    const tagName: JSONValue | undefined = node["tagName"];
+    const own: Array<string> = this.namingKeysOf(attributes as JSONObject);
+
+    if (typeof tagName === "string") {
+      if (!FORM_FIELD_TAGS.has(tagName.toLowerCase())) {
+        return undefined;
+      }
+
+      if (
+        typeof id === "number" &&
+        fields &&
+        (fields.size < MAX_REMEMBERED_FORM_FIELDS || fields.has(id))
+      ) {
+        fields.set(id, own);
+      }
+
+      return own;
+    }
+
+    // A mutation of a node's attributes: { id, attributes }, of a field seen before.
+    const known: ReadonlyArray<string> | undefined =
+      typeof id === "number" ? fields?.get(id) : undefined;
+
+    if (!known) {
+      return undefined;
+    }
+
+    return Array.from(new Set<string>([...own, ...known]));
+  }
+
+  /*
+   * What names the text of an input event, { source: 5, id, text }: the
+   * form field of its node id, when the walk saw it (#11501).
+   */
+  private static textKeysOfNode(
+    node: JSONObject,
+    state: SessionReplayScrubResult,
+  ): ReadonlyArray<string> | undefined {
+    const id: JSONValue | undefined = node["id"];
+
+    if (node["source"] !== INPUT_EVENT_SOURCE || typeof id !== "number") {
+      return undefined;
+    }
+
+    return formFieldsOfWalks.get(state)?.get(id);
   }
 
   private static async walkArray(
@@ -550,6 +718,14 @@ export default class SessionReplayScrubService {
       return;
     }
 
+    // A form field's, or an input event's: what names the value it holds (#11501).
+    const valueKeys: ReadonlyArray<string> | undefined = context.isAttributeMap
+      ? undefined
+      : this.valueKeysOfNode(node, state);
+    const textKeys: ReadonlyArray<string> | undefined = context.isAttributeMap
+      ? undefined
+      : this.textKeysOfNode(node, state);
+
     for (const key of Object.keys(node)) {
       if (!(await this.visitNode(state))) {
         return;
@@ -576,7 +752,19 @@ export default class SessionReplayScrubService {
           continue;
         }
 
-        node[key] = this.scrubValueForKey(key, value, compiledRules, state);
+        node[key] = this.scrubValueForKey(
+          key,
+          value,
+          compiledRules,
+          state,
+          this.keysAlsoNaming(key, context, textKeys),
+        );
+        continue;
+      }
+
+      // A number under a key that names what it is: a custom event's {phone: 2012345678} (#11500).
+      if (typeof value === "number") {
+        node[key] = this.scrubNumberForKey(key, value, compiledRules, state);
         continue;
       }
 
@@ -597,10 +785,31 @@ export default class SessionReplayScrubService {
           compiledRules,
           depth + 1,
           state,
-          { isAttributeMap: key === "attributes" },
+          key === "attributes"
+            ? { isAttributeMap: true, valueKeys }
+            : { isAttributeMap: false },
         );
       }
     }
+  }
+
+  /*
+   * The keys besides its own a string is read under (#11501): a form
+   * field's `value` under the attributes that name it, and an input event's
+   * `text` under its field's - none for any other.
+   */
+  private static keysAlsoNaming(
+    key: string,
+    context: WalkContext,
+    textKeys: ReadonlyArray<string> | undefined,
+  ): ReadonlyArray<string> | undefined {
+    if (context.isAttributeMap) {
+      return key.toLowerCase() === VALUE_ATTRIBUTE
+        ? context.valueKeys
+        : undefined;
+    }
+
+    return key === "text" ? textKeys : undefined;
   }
 
   private static isStructuralKey(key: string, context: WalkContext): boolean {
@@ -653,6 +862,8 @@ export default class SessionReplayScrubService {
     value: string,
     compiledRules: Array<CompiledScrubRule>,
     state: SessionReplayScrubResult,
+    // What else names the value: a form field's name, id, autocomplete and type (#11501).
+    alsoKeys?: ReadonlyArray<string> | undefined,
   ): string {
     let result: string = value;
 
@@ -663,7 +874,12 @@ export default class SessionReplayScrubService {
         continue;
       }
 
-      if (compiled.regex.test(key)) {
+      if (
+        compiled.regex.test(key) ||
+        (alsoKeys || []).some((naming: string): boolean => {
+          return compiled.regex.test(naming);
+        })
+      ) {
         state.stringsScrubbed++;
 
         return this.applyScrubAction(
@@ -675,9 +891,70 @@ export default class SessionReplayScrubService {
       }
     }
 
-    result = this.scrubString(result, compiledRules, state, key);
+    result = this.scrubString(result, compiledRules, state, key, alsoKeys);
 
     return result;
+  }
+
+  /*
+   * A number under a key, as a log rule reads one (#11383, #11500): kept,
+   * unless a pattern rule reads a number under that key - a Phone Number
+   * rule under `phone`, an SSN rule under `ssn` - and hides some of its
+   * text: then the rule's text, as a string. A key that names nothing
+   * keeps its number, as an id or a position must.
+   */
+  private static scrubNumberForKey(
+    key: string,
+    value: number,
+    compiledRules: Array<CompiledScrubRule>,
+    state: SessionReplayScrubResult,
+  ): JSONValue {
+    if (!Number.isFinite(value)) {
+      return value;
+    }
+
+    const text: string = String(value);
+    let result: string = text;
+
+    for (const compiled of compiledRules) {
+      const patternType: string = (compiled.rule.patternType as string) || "";
+
+      if (patternType === LogScrubPatternType.SensitiveKeys) {
+        continue;
+      }
+
+      const regex: ScrubRegExp = scrubRegExpUnderKeys(
+        compiled.regex,
+        [key],
+        value,
+      );
+
+      if (regex === compiled.regex) {
+        continue;
+      }
+
+      const action: string =
+        (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
+      const replaced: string = regex.replace(
+        result,
+        (match: string): string => {
+          return this.applyScrubAction(
+            match,
+            action,
+            patternType,
+            compiled.rule.projectId,
+            regex,
+          );
+        },
+      );
+
+      if (replaced !== result) {
+        state.stringsScrubbed++;
+        result = replaced;
+      }
+    }
+
+    return result === text ? value : result;
   }
 
   /*
@@ -691,6 +968,8 @@ export default class SessionReplayScrubService {
     compiledRules: Array<CompiledScrubRule>,
     state: SessionReplayScrubResult,
     key?: string | undefined,
+    // Read under these too, as its keys: what names a form field's value (#11501).
+    alsoKeys?: ReadonlyArray<string> | undefined,
   ): string {
     if (!value) {
       return value;
@@ -709,6 +988,10 @@ export default class SessionReplayScrubService {
     PatternWorkScope.handOverRecord(value);
 
     let result: string = value;
+    const readUnder: Array<string> = this.keysReadApart([
+      key,
+      ...(alsoKeys || []),
+    ]);
 
     for (const compiled of compiledRules) {
       const patternType: string = (compiled.rule.patternType as string) || "";
@@ -720,9 +1003,9 @@ export default class SessionReplayScrubService {
 
       const action: string =
         (compiled.rule.scrubAction as string) || LogScrubAction.Redact;
-      const regex: ScrubRegExp = scrubRegExpUnderKey(
+      const regex: ScrubRegExp = scrubRegExpUnderKeys(
         compiled.regex,
-        key,
+        readUnder,
         result,
       );
 
@@ -746,6 +1029,36 @@ export default class SessionReplayScrubService {
     }
 
     return result;
+  }
+
+  /*
+   * The keys a value is read under, one for each set of types they name
+   * (#11501): a pattern rule reads a value under a key by the types the key
+   * names (ScrubBuiltInPatterns' readsUnderKey), and a Custom Regex rule
+   * reads a text alike under any key, so a field's `name="phone"` and
+   * `type="tel"` read it alike - and a long value typed into a field named
+   * for a phone is read once under them, not once for each name.
+   */
+  private static keysReadApart(
+    keys: ReadonlyArray<string | undefined>,
+  ): Array<string> {
+    const named: Set<string> = new Set<string>();
+    const apart: Array<string> = [];
+
+    for (const key of keys) {
+      if (!key) {
+        continue;
+      }
+
+      const types: string = Array.from(getHintsOfKey(key)).sort().join(",");
+
+      if (!named.has(types)) {
+        named.add(types);
+        apart.push(key);
+      }
+    }
+
+    return apart;
   }
 
   /*

@@ -146,6 +146,17 @@ export interface TextMatch {
    * masked as its name-found type is, and never fingerprinted either.
    */
   fromFieldName?: boolean | undefined;
+  /*
+   * Found only with what is around it: by a detector of a type that is one
+   * only beside a word that names it (requiresContext) - a US ZIP code
+   * beside "zip", a lone coordinate beside "lat", nine digits beside
+   * "ITIN" - with that word near it or the field's name for it. A Custom
+   * Regex rule Scrub It made from the type's detectors that need no
+   * context reads neither, so it may keep such a value, and Data Security's
+   * coverage never counts one for it (#11502, DataStoreFinding's
+   * isFoundByContext).
+   */
+  fromContext?: boolean | undefined;
 }
 
 // How far around a model's finding its context words are looked for.
@@ -463,7 +474,7 @@ function scanWindow(
         confidence = lower(confidence);
       }
 
-      candidates.push({
+      const candidate: Candidate = {
         dataTypeId: detector.dataTypeId,
         start: offset + raw.start,
         end: offset + raw.end,
@@ -475,7 +486,14 @@ function scanWindow(
           DATA_CONFIDENCE_RANK[confidence] * 100 +
           (hasContext ? 10 : 0) +
           detector.specificity,
-      });
+      };
+
+      // A value of its type only beside its word, or under the field's name for it (#11502).
+      if (detector.requiresContext) {
+        candidate.fromContext = true;
+      }
+
+      candidates.push(candidate);
     }
   }
 
@@ -536,6 +554,10 @@ export function resolveOverlaps(
 
       if (candidate.fromFieldName) {
         match.fromFieldName = true;
+      }
+
+      if (candidate.fromContext) {
+        match.fromContext = true;
       }
 
       kept.push(match);

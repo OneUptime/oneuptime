@@ -429,7 +429,10 @@ export default class MetricPipelineEngine {
           ? rawValue
           : rawValue === undefined || rawValue === null
             ? ""
-            : String(rawValue);
+            : MetricPipelineEngine.readsAsStoredText(filter.conditionType) &&
+                typeof rawValue === "object"
+              ? MetricPipelineEngine.storedTextOf(rawValue)
+              : String(rawValue);
 
       if (
         filter.conditionType === MetricPipelineRuleFilterConditionType.IsEmpty
@@ -457,6 +460,34 @@ export default class MetricPipelineEngine {
     }
 
     return false;
+  }
+
+  /*
+   * Whether a filter reads a list's or a map's value as the JSON text the
+   * Metric table stores it as and Data Security reads (#11500): a pattern's
+   * - Matches Pattern Type, Matches Regex and its negation, what Scrub It's
+   * rules filter by - so a phone number in [{"system":"phone","value":
+   * 2012345678}] is the value's, as it is in a log's list. Every other
+   * filter reads a value as it always did.
+   */
+  private static readsAsStoredText(
+    conditionType: MetricPipelineRuleFilterConditionType,
+  ): boolean {
+    return (
+      conditionType ===
+        MetricPipelineRuleFilterConditionType.MatchesPatternType ||
+      conditionType === MetricPipelineRuleFilterConditionType.MatchesRegex ||
+      conditionType === MetricPipelineRuleFilterConditionType.DoesNotMatchRegex
+    );
+  }
+
+  // A list or a map as its JSON text: empty for one JSON cannot write.
+  private static storedTextOf(value: JSONValue): string {
+    try {
+      return JSON.stringify(value) ?? "";
+    } catch {
+      return "";
+    }
   }
 
   /*

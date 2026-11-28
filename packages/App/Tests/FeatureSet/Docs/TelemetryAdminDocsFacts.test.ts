@@ -56,6 +56,7 @@ import ExceptionUtil, {
   OccurrenceFingerprints,
 } from "../../../FeatureSet/Telemetry/Utils/Exception";
 import TraceScrubRuleService from "../../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
+import SessionReplayScrubService from "../../../FeatureSet/Telemetry/Services/SessionReplayScrubService";
 import TelemetryIngest, {
   getEffectiveRequestsPerMinuteLimit,
 } from "Common/Server/Middleware/TelemetryIngest";
@@ -2418,14 +2419,21 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
         "2001:db8::1",
         "2001::1",
       ],
+      // UK and Canadian postcodes by their own shapes (#11502).
+      [LogScrubPatternType.PostalCode]: ["SW1A 2AA", "K1A 0B1"],
+      // A pair of coordinates by its own shape (#11502).
+      [LogScrubPatternType.Coordinates]: ["51.50722, -0.12750"],
     };
     /*
      * A row's key that names its type (#11383): a value alone under it is
-     * one - each key is held to the value its row says it names.
+     * one - each key is held to the value its row says it names. A US ZIP
+     * code and one coordinate are found only so, or beside a word (#11502).
      */
     const keys: Record<string, [string, string]> = {
       [LogScrubPatternType.SSN]: ["customer.ssn", "536221234"],
       [LogScrubPatternType.PhoneNumber]: ["user.phone", "02012345678"],
+      [LogScrubPatternType.PostalCode]: ["address.zip", "94107"],
+      [LogScrubPatternType.Coordinates]: ["location.lat", "37.77493"],
     };
     const rows: Array<Array<string>> = tableRows(page, "Pattern Type");
 
@@ -2476,7 +2484,15 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       LogScrubPatternType.SensitiveKeys,
     ) as ScrubRegExp;
 
-    for (const key of inlineCodes(rows[5]?.[1] || "")) {
+    const keysRow: Array<string> | undefined = rows.find(
+      (row: Array<string>): boolean => {
+        return unbold(row[0] as string) === "Sensitive Attribute Keys";
+      },
+    );
+
+    expect(inlineCodes(keysRow?.[1] || "").length).toBeGreaterThan(0);
+
+    for (const key of inlineCodes(keysRow?.[1] || "")) {
       expect({ key, caught: keyRegex.test(key) }).toEqual({
         key,
         caught: true,
@@ -3050,6 +3066,9 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "DE44+5001+0517+5407+3249+31",
       // Typed in fullwidth letters (#11385).
       "ＤＥ４４　５００１　０５１７　５４０７　３２４９　３１",
+      // A map read as its JSON text, its keys never changed (#11502).
+      "123",
+      '{"cvv": "123"}',
     ]);
     expect(item).toContain(
       "then with a number's fullwidth plus sign, hyphens, parentheses, full stops, slashes and ideographic spaces, and the other dashes between two digits, read as ASCII ones, then with every fullwidth letter, digit and sign read as its ASCII character",
@@ -3109,6 +3128,36 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(scrubbedBody(`GET /payout?iban=${codes[5]}&step=2`, [iban])).toBe(
       "GET /payout?iban=[REDACTED]&step=2",
     );
+
+    /*
+     * A list or a map read as the JSON text it is stored as (#11502): Scrub
+     * It's card security code pattern finds the code beside the key that
+     * names it there, and hides it in the value, never the key.
+     */
+    const cvvPattern: string = buildScrubPatternForDataType(
+      "card-verification-code",
+    )!;
+    const cvv: { rule: LogScrubRule; regex: ScrubRegExp } = {
+      rule: scrubRule(LogScrubPatternType.Custom, LogScrubAction.Redact).rule,
+      regex: getRegexForPattern(
+        LogScrubPatternType.Custom,
+        cvvPattern,
+      ) as ScrubRegExp,
+    };
+
+    cvv.rule.customRegex = cvvPattern;
+    expect(item).toContain(
+      "A list or a map is read as the JSON text it is stored as too, as Data Security reads it, and what the pattern finds there is hidden in the value's texts and numbers, never its keys",
+    );
+    expect(
+      LogScrubRuleService.scrubLog(
+        {
+          body: "",
+          attributes: { payment: JSON.parse(codes[8]!), note: codes[7]! },
+        },
+        [cvv] as never,
+      )["attributes"],
+    ).toEqual({ payment: { cvv: "[REDACTED]" }, note: "123" });
   });
 
   /*
@@ -3133,18 +3182,35 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "＋８１ ３－１２３４－５６７８",
       "５３６－２２－８７３１",
       "tel 02012345678",
+      "tel 03-1234-5678",
       "SSN 536221234",
       "order 02012345678",
       "ref 536221234",
+      "call 02031234567",
+      "cell 104857600 bytes",
       "user.phone",
       "customer.ssn",
       "020 1234 5678",
       '[{"system": "phone", "value": "02012345678"}]',
+      '[{"system": "phone", "value": 2012345678}]',
       "order.id",
       "＋８１ ３ー１２３４ー５６７８",
       "536–22–8731",
       "ＴＥＬ",
     ]);
+    // In the groups its country writes it in, beside its word (#11493).
+    expect(scrubbedBody("tel 03-1234-5678", phone)).toBe("tel [REDACTED]");
+    // Call, cell and contact name a number only in a phrase or before its trunk prefix (#11496).
+    expect(scrubbedBody("call 02031234567", phone)).toBe("call [REDACTED]");
+    expect(scrubbedBody("cell 104857600 bytes", phone)).toBe(
+      "cell 104857600 bytes",
+    );
+    expect(scrubbedBody("call me on 612345678 later", phone)).toBe(
+      "call me on [REDACTED] later",
+    );
+    expect(item).toContain(
+      "Call, cell and contact name a number only in a phrase such as call me on, cell number or contact number, or before a number with its trunk prefix",
+    );
 
     // Typed wholly in fullwidth: hidden whole.
     expect(scrubbedBody("＋８１ ３－１２３４－５６７８", phone)).toBe(
@@ -3197,6 +3263,20 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     ).toEqual({
       "patient.telecom": [{ system: "phone", value: "[REDACTED]" }],
     });
+    // One sent as a number inside it, written as the rule's text (#11500).
+    expect(
+      attributesAfter(
+        {
+          "patient.telecom": JSON.parse(
+            '[{"system": "phone", "value": 2012345678}]',
+          ),
+        },
+        phone,
+      ),
+    ).toEqual({
+      "patient.telecom": [{ system: "phone", value: "[REDACTED]" }],
+    });
+    expect(item).toContain("written as the rule's text");
     // Under a key that names nothing: kept, unless the own pattern finds it, as any ten digits.
     expect(attributesAfter({ "order.id": "02012345678" }, phone)).toEqual({
       "order.id": "02012345678",
@@ -3222,6 +3302,105 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(item).toContain(
       "**Mask** keeps the last four digits, written as ASCII digits.",
     );
+  });
+
+  /*
+   * #11502: what the Postal Code and Coordinates list item says those
+   * rules hide - a US ZIP code and one coordinate beside their words or
+   * alone under their keys, as text or as a number, in a list or a map,
+   * and a postcode typed into a form or in fullwidth - and what it says
+   * they keep, through the log rule ingest runs.
+   */
+  it("hides the postal codes and coordinates its list item names, beside their words, under their keys and in lists and maps, and keeps those it says it keeps", () => {
+    const item: string = listItemOf(
+      page,
+      "A Postal Code or Coordinates rule hides what Data Security calls one.",
+    );
+    const postal: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.PostalCode, LogScrubAction.Redact),
+    ];
+    const coordinates: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.Coordinates, LogScrubAction.Redact),
+    ];
+    const attributesAfter: (
+      attributes: JSONObject,
+      rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }>,
+    ) => JSONObject = (
+      attributes: JSONObject,
+      rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }>,
+    ): JSONObject => {
+      return LogScrubRuleService.scrubLog(
+        { body: "shipped", attributes },
+        rules as never,
+      )["attributes"] as JSONObject;
+    };
+
+    expect(inlineCodes(item)).toEqual([
+      "zip 94107",
+      "address.zip",
+      "lat 37.77493",
+      "location.lat",
+      '{"zip": 94107}',
+      "[51.50722, -0.12750]",
+      "order 94107",
+      "price.total",
+      "postcode=SW1A+2AA",
+      "ＳＷ１Ａ ２ＡＡ",
+    ]);
+
+    // Their own shapes, as a rule of the type's patterns hid them.
+    expect(scrubbedBody("ship to SW1A 2AA", postal)).toBe("ship to [REDACTED]");
+    expect(scrubbedBody("mail K1A 0B1 today", postal)).toBe(
+      "mail [REDACTED] today",
+    );
+    expect(scrubbedBody("at 51.50722, -0.12750 now", coordinates)).toBe(
+      "at [REDACTED] now",
+    );
+    // Beside the word that names it: hidden, the word kept, a ZIP+4 whole.
+    expect(scrubbedBody("zip 94107", postal)).toBe("zip [REDACTED]");
+    expect(scrubbedBody("zip code: 94107-1234", postal)).toBe(
+      "zip code: [REDACTED]",
+    );
+    expect(scrubbedBody("lat 37.77493", coordinates)).toBe("lat [REDACTED]");
+    expect(scrubbedBody("longitude -122.41942", coordinates)).toBe(
+      "longitude [REDACTED]",
+    );
+    // Alone under a key that names it, sent as text or as a number.
+    expect(
+      attributesAfter(
+        { "address.zip": "94107", "shipping.zip": 94107 },
+        postal,
+      ),
+    ).toEqual({ "address.zip": "[REDACTED]", "shipping.zip": "[REDACTED]" });
+    expect(
+      attributesAfter(
+        { "location.lat": 37.77493, "location.lng": "-122.41942" },
+        coordinates,
+      ),
+    ).toEqual({ "location.lat": "[REDACTED]", "location.lng": "[REDACTED]" });
+    // A list or a map read as its JSON text: a ZIP code under its key, a pair as two numbers.
+    expect(
+      attributesAfter({ shipping: JSON.parse('{"zip": 94107}') }, postal),
+    ).toEqual({ shipping: { zip: "[REDACTED]" } });
+    expect(
+      attributesAfter(
+        { route: JSON.parse("[51.50722, -0.12750]") },
+        coordinates,
+      ),
+    ).toEqual({ route: ["[REDACTED]", "[REDACTED]"] });
+    // Beside no such word, under a key that names nothing: kept.
+    expect(scrubbedBody("order 94107", postal)).toBe("order 94107");
+    expect(attributesAfter({ "order.id": "94107" }, postal)).toEqual({
+      "order.id": "94107",
+    });
+    expect(attributesAfter({ "price.total": 37.77493 }, coordinates)).toEqual({
+      "price.total": 37.77493,
+    });
+    // Typed into a form, or in fullwidth: hidden as written.
+    expect(scrubbedBody("GET /x?postcode=SW1A+2AA&step=2", postal)).toBe(
+      "GET /x?postcode=[REDACTED]&step=2",
+    );
+    expect(scrubbedBody("ＳＷ１Ａ ２ＡＡ", postal)).toBe("[REDACTED]");
   });
 
   it("says every pattern rule but the two that read keys reads only the attributes it lists under More fields, as the form draws it (#10751)", () => {
@@ -3313,6 +3492,17 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(mask(LogScrubPatternType.IPAddress, "2001:db8::1")).toBe(
       "****:****:****:****:****:****:****:****",
     );
+    // A postal code and a coordinate keep their first and last characters (#11502).
+    expect(mask(LogScrubPatternType.PostalCode, "SW1A 2AA")).toBe("S******A");
+    expect(mask(LogScrubPatternType.PostalCode, "zip 94107")).toBe("zip 9***7");
+    expect(mask(LogScrubPatternType.Coordinates, "lat 37.77493")).toBe(
+      "lat 3******3",
+    );
+    expect(
+      between(page, "| **Mask** |", "|\n").includes(
+        "a custom match, a postal code, a coordinate or a secret value its first and last characters",
+      ),
+    ).toBe(true);
 
     // A sensitive value keeps its first and last characters.
     const secret: JSONObject = LogScrubRuleService.scrubLog(
@@ -3554,8 +3744,27 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       )["attributes"],
     ).toEqual(scrubbedAttributes(attributes(), LogScrubPatternType.Email));
     expect(page).toContain(
-      "- **Lists and nested values are read too.** A rule reads every text inside a list, a list of lists or a key-value list, such as the values of an HTTP header, and keeps the value's shape: numbers and true or false stay as they are. A **Sensitive Attribute Keys** rule also reads the keys inside a value, so the `password` inside a key-value list is hidden too.",
+      "- **Lists and nested values are read too.** A rule reads every text inside a list, a list of lists or a key-value list, such as the values of an HTTP header, and keeps the value's shape: numbers and true or false stay as they are, but for a number a pattern rule finds its data type in, such as a phone number sent as a number beside the key that names it, which is written as the rule's text. A **Sensitive Attribute Keys** rule also reads the keys inside a value, so the `password` inside a key-value list is hidden too.",
     );
+
+    // A number the rule finds its type in is written as its text; one it finds nothing in stays a number (#11500).
+    expect(
+      LogScrubRuleService.scrubLog(
+        {
+          body: "",
+          attributes: {
+            contacts: [{ system: "phone", value: 2012345678 }],
+            sizes: [104857600, true],
+          },
+        },
+        [
+          scrubRule(LogScrubPatternType.PhoneNumber, LogScrubAction.Redact),
+        ] as never,
+      )["attributes"],
+    ).toEqual({
+      contacts: [{ system: "phone", value: "[REDACTED]" }],
+      sizes: [104857600, true],
+    });
   });
 
   it("stores a log body sent as a map or a list as its JSON text, which a pattern rule scrubs and a keys rule reads", () => {
@@ -3866,6 +4075,85 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(page).toContain(
       "**Session replays are scrubbed too.** Log scrub rules for every service also run over session replay recordings, behind the masking the recorder does in the browser.",
     );
+  });
+
+  /*
+   * #11501, #11500: a session replay's form field is read under what names
+   * it - its name, id, autocomplete and type - in the field, in what was
+   * typed into it and in a mutation of it, and a number a custom event
+   * sends under a key that names its type is hidden, as the list item says.
+   */
+  it("reads a recording's form fields under their names, and a custom event's number under its key, as the list item says", async () => {
+    const item: string = listItemOf(page, "Session replays are scrubbed too.");
+
+    expect(inlineCodes(item)).toEqual([
+      '<input name="phone">',
+      '{"phone": 2012345678}',
+    ]);
+    expect(item).toContain(
+      "A form field's value, and what is typed into it, is read under the field's name, id, autocomplete and type, as a log's value is under its key",
+    );
+
+    const events: Array<JSONObject> = [
+      {
+        type: 2,
+        data: {
+          node: {
+            type: 0,
+            id: 1,
+            childNodes: [
+              {
+                type: 2,
+                tagName: "input",
+                id: 10,
+                attributes: { name: "phone", value: "020 3123 4567" },
+                childNodes: [],
+              },
+              {
+                type: 2,
+                tagName: "input",
+                id: 11,
+                attributes: { type: "password", value: "hunter2!" },
+                childNodes: [],
+              },
+              {
+                type: 2,
+                tagName: "input",
+                id: 12,
+                attributes: { name: "search", value: "020 3123 4567" },
+                childNodes: [],
+              },
+            ],
+          },
+        },
+      },
+      { type: 3, data: { source: 5, id: 10, text: "020 3123 4567" } },
+      { type: 3, data: { source: 5, id: 11, text: "hunter2!" } },
+      {
+        type: 5,
+        data: { tag: "checkout", payload: JSON.parse(inlineCodes(item)[1]!) },
+      },
+    ];
+
+    await SessionReplayScrubService.scrubEvents(events, [
+      scrubRule(LogScrubPatternType.PhoneNumber, LogScrubAction.Redact),
+      scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+    ] as never);
+
+    const fields: Array<JSONObject> = (
+      (events[0]!["data"] as JSONObject)["node"] as JSONObject
+    )["childNodes"] as Array<JSONObject>;
+
+    expect(
+      fields.map((field: JSONObject): unknown => {
+        return (field["attributes"] as JSONObject)["value"];
+      }),
+    ).toEqual(["[REDACTED]", "[REDACTED]", "020 3123 4567"]);
+    expect((events[1]!["data"] as JSONObject)["text"]).toBe("[REDACTED]");
+    expect((events[2]!["data"] as JSONObject)["text"]).toBe("[REDACTED]");
+    expect((events[3]!["data"] as JSONObject)["payload"]).toEqual({
+      phone: "[REDACTED]",
+    });
   });
 
   // Issue #10433: a rule for one service, and what a rule would break.

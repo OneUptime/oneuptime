@@ -107,6 +107,12 @@ export interface ScrubPlanFindingRecord {
   aiScrubRules?: unknown;
   // The names-and-addresses model made it (DataStoreFinding.isFoundByModel).
   isFoundByModel?: boolean | undefined;
+  /*
+   * Some of its values were found only beside their words or under its
+   * location's name (DataStoreFinding.isFoundByContext, #11502): null for a
+   * finding written before that was kept.
+   */
+  isFoundByContext?: boolean | null | undefined;
 }
 
 /*
@@ -151,6 +157,7 @@ export async function readScrubPlanFindingRecord(data: {
         aiScrubRuleInputHash: true,
         aiScrubRules: true,
         isFoundByModel: true,
+        isFoundByContext: true,
       },
       props: { isRoot: true },
     });
@@ -169,6 +176,10 @@ export async function readScrubPlanFindingRecord(data: {
     sampleRecords: readFindingSampleRecords(finding.sampleRecords),
     lastSeenAt: finding.lastSeenAt || null,
     isFoundByModel: finding.isFoundByModel === true,
+    isFoundByContext:
+      typeof finding.isFoundByContext === "boolean"
+        ? finding.isFoundByContext
+        : null,
     projectType: await readProjectDataTypePattern({
       projectId: data.projectId,
       dataTypeId: finding.dataTypeId,

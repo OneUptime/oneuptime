@@ -333,6 +333,7 @@ function fresh(): World {
         scrubRuleId: "10378000-0000-4000-8000-0000000002a2",
         scrubRuleName: "Data Security: Email address in attributes.user.email",
         isProven: true,
+        hidesFinding: true,
       } as never);
   jest.spyOn(DataSecurityResponse, "getAvailability").mockResolvedValue({
     actions: [

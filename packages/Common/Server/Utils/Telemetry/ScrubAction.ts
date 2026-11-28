@@ -228,6 +228,15 @@ export default class ScrubAction {
           foldDigits(PlusAsSpaceText.readableOf(match)),
         );
       /*
+       * A postal code is found in every reading a number is, its letters
+       * typed in fullwidth too (#11502): postcode=SW1A+2AA in a URL and
+       * ＳＷ１Ａ ２ＡＡ typed in fullwidth are SW1A 2AA, so they share its token.
+       */
+      case LogScrubPatternType.PostalCode:
+        return foldFullwidthLetters(
+          foldFullwidthForms(foldDigits(PlusAsSpaceText.readableOf(match))),
+        );
+      /*
        * A Custom Regex rule finds its pattern with a value's escapes read,
        * in every script's digits and with its fullwidth forms read too
        * (ScrubRule's ReadingsScrubRegExp, #11031, #11033, #11115), and with
@@ -317,6 +326,7 @@ export default class ScrubAction {
         return ScrubIpAddress.mask(value);
 
       case LogScrubPatternType.Custom:
+      case LogScrubPatternType.PostalCode:
         // Its first and last characters as the value reads: escapes read, digits in ASCII.
         return maskKeepingEnds(ScrubAction.asItReads(value, patternType));
 

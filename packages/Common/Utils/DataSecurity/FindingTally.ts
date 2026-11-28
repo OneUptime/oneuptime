@@ -49,6 +49,12 @@ export class DataTypeTally {
   public readonly maskedSamples: Array<string> = [];
   // Of matchCount, those the names-and-addresses model found.
   public modelMatchCount: number = 0;
+  /*
+   * Of matchCount, those found only with what is around them: beside a
+   * word that names their type, or under a field's name for it (TextMatch's
+   * fromContext, #11502).
+   */
+  public contextMatchCount: number = 0;
 
   private readonly distinct: Set<number> = new Set();
   private distinctCapped: boolean = false;
@@ -64,6 +70,8 @@ export class DataTypeTally {
     raw?: string | undefined;
     // Found by the names-and-addresses model: masked as a name-found value.
     fromModel?: boolean | undefined;
+    // Found only beside its word or under its field's name (#11502).
+    fromContext?: boolean | undefined;
   }): void {
     if (data.isTestValue) {
       this.testValueCount++;
@@ -74,6 +82,10 @@ export class DataTypeTally {
 
     if (data.fromModel) {
       this.modelMatchCount++;
+    }
+
+    if (data.fromContext) {
+      this.contextMatchCount++;
     }
 
     // The first real match sets it; later ones can only raise it.
@@ -132,6 +144,7 @@ export class FindingTally {
     isTestValue: boolean;
     raw?: string | undefined;
     fromModel?: boolean | undefined;
+    fromContext?: boolean | undefined;
   }): void {
     let tally: DataTypeTally | undefined = this.tallies.get(data.dataTypeId);
 

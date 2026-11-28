@@ -68716,5 +68716,11 @@
   "To read Google Workspace groups back, add the scope {{scope}} to the domain-wide delegation of the Google Workspace connection under Security Events → Connections, for an administrator who may read groups.": "要回读 Google Workspace 组，请将范围 {{scope}} 添加到“安全事件 → 连接”下 Google Workspace 连接的全网域委派中；连接所用的管理员须能读取组。",
   "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them.": "来自 {{provider}} 的令牌在其 {{claim}} 声明匹配 {{count}} 个值之一（其中包括 {{value}}）时，可以代入角色 {{account}}。",
   "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them._one": "来自 {{provider}} 的令牌在其 {{claim}} 声明匹配 {{count}} 个值之一（其中包括 {{value}}）时，可以代入角色 {{account}}。",
-  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.": "来自 {{provider}} 的令牌在其 {{claim}} 声明匹配 {{value}} 时，可以代入角色 {{account}}。"
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.": "来自 {{provider}} 的令牌在其 {{claim}} 声明匹配 {{value}} 时，可以代入角色 {{account}}。",
+  "Found By Context": "由上下文找到",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "纬度和经度对，以及 lat 等词旁边或 location.lat 等键下的单个坐标。",
+  "Postal Code": "邮政编码",
+  "Scrub coordinates": "清理坐标",
+  "Scrub postal codes": "清理邮政编码",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "英国和加拿大的邮政编码，以及 zip 等词旁边或 address.zip 等键下的美国 ZIP 码。"
 }

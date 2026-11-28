@@ -368,6 +368,7 @@ export default class DataSecurityFindingWriter {
             findingKey: true,
             isConfirmed: true,
             isAiSuggested: true,
+            isFoundByContext: true,
           },
           skip: 0,
           limit: 500,
@@ -447,6 +448,16 @@ export default class DataSecurityFindingWriter {
         if (row?.isConfirmed) {
           delete columns["confidence"];
         }
+
+        /*
+         * Found only beside its words or under its location's name, by this
+         * scan or one before (#11502): kept once seen, since a later scan's
+         * sample may hold none of those values while the place still sends
+         * them, and a scrub rule's own pattern would keep them.
+         */
+        columns["isFoundByContext"] =
+          classification.foundByContext === true ||
+          row?.isFoundByContext === true;
 
         if (row?.id) {
           await DataStoreFindingService.updateColumnsByIdWithoutHooks({

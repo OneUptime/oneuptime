@@ -500,6 +500,8 @@ describe("recordContentScan: findings", () => {
       isFoundByName: false,
       // A pattern found it, not the names-and-addresses model (#10373).
       isFoundByModel: false,
+      // By its shape alone, in this scan and the one before (#11502).
+      isFoundByContext: false,
       locationKind: DataStoreLocationKind.Column,
       lastSeenAt: clock,
       // A detector found it: it is not, or no longer, OneUptime AI's suggestion.
@@ -1811,5 +1813,193 @@ describe("recordContentScan: the records a telemetry finding was found in", () =
     expect(kept.length).toBe(MAX_FINDING_SAMPLE_RECORDS);
     expect(kept.slice(0, 2)).toEqual([FIRST, SECOND]);
     expect(JSON.stringify(kept)).not.toContain("jane.doe");
+  });
+});
+
+/*
+ * HOW A FINDING SAYS IT WAS FOUND ONLY WITH WHAT IS AROUND IT (#11502).
+ *
+ * A US ZIP code beside "zip", a lone coordinate under `lat`, a "123" under
+ * `cvv`: values the Custom Regex rule Scrub It makes from a type's shapes
+ * keeps. A finding says whether any of its values was found so
+ * (isFoundByContext), false when none was, and keeps saying it once a scan
+ * has: a later scan's sample may hold none of those values while the place
+ * still sends them. A finding written before it was kept says nothing
+ * (null) until its next scan.
+ */
+describe("recordContentScan: a finding found only with what is around it (#11502)", () => {
+  function recordAt(
+    where: string,
+    overrides: Partial<FieldClassification> = {},
+  ): Promise<RecordContentScanOutput> {
+    return record({
+      result: resultOf({
+        locations: [
+          location(where, [classification("postal-code", overrides)]),
+        ],
+      }),
+    });
+  }
+
+  test("a new finding says whether any of its values was found so, false when none was", async () => {
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.orders.notes", [
+            classification("postal-code", { foundByContext: true }),
+          ]),
+          location("public.users.email", [classification("email-address")]),
+        ],
+      }),
+    });
+
+    expect(
+      findingAt("postal-code", "public.orders.notes").isFoundByContext,
+    ).toBe(true);
+    // Known not to have been: false, never left empty.
+    expect(
+      findingAt("email-address", "public.users.email").isFoundByContext,
+    ).toBe(false);
+  });
+
+  test("once a scan found it so, a later scan that did not leaves it so", async () => {
+    await recordAt("public.orders.notes", { foundByContext: true });
+    await recordAt("public.orders.notes");
+    await recordAt("public.orders.notes", { foundByContext: false });
+
+    expect(
+      findingAt("postal-code", "public.orders.notes").isFoundByContext,
+    ).toBe(true);
+
+    // Each update wrote it again, as found so.
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+
+    for (const call of updateSpy.mock.calls) {
+      expect((call[0] as { data: JSONObject }).data["isFoundByContext"]).toBe(
+        true,
+      );
+    }
+  });
+
+  test("a finding its shapes found until now is found so from the scan that finds it so", async () => {
+    await recordAt("public.orders.notes");
+
+    expect(
+      findingAt("postal-code", "public.orders.notes").isFoundByContext,
+    ).toBe(false);
+
+    await recordAt("public.orders.notes", { foundByContext: true });
+
+    expect(
+      findingAt("postal-code", "public.orders.notes").isFoundByContext,
+    ).toBe(true);
+  });
+
+  test.each([
+    ["found so", true, true],
+    ["by its shapes alone", undefined, false],
+  ])(
+    "a finding written before it was kept is told by its next scan: %s",
+    async (
+      _label: string,
+      foundByContext: boolean | undefined,
+      expected: boolean,
+    ) => {
+      existingFinding("postal-code", "public.orders.zip", {
+        isFoundByContext: null,
+      });
+
+      await recordAt(
+        "public.orders.zip",
+        foundByContext === undefined ? {} : { foundByContext },
+      );
+
+      expect(table).toHaveLength(1);
+      expect(
+        findingAt("postal-code", "public.orders.zip").isFoundByContext,
+      ).toBe(expected);
+    },
+  );
+
+  test("the finding it updates is read with what it said before", async () => {
+    existingFinding("postal-code", "public.orders.zip", {
+      isFoundByContext: true,
+    });
+
+    await recordAt("public.orders.zip");
+
+    const lookups: Array<FindByArgument> = findSpy.mock.calls
+      .map((call: Array<unknown>): FindByArgument => {
+        return call[0] as FindByArgument;
+      })
+      .filter((findBy: FindByArgument): boolean => {
+        return Boolean(findBy.query["findingKey"]);
+      });
+
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]!.select?.["isFoundByContext"]).toBe(true);
+    expect(findingAt("postal-code", "public.orders.zip").isFoundByContext).toBe(
+      true,
+    );
+  });
+
+  test("each type at one place says it of its own values", async () => {
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.orders.notes", [
+            classification("postal-code", { foundByContext: true }),
+            classification("geolocation"),
+          ]),
+        ],
+      }),
+    });
+
+    expect(
+      findingAt("postal-code", "public.orders.notes").isFoundByContext,
+    ).toBe(true);
+    expect(
+      findingAt("geolocation", "public.orders.notes").isFoundByContext,
+    ).toBe(false);
+  });
+
+  test("OneUptime AI's suggestion matched no value: it is never found so", async () => {
+    await DataSecurityFindingWriter.recordFieldSuggestions({
+      projectId: PROJECT_ID,
+      dataStoreId: STORE_ID,
+      locations: [suggestionAt("public.orders.ship_to", "postal-code")],
+      now: NOW,
+    });
+
+    expect(
+      findingAt("postal-code", "public.orders.ship_to").isFoundByContext,
+    ).toBe(false);
+  });
+
+  test("a finding classified from real values says it as classifyField does", async () => {
+    await record({
+      result: resultOf({
+        locations: [
+          location(
+            "public.addresses.zip",
+            classifyField("public.addresses.zip", ["94107", "10001", "60614"]),
+          ),
+          location(
+            "public.addresses.postcode",
+            classifyField("public.addresses.postcode", [
+              "SW1A 2AA",
+              "EC1A 1BB",
+            ]),
+          ),
+        ],
+      }),
+    });
+
+    expect(
+      findingAt("postal-code", "public.addresses.zip").isFoundByContext,
+    ).toBe(true);
+    expect(
+      findingAt("postal-code", "public.addresses.postcode").isFoundByContext,
+    ).toBe(false);
   });
 });

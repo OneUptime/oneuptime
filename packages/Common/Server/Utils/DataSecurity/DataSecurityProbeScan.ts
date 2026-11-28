@@ -571,6 +571,11 @@ function readClassification(
     classification.foundByModel = true;
   }
 
+  // Some of its values found only beside their words or under the field's name (#11502).
+  if (raw["foundByContext"] === true) {
+    classification.foundByContext = true;
+  }
+
   return classification;
 }
 

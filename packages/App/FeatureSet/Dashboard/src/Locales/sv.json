@@ -68716,5 +68716,11 @@
   "To read Google Workspace groups back, add the scope {{scope}} to the domain-wide delegation of the Google Workspace connection under Security Events → Connections, for an administrator who may read groups.": "För att kontrollera grupper i Google Workspace, lägg till omfånget {{scope}} i den domänomfattande delegeringen för Google Workspace-anslutningen under Säkerhetshändelser → Anslutningar, för en administratör som får läsa grupper.",
   "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them.": "Tokens från {{provider}} kan anta rollen {{account}} när deras anspråk {{claim}} matchar ett av {{count}} värden, bland dem {{value}}.",
   "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them._one": "Tokens från {{provider}} kan anta rollen {{account}} när deras anspråk {{claim}} matchar {{count}} värde: {{value}}.",
-  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.": "Tokens från {{provider}} kan anta rollen {{account}} när deras anspråk {{claim}} matchar {{value}}."
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.": "Tokens från {{provider}} kan anta rollen {{account}} när deras anspråk {{claim}} matchar {{value}}.",
+  "Found By Context": "Hittat genom sammanhanget",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "Par av latitud och longitud, och en ensam koordinat bredvid ett ord som lat eller under en nyckel som location.lat.",
+  "Postal Code": "Postnummer",
+  "Scrub coordinates": "Rensa koordinater",
+  "Scrub postal codes": "Rensa postnummer",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "Brittiska och kanadensiska postnummer, och amerikanska ZIP-koder bredvid ett ord som zip eller under en nyckel som address.zip."
 }

@@ -21,11 +21,15 @@ import {
   CreatedScrubRule,
   createScrubRuleForFinding,
   describeRule,
+  doesScrubRuleCover,
+  FindingFoundBy,
   findCoveringScrubRule,
   getScrubCoverage,
   nameScrubItRule,
   planScrubRule,
+  readFindingFoundBy,
   readFindingServiceId,
+  readFoundByOf,
   readScrubbableTarget,
   readScrubScopeOfFinding,
   ScrubItRule,
@@ -33,6 +37,7 @@ import {
   ScrubRulePlan,
   ScrubRuleScopeOfFinding,
   nameTypeForRule,
+  TelemetryFindingReference,
 } from "./TelemetryScrubCoverage";
 import {
   findSecurityEventsSources,
@@ -204,16 +209,41 @@ export async function planProvenScrubItRule(data: {
           dataTypeId: data.dataTypeId,
         })),
     };
-
-    // A secret in an attribute is hidden whole: no record proves a pattern (#11458).
-    candidate = pickUnprovenScrubRuleCandidate({
-      candidates: planScrubRuleCandidates({
-        finding,
-        securityEventsSources: sources?.isChecked ? sources.sources : [],
-        serviceId: scope.serviceId?.toString().toLowerCase() || null,
-      }),
+    const candidates: Array<ScrubRuleCandidate> = planScrubRuleCandidates({
       finding,
+      securityEventsSources: sources?.isChecked ? sources.sources : [],
+      serviceId: scope.serviceId?.toString().toLowerCase() || null,
     });
+    /*
+     * The narrowest that hides what the finding found, as coverage reads
+     * it (#11502): a pattern of the type's shapes keeps what was found only
+     * beside its words or under the key's name, and the rule that names the
+     * attribute does not - the narrowest of all where none does. Among
+     * them, a secret in an attribute is hidden whole: no record proves a
+     * pattern (#11458).
+     */
+    const foundBy: FindingFoundBy = record
+      ? readFoundByOf(record)
+      : await readFindingFoundBy({
+          projectId: data.projectId,
+          findingId: data.findingId,
+        });
+    const reference: TelemetryFindingReference = {
+      kind: data.kind,
+      dataTypeId: data.dataTypeId,
+      location: data.location,
+      ...foundBy,
+    };
+
+    candidate =
+      pickUnprovenScrubRuleCandidate({
+        candidates: candidates.filter(
+          (planned: ScrubRuleCandidate): boolean => {
+            return doesScrubRuleCover(planned, reference);
+          },
+        ),
+        finding,
+      }) || pickUnprovenScrubRuleCandidate({ candidates, finding });
 
     if (!candidate) {
       // Throws, saying why no rule can hide this data.
@@ -383,6 +413,19 @@ export async function saveProvenScrubItRule(data: {
 }
 
 /*
+ * What Scrub It did: the rule, whether it was proven on the finding's
+ * records, and whether it hides what the finding found (#11502) - the
+ * rule that already hid it, or one proven on its records, does; one made
+ * where nothing could be proven does as Data Security's coverage reads it,
+ * so a Custom Regex rule of a type's shapes made for values found only
+ * beside their words does not, and the finding is not marked scrubbed.
+ */
+export interface ScrubItOutcome extends CreatedScrubRule {
+  isProven: boolean;
+  hidesFinding: boolean;
+}
+
+/*
  * Scrub It on a telemetry finding: the enabled rule that already hides it,
  * or the proven, narrow rule for it, made as the person who pressed - or,
  * for a metric's attribute, its service's pipeline rule, as always.
@@ -404,28 +447,42 @@ export async function scrubFindingWithProvenRule(data: {
   location: string;
   serviceId?: ObjectID | string | null | undefined;
   storeKey?: string | null | undefined;
-}): Promise<CreatedScrubRule & { isProven: boolean }> {
+}): Promise<ScrubItOutcome> {
   const scrubbable: {
     location: string;
     dataTypeId: string;
     target: ScrubTarget;
   } = readScrubbableTarget(data);
 
+  // How its values were found, which says whether a rule hides them (#11502).
+  const foundBy: FindingFoundBy = await readFindingFoundBy({
+    projectId: data.projectId,
+    findingId: data.findingId,
+  });
+
   if (scrubbable.target.signal === "metric") {
     return {
-      ...(await createScrubRuleForFinding(data)),
+      ...(await createScrubRuleForFinding({ ...data, ...foundBy })),
       isProven: false,
+      /*
+       * The rule that already hid it, or the one made from how it was
+       * found: its type's pattern where its shapes found every value, and
+       * every value under its key where they did not (buildMetricScrubFilters).
+       */
+      hidesFinding: true,
     };
   }
 
+  const reference: TelemetryFindingReference = {
+    kind: data.kind,
+    dataTypeId: scrubbable.dataTypeId,
+    location: scrubbable.location,
+    serviceId: readFindingServiceId(data) || data.serviceId,
+    ...foundBy,
+  };
   const existing: CoveringScrubRule | null = findCoveringScrubRule(
     await getScrubCoverage(data.projectId),
-    {
-      kind: data.kind,
-      dataTypeId: scrubbable.dataTypeId,
-      location: scrubbable.location,
-      serviceId: readFindingServiceId(data) || data.serviceId,
-    },
+    reference,
   );
 
   if (existing) {
@@ -434,6 +491,7 @@ export async function scrubFindingWithProvenRule(data: {
       scrubRuleId: existing.id,
       scrubRuleName: existing.name,
       isProven: Boolean(existing.provenPlaces?.length),
+      hidesFinding: true,
     };
   }
 
@@ -452,5 +510,12 @@ export async function scrubFindingWithProvenRule(data: {
       planned,
     })),
     isProven: Boolean(planned.proof),
+    // Proven on its records it hides them; unproven, as coverage reads it.
+    hidesFinding:
+      Boolean(planned.proof) ||
+      doesScrubRuleCover(
+        { signal: planned.signal, ...planned.plan },
+        reference,
+      ),
   };
 }

@@ -204,6 +204,9 @@ export async function getDropMetricImpact(data: {
   dataTypeId: string;
   location: string;
   serviceId?: ObjectID | string | null | undefined;
+  // How the finding was found, as its row says (#11502).
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
   // The reader's: only what they may read is named; the rest is counted.
   props: DatabaseCommonInteractionProps;
   now?: Date | undefined;
@@ -242,6 +245,8 @@ export async function getDropMetricImpact(data: {
       dataTypeId: data.dataTypeId,
       location: data.location,
       serviceId,
+      isFoundByContext: data.isFoundByContext,
+      isFoundByModel: data.isFoundByModel,
     },
   );
 

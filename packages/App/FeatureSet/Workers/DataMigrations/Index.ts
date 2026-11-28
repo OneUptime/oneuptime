@@ -164,6 +164,7 @@ import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopi
 import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
 import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
 import MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType from "./MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType";
+import ScrubRulesOfPostalCodesAndCoordinatesUseTheirPatternType from "./ScrubRulesOfPostalCodesAndCoordinatesUseTheirPatternType";
 import RepairScheduleLayerRestrictionTypes from "./RepairScheduleLayerRestrictionTypes";
 import MoveWeeklyWindowsOntoTheirDays from "./MoveWeeklyWindowsOntoTheirDays";
 import ArchiveHostsRegisteredFromNonHostTelemetry from "./ArchiveHostsRegisteredFromNonHostTelemetry";
@@ -1808,6 +1809,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * no ordering requirement of its own; before the two slots kept last.
    */
   new GroupHostsDashboardChartsByHost(),
+  /*
+   * The log and trace scrub rules Scrub It made for a postal code or a
+   * precise location use the Postal Code and Coordinates pattern types
+   * instead of the frozen Custom Regex of the type's shapes, and the metric
+   * rules it made match those pattern types (#11502): each hides a ZIP
+   * code and a lone coordinate beside their words or under their keys too,
+   * and covers its findings. After the code that knows the pattern types;
+   * Postgres only, idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
+   */
+  new ScrubRulesOfPostalCodesAndCoordinatesUseTheirPatternType(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

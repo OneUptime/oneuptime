@@ -172,20 +172,37 @@ describe("a Named Attributes rule over a log", () => {
     });
   });
 
-  test("hides every text inside a list or a map it names, keeping its shape", () => {
+  /*
+   * #11500: and every number inside it - the whole value it names, as its
+   * coverage says: a phone number sent as a number in a map the rule names
+   * is no longer kept. Its shape is kept, its true or false too.
+   */
+  test("hides every text and number inside a list or a map it names, keeping its shape", () => {
     const scrubbed: JSONObject = scrubLog(
       {
         attributes: {
-          "user.full_name": { first: "Jane", last: "Doe", age: 41 },
+          "user.full_name": {
+            first: "Jane",
+            last: "Doe",
+            age: 41,
+            verified: true,
+          },
           nicknames: ["JD", "Janie"],
+          contact: [{ system: "phone", value: 2012345678 }],
         },
       },
-      [namedKeys(["user.full_name", "nicknames"])],
+      [namedKeys(["user.full_name", "nicknames", "contact"])],
     );
 
     expect(scrubbed["attributes"]).toEqual({
-      "user.full_name": { first: "[REDACTED]", last: "[REDACTED]", age: 41 },
+      "user.full_name": {
+        first: "[REDACTED]",
+        last: "[REDACTED]",
+        age: "[REDACTED]",
+        verified: true,
+      },
       nicknames: ["[REDACTED]", "[REDACTED]"],
+      contact: [{ system: "[REDACTED]", value: "[REDACTED]" }],
     });
   });
 

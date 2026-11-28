@@ -475,16 +475,72 @@ export function isTestPhoneNumber(digits: string): boolean {
   return uk.startsWith("07700900") || uk.startsWith("02079460");
 }
 
-const PHONE_KEYWORDS: ReadonlyArray<string> = [
+/*
+ * The words that name a phone number by themselves (#11496): beside one of
+ * them, nine to twelve digits are a number to call.
+ */
+const PHONE_NAMING_WORDS: ReadonlyArray<string> = [
   "phone",
+  "telephone",
   "tel",
   "mobile",
-  "cell",
-  "call",
+  "cellphone",
   "sms",
   "whatsapp",
   "fax",
+];
+
+/*
+ * Words that say a phone number only some of the time (#11496): "call
+ * started at 1732752000" is a Unix time, "cell 104857600" a size in bytes,
+ * "contact 123456789" an id. Beside one of them a run of digits is a phone
+ * number only when it is written as a national one is dialled - with its
+ * trunk prefix, 0, first (trunkNationalPhoneDetector) - or when a word
+ * after them names a number (PHONE_NUMBER_PHRASES).
+ */
+const PHONE_SOMETIMES_WORDS: ReadonlyArray<string> = [
+  "call",
+  "cell",
   "contact",
+];
+
+/*
+ * Those words with one after them that names a number (#11496): "call me
+ * on 2012345678", "contact number: 612345678".
+ */
+const PHONE_NUMBER_PHRASES: ReadonlyArray<string> = [
+  "call me on",
+  "call me at",
+  "call us on",
+  "call us at",
+  "call back on",
+  "call back at",
+  "callback number",
+  "call-back number",
+  "contact number",
+  "contact no",
+  "contact #",
+  "cell number",
+  "cell no",
+  "cell #",
+];
+
+/*
+ * The words a national number with no other shape needs beside it: one
+ * that names a phone number, or a phrase that does (#11496).
+ */
+const NATIONAL_PHONE_KEYWORDS: ReadonlyArray<string> = [
+  ...PHONE_NAMING_WORDS,
+  ...PHONE_NUMBER_PHRASES,
+];
+
+/*
+ * Every word that says a value may be a phone number: what raises a phone
+ * number of its own shape's confidence beside it.
+ */
+const PHONE_KEYWORDS: ReadonlyArray<string> = [
+  ...PHONE_NAMING_WORDS,
+  ...PHONE_SOMETIMES_WORDS,
 ];
 
 /*
@@ -745,7 +801,7 @@ const nationalPhoneDetector: DataTypeDetector = {
   validate: (digits: string): boolean => {
     return !isPlaceholderDigits(digits);
   },
-  keywords: PHONE_KEYWORDS,
+  keywords: NATIONAL_PHONE_KEYWORDS,
   requiresContext: true,
   contextBefore: 32,
   contextAfter: 8,
@@ -754,6 +810,215 @@ const nationalPhoneDetector: DataTypeDetector = {
   isTestValue: isTestPhoneNumber,
   fieldValuePattern: /^\+?[0-9][0-9 ().-]{6,22}[0-9]$/,
   // In every reading, as internationalPhoneDetector: phone+number=... is its words.
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
+  readsFullwidthForms: true,
+  readsFullwidthLetters: true,
+};
+
+/*
+ * A NATIONAL NUMBER IN THE GROUPS PEOPLE WRITE IT IN (#11493).
+ *
+ * A national number is written in groups as often as in one run: Tokyo's
+ * 03-1234-5678, London's 020 7946 0958, Paris's 06 12 34 56 78 or
+ * 06.12.34.56.78, Madrid's 612 34 56 78, Sydney's (02) 1234 5678, Berlin's
+ * 030 12345678. Each is two to five groups - the first of two to five
+ * digits, each after it of two to eight - set apart by one kind of
+ * separator throughout - a space, a hyphen or a dot - or an area code in
+ * parentheses first, then a space or a hyphen between the rest. Another
+ * dash between two digits reads as a hyphen (readsFullwidthForms, #11385),
+ * so 03ー1234ー5678 is found too. It ends before no other group of it, so a
+ * group is never cut from a longer run.
+ */
+const GROUPED_NATIONAL_PHONE_PATTERN: RegExp =
+  /(?<![A-Za-z0-9+./:-])(?:\(0?[1-9][0-9]{0,3}\)[ ]?[0-9]{2,8}(?:[ -][0-9]{2,8}){0,3}|[0-9]{2,5}(?:[ ][0-9]{2,8}){1,4}|[0-9]{2,5}(?:-[0-9]{2,8}){1,4}|[0-9]{2,5}(?:\.[0-9]{2,8}){1,4})(?![0-9]|[ .:/-][0-9])/g;
+
+// A run of digits of a number written in groups.
+const DIGIT_GROUP: RegExp = /[0-9]+/g;
+
+// The area code a number written in groups starts with, in parentheses.
+const AREA_CODE_IN_PARENTHESES: RegExp = /^\(([0-9]+)\)/;
+
+// The runs of digits a number is written in, as numbers' texts.
+function digitGroupsOf(raw: string): Array<string> {
+  return raw.match(DIGIT_GROUP) || [];
+}
+
+function isYear(group: string): boolean {
+  return (
+    group.length === 4 && (group.startsWith("19") || group.startsWith("20"))
+  );
+}
+
+function isMonth(group: string): boolean {
+  const month: number = Number(group);
+
+  return group.length <= 2 && month >= 1 && month <= 12;
+}
+
+function isDay(group: string): boolean {
+  const day: number = Number(group);
+
+  return group.length <= 2 && day >= 1 && day <= 31;
+}
+
+/*
+ * WHETHER A NUMBER WRITTEN IN GROUPS IS WRITTEN AS A NATIONAL PHONE NUMBER
+ * IS (#11493): 9 to 12 digits in all, and none of what only looks like one
+ * - a date, read year first or day first, with a time or a count after it
+ * (2024-11-28-1030), an IPv4 address (192.168.100.200), a range of two
+ * numbers of one length (10000-20000), a run of small counts no trunk
+ * prefix starts (10 20 30 40 50), a US Social Security number's groups
+ * (536-22-8731), a North American area code in parentheses, which the
+ * North American detector reads ((718) 487-63058) - nor a placeholder. A
+ * time (10:30:00) and a version
+ * (1.2.3) are never written so: a colon sets no group apart, and every
+ * group has two digits at least.
+ */
+export function isWrittenAsNationalPhoneNumber(
+  digits: string,
+  raw: string,
+): boolean {
+  if (digits.length < 9 || digits.length > 12 || isPlaceholderDigits(digits)) {
+    return false;
+  }
+
+  const groups: Array<string> = digitGroupsOf(raw);
+
+  if (groups.length < 2) {
+    return false;
+  }
+
+  const [first, second, third] = groups as [string, string, string | undefined];
+
+  // A date: 2024-11-28 or 2024.11.28, and 28-11-2024 or 28.11.2024.
+  if (
+    third !== undefined &&
+    ((isYear(first) && isMonth(second) && isDay(third)) ||
+      (isDay(first) && isMonth(second) && isYear(third)) ||
+      (isMonth(first) && isDay(second) && isYear(third)))
+  ) {
+    return false;
+  }
+
+  /*
+   * A US Social Security number as it is written, three digits, two and
+   * four, by hyphens, dots or spaces: an SSN's own groups, which no
+   * country writes its numbers in. Read as a national number, an SSN a
+   * phone word happened to be near - "phone 201234567 for SSN
+   * 536.22.8731" - was a phone number to a Phone Number rule, which hid it
+   * before the SSN rule could mask it as one.
+   */
+  if (
+    groups.length === 3 &&
+    first.length === 3 &&
+    second.length === 2 &&
+    third!.length === 4
+  ) {
+    return false;
+  }
+
+  /*
+   * A North American area code in parentheses, three digits with no trunk
+   * prefix - (718): the North American detector reads a number written so,
+   * three digits and four after it, and one written otherwise - (718)
+   * 487-63058 - is no number. A country that writes its area code in
+   * parentheses without a trunk prefix writes two digits, as Brazil's (11)
+   * 91234-5678 and Mexico's (55) 1234 5678.
+   */
+  const area: RegExpMatchArray | null = raw.match(AREA_CODE_IN_PARENTHESES);
+
+  if (area && area[1]!.length === 3 && !area[1]!.startsWith("0")) {
+    return false;
+  }
+
+  // An IPv4 address: four groups of at most three digits, none over 255.
+  if (
+    raw.includes(".") &&
+    groups.length === 4 &&
+    groups.every((group: string): boolean => {
+      return group.length <= 3 && Number(group) <= 255;
+    })
+  ) {
+    return false;
+  }
+
+  // A range: two numbers of one length, no trunk prefix, joined by a hyphen.
+  if (
+    groups.length === 2 &&
+    raw.includes("-") &&
+    first.length === second.length &&
+    !first.startsWith("0") &&
+    !second.startsWith("0")
+  ) {
+    return false;
+  }
+
+  // Counts of two digits each, which no national number's trunk prefix starts.
+  return (
+    first.startsWith("0") ||
+    groups.some((group: string): boolean => {
+      return group.length > 2;
+    })
+  );
+}
+
+const groupedNationalPhoneDetector: DataTypeDetector = {
+  dataTypeId: "phone-number",
+  quickCheck: hasDigit,
+  pattern: GROUPED_NATIONAL_PHONE_PATTERN,
+  normalize: digitsOnly,
+  validate: isWrittenAsNationalPhoneNumber,
+  keywords: NATIONAL_PHONE_KEYWORDS,
+  requiresContext: true,
+  contextBefore: 32,
+  contextAfter: 8,
+  confidenceWithoutContext: DataConfidence.Medium,
+  specificity: 1,
+  isTestValue: isTestPhoneNumber,
+  // In every reading, as nationalPhoneDetector: another dash between its groups too.
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
+  readsFullwidthForms: true,
+  readsFullwidthLetters: true,
+};
+
+/*
+ * A NATIONAL NUMBER WITH ITS TRUNK PREFIX, BESIDE A WORD THAT SAYS A PHONE
+ * NUMBER ONLY SOME OF THE TIME (#11496).
+ *
+ * "call", "cell" and "contact" say a phone number in "call 020 7946 0958"
+ * and "cell: 0612345678", and nothing of the kind in "call started at
+ * 1732752000" or "cell 104857600". A national number dialled at home starts
+ * with its trunk prefix, 0, as no Unix time, size or id does: beside one
+ * of those words, a run of digits or a number in groups is one only so.
+ */
+const TRUNK_NATIONAL_PHONE_PATTERN: RegExp =
+  /(?<![A-Za-z0-9+./:-])(?:0[1-9][0-9]{8,11}|\(0[1-9][0-9]{0,3}\)[ ]?[0-9]{2,8}(?:[ -][0-9]{2,8}){0,3}|0[0-9]{1,4}(?:[ ][0-9]{2,8}){1,4}|0[0-9]{1,4}(?:-[0-9]{2,8}){1,4}|0[0-9]{1,4}(?:\.[0-9]{2,8}){1,4})(?![0-9]|[ .:/-][0-9])/g;
+
+const trunkNationalPhoneDetector: DataTypeDetector = {
+  dataTypeId: "phone-number",
+  quickCheck: hasDigit,
+  pattern: TRUNK_NATIONAL_PHONE_PATTERN,
+  normalize: digitsOnly,
+  validate: (digits: string, raw: string): boolean => {
+    return (
+      digits.startsWith("0") &&
+      (digitGroupsOf(raw).length === 1
+        ? !isPlaceholderDigits(digits)
+        : isWrittenAsNationalPhoneNumber(digits, raw))
+    );
+  },
+  keywords: PHONE_SOMETIMES_WORDS,
+  requiresContext: true,
+  contextBefore: 32,
+  contextAfter: 8,
+  confidenceWithoutContext: DataConfidence.Medium,
+  specificity: 1,
+  isTestValue: isTestPhoneNumber,
+  // In every reading, as nationalPhoneDetector.
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
   readsPlusAsSpace: true,
@@ -778,6 +1043,8 @@ export const PHONE_NUMBER_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   nanpFormattedDetector,
   ukMobileDetector,
   nationalPhoneDetector,
+  groupedNationalPhoneDetector,
+  trunkNationalPhoneDetector,
 ];
 
 /*
@@ -1365,6 +1632,38 @@ const vinDetector: DataTypeDetector = {
 };
 
 /*
+ * WHAT DATA SECURITY CALLS A POSTAL CODE: a UK postcode and a Canadian
+ * postal code, each on its own, and a US ZIP code or ZIP+4 only beside a
+ * word that names it ("zip 94107") or alone under a key that names one
+ * (`address.zip`). Each read however it is written (withEveryReading), as
+ * a phone number is: in every script's digits (#11200) - a UK postcode's
+ * digits in fullwidth ones its own - and in a URL (#11199):
+ * postcode=SW1A+2AA. A Postal Code scrub rule hides what these find
+ * (Utils/Telemetry/ScrubBuiltInPatterns.ts, #11502): the ZIP code only
+ * with one of its words near it in the value the rule reads, or under a
+ * key that names it, as the scanner judges it
+ * (TextReadings.findDetectorRanges), so "order 94107" keeps its digits.
+ */
+export const POSTAL_CODE_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  withEveryReading(ukPostcodeDetector),
+  withEveryReading(canadaPostalCodeDetector),
+  withEveryReading(usZipDetector),
+];
+
+/*
+ * WHAT DATA SECURITY CALLS A PRECISE LOCATION: a latitude and longitude
+ * pair on its own, and one coordinate only beside a word that names it
+ * ("lat 51.50722") or alone under a key that names one (`location.lat`),
+ * each with at least four decimals. A Coordinates scrub rule hides what
+ * these find (Utils/Telemetry/ScrubBuiltInPatterns.ts, #11502), the lone
+ * coordinate as the scanner judges it, so "ratio 0.12345" keeps its digits.
+ */
+export const COORDINATE_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  coordinatePairDetector,
+  singleCoordinateDetector,
+];
+
+/*
  * A postal code and a date of birth read however they are written
  * (withEveryReading), as a phone number is: in every script's digits
  * (#11200) - ١٩٨٥-٠٣-١٢ beside "date of birth" is the date it is, a UK
@@ -1376,26 +1675,20 @@ const vinDetector: DataTypeDetector = {
 export const CONTACT_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   emailDetector,
   unicodeEmailDetector,
-  internationalPhoneDetector,
-  nanpFormattedDetector,
-  ukMobileDetector,
-  nationalPhoneDetector,
+  ...PHONE_NUMBER_DETECTORS,
   {
     ...streetAddressDetector,
     readsPercentEncoded: true,
     readsPlusAsSpace: true,
   },
-  withEveryReading(ukPostcodeDetector),
-  withEveryReading(canadaPostalCodeDetector),
-  withEveryReading(usZipDetector),
+  ...POSTAL_CODE_DETECTORS,
   withEveryReading(numericBirthDateDetector),
   withEveryReading(writtenBirthDateDetector),
   ipv4Detector,
   ipv6Detector,
   macDetector,
   advertisingIdDetector,
-  coordinatePairDetector,
-  singleCoordinateDetector,
+  ...COORDINATE_DETECTORS,
   vinDetector,
 ];
 

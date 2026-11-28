@@ -24,6 +24,13 @@ import ScrubNestedValuesUtil, {
  * key whose value is undefined, a function), anything else - a number, a
  * date - as JSON writes it. In time in line with the value's size, and only
  * as deep as a rule reads a value (SCRUB_MAX_VALUE_DEPTH).
+ *
+ * Its numbers are kept with where JSON wrote them too (#11500): a phone
+ * number sent as a number in [{"system":"phone","value":2012345678}], or
+ * an SSN in [536221234] under `customer.ssn`, is one to Data Security,
+ * which reads that same text. What a rule finds there on a number's
+ * characters is placed on that number, and the rule writes its text in the
+ * number's place, as it does for a number alone under its key.
  */
 
 // One text of a list or a map, and where its characters are in the JSON text.
@@ -36,10 +43,21 @@ export interface StoredTextString {
   isKey: boolean;
 }
 
+// One number of a list or a map, and where JSON wrote it in the JSON text (#11500).
+export interface StoredTextNumber {
+  // As JSON wrote it, which is how the table stores it and Data Security reads it.
+  text: string;
+  // [start, end) of the JSON text.
+  start: number;
+  end: number;
+}
+
 export interface StoredText {
   text: string;
   // Every text of the value, keys among them, in the order the JSON text writes them.
   strings: Array<StoredTextString>;
+  // Every finite number of the value, in the order the JSON text writes them (#11500).
+  numbers: Array<StoredTextNumber>;
 }
 
 // A value JSON writes nothing for in a map, and null for in a list.
@@ -53,6 +71,7 @@ function isLeftOutByJson(value: unknown): boolean {
 
 class StoredTextWriter {
   public readonly strings: Array<StoredTextString> = [];
+  public readonly numbers: Array<StoredTextNumber> = [];
   private readonly pieces: Array<string> = [];
   private length: number = 0;
 
@@ -86,6 +105,15 @@ class StoredTextWriter {
 
     if (!ScrubNestedValuesUtil.isNested(value)) {
       const written: string | undefined = JSON.stringify(value);
+
+      // A number JSON writes as one: NaN and Infinity it writes as null.
+      if (typeof value === "number" && Number.isFinite(value) && written) {
+        this.numbers.push({
+          text: written,
+          start: this.length,
+          end: this.length + written.length,
+        });
+      }
 
       this.push(written === undefined ? "null" : written);
       return true;
@@ -166,7 +194,11 @@ export function readStoredText(value: unknown): StoredText | null {
     return null;
   }
 
-  return { text: writer.text, strings: writer.strings };
+  return {
+    text: writer.text,
+    strings: writer.strings,
+    numbers: writer.numbers,
+  };
 }
 
 const QUOTE: number = 0x22;
@@ -247,37 +279,36 @@ function offsetInText(
   return null;
 }
 
-// The last text whose characters start at or before a position, by its start.
-function stringAt(
+// The first text whose characters end after a position, by its end.
+function firstStringEndingAfter(
   strings: ReadonlyArray<StoredTextString>,
   position: number,
-): StoredTextString | null {
+): number {
   let low: number = 0;
-  let high: number = strings.length - 1;
-  let found: StoredTextString | null = null;
+  let high: number = strings.length;
 
-  while (low <= high) {
+  while (low < high) {
     const middle: number = (low + high) >> 1;
-    const candidate: StoredTextString = strings[middle]!;
 
-    if (candidate.start <= position) {
-      found = candidate;
+    if (strings[middle]!.end <= position) {
       low = middle + 1;
     } else {
-      high = middle - 1;
+      high = middle;
     }
   }
 
-  return found;
+  return low;
 }
 
 /*
- * Ranges of the JSON text placed on the texts of the value that hold them,
- * by each text: [start, end) of the text as the list or the map holds it.
- * A range in a key, in a number or across two texts is left out - a rule
- * changes no key and no number of a list or a map, and no pattern of a
- * number matches across a text's quotes - and so is one that starts or
- * ends inside an escape.
+ * Ranges of the JSON text placed on the texts of the value they cover, by
+ * each text: [start, end) of the text as the list or the map holds it. A
+ * range across a key and its value - a pattern written against the JSON
+ * text, `"api_key":"..."`, or one whose words sit in the key, `"cvv":"123"`
+ * (#11502) - is placed on the part of each value's text it covers: a rule
+ * changes no key of a list or a map. A number's ranges are placed on it
+ * apart (placeRangesOnNumbers, #11500). A part that starts or ends inside
+ * an escape is left out.
  */
 export function placeRangesOnStrings(
   stored: StoredText,
@@ -293,42 +324,119 @@ export function placeRangesOnStrings(
   >();
 
   for (const [start, end] of ranges) {
-    const holder: StoredTextString | null = stringAt(stored.strings, start);
-
-    if (!holder || holder.isKey || end > holder.end || end <= start) {
+    if (end <= start) {
       continue;
     }
 
-    let textStart: number = start - holder.start;
-    let textEnd: number = end - holder.start;
+    for (
+      let index: number = firstStringEndingAfter(stored.strings, start);
+      index < stored.strings.length && stored.strings[index]!.start < end;
+      index++
+    ) {
+      const holder: StoredTextString = stored.strings[index]!;
 
-    // Written with an escape: its positions are read one character at a time.
-    if (holder.end - holder.start !== holder.text.length) {
-      if (!writtenStarts.has(holder)) {
-        writtenStarts.set(holder, writtenStartsOf(holder.text));
-      }
-
-      const starts: Array<number> | null | undefined =
-        writtenStarts.get(holder);
-      const readStart: number | null = starts
-        ? offsetInText(starts, textStart)
-        : null;
-      const readEnd: number | null = starts
-        ? offsetInText(starts, textEnd)
-        : null;
-
-      if (readStart === null || readEnd === null || readEnd <= readStart) {
+      if (holder.isKey) {
         continue;
       }
 
-      textStart = readStart;
-      textEnd = readEnd;
+      let textStart: number = Math.max(start, holder.start) - holder.start;
+      let textEnd: number = Math.min(end, holder.end) - holder.start;
+
+      if (textEnd <= textStart) {
+        continue;
+      }
+
+      // Written with an escape: its positions are read one character at a time.
+      if (holder.end - holder.start !== holder.text.length) {
+        if (!writtenStarts.has(holder)) {
+          writtenStarts.set(holder, writtenStartsOf(holder.text));
+        }
+
+        const starts: Array<number> | null | undefined =
+          writtenStarts.get(holder);
+        const readStart: number | null = starts
+          ? offsetInText(starts, textStart)
+          : null;
+        const readEnd: number | null = starts
+          ? offsetInText(starts, textEnd)
+          : null;
+
+        if (readStart === null || readEnd === null || readEnd <= readStart) {
+          continue;
+        }
+
+        textStart = readStart;
+        textEnd = readEnd;
+      }
+
+      const known: Array<TextRange> = placed.get(holder.text) || [];
+
+      known.push([textStart, textEnd]);
+      placed.set(holder.text, known);
     }
+  }
 
-    const known: Array<TextRange> = placed.get(holder.text) || [];
+  return placed;
+}
 
-    known.push([textStart, textEnd]);
-    placed.set(holder.text, known);
+// The first number whose characters end after a position, by its end.
+function firstNumberEndingAfter(
+  numbers: ReadonlyArray<StoredTextNumber>,
+  position: number,
+): number {
+  let low: number = 0;
+  let high: number = numbers.length;
+
+  while (low < high) {
+    const middle: number = (low + high) >> 1;
+
+    if (numbers[middle]!.end <= position) {
+      low = middle + 1;
+    } else {
+      high = middle;
+    }
+  }
+
+  return low;
+}
+
+/*
+ * Ranges of the JSON text placed on the numbers of the value they cover
+ * (#11500), by each number as JSON writes it: [start, end) of that text.
+ * A range that covers part of a number - a coordinate's "-" before it, a
+ * pair of coordinates across two numbers and the comma between them - is
+ * placed on the part of each number it covers, so a number a rule hides is
+ * hidden whatever the range holds around it. What no number holds is left
+ * out: placeRangesOnStrings places the rest.
+ */
+export function placeRangesOnNumbers(
+  stored: StoredText,
+  ranges: ReadonlyArray<TextRange>,
+): Map<string, Array<TextRange>> {
+  const placed: Map<string, Array<TextRange>> = new Map<
+    string,
+    Array<TextRange>
+  >();
+
+  for (const [start, end] of ranges) {
+    for (
+      let index: number = firstNumberEndingAfter(stored.numbers, start);
+      index < stored.numbers.length && stored.numbers[index]!.start < end;
+      index++
+    ) {
+      const number: StoredTextNumber = stored.numbers[index]!;
+      const from: number = Math.max(start, number.start) - number.start;
+      const to: number = Math.min(end, number.end) - number.start;
+
+      if (to <= from) {
+        continue;
+      }
+
+      const known: Array<TextRange> = placed.get(number.text) || [];
+
+      known.push([from, to]);
+      placed.set(number.text, known);
+    }
   }
 
   return placed;

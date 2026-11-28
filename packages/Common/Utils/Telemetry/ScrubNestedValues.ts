@@ -62,6 +62,19 @@ export type ScrubNumberOf = (
   value: number,
 ) => ((text: string) => string) | null;
 
+/*
+ * How a rule scrubs a list or a map held under a key (#11500): its texts,
+ * and the numbers inside it - read as JSON writes them, and written as the
+ * rule's text where it hides any of one - or null for numbers that are
+ * kept, as numbers inside a value always were.
+ */
+export interface ScrubOfNestedValue {
+  scrubText: (text: string) => string;
+  scrubNumber: ((numberText: string) => string) | null;
+}
+
+export type ScrubNestedOf = (key: string, value: unknown) => ScrubOfNestedValue;
+
 const JSON_WHITESPACE: string = " \t\n\r";
 
 // A list, or a map as JSON writes one: what a rule reads inside.
@@ -218,13 +231,37 @@ function mapNested(
   return copy === null ? value : copy;
 }
 
+/*
+ * A number inside a list or a map as a rule leaves it (#11500): kept as the
+ * number it is, unless the rule hides some of it, as JSON writes it - then
+ * the rule's text, as a string, as for a number alone under its key.
+ */
+function scrubNumberAt(
+  value: number,
+  scrubNumber: ((numberText: string) => string) | null,
+): unknown {
+  if (!scrubNumber || !Number.isFinite(value)) {
+    return value;
+  }
+
+  const text: string = JSON.stringify(value);
+  const scrubbed: string = scrubNumber(text);
+
+  return scrubbed === text ? value : scrubbed;
+}
+
 function scrubTextsAt(
   value: unknown,
   scrubText: (text: string) => string,
   depth: number,
+  scrubNumber: ((numberText: string) => string) | null = null,
 ): unknown {
   if (typeof value === "string") {
     return scrubText(value);
+  }
+
+  if (typeof value === "number") {
+    return depth > 0 ? scrubNumberAt(value, scrubNumber) : value;
   }
 
   if (!isNested(value)) {
@@ -239,7 +276,7 @@ function scrubTextsAt(
   }
 
   return mapNested(value, (item: unknown): unknown => {
-    return scrubTextsAt(item, scrubText, depth + 1);
+    return scrubTextsAt(item, scrubText, depth + 1, scrubNumber);
   });
 }
 
@@ -451,6 +488,7 @@ export default class ScrubNestedValuesUtil {
     attributes: Record<string, unknown>,
     scrubTextOf: (key: string, value: unknown) => (text: string) => string,
     scrubNumberOf?: ScrubNumberOf | undefined,
+    scrubNestedOf?: ScrubNestedOf | undefined,
   ): void {
     for (const key of Object.keys(attributes)) {
       const value: unknown = attributes[key];
@@ -459,6 +497,7 @@ export default class ScrubNestedValuesUtil {
         value,
         scrubTextOf,
         scrubNumberOf,
+        scrubNestedOf,
       );
 
       if (scrubbed !== value) {
@@ -471,14 +510,23 @@ export default class ScrubNestedValuesUtil {
    * One attribute's value as scrubAttributeTextsUnderKeys leaves it: its
    * texts scrubbed as its key says, a number under a key a rule reads
    * numbers by scrubbed as its text - kept as the number it is unless the
-   * rule hid some of it - and anything else kept.
+   * rule hid some of it - and anything else kept. `scrubNestedOf`: for a
+   * rule that reads the numbers inside a list or a map too (#11500), how it
+   * scrubs such a value - its texts and its numbers together, read once.
    */
   public static scrubValueUnderKey(
     key: string,
     value: unknown,
     scrubTextOf: (key: string, value: unknown) => (text: string) => string,
     scrubNumberOf?: ScrubNumberOf | undefined,
+    scrubNestedOf?: ScrubNestedOf | undefined,
   ): unknown {
+    if (isNested(value) && scrubNestedOf) {
+      const scrub: ScrubOfNestedValue = scrubNestedOf(key, value);
+
+      return scrubTextsAt(value, scrub.scrubText, 0, scrub.scrubNumber);
+    }
+
     if (typeof value === "string" || isNested(value)) {
       return scrubTextsAt(value, scrubTextOf(key, value), 0);
     }

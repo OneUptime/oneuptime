@@ -100,6 +100,17 @@ export interface FieldClassification extends DataTypeTallyJSON {
    */
   foundByModel?: boolean | undefined;
   /*
+   * Some of its matches were found only with what is around them (#11502):
+   * by a detector of a type that is one only beside a word that names it -
+   * a US ZIP code beside "zip", a lone coordinate beside "lat" - with that
+   * word near it or the field's name for it, or as a whole value of the
+   * shape its type takes under such a field's name (fieldValuePattern) - a
+   * "123" under `cvv`. A Custom Regex rule made from the type's detectors
+   * that need no context finds none of them by its pattern
+   * (TelemetryScrubCoverage), so a finding says so (isFoundByContext).
+   */
+  foundByContext?: boolean | undefined;
+  /*
    * Where the first values that held this type are among the values the
    * field was classified from - indexes into them as given, empty ones
    * counted - at most maxMatchedValueIndexes, in the order given. A test
@@ -425,6 +436,7 @@ export function classifyField(
         isTestValue: match.isTestValue,
         raw: value.slice(match.start, match.end),
         fromModel: match.fromModel,
+        fromContext: match.fromContext,
       });
       typesCounted.add(match.dataTypeId);
 
@@ -465,6 +477,8 @@ export function classifyField(
           confidence: DataConfidence.Medium,
           isTestValue,
           raw: value,
+          // Of its type by the field's name alone, and its shape (#11502).
+          fromContext: true,
         });
         typesCounted.add(detector.dataTypeId);
 
@@ -522,6 +536,10 @@ export function classifyField(
 
     if (tally.modelMatchCount > 0) {
       classification.foundByModel = true;
+    }
+
+    if (tally.contextMatchCount > 0) {
+      classification.foundByContext = true;
     }
 
     results.push(withMatchedValueIndexes(classification));

@@ -307,8 +307,26 @@ export function mergeClassifications(
   const valueCount: number = a.valueCount + b.valueCount;
   const valuesWithMatch: number = a.valuesWithMatch + b.valuesWithMatch;
   const distinctValues: number = Math.max(a.distinctValues, b.distinctValues);
+  /*
+   * How either was found holds of both together: some values the model
+   * found, some only beside their words (#11502). Kept only when true, as
+   * classifyField writes them.
+   */
+  const foundBy: {
+    foundByModel?: boolean | undefined;
+    foundByContext?: boolean | undefined;
+  } = {};
+
+  if (a.foundByModel || b.foundByModel) {
+    foundBy.foundByModel = true;
+  }
+
+  if (a.foundByContext || b.foundByContext) {
+    foundBy.foundByContext = true;
+  }
 
   return {
+    ...foundBy,
     dataTypeId: a.dataTypeId,
     matchCount: a.matchCount + b.matchCount,
     testValueCount: a.testValueCount + b.testValueCount,

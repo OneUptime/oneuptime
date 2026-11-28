@@ -483,8 +483,9 @@ describe("phone-number", () => {
 
   test("finds a UK mobile, Low alone and High next to phone words", () => {
     expectFound("07911 123456", [found("phone-number", "07911 123456", L)]);
+    // In its groups beside a phone word it is a national number too (#11493), which the word makes High.
     expectFound("mobile 07911 123456", [
-      found("phone-number", "07911 123456", M),
+      found("phone-number", "07911 123456", H),
     ]);
     // Unspaced, it is also a national number, which phone words make High.
     expectFound("mobile 07911123456", [

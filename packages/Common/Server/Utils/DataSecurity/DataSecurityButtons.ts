@@ -35,9 +35,11 @@ import ProjectDataTypeNames from "./ProjectDataTypeNames";
 import DataSecurityResponse from "./DataSecurityResponse";
 import { queueDataSecurityEvaluation } from "./DataSecurityJobs";
 import TelemetryLeakFix from "./TelemetryLeakFix";
-import { CreatedScrubRule } from "./Telemetry/TelemetryScrubCoverage";
 import { getScrubItImpact } from "./Telemetry/TelemetryScrubImpact";
-import { scrubFindingWithProvenRule } from "./Telemetry/TelemetryScrubIt";
+import {
+  ScrubItOutcome,
+  scrubFindingWithProvenRule,
+} from "./Telemetry/TelemetryScrubIt";
 
 /*
  * WHAT DATA SECURITY'S BUTTONS DO ON THE SERVER, IN ONE PLACE (#10378).
@@ -173,6 +175,9 @@ export async function readTelemetryFindingForCaller(data: {
         dataStoreId: true,
         // Its key names its service, for a store kept without one (#10433).
         dataStore: { kind: true, serviceId: true, storeKey: true },
+        // How its values were found says whether a rule hides them (#11502).
+        isFoundByContext: true,
+        isFoundByModel: true,
       },
       props: { isRoot: true },
     });
@@ -250,28 +255,33 @@ export default class DataSecurityButtons {
     projectId: ObjectID;
     findingId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  }): Promise<CreatedScrubRule & { isProven: boolean }> {
+  }): Promise<ScrubItOutcome> {
     const finding: DataStoreFinding = await readTelemetryFindingForCaller(data);
 
-    const created: CreatedScrubRule & { isProven: boolean } =
-      await scrubFindingWithProvenRule({
-        projectId: data.projectId,
-        userId: data.props.userId || undefined,
-        // A project API key makes the rule with its own props, never as OneUptime.
-        callerProps: data.props,
-        findingId: finding.id!.toString(),
-        kind: finding.dataStore!.kind as DataStoreKind,
-        dataTypeId: finding.dataTypeId!,
-        dataTypeName: finding.dataTypeName,
-        location: finding.location!,
-        // The rule is its service's: a metric's always was, a log's or a span's since #10433.
-        serviceId: finding.dataStore!.serviceId || null,
-        storeKey: finding.dataStore!.storeKey || null,
-      });
+    const created: ScrubItOutcome = await scrubFindingWithProvenRule({
+      projectId: data.projectId,
+      userId: data.props.userId || undefined,
+      // A project API key makes the rule with its own props, never as OneUptime.
+      callerProps: data.props,
+      findingId: finding.id!.toString(),
+      kind: finding.dataStore!.kind as DataStoreKind,
+      dataTypeId: finding.dataTypeId!,
+      dataTypeName: finding.dataTypeName,
+      location: finding.location!,
+      // The rule is its service's: a metric's always was, a log's or a span's since #10433.
+      serviceId: finding.dataStore!.serviceId || null,
+      storeKey: finding.dataStore!.storeKey || null,
+    });
 
+    /*
+     * Scrubbed when the rule hides what it found: the one that already did,
+     * or the one made. A rule of the type's shapes, made where nothing
+     * could be proven, keeps what was found only beside its words (#11502),
+     * and the finding says so.
+     */
     await DataStoreFindingService.updateColumnsByIdWithoutHooks({
       id: finding.id!,
-      data: { isScrubbed: true },
+      data: { isScrubbed: created.hidesFinding },
     });
     await queueDataSecurityEvaluation(data.projectId);
 

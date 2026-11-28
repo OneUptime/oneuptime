@@ -55,6 +55,7 @@ import { ContentScanOptions } from "../../DataSecurity/DataSecurityScanTypes";
 import {
   CoveringScrubRule,
   findCoveringScrubRule,
+  readFoundByOf,
   getScrubCoverage,
   METRIC_REDACT_REPLACEMENT,
   ScrubCoverage,
@@ -544,6 +545,8 @@ export default class TelemetryLeakFixWatch {
           fixedAt: true,
           lastSeenAt: true,
           isFoundByModel: true,
+          // How its values were found says whether a rule hides them (#11502).
+          isFoundByContext: true,
         },
         skip: 0,
         limit: MAX_LEAK_PLACES_PER_STORE,
@@ -573,6 +576,7 @@ export default class TelemetryLeakFixWatch {
           dataTypeId: finding.dataTypeId,
           location: finding.location,
           serviceId: data.serviceId,
+          ...readFoundByOf(finding),
         },
       );
       const isMetricRule: boolean = Boolean(rule && rule.signal === "metric");

@@ -1,3 +1,4 @@
+import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
 import LogScrubRule from "../../../../Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "../../../../Models/DatabaseModels/MetricPipelineRule";
 import Service from "../../../../Models/DatabaseModels/Service";
@@ -81,6 +82,7 @@ import {
   compileScrubRuleReading,
   findSecurityEventsLosses,
 } from "../../../../Utils/Telemetry/ScrubRuleFieldReads";
+import DataStoreFindingService from "../../../Services/DataStoreFindingService";
 import LogScrubRuleService from "../../../Services/LogScrubRuleService";
 import MetricPipelineRuleService from "../../../Services/MetricPipelineRuleService";
 import ServiceService from "../../../Services/ServiceService";
@@ -230,6 +232,17 @@ export interface TelemetryFindingReference {
   location: string;
   // The service the store is the telemetry of: a metric rule may be its own.
   serviceId?: ObjectID | string | null | undefined;
+  /*
+   * How the finding's values were found (#11502), as its row says: some
+   * only beside the words that name their type or under its location's
+   * name (DataStoreFinding.isFoundByContext), and some by the
+   * names-and-addresses model (isFoundByModel). A Custom Regex rule made
+   * from the type's shapes hides neither (isFindingHiddenByTypePattern).
+   * Left out, or null, it is not known: taken as found so, where the type
+   * can be.
+   */
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
 }
 
 // The metric pipeline rule types that hide an attribute's value.
@@ -309,6 +322,8 @@ const MASKED_PATTERN_TYPES: ReadonlySet<string> = new Set([
   LogScrubPatternType.CreditCard,
   LogScrubPatternType.SSN,
   LogScrubPatternType.PhoneNumber,
+  LogScrubPatternType.PostalCode,
+  LogScrubPatternType.Coordinates,
 ]);
 
 // What the name of every rule "Scrub it" makes starts with.
@@ -408,6 +423,8 @@ export const METRIC_PATTERN_TYPE_OF_DATA_TYPE: ReadonlyMap<string, string> =
     ["credit-card-number", LogScrubPatternType.CreditCard],
     ["phone-number", LogScrubPatternType.PhoneNumber],
     ["us-ssn", LogScrubPatternType.SSN],
+    ["postal-code", LogScrubPatternType.PostalCode],
+    ["geolocation", LogScrubPatternType.Coordinates],
   ]);
 
 /*
@@ -417,9 +434,35 @@ export const METRIC_PATTERN_TYPE_OF_DATA_TYPE: ReadonlyMap<string, string> =
  * (buildScrubPatternForDataType), so the label keeps its other values - or
  * none, where no pattern can find the type: then every value under the key
  * is redacted, since the key's name, or the words around the values, are
- * what say it holds the type.
+ * what say it holds the type. And none for a finding the type's shape does
+ * not find whole (#11502): some of its values were found only by their
+ * words or the key's name - nine digits beside "ITIN", an ITIN alone under
+ * `taxpayer.itin` - or by the names-and-addresses model, or it never said
+ * (`foundBy` left out), for a type that can be. The key is then what says
+ * the label holds the type, as for a type no pattern finds.
  */
 export function buildMetricScrubFilters(
+  dataTypeId: string,
+  attributeKey: string,
+  foundBy: Pick<
+    TelemetryFindingReference,
+    "isFoundByContext" | "isFoundByModel"
+  > = {},
+): Array<MetricPipelineRuleFilterCondition> {
+  const filters: Array<MetricPipelineRuleFilterCondition> =
+    getMetricScrubFiltersOfType(dataTypeId, attributeKey);
+
+  return hidesWhatTheFindingFound(filters, { ...foundBy, dataTypeId })
+    ? filters
+    : [];
+}
+
+/*
+ * The filters a metric rule for a data type under a key has when it finds
+ * the type by its pattern: its Pattern Type, or a Matches Regex filter of
+ * the type's own pattern - or none, where no pattern can find the type.
+ */
+function getMetricScrubFiltersOfType(
   dataTypeId: string,
   attributeKey: string,
 ): Array<MetricPipelineRuleFilterCondition> {
@@ -492,18 +535,41 @@ function metricRuleCovers(
     return true;
   }
 
-  const scrubItFilters: Array<string> = buildMetricScrubFilters(
-    finding.dataTypeId,
-    target.key,
-  ).map(filterText);
+  const scrubItFilters: Array<MetricPipelineRuleFilterCondition> =
+    getMetricScrubFiltersOfType(finding.dataTypeId, target.key);
+  const scrubItTexts: Array<string> = scrubItFilters.map(filterText);
 
   return (
-    scrubItFilters.length > 0 &&
-    filters.length === scrubItFilters.length &&
+    scrubItTexts.length > 0 &&
+    filters.length === scrubItTexts.length &&
     filters.map(filterText).every((text: string, index: number): boolean => {
-      return text === scrubItFilters[index];
-    })
+      return text === scrubItTexts[index];
+    }) &&
+    hidesWhatTheFindingFound(scrubItFilters, finding)
   );
+}
+
+/*
+ * Whether the filters Scrub It gives a metric rule let it hide what a
+ * finding found: a Matches Pattern Type filter's built-in pattern finds
+ * what the detectors find, a Matches Regex filter of the type's own
+ * pattern only what its shapes find (isFindingHiddenByTypePattern,
+ * #11502).
+ */
+function hidesWhatTheFindingFound(
+  filters: ReadonlyArray<MetricPipelineRuleFilterCondition>,
+  finding: Pick<
+    TelemetryFindingReference,
+    "dataTypeId" | "isFoundByContext" | "isFoundByModel"
+  >,
+): boolean {
+  return filters.every((filter: MetricPipelineRuleFilterCondition): boolean => {
+    return (
+      filter.conditionType !==
+        MetricPipelineRuleFilterConditionType.MatchesRegex ||
+      isFindingHiddenByTypePattern(finding)
+    );
+  });
 }
 
 /*
@@ -584,7 +650,13 @@ function dropRuleCovers(
     filters.length === dropFilters.length &&
     filters.map(filterText).every((text: string, index: number): boolean => {
       return text === filterText(dropFilters[index]!);
-    })
+    }) &&
+    /*
+     * A name's pattern finds what the type's shapes find there: an
+     * instrument's name holds no IPv6 address or email address the pattern
+     * leaves out, but a ZIP code beside "zip" is no shape at all (#11502).
+     */
+    isFoundByShapeAlone(finding)
   );
 }
 
@@ -643,10 +715,19 @@ function ruleCovers(
     return false;
   }
 
+  /*
+   * The type's own pattern, as Scrub It made it - for a finding it finds
+   * whole: none of whose values were found only by their words, their
+   * key or the model, which the pattern does not read (#11502).
+   */
   if (rule.patternType === SCRUB_RULE_CUSTOM_PATTERN_TYPE) {
     const pattern: string | null = buildScrubPatternForDataType(dataTypeId);
 
-    return pattern !== null && rule.customRegex === pattern;
+    return (
+      pattern !== null &&
+      rule.customRegex === pattern &&
+      isFindingHiddenByTypePattern(finding)
+    );
   }
 
   return DATA_TYPE_OF_SCRUB_PATTERN_TYPE[rule.patternType] === dataTypeId;
@@ -679,6 +760,80 @@ export function isFindingScrubbed(
   finding: TelemetryFindingReference,
 ): boolean {
   return findCoveringScrubRule(coverage, finding) !== null;
+}
+
+/*
+ * Whether a log or trace rule not yet made - Scrub It's candidate - would
+ * cover a finding once enabled, for every service: what the rule is
+ * chosen by where it cannot be proven (#11502).
+ */
+export function doesScrubRuleCover(
+  rule: {
+    signal: ScrubRuleSignal;
+    patternType: string;
+    customRegex?: string | undefined;
+    fieldsToScrub: string;
+    attributeKeys?: Array<string> | undefined;
+  },
+  finding: TelemetryFindingReference,
+): boolean {
+  const covering: CoveringScrubRule = {
+    id: "",
+    name: "",
+    signal: rule.signal,
+    patternType: rule.patternType,
+    customRegex: rule.customRegex,
+    fieldsToScrub: rule.fieldsToScrub,
+  };
+
+  if ((rule.attributeKeys || []).length > 0) {
+    covering.attributeKeys = [...rule.attributeKeys!];
+  }
+
+  return findCoveringScrubRule({ rules: [covering] }, finding) !== null;
+}
+
+// How a finding's values were found, as its row says (#11502).
+export type FindingFoundBy = Pick<
+  TelemetryFindingReference,
+  "isFoundByContext" | "isFoundByModel"
+>;
+
+/*
+ * How a finding's values were found, read from its row by id - or nothing
+ * known, for none named or one that is gone, which coverage reads as found
+ * only by what is around them where its type can be (#11502).
+ */
+export async function readFindingFoundBy(data: {
+  projectId: ObjectID;
+  findingId?: string | null | undefined;
+}): Promise<FindingFoundBy> {
+  if (!data.findingId || !ObjectID.isValidUUID(data.findingId)) {
+    return {};
+  }
+
+  const finding: DataStoreFinding | null =
+    await DataStoreFindingService.findOneBy({
+      query: { _id: data.findingId, projectId: data.projectId },
+      select: { _id: true, isFoundByContext: true, isFoundByModel: true },
+      props: { isRoot: true },
+    });
+
+  return finding ? readFoundByOf(finding) : {};
+}
+
+// How a finding row's values were found, as coverage reads it (#11502).
+export function readFoundByOf(finding: {
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
+}): FindingFoundBy {
+  return {
+    isFoundByContext:
+      typeof finding.isFoundByContext === "boolean"
+        ? finding.isFoundByContext
+        : null,
+    isFoundByModel: finding.isFoundByModel === true,
+  };
 }
 
 /*
@@ -1066,33 +1221,78 @@ function toScrubPatternPiece(detector: DataTypeDetector): string | null {
   return null;
 }
 
-const scrubPatterns: Map<string, string | null> = new Map();
+/*
+ * The pattern "Scrub it" makes for a built-in data type, and whether it
+ * holds every detector of the type that needs no context (#11502): one
+ * that does not fit is left out, and what it finds the pattern keeps.
+ */
+export interface ScrubPatternOfDataType {
+  pattern: string | null;
+  // Every detector of the type that needs no context is a part of it.
+  isWhole: boolean;
+}
+
+const scrubPatterns: Map<string, ScrubPatternOfDataType> = new Map();
 
 /*
- * The custom pattern "Scrub it" makes for a built-in data type, or null when
- * none can be made: the type is found by field names alone (a person's
- * name), or only by the words around it - nine digits are a routing number
- * only beside "routing" - which a scrub rule cannot read, so its pattern
- * alone would scrub far more than the type; or it is a document's marking
- * ("Confidential"), and hiding the word would not hide the document. Made
- * of the type's detectors that need no context, surest first, as many as
- * fit the rule's 500 characters, and checked the way the rule is checked
- * when it is saved (checkScrubRuleCustomRegex). A detector's checksum
- * cannot be a pattern: the rule scrubs every value of the type's shape.
+ * The pieces joined as one pattern a rule runs, or null when they cannot
+ * be: each a group, side by side. Two pieces that each run alone may make
+ * a pattern too large for the linear-time matcher together - a count of
+ * {4,1024} beside one of {16,4096}, as the Basic and Bearer Authorization
+ * headers' detectors are (#11502) - so then their long counts are made
+ * open, as one piece's are (relaxLongRepeats).
  */
-export function buildScrubPatternForDataType(
+function joinScrubPatternPieces(pieces: ReadonlyArray<string>): string | null {
+  const joined: string =
+    pieces.length === 1
+      ? pieces[0]!
+      : pieces
+          .map((part: string): string => {
+            return `(?:${part})`;
+          })
+          .join("|");
+  const check: ScrubRuleCustomRegexCheck | null =
+    checkScrubRuleCustomRegex(joined);
+  let pattern: string | null = check === null ? joined : null;
+
+  if (
+    pattern === null &&
+    check?.problem === ScrubRuleCustomRegexProblem.CannotRun &&
+    check.cannotRunReason === PatternProblemReason.TooLarge
+  ) {
+    const relaxed: string = relaxLongRepeats(joined);
+
+    pattern = checkScrubRuleCustomRegex(relaxed) === null ? relaxed : null;
+  }
+
+  return pattern !== null && pattern.length <= MAX_SCRUB_PATTERN_LENGTH
+    ? pattern
+    : null;
+}
+
+/*
+ * The custom pattern "Scrub it" makes for a built-in data type
+ * (buildScrubPatternForDataType), and whether it holds every one of the
+ * type's detectors that need no context. Made once a type.
+ */
+export function getScrubPatternOfDataType(
   dataTypeId: string,
-): string | null {
-  if (scrubPatterns.has(dataTypeId)) {
-    return scrubPatterns.get(dataTypeId) ?? null;
+): ScrubPatternOfDataType {
+  const known: ScrubPatternOfDataType | undefined =
+    scrubPatterns.get(dataTypeId);
+
+  if (known) {
+    return known;
   }
 
   if (
     getBuiltInDataType(dataTypeId)?.category ===
     DataCategory.BusinessConfidential
   ) {
-    scrubPatterns.set(dataTypeId, null);
-    return null;
+    const none: ScrubPatternOfDataType = { pattern: null, isWhole: false };
+
+    scrubPatterns.set(dataTypeId, none);
+    return none;
   }
 
   const detectors: Array<DataTypeDetector> = getBuiltInDetectorsOf(dataTypeId)
@@ -1113,19 +1313,9 @@ export function buildScrubPatternForDataType(
       continue;
     }
 
-    const candidate: string =
-      pieces.length === 0
-        ? piece
-        : [...pieces, piece]
-            .map((part: string): string => {
-              return `(?:${part})`;
-            })
-            .join("|");
+    const candidate: string | null = joinScrubPatternPieces([...pieces, piece]);
 
-    if (
-      candidate.length > MAX_SCRUB_PATTERN_LENGTH ||
-      checkScrubRuleCustomRegex(candidate) !== null
-    ) {
+    if (candidate === null) {
       continue;
     }
 
@@ -1133,9 +1323,111 @@ export function buildScrubPatternForDataType(
     pattern = candidate;
   }
 
-  scrubPatterns.set(dataTypeId, pattern);
+  const made: ScrubPatternOfDataType = {
+    pattern,
+    isWhole: pattern !== null && pieces.length === detectors.length,
+  };
 
-  return pattern;
+  scrubPatterns.set(dataTypeId, made);
+
+  return made;
+}
+
+/*
+ * The custom pattern "Scrub it" makes for a built-in data type, or null when
+ * none can be made: the type is found by field names alone (a person's
+ * name), or only by the words around it - nine digits are a routing number
+ * only beside "routing" - which a scrub rule cannot read, so its pattern
+ * alone would scrub far more than the type; or it is a document's marking
+ * ("Confidential"), and hiding the word would not hide the document. Made
+ * of the type's detectors that need no context, surest first, as many as
+ * fit the rule's 500 characters, and checked the way the rule is checked
+ * when it is saved (checkScrubRuleCustomRegex). A detector's checksum
+ * cannot be a pattern: the rule scrubs every value of the type's shape.
+ */
+export function buildScrubPatternForDataType(
+  dataTypeId: string,
+): string | null {
+  return getScrubPatternOfDataType(dataTypeId).pattern;
+}
+
+/*
+ * Whether a type is found by more than its shape: one of its detectors
+ * needs a word beside a value, or takes a whole value of its shape under a
+ * field whose name names the type (fieldValuePattern) - a US ZIP code
+ * beside "zip", a "123" under `cvv`. Then a finding of it may hold values
+ * no pattern of the type's shapes finds (#11502).
+ */
+const foundByContextTypes: Map<string, boolean> = new Map();
+
+export function canBeFoundByContext(dataTypeId: string): boolean {
+  let known: boolean | undefined = foundByContextTypes.get(dataTypeId);
+
+  if (known === undefined) {
+    known = getBuiltInDetectorsOf(dataTypeId).some(
+      (detector: DataTypeDetector): boolean => {
+        return (
+          Boolean(detector.requiresContext) ||
+          detector.fieldValuePattern !== undefined
+        );
+      },
+    );
+    foundByContextTypes.set(dataTypeId, known);
+  }
+
+  return known;
+}
+
+/*
+ * WHETHER THE PATTERN SCRUB IT MAKES FOR A TYPE HIDES WHAT A FINDING FOUND
+ * (#11502).
+ *
+ * The Custom Regex rule Scrub It makes for a type with no built-in pattern
+ * is made of the type's detectors that need no context: a UK and a
+ * Canadian postcode, a coordinate pair, an ITIN in its groups. Data
+ * Security finds more of some types, which that pattern keeps: a US ZIP
+ * code beside "zip" or under `address.zip`, a lone coordinate beside
+ * "lat", nine digits beside "ITIN", a whole "123" under `cvv`, and a
+ * street address the names-and-addresses model reads. So the rule - or a
+ * metric rule filtered by the same pattern - counts for a finding only
+ * when its pattern holds every such detector of the type and the finding
+ * says none of its values was found otherwise: not by the model
+ * (isFoundByModel), and not only by what is around them
+ * (isFoundByContext), which a finding written before it was kept does not
+ * say, and is then taken as found so where its type can be.
+ */
+export function isFindingHiddenByTypePattern(
+  finding: Pick<
+    TelemetryFindingReference,
+    "dataTypeId" | "isFoundByContext" | "isFoundByModel"
+  >,
+): boolean {
+  return (
+    getScrubPatternOfDataType(finding.dataTypeId).isWhole &&
+    isFoundByShapeAlone(finding)
+  );
+}
+
+/*
+ * Whether every value of a finding was found by its type's shape alone:
+ * none by the names-and-addresses model, and none only by the words
+ * around it or the key it is under - known not to have been, or of a type
+ * that never is (#11502).
+ */
+export function isFoundByShapeAlone(
+  finding: Pick<
+    TelemetryFindingReference,
+    "dataTypeId" | "isFoundByContext" | "isFoundByModel"
+  >,
+): boolean {
+  if (finding.isFoundByModel === true) {
+    return false;
+  }
+
+  return (
+    !canBeFoundByContext(finding.dataTypeId) ||
+    finding.isFoundByContext === false
+  );
 }
 
 // The rule Scrub It makes for a finding: what it finds, does, and where in the record.
@@ -1691,6 +1983,9 @@ export function buildMetricScrubRule(data: {
   target: ScrubTarget;
   // What the rule calls the type (nameTypeForRule); the catalog's name when left out.
   dataTypeName?: string | undefined;
+  // How the finding was found, as its row says (buildMetricScrubFilters, #11502).
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
 }): MetricPipelineRule {
   const key: string = data.target.key || "";
   const serviceId: string = data.serviceId ? data.serviceId.toString() : "";
@@ -1708,7 +2003,10 @@ export function buildMetricScrubRule(data: {
   }
 
   const filters: Array<MetricPipelineRuleFilterCondition> =
-    buildMetricScrubFilters(data.dataTypeId, key);
+    buildMetricScrubFilters(data.dataTypeId, key, {
+      isFoundByContext: data.isFoundByContext,
+      isFoundByModel: data.isFoundByModel,
+    });
   const dataTypeName: string =
     data.dataTypeName || dataTypeNameOf(data.dataTypeId);
   const name: string = cut(
@@ -1749,6 +2047,9 @@ async function createMetricScrubRule(data: {
   dataTypeName?: string | null | undefined;
   location: string;
   target: ScrubTarget;
+  // How the finding was found: what the rule's filter is made from (#11502).
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
 }): Promise<CreatedScrubRule> {
   // Refused before anything is read for a rule that cannot be made.
   let rule: MetricPipelineRule = buildMetricScrubRule({
@@ -1788,12 +2089,29 @@ export function getMetricDropUnavailableReason(data: {
   location: string | null | undefined;
   dataTypeId: string;
   serviceId?: ObjectID | string | null | undefined;
+  // How the finding was found, as its row says (#11502).
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
 }): DataSecurityDropMetricUnavailableReason | null {
   if (!isMetricNameFinding(data.kind, data.location)) {
     return DataSecurityDropMetricUnavailableReason.NotAMetricName;
   }
 
-  if (!buildMetricDropFilters((data.dataTypeId || "").trim())) {
+  const dataTypeId: string = (data.dataTypeId || "").trim();
+
+  /*
+   * No pattern finds the type - or none finds what this finding found
+   * (#11502): a ZIP code in a name beside "zip" is no shape of a postcode
+   * the pattern knows, so no rule could tell those metrics apart either.
+   */
+  if (
+    !buildMetricDropFilters(dataTypeId) ||
+    !isFoundByShapeAlone({
+      dataTypeId,
+      isFoundByContext: data.isFoundByContext,
+      isFoundByModel: data.isFoundByModel,
+    })
+  ) {
     return DataSecurityDropMetricUnavailableReason.NoPattern;
   }
 
@@ -1828,6 +2146,9 @@ export function buildMetricDropRule(data: {
   kind: DataStoreKind;
   dataTypeId: string;
   location: string;
+  // How the finding was found, as its row says (#11502).
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
 }): MetricPipelineRule {
   const reason: DataSecurityDropMetricUnavailableReason | null =
     getMetricDropUnavailableReason(data);
@@ -1873,6 +2194,9 @@ export async function createDropRuleForFinding(data: {
   dataTypeId: string;
   location: string;
   serviceId?: ObjectID | string | null | undefined;
+  // How the finding was found, as its row says (#11502).
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
 }): Promise<{ ruleId: string; ruleName: string; isNew: boolean }> {
   const location: string = (data.location || "").trim();
   const dataTypeId: string = (data.dataTypeId || "").trim();
@@ -1883,7 +2207,14 @@ export async function createDropRuleForFinding(data: {
   });
   const existing: CoveringScrubRule | null = findCoveringScrubRule(
     await getScrubCoverage(data.projectId),
-    { kind: data.kind, dataTypeId, location, serviceId: data.serviceId },
+    {
+      kind: data.kind,
+      dataTypeId,
+      location,
+      serviceId: data.serviceId,
+      isFoundByContext: data.isFoundByContext,
+      isFoundByModel: data.isFoundByModel,
+    },
   );
 
   if (existing) {
@@ -1985,6 +2316,9 @@ export async function previewScrubRuleForFinding(data: {
   location: string;
   serviceId?: ObjectID | string | null | undefined;
   storeKey?: string | null | undefined;
+  // How the finding was found, as its row says (#11502).
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
 }): Promise<ScrubRulePreview> {
   const scrubbable: {
     location: string;
@@ -2000,6 +2334,8 @@ export async function previewScrubRuleForFinding(data: {
       dataTypeId: scrubbable.dataTypeId,
       location: scrubbable.location,
       target: scrubbable.target,
+      isFoundByContext: data.isFoundByContext,
+      isFoundByModel: data.isFoundByModel,
       dataTypeName: isCustomDataTypeId(scrubbable.dataTypeId)
         ? await nameTypeForRule({
             projectId: data.projectId,
@@ -2137,6 +2473,9 @@ export async function createScrubRuleForFinding(data: {
   serviceId?: ObjectID | string | null | undefined;
   // The store's key, which names its service for a store kept without one.
   storeKey?: string | null | undefined;
+  // How the finding was found, as its row says (#11502).
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
 }): Promise<CreatedScrubRule> {
   const {
     location,
@@ -2152,6 +2491,8 @@ export async function createScrubRuleForFinding(data: {
       dataTypeId,
       location,
       serviceId: readFindingServiceId(data) || data.serviceId,
+      isFoundByContext: data.isFoundByContext,
+      isFoundByModel: data.isFoundByModel,
     },
   );
 

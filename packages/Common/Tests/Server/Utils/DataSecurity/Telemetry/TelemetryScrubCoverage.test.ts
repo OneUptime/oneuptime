@@ -675,6 +675,9 @@ describe("a built-in pattern type", () => {
       ssn: "us-ssn",
       phoneNumber: "phone-number",
       ipAddress: "ip-address",
+      // #11502: they read the key and the words a value needs, as Data Security does.
+      postalCode: "postal-code",
+      coordinates: "geolocation",
     });
 
     for (const [patternType] of patternTypes) {

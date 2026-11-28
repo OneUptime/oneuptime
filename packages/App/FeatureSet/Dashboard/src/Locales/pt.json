@@ -68716,5 +68716,11 @@
   "To read Google Workspace groups back, add the scope {{scope}} to the domain-wide delegation of the Google Workspace connection under Security Events → Connections, for an administrator who may read groups.": "Para ler de volta os grupos do Google Workspace, adicione o escopo {{scope}} à delegação em todo o domínio da conexão do Google Workspace em Eventos de segurança → Conexões, para um administrador que possa ler grupos.",
   "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them.": "Tokens de {{provider}} podem assumir a função {{account}} quando a claim {{claim}} deles corresponde a um de {{count}} valores, entre eles {{value}}.",
   "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them._one": "Tokens de {{provider}} podem assumir a função {{account}} quando a claim {{claim}} deles corresponde a {{count}} valor: {{value}}.",
-  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.": "Tokens de {{provider}} podem assumir a função {{account}} quando a claim {{claim}} deles corresponde a {{value}}."
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.": "Tokens de {{provider}} podem assumir a função {{account}} quando a claim {{claim}} deles corresponde a {{value}}.",
+  "Found By Context": "Encontrado pelo contexto",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "Pares de latitude e longitude, e uma coordenada sozinha junto a uma palavra como lat ou sob uma chave como location.lat.",
+  "Postal Code": "Código postal",
+  "Scrub coordinates": "Limpar coordenadas",
+  "Scrub postal codes": "Limpar códigos postais",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "Códigos postais do Reino Unido e do Canadá, e códigos ZIP dos EUA junto a uma palavra como zip ou sob uma chave como address.zip."
 }
