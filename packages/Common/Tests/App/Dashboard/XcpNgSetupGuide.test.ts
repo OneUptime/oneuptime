@@ -1496,6 +1496,7 @@ describe("drift guards against agents/XcpNgAgent", () => {
       guideFor("install-script").advanced,
       "Reading several Xen Orchestras",
     ).markdown;
+    // Each value on a line of its own, so it reads whole where it is shown (AgentInstallCommandsServed).
     expect(topic).toContain(
       codeBlock(
         "bash",

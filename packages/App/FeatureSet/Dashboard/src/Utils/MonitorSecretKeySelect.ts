@@ -1,8 +1,7 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Select from "Common/Types/BaseDatabase/Select";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
-import RecordLocks from "Common/UI/Utils/RecordLocks";
-import { getRecordLabelIds } from "Common/UI/Utils/RecordLabelLock";
+import RecordLocks, { getRecordLabelIds } from "Common/UI/Utils/RecordLocks";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*

@@ -33,6 +33,9 @@ import {
 } from "./TranslateTemplate";
 import React from "react";
 
+// The labels a record was read with, read in RecordLocks with nothing else.
+export { getRecordLabelIds } from "./RecordLocks";
+
 /*
  * A RECORD'S CHANGES LOCKED BY ITS OWN LABELS, WITH WHY (#11259).
  *
@@ -194,44 +197,6 @@ export function getLabelRefusalSentence(data: {
         RECORD_LABEL_LOCK_REASONS.labelsUnnamed,
       );
   }
-}
-
-/*
- * The ids of the labels a record was read with, or null when it was read
- * without them: a select that did not name them, or a reader the server
- * leaves them out for - nothing can then be said of its labels, and
- * nothing is locked by them.
- */
-export function getRecordLabelIds(
-  record: unknown,
-  labelsColumn: string,
-): Array<string> | null {
-  if (!record || typeof record !== "object") {
-    return null;
-  }
-
-  const labels: unknown = (record as Record<string, unknown>)[labelsColumn];
-
-  if (!Array.isArray(labels)) {
-    return null;
-  }
-
-  const ids: Array<string> = [];
-
-  for (const label of labels) {
-    const id: string = LabelAccess.readId(
-      label && typeof label === "object"
-        ? (label as { _id?: unknown; id?: unknown })._id ||
-            (label as { _id?: unknown; id?: unknown }).id
-        : label,
-    );
-
-    if (id && !ids.includes(id)) {
-      ids.push(id);
-    }
-  }
-
-  return ids;
 }
 
 /*

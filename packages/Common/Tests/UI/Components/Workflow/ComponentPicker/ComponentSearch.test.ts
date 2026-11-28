@@ -468,6 +468,8 @@ describe("hand-written steps and resources together", () => {
       "Send Email",
       "Create One Email Log",
       "Create Many Email Logs",
+      // Its description: its pictures are "ready to attach to an email".
+      "Get Files From Markdown",
     ]);
   });
 

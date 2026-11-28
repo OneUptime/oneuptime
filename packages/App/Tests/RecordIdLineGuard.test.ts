@@ -330,6 +330,66 @@ function selectsOnlyTheRecordId(object: ts.ObjectLiteralExpression): boolean {
   return onlyColumnSelected(object) === "_id";
 }
 
+/*
+ * The members a details field can have, read from the interfaces themselves:
+ * FieldBase's (Common/UI/Components/Detail/Field.ts), and the column it reads
+ * - Detail's `key`, ModelDetail's `field`. An object literal with any other
+ * member is no details field, whatever it names `key`: a record lock asks
+ * who owns a record by the column the server's owner lookup is keyed by,
+ * `{ ownership, tableName, key: "_id", action }`
+ * (Common/UI/Utils/RecordLocks.ts), which Detail never draws.
+ */
+function readDetailFieldMembers(): ReadonlySet<string> {
+  const fieldFile: string = path.join(
+    PACKAGES_DIR,
+    "Common",
+    "UI",
+    "Components",
+    "Detail",
+    "Field.ts",
+  );
+  const source: ts.SourceFile = ts.createSourceFile(
+    fieldFile,
+    fs.readFileSync(fieldFile, "utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const members: Set<string> = new Set<string>(["key", "field"]);
+
+  for (const statement of source.statements) {
+    if (
+      ts.isInterfaceDeclaration(statement) &&
+      statement.name.text === "FieldBase"
+    ) {
+      for (const member of statement.members) {
+        if (
+          member.name &&
+          (ts.isIdentifier(member.name) || ts.isStringLiteral(member.name))
+        ) {
+          members.add(member.name.text);
+        }
+      }
+    }
+  }
+
+  return members;
+}
+
+const DETAIL_FIELD_MEMBERS: ReadonlySet<string> = readDetailFieldMembers();
+
+// Whether every member an object literal names is one a details field has.
+function isShapedAsADetailsField(object: ts.ObjectLiteralExpression): boolean {
+  return object.properties.every(
+    (property: ts.ObjectLiteralElementLike): boolean => {
+      const name: string | null = propertyName(property);
+
+      // A spread names no member of its own here.
+      return name === null || DETAIL_FIELD_MEMBERS.has(name);
+    },
+  );
+}
+
 function titleOf(
   object: ts.ObjectLiteralExpression,
   source: ts.SourceFile,
@@ -472,7 +532,9 @@ function scanSource(
         // A table column or a filter, which name their type `type`.
         !hasMember(node, "type") &&
         // A form field.
-        !fieldTypeText.startsWith("FormFieldSchemaType")
+        !fieldTypeText.startsWith("FormFieldSchemaType") &&
+        // A details field names nothing else, as a lock's owner lookup does.
+        isShapedAsADetailsField(node)
       ) {
         const title: ts.PropertyAssignment | undefined = findProperty(
           node,
@@ -581,6 +643,18 @@ function describeField(field: IdField): string {
 
 describe("the record's own ID on details cards", () => {
   test("the scan finds the cards it is about", () => {
+    // What a details field may name is read from Detail's own Field.
+    expect([...DETAIL_FIELD_MEMBERS]).toEqual(
+      expect.arrayContaining([
+        "key",
+        "field",
+        "title",
+        "fieldType",
+        "getElement",
+        "showIdAsField",
+      ]),
+    );
+
     // Thirty-odd overview and settings cards, across all three dashboards.
     expect(idFields.length).toBeGreaterThanOrEqual(35);
 

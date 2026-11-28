@@ -755,6 +755,8 @@
   "{{count}} minutes_one": "{{count}}분",
   "{{count}} passkeys and security keys": "패스키 및 보안 키 {{count}}개",
   "{{count}} passkeys and security keys_one": "패스키 및 보안 키 {{count}}개",
+  "{{count}} recommendations": "권장 사항 {{count}}개",
+  "{{count}} recommendations_one": "권장 사항 {{count}}개",
   "{{count}} requests behind the case: {{outcomes}}": "케이스 뒤의 요청 {{count}}건: {{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "케이스 뒤의 요청 {{count}}건: {{outcomes}}",
   "{{count}} resources": "리소스 {{count}}개",

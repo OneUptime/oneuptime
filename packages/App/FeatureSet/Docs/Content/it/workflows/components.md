@@ -400,7 +400,7 @@ Legge le immagini che il Markdown di un record mostra, come gli screenshot che q
 
 | Impostazione | Cosa fa |
 | --- | --- |
-| **Tipo di record** | Il tipo di record il cui Markdown mostra le immagini: un incidente, una nota pubblica o interna di un incidente, un avviso, una manutenzione pianificata e altro. |
+| **Tipo di record** | Il tipo di record il cui Markdown mostra le immagini: un incidente, una nota pubblica o interna di un incidente, un avviso, un evento di manutenzione e altro. |
 | **ID record** | Il record da leggere, di solito quello che ha avviato il flusso di lavoro, come `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
 
 | Uscita | Quando |

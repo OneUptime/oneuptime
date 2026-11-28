@@ -755,6 +755,8 @@
   "{{count}} minutes_one": "{{count}} minuto",
   "{{count}} passkeys and security keys": "{{count}} llaves de acceso y llaves de seguridad",
   "{{count}} passkeys and security keys_one": "{{count}} llave de acceso o llave de seguridad",
+  "{{count}} recommendations": "{{count}} recomendaciones",
+  "{{count}} recommendations_one": "{{count}} recomendación",
   "{{count}} requests behind the case: {{outcomes}}": "{{count}} solicitudes detrás del caso: {{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "{{count}} solicitud detrás del caso: {{outcomes}}",
   "{{count}} resources": "{{count}} recursos",

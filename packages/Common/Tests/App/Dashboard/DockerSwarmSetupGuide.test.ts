@@ -38,6 +38,7 @@ import {
 import DOCKER_SWARM_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/DockerSwarm/DockerSwarmClusterShowcase";
 import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/AgentInstallCommands";
 import { getInstallScriptEntry } from "../../../Types/InstallScripts/InstallScripts";
+import { getSetupGuideTableVariables } from "../../Helpers/SetupGuideVariableTable";
 
 /*
  * The Docker Swarm agent guide asks how the agent is installed — the
@@ -949,7 +950,12 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
     expect(installScript).toContain(
       "ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES}",
     );
-    expect(installScript).toContain("cat > .env <<EOF");
+    /*
+     * Into a new .env, which replaces the old one once the collector has
+     * accepted the log operators in it (#11225).
+     */
+    expect(installScript).toContain("cat > .env.new <<EOF");
+    expect(installScript).toContain("\nmv -f .env.new .env\n");
   });
 
   test("the .env lines are the ones the installer writes first, and the compose file reads", () => {
@@ -968,7 +974,7 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
       "DOCKER_SWARM_CLUSTER_NAME",
     ]);
     const written: string = installScript.match(
-      /cat > \.env <<EOF\n([\s\S]*?)\nEOF/,
+      /cat > \.env\.new <<EOF\n([\s\S]*?)\nEOF/,
     )![1]!;
     expect(
       written
@@ -986,6 +992,12 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
   test("the container names are the compose file's", () => {
     expect(Object.keys(repoCompose)).toEqual([
       DOCKER_SWARM_COLLECTOR_CONTAINER_NAME,
+      /*
+       * The collector's config, log operators and all, checked once before
+       * the collector starts (#11225): it exits when it is done, so the
+       * guide names only the three that keep running.
+       */
+      `${DOCKER_SWARM_COLLECTOR_CONTAINER_NAME}-config-check`,
       DOCKER_SWARM_INVENTORY_CONTAINER_NAME,
       DOCKER_SWARM_AI_AGENT_CONTAINER_NAME,
     ]);
@@ -1005,11 +1017,7 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
       guideFor("docker-compose").advanced,
       "Environment variables",
     ).markdown;
-    const names: Array<string> = Array.from(
-      table.matchAll(/^\| `([A-Z_]+)` \|/gm),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    });
+    const names: Array<string> = getSetupGuideTableVariables(table);
     const settings: Set<string> = new Set<string>([
       ...envNamesOf(repoCompose[DOCKER_SWARM_COLLECTOR_CONTAINER_NAME]!),
       ...envNamesOf(repoCompose[DOCKER_SWARM_INVENTORY_CONTAINER_NAME]!),

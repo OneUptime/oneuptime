@@ -1455,9 +1455,14 @@ describe("OneUptime API Reference: an API key", () => {
 
       expect(scripts).toContain(getApiKeyExportCommand());
 
+      /*
+       * A line of its own, as the Developer pages write it: between the
+       * address and the body of a POST, or last in a GET, which sends
+       * nothing after it (a record's Markdown files).
+       */
       for (const script of scripts) {
         if (script.startsWith("curl ")) {
-          expect(script).toContain(`  ${header} \\`);
+          expect(script.split(" \\\n  ")).toContain(header);
         }
       }
     }

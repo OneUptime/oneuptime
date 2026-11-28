@@ -400,7 +400,7 @@ Læser de billeder, en posts Markdown viser, som de skærmbilleder nogen har ind
 
 | Indstilling | Hvad den gør |
 | --- | --- |
-| **Posttype** | Den slags post, hvis Markdown viser billederne: en hændelse, en hændelses offentlige eller interne note, en advarsel, en planlagt vedligeholdelse og mere. |
+| **Posttype** | Den slags post, hvis Markdown viser billederne: en hændelse, en hændelses offentlige eller interne note, en advarsel, en vedligeholdelseshændelse og mere. |
 | **Post-id** | Den post, der læses, som regel den, der startede arbejdsgangen, som i `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
 
 | Udgang | Hvornår |

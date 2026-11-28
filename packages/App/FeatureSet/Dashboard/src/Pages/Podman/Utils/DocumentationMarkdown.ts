@@ -384,6 +384,7 @@ function getAdvancedTopics(data: GuideData): Array<SetupGuideTopic> {
 | \`ONEUPTIME_SERVICE_TOKEN\` | Yes | The telemetry ingestion key from step 1 |
 | \`PODMAN_HOST_NAME\` | No | Friendly name for this host. Defaults to \`${PODMAN_DEFAULT_HOST_NAME}\` |
 | \`DOCKER_API_VERSION\` | No | Docker API version the agent speaks to the Podman socket. Empty by default: the agent negotiates it with the socket. Set it only to pin a version (see Troubleshooting) |
+| \`ONEUPTIME_LOG_OPERATOR_1\` to \`ONEUPTIME_LOG_OPERATOR_5\` | No | Collector operators of your own, one each as JSON, for a log format the agent does not read |
 
 ${
   cli

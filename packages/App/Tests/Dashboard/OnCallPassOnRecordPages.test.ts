@@ -46,6 +46,22 @@ const RECORD_PAGES: Array<{ file: string; recordType: string }> = [
 
 const HOOK_FILE: string = "Components/OnCallPolicy/PassOn/usePassOnPage.tsx";
 
+/*
+ * What escalating would do, or did, is worded in Common (#11066): the
+ * dialog (PassOnPage) and a page's call in its person's language say the
+ * same sentences.
+ */
+const PASS_ON_WORDS_FILE: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Common",
+  "Types",
+  "OnCallDutyPolicy",
+  "OnCallPassOnWords.ts",
+);
+
 function read(file: string): string {
   return fs.readFileSync(path.join(DASHBOARD_SRC, file), "utf8");
 }
@@ -160,6 +176,7 @@ describe("nowhere else", () => {
 describe("the button and the dialog are worded in one place", () => {
   const hook: string = read(HOOK_FILE);
   const words: string = read("Components/OnCallPolicy/PassOn/PassOnPage.ts");
+  const passOnWords: string = fs.readFileSync(PASS_ON_WORDS_FILE, "utf8");
 
   test("the hook draws the button and the question from the record's own words", () => {
     expect(hook).toContain("label: PASS_ON_PAGE_TEXT.button,");
@@ -182,17 +199,25 @@ describe("the button and the dialog are worded in one place", () => {
       'question: translationKey("Escalate Alert?"),',
       'question: translationKey("Escalate Episode?"),',
       '"You will not be paged again for this incident.",',
-      '"This will immediately page {{level}}, without waiting.",',
     ]) {
       expect({ word, found: words.includes(word) }).toEqual({
         word,
         found: true,
       });
     }
+
+    // What the question's line says the escalation will do.
+    const word: string =
+      '"This will immediately page {{level}}, without waiting.",';
+
+    expect({ word, found: passOnWords.includes(word) }).toEqual({
+      word,
+      found: true,
+    });
   });
 
   test("nothing a reader sees says the old Pass it on", () => {
-    for (const source of [hook, words]) {
+    for (const source of [hook, words, passOnWords]) {
       expect(source).not.toContain('translationKey("Pass it on")');
       expect(source).not.toContain('"Pass it on?"');
       expect(source).not.toContain('"You passed it on"');

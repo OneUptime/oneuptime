@@ -149,8 +149,7 @@ COMMON WORKFLOWS:
       properties: {
         topic: {
           type: "string",
-          description:
-            "Optional topic to get help on: 'resources', 'incidents', 'monitors', 'alerts', 'workflows', or 'examples'",
+          description: "Optional topic to get help on.",
           enum: [
             "resources",
             "incidents",

@@ -755,6 +755,8 @@
   "{{count}} minutes_one": "{{count}} minuut",
   "{{count}} passkeys and security keys": "{{count}} passkeys en beveiligingssleutels",
   "{{count}} passkeys and security keys_one": "{{count}} passkey of beveiligingssleutel",
+  "{{count}} recommendations": "{{count}} aanbevelingen",
+  "{{count}} recommendations_one": "{{count}} aanbeveling",
   "{{count}} requests behind the case: {{outcomes}}": "{{count}} verzoeken achter de zaak: {{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "{{count}} verzoek achter de zaak: {{outcomes}}",
   "{{count}} resources": "{{count}} bronnen",

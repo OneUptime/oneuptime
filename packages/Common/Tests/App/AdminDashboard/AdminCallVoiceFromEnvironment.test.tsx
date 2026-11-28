@@ -36,6 +36,19 @@ import { getJestSpyOn } from "../../Spy";
 
 jest.setTimeout(60000);
 
+/*
+ * The page as a self-hosted server's Admin Dashboard draws it, where the
+ * switch is: Common's tests run in CI with BILLING_ENABLED=true, the build
+ * of OneUptime Cloud, which draws no switch (the card's own tests below
+ * draw both, by its isBillingEnabled).
+ */
+jest.mock("../../../UI/Config", () => {
+  return {
+    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
+    BILLING_ENABLED: false,
+  };
+});
+
 const mockGetItem: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {

@@ -8,6 +8,22 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * The resolver also asks PermissionGate whether the reader may read a
+ * table's archive switch (f5f416c04ac); the gate's import chain reads
+ * `window` as well. A member who reads the services reads it too.
+ */
+jest.mock("Common/UI/Utils/PermissionGate", () => {
+  return {
+    __esModule: true,
+    default: {
+      canReadColumn: (): boolean => {
+        return true;
+      },
+    },
+  };
+});
+
 import { describe, expect, jest, test } from "@jest/globals";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { ActiveFilter } from "Common/UI/Components/TelemetryViewer/types";

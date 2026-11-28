@@ -20,6 +20,7 @@ import {
 import { createInstance, i18n } from "i18next";
 import React from "react";
 import { I18nextProvider } from "react-i18next";
+import { MemoryRouter } from "react-router-dom";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
@@ -33,6 +34,14 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import {
+  emptyMonitorTemplateChangeProgress,
+  MonitorTemplateChangeKind,
+  MonitorTemplateChangeLine,
+  MonitorTemplateChangeOutcome,
+  MonitorTemplateChangeStatus,
+  MonitorTemplateChangeView,
+} from "../../../Types/Monitor/MonitorTemplateChange";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../../UI/Utils/API/API";
@@ -40,6 +49,7 @@ import ModelAPI, { ListResult } from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import { MONITOR_NOT_FOUND_REFUSAL } from "../../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import MonitorTemplatesView from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplatesView";
+import { MONITOR_TEMPLATE_CHANGE_ROUTES } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeApi";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 
 /*
@@ -59,6 +69,12 @@ import { readDashboardLocale } from "../../Helpers/DashboardLocales";
  * (getLinkableMonitorsQuery): what it sends is pinned here, and what the
  * server answers to it in
  * Tests/Server/API/MonitorTemplateLinkableMonitorsPostgres.test.ts.
+ *
+ * Link starts one change of the monitors picked, which the server runs
+ * (#11260, #11266: MonitorTemplateChangeAPI), and the change's progress
+ * opens in their place: what it got done, and which monitors it could not
+ * link and why, with Retry for those. The API below runs a change at once,
+ * as the server would once its worker is done.
  */
 
 interface CardButton {
@@ -292,9 +308,89 @@ const answerList: (data: ListArguments) => ListResult<BaseModel> = (
 };
 
 let listReads: Array<ListArguments> = [];
-let linkPosts: Array<string> = [];
+
+interface Post {
+  url: string;
+  data: JSONObject;
+}
+
+let posts: Array<Post> = [];
 // The monitors the server refuses to link, by id, with why.
 let refusals: Record<string, string> = {};
+// The changes the server holds, by id, as they stand once run.
+let changes: Record<string, MonitorTemplateChangeView> = {};
+
+const TEMPLATE_NAME: string = "WB KSK Ping Monitor Template";
+
+// A change of these monitors, as the server holds it once its worker ran it.
+const runChange: (monitorIds: Array<string>) => MonitorTemplateChangeView = (
+  monitorIds: Array<string>,
+): MonitorTemplateChangeView => {
+  const lines: Array<MonitorTemplateChangeLine> = monitorIds
+    .filter((id: string): boolean => {
+      return Boolean(refusals[id]);
+    })
+    .map((id: string): MonitorTemplateChangeLine => {
+      return {
+        monitorId: id,
+        monitorName: MONITORS.find((monitor: FakeMonitor): boolean => {
+          return monitor.id === id;
+        })?.name,
+        outcome: MonitorTemplateChangeOutcome.Failed,
+        reason: refusals[id]!,
+      };
+    });
+
+  const view: MonitorTemplateChangeView = {
+    id: `change-${Object.keys(changes).length + 1}`,
+    status: MonitorTemplateChangeStatus.Completed,
+    settings: {
+      kind: MonitorTemplateChangeKind.Link,
+      applyTemplateSettings: true,
+      clearTemplateSettings: false,
+      deleteTemplateWhenDone: false,
+    },
+    monitorTemplateId: TEMPLATE_ID,
+    monitorTemplateName: TEMPLATE_NAME,
+    progress: {
+      ...emptyMonitorTemplateChangeProgress(monitorIds.length),
+      processed: monitorIds.length,
+      changed: monitorIds.length - lines.length,
+      failed: lines.length,
+    },
+    lines: lines,
+    isLinesTruncated: false,
+    isStopRequested: false,
+    retryableCount: lines.length,
+    isTemplateDeleted: false,
+  };
+
+  changes[view.id] = view;
+
+  return view;
+};
+
+// What the server answers a start or a retry with: the change, queued.
+const answerChange: (
+  view: MonitorTemplateChangeView,
+) => HTTPResponse<JSONObject> = (
+  view: MonitorTemplateChangeView,
+): HTTPResponse<JSONObject> => {
+  const queued: MonitorTemplateChangeView = {
+    ...view,
+    status: MonitorTemplateChangeStatus.Queued,
+    progress: emptyMonitorTemplateChangeProgress(view.progress.total),
+    lines: [],
+    retryableCount: 0,
+    createdAt: new Date().toISOString(),
+  };
+
+  return new HTTPResponse<JSONObject>(
+    200,
+    { change: queued as unknown as JSONObject },
+    {},
+  );
+};
 
 const instances: Record<string, i18n> = {};
 
@@ -320,13 +416,14 @@ beforeAll(async () => {
 beforeEach(() => {
   capturedTables = [];
   listReads = [];
-  linkPosts = [];
+  posts = [];
   refusals = {};
+  changes = {};
 
   const template: MonitorTemplate = new MonitorTemplate();
   template.monitorType = MonitorType.Ping;
   template.monitorSteps = new MonitorSteps();
-  template.templateName = "WB KSK Ping Monitor Template";
+  template.templateName = TEMPLATE_NAME;
 
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
@@ -340,23 +437,70 @@ beforeEach(() => {
     return answerList(data);
   }) as never);
 
-  jest.spyOn(API, "post").mockImplementation((async (args: {
+  // A change of the template's monitors, read as the server answers it.
+  jest.spyOn(API, "get").mockImplementation((async (args: {
     url: { toString: () => string };
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
-    const url: string = args.url.toString();
-    linkPosts.push(url);
+    const route: string = args.url.toString().split("?")[0]!;
 
-    const refused: string | undefined = Object.keys(refusals).find(
+    // No change of the template's monitors runs when the page opens.
+    if (
+      route.endsWith(
+        MONITOR_TEMPLATE_CHANGE_ROUTES.activeOfTemplate(TEMPLATE_ID),
+      )
+    ) {
+      return new HTTPResponse<JSONObject>(200, { changes: [] }, {});
+    }
+
+    const changeId: string | undefined = Object.keys(changes).find(
       (id: string): boolean => {
-        return url.endsWith(`/link-monitor/${id}`);
+        return route.endsWith(MONITOR_TEMPLATE_CHANGE_ROUTES.change(id));
       },
     );
 
-    if (refused) {
-      return new HTTPErrorResponse(400, { message: refusals[refused] }, {});
+    if (changeId) {
+      return new HTTPResponse<JSONObject>(
+        200,
+        { change: changes[changeId] as unknown as JSONObject },
+        {},
+      );
     }
 
-    return new HTTPResponse<JSONObject>(200, {}, {});
+    return new HTTPErrorResponse(404, { message: "Not found." }, {});
+  }) as never);
+
+  // Link starts a change, and Retry one of what the last could not link.
+  jest.spyOn(API, "post").mockImplementation((async (args: {
+    url: { toString: () => string };
+    data?: JSONObject | undefined;
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+    const url: string = args.url.toString();
+    const data: JSONObject = args.data || {};
+    posts.push({ url, data });
+
+    if (url.endsWith(MONITOR_TEMPLATE_CHANGE_ROUTES.start)) {
+      return answerChange(runChange(data["monitorIds"] as Array<string>));
+    }
+
+    const retried: string | undefined = Object.keys(changes).find(
+      (id: string): boolean => {
+        return url.endsWith(MONITOR_TEMPLATE_CHANGE_ROUTES.retry(id));
+      },
+    );
+
+    if (retried) {
+      return answerChange(
+        runChange(
+          changes[retried]!.lines.map(
+            (line: MonitorTemplateChangeLine): string => {
+              return line.monitorId;
+            },
+          ),
+        ),
+      );
+    }
+
+    return new HTTPErrorResponse(404, { message: "Not found." }, {});
   }) as never);
 });
 
@@ -365,19 +509,25 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// The template's page, with its Link Existing Monitors dialog open.
+/*
+ * The template's page, with its Link Existing Monitors dialog open: in a
+ * router, as the Dashboard draws it, since a change's progress links each
+ * monitor it names to its page.
+ */
 async function openLinkDialog(language: string = "en"): Promise<void> {
   await act(async () => {
     render(
-      <I18nextProvider i18n={instances[language]!}>
-        <MonitorTemplatesView
-          pageRoute={
-            new Route(`/dashboard/monitors/settings/templates/${TEMPLATE_ID}`)
-          }
-          currentProject={null}
-          hasPaymentMethod={true}
-        />
-      </I18nextProvider>,
+      <MemoryRouter>
+        <I18nextProvider i18n={instances[language]!}>
+          <MonitorTemplatesView
+            pageRoute={
+              new Route(`/dashboard/monitors/settings/templates/${TEMPLATE_ID}`)
+            }
+            currentProject={null}
+            hasPaymentMethod={true}
+          />
+        </I18nextProvider>
+      </MemoryRouter>,
     );
   });
 
@@ -576,7 +726,19 @@ describe("Link Existing Monitors, searched (#10399)", () => {
 });
 
 describe("Link Existing Monitors, picked and linked", () => {
-  test("links the monitor found by its name, and says so", async () => {
+  // The change's headline in its progress dialog.
+  async function changeTitle(text: string): Promise<void> {
+    await waitFor(
+      () => {
+        expect(
+          screen.getByTestId("monitor-template-change-title"),
+        ).toHaveTextContent(text);
+      },
+      { timeout: 5000 },
+    );
+  }
+
+  test("links the monitor found by its name as one change, and says so", async () => {
     await openLinkDialog();
     await openPicker();
     await typeInPicker("KSK02");
@@ -584,17 +746,25 @@ describe("Link Existing Monitors, picked and linked", () => {
     await pressLink();
 
     await waitFor(() => {
-      expect(linkPosts).toHaveLength(1);
+      expect(posts).toHaveLength(1);
     });
-    expect(linkPosts[0]).toContain(
-      `/monitor-template/${TEMPLATE_ID}/link-monitor/${idOf("WB1500KSK02")}`,
-    );
-    expect(
-      await screen.findByTestId("confirm-modal-description"),
-    ).toHaveTextContent("Linked 1 monitor to this template.");
+    expect(posts[0]!.url).toContain(MONITOR_TEMPLATE_CHANGE_ROUTES.start);
+    expect(posts[0]!.data).toEqual({
+      monitorTemplateId: TEMPLATE_ID,
+      settings: {
+        kind: MonitorTemplateChangeKind.Link,
+        applyTemplateSettings: true,
+        clearTemplateSettings: false,
+        deleteTemplateWhenDone: false,
+      },
+      monitorIds: [idOf("WB1500KSK02")],
+    });
+
+    await changeTitle(`1 monitor is linked to ${TEMPLATE_NAME}`);
+    expect(screen.queryByTestId("monitor-template-change-issue")).toBeNull();
   });
 
-  test("some linked and some not: the dialog stays open, with only the ones not linked still picked", async () => {
+  test("some linked and some not: the change names the one not linked and why, and Retry tries only that one", async () => {
     refusals[idOf("WB1500KSK03")] = MONITOR_NOT_FOUND_REFUSAL;
 
     await openLinkDialog();
@@ -604,33 +774,45 @@ describe("Link Existing Monitors, picked and linked", () => {
     await pick("WB1500KSK03");
     await pressLink();
 
+    // One change for both, never a request per monitor.
     await waitFor(() => {
-      expect(linkPosts).toHaveLength(2);
+      expect(posts).toHaveLength(1);
     });
+    expect(posts[0]!.data["monitorIds"]).toEqual([
+      idOf("WB1500KSK02"),
+      idOf("WB1500KSK03"),
+    ]);
 
-    expect(await screen.findByTestId("modal-error")).toHaveTextContent(
-      `1 of 2 monitors could not be linked: ${MONITOR_NOT_FOUND_REFUSAL}`,
+    await changeTitle(`1 of 2 monitors are linked to ${TEMPLATE_NAME}`);
+
+    // WB1500KSK03 could not be linked, and why; WB1500KSK02 is linked.
+    const issue: HTMLElement = screen.getByTestId(
+      "monitor-template-change-issue",
     );
+    expect(issue).toHaveTextContent("1 monitor could not be changed");
+    expect(issue).toHaveTextContent(MONITOR_NOT_FOUND_REFUSAL);
+    expect(within(issue).getByText("WB1500KSK03")).toBeInTheDocument();
+    expect(within(issue).queryByText("WB1500KSK02")).toBeNull();
 
-    // WB1500KSK03 is still picked, to try again; WB1500KSK02 is linked.
-    expect(
-      await screen.findByRole(
-        "button",
-        { name: "Remove WB1500KSK03" },
-        { timeout: 5000 },
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Remove WB1500KSK02" }),
-    ).toBeNull();
+    // Retry tries again only the one not linked.
+    delete refusals[idOf("WB1500KSK03")];
 
-    // Link again tries only the one not linked.
-    await pressLink();
+    const retry: HTMLElement = screen.getByTestId("modal-footer-submit-button");
+    expect(retry).toHaveTextContent("Retry 1 monitor");
+
+    await act(async () => {
+      fireEvent.click(retry);
+    });
 
     await waitFor(() => {
-      expect(linkPosts).toHaveLength(3);
+      expect(posts).toHaveLength(2);
     });
-    expect(linkPosts[2]).toContain(`/link-monitor/${idOf("WB1500KSK03")}`);
+    expect(posts[1]!.url).toContain(
+      MONITOR_TEMPLATE_CHANGE_ROUTES.retry("change-1"),
+    );
+    expect(changes["change-2"]!.progress.total).toBe(1);
+
+    await changeTitle(`1 monitor is linked to ${TEMPLATE_NAME}`);
   });
 });
 

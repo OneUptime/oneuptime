@@ -41,6 +41,40 @@ import {
   SharedNameOption,
 } from "../../../Types/Database/SharedNameMarks";
 import { SharedNameKind } from "../../../Types/Database/SharedNames";
+import {
+  CLOUD_COST_BASES,
+  CLOUD_COST_BASIS_DESCRIPTIONS,
+  CloudCostBasis,
+} from "../../../Types/Cloud/CloudCostBasis";
+import {
+  CLOUD_COST_REPORT_PERIOD_LABELS,
+  CLOUD_COST_REPORT_SCOPE_LABELS,
+  CLOUD_COST_REPORT_SKIP_REASON_LABELS,
+  CloudCostReportBudgetLine,
+  CloudCostReportContent,
+  CloudCostReportLine,
+  CloudCostReportPeriod,
+  CloudCostReportScope,
+  CloudCostReportSection,
+  CloudCostReportUnusualDay,
+} from "../../../Types/Cloud/CloudCostReport";
+import {
+  REPORT_CSV_ATTACHED,
+  REPORT_GROUP_SECTION,
+  REPORT_WHY_ADDRESS,
+  REPORT_WHY_GROUP,
+  REPORT_WHY_MEMBER,
+  writeCloudCostReport,
+} from "../../../Types/Cloud/CloudCostReportWords";
+import {
+  OnCallPassOnOutcome,
+  OnCallPassOnRefusal,
+  OnCallPassOnRule,
+} from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  describeOnCallPassOnRefusalInLanguage,
+  describeOnCallPassOnResultInLanguage,
+} from "../../../Types/OnCallDutyPolicy/OnCallPassOnWords";
 
 /*
  * SENTENCES THE SERVER AND THE DASHBOARD BOTH WRITE (#7247).
@@ -211,6 +245,231 @@ const sentencesTheSharedNameMarksLookUp: () => Set<string> =
     return asked;
   };
 
+/*
+ * Every sentence a scheduled cloud cost report is written with (#11009):
+ * what its email, chat message and text say (writeCloudCostReport) for a
+ * report of every period and basis - rising and falling, the same, and
+ * nothing at all; one account's and every account's; with a budget and
+ * several, savings, commitments or none, a view's groups, unusual days -
+ * and the lines its sender puts around them (CloudCostReportSender): the
+ * CSV it attaches, a cost group's own section, and why each reader gets
+ * it. CloudCostReport.ts and CloudCostBasis.ts are shared whole, so the
+ * names the Reports page gives a report's scope and period and the readers
+ * a send leaves out, and what Costs says each basis is, are among them.
+ */
+const sentencesTheCloudCostReportLooksUp: () => Set<string> =
+  (): Set<string> => {
+    const asked: Set<string> = new Set<string>();
+    const recording: Translator = recordingTranslator(asked);
+
+    const line: (
+      name: string,
+      amount: number,
+      previousAmount: number,
+    ) => CloudCostReportLine = (
+      name: string,
+      amount: number,
+      previousAmount: number,
+    ): CloudCostReportLine => {
+      return { key: name, name, amount, previousAmount };
+    };
+
+    const section: (
+      overrides: Partial<CloudCostReportSection>,
+    ) => CloudCostReportSection = (
+      overrides: Partial<CloudCostReportSection>,
+    ): CloudCostReportSection => {
+      return {
+        kind: "summary",
+        name: "",
+        total: 1200,
+        previousTotal: 1000,
+        rises: [line("Amazon EC2", 700, 500)],
+        falls: [line("Amazon S3", 50, 80)],
+        groups: [line("Platform", 600, 500)],
+        unallocated: { amount: 100, previousAmount: 90 },
+        budgets: ["Production", "Staging"].map(
+          (name: string): CloudCostReportBudgetLine => {
+            return {
+              name,
+              amount: 5000,
+              spent: 2500,
+              month: "2026-11",
+              basis: CloudCostBasis.Amortized,
+            };
+          },
+        ),
+        unusualDays: ["Amazon EC2", ""].map(
+          (service: string): CloudCostReportUnusualDay => {
+            return {
+              day: "2026-11-18",
+              accountName: "Production AWS",
+              service,
+              amount: 300,
+              usual: 100,
+            };
+          },
+        ),
+        savings: {
+          count: 3,
+          monthlySavings: 420,
+          top: [
+            {
+              action: "Stop the idle instance",
+              resourceName: "batch-1",
+              accountName: "Production AWS",
+              monthlySavings: 69,
+            },
+          ],
+        },
+        commitments: {
+          coveredPercent: 64,
+          usedPercent: 97,
+          hasCommitments: true,
+        },
+        ...overrides,
+      };
+    };
+
+    const sections: Array<CloudCostReportSection> = [
+      section({}),
+      section({
+        name: "Production AWS",
+        total: 800,
+        savings: { count: 1, monthlySavings: 20, top: [] },
+        commitments: {
+          coveredPercent: null,
+          usedPercent: null,
+          hasCommitments: false,
+        },
+      }),
+      section({ total: 1000 }),
+      section({ total: 0, previousTotal: 0 }),
+    ];
+
+    for (const period of Object.values(
+      CloudCostReportPeriod,
+    ) as Array<CloudCostReportPeriod>) {
+      for (const basis of CLOUD_COST_BASES) {
+        for (const reportSection of sections) {
+          const content: CloudCostReportContent = {
+            reportId: "r-1",
+            reportName: "Weekly cloud costs",
+            projectName: "Acme",
+            scope: CloudCostReportScope.AllAccounts,
+            period: period,
+            start: "2026-11-16",
+            lastDay: "2026-11-22",
+            previousStart: "2026-11-09",
+            previousLastDay: "2026-11-15",
+            currency: "USD",
+            basis: basis,
+            section: reportSection,
+            otherCurrencies: [{ name: "Azure EU", currency: "EUR" }],
+            costsUrl: "https://oneuptime.example/dashboard/p/cloud/costs",
+            csv: "",
+            csvFileName: "cloud-costs.csv",
+            readAt: "2026-11-23T08:00:00.000Z",
+          };
+
+          writeCloudCostReport({ content, translator: recording });
+        }
+      }
+    }
+
+    for (const sentence of [
+      REPORT_CSV_ATTACHED,
+      REPORT_GROUP_SECTION,
+      REPORT_WHY_MEMBER,
+      REPORT_WHY_GROUP,
+      REPORT_WHY_ADDRESS,
+      ...Object.values(CLOUD_COST_REPORT_SCOPE_LABELS),
+      ...Object.values(CLOUD_COST_REPORT_PERIOD_LABELS),
+      ...Object.values(CLOUD_COST_REPORT_SKIP_REASON_LABELS),
+      ...Object.values(CLOUD_COST_BASIS_DESCRIPTIONS),
+    ]) {
+      recording.translateText(sentence);
+    }
+
+    return asked;
+  };
+
+/*
+ * Every sentence what escalating a page did, or would do, is said with
+ * (#11066): the Escalate dialog's words, which a page's call in its
+ * person's language says too once 2 is pressed - each outcome, previewed
+ * and done, of a named level, an unnamed one and none, with nobody, one,
+ * two and three people named, on a policy and on a direct page; and why a
+ * page could not be escalated. One that words each sentence, so a level's
+ * label and a list of names - values worded in the sentence's language -
+ * are looked up too.
+ */
+const sentencesThePassOnWordsLookUp: () => Set<string> = (): Set<string> => {
+  const asked: Set<string> = new Set<string>();
+  const recording: Translator = createTranslator(
+    (text: string): string | undefined => {
+      asked.add(text);
+      return `«${text}»`;
+    },
+    "de",
+  );
+  const levels: Array<OnCallPassOnRule | undefined> = [
+    { order: 2, name: "Platform leads" },
+    { order: 3 },
+    undefined,
+  ];
+  const people: Array<Array<string>> = [
+    [],
+    ["Ana Lopez"],
+    ["Ana Lopez", "Bob Smith"],
+    ["Ana Lopez", "Bob Smith", "Carl Diaz"],
+  ];
+
+  for (const outcome of Object.values(
+    OnCallPassOnOutcome,
+  ) as Array<OnCallPassOnOutcome>) {
+    for (const isPreview of [true, false]) {
+      for (const isDirectPage of [true, false]) {
+        for (const level of levels) {
+          for (const names of people) {
+            describeOnCallPassOnResultInLanguage(
+              {
+                outcome,
+                isPreview,
+                isDirectPage,
+                policyName: isDirectPage ? "" : "Payments on-call",
+                rule: level,
+                pagedNames: names,
+                stillPagedNames: names,
+                nextStepAt: new Date(Date.UTC(2026, 10, 27, 5, 28)),
+                nextRule: level,
+                ruleCount: 3,
+              },
+              recording,
+              (at: Date): string => {
+                return at.toISOString();
+              },
+            );
+          }
+        }
+      }
+    }
+  }
+
+  for (const refusal of Object.values(
+    OnCallPassOnRefusal,
+  ) as Array<OnCallPassOnRefusal>) {
+    for (const acknowledgedByName of ["Ana Lopez", undefined]) {
+      describeOnCallPassOnRefusalInLanguage(
+        { passedOn: false, refusal, acknowledgedByName },
+        recording,
+      );
+    }
+  }
+
+  return asked;
+};
+
 describe("the sentences the server and the Dashboard both write", () => {
   test("come from files the server's scan reads, a new monitor's criteria and a new status page's name among them", () => {
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
@@ -234,6 +493,14 @@ describe("the sentences the server and the Dashboard both write", () => {
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
       "packages/Common/Types/Database/SharedNameMarks.ts",
     );
+    // A scheduled cloud cost report's words (#11009).
+    expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
+      "packages/Common/Types/Cloud/CloudCostReportWords.ts",
+    );
+    // What escalating a page did, as the Escalate dialog and a call say it (#11066).
+    expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
+      "packages/Common/Types/OnCallDutyPolicy/OnCallPassOnWords.ts",
+    );
 
     const scanned: Array<string> = listSourceFiles();
 
@@ -246,13 +513,15 @@ describe("the sentences the server and the Dashboard both write", () => {
     expect(fs.existsSync(DASHBOARD_LOCALES_DIRECTORY)).toBe(true);
   });
 
-  test("are every sentence a new monitor's default criteria, for every monitor type, a new status page's name, the first on-call policy with its rules, a playbook action's title and a picker's marks on records that share a name are written with, and nothing else", () => {
+  test("are every sentence a new monitor's default criteria, for every monitor type, a new status page's name, the first on-call policy with its rules, a playbook action's title, a picker's marks on records that share a name, a cloud cost report and what escalating a page did are written with, and nothing else", () => {
     const asked: Set<string> = new Set<string>([
       ...sentencesTheCriteriaLookUp(),
       ...sentencesTheStatusPageNameLooksUp(),
       ...sentencesTheFirstPolicyLooksUp(),
       ...sentencesThePlaybookActionTitlesLookUp(),
       ...sentencesTheSharedNameMarksLookUp(),
+      ...sentencesTheCloudCostReportLooksUp(),
+      ...sentencesThePassOnWordsLookUp(),
     ]);
 
     // Each kind's pill, and the day a twin was made (#10314).
@@ -319,11 +588,20 @@ describe("the sentences the server and the Dashboard both write", () => {
     ).toEqual([]);
   });
 
-  test("are in en.json as their own English", () => {
+  test("are in en.json as their own English, a plural's one form as its source writes it", () => {
     expect(sharedKeys.size).toBeGreaterThan(80);
 
+    // "{{names}} are still being paged._one": "{{names}} is still being paged."
+    const oneForms: Map<string, string> = new Map<string, string>();
+
+    for (const key of keys) {
+      if (key.one !== undefined) {
+        oneForms.set(`${key.key}${PLURAL_ONE_SUFFIX}`, key.one);
+      }
+    }
+
     for (const key of sharedKeys) {
-      expect([key, english[key]]).toEqual([key, key]);
+      expect([key, english[key]]).toEqual([key, oneForms.get(key) ?? key]);
     }
   });
 

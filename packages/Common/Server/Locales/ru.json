@@ -755,6 +755,8 @@
   "{{count}} minutes_one": "{{count}} мин",
   "{{count}} passkeys and security keys": "Ключей доступа и ключей безопасности: {{count}}",
   "{{count}} passkeys and security keys_one": "{{count}} ключ доступа или ключ безопасности",
+  "{{count}} recommendations": "Рекомендаций: {{count}}",
+  "{{count}} recommendations_one": "{{count}} рекомендация",
   "{{count}} requests behind the case: {{outcomes}}": "Запросов за кейсом: {{count}}. {{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "Запросов за кейсом: {{count}}. {{outcomes}}",
   "{{count}} resources": "ресурсов: {{count}}",

@@ -755,6 +755,8 @@
   "{{count}} minutes_one": "{{count}} دقيقة",
   "{{count}} passkeys and security keys": "مفاتيح المرور ومفاتيح الأمان: {{count}}",
   "{{count}} passkeys and security keys_one": "{{count}} مفتاح مرور أو مفتاح أمان",
+  "{{count}} recommendations": "التوصيات: {{count}}",
+  "{{count}} recommendations_one": "{{count}} توصية",
   "{{count}} requests behind the case: {{outcomes}}": "{{count}} من الطلبات وراء الحالة: {{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "{{count}} طلب وراء الحالة: {{outcomes}}",
   "{{count}} resources": "{{count}} من الموارد",

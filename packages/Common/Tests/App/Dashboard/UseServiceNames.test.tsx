@@ -39,7 +39,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import useServiceNames from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/useServiceNames";
 import TelemetryEntityNameResolver, {
-  TelemetryEntityNameMap,
+  TelemetryEntityLookupResult,
 } from "../../../UI/Utils/Telemetry/TelemetryEntityNames";
 import Host from "../../../Models/DatabaseModels/Host";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
@@ -90,13 +90,18 @@ const queriedModels: () => Array<ModelType> = (): Array<ModelType> => {
 };
 
 /*
+ * The resolver's lookup(), the read useTelemetryEntityNames makes since
+ * #11213 (216c8266f32): the names, and the ids it settled as naming
+ * nothing. resolve() is only a wrapper left for callers that want the
+ * names alone, so a spy on it sees no call from the hook.
+ *
  * Named structurally rather than as jest.SpiedFunction: jest.spyOn from
  * @jest/globals returns jest-mock's SpyInstance, which does not assign to
  * the global @types/jest declaration.
  */
-interface ResolveSpy {
+interface LookupSpy {
   mock: { calls: Array<Array<unknown>> };
-  mockResolvedValue: (value: TelemetryEntityNameMap) => unknown;
+  mockResolvedValue: (value: TelemetryEntityLookupResult) => unknown;
 }
 
 const renderServiceNames: (initialProps: HookProps) => {
@@ -233,20 +238,20 @@ describe("Dashboard useServiceNames", () => {
   });
 
   test("asks the resolver for Service-only resolution", async () => {
-    const resolveSpy: ResolveSpy = jest.spyOn(
+    const lookupSpy: LookupSpy = jest.spyOn(
       TelemetryEntityNameResolver,
-      "resolve",
-    ) as unknown as ResolveSpy;
-    resolveSpy.mockResolvedValue({});
+      "lookup",
+    ) as unknown as LookupSpy;
+    lookupSpy.mockResolvedValue({ names: {}, notFound: [] });
 
     renderServiceNames({ ids: [new ObjectID(SERVICE_ID)] });
     await waitFor(() => {
-      expect(resolveSpy.mock.calls).toHaveLength(1);
+      expect(lookupSpy.mock.calls).toHaveLength(1);
     });
     const args: {
       entityTypes?: Array<ServiceType> | undefined;
       typeHints?: unknown;
-    } = resolveSpy.mock.calls[0]![0] as {
+    } = lookupSpy.mock.calls[0]![0] as {
       entityTypes?: Array<ServiceType> | undefined;
       typeHints?: unknown;
     };
@@ -255,35 +260,38 @@ describe("Dashboard useServiceNames", () => {
   });
 
   test("defensively drops non-Service and Unknown entities from whatever the resolver returns", async () => {
-    const resolveSpy: ResolveSpy = jest.spyOn(
+    const lookupSpy: LookupSpy = jest.spyOn(
       TelemetryEntityNameResolver,
-      "resolve",
-    ) as unknown as ResolveSpy;
-    resolveSpy.mockResolvedValue({
-      [SERVICE_ID]: {
-        id: SERVICE_ID,
-        name: "checkout-api",
-        entityType: ServiceType.OpenTelemetry,
-        typeLabel: "Service",
+      "lookup",
+    ) as unknown as LookupSpy;
+    lookupSpy.mockResolvedValue({
+      names: {
+        [SERVICE_ID]: {
+          id: SERVICE_ID,
+          name: "checkout-api",
+          entityType: ServiceType.OpenTelemetry,
+          typeLabel: "Service",
+        },
+        [PROJECT_ID]: {
+          id: PROJECT_ID,
+          name: "Unknown Service",
+          entityType: ServiceType.Unknown,
+          typeLabel: "Service",
+        },
+        [RUM_ID]: {
+          id: RUM_ID,
+          name: "checkout-web",
+          entityType: ServiceType.RealUserMonitor,
+          typeLabel: "RUM Application",
+        },
+        [HOST_ID]: {
+          id: HOST_ID,
+          name: "prod-db-1",
+          entityType: ServiceType.Host,
+          typeLabel: "Host",
+        },
       },
-      [PROJECT_ID]: {
-        id: PROJECT_ID,
-        name: "Unknown Service",
-        entityType: ServiceType.Unknown,
-        typeLabel: "Service",
-      },
-      [RUM_ID]: {
-        id: RUM_ID,
-        name: "checkout-web",
-        entityType: ServiceType.RealUserMonitor,
-        typeLabel: "RUM Application",
-      },
-      [HOST_ID]: {
-        id: HOST_ID,
-        name: "prod-db-1",
-        entityType: ServiceType.Host,
-        typeLabel: "Host",
-      },
+      notFound: [],
     });
 
     const { result } = renderServiceNames({
@@ -297,6 +305,9 @@ describe("Dashboard useServiceNames", () => {
     await waitFor(() => {
       expect(result.current).toEqual({ [SERVICE_ID]: "checkout-api" });
     });
+    // The names came from the lookup above, not from a read of the tables.
+    expect(lookupSpy.mock.calls.length).toBeGreaterThan(0);
+    expect(getListMock).not.toHaveBeenCalled();
   });
 
   test("undefined or empty ids return {} without a request", async () => {

@@ -299,9 +299,42 @@ async function colourOf(locator: Locator): Promise<string> {
   });
 }
 
-// A bar's fill colour, as the browser computed it.
+/*
+ * A bar's fill colour, as the browser computed it once the bar is at rest.
+ * The fixture loads Tailwind's runtime, which writes a class's rule only
+ * once the class is in the page (SuiteHelpers/SideMenuAtRest), and the
+ * Overview's top consumer bars fade their colour in (transition-all
+ * duration-300): read straight away, a bar drawn before its colour's rule
+ * reads transparent, or part of the way there ("rgba(245, 158, 11, 0.97)").
+ * So: once a colour is drawn, after every transition on the bar has run.
+ */
+const TRANSPARENT: string = "rgba(0, 0, 0, 0)";
+
 async function backgroundOf(locator: Locator): Promise<string> {
-  return await locator.evaluate((element: Element): string => {
+  await expect
+    .poll(
+      async (): Promise<string> => {
+        return await locator.evaluate((element: Element): string => {
+          return getComputedStyle(element).backgroundColor;
+        });
+      },
+      { message: "a bar drawn without its colour's rule", intervals: [50] },
+    )
+    .not.toBe(TRANSPARENT);
+
+  return await locator.evaluate(async (element: Element): Promise<string> => {
+    await Promise.all(
+      element
+        .getAnimations()
+        .filter((animation: Animation): boolean => {
+          return animation.effect?.getTiming().iterations !== Infinity;
+        })
+        .map((animation: Animation): Promise<unknown> => {
+          return animation.finished.catch(() => {
+            return undefined;
+          });
+        }),
+    );
     return getComputedStyle(element).backgroundColor;
   });
 }
@@ -436,7 +469,7 @@ test.describe("the vCenter's Overview", () => {
       reasonsOf("Datastore:datastore/dc-east/ds-prod-01"),
     ).toHaveText("93% full");
     await expect(reasonsOf(`VirtualMachine:${vmId(1)}`)).toHaveText(
-      "1.5 GiB of memory swapped by the host",
+      "Host swapping memory out at 3.2 MiB/s",
     );
     await expect(reasonsOf("Cluster:cluster/dc-west/west-cluster")).toHaveText(
       "Not enough memory to lose a host",
@@ -840,7 +873,7 @@ test.describe("the lists", () => {
     const dbPrimary: Locator = listRow(page, "db-primary");
     await expect(dbPrimary).toContainText("Running");
     await expect(dbPrimary.getByTestId("resource-status-reason")).toHaveText(
-      "1.5 GiB of memory swapped by the host",
+      "Host swapping memory out at 3.2 MiB/s",
     );
 
     const ciRunner: Locator = listRow(page, "ci-runner-01");
@@ -1110,7 +1143,7 @@ test.describe("a virtual machine's page", () => {
       "This VM",
     );
     await expect(page.getByTestId("vmware-vm-attention-reason")).toHaveText(
-      "1.5 GiB of memory swapped by the host",
+      "Host swapping memory out at 3.2 MiB/s",
     );
     await expect(page.getByTestId("vmware-vm-tiles")).toContainText("78.4%");
 

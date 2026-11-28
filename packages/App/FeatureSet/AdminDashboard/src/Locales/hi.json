@@ -4605,7 +4605,7 @@
   "Project Call Voices": "प्रोजेक्ट की कॉल की आवाज़ें",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "क्या हर प्रोजेक्ट इस सर्वर के Twilio खाते से होने वाली अपनी कॉल की आवाज़ चुनता है।",
   "Let projects choose their call voice": "प्रोजेक्ट को अपनी कॉल की आवाज़ चुनने दें",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "प्रोजेक्ट के मालिक और एडमिन इसे प्रोजेक्ट सेटिंग्स > सूचनाएं > सूचना चैनल में चुनते हैं। जो प्रोजेक्ट कोई आवाज़ नहीं चुनता, वह ऊपर वाली आवाज़ में बोलता है।",
+  "Project Owners and Project Admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it.": "प्रोजेक्ट स्वामी और प्रोजेक्ट एडमिन इसे प्रोजेक्ट सेटिंग्स > सूचनाएं > सूचना चैनल में चुनते हैं, और इसका भुगतान इस सर्वर का Twilio खाता करता है।",
   "Every project's calls through this server's Twilio account speak with the voice above.": "इस सर्वर के Twilio खाते से होने वाली हर प्रोजेक्ट की कॉल ऊपर वाली आवाज़ में बोलती हैं।",
   "Set by the GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE environment variable: twilio.letProjectsChooseCallVoice with Helm, or config.env with Docker Compose. Change it there and restart OneUptime.": "GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE एनवायरनमेंट वेरिएबल से सेट: Helm के साथ twilio.letProjectsChooseCallVoice, या Docker Compose के साथ config.env। उसे वहीं बदलें और OneUptime को रीस्टार्ट करें।",
   "An environment variable sets this switch, so it cannot be changed here.": "यह स्विच एक एनवायरनमेंट वेरिएबल से सेट होता है, इसलिए इसे यहाँ नहीं बदला जा सकता।",

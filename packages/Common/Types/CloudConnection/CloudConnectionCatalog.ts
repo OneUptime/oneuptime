@@ -396,7 +396,7 @@ function securityCaseChecksField(): CloudConnectionField {
     key: SECURITY_CASE_CHECKS_FIELD_KEY,
     title: "Security case checks",
     description:
-      "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.",
+      "Lets a security case read back what an attack changed on an IAM user or role. The command changes with it.",
     type: "dropdown",
     required: false,
     options: [

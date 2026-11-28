@@ -4747,6 +4747,21 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/RepairScheduleLayerRestrictionTypesPostgres.test.ts --forceExit
 
+      # #11455: the data migration that moves stored weekly windows dated on
+      # other days than they name onto those days, on copies of the migrated
+      # layer and schedule tables (353729fec6b).
+      - name: Test moving weekly windows onto their days against Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_WEEKLY_WINDOW_DAYS_TESTS: "true"
+          WEEKLY_WINDOW_DAYS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WEEKLY_WINDOW_DAYS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WEEKLY_WINDOW_DAYS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/MoveWeeklyWindowsOntoTheirDaysPostgres.test.ts --forceExit
+
       # #11138: an SMS moves from Sent to Delivered, Undelivered or Failed as
       # Twilio reports it, end to end: the real SmsService sends on a
       # project's own Twilio account read from Postgres, and Twilio's

@@ -755,6 +755,8 @@
   "{{count}} minutes_one": "{{count}} minut",
   "{{count}} passkeys and security keys": "{{count}} passnycklar och säkerhetsnycklar",
   "{{count}} passkeys and security keys_one": "{{count}} passnyckel eller säkerhetsnyckel",
+  "{{count}} recommendations": "{{count}} rekommendationer",
+  "{{count}} recommendations_one": "{{count}} rekommendation",
   "{{count}} requests behind the case: {{outcomes}}": "{{count}} förfrågningar bakom ärendet: {{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "{{count}} förfrågan bakom ärendet: {{outcomes}}",
   "{{count}} resources": "{{count}} resurser",

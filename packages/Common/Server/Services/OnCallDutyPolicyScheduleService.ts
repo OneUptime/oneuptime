@@ -648,8 +648,13 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<OnCallDutyPolicySchedule>,
   ): Promise<OnUpdate<OnCallDutyPolicySchedule>> {
-    const onUpdate: OnUpdate<OnCallDutyPolicySchedule> =
-      await super.onBeforeUpdate(updateBy);
+    // The project's reference checks first, as every service's update runs them.
+    await super.onBeforeUpdate(updateBy);
+
+    const onUpdate: OnUpdate<OnCallDutyPolicySchedule> = {
+      updateBy: updateBy,
+      carryForward: null,
+    };
 
     const written: unknown = (
       onUpdate.updateBy.data as unknown as Record<string, unknown>

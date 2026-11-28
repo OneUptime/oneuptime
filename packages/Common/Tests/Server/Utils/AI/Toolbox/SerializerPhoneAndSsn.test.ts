@@ -311,6 +311,22 @@ describe("a security result keeps a phone number and hides a Social Security num
   });
 });
 
+describe("an audit log name keeps a phone number and hides everything else", () => {
+  test("keepPhoneNumbers leaves the phone rule out, and no other (#6301)", () => {
+    const text: string =
+      "+44 20 7946 0958 for ssn 536221234 from 203.0.113.9 by ops@acme.com";
+
+    expect(
+      ToolResultSerializer.redact(text, { keepPhoneNumbers: true }).text,
+    ).toBe(
+      "+44 20 7946 0958 for ssn [redacted-ssn] from [redacted-ip] by [redacted-email]",
+    );
+    expect(ToolResultSerializer.redact(text).text).toBe(
+      "[redacted-phone] for ssn [redacted-ssn] from [redacted-ip] by [redacted-email]",
+    );
+  });
+});
+
 describe("the placeholders", () => {
   test("are listed for a code change to be held to, one per rule", () => {
     expect(REDACTION_PLACEHOLDERS).toContain("[redacted-phone]");

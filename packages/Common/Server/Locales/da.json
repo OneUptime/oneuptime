@@ -755,6 +755,8 @@
   "{{count}} minutes_one": "{{count}} minut",
   "{{count}} passkeys and security keys": "{{count}} adgangsnøgler og sikkerhedsnøgler",
   "{{count}} passkeys and security keys_one": "{{count}} adgangsnøgle eller sikkerhedsnøgle",
+  "{{count}} recommendations": "{{count}} anbefalinger",
+  "{{count}} recommendations_one": "{{count}} anbefaling",
   "{{count}} requests behind the case: {{outcomes}}": "{{count}} anmodninger bag sagen: {{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "{{count}} anmodning bag sagen: {{outcomes}}",
   "{{count}} resources": "{{count}} ressourcer",

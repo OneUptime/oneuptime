@@ -34,6 +34,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `PODMAN_HOST_NAME` | 아니요 | 이 호스트를 알아보기 쉬운 이름. 기본값은 `podman-host` |",
   "| `DOCKER_API_VERSION` | No | Docker API version the agent speaks to the Podman socket. Empty by default: the agent negotiates it with the socket. Set it only to pin a version (see Troubleshooting) |":
     "| `DOCKER_API_VERSION` | 아니요 | 에이전트가 Podman 소켓과 통신할 때 사용하는 Docker API 버전. 기본적으로 비어 있으며, 에이전트가 소켓과 협상합니다. 버전을 고정할 때만 설정하세요(문제 해결 참조) |",
+  "| `ONEUPTIME_LOG_OPERATOR_1` to `ONEUPTIME_LOG_OPERATOR_5` | No | Collector operators of your own, one each as JSON, for a log format the agent does not read |":
+    "| `ONEUPTIME_LOG_OPERATOR_1`~`ONEUPTIME_LOG_OPERATOR_5` | 아니요 | 에이전트가 읽지 못하는 로그 형식을 위해 직접 만든 컬렉터 오퍼레이터로, 하나씩 JSON으로 씁니다 |",
   "Pass each one to `podman run` as `-e NAME=value`. To change one later, remove the agent with `podman rm -f oneuptime-podman-agent` and run the command again with the new value.":
     "각각을 `-e NAME=value` 형식으로 `podman run`에 전달합니다. 나중에 하나를 바꾸려면 `podman rm -f oneuptime-podman-agent`로 에이전트를 제거하고 새 값으로 명령을 다시 실행합니다.",
   "The agent reads the files Podman's **`k8s-file`** log driver writes — `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log` — so it only sees logs from containers that use it (or `json-file`, which Podman treats as the same file-based driver). Rootful Podman's default is **`journald`**, which it cannot read, and neither can it read a remote driver such as `syslog`.":

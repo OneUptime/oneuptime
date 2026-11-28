@@ -400,7 +400,7 @@ return { proceed: true, title: args.title.toUpperCase() };
 
 | 설정 | 하는 일 |
 | --- | --- |
-| **레코드 유형** | 이미지를 보여 주는 Markdown이 있는 레코드의 종류입니다. 인시던트, 인시던트의 공개 노트나 내부 노트, 경고, 예정된 유지 보수 등이 있습니다. |
+| **레코드 유형** | 이미지를 보여 주는 Markdown이 있는 레코드의 종류입니다. 인시던트, 인시던트의 공개 노트나 내부 노트, 경고, 유지 관리 이벤트 등이 있습니다. |
 | **레코드 ID** | 읽을 레코드입니다. 보통 워크플로를 시작한 레코드이며, `{{local.components.incident-on-create-1.returnValues.model._id}}`처럼 씁니다. |
 
 | 출력 | 시점 |

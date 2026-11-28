@@ -3,7 +3,7 @@
 為使用 [Helm Chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime) 在 Kubernetes 上自行託管的 OneUptime 規劃 CPU、記憶體和磁碟。分別為三個資料儲存（**ClickHouse**、**PostgreSQL** 和 **Valkey**）以及應用程式決定規模，從下面的某個級別開始，取得真實數據後再調整。
 
 > [!IMPORTANT]
-> Chart 的預設值不是正式環境的規模。它預設執行的服務 **沒有設定任何 CPU 或記憶體的要求與限制**，PostgreSQL 和 ClickHouse 只有 **25 Gi** 的小磁碟區，這樣 Chart 才能安裝到任何叢集上。只要不是試用，就請依照本頁的數字自行設定資源和儲存空間。
+> Chart 的預設值不是正式環境的規模。除 Valkey 外，它預設執行的服務 **沒有設定任何 CPU 或記憶體的要求與限制**，PostgreSQL 和 ClickHouse 只有 **25 Gi** 的小磁碟區，這樣 Chart 才能安裝到任何叢集上。只要不是試用，就請依照本頁的數字自行設定資源和儲存空間。
 
 如果您改用單台伺服器上的 Docker Compose 安裝，決定規模會更簡單：請參閱[需求](/docs/installation/docker-compose#需求)（建議 16 GB 記憶體、8 核心和 400 GB 磁碟）。
 
@@ -88,7 +88,7 @@ PostgreSQL 儲存的是您的設定和運作狀態，而不是遙測資料，因
 
 ## Valkey：快取、佇列與工作階段
 
-快取層執行 [Valkey](https://valkey.io)（Redis 7.2 的 BSD 授權分支），用作快取、工作佇列和工作階段儲存。任何支援 Redis 通訊協定的伺服器都可以取代它，下面的規模建議同樣適用。它 **受記憶體限制**，持久化 **預設關閉**：它不是權威資料來源，可以重建。請依佇列深度和同時工作階段數決定規模；大多數部署有 2–8 GB 記憶體就夠了。它的逐出原則是 `noeviction`，因此在持續負載下佇列積壓時要留意它的記憶體。
+快取層執行 [Valkey](https://valkey.io)（Redis 7.2 的 BSD 授權分支），用作快取、工作佇列和工作階段儲存。任何支援 Redis 通訊協定的伺服器都可以取代它，下面的規模建議同樣適用。它 **受記憶體限制**，持久化 **預設關閉**：它不是權威資料來源，可以重建。請依佇列深度和同時工作階段數決定規模；大多數部署有 2–8 GB 記憶體就夠了。Chart 為它設定 4 Gi 的記憶體限制，並把它的資料上限定為其中的 75%，即 3 GiB（`valkey.maxmemory`），達到上限後它會拒絕寫入。它的逐出原則是 `noeviction`，因此在持續負載下佇列積壓時要留意它的記憶體。
 
 ## 應用程式的運算資源
 

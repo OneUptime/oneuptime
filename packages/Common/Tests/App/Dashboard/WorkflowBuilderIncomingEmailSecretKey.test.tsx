@@ -267,6 +267,8 @@ describe("the builder loads the incoming email key only for those who may see it
       "isArchived",
       "runAs",
       "runAsCustomRoleId",
+      // Its labels' ids (#11259), which say where its keys may be read.
+      "labels",
     ]);
     expect(canvas().canSeeIncomingEmailSecretKey).toBe(false);
   });

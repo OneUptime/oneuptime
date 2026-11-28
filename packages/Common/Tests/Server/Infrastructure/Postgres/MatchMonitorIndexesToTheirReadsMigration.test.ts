@@ -318,6 +318,16 @@ describe("the Monitor model says the same", () => {
        * declared only so the schema builder leaves it alone).
        */
       "IDX_MONITOR_PROJECT_NAME_KEY",
+      /*
+       * The monitors a probe may check now, which a probe's pending count
+       * joins its due monitor probes to (#11119: built online by
+       * AddMonitorProbeableIndex1809187791119, partial on the monitor's
+       * half of MonitorProbeService.getProbeableSql).
+       */
+      indexName(
+        ["_id"],
+        '"isArchived" = false AND "disableActiveMonitoring" = false AND "disableActiveMonitoringBecauseOfManualIncident" = false AND "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false AND "deletedAt" IS NULL',
+      ),
     ];
 
     expect(declared().map(nameOf).sort()).toEqual(

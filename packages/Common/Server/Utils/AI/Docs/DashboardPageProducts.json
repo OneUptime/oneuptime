@@ -1488,6 +1488,9 @@
   "/dashboard/:projectId/vmware/settings/rules-audit-logs": [
     "vmware"
   ],
+  "/dashboard/:projectId/vmware/settings/health-rules": [
+    "vmware"
+  ],
   "/dashboard/:projectId/vmware/archived": [
     "vmware"
   ],

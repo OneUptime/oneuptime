@@ -400,7 +400,7 @@ Leest de afbeeldingen die de Markdown van een record toont, zoals de schermafbee
 
 | Instelling | Wat het doet |
 | --- | --- |
-| **Recordtype** | Het soort record waarvan de Markdown de afbeeldingen toont: een incident, een openbare of interne notitie van een incident, een waarschuwing, gepland onderhoud en meer. |
+| **Recordtype** | Het soort record waarvan de Markdown de afbeeldingen toont: een incident, een openbare of interne notitie van een incident, een waarschuwing, een onderhoudsgebeurtenis en meer. |
 | **Record-ID** | Het record dat gelezen wordt, meestal het record waarmee de workflow begon, zoals `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
 
 | Uitgang | Wanneer |

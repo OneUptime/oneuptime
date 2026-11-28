@@ -477,6 +477,12 @@ const store = {
   Incident: incidents,
   Alert: alerts,
   ScheduledMaintenance: [],
+  /*
+   * The project's VMware health rules (#11157): none, as the server answers
+   * for a project that has not opened VMware > Settings > Health Rules (it
+   * makes the row there), so every page judges by the defaults.
+   */
+  VMwareHealthSetting: [],
   Monitor: monitors,
   RecommendationDismissal: [],
   MonitorStatus: [

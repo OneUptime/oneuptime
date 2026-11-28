@@ -400,7 +400,7 @@ Liest die Bilder, die das Markdown eines Datensatzes zeigt, etwa die Screenshots
 
 | Einstellung | Was sie tut |
 | --- | --- |
-| **Eintragstyp** | Die Art des Datensatzes, dessen Markdown die Bilder zeigt: ein Vorfall, eine öffentliche oder interne Notiz eines Vorfalls, eine Warnung, eine geplante Wartung und mehr. |
+| **Eintragstyp** | Die Art des Datensatzes, dessen Markdown die Bilder zeigt: ein Vorfall, eine öffentliche oder interne Notiz eines Vorfalls, eine Warnung, ein Wartungsereignis und mehr. |
 | **Datensatz-ID** | Der Datensatz, der gelesen wird, meist der, der den Workflow gestartet hat, etwa `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
 
 | Ausgang | Wann |

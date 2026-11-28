@@ -159,7 +159,6 @@ describe("the SNMP Walk page's place in the product", () => {
 describe("who may do what on the page", () => {
   test.each([
     ["canWalk", "new NetworkDeviceDiagnostic(), ModelAction.Create"],
-    ["canEditDevice", "new NetworkDevice(), ModelAction.Update"],
     ["canEditTemplate", "new NetworkDeviceOidTemplate(), ModelAction.Update"],
     ["canCreateMonitor", "new Monitor(), ModelAction.Create"],
   ])(
@@ -173,6 +172,24 @@ describe("who may do what on the page", () => {
       );
     },
   );
+
+  /*
+   * Collecting writes this device, so its gate is weighed on it (#11259):
+   * a role limited to some labels changes only the devices carrying one,
+   * and the page hands the gate what this device's labels leave the reader.
+   */
+  test("canEditDevice is the permission gate's answer for new NetworkDevice(), ModelAction.Update, on this device", () => {
+    expect(PAGE).toContain(
+      "const deviceOptions: PermissionGateOptions | undefined = useRecordGateOptions( new NetworkDevice(), modelId, );",
+    );
+
+    const at: number = PAGE.indexOf("canEditDevice={");
+
+    expect(at).toBeGreaterThan(-1);
+    expect(PAGE.substring(at, at + 200)).toContain(
+      "PermissionGate.check( new NetworkDevice(), ModelAction.Update, deviceOptions, ).isAllowed",
+    );
+  });
 
   test("the card offers each action only to who may take it", () => {
     expect(CARD).toContain("{props.canWalk ? ( getForm() ) : (");

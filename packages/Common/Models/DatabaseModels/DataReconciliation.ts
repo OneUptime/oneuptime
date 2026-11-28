@@ -305,8 +305,7 @@ export default class DataReconciliation extends BaseModel {
     allowedValues: Object.values(DataReconciliationMeasure),
     required: true,
     title: "Source Measure",
-    description:
-      "What is measured of the source table: Row Count, Sum, Distinct Count, or Custom SQL.",
+    description: "What is measured of the source table.",
     example: "Row Count",
   })
   @Column({
@@ -442,8 +441,7 @@ export default class DataReconciliation extends BaseModel {
     allowedValues: Object.values(DataReconciliationMeasure),
     required: true,
     title: "Target Measure",
-    description:
-      "What is measured of the target table: Row Count, Sum, Distinct Count, or Custom SQL.",
+    description: "What is measured of the target table.",
     example: "Row Count",
   })
   @Column({

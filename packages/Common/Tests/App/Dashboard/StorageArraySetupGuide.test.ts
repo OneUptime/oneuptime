@@ -1264,6 +1264,7 @@ describe("drift guards against agents/StorageArrayAgent", () => {
       guideFor("flasharray").advanced,
       "Monitor several arrays",
     ).markdown;
+    // Each value on a line of its own, so it reads whole where it is shown (AgentInstallCommandsServed).
     expect(topic).toContain(
       codeBlock(
         "bash",

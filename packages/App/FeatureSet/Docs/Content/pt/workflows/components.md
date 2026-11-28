@@ -400,7 +400,7 @@ Lê as imagens que o Markdown de um registro mostra, como as capturas de tela qu
 
 | Configuração | O que faz |
 | --- | --- |
-| **Tipo de Registro** | O tipo de registro cujo Markdown mostra as imagens: um incidente, uma nota pública ou interna de um incidente, um alerta, uma manutenção programada e mais. |
+| **Tipo de Registro** | O tipo de registro cujo Markdown mostra as imagens: um incidente, uma nota pública ou interna de um incidente, um alerta, um evento de manutenção e mais. |
 | **ID do registro** | O registro a ler, normalmente o que iniciou o fluxo de trabalho, como `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
 
 | Saída | Quando |

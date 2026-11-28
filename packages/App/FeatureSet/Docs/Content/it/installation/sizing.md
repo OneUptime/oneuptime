@@ -3,7 +3,7 @@
 Pianifica CPU, memoria e disco per un OneUptime self-hosted su Kubernetes con il [chart Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Dimensiona separatamente i tre archivi di dati – **ClickHouse**, **PostgreSQL** e **Valkey** – e l'applicazione, parti da uno dei livelli qui sotto e correggi quando avrai numeri reali.
 
 > [!IMPORTANT]
-> I valori predefiniti del chart non sono un dimensionamento di produzione. I servizi che esegue per impostazione predefinita non impostano **nessuna richiesta né limite di CPU o memoria**, e PostgreSQL e ClickHouse ricevono piccoli volumi da **25 Gi**, perché il chart si installi su qualsiasi cluster. Per qualsiasi uso oltre una prova, imposta tu risorse e storage, con i numeri di questa pagina.
+> I valori predefiniti del chart non sono un dimensionamento di produzione. Tranne Valkey, i servizi che esegue per impostazione predefinita non impostano **nessuna richiesta né limite di CPU o memoria**, e PostgreSQL e ClickHouse ricevono piccoli volumi da **25 Gi**, perché il chart si installi su qualsiasi cluster. Per qualsiasi uso oltre una prova, imposta tu risorse e storage, con i numeri di questa pagina.
 
 Usi invece l'installazione Docker Compose su un singolo server? Il suo dimensionamento è più semplice: consulta i [requisiti](/docs/installation/docker-compose#requisiti) (consigliati 16 GB di memoria, 8 core e 400 GB di disco).
 
@@ -88,7 +88,7 @@ Con molte repliche di app, worker e sonde, le connessioni al database possono es
 
 ## Valkey – cache, code e sessioni
 
-Il livello di cache esegue [Valkey](https://valkey.io), il fork di Redis 7.2 con licenza BSD, come cache, coda di lavoro e archivio delle sessioni. Qualsiasi server compatibile con il protocollo Redis può sostituirlo, e il dimensionamento qui sotto vale in entrambi i casi. È **legato alla memoria**, e la persistenza è **disattivata per impostazione predefinita**: non è una fonte di verità e si può ricostruire. Dimensionalo in base alla profondità delle code e alle sessioni simultanee; 2–8 GB di memoria bastano per la maggior parte delle installazioni. La sua politica di eviction è `noeviction`, quindi tieni d'occhio la memoria se le code si accumulano sotto un carico prolungato.
+Il livello di cache esegue [Valkey](https://valkey.io), il fork di Redis 7.2 con licenza BSD, come cache, coda di lavoro e archivio delle sessioni. Qualsiasi server compatibile con il protocollo Redis può sostituirlo, e il dimensionamento qui sotto vale in entrambi i casi. È **legato alla memoria**, e la persistenza è **disattivata per impostazione predefinita**: non è una fonte di verità e si può ricostruire. Dimensionalo in base alla profondità delle code e alle sessioni simultanee; 2–8 GB di memoria bastano per la maggior parte delle installazioni. Il chart gli assegna un limite di memoria di 4 Gi e ne limita i dati al 75% di questo, 3 GiB (`valkey.maxmemory`), raggiunti i quali rifiuta le scritture. La sua politica di eviction è `noeviction`, quindi tieni d'occhio la memoria se le code si accumulano sotto un carico prolungato.
 
 ## Calcolo dell'applicazione
 

@@ -90,9 +90,14 @@ export function digitZeroOf(code: number): number {
   let low: number = 0;
   let high: number = DIGIT_ZEROS.length - 1;
 
-  // The last zero at or before the code.
+  /*
+   * The last zero at or before the code. The middle is halved in integers,
+   * reading no global: this runs for every character of every reading, and
+   * where the code runs in a context of its own (a test runner's), each
+   * read of a global such as Math costs some thirty times a local's.
+   */
   while (low < high) {
-    const middle: number = Math.ceil((low + high) / 2);
+    const middle: number = (low + high + 1) >> 1;
 
     if (DIGIT_ZEROS[middle]! <= code) {
       low = middle;

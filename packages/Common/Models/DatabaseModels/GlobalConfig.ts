@@ -794,7 +794,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.Boolean,
     title: "Let Projects Choose Their Call Voice",
     description:
-      "When on, project owners and admins choose the voice their project's calls speak with through this server's Twilio account, which Twilio charges the account for. Not offered on OneUptime Cloud.",
+      "When on, Project Owners and Project Admins choose the voice their project's calls speak with through this server's Twilio account, which Twilio charges the account for. Not offered on OneUptime Cloud.",
     defaultValue: false,
   })
   @Column({

@@ -371,6 +371,9 @@ function hasAnyDigit(text: string): boolean {
   return false;
 }
 
+// The phone rule's name: RedactionOptions.keepPhoneNumbers keeps it out.
+const PHONE_NUMBER_RULE_NAME: string = "phone-number";
+
 /*
  * These are security redactions, not the fingerprint-normalization regexes
  * (those normalize numbers/uuids for grouping and do not cover credentials).
@@ -465,7 +468,7 @@ const REDACTION_RULES: Array<RedactionRule> = [
   },
   {
     // Phone numbers, as Data Security's phone detectors find them: see redactFoundBy.
-    name: "phone-number",
+    name: PHONE_NUMBER_RULE_NAME,
     placeholder: "[redacted-phone]",
     redact: redactFoundBy(PHONE_NUMBER_DETECTORS),
   },
@@ -552,6 +555,14 @@ export interface RedactionOptions {
    * security case triage's context.
    */
   keepSecurityObservables?: boolean | undefined;
+  /*
+   * Keep phone numbers, and hide everything else as for a model: for the
+   * name an audit log entry gives a call policy's number, which is the
+   * number (AuditLogResourceNames, #6301) - the project's own line, which
+   * the phone rule, written for what reaches a model (#11384), would make
+   * "[redacted-phone]".
+   */
+  keepPhoneNumbers?: boolean | undefined;
   /*
    * The name of the field the text is the value of: a row's column
    * (serializeRows). A phone number or a Social Security number needs no
@@ -660,6 +671,10 @@ export default class ToolResultSerializer {
         options?.keepSecurityObservables &&
         SECURITY_OBSERVABLE_RULE_NAMES.includes(rule.name)
       ) {
+        continue;
+      }
+
+      if (options?.keepPhoneNumbers && rule.name === PHONE_NUMBER_RULE_NAME) {
         continue;
       }
 

@@ -532,8 +532,10 @@ describe("MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType", () => {
   /*
    * A rule moved covers its finding again - coverage compares its filters
    * with Scrub It's exactly - and hides, from its next batch, what the
-   * frozen pattern left: a number typed in fullwidth, beside its word, and
-   * keeps what it took for one: a decimal, an area no one is issued.
+   * frozen pattern left: a number typed in fullwidth, beside its word, or
+   * under a key that names its type, where Data Security finds nine digits
+   * beside no word of their own (#11383), and keeps what it took for one: a
+   * decimal, an area no one is issued.
    */
   test.each([
     [
@@ -554,8 +556,13 @@ describe("MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType", () => {
       "us-ssn",
       "customer.ssn",
       SSN,
-      ["５３６－２２－８７３１", "SSN 536221234", "536.22.8731"],
-      ["666.22.8731", "ref 536221234"],
+      [
+        "５３６－２２－８７３１",
+        "SSN 536221234",
+        "536.22.8731",
+        "ref 536221234",
+      ],
+      ["666.22.8731", "ref 666221234"],
     ],
   ] as Array<[string, string, string, Array<string>, Array<string>]>)(
     "a %s rule on %s moved covers its finding again, and hides what Data Security finds",

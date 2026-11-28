@@ -391,6 +391,12 @@ const store = {
     },
   ],
   VMwareResource: estate.vmwareRows,
+  /*
+   * The project's VMware health rules (#11157): none, as the server answers
+   * for a project that has not opened VMware > Settings > Health Rules (it
+   * makes the row there), so the vCenter's map judges by the defaults.
+   */
+  VMwareHealthSetting: [],
   KubernetesCluster: [
     {
       _id: IDS.kubernetes,

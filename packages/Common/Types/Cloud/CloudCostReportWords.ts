@@ -5,7 +5,7 @@ import {
   formatReaderFigure,
   ReaderDateTimeFormat,
 } from "../DateLanguage";
-import { PluralTemplate, Translator, translationKey } from "../Translator";
+import { Translator, translationKey } from "../Translator";
 import { CLOUD_COST_BASIS_LABELS, isCloudCostBasis } from "./CloudCostBasis";
 import { getCloudCostAllocationChange } from "./CloudCostAllocation";
 import {
@@ -61,10 +61,6 @@ export const REPORT_BUDGET_LINE: string = translationKey(
 export const REPORT_SAVINGS: string = translationKey("Savings waiting");
 export const REPORT_SAVINGS_PER_MONTH: string =
   translationKey("{{amount}} a month");
-export const REPORT_SAVINGS_COUNT: PluralTemplate = {
-  one: "{{count}} saving",
-  other: "{{count}} savings",
-};
 export const REPORT_COMMITMENTS: string = translationKey("Commitments cover");
 export const REPORT_COMMITMENTS_USED: string = translationKey(
   "{{percent}} of them used",
@@ -404,8 +400,17 @@ export function writeCloudCostReport(data: {
       value: translator.translateTemplate(REPORT_SAVINGS_PER_MONTH, {
         amount: money(section.savings.monthlySavings),
       }),
+      /*
+       * How many, as Cloud > Overview's savings tile counts them
+       * (CloudOverviewTiles' SAVING_RECOMMENDATIONS), worded in every
+       * language. Written in the call itself: the server's locale scan reads
+       * a plural there (Common/Scripts/I18n/ServerLocales).
+       */
       hint: translator.translatePlural(
-        REPORT_SAVINGS_COUNT,
+        {
+          one: "{{count}} recommendation",
+          other: "{{count}} recommendations",
+        },
         section.savings.count,
       ),
     });

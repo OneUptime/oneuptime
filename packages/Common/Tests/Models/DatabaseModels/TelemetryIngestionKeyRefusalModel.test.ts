@@ -17,6 +17,7 @@ import {
   TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SCOPES,
   TelemetryIngestionBudgetRefusalKind,
   TelemetryIngestionBudgetScope,
+  isTelemetryIngestionQueueRefusalKind,
 } from "../../../Types/Telemetry/TelemetryIngestionBudget";
 import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
 import { describe, expect, test } from "@jest/globals";
@@ -139,6 +140,9 @@ describe("the refusal reasons it stores", () => {
       "project-ingestion-rate",
       "payment-required",
       "project-blocked",
+      // The telemetry queue's, while OneUptime catches up (#11440).
+      "queue-backlogged",
+      "queue-full",
     ]);
   });
 
@@ -160,7 +164,7 @@ describe("the refusal reasons it stores", () => {
     );
   });
 
-  test("the project's own: budgets and rate of the project, billing, a block", () => {
+  test("the project's own: budgets and rate of the project, billing, a block, the telemetry queue", () => {
     expect(
       ALL_TELEMETRY_INGEST_REFUSAL_REASONS.filter(
         (reason: TelemetryIngestRefusalReason): boolean => {
@@ -172,6 +176,12 @@ describe("the refusal reasons it stores", () => {
       TelemetryIngestRefusalReason.ProjectIngestionRate,
       TelemetryIngestRefusalReason.PaymentRequired,
       TelemetryIngestRefusalReason.ProjectBlocked,
+      /*
+       * Refused while OneUptime catches up, whichever key sent it: not the
+       * key's doing (#11440).
+       */
+      TelemetryIngestRefusalReason.QueueBacklogged,
+      TelemetryIngestRefusalReason.QueueFull,
     ]);
   });
 
@@ -197,7 +207,27 @@ describe("the refusal reasons it stores", () => {
   test("an ingestion budget refusal is the key's or the project's, by its scope, and a rate or a daily budget, by its kind", () => {
     const answers: Array<[string, string, TelemetryIngestRefusalReason]> = [];
 
-    for (const kind of Object.values(TelemetryIngestionBudgetRefusalKind)) {
+    /*
+     * The kinds a budget refuses with. The telemetry queue's refusals
+     * (TelemetryIngestShedding: queue-backlogged, #11442, and queue-full,
+     * #11440) are no budget's: the ingest answers them 429 before any
+     * budget is asked, and counts each under a reason of its own, whatever
+     * the scope (Tests/Types/Telemetry/TelemetryIngestQueueRefusals.test.ts).
+     * Every other kind is a budget's, and is decided here.
+     */
+    const budgetKinds: Array<TelemetryIngestionBudgetRefusalKind> =
+      Object.values(TelemetryIngestionBudgetRefusalKind).filter(
+        (kind: TelemetryIngestionBudgetRefusalKind): boolean => {
+          return !isTelemetryIngestionQueueRefusalKind(kind);
+        },
+      );
+
+    expect(budgetKinds).toEqual([
+      TelemetryIngestionBudgetRefusalKind.DailyBudgetExhausted,
+      TelemetryIngestionBudgetRefusalKind.RateLimited,
+    ]);
+
+    for (const kind of budgetKinds) {
       for (const scope of Object.values(TelemetryIngestionBudgetScope)) {
         answers.push([
           kind,
@@ -259,7 +289,7 @@ describe("the refusal reasons it stores", () => {
 
     // A team's or a label's reason is one every key of the project shares.
     for (const scope of TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SCOPES) {
-      for (const kind of Object.values(TelemetryIngestionBudgetRefusalKind)) {
+      for (const kind of budgetKinds) {
         expect(
           PROJECT_WIDE_TELEMETRY_INGEST_REFUSAL_REASONS.has(
             getTelemetryIngestRefusalReasonForBudget({ kind, scope }),

@@ -4605,7 +4605,7 @@
   "Project Call Voices": "صدای تماس پروژه‌ها",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "اینکه هر پروژه صدای تماس‌های خودش از طریق حساب Twilio این سرور را انتخاب کند یا نه.",
   "Let projects choose their call voice": "اجازه دهید پروژه‌ها صدای تماس‌هایشان را انتخاب کنند",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "مالکان و مدیران پروژه آن را در تنظیمات پروژه > اعلان‌ها > کانال‌های اعلان انتخاب می‌کنند. پروژه‌ای که صدایی انتخاب نکند، با صدای بالا صحبت می‌کند.",
+  "Project Owners and Project Admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it.": "مالکان پروژه و مدیران پروژه آن را در تنظیمات پروژه > اعلان‌ها > کانال‌های اعلان انتخاب می‌کنند و هزینه‌اش را حساب Twilio این سرور می‌پردازد.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "تماس‌های همهٔ پروژه‌ها از طریق حساب Twilio این سرور با صدای بالا صحبت می‌کنند.",
   "Set by the GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE environment variable: twilio.letProjectsChooseCallVoice with Helm, or config.env with Docker Compose. Change it there and restart OneUptime.": "با متغیر محیطی GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE تنظیم شده است: twilio.letProjectsChooseCallVoice با Helm، یا config.env با Docker Compose. آن را همان‌جا تغییر دهید و OneUptime را دوباره راه‌اندازی کنید.",
   "An environment variable sets this switch, so it cannot be changed here.": "یک متغیر محیطی این کلید را تنظیم می‌کند، پس نمی‌توان آن را اینجا تغییر داد.",

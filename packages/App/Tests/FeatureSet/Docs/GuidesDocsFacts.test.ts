@@ -6,6 +6,11 @@ import {
   canAcknowledgeOnCallTestPageBy,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  ON_CALL_TEST_PAGE_CALL_DIGIT,
+  ON_CALL_TEST_PAGE_CALL_PROMPT,
+  getOnCallTestPageCallPrompt,
+} from "Common/Types/OnCallDutyPolicy/OnCallTestPageWords";
 import { CustomDomainReadinessWords } from "Common/Types/CustomDomain/CustomDomainServerReadiness";
 import { formatProjectBalanceAmount } from "Common/Utils/Project/ProjectBalance";
 import { describe, expect, it } from "@jest/globals";
@@ -398,7 +403,16 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
       "packages/Common/Types/OnCallDutyPolicy/OnCallTestPageWords.ts",
     );
 
-    expect(words).toContain('"To acknowledge this test page, press 1."');
+    /*
+     * The call asks for the key the guide names, 1 in every language: the
+     * prompt is said from a template since #11066, which the English one
+     * fills as it is written.
+     */
+    expect(ON_CALL_TEST_PAGE_CALL_DIGIT).toBe("1");
+    expect(ON_CALL_TEST_PAGE_CALL_PROMPT).toBe(
+      "To acknowledge this test page, press 1.",
+    );
+    expect(getOnCallTestPageCallPrompt()).toBe(ON_CALL_TEST_PAGE_CALL_PROMPT);
     expect(words).toContain("Acknowledge: {{link}}");
   });
 

@@ -7,16 +7,21 @@ import { afterAll, describe, expect, test } from "@jest/globals";
 /*
  * Contract under test — the resource policy closure stays import-closed.
  *
- * packages/Common/Types/ResourceAiAgent and
- * packages/Common/Utils/AiRemediation/Resource are copied byte-identically
- * into the standalone resource AI agent (agents/ResourceAIAgent), together
- * with Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts and
+ * packages/Common/Types/ResourceAiAgent,
+ * packages/Common/Utils/AiRemediation/Resource and
+ * packages/Common/Utils/DataObservability/DatabaseAgent (the work a Database
+ * Agent is handed for Data Observability, whose version its posture reports:
+ * #11148) are copied byte-identically into the standalone resource AI agent
+ * (agents/ResourceAIAgent, Scripts/CommonCopies.json), together with
+ * Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts,
  * Types/AI/AgentAiSettings.ts (what OneUptime AI may do, as the agent
- * reports it). The agent has no Common dependency and no Node-specific code
- * may run inside the policy (it runs in the server, the dashboard and the
- * agent alike), so a file in those directories may import ONLY:
- *   - another file in those two directories, or
- *   - one of those two leaves (each imports nothing itself),
+ * reports it) and the kinds of table and check that work names
+ * (Types/DataObservability/DataAssetKind.ts and DataCheckType.ts). The agent
+ * has no Common dependency and no Node-specific code may run inside the
+ * policy (it runs in the server, the dashboard and the agent alike), so a
+ * file in those directories may import ONLY:
+ *   - another file in those three directories, or
+ *   - one of those four leaves (each imports nothing itself),
  * by a RELATIVE path — never a package, a Node built-in or the "Common/..."
  * alias — and may not reach for Node globals (process, Buffer, require,
  * __dirname, ...).
@@ -31,6 +36,7 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 const CLOSED_DIRECTORIES: Array<string> = [
   path.join(COMMON_ROOT, "Types", "ResourceAiAgent"),
   path.join(COMMON_ROOT, "Utils", "AiRemediation", "Resource"),
+  path.join(COMMON_ROOT, "Utils", "DataObservability", "DatabaseAgent"),
 ];
 
 const AGENT_AI_SETTINGS_FILE: string = path.join(
@@ -48,6 +54,8 @@ const ALLOWED_OUTSIDE_FILES: Array<string> = [
     "AiRemediationCommandPolicyVerdict.ts",
   ),
   AGENT_AI_SETTINGS_FILE,
+  path.join(COMMON_ROOT, "Types", "DataObservability", "DataAssetKind.ts"),
+  path.join(COMMON_ROOT, "Types", "DataObservability", "DataCheckType.ts"),
 ];
 
 const NODE_GLOBALS: Array<string> = [
@@ -241,7 +249,7 @@ function findClosureProblems(
 }
 
 describe("the resource policy closure", () => {
-  test("both directories exist and hold the contract files", () => {
+  test("the directories exist and hold the contract files", () => {
     expect(
       listTypeScriptFiles(CLOSED_DIRECTORIES[0]!).map((file: string) => {
         return path.basename(file);
@@ -268,6 +276,18 @@ describe("the resource policy closure", () => {
         "HostCommandPolicy.ts",
       ]),
     );
+
+    expect(
+      listTypeScriptFiles(CLOSED_DIRECTORIES[2]!).map((file: string) => {
+        return path.basename(file);
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "DatabaseAgentWork.ts",
+        "DatabaseAgentStatements.ts",
+        "DatabaseAgentRows.ts",
+      ]),
+    );
   });
 
   test("imports only its own files and the verdict leaf, by relative path, and no Node globals", () => {
@@ -283,12 +303,17 @@ describe("the resource policy closure", () => {
     ).toEqual([]);
   });
 
-  test("ResourceAiAccess imports only ./AiResourceType and the AI settings contract", () => {
+  test("ResourceAiAccess imports only ./AiResourceType, the AI settings contract and the Database Agent's work", () => {
     expect(
       scanFile(
         path.join(CLOSED_DIRECTORIES[0]!, "ResourceAiAccess.ts"),
       ).specifiers.sort(),
-    ).toEqual(["../AI/AgentAiSettings", "./AiResourceType"]);
+    ).toEqual([
+      // The Data Observability a Database Agent's posture reports (#11148).
+      "../../Utils/DataObservability/DatabaseAgent/DatabaseAgentWork",
+      "../AI/AgentAiSettings",
+      "./AiResourceType",
+    ]);
   });
 
   // A leaf the closure may reach must not lead out of it.
