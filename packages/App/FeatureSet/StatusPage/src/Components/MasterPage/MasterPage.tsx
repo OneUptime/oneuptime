@@ -19,7 +19,6 @@ import {
   getAddressNotSetUpFacts,
   isNoStatusPageAnswer,
 } from "../../Utils/AddressNotSetUp";
-import AddressNotSetUp from "../AddressNotSetUp/AddressNotSetUp";
 import Banner from "../Banner/Banner";
 import Footer from "../Footer/Footer";
 import Header from "../Header/Header";
@@ -41,7 +40,9 @@ import { BILLING_ENABLED, HOST, env } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
+  lazy,
   ReactElement,
+  Suspense,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -55,6 +56,23 @@ import { applyStatusPageLanguageSettings } from "../../Utils/i18n";
 import StatusPageThemeUtil from "../../Utils/StatusPageTheme";
 import { parseStatusPageTheme } from "Common/Types/StatusPage/StatusPageTheme";
 import PublicPageTheme from "Common/Types/Theme/PublicPageTheme";
+
+/*
+ * The page an address shows when nothing is set up there (AddressNotSetUp):
+ * drawn only where no status page answers - a new install opened at its
+ * server's address, say - and never on a status page a visitor opens. So it
+ * is a file of its own, which that address loads, with the page's loading
+ * shape in its place until it arrives (about 1 KiB gzipped of every status
+ * page's first load, packages/Common/Scripts/first-load-budgets.js).
+ */
+type AddressNotSetUpModule =
+  typeof import("../AddressNotSetUp/AddressNotSetUp");
+
+const AddressNotSetUp: React.LazyExoticComponent<
+  AddressNotSetUpModule["default"]
+> = lazy((): Promise<AddressNotSetUpModule> => {
+  return import("../AddressNotSetUp/AddressNotSetUp");
+});
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -394,7 +412,11 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   }
 
   if (addressNotSetUp) {
-    return <AddressNotSetUp facts={addressNotSetUp} />;
+    return (
+      <Suspense fallback={<ShellSkeleton />}>
+        <AddressNotSetUp facts={addressNotSetUp} />
+      </Suspense>
+    );
   }
 
   if (error) {
