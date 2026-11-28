@@ -16,8 +16,9 @@
  * install from them, as the Terraform provider's did (#11016). The release
  * used to be filled by softprops/action-gh-release, by its tag, which finds a
  * published release of the tag before a draft, and replaced each asset of the
- * same name on it: so a second release run of a published version would have
- * uploaded its own build over the published one.
+ * same name on it: so finalize-github-release run again after the release
+ * was published (re-running any job before it re-runs it too) uploaded the
+ * run's build over the published one.
  *
  * On a draft, each file is uploaded to the draft's own upload URL, by its id,
  * one at a time. Before each, the draft is read again, by its id, and
@@ -28,9 +29,8 @@
  * sent twice. Once every file is there, the draft is read again and each file
  * must be on it, whole, with the size and SHA-256 it was built with.
  *
- * On a published release (a release run repeated for a version, or re-run
- * after it published), nothing is uploaded, and --when-published says what
- * the run does instead:
+ * On a published release (the job run again after the publish), nothing is
+ * uploaded, and --when-published says what the run does instead:
  *
  *   skip              say so, and succeed: the SBOMs and reports of the run
  *                     that published it stay as they are;
@@ -474,7 +474,7 @@ async function main(
           err.write(`::error::${difference}\n`);
         }
         return fail(
-          `${published}, and with other files than this run built: nothing was attached, and the jobs that publish them elsewhere must not run. A release run repeated for a published version builds its files again; publish what the first run did not from that run instead (Re-run failed jobs).`,
+          `${published}, and with other files than this run built: nothing was attached, and the jobs that publish them elsewhere must not run: apt, yum, Homebrew and winget must get the published files' checksums, not these.`,
         );
       }
       log(

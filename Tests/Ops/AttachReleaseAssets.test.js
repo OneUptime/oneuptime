@@ -598,7 +598,7 @@ describe("on a release that is published already", () => {
       `::error::its oneuptime-infrastructure-agent_linux_amd64.tar.gz has SHA-256 ${sha256(Buffer.from("linux archive"))}, and this run built ${sha256(Buffer.from("linux archive built again with another toolchain"))}`,
     );
     expect(result.err).toContain(
-      "and with other files than this run built: nothing was attached, and the jobs that publish them elsewhere must not run.",
+      "and with other files than this run built: nothing was attached, and the jobs that publish them elsewhere must not run: apt, yum, Homebrew and winget must get the published files' checksums, not these.",
     );
   });
 

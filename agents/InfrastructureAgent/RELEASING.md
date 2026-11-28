@@ -251,14 +251,60 @@ The script is a static file of the docs, so a change reaches oneuptime.com
 when the release deploys. Self-hosted installations serve their own copy. It
 needs nothing per release: it asks GitHub for the latest release.
 
+## 7. A release built again is the same bytes
+
+apt, yum, Homebrew and winget each record the SHA-256 of the files they point
+to, as the Terraform registries did of the provider's zips, whose rebuilt
+assets broke `terraform init` for 14.3.0 to 17.2.0. So the agent's files never
+change once a release is published (#11466):
+
+- **A build is the same bytes for the same commit and toolchain.** Every
+  archive, package, SBOM and the checksums file. `.goreleaser.yaml` stamps
+  each file with the commit's time, archives it as root's with a fixed mode,
+  builds with `-trimpath`, names the project, and makes each SBOM through
+  `sbom.sh`, which keeps syft's document but for its random serial number and
+  the time it ran. The MSIs are the exception: wixl gives each one a package
+  code of its own and the time it was built, and no package manager records
+  their SHA-256.
+- **The toolchain is pinned.** Go, GoReleaser and syft are installed at the
+  exact versions in
+  [`.github/actions/setup-release-toolchain/versions.env`](../../.github/actions/setup-release-toolchain/versions.env),
+  and each release's notes name them ("Built with:"). The Release Toolchain
+  Pins workflow keeps an issue open while one is behind. To move one, change
+  it there in a pull request of its own.
+- **Nothing uploads over a published release.** `finalize-github-release`
+  attaches the files to the run's own draft by its id
+  (`Scripts/Release/AttachReleaseAssets.js`). Re-running a job of the release
+  run after the release was published re-runs `finalize-github-release` too:
+  it then attaches nothing, and checks that the checksums file and every file
+  it lists are the published ones, before the publish jobs run.
+
+To check a published release against its tag, build it with the toolchain its
+notes name, and compare the checksums files:
+
+```bash
+VERSION=18.1.0
+git clone --depth 1 --branch "$VERSION" https://github.com/OneUptime/oneuptime.git
+cd oneuptime/agents/InfrastructureAgent
+GORELEASER_CURRENT_TAG="$VERSION" goreleaser release --clean --snapshot
+gh release download "$VERSION" --repo OneUptime/oneuptime --pattern "oneuptime_${VERSION}_checksums.txt" --output published.txt
+diff published.txt "dist/oneuptime_${VERSION}_checksums.txt" && echo "the same bytes"
+```
+
+The tag must be one built with the pinned toolchain and this config: releases
+after 18.0.0.
+
 ## Changing how the agent is packaged
 
-Before merging a change to `.goreleaser.yaml`, `build-msi.sh`, the `.wxs`,
-`Scripts/PackageManagers` or the publish jobs:
+Before merging a change to `.goreleaser.yaml`, `sbom.sh`, `build-msi.sh`, the
+`.wxs`, `Scripts/PackageManagers` or the publish jobs:
 
 1. Run `npm test` in `Tests/Ops`. It covers the GoReleaser config, the
    publish jobs, the publish scripts against local stand-ins, and the status
-   scripts.
+   scripts. With goreleaser, go and syft on PATH (the pinned ones),
+   `InfrastructureAgentReproducibleBuild.test.js` also builds the agent twice
+   and holds every file to the same bytes; the reproducible-build job of the
+   "Infrastructure Agent Test" workflow always does.
 2. Let the pull request's checks run: the "Ops Config Test" workflow runs
    `Tests/Ops/package-repository-e2e.sh`, which publishes to a stand-in site
    and installs from it with the docs' commands. "Infrastructure Agent MSI

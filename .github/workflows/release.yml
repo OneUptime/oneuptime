@@ -2692,18 +2692,20 @@ jobs:
             --fallback-on-error
           cat "$RUNNER_TEMP/release-notes.md" >> "$GITHUB_STEP_SUMMARY"
 
-      # A release run repeated for a version GitHub has published already (the
-      # release pull request merged again after a failure elsewhere, or "Re-run
-      # all jobs" of a run that published) changes nothing on it (#11466). Its
-      # assets are what the apt and yum indexes, the Homebrew cask and the
-      # winget manifest recorded the SHA-256 of. ncipollo/release-action's
-      # allowUpdates would have found the published release by its tag and
-      # turned it back into a draft (draft: true), and finalize-github-release
-      # then uploaded this run's files over its assets. So: a published
-      # release is looked for first, by the tag (GitHub answers a tag with a
-      # published release only, never a draft), and when there is one the
-      # draft steps below do not run. updateOnlyUnreleased holds them to it
-      # too, should the version be published between this and them.
+      # This job run again after the release was published changes nothing on
+      # it (#11466). A new run for a published version, and "Re-run all jobs",
+      # stop at read-version; but re-running a job (or the failed ones) re-runs
+      # every job after it too, this one and finalize-github-release among
+      # them. The release's assets are what the apt and yum indexes, the
+      # Homebrew cask and the winget manifest recorded the SHA-256 of.
+      # ncipollo/release-action's allowUpdates found the published release by
+      # its tag and turned it back into a draft (draft: true), and
+      # finalize-github-release then uploaded the run's files over its assets.
+      # So: a published release is looked for first, by the tag (GitHub
+      # answers a tag with a published release only, never a draft), and when
+      # there is one the draft steps below do not run. updateOnlyUnreleased
+      # holds them to it too, should the version be published between this and
+      # them.
       - name: Look for this version's published release
         id: published
         env:
@@ -3369,8 +3371,9 @@ jobs:
       # and yum indexes, the Homebrew cask and the winget manifest recorded,
       # as the Terraform provider's second runs did to it (#11016).
       #
-      # When the version is published already (draft-github-release says so),
-      # nothing is attached. The SBOMs, the reports and the apps stay the ones
+      # When the version is published already (a job re-run after the publish
+      # re-runs this one too, and draft-github-release says so), nothing is
+      # attached. The SBOMs, the reports and the apps stay the ones
       # published (--when-published skip). The infrastructure agent's
       # checksums file, and every file it lists, must be the ones this run
       # built, byte for byte (--when-published verify-checksums): a second
