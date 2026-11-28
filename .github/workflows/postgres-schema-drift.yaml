@@ -5702,6 +5702,26 @@ jobs:
           Tests/Server/Services/MonitorTemplateChangePostgres.test.ts
           --forceExit
 
+      # #11453: a write that takes away the criteria behind an open incident
+      # or alert set to resolve on its own resolves it, with a note that says
+      # why - a template's bulk sync and a per-monitor sync, Sync from
+      # Template, a person's edit, an API key's, a Terraform resend whose
+      # steps carry no ids, link and unlink. One whose criteria are still
+      # there stays open, and one set to be resolved by hand is left alone.
+      # On copies of every migrated table.
+      - name: Test resolving what removed criteria left open, on migrated Postgres
+        if: matrix.shard == 5
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_CRITERIA_REMOVED_TESTS: "true"
+          MONITOR_CRITERIA_REMOVED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_CRITERIA_REMOVED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_CRITERIA_REMOVED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorCriteriaRemovedPostgres.test.ts
+          --forceExit
+
       # Entity risk on copies of the migrated User, Project,
       # SecurityEntityRisk and SecurityEntityCriticality tables, through the
       # real services: a finding writes one row and the next about the same

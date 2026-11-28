@@ -75,6 +75,8 @@ Om één monitor te synchroniseren, klikt u op **Synchroniseren vanuit sjabloon*
 
 Na een synchronisatie meldt een samenvatting hoeveel monitoren zijn bijgewerkt. **Gedeeltelijk gesynchroniseerd** betekent dat sommige gekoppelde monitoren nog de vorige configuratie hebben, meestal omdat uw machtigingen ze niet dekken.
 
+Een synchronisatie die de criteria weghaalt waarmee een open incident of een open waarschuwing is geopend, lost die op als die was ingesteld om zichzelf op te lossen, want zonder die criteria kan niets hem meer oplossen: de tijdlijn ervan zegt waarom, en de samenvatting zegt hoeveel er zijn opgelost. Een incident of waarschuwing waarvan het sjabloon de criteria nog heeft, blijft open, en een die handmatig moet worden opgelost, laten we aan u over. Bewerkt u zelf de criteria van een monitor, in het dashboard, via de API of met Terraform, dan gebeurt hetzelfde.
+
 ## Monitoren naar een ander sjabloon verplaatsen
 
 Wanneer een beter sjabloon een ander vervangt, verplaats dan de monitoren ervan naar het nieuwe sjabloon in plaats van ze te verwijderen. Elke monitor behoudt zijn naam, statusgeschiedenis, labels, eigenaren en incidenten, en neemt de criteria van het nieuwe sjabloon over.
@@ -101,10 +103,10 @@ Wat het verplaatsen doet:
 - Een apparaat heeft één monitor van elk sjabloon. Heeft een apparaat al een monitor die er vanuit het nieuwe sjabloon voor is gemaakt, dan wordt zijn andere monitor weggelaten, en de wijziging noemt de monitor die in de weg staat: verwijder een van de twee en verplaats daarna opnieuw.
 - Een monitor van een ander type dan het sjabloon wordt weggelaten.
 
-De wijziging wordt op de server uitgevoerd, tot 10.000 monitoren tegelijk, en toont de voortgang: wat is verplaatst, wat is weggelaten en waarom, en de open incidenten en waarschuwingen die ze heeft opgelost. Het venster sluiten stopt de wijziging niet, en de pagina van het sjabloon toont een wijziging die nog loopt. **Stoppen** stopt haar vóór de volgende monitor, en **Opnieuw proberen** probeert de monitoren die zijn mislukt of niet zijn bereikt opnieuw.
+De wijziging wordt op de server uitgevoerd, tot 10.000 monitoren tegelijk, en toont de voortgang: wat is verplaatst, wat is weggelaten en waarom, en de open incidenten en waarschuwingen die ze heeft opgelost. Het venster sluiten stopt de wijziging niet: de pagina van het sjabloon en de monitorlijst tonen een wijziging die nog loopt, met hoe ver ze is gekomen, en de monitorlijst toont een uur lang ook een afgeronde wijziging die monitoren heeft weggelaten of waarbij monitoren zijn mislukt. Klik op de regel ervan om haar weer te openen, met **Voortgang tonen** zolang ze loopt en **Tonen wat er is gebeurd** zodra ze klaar is. **Stoppen** stopt haar vóór de volgende monitor, en **Opnieuw proberen** probeert de monitoren die zijn mislukt of niet zijn bereikt opnieuw.
 
 > [!TIP]
-> Verplaatst u de apparaten van een regel voor automatisch importeren naar een nieuw sjabloon? Verplaats eerst de monitoren en stel daarna de regel in op het nieuwe sjabloon. In de omgekeerde volgorde geeft de regel elk apparaat naast de monitor die het al heeft een tweede monitor, uit het nieuwe sjabloon.
+> Stelt u een regel voor automatisch importeren in op een ander sjabloon van hetzelfde soort, dan biedt het formulier aan de monitoren van de apparaten eerst daarheen te verplaatsen, en de regel gebruikt het nieuwe sjabloon zodra ze zijn verplaatst, zodat geen apparaat een tweede monitor krijgt. **Opslaan zonder verplaatsen** stelt de regel er meteen op in: elk apparaat houdt zijn monitor en krijgt die van het nieuwe sjabloon ernaast.
 
 ## Monitoren ontkoppelen van een sjabloon
 
@@ -119,7 +121,7 @@ Hoe dan ook behouden ze hun namen, statusgeschiedenis, labels, eigenaren en inci
 
 ## Een sjabloon verwijderen
 
-Een sjabloon waaruit een netwerkwaarschuwingsbeleid of een regel voor automatisch importeren monitoren aanmaakt, kan niet worden verwijderd: stel het beleid of de regel eerst in op een ander sjabloon. Zijn er monitoren aan het sjabloon gekoppeld, dan vraagt het verwijderen wat er met ze moet gebeuren:
+Een sjabloon waaruit een netwerkwaarschuwingsbeleid of een regel voor automatisch importeren monitoren aanmaakt, kan niet worden verwijderd: stel het beleid of de regel eerst in op een ander sjabloon. De monitoren van een beleid verhuizen mee, en het formulier van een regel biedt aan de monitoren van de apparaten te verplaatsen. Zijn er monitoren aan het sjabloon gekoppeld, dan vraagt het verwijderen wat er met ze moet gebeuren:
 
 - **Hun instellingen behouden** (de standaard): het verwijderen ontkoppelt ze, en ze blijven controleren en waarschuwen met de criteria die ze hebben.
 - **Criteria van dit sjabloon wissen**: elke monitor wordt ontkoppeld en zijn criteria worden gewist, zoals hierboven, en daarna wordt het sjabloon verwijderd. Blijft een monitor gekoppeld, zoals een monitor die uw machtigingen niet dekken, dan blijft het sjabloon behouden, en het venster zegt hoeveel.
@@ -233,7 +235,7 @@ Het apparaat heeft al een monitor die ervoor is gemaakt vanuit het sjabloon waar
 :::
 
 :::details Nadat een regel voor automatisch importeren naar een nieuw sjabloon is overgezet, hebben apparaten twee monitoren
-De regel gaf elk apparaat de monitor van het nieuwe sjabloon naast de monitor die het al had. Verwijder de nieuwe monitoren en verplaats daarna de oude naar het nieuwe sjabloon: ze behouden hun geschiedenis, en de regel maakt er geen opnieuw.
+De regel is opgeslagen met **Opslaan zonder verplaatsen**, of ingesteld op het sjabloon voordat het formulier aanbood ze te verplaatsen, en gaf elk apparaat de monitor van het nieuwe sjabloon naast de monitor die het al had. Verwijder de nieuwe monitoren en verplaats daarna de oude naar het nieuwe sjabloon: ze behouden hun geschiedenis, en de regel maakt er geen opnieuw.
 :::
 
 :::details Opslaan mislukt met "Unsupported do not sync field"

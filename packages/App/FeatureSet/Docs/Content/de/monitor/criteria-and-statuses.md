@@ -265,7 +265,7 @@ Der Editor zeigt jedes Kriterium aufgeklappt. Klicken Sie auf den Kopf eines Kri
 
 ### Die Kriterien speichern
 
-Klicken Sie auf **Änderungen speichern**. Die nächste Prüfung wird nach den neuen Kriterien bewertet.
+Klicken Sie auf **Änderungen speichern**. Die nächste Prüfung wird nach den neuen Kriterien bewertet. Ein offener Vorfall oder eine offene Warnung, deren Kriterien Sie gelöscht haben, wird beim Speichern behoben, sofern sie sich automatisch beheben sollten, denn danach könnte nichts sie mehr beheben: Ihre Zeitleiste nennt den Grund.
 
 ### Den Monitor testen
 
@@ -352,7 +352,7 @@ Das Kriterium der Warnung ändert keinen Status, also hält es den Monitor nicht
 :::
 
 :::details Der Vorfall bleibt offen, nachdem sich der Monitor erholt hat
-Öffnen Sie das Kriterium des Vorfalls und klappen Sie in seinem Vorfall **Weitere Felder** auf: **Vorfall automatisch beheben** muss eingeschaltet sein. Ein Vorfall eines Kriteriums, das Sie inzwischen gelöscht haben, wird vom Monitor nicht behoben: Beheben Sie ihn von Hand.
+Öffnen Sie das Kriterium des Vorfalls und klappen Sie in seinem Vorfall **Weitere Felder** auf: **Vorfall automatisch beheben** muss eingeschaltet sein. Wird das Kriterium eines Vorfalls gelöscht oder eine Vorlage synchronisiert, die es nicht mehr hat, wird der Vorfall behoben, sofern er sich automatisch beheben sollte. Einen, der von einem früher gelöschten Kriterium offen geblieben ist oder von Hand behoben werden soll, beheben Sie selbst.
 :::
 
 :::details Die Schaltfläche zum Löschen von Offline ist gesperrt

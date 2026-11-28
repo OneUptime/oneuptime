@@ -137,10 +137,11 @@ export const MONITOR_NOT_REACHED_FAILED: string = translationKey(
 /*
  * A network alert policy's change (#11452): a monitor someone moved to
  * another template, or unlinked, since the policy was pointed at its new
- * template is no longer the policy's, and is left as they chose.
+ * template is no longer the policy's, and is left as they chose. Said once
+ * under a heading for one monitor or for hundreds, so it names none.
  */
 export const MONITOR_NO_LONGER_THE_POLICYS: string = translationKey(
-  "Moved to another template or unlinked by someone since, so the policy let it go.",
+  "Moved to another template or unlinked by someone since, so no longer the policy's.",
 );
 
 // Every reason the change writes itself, for the Dashboard to word them all.

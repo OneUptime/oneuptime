@@ -75,6 +75,8 @@ Um einen einzelnen Monitor zu synchronisieren, klicken Sie in seiner Zeile unter
 
 Nach einer Synchronisierung nennt eine Zusammenfassung, wie viele Monitore aktualisiert wurden. **Teilweise synchronisiert** bedeutet, dass einige verknüpfte Monitore noch die vorherige Konfiguration haben, meist weil Ihre Berechtigungen sie nicht abdecken.
 
+Nimmt eine Synchronisierung die Kriterien weg, die einen offenen Vorfall oder eine offene Warnung eröffnet haben, wird dieser oder diese behoben, sofern sie sich automatisch beheben sollten: Ohne diese Kriterien könnte nichts sie mehr beheben. Ihre Zeitleiste nennt den Grund, und die Zusammenfassung sagt, wie viele behoben wurden. Ein Vorfall oder eine Warnung, deren Kriterien die Vorlage noch hat, bleibt offen, und einer, der von Hand behoben werden soll, bleibt Ihnen überlassen. Bearbeiten Sie die Kriterien eines Monitors selbst, im Dashboard, über die API oder mit Terraform, geschieht dasselbe.
+
 ## Monitore zu einer anderen Vorlage verschieben
 
 Wenn eine bessere Vorlage eine andere ersetzt, verschieben Sie deren Monitore zu ihr, statt sie zu löschen. Jeder Monitor behält seinen Namen, seinen Statusverlauf, seine Beschriftungen, Eigentümer und Vorfälle und übernimmt die Kriterien der neuen Vorlage.
@@ -101,10 +103,10 @@ Was das Verschieben bewirkt:
 - Ein Gerät hat aus jeder Vorlage einen Monitor. Hat ein Gerät bereits einen aus der neuen Vorlage für es erstellten Monitor, wird sein anderer Monitor ausgelassen, und die Änderung nennt den, der im Weg ist: Löschen Sie einen der beiden und verschieben Sie dann erneut.
 - Ein Monitor mit einem anderen Typ als die Vorlage wird ausgelassen.
 
-Die Änderung läuft auf dem Server, bis zu 10.000 Monitore auf einmal, und zeigt ihren Fortschritt: was verschoben wurde, was ausgelassen wurde und warum, und die offenen Vorfälle und Warnungen, die sie behoben hat. Das Schließen des Dialogs hält sie nicht an, und die Seite der Vorlage zeigt eine Änderung, die noch läuft. **Stoppen** hält sie vor dem nächsten Monitor an, und **Wiederholen** versucht es erneut mit den Monitoren, die fehlgeschlagen sind oder nicht erreicht wurden.
+Die Änderung läuft auf dem Server, bis zu 10.000 Monitore auf einmal, und zeigt ihren Fortschritt: was verschoben wurde, was ausgelassen wurde und warum, und die offenen Vorfälle und Warnungen, die sie behoben hat. Das Schließen des Dialogs hält sie nicht an: Die Seite der Vorlage und die Monitorliste zeigen eine Änderung, die noch läuft, mit ihrem Fortschritt, und die Monitorliste zeigt eine Stunde lang auch eine abgeschlossene, die Monitore ausgelassen hat oder bei der Monitore fehlgeschlagen sind. Klicken Sie auf ihre Zeile, um sie wieder zu öffnen, mit **Fortschritt anzeigen**, solange sie läuft, und **Anzeigen, was geschehen ist**, sobald sie fertig ist. **Stoppen** hält sie vor dem nächsten Monitor an, und **Wiederholen** versucht es erneut mit den Monitoren, die fehlgeschlagen sind oder nicht erreicht wurden.
 
 > [!TIP]
-> Sie verschieben die Geräte einer Regel für den automatischen Import zu einer neuen Vorlage? Verschieben Sie zuerst die Monitore und richten Sie dann die Regel auf die neue Vorlage aus. In umgekehrter Reihenfolge gibt die Regel jedem Gerät neben dem vorhandenen einen zweiten Monitor aus der neuen Vorlage.
+> Wird eine Regel für den automatischen Import auf eine andere Vorlage derselben Art umgestellt, bietet ihr Formular an, die Monitore ihrer Geräte zuerst dorthin zu verschieben, und die Regel verwendet die neue Vorlage, sobald sie verschoben sind, sodass kein Gerät einen zweiten Monitor bekommt. **Ohne Verschieben speichern** stellt die Regel sofort um: Jedes Gerät behält seinen Monitor und bekommt den der neuen Vorlage daneben.
 
 ## Verknüpfung von Monitoren mit einer Vorlage aufheben
 
@@ -119,7 +121,7 @@ In beiden Fällen behalten sie ihre Namen, ihren Statusverlauf, ihre Beschriftun
 
 ## Eine Vorlage löschen
 
-Eine Vorlage, aus der eine Netzwerk-Warnungsrichtlinie oder eine Regel für den automatischen Import Monitore bereitstellt, lässt sich nicht löschen: Richten Sie die Richtlinie oder die Regel zuerst auf eine andere Vorlage aus. Sind Monitore mit der Vorlage verknüpft, fragt das Löschen, was mit ihnen geschehen soll:
+Eine Vorlage, aus der eine Netzwerk-Warnungsrichtlinie oder eine Regel für den automatischen Import Monitore bereitstellt, lässt sich nicht löschen: Richten Sie die Richtlinie oder die Regel zuerst auf eine andere Vorlage aus. Die Monitore einer Richtlinie ziehen mit um, und das Formular einer Regel bietet an, die Monitore ihrer Geräte zu verschieben. Sind Monitore mit der Vorlage verknüpft, fragt das Löschen, was mit ihnen geschehen soll:
 
 - **Einstellungen behalten** (Standard): Das Löschen hebt ihre Verknüpfung auf, und sie prüfen und warnen weiter mit den Kriterien, die sie haben.
 - **Kriterien dieser Vorlage von ihnen entfernen**: Bei jedem wird die Verknüpfung aufgehoben und seine Kriterien werden entfernt, wie oben, und dann wird die Vorlage gelöscht. Bleibt ein Monitor verknüpft, etwa einer, den Ihre Berechtigungen nicht abdecken, wird die Vorlage behalten, und der Dialog nennt, wie viele.
@@ -233,7 +235,7 @@ Das Gerät hat bereits einen aus der Zielvorlage für es erstellten Monitor, mei
 :::
 
 :::details Nachdem eine Regel für den automatischen Import auf eine neue Vorlage umgestellt wurde, haben Geräte zwei Monitore
-Die Regel hat jedem Gerät neben seinem bisherigen Monitor den Monitor der neuen Vorlage gegeben. Löschen Sie die neuen Monitore und verschieben Sie dann die alten zur neuen Vorlage: Sie behalten ihren Verlauf, und die Regel erstellt keinen erneut.
+Die Regel wurde mit **Ohne Verschieben speichern** gespeichert oder auf die Vorlage ausgerichtet, bevor ihr Formular das Verschieben anbot, und hat jedem Gerät neben seinem bisherigen Monitor den Monitor der neuen Vorlage gegeben. Löschen Sie die neuen Monitore und verschieben Sie dann die alten zur neuen Vorlage: Sie behalten ihren Verlauf, und die Regel erstellt keinen erneut.
 :::
 
 :::details Speichern schlägt fehl mit „Unsupported do not sync field“
