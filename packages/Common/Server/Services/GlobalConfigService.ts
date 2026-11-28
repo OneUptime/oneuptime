@@ -37,6 +37,8 @@ import {
   getCallVoiceError,
   toStoredCallVoice,
 } from "../../Types/Call/CallVoice";
+import { PROJECT_CALL_VOICES_NOT_ON_CLOUD_MESSAGE } from "../../Types/Call/ProjectCallVoice";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import TwilioConfigWrite, {
   TwilioUseAndNumbers,
 } from "../../Types/CallAndSMS/TwilioConfigWrite";
@@ -1873,6 +1875,24 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Projects never choose the voice of their calls through OneUptime
+   * Cloud's own Twilio account, which OneUptime pays for (#11065,
+   * Types/Call/ProjectCallVoice): turning the switch on there is refused.
+   * Off, or left out, is always taken - and calls read it as off there
+   * whatever the row holds.
+   */
+  private assertProjectCallVoicesAreOffered(
+    data: CreateBy<Model>["data"] | UpdateBy<Model>["data"],
+  ): void {
+    const value: unknown = (data as { letProjectsChooseCallVoice?: unknown })
+      .letProjectsChooseCallVoice;
+
+    if (value === true && IsBillingEnabled) {
+      throw new BadDataException(PROJECT_CALL_VOICES_NOT_ON_CLOUD_MESSAGE);
+    }
+  }
+
+  /*
    * What the server's Twilio account is used for (calls and SMS, SMS only
    * or calls only - Types/CallAndSMS/TwilioConfigUse) must be one of the
    * uses.
@@ -2146,6 +2166,7 @@ export class Service extends DatabaseService<Model> {
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
     this.assertTwilioCallVoiceIsValid(createBy.data);
+    this.assertProjectCallVoicesAreOffered(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
     Service.assertSessionLengthsAreValid(createBy.data);
     Service.applyTelemetryIngestionBudgetRules(
@@ -2196,6 +2217,7 @@ export class Service extends DatabaseService<Model> {
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     this.assertTwilioCallVoiceIsValid(updateBy.data);
+    this.assertProjectCallVoicesAreOffered(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);
     this.assertCallAndSmsProviderIsValid(updateBy.data);
     Service.assertSessionLengthsAreValid(updateBy.data);

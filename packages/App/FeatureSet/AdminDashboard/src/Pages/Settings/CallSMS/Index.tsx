@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import CallAndSmsGatewayCard from "./CallAndSmsGatewayCard";
 import CallVoiceCard from "./CallVoiceCard";
+import ProjectCallVoicesCard from "./ProjectCallVoicesCard";
 import ServerTwilioEnvironmentCard, {
   ServerTwilioEnvironmentLoadingCard,
   ServerTwilioEnvironmentUnusedAlert,
@@ -438,6 +439,12 @@ const Settings: FunctionComponent = (): ReactElement => {
         onSaveSuccess={onSettingsSaved}
         environment={twilioEnvironment}
       />
+
+      {/*
+       * Whether projects choose their own voice through this account
+       * (#11065): the owner's consent to pay for it. Not on OneUptime Cloud.
+       */}
+      <ProjectCallVoicesCard />
     </Page>
   );
 };

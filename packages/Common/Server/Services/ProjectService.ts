@@ -87,6 +87,14 @@ import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  getCallVoice,
+  getCallVoiceError,
+  toStoredCallVoice,
+} from "../../Types/Call/CallVoice";
+import ProjectCallVoice from "../../Types/Call/ProjectCallVoice";
+import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import GlobalConfigService from "./GlobalConfigService";
 import NameTakenException from "../../Types/Exception/NameTakenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import IconProp from "../../Types/Icon/IconProp";
@@ -2024,6 +2032,56 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   @CaptureSpan()
+  /*
+   * The voice the project's calls speak with through the server's Twilio
+   * account (#11065, Types/Call/ProjectCallVoice): one of OneUptime's, or
+   * none - the server's voice - stored as the list writes it, or null. A
+   * voice the list does not hold is refused, as on a Twilio config
+   * (#10948); so is a voice while the server does not let projects choose
+   * one - never on OneUptime Cloud - so a write through the API says it
+   * would change nothing, rather than "saved". OneUptime's own writes
+   * (isRoot) are not asked.
+   */
+  @CaptureSpan()
+  public async applyCallVoiceRules(
+    data: { callVoice?: unknown },
+    props: DatabaseCommonInteractionProps | undefined,
+  ): Promise<void> {
+    const value: unknown = data.callVoice;
+
+    if (value === undefined) {
+      return;
+    }
+
+    const error: string | null = getCallVoiceError(value);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    if (!props?.isRoot && getCallVoice(value)) {
+      const config: GlobalConfig | null = IsBillingEnabled
+        ? null
+        : await GlobalConfigService.findOneById({
+            id: ObjectID.getZeroObjectID(),
+            select: { letProjectsChooseCallVoice: true },
+            props: { isRoot: true },
+          });
+
+      const refusal: string | null = ProjectCallVoice.getWriteError({
+        value: value,
+        isBillingEnabled: IsBillingEnabled,
+        letProjectsChooseCallVoice: config?.letProjectsChooseCallVoice,
+      });
+
+      if (refusal) {
+        throw new BadDataException(refusal);
+      }
+    }
+
+    data.callVoice = toStoredCallVoice(value);
+  }
+
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
@@ -2094,6 +2152,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyAuditLogRetentionRules(
       updateBy.data as { auditLogsRetentionInDays?: unknown },
+    );
+    await this.applyCallVoiceRules(
+      updateBy.data as { callVoice?: unknown },
+      updateBy.props,
     );
 
     await this.assertAuditLogSettingsChangeIsLicensed({

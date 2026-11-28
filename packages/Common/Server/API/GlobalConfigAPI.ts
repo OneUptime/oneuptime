@@ -53,6 +53,7 @@ import {
   DisableUpdateCheck,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
+import ProjectCallVoice from "../../Types/Call/ProjectCallVoice";
 import SecurityAdvisoryMatcher from "../../Utils/SecurityAdvisoryMatcher";
 import UpdateStatusUtil from "../../Types/UpdateCheck/UpdateStatus";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
@@ -177,6 +178,8 @@ export default class GlobalConfigAPI extends BaseAPI<
               select: {
                 disableUserProjectCreation: true,
                 disablePushNotifications: true,
+                // Whether projects choose their call voice (#11065).
+                letProjectsChooseCallVoice: true,
                 // Whether the server can send email: read, never sent on.
                 ...SERVER_CHANNEL_SETUP_SELECT,
                 serverSendingHealth: true,
@@ -1046,6 +1049,17 @@ export default class GlobalConfigAPI extends BaseAPI<
        * told to master admins only (GET /global-config/sending-status).
        */
       canSendEmail: ServerSendingStatus.canSendEmailPubliclyFrom(globalConfig),
+      /*
+       * Whether a project chooses the voice of its calls through the
+       * server's Twilio account (#11065, Types/Call/ProjectCallVoice): only
+       * once a master admin let projects, and never on OneUptime Cloud. The
+       * Dashboard offers the choice only then; the server refuses it
+       * otherwise.
+       */
+      canProjectsChooseCallVoice: ProjectCallVoice.areOffered({
+        isBillingEnabled: IsBillingEnabled,
+        letProjectsChooseCallVoice: globalConfig?.letProjectsChooseCallVoice,
+      }),
     };
   }
 

@@ -15,6 +15,7 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
+import { CALL_VOICE_VALUES } from "../../Types/Call/CallVoice";
 import ColumnType from "../../Types/Database/ColumnType";
 import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -1901,6 +1902,46 @@ export default class Project extends TenantModel {
     default: true,
   })
   public detectVoicemailOnCalls?: boolean = undefined;
+
+  /*
+   * THE VOICE THE PROJECT'S CALLS SPEAK WITH THROUGH THE SERVER'S TWILIO
+   * ACCOUNT (#11065, Types/Call/ProjectCallVoice): one of OneUptime's neural
+   * voices (Types/Call/CallVoice), read only while the server's master admin
+   * lets projects choose (GlobalConfig.letProjectsChooseCallVoice) - never
+   * on OneUptime Cloud. Empty, as every project starts, the calls speak with
+   * the server's voice. A Twilio config of the project's own has a voice of
+   * its own (ProjectCallSMSConfig.twilioCallVoice). ProjectService refuses a
+   * voice the list does not hold, and one the server does not offer.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Call Voice",
+    description:
+      "The voice the project's calls speak with through this server's Twilio account, when the server lets projects choose: a neural Amazon Polly or Google voice. Leave it empty for the server's voice.",
+    allowedValues: CALL_VOICE_VALUES,
+    example: "Polly.Joanna-Neural",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public callVoice?: string = undefined;
 
   /*
    * Throttle flag for the owner notification sent when the fallback above is used or

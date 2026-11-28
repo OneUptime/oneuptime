@@ -776,6 +776,35 @@ export default class GlobalConfig extends GlobalConfigModel {
   public twilioCallVoice?: string = undefined;
 
   /*
+   * WHETHER PROJECTS CHOOSE THE VOICE OF THEIR CALLS THROUGH THE SERVER'S
+   * TWILIO ACCOUNT (#11065, Types/Call/ProjectCallVoice). Off - as on every
+   * server until its master admin turns it on - every project's calls
+   * through it speak with the server's voice. On, a project owner or admin
+   * chooses theirs (Project.callVoice), and Twilio charges the server's
+   * account for it: the owner's consent to that. Never on OneUptime Cloud,
+   * whose account OneUptime pays for: GlobalConfigService refuses it there,
+   * and calls read it as off.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Let Projects Choose Their Call Voice",
+    description:
+      "When on, project owners and admins choose the voice their project's calls speak with through this server's Twilio account, which Twilio charges the account for. Not offered on OneUptime Cloud.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public letProjectsChooseCallVoice?: boolean = undefined;
+
+  /*
    * What carries the server's SMS and calls (Types/CallAndSMS/
    * CallAndSmsProvider): its Twilio account above - what every installation
    * sent through, and what the column starts with - or the installation's
