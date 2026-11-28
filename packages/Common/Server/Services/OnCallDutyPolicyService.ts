@@ -1050,9 +1050,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
      * On-Call Policy as the owner" - waits for "On-Call Policy Created", on
      * every App server, and follows it in the order it was made
      * (WorkspaceCreatedMessageFirst): its channels hear of the policy first,
-     * then of what happened to it. Held before the create returns, so
-     * before anything can know of the policy, and let go once it is
-     * announced, however that ends (announceCreatedPolicy).
+     * then of what happened to it. Held since the policy was written
+     * (DatabaseService.create, before even a creator whose role creates only
+     * what they own is made its owner, #11352), so before anything can know
+     * of the policy. This hook takes the hold over here, and it is let go
+     * once the policy is announced, however that ends
+     * (announceCreatedPolicy).
      */
     await WorkspaceCreatedMessageFirst.hold({
       onCallDutyPolicyId: createdItem.id,

@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "Når du sletter en IoT-flåde, slettes dens enhedsregister også, så registrerede enheder ikke længere kan logge på.",
   "Deleting a database also deletes the endpoints it is reached at.": "Når du sletter en database, slettes de endpoints, den nås på, også.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Når du sletter en cloudforbindelse, holder OneUptime op med at læse kontoen. Dens ressourcer bliver, med deres metrikker.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "Når du sletter en lagerarray-forbindelse, holder OneUptime op med at læse de arrays, der ligger bag den, og dens gemte adgangskode og forbindelsestest slettes. Dens arrays bliver, med deres metrikker.",
   "True": "Sand",
   "False": "Falsk",
   "Key": "Nøgle",
@@ -4631,5 +4632,10 @@
   "Only XCP-ng pools that match conditions": "Kun XCP-ng-pools, der opfylder betingelserne",
   "All savings": "Alle besparelser",
   "Only savings that match conditions": "Kun besparelser, der opfylder betingelserne",
-  "XCP-ng Pool": "XCP-ng-pool"
+  "XCP-ng Pool": "XCP-ng-pool",
+  "Same name as another {{kind}}": "Samme navn som en anden post af typen {{kind}}",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "En anden post af typen {{kind}} i dette projekt har dette navn, så de to kan ikke skelnes fra hinanden i vælgere. Åbn hver af dem for at se, hvilken der er hvilken, og omdøb så den ene.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} har samme navn som en anden post af typen {{kind}}, og de to kan ikke skelnes fra hinanden i vælgere. Åbn hver af dem for at se, hvilken der er hvilken, og omdøb så den ene.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} har samme navn som en anden post af typen {{kind}} og kan ikke skelnes fra hinanden i vælgere. Åbn hver af dem for at se, hvilken der er hvilken, og omdøb så én af dem.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} har samme navn som en anden post af typen {{kind}}, og de to kan ikke skelnes fra hinanden i vælgere. Åbn hver af dem for at se, hvilken der er hvilken, og omdøb så den ene."
 }

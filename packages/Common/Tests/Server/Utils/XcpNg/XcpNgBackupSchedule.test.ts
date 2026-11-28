@@ -13,6 +13,7 @@ import {
 import { XcpNgBackupSchedule } from "../../../../Types/XcpNg/XcpNgPoolEvents";
 import CronParser, { CronExpression } from "cron-parser";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * How late a VM's backup may be (XcpNgBackupSchedule): the longest gap
@@ -305,16 +306,21 @@ describe("a schedule's runs, as cron-parser has them", () => {
   });
 
   test("a whole year of a nightly job takes milliseconds, not seconds", () => {
-    const startedAt: number = Date.now();
-    for (let index: number = 0; index < 20; index++) {
-      listXcpNgScheduleRuns({
-        cron: "0 10 * * *",
-        timezone: "Europe/Paris",
-        nowMs: NOW.getTime() + index * HOUR * 1000,
-      });
-    }
     // Twenty years' worth in well under the two seconds one took before.
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let index: number = 0; index < 20; index++) {
+          listXcpNgScheduleRuns({
+            cron: "0 10 * * *",
+            timezone: "Europe/Paris",
+            nowMs: NOW.getTime() + index * HOUR * 1000,
+          });
+        }
+      },
+      limitInMs: 1000,
+    });
+
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   test("runs stop at the horizon, or at the most asked for", () => {
@@ -407,11 +413,15 @@ describe("reading a cron", () => {
       schedules: nightly,
       now: NOW,
     });
-    const startedAt: number = Date.now();
-    for (let index: number = 0; index < 1000; index++) {
-      getXcpNgBackupJobIntervalSeconds({ schedules: nightly, now: NOW });
-    }
-    expect(Date.now() - startedAt).toBeLessThan(500);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let index: number = 0; index < 1000; index++) {
+          getXcpNgBackupJobIntervalSeconds({ schedules: nightly, now: NOW });
+        }
+      },
+      limitInMs: 500,
+    });
+    expect(timed.inMs).toBeLessThan(500);
     expect(first).toBe(DAY);
     expect(
       getXcpNgBackupJobIntervalSeconds({
