@@ -64,8 +64,16 @@ describe("every entry point into a dashboard write is permission-gated", () => {
   test("the board gates edit mode on the same permission", () => {
     const source: string = readSquashed(DASHBOARD_VIEW);
 
+    /*
+     * Weighed on this dashboard (#11259): a role limited to some labels
+     * edits only the dashboards carrying one, so the gate is handed what
+     * the board's own labels leave the reader.
+     */
     expect(source).toContain(
-      "PermissionGate.check(new Dashboard(), ModelAction.Update)",
+      "const dashboardOptions: PermissionGateOptions | undefined = useRecordGateOptions(new Dashboard(), props.dashboardId);",
+    );
+    expect(source).toContain(
+      "PermissionGate.check( new Dashboard(), ModelAction.Update, dashboardOptions, )",
     );
 
     /*
