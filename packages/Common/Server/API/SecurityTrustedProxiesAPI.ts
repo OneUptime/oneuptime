@@ -25,12 +25,14 @@ import ObjectID from "../../Types/ObjectID";
 import ProductKey from "../../Types/Product/ProductKey";
 import {
   AUTOMATIC_TRUSTED_PROXIES_PATH,
+  AutomaticPassOnLoadBalancer,
   AutomaticTrustedEdge,
   AutomaticTrustedGoogleFrontEnds,
   AutomaticTrustedLoadBalancer,
   AutomaticTrustedProxies,
   automaticTrustedProxiesToJSON,
 } from "../../Types/SecurityEvent/AutomaticTrustedProxies";
+import { PassOnLoadBalancerReading } from "../../Utils/SecurityEvent/PassOnLoadBalancers";
 import {
   MAX_CHECKED_TEXT_LENGTH,
   SECURITY_LOG_LINE_CHECK_PATH,
@@ -53,7 +55,10 @@ import {
  *     the rest of the project;
  *   - Google's front ends, with the Google Cloud Application Load
  *     Balancers that bring them and anything that keeps them untrusted
- *     (#11047), read as the load balancers are.
+ *     (#11047), read as the load balancers are;
+ *   - the load balancers that pass on what a client wrote, with the ranges
+ *     each connects from, which are never trusted (#11389), read the same
+ *     way.
  *
  * A signed-in member of the project in the tenantid header. The load
  * balancers are read as the caller reads: one who may not read cloud
@@ -140,6 +145,7 @@ router.post(
 
       let loadBalancers: Array<AutomaticTrustedLoadBalancer> = [];
       let googleFrontEnds: AutomaticTrustedGoogleFrontEnds | null = null;
+      let passOnLoadBalancers: Array<AutomaticPassOnLoadBalancer> = [];
       let areLoadBalancersRead: boolean = true;
       let areLoadBalancersComplete: boolean = true;
 
@@ -171,6 +177,22 @@ router.post(
               isTrusted: read.googleFrontEnds.isTrusted,
             }
           : null;
+        // The ones that pass on what a client wrote, never trusted (#11389).
+        passOnLoadBalancers = read.passOnLoadBalancers.map(
+          (
+            loadBalancer: PassOnLoadBalancerReading,
+          ): AutomaticPassOnLoadBalancer => {
+            return {
+              kind: loadBalancer.kind,
+              name: loadBalancer.name,
+              where: loadBalancer.where,
+              reasons: loadBalancer.reasons,
+              targetGroups: loadBalancer.targetGroups,
+              ranges: loadBalancer.ranges,
+              areRangesIncomplete: loadBalancer.areRangesIncomplete,
+            };
+          },
+        );
       } catch (error) {
         logger.debug(
           `SecurityTrustedProxiesAPI: could not list the load balancers of project ${projectId.toString()} for this reader. ${String(error)}`,
@@ -182,6 +204,7 @@ router.post(
         edges: await readEdges(projectId),
         loadBalancers,
         googleFrontEnds,
+        passOnLoadBalancers,
         areLoadBalancersRead,
         areLoadBalancersComplete,
       };

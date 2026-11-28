@@ -76,6 +76,10 @@ import {
   readAutomaticTrustedProxies,
 } from "../../../Types/SecurityEvent/AutomaticTrustedProxies";
 import { OwnLoadBalancerKind } from "../../../Utils/SecurityEvent/OwnLoadBalancers";
+import {
+  PassOnLoadBalancerKind,
+  PassOnReason,
+} from "../../../Utils/SecurityEvent/PassOnLoadBalancers";
 import { getJestSpyOn } from "../../Spy";
 
 type RouterFunction = (
@@ -150,6 +154,7 @@ beforeEach(() => {
     loadBalancers: [GATEWAY],
     isComplete: true,
     googleFrontEnds: null,
+    passOnLoadBalancers: [],
   });
 });
 
@@ -189,6 +194,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
         },
       ],
       googleFrontEnds: null,
+      passOnLoadBalancers: [],
       areLoadBalancersRead: true,
       areLoadBalancersComplete: true,
     });
@@ -210,6 +216,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
         isWithheldForIncompleteRead: false,
         isTrusted: false,
       },
+      passOnLoadBalancers: [],
     });
 
     const { sent } = await ask();
@@ -235,6 +242,74 @@ describe("POST /security-trusted-proxies/automatic", () => {
     expect(
       readAutomaticTrustedProxies(sent as never).googleFrontEnds,
     ).toBeNull();
+  });
+
+  // #11389: what is never trusted, even listed, each with why and where it connects from.
+  test("the load balancers that pass on what a client wrote, each with why and where it connects from", async () => {
+    readLoadBalancers.mockResolvedValue({
+      loadBalancers: [GATEWAY],
+      isComplete: true,
+      googleFrontEnds: null,
+      passOnLoadBalancers: [
+        {
+          kind: PassOnLoadBalancerKind.AwsNetworkLoadBalancer,
+          name: "tcp-ingress",
+          where: "Production AWS",
+          reasons: [PassOnReason.ClientIpNotPreserved],
+          targetGroups: ["ingress-ip"],
+          ranges: ["10.0.1.0/24", "10.0.2.0/24"],
+          areRangesIncomplete: false,
+        },
+        {
+          kind: PassOnLoadBalancerKind.GoogleCloudProxyNetworkLoadBalancer,
+          name: "db-proxy",
+          where: "Google Cloud shop",
+          reasons: [PassOnReason.ProxyOnlySubnet],
+          targetGroups: [],
+          ranges: ["10.129.0.0/23"],
+          areRangesIncomplete: false,
+        },
+      ],
+    });
+
+    const { sent } = await ask();
+
+    expect(
+      readAutomaticTrustedProxies(sent as never).passOnLoadBalancers,
+    ).toEqual([
+      {
+        kind: PassOnLoadBalancerKind.AwsNetworkLoadBalancer,
+        name: "tcp-ingress",
+        where: "Production AWS",
+        reasons: [PassOnReason.ClientIpNotPreserved],
+        targetGroups: ["ingress-ip"],
+        ranges: ["10.0.1.0/24", "10.0.2.0/24"],
+        areRangesIncomplete: false,
+      },
+      {
+        kind: PassOnLoadBalancerKind.GoogleCloudProxyNetworkLoadBalancer,
+        name: "db-proxy",
+        where: "Google Cloud shop",
+        reasons: [PassOnReason.ProxyOnlySubnet],
+        targetGroups: [],
+        ranges: ["10.129.0.0/23"],
+        areRangesIncomplete: false,
+      },
+    ]);
+  });
+
+  test("a reader who may not read cloud resources is told none of what passes on a client's words either", async () => {
+    readLoadBalancers.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to read cloud resources.",
+      ),
+    );
+
+    const { sent } = await ask();
+
+    expect(
+      readAutomaticTrustedProxies(sent as never).passOnLoadBalancers,
+    ).toEqual([]);
   });
 
   test("never names the cloud resource a load balancer was read from", async () => {
@@ -272,6 +347,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
       edges: [{ name: "Cloudflare", rangeCount: 2 }],
       loadBalancers: [],
       googleFrontEnds: null,
+      passOnLoadBalancers: [],
       areLoadBalancersRead: false,
       areLoadBalancersComplete: true,
     });
@@ -282,6 +358,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
       loadBalancers: [GATEWAY],
       isComplete: false,
       googleFrontEnds: null,
+      passOnLoadBalancers: [],
     });
 
     const { sent } = await ask();
@@ -310,6 +387,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
         },
       ],
       googleFrontEnds: null,
+      passOnLoadBalancers: [],
       areLoadBalancersRead: true,
       areLoadBalancersComplete: true,
     });
@@ -323,6 +401,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
       loadBalancers: [],
       isComplete: true,
       googleFrontEnds: null,
+      passOnLoadBalancers: [],
     });
 
     const { sent } = await ask();
@@ -331,6 +410,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
       edges: [],
       loadBalancers: [],
       googleFrontEnds: null,
+      passOnLoadBalancers: [],
       areLoadBalancersRead: true,
       areLoadBalancersComplete: true,
     });

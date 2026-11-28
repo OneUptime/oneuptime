@@ -93,6 +93,7 @@ import {
   SecurityBlockDuration,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import { SecurityProtectedAddressSource } from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
+import { GOOGLE_LOAD_BALANCER_SOURCE_RANGES } from "Common/Utils/SecurityEvent/OwnLoadBalancers";
 import {
   BLOCK_DOMAIN_TITLE,
   BLOCK_FILE_TITLE,
@@ -2420,6 +2421,7 @@ describe("Security Cases and Playbooks docs", () => {
         SecurityProtectedAddressSource.GlobalProbe,
         SecurityProtectedAddressSource.OneUptimeCloud,
         SecurityProtectedAddressSource.Edge,
+        SecurityProtectedAddressSource.GoogleFrontEnd,
         SecurityProtectedAddressSource.OneUptime,
         SecurityProtectedAddressSource.EndpointProduct,
         SecurityProtectedAddressSource.Monitor,
@@ -2434,6 +2436,13 @@ describe("Security Cases and Playbooks docs", () => {
     expect(blocklist).toContain(
       "Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app.",
     );
+    // #11388: Google Cloud's front ends and health checks, in every project, each range as the code holds it.
+    expect(blocklist).toContain(
+      "Nor are Google Cloud's front ends and health checks, such as `35.191.0.0/16` and `130.211.0.0/22`, which nobody but Google connects from: a block of one would cut off the visitors of a Google Cloud load balancer in front of your app and fail its health checks, whether or not you connected its Google Cloud project.",
+    );
+    for (const range of ["35.191.0.0/16", "130.211.0.0/22"]) {
+      expect(GOOGLE_LOAD_BALANCER_SOURCE_RANGES).toContain(range);
+    }
     expect(AUTOMATIC_PROTECTIONS_TITLE).toBe("Protected Automatically");
     expect(blocklist).toContain(
       "**Protected Entities** lists them under **Protected Automatically**.",
