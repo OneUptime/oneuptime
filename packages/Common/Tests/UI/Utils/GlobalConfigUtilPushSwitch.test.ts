@@ -81,6 +81,7 @@ describe("what it reads", () => {
       disableUserProjectCreation: false,
       disablePushNotifications: true,
       canSendEmail: true,
+      canProjectsChooseCallVoice: false,
     });
 
     GlobalConfigUtil.clearCache();
@@ -95,6 +96,7 @@ describe("what it reads", () => {
       disableUserProjectCreation: true,
       disablePushNotifications: false,
       canSendEmail: true,
+      canProjectsChooseCallVoice: false,
     });
   });
 
@@ -113,6 +115,7 @@ describe("what it reads", () => {
       disableUserProjectCreation: false,
       disablePushNotifications: true,
       canSendEmail: true,
+      canProjectsChooseCallVoice: false,
     });
   });
 });
@@ -127,6 +130,7 @@ describe("an answer the server refused", () => {
       disableUserProjectCreation: false,
       disablePushNotifications: false,
       canSendEmail: true,
+      canProjectsChooseCallVoice: false,
     });
   });
 
@@ -160,6 +164,7 @@ describe("a request that never got an answer", () => {
       disableUserProjectCreation: false,
       disablePushNotifications: true,
       canSendEmail: true,
+      canProjectsChooseCallVoice: false,
     });
     expect(get).toHaveBeenCalledTimes(2);
   });
@@ -204,6 +209,7 @@ describe("once per page load", () => {
       disableUserProjectCreation: false,
       disablePushNotifications: true,
       canSendEmail: true,
+      canProjectsChooseCallVoice: false,
     });
     expect(get).toHaveBeenCalledTimes(2);
   });

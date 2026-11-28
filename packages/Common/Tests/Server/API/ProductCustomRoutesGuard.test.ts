@@ -236,6 +236,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Monitors],
     leftAlone: {},
   },
+  // Changing many monitors' template at once (#11260, #11266): writes.
+  "packages/Common/Server/API/MonitorTemplateChangeAPI.ts": {
+    products: [ProductKey.Monitors],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/IncidentAPI.ts": {
     products: [ProductKey.Incidents],
     leftAlone: {
@@ -857,6 +862,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
    * Proxies.
    */
   "packages/Common/Server/API/SecurityTrustedProxiesAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
+  // How far each open erasure request has got (#11232).
+  "packages/Common/Server/API/SecurityUserErasureRequestAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
@@ -1566,14 +1576,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read.",
+      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read, the pictures a record's Markdown shows among them, by GET or POST (#11256).",
       {
-        "packages/Common/Server/API/BaseAPI.ts": 9,
+        "packages/Common/Server/API/BaseAPI.ts": 10,
         "packages/Common/Server/API/BaseAnalyticsAPI.ts": 7,
       },
     ),
     ...decided(
-      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone, which monitors, dashboards, saved views, recording rules and SLOs read what a scrub rule being written would hide, and what Security Events would lose (#10433), what a drop or sample filter being written would take of the last day's logs or traces, and what reads those records (#10436) - as a POST for the rule or filter it describes, which is never saved - and how many values each of the project's scrub rules changed in the last week, by service and version (#10366).",
+      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone, which monitors, dashboards, saved views, recording rules and SLOs read what a scrub rule being written would hide, and what Security Events would lose (#10433), what a drop or sample filter being written would take of the last day's logs or traces, and what reads those records (#10436) - as a POST for the rule or filter it describes, which is never saved - and how many values each of the project's scrub rules changed in the last week, by service and version (#10366), and who owns the records a page shows, as a POST for their IDs, which changes nothing (#11436).",
       {
         "packages/Common/Server/API/PickedStatusPagesReachRoute.ts": 1,
         "packages/Common/Server/API/ScrubRuleReadersAPI.ts": 1,
@@ -1582,6 +1592,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
         "packages/Common/Server/API/CustomFieldDefinitionAPI.ts": 1,
         "packages/Common/Server/API/OwnerRulePreviewRoute.ts": 1,
+        "packages/Common/Server/API/RecordOwnershipRoute.ts": 1,
         "packages/Common/Server/API/PublicNoteReachRoute.ts": 1,
         "packages/Common/Server/API/UsedByAPI.ts": 1,
         "packages/Common/Server/API/WhoIsToldAPI.ts": 1,

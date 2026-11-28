@@ -38,6 +38,19 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
+/*
+ * A proposed address whose block waits for a person (#11389): the case's
+ * requests named it as a client that came through a proxy nothing vouches
+ * for, so the client may have written it.
+ */
+export const UNVOUCHED_PROXY_TARGET: string = translationKey(
+  "Came through {{proxy}}, a private address you haven't listed as a proxy: the client may have written this address",
+);
+
+export const UNVOUCHED_PROXY_TARGET_UNKNOWN: string = translationKey(
+  "Came through proxies OneUptime can't name: the client may have written this address",
+);
+
 function getMarker(status: string | undefined): {
   icon: IconProp;
   className: string;
@@ -87,6 +100,19 @@ export function describeRunTarget(
 ): string {
   switch (target.state) {
     case SecurityPlaybookTargetState.Proposed:
+      /*
+       * Forwarded through a proxy nothing vouches for (#11389): the client
+       * may have written the address, so its block waits for a person.
+       */
+      if (target.unvouchedProxy !== undefined) {
+        return target.unvouchedProxy
+          ? translator.translateTemplate(UNVOUCHED_PROXY_TARGET, {
+              proxy: target.unvouchedProxy,
+            })
+          : translator.translateText(UNVOUCHED_PROXY_TARGET_UNKNOWN) ||
+              UNVOUCHED_PROXY_TARGET_UNKNOWN;
+      }
+
       if (target.reason === SecurityPlaybookTargetReason.OnTheCase) {
         return (
           translator.translateText("One of the case's addresses") ||

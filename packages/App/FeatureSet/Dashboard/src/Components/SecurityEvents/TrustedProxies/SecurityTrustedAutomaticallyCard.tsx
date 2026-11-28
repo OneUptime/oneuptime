@@ -22,6 +22,8 @@ export const TRUSTED_AUTOMATICALLY_CARD_KEY: string =
 export interface ComponentProps {
   // Told whether the project's own load balancers are trusted, for the fold's chip.
   onChange?: ((isOn: boolean) => void) | undefined;
+  // Told whether private addresses are trusted, for the fold's chip (#11389).
+  onPrivateAddressesChange?: ((isOn: boolean) => void) | undefined;
 }
 
 /*
@@ -29,13 +31,17 @@ export interface ComponentProps {
  * without being listed, under More settings on Security Events >
  * Connections, beside Trusted Proxies.
  *
- * Its one switch is whether the project's own application load balancers
+ * Its first switch is whether the project's own application load balancers
  * are trusted (Project.securityTrustOwnLoadBalancers, on unless turned
- * off): it saves when flipped, and a Project Owner, a Project Admin or a
- * Security Admin may flip it. Under it, what is trusted and why
- * (AutomaticTrustedProxiesDetails): the load balancers found, the private
- * addresses every project trusts, the edges the project connected, and what
- * is never trusted automatically - its hosts, nodes and probes.
+ * off), and beside it, under the load balancers, whether private addresses
+ * are (Project.securityTrustPrivateAddresses, #11389: off for a new
+ * project, left on for one from before it). Each saves when flipped, and a
+ * Project Owner, a Project Admin or a Security Admin may flip it. Under
+ * them, what is trusted and why (AutomaticTrustedProxiesDetails): the load
+ * balancers found, the private ranges, what is never trusted even listed -
+ * where load balancers that pass on what a client wrote connect from - the
+ * edges the project connected, and what is never trusted automatically -
+ * its hosts, nodes and probes.
  */
 const SecurityTrustedAutomaticallyCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -58,8 +64,21 @@ const SecurityTrustedAutomaticallyCard: FunctionComponent<ComponentProps> = (
       getDescription={(isOn: boolean): string => {
         return isOn ? OWN_LOAD_BALANCERS_ON : OWN_LOAD_BALANCERS_OFF;
       }}
-      getDetails={(_item: Project, isOn: boolean): ReactElement => {
-        return <AutomaticTrustedProxiesDetails isOn={isOn} />;
+      select={{ securityTrustPrivateAddresses: true }}
+      onLoaded={(item: Project): void => {
+        props.onPrivateAddressesChange?.(
+          item.securityTrustPrivateAddresses === true,
+        );
+      }}
+      getDetails={(item: Project, isOn: boolean): ReactElement => {
+        return (
+          <AutomaticTrustedProxiesDetails
+            isOn={isOn}
+            projectId={projectId}
+            trustsPrivateAddresses={item.securityTrustPrivateAddresses === true}
+            onPrivateAddressesChange={props.onPrivateAddressesChange}
+          />
+        );
       }}
       onChange={props.onChange}
       dataTestId={TRUSTED_PROXIES_TEST_IDS.ownLoadBalancersSwitch}

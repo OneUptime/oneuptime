@@ -328,4 +328,10 @@ tests:
     set:
       image.overrides.app.tag: 14.0.74
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/image/overrides/app': 'oneOf' failed, none matched
+              - at '/image/overrides/app': got object, want null or string
+              - at '/image/overrides/app': missing property 'repository'

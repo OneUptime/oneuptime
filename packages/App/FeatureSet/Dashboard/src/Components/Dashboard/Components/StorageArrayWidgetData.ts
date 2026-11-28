@@ -1,5 +1,5 @@
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
-import StorageArrayResourceKindUtil from "Common/Types/StorageArray/StorageArrayResourceKindUtil";
+import { getSharedKindLabels } from "Common/Types/StorageArray/StorageArrayResourceKindLabels";
 import {
   STORAGE_ARRAY_CRITICAL_COMPONENT_STATUSES,
   STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,
@@ -19,7 +19,7 @@ import {
   getReadingDirection,
   setApartInSentence,
 } from "Common/Types/ReadingDirection";
-import { getKnownStorageArrayStatusKey } from "../../../Pages/StorageArray/Utils/StorageArrayHealth";
+import { getKnownStorageArrayStatusKey } from "../../../Pages/StorageArray/Utils/StorageArrayStatusWords";
 import {
   formatDurationInUnit,
   formatMilliseconds,
@@ -484,7 +484,9 @@ export function getHardwareStatusText(
 /*
  * The singular name of an inventory kind ("Hardware Component", "Drive",
  * "Controller"), in the reader's language; a kind the widget does not list
- * falls back to the raw value.
+ * falls back to the raw value. The widget lists shared kinds only, so their
+ * words are read without the platform registry
+ * (StorageArrayResourceKindLabels).
  */
 export function getHardwareKindLabel(
   kind: unknown,
@@ -497,9 +499,7 @@ export function getHardwareKindLabel(
     )
   ) {
     return translator.translateText(
-      StorageArrayResourceKindUtil.getSingularLabel(
-        kind as StorageArrayResourceKind,
-      ),
+      getSharedKindLabels(kind)?.singular || kind,
     ) as string;
   }
   return typeof kind === "string" && kind.length > 0 ? kind : EMPTY_VALUE_MARK;

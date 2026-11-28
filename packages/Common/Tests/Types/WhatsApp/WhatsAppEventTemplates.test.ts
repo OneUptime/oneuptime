@@ -62,6 +62,13 @@ const NO_APPROVED_TEMPLATE: ReadonlyArray<NotificationSettingEventType> = [
   // And the monitor group's and the Runner's new owners (#9758).
   E.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
   E.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
+  /*
+   * And a cloud budget's thresholds (#11221) and its cost reports (#11229),
+   * which go by email and chat only, never paged (CloudBudgetNotices,
+   * CloudCostReportSender).
+   */
+  E.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION,
+  E.SEND_CLOUD_COST_REPORT_NOTIFICATION,
 ];
 
 const EVERY_EVENT: Array<NotificationSettingEventType> = Object.values(

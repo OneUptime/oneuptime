@@ -35,12 +35,12 @@ A **Dell PowerScale** cluster is read another way: the agent polls each of its n
 ```mermaid title="From the array to OneUptime"
 flowchart TB
     collector["Collector"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["The array,<br/>port 443"]
-    collector -->|"older FlashArray,<br/>FlashBlade"| exporter["Pure's exporter"]
+    collector -->|"older FlashArray,<br/>FlashBlade"| exporter["Pure's<br/>exporter"]
     exporter -->|"API token"| array
-    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    collector -->|"ONTAP"| harvest["NetApp<br/>Harvest"]
     harvest -->|"read-only user,<br/>REST API"| cluster["The cluster,<br/>port 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    collector -->|"PowerStore"| dell["Dell's exporter"]
+    collector -->|"PowerStore"| dell["Dell's<br/>exporter"]
     dell -->|"user and password"| array
     array -->|"syslog, port 5514"| syslog["Syslog collector"]
     syslog -->|"OTLP"| oneuptime
@@ -160,6 +160,7 @@ POWERSTORE_BULK_METRICS=
 POWERSTORE_API_VERSION=
 POWERSTORE_REQUEST_LIMIT=
 POWERSTORE_SYSLOG_PORT=
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 For a Dell PowerStore, also download `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` and `powerstore-syslog.yaml`, set `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` and `COMPOSE_PROFILES=powerstore`, and fill in `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` and `POWERSTORE_PASSWORD`, the password in single quotes.
@@ -189,6 +190,7 @@ NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
 NETAPP_ONTAP_USERNAME=oneuptime
 NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 Start the agent:
@@ -265,6 +267,7 @@ The install script writes these to `/opt/oneuptime-storage-array-agent/.env`; a 
 | `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | No | `DES`, `AES`, `AES192`, `AES256`, `AES192C` or `AES256C`. Defaults to `AES`. |
 | `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | The SNMPv3 user's privacy password, at the `auth_priv` level. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | No | `true` accepts the array's self-signed certificate on the native endpoint and in Harvest; `false` verifies it. Defaults to `true`. Pure's exporters never verify the array's certificate, so it does not apply to them. |
+| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | No | The agent's container name. Defaults to `oneuptime-storage-array-agent`. A second array's agent on the same machine needs one of its own: see [Monitoring several arrays](#monitoring-several-arrays). The install script names a new agent after its folder unless you set it, and keeps it when you run the script again. |
 
 ## How the agent scrapes
 
@@ -364,7 +367,7 @@ The collector reads its config only when it starts: run `docker compose restart 
 
 ## Monitoring several arrays
 
-One agent reads one array. To monitor several from the same machine, install each into its own folder with its own `.env`, such as `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, and give each its own `container_name` in its `docker-compose.yml` (such as `oneuptime-storage-array-agent-fa02`): two containers cannot share a name. Pass the folder to the diagnostic script with `-d`.
+One agent reads one array. To monitor several from the same machine, install each into its own folder with its own `.env` and its own container name, since two containers cannot share one: `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`. Without `STORAGE_ARRAY_AGENT_CONTAINER_NAME`, the script names the container after the folder, which here is the same name. It keeps the name in that agent's `.env`, so running the script again to upgrade the agent keeps it too, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. With Docker Compose, set `STORAGE_ARRAY_AGENT_CONTAINER_NAME` in each agent's `.env` instead. Pass the folder to the diagnostic script with `-d`.
 
 A second PowerStore agent also needs a syslog port of its own: set `POWERSTORE_SYSLOG_PORT`, such as `5515`, in its `.env`.
 
@@ -382,7 +385,7 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 The agent reports the collector version its files pin as its **Agent Version**. When that is older than the version this OneUptime release pins, a warning sign appears beside it on the array's **Overview**. Select it to see these commands. An agent installed before its files reported a version shows none until it is upgraded this way.
 
-The collector image is pinned in `docker-compose.yml` and its configs are files next to it, so pulling alone does not move the agent forward. Run `install.sh` again: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml`, every collector config and Harvest's files (a file you edited is kept as `<file>.bak.<timestamp>`), and recreates the agent so the collector reads its new config. An agent installed outside `/opt/oneuptime-storage-array-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`.
+The collector image is pinned in `docker-compose.yml` and its configs are files next to it, so pulling alone does not move the agent forward. Run `install.sh` again: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml`, every collector config and Harvest's files (a file you edited is kept as `<file>.bak.<timestamp>`), and recreates the agent so the collector reads its new config. An agent installed outside `/opt/oneuptime-storage-array-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`. It keeps its container name.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
@@ -396,6 +399,14 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerstore.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/powerstore-exporter.Dockerfile
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/powerstore-syslog.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate

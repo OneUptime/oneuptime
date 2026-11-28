@@ -164,6 +164,8 @@ import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopi
 import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
 import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
 import MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType from "./MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType";
+import RepairScheduleLayerRestrictionTypes from "./RepairScheduleLayerRestrictionTypes";
+import MoveWeeklyWindowsOntoTheirDays from "./MoveWeeklyWindowsOntoTheirDays";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1746,6 +1748,28 @@ const DataMigrations: Array<DataMigrationBase> = [
    * ordering requirement of its own; before the two slots kept last.
    */
   new LeaveTimeOfMonitorsPausedForMaintenanceOutOfUptime(),
+  /*
+   * The on-call schedule layers stored with no restriction type the engine
+   * read - written with restrictionType, the key's natural spelling, or
+   * another key - which put nobody on call, are stored with the type they
+   * hold, and rotations written as "Weekly" with the interval they name
+   * (#11269); each schedule whose paging changes is told the change and has
+   * who is on call worked out again. After the schema migration that adds
+   * OnCallDutyPolicySchedule.rosterTurnKey, which the refresh writes.
+   * Postgres only, paged and idempotent; before the two slots kept last.
+   */
+  new RepairScheduleLayerRestrictionTypes(),
+  /*
+   * The weekly windows of on-call schedule layers whose times fall on other
+   * days than they name (#11455): a day left out is filled in; a time that
+   * falls on its day in no time zone - a Monday dated on a Wednesday - is
+   * moved onto its day at the same time of day, and its schedule told; one
+   * a time zone could explain is left as it pages, and logged, for the
+   * schedule's Layers page to mark. After RepairScheduleLayerRestrictionTypes,
+   * which stores every layer's type under restrictionType. Postgres only,
+   * paged and idempotent; before the two slots kept last.
+   */
+  new MoveWeeklyWindowsOntoTheirDays(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

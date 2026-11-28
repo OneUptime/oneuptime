@@ -306,7 +306,8 @@ const PLANTED: Readonly<Record<string, string>> = {
   sampleRecordLog: "PLANTED-RECORD-LOG-0192f1a0",
   connectionString:
     "postgres://planted_user:PLANTED-PASSWORD@orders-db.internal:5432/orders",
-  logBody: "PLANTED-LOG-BODY user=alice@example.com card=4111111111111111",
+  logBody:
+    "PLANTED-LOG-BODY user=alice@example.com card=4111111111111111 phone=+44 20 7123 4567 ssn=536-22-8731",
   cloudSecret: "PLANTED-CLOUD-SECRET",
   description: "PLANTED-DESCRIPTION a person wrote",
   scanCursor: "PLANTED-SCAN-CURSOR",

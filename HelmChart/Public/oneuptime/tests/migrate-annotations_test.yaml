@@ -201,7 +201,7 @@ tests:
           helm.sh/hook: post-install
     asserts:
       - failedTemplate:
-          errorPattern: "migrate.annotations sets helm.sh/hook.*Set migrate.hook: true instead"
+          errorMessage: 'migrate.annotations sets helm.sh/hook. The chart makes the migrate Job a Helm hook itself, from migrate.hook: with migrate.hook: true it is a post-install hook on an install and a pre-upgrade hook on an upgrade, and whether the new pods wait for the Job is worked out from that. Set migrate.hook: true instead, and take helm.sh/hook out of migrate.annotations; helm.sh/hook-weight and helm.sh/hook-delete-policy can stay.'
 
   - it: refuses helm.sh/hook with migrate.hook too, which sets it itself
     templates:
@@ -213,7 +213,7 @@ tests:
           helm.sh/hook: pre-install,pre-upgrade
     asserts:
       - failedTemplate:
-          errorPattern: "migrate.annotations sets helm.sh/hook"
+          errorMessage: 'migrate.annotations sets helm.sh/hook. The chart makes the migrate Job a Helm hook itself, from migrate.hook: with migrate.hook: true it is a post-install hook on an install and a pre-upgrade hook on an upgrade, and whether the new pods wait for the Job is worked out from that. Set migrate.hook: true instead, and take helm.sh/hook out of migrate.annotations; helm.sh/hook-weight and helm.sh/hook-delete-policy can stay.'
 
   # With the Job off, nothing reads them.
   - it: says nothing about helm.sh/hook when the Job is off
@@ -240,7 +240,10 @@ tests:
           sidecar.istio.io/inject: false
     asserts:
       - failedTemplate:
-          errorPattern: "migrate.podAnnotations"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/migrate/podAnnotations/sidecar.istio.io~1inject': got boolean, want string
 
   - it: rejects a Job annotation that is not a string
     templates:
@@ -251,7 +254,10 @@ tests:
           argocd.argoproj.io/sync-wave: -1
     asserts:
       - failedTemplate:
-          errorPattern: "migrate.annotations"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/migrate/annotations/argocd.argoproj.io~1sync-wave': got number, want string
 
   - it: rejects annotations that are not a map
     templates:
@@ -262,4 +268,7 @@ tests:
           - sidecar.istio.io/inject
     asserts:
       - failedTemplate:
-          errorPattern: "migrate.podAnnotations"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/migrate/podAnnotations': got array, want null or object

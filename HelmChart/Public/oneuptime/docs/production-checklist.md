@@ -415,12 +415,15 @@ those connections goes to whichever pod Kubernetes picks. With two pods
 backed up and two added, the added pods ran most of their slots within 10
 seconds and the queue on the others fell to about 1. Before, through the
 ingress, they were sent under 1% of the requests for two minutes.
+`reconnectsAskedPerMinute` counts those answers: a pod that asks some every
+minute has had requests waiting for a slot all that time.
 
 | Field | What it says | Act when |
 | --- | --- | --- |
 | `queueDepth` | Probe requests waiting for a slot now, on every `app` pod | It stays above 0: add `app` pods (the trigger above) |
 | `slotWaitP95Ms` | How long requests waited for a slot, on the busiest pod | Above a second: add `app` pods |
 | `refusalsPerMinute` | Probe requests answered busy | Above 0 for minutes: add `app` pods |
+| `reconnectsAskedPerMinute` | Answers that asked a probe's connection to reconnect (`Connection: close`), so its next request can go to another `app` pod: a few a second on a pod with requests waiting for a slot | Above 0 for minutes: those pods have been backed up all that time; add `app` pods |
 | `dispatchLagP95Seconds` | How late monitors were handed out, past when their interval made them due | Near the interval of your shortest monitors, with no requests waiting: add probe replicas |
 | `monitorsLateByAnIntervalPerMinute` | Monitors handed out a whole interval or more late: checks that were skipped | Above 0: alert |
 | `monitorTestWaitP95Seconds` | How long Test Monitor runs waited for a probe | Above 20 seconds: the probe is down or not asking |
@@ -429,10 +432,11 @@ With an OpenTelemetry exporter set, the same go out as OneUptime's own
 metrics, per pod:
 
 ```text
-probe.scheduling.waiting        requests waiting for a slot, by lane
-probe.scheduling.running        requests running, by lane
-probe.scheduling.slot_wait      how long each waited for its slot (ms)
-probe.scheduling.refused.count  requests answered busy, by lane and reason
-probe.dispatch.lag              how late each monitor was handed out (ms)
-probe.monitor_test.wait         how long each Test Monitor run waited (ms)
+probe.scheduling.waiting          requests waiting for a slot, by lane
+probe.scheduling.running          requests running, by lane
+probe.scheduling.slot_wait        how long each waited for its slot (ms)
+probe.scheduling.refused.count    requests answered busy, by lane and reason
+probe.scheduling.reconnect.count  answers that asked their connection to reconnect, by lane
+probe.dispatch.lag                how late each monitor was handed out (ms)
+probe.monitor_test.wait           how long each Test Monitor run waited (ms)
 ```

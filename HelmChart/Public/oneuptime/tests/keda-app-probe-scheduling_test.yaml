@@ -102,7 +102,7 @@ tests:
       app.keda.enabled: true
     asserts:
       - failedTemplate:
-          errorPattern: "or app\\.keda\\.probeSchedulingQueueDepthThreshold, so the api tier still has an autoscaling trigger"
+          errorMessage: 'worker.enabled drops the app''s queue-size autoscaling trigger; set app.keda.targetCPUUtilizationPercentage (with app.resources.requests.cpu) and/or app.keda.targetMemoryUtilizationPercentage, or app.keda.probeSchedulingQueueDepthThreshold, so the api tier still has an autoscaling trigger.'
 
   - it: refuses a threshold below 0
     set:
@@ -110,4 +110,8 @@ tests:
       app.keda.enabled: true
       app.keda.probeSchedulingQueueDepthThreshold: -1
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/app/keda/probeSchedulingQueueDepthThreshold': minimum: got -1, want 0

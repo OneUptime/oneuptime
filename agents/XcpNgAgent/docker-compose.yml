@@ -2,15 +2,22 @@ services:
   oneuptime-xcp-ng-agent:
     # Upstream collector, pinned. There is no oneuptime/xcp-ng-agent image -
     # the agent is entirely defined by otel-collector-config.yaml, which
-    # install.sh downloads next to this file, and that config reports this
-    # pin as the agent's version (oneuptime.agent.version). Bump the two
-    # together; Tests/Ops/validate-collector-configs.sh validates the config
-    # against this version.
+    # install.sh downloads next to this file, and that config reports the
+    # agent's version (oneuptime.agent.version): this pin, its last number
+    # raised each time the agent's files change on it - this file too - or
+    # an installed agent is never told to upgrade
+    # (packages/Common/Tests/App/Dashboard/AgentFilesVersion.test.ts fails
+    # until the version moves with the files). A new pin starts again at its
+    # own version; Tests/Ops/validate-collector-configs.sh validates the
+    # config against it.
     image: otel/opentelemetry-collector-contrib:0.165.0
-    # One agent reads one Xen Orchestra, and every pool it manages. To read a
-    # second Xen Orchestra from the same machine, install into another
-    # directory and give its container another name here (see README.md).
-    container_name: oneuptime-xcp-ng-agent
+    # One agent reads one Xen Orchestra, and every pool it manages. Two
+    # containers cannot share a name, so a second Xen Orchestra's agent on
+    # the same machine, installed into a directory of its own, runs under a
+    # name of its own: XCP_NG_AGENT_CONTAINER_NAME in .env, which install.sh
+    # writes and keeps (see README.md, "Reading several Xen Orchestras").
+    # Leave this line as it is: an upgrade replaces this file, never .env.
+    container_name: ${XCP_NG_AGENT_CONTAINER_NAME:-oneuptime-xcp-ng-agent}
     # It reads Xen Orchestra and talks to OneUptime, and needs nothing else:
     # no capabilities and a read-only root filesystem.
     read_only: true
@@ -72,7 +79,11 @@ services:
   # README.md ("OneUptime AI agent").
   oneuptime-xcp-ng-ai-agent:
     image: oneuptime/resource-ai-agent:release
-    container_name: oneuptime-xcp-ng-ai-agent
+    # A second Xen Orchestra's agent on the same machine runs its AI agent
+    # under a name of its own too: XCP_NG_AI_AGENT_CONTAINER_NAME in .env,
+    # which install.sh writes beside the collector's (see README.md,
+    # "Reading several Xen Orchestras"). Leave this line as it is.
+    container_name: ${XCP_NG_AI_AGENT_CONTAINER_NAME:-oneuptime-xcp-ng-ai-agent}
     profiles: ["xcp-ng-ai-agent"]
     # It only talks HTTPS to Xen Orchestra and to OneUptime: no root, no
     # capabilities, a read-only root filesystem and a tmpfs for /tmp.

@@ -35,12 +35,12 @@ Pure Storage 于 2026 年 2 月更名为 **Everpure**。FlashArray、FlashBlade 
 ```mermaid title="从阵列到 OneUptime"
 flowchart TB
     collector["Collector"] -->|"FlashArray，<br/>Purity//FA 6.7+"| array["阵列，<br/>端口 443"]
-    collector -->|"较旧的 FlashArray，<br/>FlashBlade"| exporter["Pure 的导出器"]
+    collector -->|"较旧的 FlashArray，<br/>FlashBlade"| exporter["Pure 的<br/>导出器"]
     exporter -->|"API 令牌"| array
-    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    collector -->|"ONTAP"| harvest["NetApp<br/>Harvest"]
     harvest -->|"只读用户，<br/>REST API"| cluster["集群，<br/>端口 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    collector -->|"PowerStore"| dell["Dell's exporter"]
+    collector -->|"PowerStore"| dell["Dell's<br/>exporter"]
     dell -->|"user and password"| array
     array -->|"syslog, port 5514"| syslog["Syslog collector"]
     syslog -->|"OTLP"| oneuptime
@@ -160,6 +160,7 @@ POWERSTORE_BULK_METRICS=
 POWERSTORE_API_VERSION=
 POWERSTORE_REQUEST_LIMIT=
 POWERSTORE_SYSLOG_PORT=
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 对于 Dell PowerStore，还要下载 `otel-collector-config.powerstore.yaml`、`powerstore-exporter.Dockerfile` 和 `powerstore-syslog.yaml`，设置 `STORAGE_SYSTEM=dell.powerstore`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` 和 `COMPOSE_PROFILES=powerstore`，并填写 `POWERSTORE_ENDPOINT`、`POWERSTORE_USERNAME` 和 `POWERSTORE_PASSWORD`，密码放在单引号中。
@@ -189,6 +190,7 @@ NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
 NETAPP_ONTAP_USERNAME=oneuptime
 NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 启动代理：
@@ -265,6 +267,7 @@ Dell 的导出器不报告主机和复制会话，因此此版本两者都没有
 | `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | 否 | `DES`、`AES`、`AES192`、`AES256`、`AES192C` 或 `AES256C`。默认为 `AES`。 |
 | `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 用户的隐私密码，用于 `auth_priv` 级别。 |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 否 | `true` 在原生端点上和 Harvest 中接受阵列的自签名证书；`false` 则验证它。默认为 `true`。Pure 的导出器从不验证阵列的证书，因此它对导出器不适用。 |
+| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | 否 | 代理的容器名称。默认为 `oneuptime-storage-array-agent`。同一台机器上第二个阵列的代理需要自己的容器名称：参见 [监控多个阵列](#监控多个阵列)。除非你自行设置，否则安装脚本会按新代理的文件夹为它命名，并在你再次运行脚本时保留该名称。 |
 
 ## 代理如何抓取
 
@@ -364,7 +367,7 @@ Collector 只在启动时读取其配置：请运行 `docker compose restart one
 
 ## 监控多个阵列
 
-一个代理读取一个阵列。要从同一台机器监控多个阵列，请把每个代理安装到各自的文件夹中，并使用各自的 `.env`，例如 `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`，并为每个代理设置各自的 `container_name`（位于其 `docker-compose.yml` 中，例如 `oneuptime-storage-array-agent-fa02`）：两个容器不能同名。用 `-d` 把文件夹传给诊断脚本。
+一个代理读取一个阵列。要从同一台机器监控多个阵列，请把每个代理安装到各自的文件夹中，并使用各自的 `.env` 和各自的容器名称，因为两个容器不能同名：`INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`。若未设置 `STORAGE_ARRAY_AGENT_CONTAINER_NAME`，脚本会按文件夹为容器命名，在此例中就是同一个名称。它会把名称保存在该代理的 `.env` 中，所以再次运行脚本来升级代理时也会保留它；而若代理的 `container_name` 曾由你在 `docker-compose.yml` 中编辑过，它也会保留那个名称。使用 Docker Compose 时，请改为将 `STORAGE_ARRAY_AGENT_CONTAINER_NAME` 设置在每个代理的 `.env` 中。用 `-d` 把文件夹传给诊断脚本。
 
 第二个 PowerStore 代理也需要自己的 syslog 端口：将 `POWERSTORE_SYSLOG_PORT` 设为例如 `5515`，写在其 `.env` 中。
 
@@ -382,7 +385,7 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 代理会把其文件固定的 Collector 版本报告为它的 **代理版本**。当该版本早于此 OneUptime 版本固定的版本时，阵列的 **概览** 页面上会在它旁边出现一个警告标志。选择它即可查看这些命令。在其文件开始报告版本之前安装的代理不会显示版本，直到以这种方式升级为止。
 
-Collector 镜像固定在 `docker-compose.yml` 中，其配置是旁边的文件，因此仅拉取镜像并不能让代理升级。请再次运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再询问任何内容），刷新 `docker-compose.yml`、所有 Collector 配置和 Harvest 的文件（你编辑过的文件会保存为 `<file>.bak.<timestamp>`），并重新创建代理，使 Collector 读取新的配置。安装在 `/opt/oneuptime-storage-array-agent` 之外的代理需要指定其文件夹：`INSTALL_DIR=<folder> bash install.sh`。
+Collector 镜像固定在 `docker-compose.yml` 中，其配置是旁边的文件，因此仅拉取镜像并不能让代理升级。请再次运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再询问任何内容），刷新 `docker-compose.yml`、所有 Collector 配置和 Harvest 的文件（你编辑过的文件会保存为 `<file>.bak.<timestamp>`），并重新创建代理，使 Collector 读取新的配置。安装在 `/opt/oneuptime-storage-array-agent` 之外的代理需要指定其文件夹：`INSTALL_DIR=<folder> bash install.sh`。它会保留自己的容器名称。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
@@ -396,6 +399,14 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerstore.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/powerstore-exporter.Dockerfile
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/powerstore-syslog.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate

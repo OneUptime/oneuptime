@@ -16,6 +16,7 @@ import BaseModelComponentFactory from "../../../Types/Workflow/Components/BaseMo
 import Entities from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ConditionValueType } from "../../../Types/Workflow/Components/Condition";
+import { getMarkdownFilesRecordTypes } from "../../../Types/File/MarkdownRecords";
 import {
   CONDITION_COMPARISONS,
   CONDITION_VALUE_TYPE_LABELS,
@@ -68,6 +69,39 @@ export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction =
     }
 
     return { components: initComponents, categories: initCategories };
+  };
+
+let markdownRecordTypeOptions: Array<DropdownOption> | null = null;
+
+export type GetMarkdownRecordTypeOptionsFunction = () => Array<DropdownOption>;
+
+/*
+ * Get Files From Markdown's record types as a dropdown lists them: each by
+ * its name, which the dropdown words in the reader's language, stored as its
+ * table name. Worked out once: the models do not change while a page is open.
+ */
+export const getMarkdownRecordTypeOptions: GetMarkdownRecordTypeOptionsFunction =
+  (): Array<DropdownOption> => {
+    if (!markdownRecordTypeOptions) {
+      markdownRecordTypeOptions = getMarkdownFilesRecordTypes(
+        Entities.map((modelType: { new (): BaseModel }): BaseModel => {
+          return new modelType();
+        }),
+      ).map((model: BaseModel): DropdownOption => {
+        return {
+          label: model.singularName || model.tableName || "",
+          value: model.tableName || "",
+          // A kind of record by the product's own name: looked up, in the reader's words.
+          isUserContent: false,
+        };
+      });
+    }
+
+    return markdownRecordTypeOptions.map(
+      (option: DropdownOption): DropdownOption => {
+        return { ...option };
+      },
+    );
   };
 
 export type ParseStringDictionaryValueFunction = (
@@ -358,6 +392,19 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
             value: comparison.operator,
           };
         }),
+      };
+    }
+
+    /*
+     * The kinds of record whose Markdown can show images, by name - the
+     * common ones first - for Get Files From Markdown's Record Type. The list
+     * is the step's own (Types/File/MarkdownRecords): exactly the record
+     * types the step reads.
+     */
+    if (componentInputType === ComponentInputType.MarkdownRecordType) {
+      return {
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: getMarkdownRecordTypeOptions(),
       };
     }
 

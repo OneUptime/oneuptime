@@ -302,6 +302,38 @@ const AWAY_API_FACTS: Array<string> = [
   "`endsAt`",
 ];
 
+/*
+ * A weekly window is on call on the days it names (#11455): the API facts of
+ * it, in every language - its keys, the refusal's status, the weekly example
+ * as code, the time zone change's keys and the year restictionType in
+ * answers ends (#11456).
+ */
+const WEEKLY_WINDOW_API_FACTS: Array<string> = [
+  "`startDay`",
+  "`endDay`",
+  "`startTime`",
+  "`endTime`",
+  "`400`",
+  "`timezone`",
+  "`startsAt`",
+  "`handOffTime`",
+  "`restictionType`",
+  "2027",
+  '"weeklyRestrictionTimes": [{',
+  '"startDay": "Monday",',
+  '"endDay": "Friday",',
+];
+
+/*
+ * The labels the Layers section names a window to check by, as the
+ * dashboard draws them: the pill on its card and the button that saves it.
+ */
+const WEEKLY_WINDOW_LABELS: Array<string> = [
+  "Specific Times of the Week",
+  "Active hours to check",
+  "Save Layer",
+];
+
 const ENGLISH: string = readPage("en");
 
 function onCallGroup(): NavGroup {
@@ -587,7 +619,12 @@ describe("the On-Call Schedules docs page", () => {
         "`rotation`",
         ROTATION_EXAMPLE,
         "Terraform's schedule resource does not send them",
-        "hands off daily",
+        // As OnCallDutyPolicyScheduleLayerService gives a layer sent without one.
+        "hands off every week",
+        // A layer's active hours, under either spelling of its type (#11269).
+        "`restrictionType`",
+        "`restictionType`",
+        "is refused with a `400` that names the key",
       ]) {
         expect({ fact, found: api.includes(fact) }).toEqual({
           fact,
@@ -656,6 +693,60 @@ describe("the On-Call Schedules docs page", () => {
           "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ActiveOverridesCard.tsx",
         ),
       ).toContain("title={USER_OVERRIDE_END_NOW_ACTION}");
+    });
+
+    it("REGRESSION #11455: says a weekly window is on call on the days it names, and what a write, the upgrade and a new time zone do", () => {
+      const layers: string = pageSections[1]!.body;
+      const api: string = pageSections[3]!.body;
+
+      expect(layers).toContain("the days it shows are the days it is on call");
+      expect(layers).toContain(
+        "is marked **Active hours to check** on its layer",
+      );
+      expect(layers).toContain("**Save Layer** keeps it there");
+
+      for (const fact of [
+        ...WEEKLY_WINDOW_API_FACTS,
+        "is on call on the days it names: its `startTime` and `endTime` must fall on its `startDay` and `endDay` in the schedule's time zone",
+        "is refused with a `400` that names the window",
+        "A day left out is the day its time falls on.",
+        "A window sent back exactly as the layer holds it is not judged again",
+        "a time is refused only when it falls on its day in no time zone",
+        "onto the days it names at the same time of day",
+        "is left as it pages and marked **Active hours to check**",
+        "moves its layers' `startsAt`, `handOffTime` and `restrictionTimes` to the new zone's clock",
+        "keeps the moments as they are",
+      ]) {
+        expect({ fact, found: api.includes(fact) }).toEqual({
+          fact,
+          found: true,
+        });
+      }
+    });
+
+    it("REGRESSION #11456: says restictionType in answers is deprecated, and when answers stop carrying it", () => {
+      const api: string = pageSections[3]!.body;
+
+      expect(api).toContain(
+        "`restictionType` in answers is deprecated: answers carry it until the first major version released on or after 1 June 2027, and writes will always read it. Write `restrictionType`.",
+      );
+      // The date the code's deprecation names.
+      expect(
+        readRepoFile("Common/Types/OnCallDutyPolicy/RestrictionTimes.ts"),
+      ).toContain("The first major version released on or after 1 June 2027");
+    });
+
+    it("says changing the time zone keeps every time as it reads, as the server does", () => {
+      const first: string = pageSections[0]!.body;
+
+      expect(first).toContain(
+        "Changing it later keeps every time as it reads: a 09:00 hand-off stays at 09:00, and a window on Monday stays on Monday.",
+      );
+      expect(
+        readRepoFile(
+          "Common/Server/Services/OnCallDutyPolicyScheduleService.ts",
+        ),
+      ).toContain("A NEW TIME ZONE KEEPS EVERY TIME ON THE CLOCK (#11455).");
     });
 
     it("says a change made through the API is told once, after the quiet period the server waits", () => {
@@ -770,6 +861,20 @@ describe("the On-Call Schedules docs page", () => {
           found: layers.includes(`**${dashboard[TIMELINE_PAGE_TITLE]}**`),
         }).toEqual({ lang, found: true });
 
+        // A window to check, named as the dashboard draws it (#11455).
+        for (const label of WEEKLY_WINDOW_LABELS) {
+          expect({
+            lang,
+            label,
+            found: layers.includes(`**${dashboard[label]}**`),
+          }).toEqual({ lang, label, found: true });
+        }
+
+        expect({
+          lang,
+          found: api.includes(`**${dashboard["Active hours to check"]}**`),
+        }).toEqual({ lang, found: true });
+
         for (const fact of [
           SCHEDULES_ROUTE,
           LAYERS_ROUTE,
@@ -781,6 +886,7 @@ describe("the On-Call Schedules docs page", () => {
           ROTATION_EXAMPLE,
           `**${getLayerName(1)}**`,
           ...SAVE_LAYERS_FACTS,
+          ...WEEKLY_WINDOW_API_FACTS,
         ]) {
           expect({ lang, fact, found: api.includes(fact) }).toEqual({
             lang,

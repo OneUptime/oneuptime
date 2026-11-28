@@ -5,6 +5,7 @@ import yaml from "js-yaml";
 import {
   DEFAULT_STORAGE_ARRAY_PLATFORM,
   STORAGE_ARRAY_AGENT_CONTAINER,
+  STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE,
   STORAGE_ARRAY_AGENT_FILES,
   STORAGE_ARRAY_AGENT_INSTALL_DIR,
   STORAGE_ARRAY_AGENT_INSTALL_NAME,
@@ -41,6 +42,10 @@ import {
   getSetupGuideCodeBlocks,
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+import {
+  STORAGE_ARRAY_AGENT_COLLECTOR_VERSION,
+  STORAGE_ARRAY_AGENT_VERSION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import {
@@ -1119,6 +1124,16 @@ describe("drift guards against agents/StorageArrayAgent", () => {
       envTableRows(guideFor("flasharray"));
 
     expect(composeSource).toContain(
+      `container_name: \${${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}:-${STORAGE_ARRAY_AGENT_CONTAINER}}`,
+    );
+    expect(rows.get(STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE)).toEqual({
+      required: "No",
+      description: expect.stringContaining(
+        `(default: \`${STORAGE_ARRAY_AGENT_CONTAINER}\`)`,
+      ),
+    });
+
+    expect(composeSource).toContain(
       "STORAGE_SYSTEM=${STORAGE_SYSTEM:-purestorage.flasharray}",
     );
     expect(rows.get("STORAGE_SYSTEM")?.description).toContain(
@@ -1179,21 +1194,23 @@ describe("drift guards against agents/StorageArrayAgent", () => {
   });
 
   /*
-   * The agent reports the collector it pins (oneuptime.agent.version): the
-   * compose file must run exactly that collector, and every config the
-   * guide shows must stamp it, or the sign compares the wrong number.
+   * The agent reports the version of its files (oneuptime.agent.version):
+   * the collector it pins, until the files change on that collector
+   * (AgentFilesVersion.test.ts) - 0.165.1 on collector 0.165.0, with NetApp
+   * ONTAP, Dell PowerStore and Dell PowerScale. The compose file must run
+   * exactly the kind's collector, and every config the guide shows must
+   * stamp the kind's version, or the sign compares the wrong number.
    */
   test.each(PLATFORMS)(
-    "the compose file runs the pinned collector, and the %s config reports the pin",
+    "the compose file runs the pinned collector, and the %s config reports the agent's version",
     (platform: StorageArrayWholeConfigPlatform) => {
-      const image: string =
-        compose()["services"][STORAGE_ARRAY_AGENT_CONTAINER]["image"];
-      expect(image).toMatch(
-        /^otel\/opentelemetry-collector-contrib:\d+\.\d+\.\d+$/,
+      expect(
+        compose()["services"][STORAGE_ARRAY_AGENT_CONTAINER]["image"],
+      ).toBe(
+        `otel/opentelemetry-collector-contrib:${STORAGE_ARRAY_AGENT_COLLECTOR_VERSION}`,
       );
-      const pin: string = image.split(":")[1] as string;
       expect(STORAGE_ARRAY_COLLECTOR_CONFIGS[platform]).toContain(
-        `      - key: oneuptime.agent.version\n        value: "${pin}"\n        action: upsert\n`,
+        `      - key: oneuptime.agent.version\n        value: "${STORAGE_ARRAY_AGENT_VERSION}"\n        action: upsert\n`,
       );
     },
   );
@@ -1242,10 +1259,41 @@ describe("drift guards against agents/StorageArrayAgent", () => {
     }
   });
 
+  test("a second array's agent installs into a folder of its own, with a container name of its own that .env keeps", () => {
+    const topic: string = topicTitled(
+      guideFor("flasharray").advanced,
+      "Monitor several arrays",
+    ).markdown;
+    expect(topic).toContain(
+      codeBlock(
+        "bash",
+        `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 \\\n  ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=${STORAGE_ARRAY_AGENT_CONTAINER}-fa02 \\\n  bash install.sh`,
+      ),
+    );
+    // Nothing tells anyone to edit docker-compose.yml, which an upgrade replaces.
+    expect(topic).not.toMatch(/give each its own `container_name`/);
+    expect(topic).toContain(
+      `With Docker Compose, set \`${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}\` in each agent's \`.env\` instead.`,
+    );
+    // The install script reads, writes and keeps the variable the guide names.
+    const script: string = readAgentFile("install.sh");
+    expect(script).toContain(
+      `\n${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=$(compose_env_quote "$${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}")\n`,
+    );
+    expect(script).toContain(
+      `STORAGE_ARRAY_INSECURE_SKIP_VERIFY ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}; do`,
+    );
+    // ...and says so when the name is taken.
+    expect(script).toContain(
+      `  ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=$DEFAULT_CONTAINER_NAME-<array> INSTALL_DIR=$INSTALL_DIR bash install.sh`,
+    );
+  });
+
   test("the containers, services and profiles the guide names are the compose file's", () => {
     const services: Record<string, any> = compose()["services"];
+    // Named by .env, the default the guide's name.
     expect(services[STORAGE_ARRAY_AGENT_CONTAINER]["container_name"]).toBe(
-      STORAGE_ARRAY_AGENT_CONTAINER,
+      `\${${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}:-${STORAGE_ARRAY_AGENT_CONTAINER}}`,
     );
     expect(services[STORAGE_ARRAY_FA_EXPORTER_SERVICE]["profiles"]).toEqual([
       "flasharray-exporter",

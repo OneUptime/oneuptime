@@ -56,6 +56,8 @@ function answered(values: JSONObject = {}): JSONObject {
       sparedSignedIn: 0,
       sparedProtected: 0,
       sparedCannotTell: 0,
+      // #11389: through a private proxy nothing vouches for.
+      sparedUnvouchedProxy: 7,
       wouldHaveStopped: 0,
     },
     timeToBlock: {
@@ -96,6 +98,8 @@ describe("reading the page's answer", () => {
     expect(read!.trialFinishedAt).toBeNull();
     expect(read!.trialState).toBe(SecurityAutomaticResponseTrialState.Finished);
     expect(read!.trialSummary?.wouldActOn).toBe(1283);
+    // #11389: the addresses it left for a person, for the proxy they came through.
+    expect(read!.trialSummary?.sparedUnvouchedProxy).toBe(7);
     // A day that is no day is left out.
     expect(read!.timeToBlock.days).toEqual([
       { day: "2026-11-21", count: 3, p50InSeconds: 41, p95InSeconds: 95 },

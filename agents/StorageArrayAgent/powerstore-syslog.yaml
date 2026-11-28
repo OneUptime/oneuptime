@@ -219,9 +219,11 @@ processors:
       - key: storage.system
         value: "${env:STORAGE_SYSTEM}"
         action: upsert
-      # Keep it in step with the collector image docker-compose.yml pins.
+      # The agent's version, as every collector config of the agent stamps it:
+      # the collector image docker-compose.yml pins, its last number raised
+      # each time the agent's files change on that collector.
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # OneUptime routes batches by service.name first: none may reach it.
       - key: service.name

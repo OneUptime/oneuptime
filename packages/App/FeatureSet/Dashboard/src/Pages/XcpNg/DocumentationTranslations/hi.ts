@@ -54,6 +54,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_NAME` | नहीं | OneUptime में इस Xen Orchestra को क्या कहें, जो इसके हर पूल की सेटिंग्स में दिखता है (डिफ़ॉल्ट: इसका पता) |",
   "| `XO_TLS_SERVER_NAME` | No | The name Xen Orchestra's certificate is checked against, when `XO_ADDRESS` is an address the certificate does not list |":
     "| `XO_TLS_SERVER_NAME` | नहीं | वह नाम जिससे Xen Orchestra का प्रमाणपत्र जाँचा जाता है, जब `XO_ADDRESS` ऐसा पता हो जो प्रमाणपत्र में नहीं है |",
+  "| `XCP_NG_AGENT_CONTAINER_NAME` | No | The agent's container name (default: `oneuptime-xcp-ng-agent`). A second Xen Orchestra's agent on the same machine needs one of its own: the install script names a new agent after its folder unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AGENT_CONTAINER_NAME` | नहीं | एजेंट के कंटेनर का नाम (डिफ़ॉल्ट: `oneuptime-xcp-ng-agent`)। उसी मशीन पर दूसरे Xen Orchestra के एजेंट को अपना अलग नाम चाहिए: अगर आप इसे सेट नहीं करते, तो इंस्टॉल स्क्रिप्ट नए एजेंट का नाम उसके फ़ोल्डर पर रखती है, और स्क्रिप्ट फिर से चलाने पर उसे बनाए रखती है |",
   "| `XO_URL` | Install script | Xen Orchestra's address as typed; the script derives `XO_SCHEME` and `XO_ADDRESS` from it |":
     "| `XO_URL` | इंस्टॉल स्क्रिप्ट | Xen Orchestra का पता जैसा टाइप किया गया; स्क्रिप्ट इसी से `XO_SCHEME` और `XO_ADDRESS` निकालती है |",
   "| `XO_TLS_FINGERPRINT` | Install script | The SHA-256 fingerprint of Xen Orchestra's own certificate, when the agent trusts that certificate and nothing else |":
@@ -82,6 +84,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `LOG_LEVEL` | नहीं | AI एजेंट का लॉग स्तर: `debug`, `info` (डिफ़ॉल्ट), `warn` या `error` |",
   "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
     "| `COMPOSE_PROFILES` | नहीं | `xcp-ng-ai-agent` AI एजेंट को शुरू करता है; इंस्टॉल स्क्रिप्ट पढ़ने वाला टोकन सेट होने पर इसे लिखती है |",
+  "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-xcp-ng-ai-agent`). The install script names a second Xen Orchestra's AI agent after its collector (`oneuptime-xcp-ng-ai-agent-lab` beside `oneuptime-xcp-ng-agent-lab`) unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | नहीं | AI एजेंट के कंटेनर का नाम (डिफ़ॉल्ट: `oneuptime-xcp-ng-ai-agent`)। अगर आप इसे सेट नहीं करते, तो इंस्टॉल स्क्रिप्ट दूसरे Xen Orchestra के AI एजेंट का नाम उसके कलेक्टर के नाम पर रखती है (`oneuptime-xcp-ng-ai-agent-lab`, `oneuptime-xcp-ng-agent-lab` के बगल में), और स्क्रिप्ट फिर से चलाने पर उसे बनाए रखती है |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "एजेंट Xen Orchestra के प्रमाणपत्र को `docker-compose.yml` के बगल वाली `xo-ca.pem` से जाँचता है।",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":
@@ -117,8 +121,10 @@ const TRANSLATION: SetupGuideTranslation = {
     "OneUptime हर पूल के लिए चार 0/1 सीरीज़ जोड़ता है, जिन्हें अलर्ट टेम्पलेट पढ़ते हैं: `xcp_ng.host.running`, `xcp_ng.host.enabled`, `xcp_ng.vm.running` और `xcp_ng.vm.stopped_after_running` (रुका हुआ या पॉज़ किया हुआ VM जो पिछले एक दिन में चला था)। यह हर पॉइंट पर `xcp_ng.scope` (`pool`, `host`, `vm`, `sr`, `vdi` या `xostor`) और `xcp_ng.id` (उस ऑब्जेक्ट का UUID) भी लगाता है, जिन पर मॉनिटर और डैशबोर्ड फ़िल्टर करते हैं।",
   "Not kept: Xen Orchestra's own process series (`xo_*`), which belong to no pool, and a host's power read over IPMI, which the plugin sends without its pool. Each VM's estimated share of it is kept.":
     "नहीं रखा जाता: Xen Orchestra की अपनी प्रोसेस सीरीज़ (`xo_*`), जो किसी पूल की नहीं हैं, और IPMI से पढ़ी गई होस्ट की पावर, जिसे प्लगइन उसके पूल के बिना भेजता है। उसमें हर VM का अनुमानित हिस्सा रखा जाता है।",
-  "One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with its own `container_name` in its `docker-compose.yml`:":
-    "एक एजेंट एक Xen Orchestra और उसके प्रबंधित हर पूल को पढ़ता है। दूसरे Xen Orchestra के लिए, दूसरा एजेंट उसके अपने फ़ोल्डर में इंस्टॉल करें, उसके `docker-compose.yml` में उसके अपने `container_name` के साथ:",
+  "One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with a container name of its own — two containers cannot share one:":
+    "एक एजेंट एक Xen Orchestra और उसके प्रबंधित हर पूल को पढ़ता है। दूसरे Xen Orchestra के लिए, दूसरा एजेंट उसके अपने फ़ोल्डर में, उसके अपने कंटेनर नाम के साथ इंस्टॉल करें — दो कंटेनर एक ही नाम नहीं रख सकते:",
+  "Without `XCP_NG_AGENT_CONTAINER_NAME`, the script names the container after the folder. It keeps the name in that agent's `.env`, so running the script again to upgrade the agent keeps it, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. With Docker Compose, set `XCP_NG_AGENT_CONTAINER_NAME` in each agent's `.env` instead.":
+    "`XCP_NG_AGENT_CONTAINER_NAME` के बिना स्क्रिप्ट कंटेनर का नाम फ़ोल्डर के नाम पर रखती है। स्क्रिप्ट यह नाम उस एजेंट की `.env` में सहेज लेती है, इसलिए एजेंट अपग्रेड करने के लिए स्क्रिप्ट फिर से चलाने पर भी नाम बना रहता है, और जिस एजेंट का `container_name` आपने कभी `docker-compose.yml` में बदला था, वह वही नाम रखता है। Docker Compose के साथ, इसके बजाय हर एजेंट की `.env` में `XCP_NG_AGENT_CONTAINER_NAME` सेट करें।",
   "Don't let two Xen Orchestras that manage the same pool both be read: the pool is one pool in OneUptime, by its UUID, and would be reported twice.":
     "एक ही पूल को प्रबंधित करने वाले दो Xen Orchestra दोनों को पढ़ा न जाने दें: अपने UUID से वह पूल OneUptime में एक ही पूल है, और उसकी रिपोर्ट दो बार आएगी।",
   "Any resource attribute prefixed with `oneuptime.label.` becomes a project label on each pool the agent reads: `oneuptime.label.<dimension>=<value>` is the label `<dimension>:<value>`. Add them to the `resource` processor in `otel-collector-config.yaml`, next to `oneuptime.agent.version`:":

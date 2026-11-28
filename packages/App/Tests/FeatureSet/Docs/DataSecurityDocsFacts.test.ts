@@ -46,7 +46,9 @@ import {
   alignTelemetryLeakTemplates,
   maskUnprovenWords,
 } from "Common/Utils/DataSecurity/TelemetryLeakTemplate";
-import { getBuiltInDetectorsOf } from "Common/Utils/DataSecurity/Detectors/Index";
+import BUILT_IN_DETECTORS, {
+  getBuiltInDetectorsOf,
+} from "Common/Utils/DataSecurity/Detectors/Index";
 import { readScanWarning } from "Common/Types/DataSecurity/ScanWarnings";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -4080,10 +4082,18 @@ describe("Data Security Integrations", () => {
     expect(pullRequests).toContain(
       "For a migration, in a private repository only, it names the store the table is in, what that store holds",
     );
-    // An exception's message is telemetry too (#10778).
+    // An exception's message is telemetry too (#10778), and so is a recorded session's user (#11395).
     expect(types).toContain('Exception = "Exception",');
+    expect(types).toContain('Session = "Session",');
     expect(pullRequests).toContain(
-      "in a log, a span, a metric, an exception's message or an error tracker's report",
+      "in a log, a span, a metric, an exception's message, an error tracker's report or a recorded session's user",
+    );
+    // A web or mobile app's code: its RUM application's session replays (#11395).
+    expect(sensitiveData).toContain(
+      "[SensitiveDataSink.Session]: [DataStoreKind.TelemetrySessionReplays],",
+    );
+    expect(pullRequests).toContain(
+      "or, for a web or mobile app's code, its RUM application's session replays",
     );
   });
 
@@ -4444,6 +4454,46 @@ describe("What a value is read as, and what a leak's template keeps", () => {
     expect(paragraph).toContain(
       "Such a number typed wholly in fullwidth, as Japanese and Chinese text writes one, is read with its plus sign, hyphens, parentheses, full stops, slashes and ideographic spaces as ASCII ones too",
     );
+
+    /*
+     * #11385: a number set apart by another dash, and a value typed in
+     * fullwidth letters - each example the paragraph gives is found as
+     * its type - and CJK prose read as it is.
+     */
+    expect(paragraph).toContain(
+      "and so is a number whose groups are set apart by another dash, read as a hyphen between two digits only",
+    );
+    expect(paragraph).toContain(
+      "A value typed in fullwidth letters is read with its letters, digits and signs as ASCII ones",
+    );
+    expect(paragraph).toContain(
+      "Text with no value typed in fullwidth letters, such as Japanese or Chinese prose, is read as it is.",
+    );
+
+    for (const [text, dataTypeId] of [
+      ["tel ＋８１ ３ー１２３４ー５６７８", "phone-number"],
+      ["ssn 536–22–8731", "us-ssn"],
+      ["mail ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ", "email-address"],
+      ["IBAN ＤＥ８９　３７０４　００４４　０５３２　０１３０　００", "iban"],
+      ["postcode ＳＷ１Ａ　２ＡＡ", "postal-code"],
+      ["ＴＥＬ　０３１２３４５６７８", "phone-number"],
+    ]) {
+      expect({
+        text,
+        found: findSensitiveValues(text!).some((match: TextMatch): boolean => {
+          return match.dataTypeId === dataTypeId;
+        }),
+      }).toEqual({ text, found: true });
+    }
+
+    for (const detector of BUILT_IN_DETECTORS) {
+      if (detector.readsFullwidthForms) {
+        expect({
+          dataTypeId: detector.dataTypeId,
+          letters: detector.readsFullwidthLetters,
+        }).toEqual({ dataTypeId: detector.dataTypeId, letters: true });
+      }
+    }
 
     // A street address is words, read in a URL as a form writes them.
     expect(

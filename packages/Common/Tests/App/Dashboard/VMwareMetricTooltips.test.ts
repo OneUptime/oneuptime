@@ -11,6 +11,7 @@ import {
   metricDescriptionProblems,
 } from "./MetricDescriptionRules";
 import AggregationIntervalUtil from "../../../Types/BaseDatabase/AggregationIntervalUtil";
+import { DEFAULT_VMWARE_HEALTH_RULES } from "../../../Types/VMware/VMwareHealthRules";
 
 /*
  * The (i) texts on the VMware (vCenter) pages. The shared rules keep them
@@ -154,6 +155,7 @@ const TITLES: Record<VMwareMetric, string> = {
   vmMemory: "Memory (Used / Configured)",
   vmMemoryBallooned: "Memory Ballooned",
   vmMemorySwapped: "Memory Swapped",
+  vmMemorySwapping: "Swapping Now",
   vmDisk: "Disk (Used / Provisioned)",
   datastoreFree: "Free",
   datastoreUsedPercent: "Used %",
@@ -554,38 +556,37 @@ describe("VMware metric descriptions: stale data", () => {
 });
 
 describe("VMware metric descriptions: thresholds match the code", () => {
-  // One set of levels, in the rules every page reads (VMwareHealth).
-  const warn: number = numericConstant(
-    HEALTH,
-    "VMWARE_DATASTORE_WARNING_PERCENT",
-  );
-  const critical: number = numericConstant(
-    HEALTH,
-    "VMWARE_DATASTORE_CRITICAL_PERCENT",
-  );
-  const cpuReady: number = numericConstant(
-    HEALTH,
-    "VMWARE_CPU_READY_WARNING_PERCENT",
-  );
+  /*
+   * One set of levels: a project's health rules (VMware > Settings > Health
+   * Rules, #11157), whose defaults these are - and VMwareHealth's levels
+   * are those defaults.
+   */
+  const warn: number = DEFAULT_VMWARE_HEALTH_RULES.datastoreWarningPercent;
+  const critical: number = DEFAULT_VMWARE_HEALTH_RULES.datastoreCriticalPercent;
+  const cpuReady: number = DEFAULT_VMWARE_HEALTH_RULES.vmCpuReadyWarningPercent;
 
   test("the levels are the alert templates' levels", () => {
     expect([warn, critical, cpuReady]).toEqual([80, 90, 10]);
+    expect(HEALTH).toContain(
+      "export const VMWARE_DATASTORE_WARNING_PERCENT: number =\n  DEFAULT_VMWARE_HEALTH_RULES.datastoreWarningPercent;",
+    );
+    expect(HEALTH).toContain(
+      "export const VMWARE_DATASTORE_CRITICAL_PERCENT: number =\n  DEFAULT_VMWARE_HEALTH_RULES.datastoreCriticalPercent;",
+    );
+    expect(HEALTH).toContain(
+      "export const VMWARE_CPU_READY_WARNING_PERCENT: number =\n  DEFAULT_VMWARE_HEALTH_RULES.vmCpuReadyWarningPercent;",
+    );
   });
 
-  test("the overview, a datastore's page and a VM's page read the same levels", () => {
-    expect(OVERVIEW).toContain(
-      "const DATASTORE_WARN_PERCENT: number = VMWARE_DATASTORE_WARNING_PERCENT;",
+  test("the overview and a datastore's page read the project's levels; the chart's text names the alert templates'", () => {
+    expect(squash(OVERVIEW)).toContain(
+      "warn: getVMwareThresholdLine(rules.datastoreWarningPercent), danger: getVMwareThresholdLine(rules.datastoreCriticalPercent),",
     );
-    expect(OVERVIEW).toContain(
-      "const DATASTORE_CRITICAL_PERCENT: number = VMWARE_DATASTORE_CRITICAL_PERCENT;",
-    );
-    expect(OVERVIEW).toContain(
-      "const VM_CPU_READY_WARN_PERCENT: number = VMWARE_CPU_READY_WARNING_PERCENT;",
-    );
-    // A datastore's Used tile and its utilization chart's text.
+    // A datastore's Used tile.
     expect(squash(DATASTORE_OVERVIEW)).toContain(
-      "warn: VMWARE_DATASTORE_WARNING_PERCENT, danger: VMWARE_DATASTORE_CRITICAL_PERCENT,",
+      "warn: getVMwareThresholdLine(rules.datastoreWarningPercent), danger: getVMwareThresholdLine(rules.datastoreCriticalPercent),",
     );
+    // Its utilization chart's text says where the alert templates fire.
     expect(DATASTORE_DETAIL).toContain(
       "warnPercent: VMWARE_DATASTORE_WARNING_PERCENT,",
     );
@@ -626,23 +627,25 @@ describe("VMware metric descriptions: thresholds match the code", () => {
 
   test("a VM's page says it waits for a CPU at the same level", () => {
     expect(squash(VM_OVERVIEW)).toContain(
-      "cpuReady !== null && cpuReady > VMWARE_CPU_READY_WARNING_PERCENT",
+      "isPastVMwareHealthThreshold( cpuReady, rules.vmCpuReadyWarningPercent, )",
     );
+    expect(D.vmCpuReady).toContain("(or your Health Rules)");
   });
 
   test("the VM CPU Ready tile turns amber where its text says", () => {
+    // The average across VMs, against VMware's guidance: no VM's own finding.
     expect(OVERVIEW).toContain(
-      "thresholds={{ warn: 5, danger: VM_CPU_READY_WARN_PERCENT }}",
+      "thresholds={{ warn: 5, danger: VMWARE_CPU_READY_WARNING_PERCENT }}",
     );
     expect(D.overviewVmCpuReady).toContain("amber from 5%");
     expect(D.overviewVmCpuReady).toContain(`red from ${cpuReady}%`);
   });
 
   test("the datastore tile turns amber and red where its text says", () => {
-    expect(OVERVIEW).toContain("warn: DATASTORE_WARN_PERCENT,");
-    expect(OVERVIEW).toContain("danger: DATASTORE_CRITICAL_PERCENT,");
     expect(D.overviewDatastores).toContain(`Amber from ${warn}%`);
     expect(D.overviewDatastores).toContain(`red from ${critical}%`);
+    expect(D.overviewDatastores).toContain("(or your Health Rules)");
+    expect(D.datastoreUsedPercent).toContain("(or your Health Rules)");
   });
 
   test("the growth forecast names its window and cut-off", () => {
@@ -759,10 +762,8 @@ describe("VMware metric descriptions: an ESXi host's page", () => {
   });
 
   test("the busiest VMs are the inventory's fresh readings, CPU Ready marked where its alert fires", () => {
-    const cpuReady: number = numericConstant(
-      HEALTH,
-      "VMWARE_CPU_READY_WARNING_PERCENT",
-    );
+    const cpuReady: number =
+      DEFAULT_VMWARE_HEALTH_RULES.vmCpuReadyWarningPercent;
 
     /*
      * One level, the VM CPU Ready Contention alert's, as the VM list and
@@ -907,7 +908,7 @@ describe("VMware metric descriptions: what each number is made of", () => {
       "unknown",
       "an ESXi host vCenter cannot reach",
       "a critical alarm",
-      "a VM the host swaps to disk",
+      "a VM the host swaps out now",
       "Needs attention lists each, the most urgent first",
       "disconnected",
     ]) {

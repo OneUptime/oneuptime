@@ -60,9 +60,15 @@ const PLURALS: ReadonlyArray<PluralTemplate> = [
  * Google's front ends are not trusted, naming the TCP or SSL proxy load
  * balancer, or the several, that connect from them too (#11047).
  */
-const NAMED_PLURALS: ReadonlyArray<PluralTemplate> = [
-  ProxiesCopy.GOOGLE_FRONT_ENDS_WITHHELD,
-];
+const NAMED_PLURALS: ReadonlyArray<{ plural: PluralTemplate; names: string }> =
+  [
+    { plural: ProxiesCopy.GOOGLE_FRONT_ENDS_WITHHELD, names: "loadBalancers" },
+    // The target groups of an AWS Network Load Balancer that drop the client's address (#11389).
+    {
+      plural: ProxiesCopy.PASS_ON_CLIENT_IP_NOT_PRESERVED,
+      names: "targetGroups",
+    },
+  ];
 
 const SENTENCES: ReadonlyArray<string> = [
   ...sentencesOf(ClaimedCopy),
@@ -75,11 +81,16 @@ const SENTENCES: ReadonlyArray<string> = [
 // Every key: each sentence, and each plural's general form and its "one".
 const KEYS: ReadonlyArray<string> = [
   ...SENTENCES,
-  ...[...PLURALS, ...NAMED_PLURALS].flatMap(
-    (plural: PluralTemplate): Array<string> => {
-      return [plural.other, `${plural.other}_one`];
-    },
-  ),
+  ...[
+    ...PLURALS,
+    ...NAMED_PLURALS.map(
+      (named: { plural: PluralTemplate }): PluralTemplate => {
+        return named.plural;
+      },
+    ),
+  ].flatMap((plural: PluralTemplate): Array<string> => {
+    return [plural.other, `${plural.other}_one`];
+  }),
 ];
 
 describe("the words for where a request came from, and what a rule could not count", () => {
@@ -87,8 +98,12 @@ describe("the words for where a request came from, and what a rule could not cou
     // Forwarded By and the edge's reason (#11046), beside the claimed words.
     expect(sentencesOf(ClaimedCopy)).toHaveLength(5);
     expect(Object.values(ClaimedCopy.FORWARDED_BY_REASONS)).toHaveLength(4);
-    // A range too broad (#11049), Google's front ends (#11047), Log Format (#11048).
-    expect(sentencesOf(ProxiesCopy)).toHaveLength(42);
+    /*
+     * A range too broad (#11049), Google's front ends (#11047), Log Format
+     * (#11048), and Private Addresses with what is never trusted, even
+     * listed, and the warnings under the list (#11388, #11389).
+     */
+    expect(sentencesOf(ProxiesCopy)).toHaveLength(55);
     expect(sentencesOf(UncountedCopy)).toHaveLength(3);
 
     const english: Record<string, string> = readDashboardLocale("en");
@@ -259,7 +274,7 @@ describe("the words for where a request came from, and what a rule could not cou
     }
   });
 
-  test("why Google's front ends are not trusted names the load balancers, one or several, in every language", () => {
+  test("why Google's front ends or a Network Load Balancer are not trusted names the load balancers or target groups, one or several, in every language", () => {
     const english: Translator = dashboardTranslator("en");
 
     expect(
@@ -286,9 +301,9 @@ describe("the words for where a request came from, and what a rule could not cou
     for (const language of DASHBOARD_LANGUAGES) {
       const translator: Translator = dashboardTranslator(language);
 
-      for (const plural of NAMED_PLURALS) {
+      for (const { plural, names } of NAMED_PLURALS) {
         for (const { count, loadBalancers } of cases) {
-          const values: { loadBalancers: string } = { loadBalancers };
+          const values: Record<string, string> = { [names]: loadBalancers };
           const drawn: string = translator.translatePlural(
             plural,
             count,

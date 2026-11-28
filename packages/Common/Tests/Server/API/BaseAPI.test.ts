@@ -105,10 +105,17 @@ jest.mock(
         /*
          * Modules BaseAPI loads read a model's permission lists when they
          * load: Data Security's issue groups take who may read them from
-         * DataSecurityIssue's read list (DataSecurityIssueGroups). This
-         * table's lists name no one.
+         * DataSecurityIssue's read list (DataSecurityIssueGroups), and Ask
+         * AI's Data Security actions take who may apply a decision to
+         * similar findings from DataStoreFinding's update list
+         * (DataSecurityButtons) and who may change a store's owners from
+         * its owner rows' create and delete lists
+         * (DataSecurityStoreActionTools). This table's lists name no one.
          */
+        createRecordPermissions: [],
         readRecordPermissions: [],
+        updateRecordPermissions: [],
+        deleteRecordPermissions: [],
       };
     });
   },

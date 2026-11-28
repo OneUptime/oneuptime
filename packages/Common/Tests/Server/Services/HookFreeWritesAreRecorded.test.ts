@@ -189,6 +189,22 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "RepairKubernetesDashboardClusterCpuTile.migrate Dashboard":
         Why.Migration,
     },
+  /*
+   * The schedule layers stored with no restriction type the engine read,
+   * stored with the type they hold, under restrictionType (#11269).
+   */
+  "packages/App/FeatureSet/Workers/DataMigrations/RepairScheduleLayerRestrictionTypes.ts":
+    {
+      "(module) OnCallDutyPolicyScheduleLayer": Why.Migration,
+    },
+  /*
+   * The schedule layers' weekly windows stored on other days than they
+   * name, moved onto those days or their days filled in (#11455).
+   */
+  "packages/App/FeatureSet/Workers/DataMigrations/MoveWeeklyWindowsOntoTheirDays.ts":
+    {
+      "(module) OnCallDutyPolicyScheduleLayer": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers.ts":
     {
       "recordNotifiedStatusPagesSoFar Incident": Why.Bookkeeping,
@@ -370,6 +386,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
      * records (#11060).
      */
     "Service.rescheduleTelemetryMonitor Monitor": Why.Bookkeeping,
+    /*
+     * Which template a monitor was created from, and its network alert
+     * policy let go, stamped beside a person's move of the monitor to
+     * another template or unlink from one (#11260, #11266) - a change the
+     * audit log records. Written row by row, round the hooks, only when the
+     * moved monitors need different stamps.
+     */
+    "Service.keepWhatTheTemplateChangeLeaves Monitor": Why.FollowOn,
   },
   "packages/Common/Server/Services/MonitorTestService.ts": {
     "Service.claimMonitorTestsForProbing MonitorTest": Why.Bookkeeping,
@@ -902,7 +926,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
    * each write here would copy the person's name - what the request erases
    * - into the audit log as the old value. So would rewriting the
    * fingerprint an alert or an incident a detection opened groups on
-   * (#11130): the old one is a fingerprint of the person.
+   * (#11130): the old one is a fingerprint of the person. And so would
+   * taking a feed's indicator out of an alert's or an incident's
+   * description (#11230): the old one names the indicator, beside which
+   * the feed keeps the person's address.
    */
   "packages/Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureRecords.ts":
     {
@@ -914,6 +941,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "SecurityUserErasureRecords.rewriteSeriesFingerprints Alert":
         Why.FollowOn,
       "SecurityUserErasureRecords.rewriteSeriesFingerprints Incident":
+        Why.FollowOn,
+      "SecurityUserErasureRecords.cutIndicatorFromSeries Alert": Why.FollowOn,
+      "SecurityUserErasureRecords.cutIndicatorFromSeries Incident":
         Why.FollowOn,
     },
   "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts": {

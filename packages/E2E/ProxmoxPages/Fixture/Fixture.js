@@ -42,6 +42,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import ClusterLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Layout";
 import ClusterOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Index";
@@ -927,6 +928,21 @@ async function handleApi(method, options) {
     return ok({
       attributes: ["resource.proxmox.cluster.name", "id", "pve.scope"],
     });
+  }
+
+  /*
+   * Which of the alert cards' and Recommendations' monitors are on already,
+   * from the project's monitors - refused to a role that may not read monitors.
+   */
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+    mayReadMonitors: ALERTS !== "denied",
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

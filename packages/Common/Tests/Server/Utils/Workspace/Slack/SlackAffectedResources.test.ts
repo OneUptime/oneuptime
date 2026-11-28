@@ -425,13 +425,20 @@ describe("the answer Slack lists", () => {
   });
 
   test(`at most ${SLACK_AFFECTED_RESOURCES_MAX_OPTIONS} options in all: the longest lists give way first, and every kind keeps a place`, () => {
-    const groups: Array<WorkspaceAffectedResourceKindMatches> =
-      WorkspaceAffectedResources.getKinds().map(
-        (kind: AiAffectedResourceKind, index: number) => {
-          // The last kind matched once; every other kind fifteen times.
-          return index === 13 ? group(kind, 1) : group(kind, 300, 15);
-        },
-      );
+    /*
+     * Every kind the form offers, however many there are now
+     * (WorkspaceAffectedResources.test lists them): a new kind, as XCP-ng
+     * pools were, still leaves the last one matched once.
+     */
+    const kinds: Array<AiAffectedResourceKind> =
+      WorkspaceAffectedResources.getKinds();
+    const last: number = kinds.length - 1;
+    const groups: Array<WorkspaceAffectedResourceKindMatches> = kinds.map(
+      (kind: AiAffectedResourceKind, index: number) => {
+        // The last kind matched once; every other kind fifteen times.
+        return index === last ? group(kind, 1) : group(kind, 300, 15);
+      },
+    );
 
     const optionGroups: Array<JSONObject> =
       SlackAffectedResources.getOptionsResponse(groups)[
@@ -444,16 +451,17 @@ describe("the answer Slack lists", () => {
       },
     );
 
-    expect(optionGroups).toHaveLength(15);
+    // A heading for every kind.
+    expect(optionGroups).toHaveLength(kinds.length);
     expect(
       sizes.reduce((sum: number, size: number) => {
         return sum + size;
       }, 0),
     ).toBe(SLACK_AFFECTED_RESOURCES_MAX_OPTIONS);
     // The one kind with one match keeps it; the rest share the room.
-    expect(sizes[13]).toBe(1);
-    expect(Math.max(...sizes.slice(0, 13))).toBeLessThanOrEqual(
-      Math.min(...sizes.slice(0, 13)) + 1,
+    expect(sizes[last]).toBe(1);
+    expect(Math.max(...sizes.slice(0, last))).toBeLessThanOrEqual(
+      Math.min(...sizes.slice(0, last)) + 1,
     );
     // A heading cut short says how many there are.
     expect((optionGroups[0]!["label"] as JSONObject)["text"] as string).toMatch(

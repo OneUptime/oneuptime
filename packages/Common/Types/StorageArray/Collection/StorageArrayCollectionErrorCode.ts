@@ -83,9 +83,9 @@ export class StorageArrayCollectionErrorCodeUtil {
   ): value is StorageArrayCollectionErrorCode {
     return (
       typeof value === "string" &&
-      (Object.values(StorageArrayCollectionErrorCode) as Array<string>).includes(
-        value,
-      )
+      (
+        Object.values(StorageArrayCollectionErrorCode) as Array<string>
+      ).includes(value)
     );
   }
 

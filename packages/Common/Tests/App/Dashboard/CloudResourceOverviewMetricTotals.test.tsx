@@ -118,6 +118,16 @@ jest.mock(
     return recorder();
   },
 );
+// A VM's card naming the host it is (#11013), which asks the server for it.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudHostLinkCards",
+  () => {
+    return {
+      __esModule: true,
+      CloudVmHostCard: recorder().default,
+    };
+  },
+);
 
 import CloudMonitoredResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/MonitoredResourceOverview";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
