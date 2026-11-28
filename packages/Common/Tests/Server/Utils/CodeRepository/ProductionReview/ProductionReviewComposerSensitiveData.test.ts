@@ -27,6 +27,7 @@ import {
   SensitiveDataSink,
 } from "../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import DataSensitivity from "../../../../../Types/DataSecurity/DataSensitivity";
+import { TelemetryLeakFixOwnerKind } from "../../../../../Types/DataSecurity/TelemetryLeakFix";
 import SecuritySeverity from "../../../../../Types/SecuritySeverity";
 import {
   emptyReport,
@@ -222,6 +223,71 @@ describe("on a private repository", () => {
 
   test("the escape hatch is said where a point fails the check", () => {
     expect(comment).toContain("`oneuptime:not-sensitive`");
+  });
+
+  /*
+   * A web app's front end (#11395): a session identified by an email, and
+   * where its RUM application's session replays already held one - said
+   * on a private repository's comment alone, as every other place is.
+   */
+  describe("a front end's session identified by an email", () => {
+    const sessionPoint: ProductionReviewLeakJSON = telemetryPoint({
+      key: "5e5510aa0b1c2d3e",
+      sink: SensitiveDataSink.Session,
+      path: "web/src/session.js",
+      line: 7,
+      subject: "customer.email",
+      where: "recorder.identify",
+      text: "Identifies a recorded session by an email address: `customer.email`, in `recorder.identify`.",
+      fix: "Identify the session by an opaque id, such as the user's id, never by `customer.email`.",
+      suggestion: undefined,
+      production: {
+        heldBefore: [
+          {
+            serviceId: "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+            serviceName: "storefront-web",
+            ownerKind: TelemetryLeakFixOwnerKind.RumApplication,
+            storeKind: "Session Replays",
+            location: "sessions.identifiedUserLabel",
+            dataTypeName: "Email address",
+            lastSeenAt: "2026-10-21T10:00:00.000Z",
+          },
+        ],
+      },
+    });
+
+    test("on a private repository: what it does, its fix, and where the application's session replays held it", () => {
+      const said: string = ProductionReviewComposer.compose(
+        input(leakyReport([sessionPoint])),
+      );
+
+      expect(said).toContain("`web/src/session.js` line 7");
+      expect(said).toContain(
+        "Identifies a recorded session by an email address: `customer.email`, in `recorder.identify`.",
+      );
+      expect(said).toContain(
+        "Fix: Identify the session by an opaque id, such as the user's id, never by `customer.email`.",
+      );
+      expect(said).toContain(
+        "Production has held this before: **storefront-web**'s session replays held an email address at `sessions.identifiedUserLabel`",
+      );
+    });
+
+    test("on a public repository: what the diff shows, never what the session replays held", () => {
+      const said: string = ProductionReviewComposer.compose(
+        input(leakyReport([sessionPoint]), {
+          isPublicRepository: true,
+          sensitiveDataPosting: SensitiveDataPosting.DiffOnly,
+        }),
+      );
+
+      expect(said).toContain(
+        "Identifies a recorded session by an email address",
+      );
+      expect(said).not.toContain("storefront-web");
+      expect(said).not.toContain("sessions.identifiedUserLabel");
+      expect(said).not.toContain("Production has held this before");
+    });
   });
 
   test("nothing in it is a command", () => {
