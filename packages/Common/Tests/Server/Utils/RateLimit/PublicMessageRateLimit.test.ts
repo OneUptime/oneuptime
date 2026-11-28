@@ -250,6 +250,15 @@ describe("the limits in force", () => {
         perClientLimit: 60,
         perContactLimit: 5,
       },
+      /*
+       * Somebody added to a form's request (Types/Form/FormFollowUp): a
+       * team of support staff behind one address adds people often, and an
+       * address is added to a handful of requests at most.
+       */
+      [PublicMessageKind.FormFollowUpInvite]: {
+        perClientLimit: 60,
+        perContactLimit: 10,
+      },
     });
   });
 
@@ -349,6 +358,18 @@ describe("the limits in force", () => {
         config: PublicMessageRateLimitConfig,
       ): number => {
         return config.kinds[PublicMessageKind.SignUpEmail].perContactLimit;
+      },
+      FORM_FOLLOW_UP_INVITES_PER_IP: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.FormFollowUpInvite]
+          .perClientLimit;
+      },
+      FORM_FOLLOW_UP_INVITES_PER_CONTACT: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.FormFollowUpInvite]
+          .perContactLimit;
       },
     };
 

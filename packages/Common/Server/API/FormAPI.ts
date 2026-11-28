@@ -39,6 +39,29 @@ import {
   FORM_SIGN_IN_STATE_ROUTE,
   FormSignInState,
 } from "../../Types/Form/FormPrivateUserSignIn";
+import {
+  FORM_FOLLOW_UP_ADD_PERSON_ROUTE,
+  FORM_FOLLOW_UP_BODY_MESSAGE,
+  FORM_FOLLOW_UP_EMAIL_MESSAGE,
+  FORM_FOLLOW_UP_REPLY_ROUTE,
+  FORM_FOLLOW_UP_ROUTE,
+  FORM_FOLLOW_UP_STOP_ROUTE,
+  FORM_MY_REQUESTS_ROUTE,
+  PublicFormMyRequests,
+  PublicFormRequest,
+  PublicFormRequestAccess,
+  readFormFollowUpEmail,
+} from "../../Types/Form/FormFollowUp";
+import FormFollowUp from "../Utils/Form/FormFollowUp";
+import PublicMessageRateLimit, {
+  PublicMessageKind,
+  PublicMessageSendPermit,
+} from "../Utils/RateLimit/PublicMessageRateLimit";
+
+// Reads the form a follow-up route is for, with every check a visit makes.
+type FormFollowUpFormResolver = (
+  req: ExpressRequest,
+) => Promise<{ form: Form; shareKey: string }>;
 
 /*
  * The form's CRUD routes (inherited from BaseAPI, all behind the signed-in
@@ -57,6 +80,16 @@ import {
  *   GET  /form/custom-domain/cname-verification/:token
  *                                        the CNAME sweeps' check that the
  *                                        domain reaches this installation
+ *
+ * and a form's follow-ups (Common/Types/Form/FormFollowUp), on both - under
+ * /form/public/:shareKey and /form/custom-domain alike:
+ *
+ *   POST .../follow-up          one request, for the person the body names
+ *   POST .../follow-up/reply    a message from them, with files
+ *   POST .../follow-up/people   somebody they add, emailed a link
+ *   POST .../follow-up/stop     they stop following
+ *   GET  .../follow-up/mine     My requests, on a form that asks its
+ *                               visitors to sign in (registerFollowUpRoutes)
  *
  * The two custom domain routes the page calls run the same steps as the
  * link's, in the same order, with one difference in the first:
@@ -285,6 +318,353 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
     );
 
     this.registerCustomDomainRoutes();
+    this.registerFollowUpRoutes();
+  }
+
+  /*
+   * A form's follow-ups (Common/Types/Form/FormFollowUp), on its link and
+   * on its own domain, each held to the steps the form's own routes are, in
+   * the same order: the page's origin, then a JSON body (or, for the one
+   * read by GET, the page's header), then the form's rate limits - a read's
+   * for reading, a submission's for writing, since a message or a person
+   * added reaches the team or a stranger - then the anonymous user
+   * middleware. The handlers read the form through FormService, with every
+   * check a visit makes, and leave the rest to Utils/Form/FormFollowUp.
+   */
+  private registerFollowUpRoutes(): void {
+    const crudApiPath: string =
+      new this.entityType().getCrudApiPath()?.toString() || "";
+
+    const variants: Array<{
+      prefix: string;
+      refuseForeignPages: (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => void;
+      source: FormRateLimitFormSource;
+      resolve: FormFollowUpFormResolver;
+    }> = [
+      {
+        prefix: `${crudApiPath}/public/:shareKey`,
+        refuseForeignPages: FormAPI.refuseForeignPageRequests,
+        source: FormRateLimitFormSource.ShareKey,
+        resolve: FormAPI.getFollowUpFormByShareKey,
+      },
+      {
+        prefix: `${crudApiPath}${FORM_CUSTOM_DOMAIN_ROUTE}`,
+        refuseForeignPages: FormAPI.refuseForeignPageRequestsOnCustomDomain,
+        source: FormRateLimitFormSource.CustomDomain,
+        resolve: FormAPI.getFollowUpFormOnCustomDomain,
+      },
+    ];
+
+    for (const variant of variants) {
+      const readLimit: (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => Promise<void> = FormRateLimit.getMiddleware(
+        FormRateLimitBucket.Read,
+        variant.source,
+      );
+
+      const writeLimit: (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => Promise<void> = FormRateLimit.getMiddleware(
+        FormRateLimitBucket.Submit,
+        variant.source,
+      );
+
+      // One request, for the person the body names.
+      this.router.post(
+        `${variant.prefix}${FORM_FOLLOW_UP_ROUTE}`,
+        variant.refuseForeignPages,
+        FormAPI.requireJsonBody,
+        readLimit,
+        UserMiddleware.getPublicRouteUserMiddleware,
+        async (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => {
+          try {
+            Response.setNoCacheHeaders(res);
+
+            const request: PublicFormRequest = await FormFollowUp.getRequest({
+              ...(await variant.resolve(req)),
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
+              access: FormAPI.readFollowUpAccess(req.body),
+            });
+
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              request as unknown as JSONObject,
+            );
+          } catch (err) {
+            next(err);
+          }
+        },
+      );
+
+      // A message from the person the body names: text, files or both.
+      this.router.post(
+        `${variant.prefix}${FORM_FOLLOW_UP_REPLY_ROUTE}`,
+        variant.refuseForeignPages,
+        FormAPI.requireJsonBody,
+        writeLimit,
+        UserMiddleware.getPublicRouteUserMiddleware,
+        async (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => {
+          try {
+            Response.setNoCacheHeaders(res);
+
+            const body: Record<string, unknown> = FormAPI.readFollowUpBody(
+              req.body,
+            );
+
+            const request: PublicFormRequest = await FormFollowUp.reply({
+              ...(await variant.resolve(req)),
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
+              access: FormAPI.readFollowUpAccess(req.body),
+              answers: body["answers"],
+            });
+
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              request as unknown as JSONObject,
+            );
+          } catch (err) {
+            FormRateLimit.setRetryAfterFor(res, err);
+            next(err);
+          }
+        },
+      );
+
+      // Somebody added by the person the body names: emailed a link.
+      this.router.post(
+        `${variant.prefix}${FORM_FOLLOW_UP_ADD_PERSON_ROUTE}`,
+        variant.refuseForeignPages,
+        FormAPI.requireJsonBody,
+        writeLimit,
+        UserMiddleware.getPublicRouteUserMiddleware,
+        async (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => {
+          return await FormAPI.addFollowUpPerson({
+            req: req,
+            res: res,
+            next: next,
+            resolve: variant.resolve,
+          });
+        },
+      );
+
+      // The person the body names stops following.
+      this.router.post(
+        `${variant.prefix}${FORM_FOLLOW_UP_STOP_ROUTE}`,
+        variant.refuseForeignPages,
+        FormAPI.requireJsonBody,
+        writeLimit,
+        UserMiddleware.getPublicRouteUserMiddleware,
+        async (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => {
+          try {
+            Response.setNoCacheHeaders(res);
+
+            await FormFollowUp.stopFollowing({
+              ...(await variant.resolve(req)),
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
+              access: FormAPI.readFollowUpAccess(req.body),
+            });
+
+            return Response.sendEmptySuccessResponse(req, res);
+          } catch (err) {
+            next(err);
+          }
+        },
+      );
+
+      // My requests, on a form that asks its visitors to sign in.
+      this.router.get(
+        `${variant.prefix}${FORM_MY_REQUESTS_ROUTE}`,
+        variant.refuseForeignPages,
+        FormAPI.requireFormPageHeader,
+        readLimit,
+        UserMiddleware.getPublicRouteUserMiddleware,
+        async (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => {
+          try {
+            Response.setNoCacheHeaders(res);
+
+            const mine: PublicFormMyRequests = await FormFollowUp.getMyRequests(
+              {
+                ...(await variant.resolve(req)),
+                formSession:
+                  FormPrivateUserSessionService.getSessionReader(req),
+              },
+            );
+
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              mine as unknown as JSONObject,
+            );
+          } catch (err) {
+            next(err);
+          }
+        },
+      );
+    }
+  }
+
+  /*
+   * Adding somebody to a request from the form's page: the one follow-up
+   * route that sends to an address its caller names, so it asks the public
+   * message limiter first - per caller and per address - and gives the
+   * count back when nobody was added after all.
+   */
+  public static async addFollowUpPerson(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    next: NextFunction;
+    resolve: FormFollowUpFormResolver;
+  }): Promise<void> {
+    const { req, res, next } = data;
+
+    try {
+      Response.setNoCacheHeaders(res);
+
+      const body: Record<string, unknown> = FormAPI.readFollowUpBody(req.body);
+      const email: string | null = readFormFollowUpEmail(body["email"]);
+
+      if (!email) {
+        throw new BadDataException(FORM_FOLLOW_UP_EMAIL_MESSAGE);
+      }
+
+      const permit: PublicMessageSendPermit =
+        await PublicMessageRateLimit.assertMaySend({
+          req: req,
+          kind: PublicMessageKind.FormFollowUpInvite,
+          contacts: [PublicMessageRateLimit.forEmail(email)],
+        });
+
+      let request: PublicFormRequest;
+
+      try {
+        request = await FormFollowUp.addPerson({
+          ...(await data.resolve(req)),
+          formSession: FormPrivateUserSessionService.getSessionReader(req),
+          access: FormAPI.readFollowUpAccess(req.body),
+          email: email,
+          name: body["name"],
+        });
+      } catch (err) {
+        await permit.giveBack();
+        throw err;
+      }
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        request as unknown as JSONObject,
+      );
+    } catch (err) {
+      PublicMessageRateLimit.setRetryAfterFor(res, err);
+      FormRateLimit.setRetryAfterFor(res, err);
+      next(err);
+    }
+  }
+
+  // The form a follow-up route on a form's link names, read with every check.
+  public static async getFollowUpFormByShareKey(
+    req: ExpressRequest,
+  ): Promise<{ form: Form; shareKey: string }> {
+    const shareKey: string = String(req.params["shareKey"] || "");
+
+    return {
+      form: await FormService.getFormForFollowUp({
+        shareKey: shareKey,
+        clientIp: resolveClientIp(req),
+      }),
+      shareKey: shareKey,
+    };
+  }
+
+  // The form a follow-up route on a form's own domain names, by the domain.
+  public static async getFollowUpFormOnCustomDomain(
+    req: ExpressRequest,
+  ): Promise<{ form: Form; shareKey: string }> {
+    const shareKey: string = await FormService.getShareKeyForCustomDomain(
+      getRequestHost(req),
+    );
+
+    return {
+      form: await FormService.getFormForFollowUp({
+        shareKey: shareKey,
+        clientIp: resolveClientIp(req),
+      }),
+      shareKey: shareKey,
+    };
+  }
+
+  // A follow-up route's body: an object, or the one refusal for anything else.
+  public static readFollowUpBody(body: unknown): Record<string, unknown> {
+    if (!isPlainObject(body)) {
+      throw new BadDataException(FORM_FOLLOW_UP_BODY_MESSAGE);
+    }
+
+    return body;
+  }
+
+  /*
+   * Which request a follow-up body names (PublicFormRequestAccess): a
+   * link's credential, or a submission's id - each text of a sane length,
+   * everything else left behind. FormFollowUp judges what they name.
+   */
+  public static readFollowUpAccess(body: unknown): PublicFormRequestAccess {
+    const access: unknown = FormAPI.readFollowUpBody(body)["access"];
+
+    if (!isPlainObject(access)) {
+      throw new BadDataException(FORM_FOLLOW_UP_BODY_MESSAGE);
+    }
+
+    const read: (value: unknown) => string | undefined = (
+      value: unknown,
+    ): string | undefined => {
+      return typeof value === "string" && value.length <= 200
+        ? value
+        : undefined;
+    };
+
+    const result: PublicFormRequestAccess = {};
+    const credential: string | undefined = read(access["credential"]);
+    const submissionId: string | undefined = read(access["submissionId"]);
+
+    if (credential) {
+      result.credential = credential;
+    }
+
+    if (submissionId) {
+      result.submissionId = submissionId;
+    }
+
+    return result;
   }
 
   /*
