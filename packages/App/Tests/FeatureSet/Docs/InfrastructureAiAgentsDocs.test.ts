@@ -1660,17 +1660,22 @@ describe("Infrastructure AI Agents docs", (): void => {
         "and its status on the account's **AI agent** page, which shows the same command.",
       );
 
-      // Only the database agent's service has no fixed container name.
+      /*
+       * Only the database agent's service has no container name of its own.
+       * The XCP-ng AI agent's comes from .env, its default the service's,
+       * so a second Xen Orchestra's agent on the machine runs one of its own.
+       */
       for (const type of COMPOSE_TYPES) {
-        const service: string | undefined = composeServices(
-          composeFileOf(type),
-        ).get(getResourceAiAgentServiceName(type));
+        const serviceName: string = getResourceAiAgentServiceName(type);
+        const service: string = composeServices(composeFileOf(type)).get(
+          serviceName,
+        ) as string;
 
         expect({
           type,
-          containerName: service?.includes(
-            `container_name: ${getResourceAiAgentServiceName(type)}`,
-          ),
+          containerName:
+            service.includes(`container_name: ${serviceName}\n`) ||
+            service.includes(`:-${serviceName}}\n`),
         }).toEqual({
           type,
           containerName: type !== AiResourceType.DatabaseServer,

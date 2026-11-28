@@ -5959,3 +5959,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/DataObservability/DataObservabilityStoreLifecyclePostgres.test.ts
           --forceExit
+
+      # What a monitor's time counts as while scheduled maintenance pauses
+      # it (#11301): an event that sets no status leaves the time out of
+      # uptime, status pages and SLOs, one that sets a status counts it;
+      # the event's start, end, delete and edits through their own hooks,
+      # with incidents declared by hand overlapping them, measured by the
+      # status page statement, the day bars, the monitor's uptime windows
+      # and an SLO's SLI - on structure-only copies of the migrated tables.
+      - name: Test what maintenance pauses count as in uptime on Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MAINTENANCE_PAUSED_UPTIME_TESTS: "true"
+          MAINTENANCE_PAUSED_UPTIME_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MAINTENANCE_PAUSED_UPTIME_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MAINTENANCE_PAUSED_UPTIME_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MaintenancePausedTimeUptimePostgres.test.ts
+          --forceExit

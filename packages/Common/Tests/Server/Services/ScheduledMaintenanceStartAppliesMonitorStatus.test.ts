@@ -161,6 +161,7 @@ async function moveInto(
 let changeMonitorStatus: jest.SpyInstance;
 let monitorUpdateOneById: jest.SpyInstance;
 let eventRead: jest.SpyInstance;
+let uptimeMarks: jest.SpyInstance;
 
 beforeEach(() => {
   storedEvent = null;
@@ -259,7 +260,23 @@ beforeEach(() => {
   changeMonitorStatus = jest
     .spyOn(MonitorService, "changeMonitorStatus")
     .mockResolvedValue(undefined as never);
+
+  // What the monitors' time counts as from the start (#11301).
+  uptimeMarks = jest
+    .spyOn(ScheduledMaintenanceStateTimelineService, "markUptimeOfMonitors")
+    .mockResolvedValue(undefined as never);
 });
+
+// The monitors whose time each start worked out, in order.
+function monitorsMarked(): Array<Array<string>> {
+  return uptimeMarks.mock.calls.map((call: Array<unknown>): Array<string> => {
+    return ((call[0] as ScheduledMaintenance).monitors || [])
+      .map((monitor: Monitor): string => {
+        return monitor.id!.toString();
+      })
+      .sort();
+  });
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -357,6 +374,23 @@ describe("the move into an event's ongoing state", () => {
     );
   });
 
+  test("works out what the monitors' time counts as last, once they are paused and in the event's status (#11301)", async () => {
+    storeEvent({
+      monitorStatusId: STATUS_PICKED_WHEN_SCHEDULED,
+      monitors: [MONITOR_A, MONITOR_B],
+    });
+
+    await moveInto("ongoing");
+
+    expect(monitorsMarked()).toEqual([[MONITOR_A, MONITOR_B].sort()]);
+    expect(changeMonitorStatus.mock.invocationCallOrder[0]!).toBeLessThan(
+      uptimeMarks.mock.invocationCallOrder[0]!,
+    );
+    expect(monitorUpdateOneById.mock.invocationCallOrder[1]!).toBeLessThan(
+      uptimeMarks.mock.invocationCallOrder[0]!,
+    );
+  });
+
   test("an event without a status leaves its monitors in theirs", async () => {
     storeEvent({ monitors: [MONITOR_A] });
 
@@ -365,6 +399,8 @@ describe("the move into an event's ongoing state", () => {
     expect(changeMonitorStatus).not.toHaveBeenCalled();
     // Probing still stops.
     expect(monitorUpdateOneById).toHaveBeenCalledTimes(1);
+    // And their time is worked out: left out, with no status of the event's.
+    expect(monitorsMarked()).toEqual([[MONITOR_A]]);
   });
 
   test("an event without monitors has nothing to change", async () => {
@@ -373,6 +409,7 @@ describe("the move into an event's ongoing state", () => {
     await moveInto("ongoing");
 
     expect(changeMonitorStatus).not.toHaveBeenCalled();
+    expect(uptimeMarks).not.toHaveBeenCalled();
   });
 
   test("a row filled in between two others, back in the timeline, starts nothing", async () => {
@@ -384,6 +421,39 @@ describe("the move into an event's ongoing state", () => {
     await moveInto("ongoing", { filledInBetween: true });
 
     expect(changeMonitorStatus).not.toHaveBeenCalled();
+    /*
+     * Nor pauses the monitors: the event is not in that state now. It used
+     * to - for good, in an event that was over.
+     */
+    expect(monitorUpdateOneById).not.toHaveBeenCalled();
+    expect(uptimeMarks).not.toHaveBeenCalled();
+  });
+
+  test("an Ended row filled in back in the timeline lets go of nothing: the event is not over now", async () => {
+    storeEvent({
+      monitorStatusId: STATUS_PICKED_WHEN_SCHEDULED,
+      monitors: [MONITOR_A],
+    });
+
+    await moveInto("ended", { filledInBetween: true });
+
+    expect(
+      ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors,
+    ).not.toHaveBeenCalled();
+    expect(monitorUpdateOneById).not.toHaveBeenCalled();
+  });
+
+  test("the event's own move into Ended lets go of its monitors, as before", async () => {
+    storeEvent({
+      monitorStatusId: STATUS_PICKED_WHEN_SCHEDULED,
+      monitors: [MONITOR_A],
+    });
+
+    await moveInto("ended");
+
+    expect(
+      ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors,
+    ).toHaveBeenCalledTimes(1);
   });
 
   test("a failure to change the monitors is logged, never turned into an error: the state change stands", async () => {
@@ -426,6 +496,8 @@ describe("the moves that are not the start", () => {
       await moveInto(kind);
 
       expect(changeMonitorStatus).not.toHaveBeenCalled();
+      // Nor starts the pause of their time: that is the start's.
+      expect(uptimeMarks).not.toHaveBeenCalled();
     },
   );
 });

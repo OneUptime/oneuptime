@@ -249,6 +249,7 @@ Not read yet: OneFS's events, storage pools and data reduction, which only the O
 | `POWERSCALE_SNMP_SECURITY_LEVEL` | No | `auth_priv` (default), `auth_no_priv` or `no_auth_no_priv` |
 | `POWERSCALE_SNMP_AUTH_PROTOCOL` / `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | `SHA` (default), `MD5`, `SHA224`, `SHA256`, `SHA384` or `SHA512`, and the password |
 | `POWERSCALE_SNMP_PRIVACY_PROTOCOL` / `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3, `auth_priv` | `AES` (default), `DES`, `AES192`, `AES256`, `AES192C` or `AES256C`, and the password |
+| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | No | The agent's container name (default: `oneuptime-storage-array-agent`). A second array's agent on the same machine needs one of its own ([Monitoring several arrays](#monitoring-several-arrays)): `install.sh` names a new agent after its directory unless you set it, and keeps it on every re-run |
 
 ## Scrape Behavior
 
@@ -313,7 +314,17 @@ The array shows up tagged `team:storage` and `env:production`. Labels are matche
 
 ## Monitoring several arrays
 
-One agent reads one array. To monitor several from the same machine, install each into its own directory with its own `.env` (`INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`), and give each one its own `container_name` in its `docker-compose.yml` (for example `oneuptime-storage-array-agent-fa02`) — two containers cannot share a name. A second PowerStore agent also needs a syslog port of its own: set `POWERSTORE_SYSLOG_PORT` (for example `5515`) in its `.env`, and point that cluster's remote logging at it. Pass the directory to the doctor script with `-d`.
+One agent reads one array. To monitor several from the same machine, install each into its own directory with its own `.env` and its own container name — two containers cannot share a name:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 \
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 \
+bash install.sh
+```
+
+Without `STORAGE_ARRAY_AGENT_CONTAINER_NAME`, `install.sh` names the container after its directory (`oneuptime-storage-array-agent-fa02` here too). Either way the name is written to that agent's `.env`, which `docker-compose.yml` reads it from (`container_name: ${STORAGE_ARRAY_AGENT_CONTAINER_NAME:-oneuptime-storage-array-agent}`), so re-running `install.sh` to upgrade the agent keeps it. Leave `container_name` in `docker-compose.yml` as it is: an upgrade replaces that file. An agent set up before `.env` held the name, by editing `container_name` there, keeps that name on its next upgrade — `install.sh` reads it from the old file (or the container it runs, or the copy an earlier upgrade kept) and writes it to `.env`. With Docker Compose, set `STORAGE_ARRAY_AGENT_CONTAINER_NAME` in each agent's `.env`.
+
+A second PowerStore agent also needs a syslog port of its own: set `POWERSTORE_SYSLOG_PORT` (for example `5515`) in its `.env`, and point that cluster's remote logging at it. Pass the directory to the doctor script with `-d`.
 
 ## Run as a systemd Service
 
@@ -331,7 +342,7 @@ The unit assumes the agent lives in `/opt/oneuptime-storage-array-agent` (the in
 
 The collector and exporter images are pinned in `docker-compose.yml`, and the collector configs report the collector's pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on the array's page; select it to see these commands.
 
-Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml`, every collector config and Harvest's files (a file you edited is kept as `<file>.bak.<timestamp>`), and recreates the agent so the collector reads its new config. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. An agent installed outside `/opt/oneuptime-storage-array-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`.
+Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml`, every collector config and Harvest's files (a file you edited is kept as `<file>.bak.<timestamp>`), and recreates the agent so the collector reads its new config. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. An agent installed outside `/opt/oneuptime-storage-array-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`. It keeps its container name.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh

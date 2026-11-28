@@ -9,7 +9,10 @@ jest.mock("isolated-vm", () => {
 
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
-import MonitorResourceUtil from "../../../../Server/Utils/Monitor/MonitorResource";
+import MonitorResourceUtil, {
+  SeriesClaims,
+} from "../../../../Server/Utils/Monitor/MonitorResource";
+import { MonitorRecordKind } from "../../../../Server/Utils/Monitor/MonitorOpenRecords";
 import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
@@ -527,23 +530,39 @@ describe("MonitorCriteriaEvaluator per-series fan-out", () => {
 
 describe("MonitorResourceUtil de-escalation", () => {
   /*
-   * claimUnclaimedSeries is private; exercised through the documented
-   * escape hatch, the same way HostAbsenceSeriesIntegration reaches
-   * collectPerSeriesMatches.
+   * One alert per host from the first band that matches it: the critical
+   * and the warning band read the same metric, so they are bands of one
+   * another (CriteriaBands, #11349). A criteria that reads another metric
+   * claims the host for itself.
    */
-  const claimUnclaimedSeries: (input: {
+  const CRITICAL: MonitorCriteriaInstance = criteriaInstance({
+    id: "critical",
+    name: "Critical",
+    filters: [thresholdFilter({ alias: "a", greaterThan: 95 })],
+  });
+  const WARNING: MonitorCriteriaInstance = criteriaInstance({
+    id: "warning",
+    name: "Warning",
+    filters: [thresholdFilter({ alias: "a", greaterThan: 80 })],
+  });
+  const OTHER_METRIC: MonitorCriteriaInstance = criteriaInstance({
+    id: "other",
+    name: "Other metric",
+    filters: [thresholdFilter({ alias: "b", greaterThan: 80 })],
+  });
+
+  function claimUnclaimedSeries(input: {
+    criteriaInstance: MonitorCriteriaInstance;
     matches: Array<PerSeriesCriteriaMatch>;
-    claimed: Set<string>;
+    claimed: SeriesClaims;
     isClaiming: boolean;
-  }) => Array<PerSeriesCriteriaMatch> = (
-    MonitorResourceUtil as unknown as {
-      claimUnclaimedSeries: (input: {
-        matches: Array<PerSeriesCriteriaMatch>;
-        claimed: Set<string>;
-        isClaiming: boolean;
-      }) => Array<PerSeriesCriteriaMatch>;
-    }
-  ).claimUnclaimedSeries;
+  }): Array<PerSeriesCriteriaMatch> {
+    return MonitorResourceUtil.claimUnclaimedSeries({
+      ...input,
+      kind: MonitorRecordKind.Alert,
+      evaluationSummary: emptySummary(),
+    });
+  }
 
   function match(fingerprint: string): PerSeriesCriteriaMatch {
     return {
@@ -555,15 +574,17 @@ describe("MonitorResourceUtil de-escalation", () => {
   }
 
   it("a host claimed by the critical band is not claimed again by warning", () => {
-    const claimed: Set<string> = new Set<string>();
+    const claimed: SeriesClaims = new Map();
 
     const critical: Array<PerSeriesCriteriaMatch> = claimUnclaimedSeries({
+      criteriaInstance: CRITICAL,
       matches: [match("fp-host-a")],
       claimed,
       isClaiming: true,
     });
 
     const warning: Array<PerSeriesCriteriaMatch> = claimUnclaimedSeries({
+      criteriaInstance: WARNING,
       matches: [match("fp-host-a"), match("fp-host-b")],
       claimed,
       isClaiming: true,
@@ -582,16 +603,40 @@ describe("MonitorResourceUtil de-escalation", () => {
     ).toEqual(["fp-host-b"]);
   });
 
-  it("a criteria that creates nothing claims nothing", () => {
-    const claimed: Set<string> = new Set<string>();
+  it("a criteria that reads another metric is no band of them, and claims the host for itself", () => {
+    const claimed: SeriesClaims = new Map();
 
     claimUnclaimedSeries({
+      criteriaInstance: CRITICAL,
+      matches: [match("fp-host-a")],
+      claimed,
+      isClaiming: true,
+    });
+
+    expect(
+      claimUnclaimedSeries({
+        criteriaInstance: OTHER_METRIC,
+        matches: [match("fp-host-a")],
+        claimed,
+        isClaiming: true,
+      }).map((m: PerSeriesCriteriaMatch) => {
+        return m.fingerprint;
+      }),
+    ).toEqual(["fp-host-a"]);
+  });
+
+  it("a criteria that creates nothing claims nothing", () => {
+    const claimed: SeriesClaims = new Map();
+
+    claimUnclaimedSeries({
+      criteriaInstance: CRITICAL,
       matches: [match("fp-host-a")],
       claimed,
       isClaiming: false,
     });
 
     const alerting: Array<PerSeriesCriteriaMatch> = claimUnclaimedSeries({
+      criteriaInstance: WARNING,
       matches: [match("fp-host-a")],
       claimed,
       isClaiming: true,

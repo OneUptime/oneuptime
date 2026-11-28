@@ -37,6 +37,7 @@ Procure na tabela abaixo a mensagem que o Terraform exibiu, ou o que você viu a
 | `Not an ID` | Faça referência ao registro em vez de nomeá-lo: veja [Um nome onde vai um ID](#um-nome-onde-vai-um-id) |
 | JSON do painel em um arquivo `.tf` | Escreva-o em HCL: veja [JSON do painel](#json-do-painel) |
 | `no available releases match the given constraints` | Use um intervalo de versões, não uma única versão exata: veja [Uma versão que nunca foi publicada](#uma-versão-que-nunca-foi-publicada) |
+| `checksum list has unexpected SHA-256 hash` | Use outra versão do provider: veja [Uma versão cujos checksums não batem](#uma-versão-cujos-checksums-não-batem) |
 | `x509: certificate signed by unknown authority` | Confie na sua autoridade certificadora: veja [Certificados](#certificados) |
 | `invalid character '<' looking for beginning of value` | Aponte `oneuptime_url` para o próprio OneUptime: veja [Uma página web no lugar da API](#uma-página-web-no-lugar-da-api) |
 | `connection refused` ou `Client.Timeout exceeded` | Verifique o endereço, a rede e qualquer proxy: veja [Conexões que falham](#conexões-que-falham) |
@@ -238,6 +239,14 @@ terraform {
 ```
 
 Em um OneUptime auto-hospedado, limite o intervalo à versão do seu OneUptime, como mostra a [Configuração auto-hospedada](/docs/terraform/self-hosted#escolher-a-versão-do-provider). [Uso do registro](/docs/terraform/registry#como-as-versões-são-numeradas) explica como as versões são numeradas.
+
+### Uma versão cujos checksums não batem
+
+`checksum list has unexpected SHA-256 hash` significa que os arquivos que a versão publicada serve não são os que o registro leu quando a versão foi publicada. O registro guarda os checksums que leu naquela hora, e `init` confere cada download com eles. Os arquivos de 14.3.0, 16.0.0, 17.0.0, 17.1.0 e 17.2.0, e de algumas versões mais antigas de 11.x a 14.0.x, foram compilados e enviados uma segunda vez depois que os registros os leram, então `init` recusa essas versões em todas as plataformas, tanto no Terraform quanto no OpenTofu. Um arquivo de lock não passa por cima disso: `init` compara o checksum do registro com o da versão publicada antes de ler o arquivo de lock.
+
+Use outra versão: 17.3.0 ou mais nova, ou 15.0.0. Um intervalo que permite uma versão mais nova a pega com `terraform init -upgrade`. Quando uma versão dessas é publicada de novo, é como a próxima versão de patch, por exemplo 17.2.1 para 17.2.0, com o mesmo provider dentro, e um intervalo que permite esse patch o pega.
+
+Para conferir uma versão antes de usá-la, veja [Verificar os checksums de uma versão](/docs/terraform/registry#verificar-os-checksums-de-uma-versão).
 
 ## Conectar a um OneUptime auto-hospedado
 

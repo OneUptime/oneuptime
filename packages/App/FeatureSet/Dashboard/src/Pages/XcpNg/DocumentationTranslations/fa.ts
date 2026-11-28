@@ -54,6 +54,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_NAME` | خیر | نام این Xen Orchestra در OneUptime که در تنظیمات هر یک از استخرهایش نشان داده می‌شود (پیش‌فرض: نشانی آن) |",
   "| `XO_TLS_SERVER_NAME` | No | The name Xen Orchestra's certificate is checked against, when `XO_ADDRESS` is an address the certificate does not list |":
     "| `XO_TLS_SERVER_NAME` | خیر | نامی که گواهی Xen Orchestra با آن بررسی می‌شود، وقتی `XO_ADDRESS` نشانی‌ای است که در گواهی نیامده |",
+  "| `XCP_NG_AGENT_CONTAINER_NAME` | No | The agent's container name (default: `oneuptime-xcp-ng-agent`). A second Xen Orchestra's agent on the same machine needs one of its own: the install script names a new agent after its folder unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AGENT_CONTAINER_NAME` | خیر | نام کانتینر عامل (پیش‌فرض: `oneuptime-xcp-ng-agent`). عامل یک Xen Orchestra دوم روی همان ماشین به نام خودش نیاز دارد: اسکریپت نصب، اگر آن را تنظیم نکنید، عامل تازه را به نام پوشه‌اش می‌نامد و وقتی اسکریپت را دوباره اجرا می‌کنید آن را نگه می‌دارد |",
   "| `XO_URL` | Install script | Xen Orchestra's address as typed; the script derives `XO_SCHEME` and `XO_ADDRESS` from it |":
     "| `XO_URL` | اسکریپت نصب | نشانی Xen Orchestra همان‌طور که تایپ شده؛ اسکریپت `XO_SCHEME` و `XO_ADDRESS` را از آن به دست می‌آورد |",
   "| `XO_TLS_FINGERPRINT` | Install script | The SHA-256 fingerprint of Xen Orchestra's own certificate, when the agent trusts that certificate and nothing else |":
@@ -82,6 +84,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `LOG_LEVEL` | خیر | سطح لاگ عامل هوش مصنوعی: `debug`، `info` (پیش‌فرض)، `warn` یا `error` |",
   "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
     "| `COMPOSE_PROFILES` | خیر | `xcp-ng-ai-agent` عامل هوش مصنوعی را راه می‌اندازد؛ اسکریپت نصب آن را وقتی توکن خواندن تنظیم شده باشد می‌نویسد |",
+  "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-xcp-ng-ai-agent`). The install script names a second Xen Orchestra's AI agent after its collector (`oneuptime-xcp-ng-ai-agent-lab` beside `oneuptime-xcp-ng-agent-lab`) unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AI_AGENT_CONTAINER_NAME` | خیر | نام کانتینر عامل هوش مصنوعی (پیش‌فرض: `oneuptime-xcp-ng-ai-agent`). اسکریپت نصب، اگر آن را تنظیم نکنید، عامل هوش مصنوعی یک Xen Orchestra دوم را به نام کالکتورش می‌نامد (`oneuptime-xcp-ng-ai-agent-lab` کنار `oneuptime-xcp-ng-agent-lab`) و وقتی اسکریپت را دوباره اجرا می‌کنید آن را نگه می‌دارد |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "عامل گواهی Xen Orchestra را با `xo-ca.pem` کنار `docker-compose.yml` بررسی می‌کند.",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":
@@ -117,8 +121,10 @@ const TRANSLATION: SetupGuideTranslation = {
     "OneUptime برای هر استخر چهار سری 0/1 می‌افزاید که قالب‌های هشدار آن‌ها را می‌خوانند: `xcp_ng.host.running`، `xcp_ng.host.enabled`، `xcp_ng.vm.running` و `xcp_ng.vm.stopped_after_running` (VM متوقف یا مکث‌شده‌ای که در روز گذشته اجرا شده بود). همچنین روی هر نقطه `xcp_ng.scope` (`pool`، `host`، `vm`، `sr`، `vdi` یا `xostor`) و `xcp_ng.id` (UUID آن شیء) را می‌زند که مانیتورها و داشبوردها بر اساس آن‌ها فیلتر می‌کنند.",
   "Not kept: Xen Orchestra's own process series (`xo_*`), which belong to no pool, and a host's power read over IPMI, which the plugin sends without its pool. Each VM's estimated share of it is kept.":
     "نگه داشته نمی‌شود: سری‌های فرایند خود Xen Orchestra (`xo_*`)، که به هیچ استخری تعلق ندارند، و توان میزبان که از طریق IPMI خوانده می‌شود و افزونه آن را بدون استخرش می‌فرستد. سهم برآوردشده هر VM از آن نگه داشته می‌شود.",
-  "One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with its own `container_name` in its `docker-compose.yml`:":
-    "یک عامل یک Xen Orchestra و هر استخری را که آن مدیریت می‌کند می‌خواند. برای Xen Orchestra دوم، عامل دومی را در پوشه‌ای جداگانه نصب کنید، با `container_name` خودش در `docker-compose.yml` خودش:",
+  "One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with a container name of its own — two containers cannot share one:":
+    "یک عامل یک Xen Orchestra و هر استخری را که آن مدیریت می‌کند می‌خواند. برای Xen Orchestra دوم، عامل دومی را در پوشه‌ای جداگانه و با نام کانتینر خودش نصب کنید، چون دو کانتینر نمی‌توانند یک نام داشته باشند:",
+  "Without `XCP_NG_AGENT_CONTAINER_NAME`, the script names the container after the folder. It keeps the name in that agent's `.env`, so running the script again to upgrade the agent keeps it, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. With Docker Compose, set `XCP_NG_AGENT_CONTAINER_NAME` in each agent's `.env` instead.":
+    "بدون `XCP_NG_AGENT_CONTAINER_NAME`، اسکریپت نام کانتینر را از روی پوشه می‌گذارد. اسکریپت این نام را در `.env` همان عامل نگه می‌دارد، پس اجرای دوباره اسکریپت برای ارتقای عامل آن را حفظ می‌کند، و عاملی که `container_name` آن را زمانی در `docker-compose.yml` ویرایش کرده‌اید همان نام را نگه می‌دارد. با Docker Compose، به‌جای آن `XCP_NG_AGENT_CONTAINER_NAME` را در `.env` هر عامل تنظیم کنید.",
   "Don't let two Xen Orchestras that manage the same pool both be read: the pool is one pool in OneUptime, by its UUID, and would be reported twice.":
     "نگذارید دو Xen Orchestra که یک استخر را مدیریت می‌کنند هر دو خوانده شوند: آن استخر بر اساس UUID خود در OneUptime یک استخر است و دو بار گزارش می‌شد.",
   "Any resource attribute prefixed with `oneuptime.label.` becomes a project label on each pool the agent reads: `oneuptime.label.<dimension>=<value>` is the label `<dimension>:<value>`. Add them to the `resource` processor in `otel-collector-config.yaml`, next to `oneuptime.agent.version`:":

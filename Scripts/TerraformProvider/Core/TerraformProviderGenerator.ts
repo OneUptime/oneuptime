@@ -95,6 +95,21 @@ clean:
   }
 
   private async generateGoReleaserConfig(): Promise<void> {
+    /*
+     * Builds the same zips every time it builds the same commit, with the
+     * same Go and GoReleaser (#11016). GoReleaser stamped each file in a zip
+     * with when it was built (the binary) or checked out (LICENSE and
+     * README.md), so a second build of a tagged commit made other zips, with
+     * the same files in them, and a SHA256SUMS of other hashes. The Terraform
+     * and OpenTofu registries keep the hashes they read when a version is
+     * published, and a second release run of 14.3.0, 16.0.0, 17.0.0, 17.1.0
+     * and 17.2.0 uploaded its build over theirs: init failed with "checksum
+     * list has unexpected SHA-256 hash". So every file is stamped with the
+     * commit's time instead: mod_timestamp for the binary, and mtime for the
+     * two files beside it, which `files` lists for that (and nothing else
+     * goes in a zip). -trimpath keeps the checkout's path out of the binary.
+     * Tests/GoReleaserConfig.test.ts builds a provider twice with it.
+     */
     const goReleaserContent: string = `
 # GoReleaser config for Terraform Provider
 # Used for parallel cross-compilation during CI builds
@@ -108,6 +123,9 @@ env:
 builds:
   - binary: terraform-provider-${this.config.providerName}
     main: ./
+    # The binary's time is the commit's, not the build's: the same commit
+    # builds the same zip.
+    mod_timestamp: "{{ .CommitTimestamp }}"
     goos:
       - darwin
       - linux
@@ -140,6 +158,17 @@ archives:
   - formats:
       - zip
     name_template: "terraform-provider-${this.config.providerName}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    # Beside the binary, with the commit's time too: from the disk they bring
+    # when they were checked out.
+    files:
+      - src: LICENSE
+        info:
+          mtime: "{{ .CommitDate }}"
+          mode: 0644
+      - src: README.md
+        info:
+          mtime: "{{ .CommitDate }}"
+          mode: 0644
 
 checksum:
   name_template: "terraform-provider-${this.config.providerName}_{{ .Version }}_SHA256SUMS"

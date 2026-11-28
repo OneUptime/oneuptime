@@ -37,6 +37,7 @@ Zoek in de tabel hieronder de melding op die Terraform toonde, of wat je zag geb
 | `Not an ID` | Verwijs naar het record in plaats van het te noemen: zie [Een naam waar een ID hoort](#een-naam-waar-een-id-hoort) |
 | JSON uit het dashboard in een `.tf`-bestand | Schrijf het als HCL: zie [JSON uit het dashboard](#json-uit-het-dashboard) |
 | `no available releases match the given constraints` | Gebruik een versiebereik, niet één exacte versie: zie [Een versie die nooit is gepubliceerd](#een-versie-die-nooit-is-gepubliceerd) |
+| `checksum list has unexpected SHA-256 hash` | Gebruik een andere versie van de provider: zie [Een versie waarvan de checksums niet kloppen](#een-versie-waarvan-de-checksums-niet-kloppen) |
 | `x509: certificate signed by unknown authority` | Vertrouw je certificaatautoriteit: zie [Certificaten](#certificaten) |
 | `invalid character '<' looking for beginning of value` | Laat `oneuptime_url` naar je OneUptime zelf wijzen: zie [Een webpagina in plaats van de API](#een-webpagina-in-plaats-van-de-api) |
 | `connection refused` of `Client.Timeout exceeded` | Controleer het adres, het netwerk en een eventuele proxy: zie [Verbindingen die mislukken](#verbindingen-die-mislukken) |
@@ -238,6 +239,14 @@ terraform {
 ```
 
 Begrens het bereik op een zelf gehoste OneUptime op de versie van je OneUptime, zoals [Zelf gehoste installatie](/docs/terraform/self-hosted#de-providerversie-kiezen) laat zien. [Registergebruik](/docs/terraform/registry#hoe-versies-worden-genummerd) legt uit hoe versies worden genummerd.
+
+### Een versie waarvan de checksums niet kloppen
+
+`checksum list has unexpected SHA-256 hash` betekent dat de bestanden die de release voor die versie levert niet de bestanden zijn die het register las toen de versie werd gepubliceerd. Het register bewaart de checksums die het toen las, en `init` controleert elke download daartegen. De bestanden van 14.3.0, 16.0.0, 17.0.0, 17.1.0 en 17.2.0, en van enkele oudere versies van 11.x tot 14.0.x, zijn een tweede keer gebouwd en geüpload nadat de registers ze hadden gelezen, dus `init` weigert die versies op elk platform, onder Terraform en OpenTofu gelijk. Een lockbestand komt daar niet langs: `init` vergelijkt de checksum van het register met die van de release voordat het het lockbestand leest.
+
+Gebruik een andere versie: 17.3.0 of nieuwer, of 15.0.0. Een bereik dat een nieuwere versie toestaat, neemt die met `terraform init -upgrade`. Wordt zo'n versie opnieuw gepubliceerd, dan als de volgende patchversie, zoals 17.2.1 voor 17.2.0, met dezelfde provider erin, en een bereik dat die patch toestaat, neemt hem mee.
+
+Om een versie te controleren voordat je haar gebruikt, zie [De checksums van een versie controleren](/docs/terraform/registry#de-checksums-van-een-versie-controleren).
 
 ## Verbinden met een zelf gehoste OneUptime
 

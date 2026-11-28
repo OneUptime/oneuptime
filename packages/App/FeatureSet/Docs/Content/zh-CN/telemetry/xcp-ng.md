@@ -109,6 +109,7 @@ XO_ADDRESS=xo.example.com
 XO_OPENMETRICS_SECRET='your-plugin-secret'
 XO_NAME='Xen Orchestra'
 XO_TLS_SERVER_NAME=
+XCP_NG_AGENT_CONTAINER_NAME=oneuptime-xcp-ng-agent
 ```
 
 `XO_ADDRESS` 是 Xen Orchestra 的 `host` 或 `host:port`，不带 `https://`。请用单引号括起插件的密钥，并把其中的每个 `$` 写成 `$$`：收集器会再读取一次该值，会把 `$` 当作变量的开头。含有 `'` 的密钥无法放在单引号中：请让安装脚本来写入它，或在 Xen Orchestra 中选择另一个密钥。
@@ -208,6 +209,8 @@ key = '/etc/ssl/xo/key.pem'
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | 否 | 同上，用于 OneUptime AI 绝不能更改的内容，无论由谁批准：AI 代理运行所在的虚拟机，以及 Xen Orchestra 自己的虚拟机。 |
 | `LOG_LEVEL` | 否 | AI 代理的日志级别：`debug`、`info`（默认）、`warn` 或 `error`。 |
 | `COMPOSE_PROFILES` | 否 | `xcp-ng-ai-agent` 会启动 AI 代理。安装脚本会在设置了读取令牌时写入它，未设置时将其移除。 |
+| `XCP_NG_AGENT_CONTAINER_NAME` | 否 | 代理的容器名称。默认是 `oneuptime-xcp-ng-agent`。同一台机器上第二个 Xen Orchestra 的代理需要自己的容器名称：参见 [读取多个 Xen Orchestra](#读取多个-xen-orchestra)。除非你自行设置，否则安装脚本会按新代理的文件夹为它命名，并在你再次运行脚本时保留该名称。 |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理的容器名称。默认是 `oneuptime-xcp-ng-ai-agent`。除非你自行设置，否则安装脚本会按第二个 Xen Orchestra 的收集器为其 AI 代理命名，例如 `oneuptime-xcp-ng-ai-agent-lab` 与 `oneuptime-xcp-ng-agent-lab` 并列，并在你再次运行脚本时保留该名称。 |
 
 ## 代理采集的内容
 
@@ -304,7 +307,7 @@ processors:
 
 ## 读取多个 Xen Orchestra
 
-一个代理读取一个 Xen Orchestra 及其管理的每个资源池。要从同一台机器读取第二个 Xen Orchestra，请在单独的文件夹中用单独的 `.env` 安装第二个代理，例如 `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh`，并为它指定自己的 `container_name`，写在它的 `docker-compose.yml` 中（例如 `oneuptime-xcp-ng-agent-lab`）：两个容器不能同名。给每个代理指定自己的 `XO_NAME`，这样每个资源池的 **设置** 会显示是哪个 Xen Orchestra 在读取它，并用 `-d` 把文件夹传给诊断脚本。
+一个代理读取一个 Xen Orchestra 及其管理的每个资源池。要从同一台机器读取第二个 Xen Orchestra，请在单独的文件夹中用单独的 `.env` 和单独的容器名称安装第二个代理，因为两个容器不能同名：`INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab XCP_NG_AGENT_CONTAINER_NAME=oneuptime-xcp-ng-agent-lab bash install.sh`。若未设置 `XCP_NG_AGENT_CONTAINER_NAME`，脚本会按文件夹为容器命名，在此例中就是同一个名称。它会把名称保存在该代理的 `.env` 中，所以再次运行脚本来升级代理时也会保留它；而若代理的 `container_name` 曾由你在 `docker-compose.yml` 中编辑过，它也会保留那个名称。使用 Docker Compose 时，请改为将 `XCP_NG_AGENT_CONTAINER_NAME` 设置在每个代理的 `.env` 中。给每个代理指定自己的 `XO_NAME`，这样每个资源池的 **设置** 会显示是哪个 Xen Orchestra 在读取它，并用 `-d` 把文件夹传给诊断脚本。
 
 切勿让两个代理通过同时管理同一资源池的两个 Xen Orchestra 读取该资源池：按其 UUID 它在 OneUptime 中是一个资源池，会被重复报告。
 
@@ -335,7 +338,7 @@ sudo systemctl enable --now oneuptime-xcp-ng-agent
 
 代理会把其文件固定的收集器版本作为 **代理版本** 上报，显示在每个资源池的 **概览** 和 **设置** 中。当它比此 OneUptime 版本固定的版本旧时，旁边会出现一个警告标记。选择它即可看到下面这些命令。
 
-收集器镜像固定在 `docker-compose.yml` 中，其配置是旁边的一个文件，所以仅拉取镜像并不能让代理升级。请重新运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再次询问），以同样的方式校验 Xen Orchestra 的证书，刷新 `docker-compose.yml` 和 `otel-collector-config.yaml`（你编辑过的文件会保留为 `<file>.bak.<timestamp>`），拉取镜像并重新创建代理，让收集器读取新配置。安装在 `/opt/oneuptime-xcp-ng-agent` 以外的代理需要指定其文件夹：`INSTALL_DIR=<folder> bash install.sh`。
+收集器镜像固定在 `docker-compose.yml` 中，其配置是旁边的一个文件，所以仅拉取镜像并不能让代理升级。请重新运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再次询问），以同样的方式校验 Xen Orchestra 的证书，刷新 `docker-compose.yml` 和 `otel-collector-config.yaml`（你编辑过的文件会保留为 `<file>.bak.<timestamp>`），拉取镜像并重新创建代理，让收集器读取新配置。安装在 `/opt/oneuptime-xcp-ng-agent` 以外的代理需要指定其文件夹：`INSTALL_DIR=<folder> bash install.sh`。它会保留自己的容器名称。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/xcp-ng-agent -o install.sh
