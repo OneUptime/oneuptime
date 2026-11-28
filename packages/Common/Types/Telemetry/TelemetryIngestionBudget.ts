@@ -1069,6 +1069,43 @@ export interface TelemetryIngestionBudgetScopeStatus {
   signals: Array<TelemetryIngestionBudgetSignalStatus>;
 }
 
+/*
+ * What OneUptime refused of one of the project's signals while it caught
+ * up (issue #11440), as the status API answers it: no budget of the
+ * project's, but too much of the signal waiting to be stored, or the
+ * telemetry queue nearly full for everyone (TelemetryIngestShedding). The
+ * ingest endpoints count each refusal against the key that sent it
+ * (TelemetryIngestionKeyRefusal); this is every key's, added up. firstAt is
+ * when the latest stretch of refusals began, lastAt the latest refusal, a
+ * few minutes behind at most (TelemetryIngestRefusalRecorder writes in
+ * batches).
+ */
+export interface TelemetryIngestionQueueRefusalStatus {
+  signal: TelemetryIngestionBudgetSignal;
+  kind: TelemetryIngestionQueueRefusalKind;
+  refusedRequests: number;
+  // ISO instants.
+  firstRefusedAt: string;
+  lastRefusedAt: string;
+}
+
+/*
+ * How far back the status looks for what the queue refused: the day the
+ * Usage page tells of. The explorers' banner tells only of a refusal far
+ * newer (TELEMETRY_INGESTION_QUEUE_REFUSAL_CURRENT_MS).
+ */
+export const TELEMETRY_INGESTION_QUEUE_REFUSAL_LOOKBACK_MS: number =
+  24 * 60 * 60 * 1000;
+
+/*
+ * A refusal this recent says the queue is refusing the signal still: a
+ * process refused again and again writes its count every five minutes
+ * (REFUSAL_WRITE_INTERVAL_MS), so two of those, and a little more, hold
+ * the latest refusal of a stretch that has not ended.
+ */
+export const TELEMETRY_INGESTION_QUEUE_REFUSAL_CURRENT_MS: number =
+  11 * 60 * 1000;
+
 export interface TelemetryIngestionBudgetStatus {
   // The budget day the figures are for (ISO instants).
   dayStartsAt: string;
@@ -1083,7 +1120,32 @@ export interface TelemetryIngestionBudgetStatus {
   ingestionKeys: Array<TelemetryIngestionBudgetScopeStatus>;
   // Each team and label of the project with a budget of its own (#6386).
   teamsAndLabels: Array<TelemetryIngestionBudgetScopeStatus>;
+  /*
+   * What the telemetry queue refused of each signal in the past day
+   * (#11440), the latest refusal first. Empty when nothing was; left out
+   * by a server, or a reader, that does not tell (read as empty).
+   */
+  queueRefusals?: Array<TelemetryIngestionQueueRefusalStatus> | undefined;
 }
+
+/*
+ * Whether a queue refusal is recent enough to say the signal is still
+ * refused (TELEMETRY_INGESTION_QUEUE_REFUSAL_CURRENT_MS).
+ */
+export const isTelemetryIngestionQueueRefusalCurrent: (data: {
+  refusal: TelemetryIngestionQueueRefusalStatus;
+  now: Date;
+}) => boolean = (data: {
+  refusal: TelemetryIngestionQueueRefusalStatus;
+  now: Date;
+}): boolean => {
+  const lastAt: number = Date.parse(data.refusal.lastRefusedAt);
+
+  return (
+    Number.isFinite(lastAt) &&
+    data.now.getTime() - lastAt <= TELEMETRY_INGESTION_QUEUE_REFUSAL_CURRENT_MS
+  );
+};
 
 const isStatusRecord: (value: unknown) => value is Record<string, unknown> = (
   value: unknown,
@@ -1299,6 +1361,75 @@ const readTeamLabelStatuses: (
 };
 
 /*
+ * What the queue refused, as the reading side gets it: each entry with a
+ * signal, a kind of queue refusal and the instants it says, once per signal
+ * and kind (the first kept), the latest refusal first. A count that is not
+ * a whole number above nought is 1: the entry is there because something
+ * was refused.
+ */
+const readQueueRefusalStatuses: (
+  value: unknown,
+) => Array<TelemetryIngestionQueueRefusalStatus> = (
+  value: unknown,
+): Array<TelemetryIngestionQueueRefusalStatus> => {
+  const entries: Array<unknown> = Array.isArray(value) ? value : [];
+  const refusals: Array<TelemetryIngestionQueueRefusalStatus> = [];
+  const read: Set<string> = new Set<string>();
+
+  for (const entry of entries) {
+    if (
+      !isStatusRecord(entry) ||
+      !isTelemetryIngestionBudgetSignal(entry["signal"]) ||
+      !isTelemetryIngestionQueueRefusalKind(entry["kind"])
+    ) {
+      continue;
+    }
+
+    const lastRefusedAt: string | null = readStatusInstant(
+      entry["lastRefusedAt"],
+    );
+
+    if (!lastRefusedAt) {
+      continue;
+    }
+
+    const id: string = `${entry["signal"]}:${entry["kind"]}`;
+
+    if (read.has(id)) {
+      continue;
+    }
+
+    read.add(id);
+
+    const count: number | null = readStatusFigure(entry["refusedRequests"]);
+    const firstRefusedAt: string | null = readStatusInstant(
+      entry["firstRefusedAt"],
+    );
+
+    refusals.push({
+      signal: entry["signal"],
+      kind: entry["kind"],
+      refusedRequests: count !== null && count >= 1 ? Math.floor(count) : 1,
+      firstRefusedAt:
+        firstRefusedAt &&
+        Date.parse(firstRefusedAt) <= Date.parse(lastRefusedAt)
+          ? firstRefusedAt
+          : lastRefusedAt,
+      lastRefusedAt: lastRefusedAt,
+    });
+  }
+
+  return refusals.sort(
+    (
+      a: TelemetryIngestionQueueRefusalStatus,
+      b: TelemetryIngestionQueueRefusalStatus,
+    ): number => {
+      return Date.parse(b.lastRefusedAt) - Date.parse(a.lastRefusedAt);
+    },
+  );
+};
+
+/*
  * A status as the reading side gets it: off the network, where a proxy, an
  * older server or a test double can answer anything at all. null when the
  * answer is not a status - no project with a list of its signals, or no
@@ -1363,6 +1494,8 @@ export const readTelemetryIngestionBudgetStatus: (
     ingestionKeys: ingestionKeys,
     // An older server sends none: no team or label has a budget there.
     teamsAndLabels: readTeamLabelStatuses(value["teamsAndLabels"]),
+    // And no queue refusals: it does not tell of them.
+    queueRefusals: readQueueRefusalStatuses(value["queueRefusals"]),
   };
 };
 
@@ -1373,12 +1506,40 @@ export enum TelemetryIngestionBudgetRefusalKind {
   RateLimited = "rate-limited",
   /*
    * Not a budget the project set: too many of the project's batches of the
-   * signal already wait in the telemetry queue, or the queue is nearly full
-   * for everyone (TelemetryIngestShedding). Retryable after
-   * retryAfterSeconds, like a rate.
+   * signal already wait in the telemetry queue (TelemetryIngestShedding).
+   * Retryable after retryAfterSeconds, like a rate.
    */
   QueueBacklogged = "queue-backlogged",
+  /*
+   * Not the project's doing either: the telemetry queue is nearly full for
+   * every project (TelemetryIngestShedding). Retryable the same way.
+   */
+  QueueFull = "queue-full",
 }
+
+/*
+ * The refusals of the telemetry queue rather than of a budget: what
+ * OneUptime refuses while it catches up (issue #11440).
+ */
+export type TelemetryIngestionQueueRefusalKind =
+  | TelemetryIngestionBudgetRefusalKind.QueueBacklogged
+  | TelemetryIngestionBudgetRefusalKind.QueueFull;
+
+export const TELEMETRY_INGESTION_QUEUE_REFUSAL_KINDS: ReadonlyArray<TelemetryIngestionQueueRefusalKind> =
+  [
+    TelemetryIngestionBudgetRefusalKind.QueueBacklogged,
+    TelemetryIngestionBudgetRefusalKind.QueueFull,
+  ];
+
+export const isTelemetryIngestionQueueRefusalKind: (
+  value: unknown,
+) => value is TelemetryIngestionQueueRefusalKind = (
+  value: unknown,
+): value is TelemetryIngestionQueueRefusalKind => {
+  return TELEMETRY_INGESTION_QUEUE_REFUSAL_KINDS.includes(
+    value as TelemetryIngestionQueueRefusalKind,
+  );
+};
 
 // Whether a sender is told to retry the refused request.
 export const isRetryableTelemetryIngestionBudgetRefusal: (
@@ -1386,7 +1547,7 @@ export const isRetryableTelemetryIngestionBudgetRefusal: (
 ) => boolean = (kind: TelemetryIngestionBudgetRefusalKind): boolean => {
   return (
     kind === TelemetryIngestionBudgetRefusalKind.RateLimited ||
-    kind === TelemetryIngestionBudgetRefusalKind.QueueBacklogged
+    isTelemetryIngestionQueueRefusalKind(kind)
   );
 };
 

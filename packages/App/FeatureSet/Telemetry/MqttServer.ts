@@ -37,6 +37,11 @@ import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import { JSONObject } from "Common/Types/JSON";
 import MetricsQueueService from "./Services/Queue/MetricsQueueService";
+import { TelemetryIngestShedError } from "Common/Server/Utils/Telemetry/TelemetryIngestShedding";
+import {
+  QUEUE_REFUSAL_SURFACE_FOR_SIGNAL,
+  getTelemetryIngestRefusalReasonForBudget,
+} from "Common/Types/Telemetry/TelemetryIngestRefusal";
 import {
   MQTT_INGEST_ENABLED,
   MQTT_INGEST_PORT,
@@ -610,7 +615,26 @@ async function handleAuthorizePublish(
     url: "/mqtt/v1/metrics",
   };
 
-  await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
+  try {
+    await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
+  } catch (err) {
+    /*
+     * Refused while OneUptime catches up (TelemetryIngestShedding): counted
+     * against the key the client connected with, as the HTTP and gRPC
+     * ports count theirs (#11440), so the project's pages say so. A device
+     * credential names no key, and is counted nowhere.
+     */
+    if (err instanceof TelemetryIngestShedError && currentIngestionKey) {
+      TelemetryIngestRefusalRecorder.record({
+        projectId: currentIngestionKey.projectId,
+        ingestionKeyId: currentIngestionKey.ingestionKeyId,
+        reason: getTelemetryIngestRefusalReasonForBudget(err.refusal),
+        surface: QUEUE_REFUSAL_SURFACE_FOR_SIGNAL[err.refusal.signal],
+      });
+    }
+
+    throw err;
+  }
 
   /*
    * The key is now in use, so "Last Used At" and the guides' first-data
