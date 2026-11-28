@@ -299,7 +299,7 @@ const XcpNgHostOverview: FunctionComponent<ComponentProps> = (
                 `${translator.formatNumber(vmSummary.running)}/${translator.formatNumber(vmSummary.total)}`
               : undefined
           }
-          sublabel={tx("running")}
+          sublabel="running"
           description={XCP_NG_PAGE_DESCRIPTIONS.hostVms}
         />
         {watts !== null ? (
@@ -308,7 +308,7 @@ const XcpNgHostOverview: FunctionComponent<ComponentProps> = (
             icon={IconProp.Bolt}
             iconColor="amber"
             value={formatXcpNgWatts(watts)}
-            sublabel={tx("from the host's power sensor")}
+            sublabel="from the host's power sensor"
             description={XCP_NG_METRIC_DESCRIPTIONS.hostPower}
           />
         ) : (
