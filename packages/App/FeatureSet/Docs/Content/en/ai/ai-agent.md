@@ -53,7 +53,7 @@ Click **Start task**, or press Enter. The task's page opens, and AI's work shows
 | **Logs** | The latest 20 log lines that contain your search, from the last hour, day or week. |
 | **Performance profile** | Where a function's time goes in its service's profiles: who calls it, what it calls and its hottest lines. |
 
-A request carries at most 10 pieces of context. Tokens, keys, passwords and email addresses in what OneUptime reads are redacted before AI sees them, as everywhere OneUptime AI reads your data.
+A request carries at most 10 pieces of context. Tokens, keys, passwords, email addresses, phone numbers and Social Security numbers in what OneUptime reads are redacted before AI sees them, as everywhere OneUptime AI reads your data.
 
 ## A task's conversation
 
@@ -151,7 +151,7 @@ What the agent can read is decided by the OneUptime server, from the task itself
 
 - **Read only.** The queries run on the OneUptime server, never on the Runner, which holds no credential that reads telemetry. Nothing they do can change your project.
 - **This project, and only the services this repository serves.** You do not map them: they are the services OneUptime finds this repository for, the way it finds the repository of a fix - their exceptions' stack traces run through its files, they are named like it, or it is the project's only repository. Another service's telemetry cannot be read.
-- **No private incidents**, and tokens, keys, passwords and email addresses are redacted before the agent sees a result, as everywhere OneUptime AI reads your data.
+- **No private incidents**, and tokens, keys, passwords, email addresses, phone numbers and Social Security numbers are redacted before the agent sees a result, as everywhere OneUptime AI reads your data.
 - **What everyone may read.** What the agent finds lands in a pull request, which people outside your OneUptime roles may read. Where a team, custom role or API key reads services or incidents only by owner or by label, the agent leaves out those an owner or a label sets apart, unless its task is about them.
 - **Bounded.** By the run's time limit, and by **Tool Calls per Run** when the project sets it: each query is one tool call.
 

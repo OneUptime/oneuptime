@@ -53,7 +53,7 @@ Fai clic su **Avvia attività**, oppure premi Invio. Si apre la pagina dell'atti
 | **Log** | Le ultime 20 righe di log che contengono la tua ricerca, dell'ultima ora, dell'ultimo giorno o dell'ultima settimana. |
 | **Profilo di prestazioni** | Dove va il tempo di una funzione nei profili del suo servizio: chi la chiama, cosa chiama e le sue righe più calde. |
 
-Una richiesta porta al massimo 10 elementi di contesto. Token, chiavi, password e indirizzi email in ciò che OneUptime legge vengono oscurati prima che l'IA li veda, come ovunque OneUptime AI legga i tuoi dati.
+Una richiesta porta al massimo 10 elementi di contesto. Token, chiavi, password, indirizzi email, numeri di telefono e numeri di previdenza sociale in ciò che OneUptime legge vengono oscurati prima che l'IA li veda, come ovunque OneUptime AI legga i tuoi dati.
 
 ## La conversazione di un'attività
 
@@ -151,7 +151,7 @@ Cosa può leggere l'agente lo decide il server OneUptime, in base all'attività 
 
 - **Sola lettura.** Le query vengono eseguite sul server OneUptime, mai sul Runner, che non possiede alcuna credenziale per leggere la telemetria. Niente di ciò che fanno può modificare il tuo progetto.
 - **Questo progetto, e solo i servizi di questo repository.** Non sei tu ad associarli: sono i servizi per cui OneUptime trova questo repository, nello stesso modo in cui trova il repository di una correzione - gli stack trace delle loro eccezioni passano per i suoi file, hanno il suo stesso nome, oppure è l'unico repository del progetto. La telemetria di un altro servizio non si può leggere.
-- **Nessun incidente privato**, e token, chiavi, password e indirizzi email vengono oscurati prima che l'agente veda un risultato, come ovunque OneUptime AI legga i tuoi dati.
+- **Nessun incidente privato**, e token, chiavi, password, indirizzi email, numeri di telefono e numeri di previdenza sociale vengono oscurati prima che l'agente veda un risultato, come ovunque OneUptime AI legga i tuoi dati.
 - **Ciò che tutti possono leggere.** Ciò che l'agente trova finisce in una pull request, che possono leggere persone esterne ai tuoi ruoli di OneUptime. Dove un team, un ruolo personalizzato o una chiave API legge servizi o incidenti solo in base al proprietario o all'etichetta, l'agente esclude quelli che un proprietario o un'etichetta mette da parte, a meno che il suo compito non li riguardi.
 - **Limitato.** Dal limite di tempo dell'esecuzione e da **Chiamate agli strumenti per esecuzione**, quando il progetto lo imposta: ogni query è una chiamata a uno strumento.
 

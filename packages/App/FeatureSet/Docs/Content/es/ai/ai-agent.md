@@ -53,7 +53,7 @@ Haz clic en **Iniciar tarea** o pulsa Intro. Se abre la página de la tarea, y e
 | **Registros** | Las últimas 20 líneas de log que contienen tu búsqueda, de la última hora, el último día o la última semana. |
 | **Perfil de rendimiento** | Adónde va el tiempo de una función en los perfiles de su servicio: quién la llama, qué llama y sus líneas más calientes. |
 
-Una petición lleva como máximo 10 elementos de contexto. Los tokens, claves, contraseñas y direcciones de correo en lo que lee OneUptime se ocultan antes de que la IA los vea, como en todos los sitios donde OneUptime AI lee tus datos.
+Una petición lleva como máximo 10 elementos de contexto. Los tokens, claves, contraseñas, direcciones de correo, números de teléfono y números de la Seguridad Social en lo que lee OneUptime se ocultan antes de que la IA los vea, como en todos los sitios donde OneUptime AI lee tus datos.
 
 ## La conversación de una tarea
 
@@ -151,7 +151,7 @@ Lo que el agente puede leer lo decide el servidor de OneUptime, a partir de la p
 
 - **Solo lectura.** Las consultas se ejecutan en el servidor de OneUptime, nunca en el Runner, que no tiene ninguna credencial que lea telemetría. Nada de lo que hacen puede cambiar tu proyecto.
 - **Este proyecto, y solo los servicios de este repositorio.** No los asignas tú: son los servicios para los que OneUptime encuentra este repositorio, del mismo modo que encuentra el repositorio de una corrección - los stack traces de sus excepciones pasan por sus archivos, se llaman como él o es el único repositorio del proyecto. No se puede leer la telemetría de otro servicio.
-- **Sin incidentes privados**, y los tokens, claves, contraseñas y direcciones de correo se ocultan antes de que el agente vea un resultado, como en todos los sitios donde OneUptime AI lee tus datos.
+- **Sin incidentes privados**, y los tokens, claves, contraseñas, direcciones de correo, números de teléfono y números de la Seguridad Social se ocultan antes de que el agente vea un resultado, como en todos los sitios donde OneUptime AI lee tus datos.
 - **Lo que todos pueden leer.** Lo que encuentra el agente acaba en una pull request, que pueden leer personas ajenas a tus roles de OneUptime. Donde un equipo, un rol personalizado o una clave de API lee servicios o incidentes solo según el propietario o la etiqueta, el agente omite los que un propietario o una etiqueta apartan, salvo que su tarea trate de ellos.
 - **Acotado.** Por el límite de tiempo de la ejecución, y por **Llamadas a herramientas por ejecución** cuando el proyecto lo fija: cada consulta es una llamada a herramienta.
 

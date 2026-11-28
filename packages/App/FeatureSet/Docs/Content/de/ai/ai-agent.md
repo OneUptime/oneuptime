@@ -53,7 +53,7 @@ Klicken Sie auf **Aufgabe starten** oder drücken Sie die Eingabetaste. Die Seit
 | **Protokolle** | Die neuesten 20 Protokollzeilen, die Ihren Suchbegriff enthalten, aus der letzten Stunde, dem letzten Tag oder der letzten Woche. |
 | **Leistungsprofil** | Wohin die Zeit einer Funktion in den Profilen ihres Dienstes geht: wer sie aufruft, was sie aufruft und ihre heißesten Zeilen. |
 
-Eine Anfrage trägt höchstens 10 Kontextelemente. Token, Schlüssel, Passwörter und E-Mail-Adressen in dem, was OneUptime liest, werden geschwärzt, bevor die KI sie sieht, wie überall, wo OneUptime AI Ihre Daten liest.
+Eine Anfrage trägt höchstens 10 Kontextelemente. Token, Schlüssel, Passwörter, E-Mail-Adressen, Telefonnummern und Sozialversicherungsnummern in dem, was OneUptime liest, werden geschwärzt, bevor die KI sie sieht, wie überall, wo OneUptime AI Ihre Daten liest.
 
 ## Die Unterhaltung einer Aufgabe
 
@@ -151,7 +151,7 @@ Was der Agent lesen darf, entscheidet der OneUptime-Server anhand der Aufgabe se
 
 - **Nur lesend.** Die Abfragen laufen auf dem OneUptime-Server, nie auf dem Runner, der keine Zugangsdaten besitzt, mit denen sich Telemetrie lesen lässt. Nichts, was sie tun, kann Ihr Projekt ändern.
 - **Dieses Projekt, und nur die Dienste, die zu diesem Repository gehören.** Sie müssen sie nicht zuordnen: Es sind die Dienste, für die OneUptime dieses Repository findet, so wie es das Repository einer Korrektur findet - die Stack-Traces ihrer Ausnahmen laufen durch seine Dateien, sie heißen wie das Repository, oder es ist das einzige Repository des Projekts. Die Telemetrie eines anderen Dienstes lässt sich nicht lesen.
-- **Keine privaten Vorfälle**, und Token, Schlüssel, Passwörter und E-Mail-Adressen werden geschwärzt, bevor der Agent ein Ergebnis sieht, wie überall, wo OneUptime AI Ihre Daten liest.
+- **Keine privaten Vorfälle**, und Token, Schlüssel, Passwörter, E-Mail-Adressen, Telefonnummern und Sozialversicherungsnummern werden geschwärzt, bevor der Agent ein Ergebnis sieht, wie überall, wo OneUptime AI Ihre Daten liest.
 - **Was alle lesen dürfen.** Was der Agent findet, landet in einem Pull Request, den Personen außerhalb Ihrer OneUptime-Rollen lesen können. Wo ein Team, eine benutzerdefinierte Rolle oder ein API-Schlüssel Dienste oder Vorfälle nur nach Eigentümer oder Label liest, lässt der Agent die aus, die ein Eigentümer oder ein Label abgrenzt, es sei denn, seine Aufgabe betrifft sie.
 - **Begrenzt.** Durch das Zeitlimit der Ausführung und durch **Tool-Aufrufe pro Ausführung**, wenn das Projekt es festlegt: Jede Abfrage ist ein Tool-Aufruf.
 
