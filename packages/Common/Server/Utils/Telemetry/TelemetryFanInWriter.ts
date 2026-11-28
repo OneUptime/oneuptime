@@ -5,6 +5,7 @@ import { JSONObject } from "../../../Types/JSON";
 import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
 import Telemetry from "../Telemetry";
 import { nextInsertDedupToken } from "../AnalyticsDatabase/InsertDedupContext";
+import TelemetryInsertBackpressure from "./TelemetryInsertBackpressure";
 import TelemetryMilestones, {
   PendingTelemetryMilestones,
 } from "../Activation/TelemetryMilestones";
@@ -1120,10 +1121,19 @@ export class TelemetryFanInWriter {
       } catch (err) {
         lastError = err;
 
-        if (
-          !isRetryableInsertError(err) ||
-          attempt === this.options.retryMaxAttempts
-        ) {
+        const isRetryable: boolean = isRetryableInsertError(err);
+
+        /*
+         * Refused for overload, or out of reach, twice in a row: ClickHouse
+         * is pushing back, and the autoscaler is to stop scaling workers on
+         * the telemetry waiting for it (TelemetryInsertBackpressure). Not
+         * on the first: one blip that a retry gets past says nothing.
+         */
+        if (isRetryable && attempt >= 2) {
+          TelemetryInsertBackpressure.record();
+        }
+
+        if (!isRetryable || attempt === this.options.retryMaxAttempts) {
           break;
         }
 

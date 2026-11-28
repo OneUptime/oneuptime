@@ -13,6 +13,7 @@ import {
   DEFAULT_ASYNC_INSERT_MAX_DATA_SIZE_BYTES,
 } from "../../../../Server/Utils/Telemetry/TelemetryFanInWriter";
 import { runWithInsertDedup } from "../../../../Server/Utils/AnalyticsDatabase/InsertDedupContext";
+import TelemetryInsertBackpressure from "../../../../Server/Utils/Telemetry/TelemetryInsertBackpressure";
 import { JSONObject } from "../../../../Types/JSON";
 import { ClickHouseError, type ClickHouseSettings } from "@clickhouse/client";
 import { describe, expect, test } from "@jest/globals";
@@ -1048,6 +1049,94 @@ describe("TelemetryFanInWriter", () => {
         activeInserts: 0,
       });
     });
+  });
+});
+
+/*
+ * 2026-11-27: while ClickHouse refused inserts, KEDA scaled the workers on
+ * the backlog of telemetry it could not store, and every new worker added
+ * inserts. A writer whose insert ClickHouse refuses twice in a row marks it
+ * (TelemetryInsertBackpressure), and the autoscaler stops counting that
+ * telemetry.
+ */
+describe("marking ClickHouse as pushing back", () => {
+  test("an insert refused for overload twice in a row marks it", async () => {
+    const record: jest.SpyInstance = jest
+      .spyOn(TelemetryInsertBackpressure, "record")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    const target: TestTarget = makeTarget({
+      impl: failNTimesImpl(2, clickHouseError("252", "Too many parts")),
+    });
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000 }),
+    );
+
+    try {
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      await result.flushed;
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(3);
+      expect(record).toHaveBeenCalledTimes(1);
+    } finally {
+      record.mockRestore();
+    }
+  });
+
+  test("one blip a retry gets past marks nothing", async () => {
+    const record: jest.SpyInstance = jest
+      .spyOn(TelemetryInsertBackpressure, "record")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    const target: TestTarget = makeTarget({
+      impl: failNTimesImpl(1, clickHouseError("202")),
+    });
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000 }),
+    );
+
+    try {
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      await result.flushed;
+
+      expect(record).not.toHaveBeenCalled();
+    } finally {
+      record.mockRestore();
+    }
+  });
+
+  test("an insert ClickHouse refuses for its content is not pushing back", async () => {
+    const record: jest.SpyInstance = jest
+      .spyOn(TelemetryInsertBackpressure, "record")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    const target: TestTarget = makeTarget({
+      impl: failNTimesImpl(10, clickHouseError("60", "Unknown table")),
+    });
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000 }),
+    );
+
+    try {
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      await expect(result.flushed).rejects.toThrow();
+
+      expect(record).not.toHaveBeenCalled();
+    } finally {
+      record.mockRestore();
+    }
   });
 });
 
