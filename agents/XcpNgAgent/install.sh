@@ -348,10 +348,12 @@ reject_dollar() {
 #     before this run replaces it, else from the container this directory
 #     runs, else from the newest docker-compose.yml.bak.<timestamp> an
 #     earlier upgrade kept. An upgrade never takes a second agent's name away;
-#   - otherwise the directory's: oneuptime-xcp-ng-agent-<directory name>, or
-#     the directory's name itself when it starts with oneuptime-xcp-ng-agent.
-#     The default directory's is the default name, so a first agent is named
-#     as it always was.
+#   - otherwise the directory's: oneuptime-xcp-ng-agent-<project>, <project>
+#     being the name Compose gives the directory's project (see "The agent's
+#     Compose project" below: lab for /opt/lab), or the project's name itself
+#     when it starts with oneuptime-xcp-ng-agent. One directory is one
+#     project, and one name. The default directory's is the default name, so
+#     a first agent is named as it always was.
 # Every OneUptime agent container keeps oneuptime-xcp-ng-agent in its name
 # unless someone exports another, and the compose service is always
 # oneuptime-xcp-ng-agent: `docker compose ps` / `logs` in the directory find
@@ -429,18 +431,16 @@ backup_container_name() {
     printf '%s' "$found"
 }
 
-# The name of the installation directory, as a container name of this agent.
+# The installation directory's container name for this agent: after the
+# Compose project the directory runs (a-z 0-9 _ - only, so a container name
+# too, once it starts with this agent's name).
 directory_container_name() {
-    local dir="$INSTALL_DIR" base=""
-    while [ "${dir%/}" != "$dir" ] && [ -n "${dir%/}" ]; do
-        dir="${dir%/}"
-    done
-    base="$(printf '%s' "${dir##*/}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_.-' '-' \
-        | sed -e 's/--*/-/g' -e 's/^[-_.]*//' -e 's/[-_.]*$//')"
-    case "$base" in
+    local project=""
+    project="$(compose_project_name)"
+    case "$project" in
         "") printf '%s' "$DEFAULT_CONTAINER_NAME" ;;
-        "$DEFAULT_CONTAINER_NAME"*) printf '%s' "$base" ;;
-        *) printf '%s-%s' "$DEFAULT_CONTAINER_NAME" "$base" ;;
+        "$DEFAULT_CONTAINER_NAME"*) printf '%s' "$project" ;;
+        *) printf '%s-%s' "$DEFAULT_CONTAINER_NAME" "$project" ;;
     esac
 }
 
@@ -469,6 +469,74 @@ choose_container_name() {
             CONTAINER_NAME_SOURCE="its directory"
         fi
     fi
+}
+
+# ----------------------------------------------------------------------------
+# The agent's Compose project
+# ----------------------------------------------------------------------------
+# Compose names the project of a directory after the directory: lower case,
+# only a-z 0-9 _ and -, no leading _ or - ("Xen Lab (2)" is xenlab2), unless
+# COMPOSE_PROJECT_NAME says otherwise. Two directories of the same name are one
+# project to Compose, whatever their parents: the `up --force-recreate` below
+# would recreate the other directory's agent from this directory's files,
+# without a word. So an install whose project another directory runs stops
+# before it changes anything, and asks for a directory of another name.
+
+# The installation directory as Compose records it (an absolute path, with
+# no trailing /).
+absolute_install_dir() {
+    local dir="$INSTALL_DIR"
+    case "$dir" in
+        /*) ;;
+        *) dir="$(pwd)/$dir" ;;
+    esac
+    while [ "${dir%/}" != "$dir" ] && [ -n "${dir%/}" ]; do
+        dir="${dir%/}"
+    done
+    printf '%s' "$dir"
+}
+
+# The name of the Compose project the installation directory runs as.
+compose_project_name() {
+    local name="${COMPOSE_PROJECT_NAME:-}" dir=""
+    if [ -z "$name" ] && [ -f "$ENV_FILE" ]; then
+        name="$(dotenv_get COMPOSE_PROJECT_NAME "$ENV_FILE")"
+    fi
+    if [ -z "$name" ]; then
+        dir="$(absolute_install_dir)"
+        name="${dir##*/}"
+    fi
+    printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-' | sed 's/^[-_]*//'
+}
+
+# Whether $1 and $2 are one directory on this machine, however each is
+# spelled (a symlink, a trailing /).
+same_directory() {
+    local first="" second=""
+    first="$(cd "$1" 2>/dev/null && pwd -P)" || return 1
+    second="$(cd "$2" 2>/dev/null && pwd -P)" || return 1
+    [ "$first" = "$second" ]
+}
+
+# Another directory, still on this machine, whose containers run in the
+# Compose project this one would run in, or nothing. A directory that is
+# gone (the agent was moved) holds no agent but those containers, which are
+# this one's to replace.
+other_project_directory() {
+    local project="" here="" dir=""
+    project="$(compose_project_name)"
+    [ -n "$project" ] || return 0
+    here="$(absolute_install_dir)"
+    while IFS= read -r dir; do
+        dir="${dir%/}"
+        [ -n "$dir" ] && [ "$dir" != "$here" ] && [ -d "$dir" ] || continue
+        same_directory "$dir" "$here" && continue
+        printf '%s' "$dir"
+        return 0
+    done <<PROJECT_DIRECTORIES_EOF
+$(docker ps -a --filter "label=com.docker.compose.project=$project" \
+    --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | sort -u)
+PROJECT_DIRECTORIES_EOF
 }
 
 # Whether the compose file $1 differs from the one install.sh installed
@@ -766,6 +834,17 @@ if [ "$XCP_NG_AGENT_CONTAINER_NAME" != "$DEFAULT_CONTAINER_NAME" ]; then
             ;;
     esac
     echo ""
+fi
+
+# Another directory of the same name runs this directory's Compose project
+# (see "The agent's Compose project" above): stop before anything changes.
+OTHER_PROJECT_DIR="$(other_project_directory)"
+if [ -n "$OTHER_PROJECT_DIR" ]; then
+    echo "Error: $OTHER_PROJECT_DIR already runs containers in the Docker Compose project"
+    echo "\"$(compose_project_name)\": Compose names a project after its directory, and gives $INSTALL_DIR"
+    echo "that name too. Installing here would recreate them and run this agent in their place. Install"
+    echo "it into a directory of another name instead, e.g. INSTALL_DIR=$(absolute_install_dir)-2 bash install.sh"
+    exit 1
 fi
 
 # The collector runs in a container on Docker's bridge network: there,

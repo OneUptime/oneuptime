@@ -285,15 +285,19 @@ exec "$REAL_OPENSSL" "$@"
   /*
    * docker: the installer's compose calls are recorded (with the XO_*,
    * ONEUPTIME_* and XCP_NG_* variables Compose would see), and the doctor's
-   * probes run. It is also the engine's names, in $STUB_DIR/containers (one
-   * line per container: name, the directory whose compose project runs it,
-   * id): `compose up` gives the agent the name Compose would - the
-   * docker-compose.yml's container_name, a ${VAR:-default} read from the
-   * environment, else .env - and refuses, as Docker does, a name another
-   * directory's container holds; `compose ps -a -q` and `inspect -f
-   * {{.Name}}` answer from it. Every directory of $STUB_DIR shares it: one
-   * machine. $STUB_DIR/compose-ps, when there, is what `compose ps` says
-   * instead (the doctor's tests).
+   * probes run. It is also the engine's containers, in $STUB_DIR/containers
+   * (one line per container: name, the directory whose compose project runs
+   * it, id). A directory's project is its name, as Compose writes it (lower
+   * case, a-z 0-9 _ -, no leading _ or -), so two directories of one name
+   * are one project, as they are to Compose. `compose up` gives the agent
+   * the name Compose would - the docker-compose.yml's container_name, a
+   * ${VAR:-default} read from the environment, else .env - refuses, as
+   * Docker does, a name another project's container holds, and recreates
+   * the project's container; `compose ps -a -q`, `ps -a --filter
+   * label=com.docker.compose.project=...` (the working directories) and
+   * `inspect -f {{.Name}}` answer from it. Every directory of $STUB_DIR
+   * shares it: one machine. $STUB_DIR/compose-ps, when there, is what
+   * `compose ps` says instead (the doctor's tests).
    */
   writeExecutable(
     path.join(bin, "docker"),
@@ -302,6 +306,8 @@ printf '%s | %s\\n' "$PWD" "$*" >> "$STUB_DIR/docker.log"
 REGISTRY="$STUB_DIR/containers"
 touch "$REGISTRY"
 id_of() { printf '%s' "$1" | sha256sum | cut -c1-12; }
+# A directory's Compose project: its name, as Compose writes it.
+PROJECT_OF='function project(dir,  base) { base = dir; sub(/.*\\//, "", base); base = tolower(base); gsub(/[^a-z0-9_-]/, "", base); sub(/^[-_]+/, "", base); return base }'
 # The agent's container name as Compose reads ./docker-compose.yml: written
 # out, or \${VAR:-default} from the environment, else from ./.env.
 agent_container_name() {
@@ -327,18 +333,26 @@ agent_container_name() {
 }
 case "$1" in
   info) exit 0 ;;
+  ps)
+    case "$*" in
+      "ps -a --filter label=com.docker.compose.project="*)
+        want="\${4#label=com.docker.compose.project=}"
+        awk -F '\\t' -v want="$want" "$PROJECT_OF"' project($2) == want { print $2 }' "$REGISTRY"
+        ;;
+    esac
+    exit 0 ;;
   compose)
     case "$2" in
       up)
         printf 'compose up sees: %s\\n' "$(env | grep -E '^(XO_|ONEUPTIME_|XCP_NG_)' | sort | tr '\\n' ' ')" >> "$STUB_DIR/docker.log"
         name="$(agent_container_name)"
-        holder="$(awk -F '\\t' -v name="$name" '$1 == name { print $2 }' "$REGISTRY")"
-        if [ -n "$holder" ] && [ "$holder" != "$PWD" ]; then
+        holder="$(awk -F '\\t' -v name="$name" -v here="$PWD" "$PROJECT_OF"' $1 == name && project($2) != project(here) { print $2 }' "$REGISTRY")"
+        if [ -n "$holder" ]; then
           echo "Error response from daemon: Conflict. The container name \\"/$name\\" is already in use by container \\"$(id_of "$name|$holder")\\". You have to remove (or rename) that container to be able to reuse that name." >&2
           exit 1
         fi
-        # --force-recreate: the directory's container, under its new name.
-        awk -F '\\t' -v dir="$PWD" '$2 != dir' "$REGISTRY" > "$REGISTRY.new"
+        # --force-recreate: the project's container, under its new name.
+        awk -F '\\t' -v here="$PWD" "$PROJECT_OF"' project($2) != project(here)' "$REGISTRY" > "$REGISTRY.new"
         mv "$REGISTRY.new" "$REGISTRY"
         printf '%s\\t%s\\t%s\\n' "$name" "$PWD" "$(id_of "$name|$PWD")" >> "$REGISTRY"
         ;;
@@ -346,7 +360,7 @@ case "$1" in
         if [ -f "$STUB_DIR/compose-ps" ]; then
           cat "$STUB_DIR/compose-ps"
         elif [ "$*" = "compose ps -a -q oneuptime-xcp-ng-agent" ]; then
-          awk -F '\\t' -v dir="$PWD" '$2 == dir { print $3 }' "$REGISTRY"
+          awk -F '\\t' -v here="$PWD" "$PROJECT_OF"' project($2) == project(here) { print $3 }' "$REGISTRY"
         fi
         ;;
     esac
@@ -1738,6 +1752,58 @@ describe("install.sh keeps the name of an agent set up before .env held it", () 
     });
   });
 
+  test("a second agent in a directory of the first one's name stops before Xen Orchestra is asked anything", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const first = await pinnedAgent({
+      port,
+      dir,
+      installDirName: "prod/agent",
+    });
+    const requestsBefore = fake.requests.length;
+
+    const second = await install({
+      port,
+      dir,
+      installDirName: "lab/agent",
+      env: freshEnv(port, {
+        XO_TLS_FINGERPRINT: CERTS.selfSigned.fingerprint,
+        XO_NAME: "xo-lab",
+      }),
+    });
+
+    expect(second.status).toBe(1);
+    expect(second.output).toContain(
+      `Error: ${first.installDir} already runs containers in the Docker Compose project\n"agent": Compose names a project after its directory, and gives ${second.installDir}\nthat name too. Installing here would recreate them and run this agent in their place. Install\nit into a directory of another name instead, e.g. INSTALL_DIR=${second.installDir}-2 bash install.sh`,
+    );
+    expect(fake.requests.length).toBe(requestsBefore);
+    expect(fs.existsSync(second.installDir)).toBe(false);
+    expect(containersOn(dir)).toEqual({
+      [`${DEFAULT_CONTAINER}-agent`]: first.installDir,
+    });
+
+    // Its own upgrade is no other directory's.
+    const again = await install({ port, dir, installDirName: "prod/agent" });
+    await fake.close();
+    expect(again.status).toBe(0);
+    expect(again.output).not.toContain("already runs containers");
+  });
+
+  test("a new agent is named after the Compose project of its directory", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const result = await pinnedAgent({
+      port,
+      dir,
+      installDirName: "Xen Lab (2)",
+    });
+    await fake.close();
+
+    expect(dotenv(result.envFile, CONTAINER_VARIABLE)).toBe(
+      `${DEFAULT_CONTAINER}-xenlab2`,
+    );
+  });
+
   test("its helpers are the Storage Array agent's, for its own service and name", () => {
     const helper = (script, name) => {
       const match = new RegExp(
@@ -1758,6 +1824,10 @@ describe("install.sh keeps the name of an agent set up before .env held it", () 
       "backup_container_name",
       "directory_container_name",
       "only_container_name_edited",
+      "absolute_install_dir",
+      "compose_project_name",
+      "same_directory",
+      "other_project_directory",
     ]) {
       expect(helper(xcpNg, name)).toBe(helper(storageArray, name));
     }
