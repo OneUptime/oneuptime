@@ -102,7 +102,8 @@ function facts(
     logged?: ExposureReadsLogged;
     // When the exposure was found, when not FOUND_AT: which text of a law applies (#11425).
     foundAt?: Date;
-    holdsForAnother?: boolean;
+    // Whether a person said the data is held for another (#11427); undefined while nobody did.
+    holdsForAnother?: boolean | undefined;
   },
   now: Date = NOW,
 ): BreachLawFacts {
