@@ -197,6 +197,16 @@ describe("other lists", () => {
 });
 
 /*
+ * The lists that may name more than ten, each with why nobody reads that
+ * sentence. A model the API does not list (no CRUD API) has no list on any
+ * page: ModelTable reads its rows through getCrudApiPath.
+ */
+const NAMES_MORE_THAN_TEN: Record<string, string> = {
+  ResourceAiAgent:
+    "read through each of the resources an agent runs on, each its kind (above); no page lists agents: there is no CRUD API, and each resource's AI page reads its agent through the resource's AI access status",
+};
+
+/*
  * Across every database model: what a list's no-access state names is
  * always part of what its read list allows, never a role beside a
  * permission of its own, and never a sentence of 22 names again.
@@ -259,11 +269,37 @@ describe("every database model's list", () => {
       expect({
         model: model.tableName,
         isNoLonger: ofItsKind <= namedOfAll(model).titles.length,
-        isAtMostTen: ofItsKind <= 10,
+        isAtMostTen:
+          ofItsKind <= 10 ||
+          Boolean(NAMES_MORE_THAN_TEN[model.tableName || ""]),
       }).toEqual({
         model: model.tableName,
         isNoLonger: true,
         isAtMostTen: true,
+      });
+    }
+  });
+
+  test("a list said to name more than ten still does, and no page lists it", () => {
+    for (const [tableName, reason] of Object.entries(NAMES_MORE_THAN_TEN)) {
+      const model: BaseModel | undefined = models.find(
+        (candidate: BaseModel): boolean => {
+          return candidate.tableName === tableName;
+        },
+      );
+
+      expect({
+        tableName,
+        namesMoreThanTen: model
+          ? namedOfItsKind(model).titles.length > 10
+          : false,
+        isListed: Boolean(model?.getCrudApiPath()),
+        isReasonSaid: reason.length > 30,
+      }).toEqual({
+        tableName,
+        namesMoreThanTen: true,
+        isListed: false,
+        isReasonSaid: true,
       });
     }
   });
