@@ -2687,7 +2687,10 @@ describe("how a place's values were found, from the finding to the plan (#11502)
   const ITIN_FINDING: string = "10364000-0000-4000-8000-0000000004b1";
 
   function itinFinding(
-    foundBy: { isFoundByContext?: boolean | null; isFoundByModel?: boolean } = {},
+    foundBy: {
+      isFoundByContext?: boolean | null;
+      isFoundByModel?: boolean;
+    } = {},
   ): DataStoreFinding {
     return {
       ...finding(ITIN_FINDING, "us-itin", "attributes.tax.ref", 12),
@@ -2837,7 +2840,10 @@ describe("how a place's values were found, from the finding to the plan (#11502)
     } as unknown as JSONObject);
 
     expect(plan!.places[0]).toEqual(
-      expect.objectContaining({ isFoundByContext: false, isFoundByModel: true }),
+      expect.objectContaining({
+        isFoundByContext: false,
+        isFoundByModel: true,
+      }),
     );
 
     for (const read of plan!.places.slice(1)) {

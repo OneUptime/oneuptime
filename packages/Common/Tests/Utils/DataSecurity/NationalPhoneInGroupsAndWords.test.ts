@@ -82,24 +82,48 @@ function ownPatternRanges(text: string): Array<TextRange> {
 
 describe("a national number in the groups people write it in, beside its word (#11493)", () => {
   test.each([
-    ["Tokyo, its groups set apart by hyphens", "tel 03-1234-5678", "03-1234-5678"],
+    [
+      "Tokyo, its groups set apart by hyphens",
+      "tel 03-1234-5678",
+      "03-1234-5678",
+    ],
     ["London, by spaces", "phone 020 3123 4567", "020 3123 4567"],
     [
       "London, by spaces, the word after it",
       "020 3123 4567 (phone)",
       "020 3123 4567",
     ],
-    ["Paris, in pairs set apart by spaces", "mobile 06 12 34 56 78", "06 12 34 56 78"],
-    ["Paris, in pairs set apart by dots", "fax 01.42.68.53.07", "01.42.68.53.07"],
+    [
+      "Paris, in pairs set apart by spaces",
+      "mobile 06 12 34 56 78",
+      "06 12 34 56 78",
+    ],
+    [
+      "Paris, in pairs set apart by dots",
+      "fax 01.42.68.53.07",
+      "01.42.68.53.07",
+    ],
     ["Madrid, its first group of three", "tel 612 34 56 78", "612 34 56 78"],
     ["Madrid, in threes", "whatsapp 612 345 678", "612 345 678"],
     ["Berlin, two groups", "telephone 030 12345678", "030 12345678"],
-    ["Sydney, its area code in parentheses", "phone (02) 9123 4567", "(02) 9123 4567"],
-    ["Sydney, its area code in parentheses and a hyphen", "tel (02) 9123-4567", "(02) 9123-4567"],
+    [
+      "Sydney, its area code in parentheses",
+      "phone (02) 9123 4567",
+      "(02) 9123 4567",
+    ],
+    [
+      "Sydney, its area code in parentheses and a hyphen",
+      "tel (02) 9123-4567",
+      "(02) 9123-4567",
+    ],
     ["Amsterdam, two groups and a hyphen", "sms 06-12345678", "06-12345678"],
     ["a word in capitals", "TEL: 03-1234-5678", "03-1234-5678"],
     ["after a key's colon in JSON", '{"tel":"03-1234-5678"}', "03-1234-5678"],
-    ["beside a word that names it by itself, cellphone", "cellphone 0612 345 678", "0612 345 678"],
+    [
+      "beside a word that names it by itself, cellphone",
+      "cellphone 0612 345 678",
+      "0612 345 678",
+    ],
   ])("finds %s: %s", (_label: string, text: string, number: string) => {
     expect(phonesIn(text)).toEqual([number]);
     expect(detectorPhonesIn(text)).toEqual([number]);
@@ -107,26 +131,56 @@ describe("a national number in the groups people write it in, beside its word (#
   });
 
   test.each([
-    ["the prolonged sound mark a number typed in Japanese is set apart by", "tel 03ー1234ー5678", "03ー1234ー5678"],
+    [
+      "the prolonged sound mark a number typed in Japanese is set apart by",
+      "tel 03ー1234ー5678",
+      "03ー1234ー5678",
+    ],
     ["the halfwidth prolonged sound mark", "tel 03ｰ1234ｰ5678", "03ｰ1234ｰ5678"],
     ["an en dash", "phone 020–3123–4567", "020–3123–4567"],
     ["a non-breaking hyphen", "tel 03‑1234‑5678", "03‑1234‑5678"],
-    ["fullwidth digits and hyphens", "tel ０３－１２３４－５６７８", "０３－１２３４－５６７８"],
-    ["fullwidth digits and an ideographic space", "電話 tel ０２０　３１２３　４５６７", "０２０　３１２３　４５６７"],
+    [
+      "fullwidth digits and hyphens",
+      "tel ０３－１２３４－５６７８",
+      "０３－１２３４－５６７８",
+    ],
+    [
+      "fullwidth digits and an ideographic space",
+      "電話 tel ０２０　３１２３　４５６７",
+      "０２０　３１２３　４５６７",
+    ],
     ["Arabic-Indic digits", "tel ٠٣-١٢٣٤-٥٦٧٨", "٠٣-١٢٣٤-٥٦٧٨"],
-  ])("finds one set apart by %s: %s", (_label: string, text: string, number: string) => {
-    expect(phonesIn(text)).toEqual([number]);
-    expect(redacted(text)).toBe(text.replace(number, "[REDACTED]"));
-  });
+  ])(
+    "finds one set apart by %s: %s",
+    (_label: string, text: string, number: string) => {
+      expect(phonesIn(text)).toEqual([number]);
+      expect(redacted(text)).toBe(text.replace(number, "[REDACTED]"));
+    },
+  );
 
   test.each([
-    ["percent-encoded", "GET /x?phone=03%2D1234%2D5678 HTTP/1.1", "03%2D1234%2D5678"],
-    ["as a form writes its spaces", "GET /x?tel=020+3123+4567 HTTP/1.1", "020+3123+4567"],
-    ["its words typed into a form", "GET /x?phone+number=03-1234-5678 HTTP/1.1", "03-1234-5678"],
-  ])("finds one in a URL, %s: %s", (_label: string, text: string, number: string) => {
-    expect(phonesIn(text)).toEqual([number]);
-    expect(redacted(text)).toBe(text.replace(number, "[REDACTED]"));
-  });
+    [
+      "percent-encoded",
+      "GET /x?phone=03%2D1234%2D5678 HTTP/1.1",
+      "03%2D1234%2D5678",
+    ],
+    [
+      "as a form writes its spaces",
+      "GET /x?tel=020+3123+4567 HTTP/1.1",
+      "020+3123+4567",
+    ],
+    [
+      "its words typed into a form",
+      "GET /x?phone+number=03-1234-5678 HTTP/1.1",
+      "03-1234-5678",
+    ],
+  ])(
+    "finds one in a URL, %s: %s",
+    (_label: string, text: string, number: string) => {
+      expect(phonesIn(text)).toEqual([number]);
+      expect(redacted(text)).toBe(text.replace(number, "[REDACTED]"));
+    },
+  );
 
   test.each([
     ["a date", "tel 2026-11-28 ok"],
@@ -149,7 +203,10 @@ describe("a national number in the groups people write it in, beside its word (#
     ["a word inside another", "hotel 03-1234-5678 ok"],
     ["its word too far before it", `tel ${"x".repeat(30)} 03-1234-5678`],
     ["groups glued to a letter", "tel A03-1234-5678 ok"],
-    ["groups after a plus sign that is no calling code", "tel +03-1234-5678 ok"],
+    [
+      "groups after a plus sign that is no calling code",
+      "tel +03-1234-5678 ok",
+    ],
     // A US Social Security number's own groups, three, two and four.
     ["an SSN's groups by hyphens", "tel 666-22-8731 ok"],
     ["an SSN's groups by dots", "phone 536.22.8731 ok"],
@@ -207,9 +264,21 @@ describe("isWrittenAsNationalPhoneNumber (#11493)", () => {
     ["0312345678", "0312345678", "one run: no groups"],
     ["536228731", "536-22-8731", "a Social Security number's groups"],
     ["536228731", "536.22.8731", "a Social Security number's groups by dots"],
-    ["012345678", "012 34 5678", "a Social Security number's groups, a 0 first"],
-    ["71848763058", "(718) 487-63058", "a North American area code, the North American detector's"],
-    ["7184876305", "(718) 487 6305", "a North American number, the North American detector's"],
+    [
+      "012345678",
+      "012 34 5678",
+      "a Social Security number's groups, a 0 first",
+    ],
+    [
+      "71848763058",
+      "(718) 487-63058",
+      "a North American area code, the North American detector's",
+    ],
+    [
+      "7184876305",
+      "(718) 487 6305",
+      "a North American number, the North American detector's",
+    ],
   ])("refuses %s written %s: %s", (digits: string, raw: string) => {
     expect(isWrittenAsNationalPhoneNumber(digits, raw)).toBe(false);
   });
@@ -242,9 +311,9 @@ describe("isWrittenAsNationalPhoneNumber (#11493)", () => {
       true,
     );
     // Four groups, the first two of an SSN's lengths.
-    expect(isWrittenAsNationalPhoneNumber("61234567890", "612 34 567 890")).toBe(
-      true,
-    );
+    expect(
+      isWrittenAsNationalPhoneNumber("61234567890", "612 34 567 890"),
+    ).toBe(true);
   });
 
   /*
@@ -253,11 +322,15 @@ describe("isWrittenAsNationalPhoneNumber (#11493)", () => {
    * national number and hid it first.
    */
   test("an SSN a phone word is near is left to the SSN rule", () => {
-    const ssn: ScrubRegExp = compileBuiltInScrubPattern(LogScrubPatternType.SSN)!;
+    const ssn: ScrubRegExp = compileBuiltInScrubPattern(
+      LogScrubPatternType.SSN,
+    )!;
     const text: string = "call to phone 201234567 for SSN 536.22.8731 failed";
     const afterPhone: string = redacted(text);
 
-    expect(afterPhone).toBe("call to phone [REDACTED] for SSN 536.22.8731 failed");
+    expect(afterPhone).toBe(
+      "call to phone [REDACTED] for SSN 536.22.8731 failed",
+    );
     expect(
       ssn.replace(afterPhone, (): string => {
         return "[SSN]";
@@ -276,18 +349,18 @@ describe("isWrittenAsNationalPhoneNumber (#11493)", () => {
   });
 
   test("a range of two numbers of unlike lengths, or with a trunk prefix, is a phone number", () => {
-    expect(isWrittenAsNationalPhoneNumber("061234567890", "06-1234567890")).toBe(
-      true,
-    );
+    expect(
+      isWrittenAsNationalPhoneNumber("061234567890", "06-1234567890"),
+    ).toBe(true);
     expect(isWrittenAsNationalPhoneNumber("0201234567", "02012-34567")).toBe(
       true,
     );
   });
 
   test("an address of four groups no octet is, is a phone number", () => {
-    expect(
-      isWrittenAsNationalPhoneNumber("0612345678", "06.123.456.78"),
-    ).toBe(true);
+    expect(isWrittenAsNationalPhoneNumber("0612345678", "06.123.456.78")).toBe(
+      true,
+    );
     // A public IPv4 address of four octets is never one, whichever octet is short.
     expect(isWrittenAsNationalPhoneNumber("2030113200", "203.0.113.200")).toBe(
       false,
@@ -299,7 +372,10 @@ describe('"call", "cell" and "contact" name a phone number only with more (#1149
   test.each([
     ["a Unix time after call", "call started at 1732752000 ok"],
     ["a Unix time just after call", "call 1732752000 ok"],
-    ["a Unix time in milliseconds after call", "call started at 1732752000123 ok"],
+    [
+      "a Unix time in milliseconds after call",
+      "call started at 1732752000123 ok",
+    ],
     ["a size in bytes after cell", "cell 104857600 bytes"],
     ["a count after cell", "cell: 201234567"],
     ["an id after contact", "contact 123456789012 created"],
@@ -312,7 +388,11 @@ describe('"call", "cell" and "contact" name a phone number only with more (#1149
   });
 
   test.each([
-    ["a national number after call me on", "please call me on 2012345678 tomorrow", "2012345678"],
+    [
+      "a national number after call me on",
+      "please call me on 2012345678 tomorrow",
+      "2012345678",
+    ],
     ["after call me at", "call me at 612345678", "612345678"],
     ["after call us on", "call us on 2012345678", "2012345678"],
     ["after call back on", "call back on 2012345678", "2012345678"],
@@ -321,11 +401,27 @@ describe('"call", "cell" and "contact" name a phone number only with more (#1149
     ["after contact no", "contact no. 612345678", "612345678"],
     ["after cell number", "cell number: 201234567", "201234567"],
     ["after cell #", "cell # 201234567", "201234567"],
-    ["a national number with its trunk prefix after cell", "support cell: 0612345678", "0612345678"],
+    [
+      "a national number with its trunk prefix after cell",
+      "support cell: 0612345678",
+      "0612345678",
+    ],
     ["with its trunk prefix after call", "call 02031234567 now", "02031234567"],
-    ["with its trunk prefix after contact", "contact 02012345678", "02012345678"],
-    ["in groups with its trunk prefix after call", "call 020 3123 4567 queued", "020 3123 4567"],
-    ["in groups with its trunk prefix after contact", "contact: 03-1234-5678", "03-1234-5678"],
+    [
+      "with its trunk prefix after contact",
+      "contact 02012345678",
+      "02012345678",
+    ],
+    [
+      "in groups with its trunk prefix after call",
+      "call 020 3123 4567 queued",
+      "020 3123 4567",
+    ],
+    [
+      "in groups with its trunk prefix after contact",
+      "contact: 03-1234-5678",
+      "03-1234-5678",
+    ],
   ])("finds %s: %s", (_label: string, text: string, number: string) => {
     expect(phonesIn(text)).toEqual([number]);
     expect(detectorPhonesIn(text)).toEqual([number]);
@@ -377,7 +473,12 @@ describe('"call", "cell" and "contact" name a phone number only with more (#1149
 
     for (const detector of [bare, grouped]) {
       expect(detector.keywords).toEqual(
-        expect.arrayContaining(["phone", "tel", "call me on", "contact number"]),
+        expect.arrayContaining([
+          "phone",
+          "tel",
+          "call me on",
+          "contact number",
+        ]),
       );
       expect(detector.keywords).not.toContain("call");
       expect(detector.keywords).not.toContain("cell");

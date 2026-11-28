@@ -504,12 +504,16 @@ describe("ScrubRulesOfPostalCodesAndCoordinatesUseTheirPatternType", () => {
 
     await migration.migrate();
 
-    expect(tables.logRules[0]!.patternType).toBe(LogScrubPatternType.PostalCode);
+    expect(tables.logRules[0]!.patternType).toBe(
+      LogScrubPatternType.PostalCode,
+    );
 
     jest.clearAllMocks();
     await migration.migrate();
 
-    expect(tables.logRules[0]!.patternType).toBe(LogScrubPatternType.PostalCode);
+    expect(tables.logRules[0]!.patternType).toBe(
+      LogScrubPatternType.PostalCode,
+    );
     expect(mockedLogger.info).toHaveBeenCalledWith(
       expect.stringContaining(": 0 log or trace scrub rule(s)"),
     );
@@ -721,7 +725,9 @@ describe("ScrubRulesOfPostalCodesAndCoordinatesUseTheirPatternType", () => {
     );
     expect(
       instantiations.filter((name: string): boolean => {
-        return name === "ScrubRulesOfPostalCodesAndCoordinatesUseTheirPatternType";
+        return (
+          name === "ScrubRulesOfPostalCodesAndCoordinatesUseTheirPatternType"
+        );
       }),
     ).toHaveLength(1);
     expect(at).toBeGreaterThan(

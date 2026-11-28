@@ -766,11 +766,9 @@ describe("each built-in pattern under a key", () => {
 
   test("a list's numbers under a key that names them are read as their text, and a value deeper than a rule reads as it always was", () => {
     // #11500: [2012345678] under `user.phone` is a phone number to Data Security, which reads its JSON text.
-    const underKey: ScrubRegExp = scrubRegExpUnderKey(
-      PHONE,
-      "user.phone",
-      [2012345678],
-    );
+    const underKey: ScrubRegExp = scrubRegExpUnderKey(PHONE, "user.phone", [
+      2012345678,
+    ]);
 
     expect(underKey).not.toBe(PHONE);
     expect(underKey.numbersInside!.matchRanges("2012345678")).toEqual([

@@ -12,6 +12,7 @@ import {
   isFindingHiddenByTypePattern,
   isFindingScrubbed,
   isFoundByShapeAlone,
+  MAX_SCRUB_PATTERN_LENGTH,
   METRIC_PATTERN_TYPE_OF_DATA_TYPE,
   readFoundByOf,
   ScrubCoverage,
@@ -41,7 +42,6 @@ import {
 import { SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE } from "../../../../../Types/Telemetry/ScrubRuleKeys";
 import { DataTypeDetector } from "../../../../../Utils/DataSecurity/Detector";
 import { getBuiltInDetectorsOf } from "../../../../../Utils/DataSecurity/Detectors/Index";
-import { MAX_SCRUB_PATTERN_LENGTH } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 
 /*
  * ---------------------------------------------------------------------------
@@ -111,7 +111,10 @@ function logFinding(
   };
 }
 
-function covers(rule: CoveringScrubRule, finding: TelemetryFindingReference): boolean {
+function covers(
+  rule: CoveringScrubRule,
+  finding: TelemetryFindingReference,
+): boolean {
   return isFindingScrubbed({ rules: [rule] }, finding);
 }
 
@@ -142,7 +145,9 @@ describe("the pattern Scrub It makes for a type holds every one of its detectors
   });
 
   test("an Authorization header's pattern holds Basic and Bearer both, and runs as a rule's", () => {
-    const pattern: string = buildScrubPatternForDataType("authorization-header")!;
+    const pattern: string = buildScrubPatternForDataType(
+      "authorization-header",
+    )!;
     const regex: ScrubRegExp = compileScrubRuleCustomRegex(pattern)!;
 
     expect(getScrubPatternOfDataType("authorization-header").isWhole).toBe(
@@ -189,14 +194,17 @@ describe("the pattern Scrub It makes for a type holds every one of its detectors
         });
       const pattern: string = buildScrubPatternForDataType(dataTypeId)!;
 
-      expect([dataTypeId, getScrubPatternOfDataType(dataTypeId).isWhole]).toEqual([
+      expect([
         dataTypeId,
-        true,
-      ]);
+        getScrubPatternOfDataType(dataTypeId).isWhole,
+      ]).toEqual([dataTypeId, true]);
 
       // Every piece as it is written, none relaxed.
       for (const piece of pieces) {
-        expect([dataTypeId, pattern.includes(piece)]).toEqual([dataTypeId, true]);
+        expect([dataTypeId, pattern.includes(piece)]).toEqual([
+          dataTypeId,
+          true,
+        ]);
       }
     }
   });
@@ -288,30 +296,33 @@ describe("a Custom Regex rule of a type's pattern covers only a finding its shap
     CONTEXT_PATTERN_TYPES.map((dataTypeId: string): [string] => {
       return [dataTypeId];
     }),
-  )("%s: by its shapes alone, covered; by its words or key, the model, or not known, not", (dataTypeId: string) => {
-    const rule: CoveringScrubRule = customRegexRule(dataTypeId);
+  )(
+    "%s: by its shapes alone, covered; by its words or key, the model, or not known, not",
+    (dataTypeId: string) => {
+      const rule: CoveringScrubRule = customRegexRule(dataTypeId);
 
-    expect(
-      covers(rule, logFinding(dataTypeId, { isFoundByContext: false })),
-    ).toBe(true);
-    expect(
-      covers(rule, logFinding(dataTypeId, { isFoundByContext: true })),
-    ).toBe(false);
-    // A finding written before it was kept: not known.
-    expect(
-      covers(rule, logFinding(dataTypeId, { isFoundByContext: null })),
-    ).toBe(false);
-    expect(covers(rule, logFinding(dataTypeId))).toBe(false);
-    expect(
-      covers(
-        rule,
-        logFinding(dataTypeId, {
-          isFoundByContext: false,
-          isFoundByModel: true,
-        }),
-      ),
-    ).toBe(false);
-  });
+      expect(
+        covers(rule, logFinding(dataTypeId, { isFoundByContext: false })),
+      ).toBe(true);
+      expect(
+        covers(rule, logFinding(dataTypeId, { isFoundByContext: true })),
+      ).toBe(false);
+      // A finding written before it was kept: not known.
+      expect(
+        covers(rule, logFinding(dataTypeId, { isFoundByContext: null })),
+      ).toBe(false);
+      expect(covers(rule, logFinding(dataTypeId))).toBe(false);
+      expect(
+        covers(
+          rule,
+          logFinding(dataTypeId, {
+            isFoundByContext: false,
+            isFoundByModel: true,
+          }),
+        ),
+      ).toBe(false);
+    },
+  );
 
   test("a type never found by context: covered whatever the finding says of it, but not by the model", () => {
     for (const dataTypeId of ["iban", "github-token", "authorization-header"]) {
@@ -400,9 +411,9 @@ describe("a Custom Regex rule of a type's pattern covers only a finding its shap
       }
 
       // Its own type alone.
-      expect(covers(rule, logFinding("iban", { isFoundByContext: false }))).toBe(
-        false,
-      );
+      expect(
+        covers(rule, logFinding("iban", { isFoundByContext: false })),
+      ).toBe(false);
     }
   });
 
@@ -425,9 +436,9 @@ describe("a Custom Regex rule of a type's pattern covers only a finding its shap
       attributeKeys: ["taxpayer.itin"],
     };
 
-    expect(covers(proven, logFinding("us-itin", { isFoundByContext: true }))).toBe(
-      true,
-    );
+    expect(
+      covers(proven, logFinding("us-itin", { isFoundByContext: true })),
+    ).toBe(true);
     expect(
       covers(
         named,
@@ -546,9 +557,9 @@ describe("a metric rule Scrub It makes, and what counts for it (#11502)", () => 
       {},
       { isFoundByContext: false, isFoundByModel: true },
     ]) {
-      expect(buildMetricScrubFilters("us-itin", "taxpayer.itin", foundBy)).toEqual(
-        [],
-      );
+      expect(
+        buildMetricScrubFilters("us-itin", "taxpayer.itin", foundBy),
+      ).toEqual([]);
     }
 
     // A type no context finds keeps its pattern, whatever is said.
@@ -789,7 +800,10 @@ describe("a candidate's coverage, and how a finding's row is read (#11502)", () 
       isFoundByModel: false,
     });
     expect(
-      readFoundByOf({ isFoundByContext: "true" as never, isFoundByModel: 1 as never }),
+      readFoundByOf({
+        isFoundByContext: "true" as never,
+        isFoundByModel: 1 as never,
+      }),
     ).toEqual({ isFoundByContext: null, isFoundByModel: false });
   });
 });

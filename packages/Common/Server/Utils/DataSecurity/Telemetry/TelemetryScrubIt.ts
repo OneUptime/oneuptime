@@ -505,6 +505,9 @@ export async function scrubFindingWithProvenRule(data: {
     // Proven on its records it hides them; unproven, as coverage reads it.
     hidesFinding:
       Boolean(planned.proof) ||
-      doesScrubRuleCover({ signal: planned.signal, ...planned.plan }, reference),
+      doesScrubRuleCover(
+        { signal: planned.signal, ...planned.plan },
+        reference,
+      ),
   };
 }

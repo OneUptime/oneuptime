@@ -76,7 +76,9 @@ describe("AddDataStoreFindingIsFoundByContext1809187821502", () => {
           runner,
         );
       }),
-    ).toEqual([`ALTER TABLE "DataStoreFinding" DROP COLUMN "isFoundByContext"`]);
+    ).toEqual([
+      `ALTER TABLE "DataStoreFinding" DROP COLUMN "isFoundByContext"`,
+    ]);
   });
 
   test("is registered once, after the migrations made before it, named for its class", () => {

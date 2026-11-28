@@ -101,18 +101,90 @@ const TAG_ALONE: DataTypeDetector = {
 
 describe("the scanner says which values it found only with what is around them", () => {
   test.each([
-    ["a US ZIP code beside its word", "ship to zip 94107 today", "postal-code", "94107", true],
-    ["a ZIP+4 beside its word", "zip code: 94107-1234.", "postal-code", "94107-1234", true],
-    ["a UK postcode, by its shape alone", "ship to SW1A 2AA today", "postal-code", "SW1A 2AA", false],
-    ["a Canadian postal code, by its shape alone", "mail to K1A 0B1 now", "postal-code", "K1A 0B1", false],
-    ["one coordinate beside its word", "lat 37.77493 ok", "geolocation", "37.77493", true],
-    ["a pair of coordinates, by its shape alone", "at 37.77493, -122.41942 ok", "geolocation", "37.77493, -122.41942", false],
-    ["an ITIN as nine bare digits beside its word", "ITIN 912701234 on file", "us-itin", "912701234", true],
-    ["an ITIN in its groups, by its shape alone", "file 912-70-1234 today", "us-itin", "912-70-1234", false],
-    ["a national phone number in its groups beside its word", "tel 03-1234-5678 ok", "phone-number", "03-1234-5678", true],
-    ["a card security code after its word, which its own pattern reads", "paid, cvv 123 accepted", "card-verification-code", "123", false],
-    ["an email address", "write to maria.gonzalez@acme.io today", "email-address", "maria.gonzalez@acme.io", false],
-    ["a card number", `card ${CARD} declined`, "credit-card-number", CARD, false],
+    [
+      "a US ZIP code beside its word",
+      "ship to zip 94107 today",
+      "postal-code",
+      "94107",
+      true,
+    ],
+    [
+      "a ZIP+4 beside its word",
+      "zip code: 94107-1234.",
+      "postal-code",
+      "94107-1234",
+      true,
+    ],
+    [
+      "a UK postcode, by its shape alone",
+      "ship to SW1A 2AA today",
+      "postal-code",
+      "SW1A 2AA",
+      false,
+    ],
+    [
+      "a Canadian postal code, by its shape alone",
+      "mail to K1A 0B1 now",
+      "postal-code",
+      "K1A 0B1",
+      false,
+    ],
+    [
+      "one coordinate beside its word",
+      "lat 37.77493 ok",
+      "geolocation",
+      "37.77493",
+      true,
+    ],
+    [
+      "a pair of coordinates, by its shape alone",
+      "at 37.77493, -122.41942 ok",
+      "geolocation",
+      "37.77493, -122.41942",
+      false,
+    ],
+    [
+      "an ITIN as nine bare digits beside its word",
+      "ITIN 912701234 on file",
+      "us-itin",
+      "912701234",
+      true,
+    ],
+    [
+      "an ITIN in its groups, by its shape alone",
+      "file 912-70-1234 today",
+      "us-itin",
+      "912-70-1234",
+      false,
+    ],
+    [
+      "a national phone number in its groups beside its word",
+      "tel 03-1234-5678 ok",
+      "phone-number",
+      "03-1234-5678",
+      true,
+    ],
+    [
+      "a card security code after its word, which its own pattern reads",
+      "paid, cvv 123 accepted",
+      "card-verification-code",
+      "123",
+      false,
+    ],
+    [
+      "an email address",
+      "write to maria.gonzalez@acme.io today",
+      "email-address",
+      "maria.gonzalez@acme.io",
+      false,
+    ],
+    [
+      "a card number",
+      `card ${CARD} declined`,
+      "credit-card-number",
+      CARD,
+      false,
+    ],
   ])(
     "%s: %s",
     (
@@ -123,11 +195,9 @@ describe("the scanner says which values it found only with what is around them",
       fromContext: boolean,
     ) => {
       expect(
-        matchesIn(text).filter(
-          (match: { dataTypeId: string }): boolean => {
-            return match.dataTypeId === dataTypeId;
-          },
-        ),
+        matchesIn(text).filter((match: { dataTypeId: string }): boolean => {
+          return match.dataTypeId === dataTypeId;
+        }),
       ).toEqual([{ dataTypeId, value, fromContext }]);
     },
   );
@@ -371,15 +441,21 @@ describe("a field's classification says some of its values were found only with 
 
   test("one coordinate under a field named for it, a number as the field sends it", () => {
     expect(
-      classifiedAs("location.lat", [37.77493, 51.50722, -33.86882], "geolocation")
-        .foundByContext,
+      classifiedAs(
+        "location.lat",
+        [37.77493, 51.50722, -33.86882],
+        "geolocation",
+      ).foundByContext,
     ).toBe(true);
   });
 
   test("a whole value of its type's shape under a field named for it: a card security code under cvv", () => {
     expect(
-      classifiedAs("payment.cvv", ["123", "4567", "321"], "card-verification-code")
-        .foundByContext,
+      classifiedAs(
+        "payment.cvv",
+        ["123", "4567", "321"],
+        "card-verification-code",
+      ).foundByContext,
     ).toBe(true);
   });
 
@@ -400,11 +476,36 @@ describe("a field's classification says some of its values were found only with 
   });
 
   test.each([
-    ["UK postcodes under a field named for them", "address.postcode", ["SW1A 2AA", "EC1A 1BB", "M1 1AE"], "postal-code"],
-    ["pairs of coordinates", "location", ["37.77493, -122.41942", "51.50722, -0.12750"], "geolocation"],
-    ["a card security code after its word, in text", "message", ["paid, cvv 123 accepted", "paid, cvc 456 accepted"], "card-verification-code"],
-    ["card numbers under a field named for them, whose type takes a shape there too", "payment.card_number", [CARD, CARD], "credit-card-number"],
-    ["email addresses", "user.email", ["maria.gonzalez@acme.io", "wei.chen@acme.io"], "email-address"],
+    [
+      "UK postcodes under a field named for them",
+      "address.postcode",
+      ["SW1A 2AA", "EC1A 1BB", "M1 1AE"],
+      "postal-code",
+    ],
+    [
+      "pairs of coordinates",
+      "location",
+      ["37.77493, -122.41942", "51.50722, -0.12750"],
+      "geolocation",
+    ],
+    [
+      "a card security code after its word, in text",
+      "message",
+      ["paid, cvv 123 accepted", "paid, cvc 456 accepted"],
+      "card-verification-code",
+    ],
+    [
+      "card numbers under a field named for them, whose type takes a shape there too",
+      "payment.card_number",
+      [CARD, CARD],
+      "credit-card-number",
+    ],
+    [
+      "email addresses",
+      "user.email",
+      ["maria.gonzalez@acme.io", "wei.chen@acme.io"],
+      "email-address",
+    ],
   ])(
     "says nothing of it when every value was found by its shape: %s",
     (
@@ -450,8 +551,11 @@ describe("a field's classification says some of its values were found only with 
       ),
     ).toBeUndefined();
     expect(
-      classifiedAs("message", [`${longText}Deliver to zip 94107.`], "postal-code")
-        .foundByContext,
+      classifiedAs(
+        "message",
+        [`${longText}Deliver to zip 94107.`],
+        "postal-code",
+      ).foundByContext,
     ).toBe(true);
   });
 });

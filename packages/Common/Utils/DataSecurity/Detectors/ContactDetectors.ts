@@ -498,7 +498,11 @@ const PHONE_NAMING_WORDS: ReadonlyArray<string> = [
  * trunk prefix, 0, first (trunkNationalPhoneDetector) - or when a word
  * after them names a number (PHONE_NUMBER_PHRASES).
  */
-const PHONE_SOMETIMES_WORDS: ReadonlyArray<string> = ["call", "cell", "contact"];
+const PHONE_SOMETIMES_WORDS: ReadonlyArray<string> = [
+  "call",
+  "cell",
+  "contact",
+];
 
 /*
  * Those words with one after them that names a number (#11496): "call me
@@ -842,7 +846,9 @@ function digitGroupsOf(raw: string): Array<string> {
 }
 
 function isYear(group: string): boolean {
-  return group.length === 4 && (group.startsWith("19") || group.startsWith("20"));
+  return (
+    group.length === 4 && (group.startsWith("19") || group.startsWith("20"))
+  );
 }
 
 function isMonth(group: string): boolean {

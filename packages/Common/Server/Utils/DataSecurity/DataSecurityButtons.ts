@@ -258,21 +258,20 @@ export default class DataSecurityButtons {
   }): Promise<ScrubItOutcome> {
     const finding: DataStoreFinding = await readTelemetryFindingForCaller(data);
 
-    const created: ScrubItOutcome =
-      await scrubFindingWithProvenRule({
-        projectId: data.projectId,
-        userId: data.props.userId || undefined,
-        // A project API key makes the rule with its own props, never as OneUptime.
-        callerProps: data.props,
-        findingId: finding.id!.toString(),
-        kind: finding.dataStore!.kind as DataStoreKind,
-        dataTypeId: finding.dataTypeId!,
-        dataTypeName: finding.dataTypeName,
-        location: finding.location!,
-        // The rule is its service's: a metric's always was, a log's or a span's since #10433.
-        serviceId: finding.dataStore!.serviceId || null,
-        storeKey: finding.dataStore!.storeKey || null,
-      });
+    const created: ScrubItOutcome = await scrubFindingWithProvenRule({
+      projectId: data.projectId,
+      userId: data.props.userId || undefined,
+      // A project API key makes the rule with its own props, never as OneUptime.
+      callerProps: data.props,
+      findingId: finding.id!.toString(),
+      kind: finding.dataStore!.kind as DataStoreKind,
+      dataTypeId: finding.dataTypeId!,
+      dataTypeName: finding.dataTypeName,
+      location: finding.location!,
+      // The rule is its service's: a metric's always was, a log's or a span's since #10433.
+      serviceId: finding.dataStore!.serviceId || null,
+      storeKey: finding.dataStore!.storeKey || null,
+    });
 
     /*
      * Scrubbed when the rule hides what it found: the one that already did,

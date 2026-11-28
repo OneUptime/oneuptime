@@ -3367,7 +3367,10 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
     // Alone under a key that names it, sent as text or as a number.
     expect(
-      attributesAfter({ "address.zip": "94107", "shipping.zip": 94107 }, postal),
+      attributesAfter(
+        { "address.zip": "94107", "shipping.zip": 94107 },
+        postal,
+      ),
     ).toEqual({ "address.zip": "[REDACTED]", "shipping.zip": "[REDACTED]" });
     expect(
       attributesAfter(
@@ -3491,9 +3494,7 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
     // A postal code and a coordinate keep their first and last characters (#11502).
     expect(mask(LogScrubPatternType.PostalCode, "SW1A 2AA")).toBe("S******A");
-    expect(mask(LogScrubPatternType.PostalCode, "zip 94107")).toBe(
-      "zip 9***7",
-    );
+    expect(mask(LogScrubPatternType.PostalCode, "zip 94107")).toBe("zip 9***7");
     expect(mask(LogScrubPatternType.Coordinates, "lat 37.77493")).toBe(
       "lat 3******3",
     );

@@ -77,26 +77,71 @@ function listOf(item: JSONValue): Array<JSONValue> {
 }
 
 const PHONE_CASES: Array<[string, string]> = [
-  ["a phone word and groups of two without end", "tel " + repeat("12 ", LENGTH)],
-  ["a phone word and hyphenated groups without end", "tel " + repeat("12-", LENGTH)],
-  ["a phone word and dotted groups without end", "phone " + repeat("12.", LENGTH)],
-  ["a phone word and groups of eight without end", "tel " + repeat("12345678 ", LENGTH)],
-  ["an area code in parentheses, then groups without end", "tel (03) " + repeat("1234 ", LENGTH)],
+  [
+    "a phone word and groups of two without end",
+    "tel " + repeat("12 ", LENGTH),
+  ],
+  [
+    "a phone word and hyphenated groups without end",
+    "tel " + repeat("12-", LENGTH),
+  ],
+  [
+    "a phone word and dotted groups without end",
+    "phone " + repeat("12.", LENGTH),
+  ],
+  [
+    "a phone word and groups of eight without end",
+    "tel " + repeat("12345678 ", LENGTH),
+  ],
+  [
+    "an area code in parentheses, then groups without end",
+    "tel (03) " + repeat("1234 ", LENGTH),
+  ],
   ["open parentheses and digits without end", "tel " + repeat("(03", LENGTH)],
-  ["national numbers in groups back to back", repeat("tel 03-1234-5678 ", LENGTH)],
-  ["London numbers in groups back to back", repeat("phone 020 3123 4567 ", LENGTH)],
+  [
+    "national numbers in groups back to back",
+    repeat("tel 03-1234-5678 ", LENGTH),
+  ],
+  [
+    "London numbers in groups back to back",
+    repeat("phone 020 3123 4567 ", LENGTH),
+  ],
   ["Berlin numbers back to back", repeat("telephone 030 12345678 ", LENGTH)],
   ["dates beside phone words back to back", repeat("tel 2026-11-28 ", LENGTH)],
-  ["IPv4 addresses beside phone words back to back", repeat("tel 192.168.100.200 ", LENGTH)],
+  [
+    "IPv4 addresses beside phone words back to back",
+    repeat("tel 192.168.100.200 ", LENGTH),
+  ],
   ["a phone word then digits without end", "tel " + repeat("0", LENGTH)],
-  ["a phone word then trunk zeros and spaces without end", "phone " + repeat("0 ", LENGTH)],
+  [
+    "a phone word then trunk zeros and spaces without end",
+    "phone " + repeat("0 ", LENGTH),
+  ],
   ["phone words without end", repeat("phone ", LENGTH)],
-  ["call, cell and contact before Unix times back to back", repeat("call 1732780800 cell 1732780800 contact 1732780800 ", LENGTH)],
-  ["call me on, then a number, back to back", repeat("call me on 020 3123 4567 ", LENGTH)],
-  ["fullwidth groups beside the word without end", "tel " + repeat("０３－", LENGTH)],
-  ["prolonged sound marks between digits without end", "tel " + repeat("03ー", LENGTH)],
-  ["numbers typed into a form back to back", repeat("phone=03-1234-5678&", LENGTH)],
-  ["percent-encoded hyphens back to back", repeat("tel 03%2D1234%2D5678 ", LENGTH)],
+  [
+    "call, cell and contact before Unix times back to back",
+    repeat("call 1732780800 cell 1732780800 contact 1732780800 ", LENGTH),
+  ],
+  [
+    "call me on, then a number, back to back",
+    repeat("call me on 020 3123 4567 ", LENGTH),
+  ],
+  [
+    "fullwidth groups beside the word without end",
+    "tel " + repeat("０３－", LENGTH),
+  ],
+  [
+    "prolonged sound marks between digits without end",
+    "tel " + repeat("03ー", LENGTH),
+  ],
+  [
+    "numbers typed into a form back to back",
+    repeat("phone=03-1234-5678&", LENGTH),
+  ],
+  [
+    "percent-encoded hyphens back to back",
+    repeat("tel 03%2D1234%2D5678 ", LENGTH),
+  ],
 ];
 
 const POSTAL_CODE_CASES: Array<[string, string]> = [
@@ -107,21 +152,36 @@ const POSTAL_CODE_CASES: Array<[string, string]> = [
   ["UK postcodes back to back", repeat("SW1A 2AA ", LENGTH)],
   ["Canadian postal codes back to back", repeat("K1A 0B1 ", LENGTH)],
   ["letters and digits in turn without end", repeat("A1", LENGTH)],
-  ["postcodes typed into a form back to back", repeat("postcode=SW1A+2AA&", LENGTH)],
+  [
+    "postcodes typed into a form back to back",
+    repeat("postcode=SW1A+2AA&", LENGTH),
+  ],
   ["zip words without end", repeat("zip ", LENGTH)],
-  ["fullwidth digits after a zip word without end", "zip " + repeat("９", LENGTH)],
-  ["ZIP codes in Arabic-Indic digits back to back", repeat("zip ٩٤١٠٧ ", LENGTH)],
+  [
+    "fullwidth digits after a zip word without end",
+    "zip " + repeat("９", LENGTH),
+  ],
+  [
+    "ZIP codes in Arabic-Indic digits back to back",
+    repeat("zip ٩٤١٠٧ ", LENGTH),
+  ],
 ];
 
 const COORDINATE_CASES: Array<[string, string]> = [
-  ["coordinates beside their word back to back", repeat("lat 37.77493 ", LENGTH)],
+  [
+    "coordinates beside their word back to back",
+    repeat("lat 37.77493 ", LENGTH),
+  ],
   ["pairs back to back", repeat("37.77493, -122.41942 ", LENGTH)],
   ["decimals without end", repeat("1.2345", LENGTH)],
   ["minus signs and digits without end", repeat("-1", LENGTH)],
   ["a lat word then digits without end", "lat " + repeat("1", LENGTH)],
   ["a fraction without end after a lat word", "lat 37." + repeat("7", LENGTH)],
   ["decimals and commas in turn", repeat("1.2345,", LENGTH)],
-  ["coordinates typed into a form back to back", repeat("lat=37.77493&lng=-122.41942&", LENGTH)],
+  [
+    "coordinates typed into a form back to back",
+    repeat("lat=37.77493&lng=-122.41942&", LENGTH),
+  ],
   ["lat words without end", repeat("lat ", LENGTH)],
 ];
 
@@ -153,9 +213,24 @@ describe.each([
 );
 
 describe.each([
-  ["a Phone Number rule", LogScrubPatternType.PhoneNumber, "user.phone", PHONE_CASES],
-  ["a Postal Code rule", LogScrubPatternType.PostalCode, "address.zip", POSTAL_CODE_CASES],
-  ["a Coordinates rule", LogScrubPatternType.Coordinates, "location.lat", COORDINATE_CASES],
+  [
+    "a Phone Number rule",
+    LogScrubPatternType.PhoneNumber,
+    "user.phone",
+    PHONE_CASES,
+  ],
+  [
+    "a Postal Code rule",
+    LogScrubPatternType.PostalCode,
+    "address.zip",
+    POSTAL_CODE_CASES,
+  ],
+  [
+    "a Coordinates rule",
+    LogScrubPatternType.Coordinates,
+    "location.lat",
+    COORDINATE_CASES,
+  ],
 ] as Array<[string, string, string, Array<[string, string]>]>)(
   "%s",
   (
@@ -194,13 +269,22 @@ describe("a list's or a map's JSON text, its numbers and texts placed back on it
   const VALUES: Array<[string, JSONValue]> = [
     ["a list of numbers", listOf(2012345678)],
     ["a list of decimals", listOf(-122.41942)],
-    ["a list of maps with a phone and its number", listOf({ system: "phone", value: 2012345678 })],
+    [
+      "a list of maps with a phone and its number",
+      listOf({ system: "phone", value: 2012345678 }),
+    ],
     ["a list of texts with escapes", listOf('line "one"\nphone')],
-    ["a map of many keys", Object.fromEntries(
-      Array.from({ length: 20_000 }, (_: unknown, index: number): [string, string] => {
-        return [`key${index}`, `value${index}`];
-      }),
-    )],
+    [
+      "a map of many keys",
+      Object.fromEntries(
+        Array.from(
+          { length: 20_000 },
+          (_: unknown, index: number): [string, string] => {
+            return [`key${index}`, `value${index}`];
+          },
+        ),
+      ),
+    ],
     // As deep as a rule reads a value (SCRUB_MAX_VALUE_DEPTH, 32).
     ["a list nested as deep as a rule reads", nestedIn(30, listOf(7))],
   ];
@@ -354,9 +438,24 @@ describe("a metric's pattern filter, over a list or a map of 400,000 characters 
   }
 
   test.each([
-    ["a phone's numbers in maps, by the Phone Number pattern type", "phone-number", "contacts", listOf({ system: "phone", value: 2012345678 })],
-    ["ZIP codes under their key, by the Postal Code pattern type", "postal-code", "shipping", listOf({ zip: 94107 })],
-    ["ITINs in their groups, by the ITIN's own pattern", "us-itin", "tax", listOf("912-70-1234")],
+    [
+      "a phone's numbers in maps, by the Phone Number pattern type",
+      "phone-number",
+      "contacts",
+      listOf({ system: "phone", value: 2012345678 }),
+    ],
+    [
+      "ZIP codes under their key, by the Postal Code pattern type",
+      "postal-code",
+      "shipping",
+      listOf({ zip: 94107 }),
+    ],
+    [
+      "ITINs in their groups, by the ITIN's own pattern",
+      "us-itin",
+      "tax",
+      listOf("912-70-1234"),
+    ],
   ] as Array<[string, string, string, JSONValue]>)(
     "%s: read and redacted in time in line with its length",
     (_label: string, dataTypeId: string, key: string, value: JSONValue) => {

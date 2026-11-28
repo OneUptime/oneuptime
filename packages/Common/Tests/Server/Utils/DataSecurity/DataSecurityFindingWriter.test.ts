@@ -1938,9 +1938,9 @@ describe("recordContentScan: a finding found only with what is around it (#11502
 
     expect(lookups).toHaveLength(1);
     expect(lookups[0]!.select?.["isFoundByContext"]).toBe(true);
-    expect(
-      findingAt("postal-code", "public.orders.zip").isFoundByContext,
-    ).toBe(true);
+    expect(findingAt("postal-code", "public.orders.zip").isFoundByContext).toBe(
+      true,
+    );
   });
 
   test("each type at one place says it of its own values", async () => {

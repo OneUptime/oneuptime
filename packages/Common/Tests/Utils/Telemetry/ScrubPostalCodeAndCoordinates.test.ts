@@ -83,7 +83,10 @@ function foundUnder(
   key: string | undefined,
   value: string,
 ): Array<string> {
-  return textsOf(value, scrubRegExpUnderKey(regex, key, value).matchRanges(value));
+  return textsOf(
+    value,
+    scrubRegExpUnderKey(regex, key, value).matchRanges(value),
+  );
 }
 
 // What the detectors find, as a rule built on them finds it under the key.
@@ -95,7 +98,8 @@ function detectorsFind(
   return textsOf(
     value,
     findDetectorRanges(detectors, value, undefined, {
-      hintedDataTypeIds: key === undefined ? undefined : getHintedDataTypeIds(key),
+      hintedDataTypeIds:
+        key === undefined ? undefined : getHintedDataTypeIds(key),
     }),
   );
 }
@@ -134,7 +138,9 @@ describe("the pattern types", () => {
         return `(?:${detector.pattern.source})`;
       }).join("|"),
     );
-    expect(COORDINATES.source).toContain(COORDINATE_DETECTORS[0]!.pattern.source);
+    expect(COORDINATES.source).toContain(
+      COORDINATE_DETECTORS[0]!.pattern.source,
+    );
     expect(compileBuiltInScrubPattern(LogScrubPatternType.PostalCode)).not.toBe(
       POSTAL_CODE,
     );
@@ -164,12 +170,26 @@ describe("a Postal Code rule", () => {
     ["a ZIP code beside zipcode", '{"zipcode": "10001"}', ["10001"]],
     ["a ZIP code beside postal", "postal 30301 ok", ["30301"]],
     ["a ZIP code, its word right after it", "94107 zip", ["94107"]],
-    ["a UK postcode typed in fullwidth letters", "送付先 ＳＷ１Ａ ２ＡＡ", ["ＳＷ１Ａ ２ＡＡ"]],
-    ["a UK postcode in a URL", "GET /x?postcode=SW1A+2AA HTTP/1.1", ["SW1A+2AA"]],
-    ["a ZIP code in fullwidth digits beside zip", "zip ９４１０７ ok", ["９４１０７"]],
+    [
+      "a UK postcode typed in fullwidth letters",
+      "送付先 ＳＷ１Ａ ２ＡＡ",
+      ["ＳＷ１Ａ ２ＡＡ"],
+    ],
+    [
+      "a UK postcode in a URL",
+      "GET /x?postcode=SW1A+2AA HTTP/1.1",
+      ["SW1A+2AA"],
+    ],
+    [
+      "a ZIP code in fullwidth digits beside zip",
+      "zip ９４１０７ ok",
+      ["９４１０７"],
+    ],
   ])("hides %s: %s", (_label: string, text: string, hidden: Array<string>) => {
     expect(textsOf(text, POSTAL_CODE.matchRanges(text))).toEqual(hidden);
-    expect(detectorsFind(POSTAL_CODE_DETECTORS, undefined, text)).toEqual(hidden);
+    expect(detectorsFind(POSTAL_CODE_DETECTORS, undefined, text)).toEqual(
+      hidden,
+    );
     expect(textsOf(text, findPostalCodeRanges(text))).toEqual(hidden);
   });
 
@@ -216,10 +236,16 @@ describe("a Coordinates rule", () => {
     ["one beside lng", "pin lng -0.12750 ok", ["-0.12750"]],
     ["one beside lon", "pin lon -73.98566 ok", ["-73.98566"]],
     ["one beside latitude", "latitude: 40.74844", ["40.74844"]],
-    ["one beside longitude, its word in a JSON key", '{"longitude": -73.98566}', ["-73.98566"]],
+    [
+      "one beside longitude, its word in a JSON key",
+      '{"longitude": -73.98566}',
+      ["-73.98566"],
+    ],
   ])("hides %s: %s", (_label: string, text: string, hidden: Array<string>) => {
     expect(textsOf(text, COORDINATES.matchRanges(text))).toEqual(hidden);
-    expect(detectorsFind(COORDINATE_DETECTORS, undefined, text)).toEqual(hidden);
+    expect(detectorsFind(COORDINATE_DETECTORS, undefined, text)).toEqual(
+      hidden,
+    );
     expect(textsOf(text, findCoordinateRanges(text))).toEqual(hidden);
   });
 
@@ -306,9 +332,9 @@ describe("the engines run them, under Redact, Mask and Hash", () => {
     }
 
     // Mask keeps its first and last characters as it reads.
-    expect(ScrubAction.mask("ＳＷ１Ａ ２ＡＡ", LogScrubPatternType.PostalCode)).toBe(
-      ScrubAction.mask("SW1A 2AA", LogScrubPatternType.PostalCode),
-    );
+    expect(
+      ScrubAction.mask("ＳＷ１Ａ ２ＡＡ", LogScrubPatternType.PostalCode),
+    ).toBe(ScrubAction.mask("SW1A 2AA", LogScrubPatternType.PostalCode));
   });
 
   test("a span's attributes, an event's under its event's name, and a link's", () => {
@@ -355,7 +381,11 @@ describe("the engines run them, under Redact, Mask and Hash", () => {
 });
 
 describe("a metric rule's Matches Pattern Type filter matches them", () => {
-  function redact(dataTypeId: string, key: string, value: string | number): JSONObject {
+  function redact(
+    dataTypeId: string,
+    key: string,
+    value: string | number,
+  ): JSONObject {
     const rule: MetricPipelineRule = new MetricPipelineRule();
 
     rule.id = ObjectID.generate();
@@ -380,26 +410,35 @@ describe("a metric rule's Matches Pattern Type filter matches them", () => {
     ["geolocation", "location.lat", "51.50722"],
     ["geolocation", "location.lat", 51.50722],
     ["geolocation", "location", "51.50722,-0.12750"],
-  ])("%s under %s: %s is redacted", (dataTypeId: string, key: string, value: string | number) => {
-    expect(redact(dataTypeId, key, value)).toEqual({
-      [key]: METRIC_REDACT_REPLACEMENT,
-    });
-  });
+  ])(
+    "%s under %s: %s is redacted",
+    (dataTypeId: string, key: string, value: string | number) => {
+      expect(redact(dataTypeId, key, value)).toEqual({
+        [key]: METRIC_REDACT_REPLACEMENT,
+      });
+    },
+  );
 
   test.each([
     ["postal-code", "order.id", "94107"],
     ["postal-code", "address.zip", "00000"],
     ["geolocation", "metrics.ratio", "0.12345"],
     ["geolocation", "location.lat", "51.5"],
-  ])("%s under %s: %s is kept", (dataTypeId: string, key: string, value: string) => {
-    expect(redact(dataTypeId, key, value)).toEqual({ [key]: value });
-  });
+  ])(
+    "%s under %s: %s is kept",
+    (dataTypeId: string, key: string, value: string) => {
+      expect(redact(dataTypeId, key, value)).toEqual({ [key]: value });
+    },
+  );
 });
 
 describe("they hide exactly what Data Security finds, and nothing it does not", () => {
   const TEXTS: ReadonlyArray<[string | undefined, string]> = [
     [undefined, "ship to SW1A 2AA or zip 94107; order 94107; K1A 0B1"],
-    [undefined, "lat 51.50722 lng -0.12750 at 40.74844,-73.98566 ratio 0.12345"],
+    [
+      undefined,
+      "lat 51.50722 lng -0.12750 at 40.74844,-73.98566 ratio 0.12345",
+    ],
     ["address.zip", "94107"],
     ["address.zip", "zip 94107-1234 and 12345"],
     ["location.lat", "51.50722"],

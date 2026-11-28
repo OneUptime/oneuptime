@@ -28,7 +28,11 @@ function slice(stored: StoredText, range: TextRange): string {
 }
 
 // The range of the JSON text that holds a piece, the first time it is written.
-function rangeOf(stored: StoredText, piece: string, from: number = 0): TextRange {
+function rangeOf(
+  stored: StoredText,
+  piece: string,
+  from: number = 0,
+): TextRange {
   const start: number = stored.text.indexOf(piece, from);
 
   expect(start).toBeGreaterThanOrEqual(0);
@@ -58,7 +62,13 @@ describe("readStoredText keeps where each number is", () => {
   });
 
   test("keeps no number JSON writes as null, and -0 as JSON writes it", () => {
-    const stored: StoredText = readStoredText([NaN, Infinity, -Infinity, -0, 5])!;
+    const stored: StoredText = readStoredText([
+      NaN,
+      Infinity,
+      -Infinity,
+      -0,
+      5,
+    ])!;
 
     expect(stored.text).toBe("[null,null,null,0,5]");
     expect(
@@ -145,7 +155,13 @@ describe("placeRangesOnNumbers (#11500)", () => {
       ]).entries(),
     ]).toEqual([
       ["33", [[0, 2]]],
-      ["11", [[0, 2], [0, 1]]],
+      [
+        "11",
+        [
+          [0, 2],
+          [0, 1],
+        ],
+      ],
     ]);
   });
 });
@@ -201,7 +217,9 @@ describe("placeRangesOnStrings: a range across a key and its value is placed on 
 
     // The whole value, its escapes and all.
     expect(
-      placeRangesOnStrings(stored, [[start, start + written.length]]).get(value),
+      placeRangesOnStrings(stored, [[start, start + written.length]]).get(
+        value,
+      ),
     ).toEqual([[0, value.length]]);
     // A part that ends inside the escape of the quote is left out.
     expect(
@@ -217,8 +235,8 @@ describe("placeRangesOnStrings: a range across a key and its value is placed on 
     const stored: StoredText = readStoredText({ a: "xyz" })!;
     const [start, end] = rangeOf(stored, ':"xyz');
 
-    expect([...placeRangesOnStrings(stored, [[start, end]]).entries()]).toEqual([
-      ["xyz", [[0, 3]]],
-    ]);
+    expect([...placeRangesOnStrings(stored, [[start, end]]).entries()]).toEqual(
+      [["xyz", [[0, 3]]]],
+    );
   });
 });

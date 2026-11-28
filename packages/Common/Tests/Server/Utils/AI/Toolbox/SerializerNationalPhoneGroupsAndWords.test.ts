@@ -43,12 +43,36 @@ function phonesIn(text: string): Array<string> {
 describe("a national number in its groups beside its word is hidden (#11493)", () => {
   test.each([
     ["Tokyo, by hyphens", "tel 03-1234-5678 ok", "tel [redacted-phone] ok"],
-    ["London, by spaces", "phone 020 3123 4567 ok", "phone [redacted-phone] ok"],
-    ["Paris, by dots", "mobile 06.12.34.56.78 ok", "mobile [redacted-phone] ok"],
-    ["Berlin, two groups", "telephone 030 12345678 ok", "telephone [redacted-phone] ok"],
-    ["Sydney, its area code in parentheses", "phone (02) 1234 5678 ok", "phone [redacted-phone] ok"],
-    ["after its word and a colon", "Tel.: 020 3123 4567", "Tel.: [redacted-phone]"],
-    ["typed in fullwidth", "tel ０３－１２３４－５６７８", "tel [redacted-phone]"],
+    [
+      "London, by spaces",
+      "phone 020 3123 4567 ok",
+      "phone [redacted-phone] ok",
+    ],
+    [
+      "Paris, by dots",
+      "mobile 06.12.34.56.78 ok",
+      "mobile [redacted-phone] ok",
+    ],
+    [
+      "Berlin, two groups",
+      "telephone 030 12345678 ok",
+      "telephone [redacted-phone] ok",
+    ],
+    [
+      "Sydney, its area code in parentheses",
+      "phone (02) 1234 5678 ok",
+      "phone [redacted-phone] ok",
+    ],
+    [
+      "after its word and a colon",
+      "Tel.: 020 3123 4567",
+      "Tel.: [redacted-phone]",
+    ],
+    [
+      "typed in fullwidth",
+      "tel ０３－１２３４－５６７８",
+      "tel [redacted-phone]",
+    ],
   ])("%s: %s", (_label: string, text: string, left: string) => {
     expect(redacted(text)).toBe(left);
   });
@@ -81,7 +105,9 @@ describe("a national number in its groups beside its word is hidden (#11493)", (
     );
 
     expect(result.count).toBe(2);
-    expect(result.text).toBe("tel [redacted-phone], then phone [redacted-phone]");
+    expect(result.text).toBe(
+      "tel [redacted-phone], then phone [redacted-phone]",
+    );
   });
 });
 
@@ -89,7 +115,10 @@ describe("call, cell and contact name a number only with more (#11496)", () => {
   test.each([
     ["a Unix time after call", "call started at 1732752000 ok"],
     ["a Unix time just after call", "call 1732752000 ok"],
-    ["a Unix time in milliseconds after call", "call started at 1732752000123 ok"],
+    [
+      "a Unix time in milliseconds after call",
+      "call started at 1732752000123 ok",
+    ],
     ["a size in bytes after cell", "cell 104857600 bytes"],
     ["a count after cell", "cell: 201234567"],
     ["an id after contact", "contact 123456789012 created"],
@@ -100,12 +129,36 @@ describe("call, cell and contact name a number only with more (#11496)", () => {
   });
 
   test.each([
-    ["after call me on", "please call me on 2012345678 tomorrow", "please call me on [redacted-phone] tomorrow"],
-    ["after call us at", "call us at 2012345678", "call us at [redacted-phone]"],
-    ["after contact number", "contact number: 612345678", "contact number: [redacted-phone]"],
-    ["after cell number", "cell number: 201234567", "cell number: [redacted-phone]"],
-    ["with its trunk prefix after call", "call 02031234567 now", "call [redacted-phone] now"],
-    ["in groups with its trunk prefix after contact", "contact: 03-1234-5678", "contact: [redacted-phone]"],
+    [
+      "after call me on",
+      "please call me on 2012345678 tomorrow",
+      "please call me on [redacted-phone] tomorrow",
+    ],
+    [
+      "after call us at",
+      "call us at 2012345678",
+      "call us at [redacted-phone]",
+    ],
+    [
+      "after contact number",
+      "contact number: 612345678",
+      "contact number: [redacted-phone]",
+    ],
+    [
+      "after cell number",
+      "cell number: 201234567",
+      "cell number: [redacted-phone]",
+    ],
+    [
+      "with its trunk prefix after call",
+      "call 02031234567 now",
+      "call [redacted-phone] now",
+    ],
+    [
+      "in groups with its trunk prefix after contact",
+      "contact: 03-1234-5678",
+      "contact: [redacted-phone]",
+    ],
   ])("hides one %s: %s", (_label: string, text: string, left: string) => {
     expect(redacted(text)).toBe(left);
   });
@@ -147,11 +200,23 @@ function repeat(unit: string, length: number): string {
 
 describe("a tool result of national numbers and call words reads in time in line with its length", () => {
   test.each([
-    ["groups of two without end after a phone word", "tel " + repeat("12 ", LENGTH)],
-    ["hyphenated groups without end after a phone word", "tel " + repeat("12-", LENGTH)],
-    ["national numbers in groups back to back", repeat("tel 03-1234-5678 ", LENGTH)],
+    [
+      "groups of two without end after a phone word",
+      "tel " + repeat("12 ", LENGTH),
+    ],
+    [
+      "hyphenated groups without end after a phone word",
+      "tel " + repeat("12-", LENGTH),
+    ],
+    [
+      "national numbers in groups back to back",
+      repeat("tel 03-1234-5678 ", LENGTH),
+    ],
     ["call before Unix times back to back", repeat("call 1732752000 ", LENGTH)],
-    ["call me on before numbers back to back", repeat("call me on 2012345678 ", LENGTH)],
+    [
+      "call me on before numbers back to back",
+      repeat("call me on 2012345678 ", LENGTH),
+    ],
     ["cell words without end", repeat("cell ", LENGTH)],
     ["contact before digits without end", "contact " + repeat("4", LENGTH)],
   ])("%s", (_label: string, text: string) => {

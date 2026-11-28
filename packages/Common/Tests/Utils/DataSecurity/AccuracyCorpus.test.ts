@@ -2559,11 +2559,7 @@ const READING_CASES_OF: Readonly<
           `2026-10-27T10:15:02Z INFO cell ${size} bytes written`,
           "",
         ),
-        labelled(
-          "phone-number",
-          `{"contact": ${id}, "batch": "nightly"}`,
-          "",
-        ),
+        labelled("phone-number", `{"contact": ${id}, "batch": "nightly"}`, ""),
       ],
     };
   },
@@ -2649,56 +2645,57 @@ const READING_CASES_OF: Readonly<
    * attribute whose key does. The same numbers beside no such word, or
    * under a key that names nothing, are none.
    */
-  "phone-number and us-ssn: numbers inside a list or a map": (): CorpusEntry => {
-    const national: string = drawnUntaken(
-      "phone-number",
-      (): string => {
-        return `2${drawnDigitsOf(9)}`;
-      },
-      (drawn: string): string => {
-        return `[{"system":"order","value":${drawn}}]`;
-      },
-    );
-    const listed: string = drawnUntaken(
-      "phone-number",
-      (): string => {
-        return `3${drawnDigitsOf(9)}`;
-      },
-      (drawn: string): string => {
-        return `[${drawn}]`;
-      },
-    );
-    const ssn: string = drawnUntaken(
-      "us-ssn",
-      (): string => {
-        return drawnSsn().split("-").join("");
-      },
-      (drawn: string): string => {
-        return `[${drawn}]`;
-      },
-    );
+  "phone-number and us-ssn: numbers inside a list or a map":
+    (): CorpusEntry => {
+      const national: string = drawnUntaken(
+        "phone-number",
+        (): string => {
+          return `2${drawnDigitsOf(9)}`;
+        },
+        (drawn: string): string => {
+          return `[{"system":"order","value":${drawn}}]`;
+        },
+      );
+      const listed: string = drawnUntaken(
+        "phone-number",
+        (): string => {
+          return `3${drawnDigitsOf(9)}`;
+        },
+        (drawn: string): string => {
+          return `[${drawn}]`;
+        },
+      );
+      const ssn: string = drawnUntaken(
+        "us-ssn",
+        (): string => {
+          return drawnSsn().split("-").join("");
+        },
+        (drawn: string): string => {
+          return `[${drawn}]`;
+        },
+      );
 
-    return {
-      positives: [
-        labelled(
-          "phone-number",
-          `[{"system":"phone","value":${national}}]`,
-          national,
-        ),
-        labelled("phone-number", `[${listed}]`, listed, "user.phone"),
-        labelled("us-ssn", `[${ssn}]`, ssn, "customer.ssn"),
-      ],
-      nearMisses: [
-        labelled(
-          "phone-number",
-          `[{"system":"order","value":${national}}]`,
-          "",
-        ),
-        labelled("phone-number", `[${listed}]`, "", "order.ids"),
-        labelled("us-ssn", `[${ssn}]`, "", "order.ids"),
-      ],
-    };
-  },
+      return {
+        positives: [
+          labelled(
+            "phone-number",
+            `[{"system":"phone","value":${national}}]`,
+            national,
+          ),
+          labelled("phone-number", `[${listed}]`, listed, "user.phone"),
+          labelled("us-ssn", `[${ssn}]`, ssn, "customer.ssn"),
+        ],
+        nearMisses: [
+          labelled(
+            "phone-number",
+            `[{"system":"order","value":${national}}]`,
+            "",
+          ),
+          labelled("phone-number", `[${listed}]`, "", "order.ids"),
+          labelled("us-ssn", `[${ssn}]`, "", "order.ids"),
+        ],
+      };
+    },
   /*
    * #11385: a phone number whose groups are set apart by another dash -
    * the prolonged sound mark of a number typed in Japanese, a non-breaking
@@ -4298,7 +4295,9 @@ describe("values written the ways the detectors now read them too", () => {
    */
   test("a Postal Code or Coordinates rule hides exactly what Data Security finds of its type, in every case of it", () => {
     const rules: Readonly<Record<string, ScrubRegExp>> = {
-      "postal-code": compileBuiltInScrubPattern(LogScrubPatternType.PostalCode)!,
+      "postal-code": compileBuiltInScrubPattern(
+        LogScrubPatternType.PostalCode,
+      )!,
       geolocation: compileBuiltInScrubPattern(LogScrubPatternType.Coordinates)!,
     };
     let texts: number = 0;
@@ -4332,7 +4331,11 @@ describe("values written the ways the detectors now read them too", () => {
               ranges.some(([start, end]: TextRange): boolean => {
                 return start <= match.start && match.end <= end;
               }),
-            ]).toEqual([name, labelled.text.slice(match.start, match.end), true]);
+            ]).toEqual([
+              name,
+              labelled.text.slice(match.start, match.end),
+              true,
+            ]);
           }
 
           for (const [start, end] of ranges) {
@@ -4480,9 +4483,14 @@ function leftAt(
       place.key === undefined
         ? { body: value as string, attributes: {} }
         : { body: "", attributes: { [place.key]: value } as JSONObject };
-    const scrubbed: JSONObject = LogScrubEngine.scrubLog(row, [compiled!], null, {
-      countValues: false,
-    });
+    const scrubbed: JSONObject = LogScrubEngine.scrubLog(
+      row,
+      [compiled!],
+      null,
+      {
+        countValues: false,
+      },
+    );
 
     return place.key === undefined
       ? scrubbed["body"]
@@ -4730,7 +4738,8 @@ describe("the guard: Scrub It's rule hides what its coverage counts, for every t
    * claim the guard refuses.
    */
   test("would fail a rule that keeps what its coverage counts: a Custom Regex rule of the postcodes' shapes and a ZIP code beside its word", () => {
-    const text: string = "2026-10-27T10:15:02Z INFO parcel shipped to zip 94107 ok";
+    const text: string =
+      "2026-10-27T10:15:02Z INFO parcel shipped to zip 94107 ok";
     const finds: Array<TextMatch> = findsOfType("postal-code", text, undefined);
     const candidate: ScrubRuleCandidate = {
       source: "TypePattern" as never,
@@ -4744,9 +4753,11 @@ describe("the guard: Scrub It's rule hides what its coverage counts, for every t
     const place: GuardPlace = placesOf(undefined)[0]!;
     const left: string = storedTextOf(leftAt(candidate, place, text));
 
-    expect(finds.map((match: TextMatch): boolean | undefined => {
-      return match.fromContext;
-    })).toEqual([true]);
+    expect(
+      finds.map((match: TextMatch): boolean | undefined => {
+        return match.fromContext;
+      }),
+    ).toEqual([true]);
     // The rule keeps it...
     expect(left).toBe(text);
     expect(findsOfType("postal-code", left, undefined)).toHaveLength(1);

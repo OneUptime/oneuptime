@@ -563,15 +563,13 @@ function hidesWhatTheFindingFound(
     "dataTypeId" | "isFoundByContext" | "isFoundByModel"
   >,
 ): boolean {
-  return filters.every(
-    (filter: MetricPipelineRuleFilterCondition): boolean => {
-      return (
-        filter.conditionType !==
-          MetricPipelineRuleFilterConditionType.MatchesRegex ||
-        isFindingHiddenByTypePattern(finding)
-      );
-    },
-  );
+  return filters.every((filter: MetricPipelineRuleFilterCondition): boolean => {
+    return (
+      filter.conditionType !==
+        MetricPipelineRuleFilterConditionType.MatchesRegex ||
+      isFindingHiddenByTypePattern(finding)
+    );
+  });
 }
 
 /*
@@ -1315,10 +1313,7 @@ export function getScrubPatternOfDataType(
       continue;
     }
 
-    const candidate: string | null = joinScrubPatternPieces([
-      ...pieces,
-      piece,
-    ]);
+    const candidate: string | null = joinScrubPatternPieces([...pieces, piece]);
 
     if (candidate === null) {
       continue;

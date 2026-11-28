@@ -142,7 +142,8 @@ function ssnLeft(action: string, digits: string): string {
 
 // Whether Data Security finds a type in a value's JSON text, as the table stores it.
 function dataSecurityFinds(value: unknown, dataTypeId: string): boolean {
-  const text: string = typeof value === "string" ? value : JSON.stringify(value);
+  const text: string =
+    typeof value === "string" ? value : JSON.stringify(value);
 
   return findSensitiveValues(text).some((match: { dataTypeId: string }) => {
     return match.dataTypeId === dataTypeId;
@@ -172,9 +173,9 @@ describe("the log engine: a number inside a list or a map (#11500)", () => {
         { system: "email", value: "x" },
       ]);
       // What the table stores now holds no phone number for Data Security to find.
-      expect(dataSecurityFinds(attributes["customer.contacts"], "phone-number")).toBe(
-        false,
-      );
+      expect(
+        dataSecurityFinds(attributes["customer.contacts"], "phone-number"),
+      ).toBe(false);
     },
   );
 
@@ -250,9 +251,9 @@ describe("the log engine: a number inside a list or a map (#11500)", () => {
       { system: "phone", value: "[REDACTED]" },
       { system: "phone", value: 42 },
     ]);
-    expect(typeof (attributes["contacts"] as Array<JSONObject>)[1]!["value"]).toBe(
-      "number",
-    );
+    expect(
+      typeof (attributes["contacts"] as Array<JSONObject>)[1]!["value"],
+    ).toBe("number");
   });
 
   test("hides a US ZIP code and a lone coordinate sent as numbers beside their keys (#11502)", () => {
@@ -277,7 +278,10 @@ describe("the log engine: a number inside a list or a map (#11500)", () => {
 
     expect(dataSecurityFinds(value, "geolocation")).toBe(true);
     expect(
-      scrubbedAttributes({ location: value }, logRule(LogScrubPatternType.Coordinates)),
+      scrubbedAttributes(
+        { location: value },
+        logRule(LogScrubPatternType.Coordinates),
+      ),
     ).toEqual({ location: ["[REDACTED]", "[REDACTED]"] });
     // Two numbers too imprecise to find a building are no pair.
     expect(
@@ -360,7 +364,12 @@ describe("a Named Attributes rule hides the numbers of a value it names (#11500)
       const hidden: JSONObject = left as JSONObject;
 
       // Every text and number hidden; its keys, its true or false and its shape kept.
-      expect(Object.keys(hidden)).toEqual(["kind", "number", "verified", "tags"]);
+      expect(Object.keys(hidden)).toEqual([
+        "kind",
+        "number",
+        "verified",
+        "tags",
+      ]);
       expect(typeof hidden["kind"]).toBe("string");
       expect(hidden["kind"]).not.toBe("mobile");
       expect(typeof hidden["number"]).toBe("string");
@@ -484,9 +493,14 @@ describe("a Custom Regex rule reads a list or a map as its JSON text too (#11502
   });
 
   test("Scrub It's secret rule hides a secret assigned to a key in a map, and never the key", () => {
-    const secret: string = ["Nrzf", "DYlQ", "da06", "BJxh", "XRUj", "XClw"].join(
-      "",
-    );
+    const secret: string = [
+      "Nrzf",
+      "DYlQ",
+      "da06",
+      "BJxh",
+      "XRUj",
+      "XClw",
+    ].join("");
     const rule: CompiledScrubRule = logRule(
       LogScrubPatternType.Custom,
       LogScrubAction.Redact,

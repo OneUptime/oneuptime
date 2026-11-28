@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import LogScrubRule from "../../../../../Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "../../../../../Models/DatabaseModels/MetricPipelineRule";
 import Service from "../../../../../Models/DatabaseModels/Service";
@@ -94,20 +101,20 @@ beforeEach(() => {
     service.name = "checkout";
     return service;
   }) as never);
-  jest
-    .spyOn(LogScrubRuleService, "create")
-    .mockImplementation((async (createBy: CreateBy<LogScrubRule>) => {
-      createBy.data.id = RULE_ID;
-      created.push(createBy.data);
-      return createBy.data;
-    }) as never);
-  jest
-    .spyOn(MetricPipelineRuleService, "create")
-    .mockImplementation((async (createBy: CreateBy<MetricPipelineRule>) => {
-      createBy.data.id = RULE_ID;
-      createdMetricRules.push(createBy.data);
-      return createBy.data;
-    }) as never);
+  jest.spyOn(LogScrubRuleService, "create").mockImplementation((async (
+    createBy: CreateBy<LogScrubRule>,
+  ) => {
+    createBy.data.id = RULE_ID;
+    created.push(createBy.data);
+    return createBy.data;
+  }) as never);
+  jest.spyOn(MetricPipelineRuleService, "create").mockImplementation((async (
+    createBy: CreateBy<MetricPipelineRule>,
+  ) => {
+    createBy.data.id = RULE_ID;
+    createdMetricRules.push(createBy.data);
+    return createBy.data;
+  }) as never);
 });
 
 afterEach(() => {
@@ -213,7 +220,10 @@ describe("a rule made where nothing could be proven", () => {
   test("an ITIN found beside its word in an attribute gets the rule that names the attribute, which hides it", async () => {
     foundBy = { isFoundByContext: true, isFoundByModel: false };
 
-    const outcome: ScrubItOutcome = await scrub("us-itin", "attributes.tax.ref");
+    const outcome: ScrubItOutcome = await scrub(
+      "us-itin",
+      "attributes.tax.ref",
+    );
     const rule: LogScrubRule = onlyRuleMade();
 
     expect(rule.patternType).toBe(SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE);
@@ -224,7 +234,10 @@ describe("a rule made where nothing could be proven", () => {
   test("the same ITIN found by its shapes in an attribute gets the narrower Custom Regex, which hides it", async () => {
     foundBy = { isFoundByContext: false, isFoundByModel: false };
 
-    const outcome: ScrubItOutcome = await scrub("us-itin", "attributes.tax.ref");
+    const outcome: ScrubItOutcome = await scrub(
+      "us-itin",
+      "attributes.tax.ref",
+    );
 
     expect(onlyRuleMade().patternType).toBe(LogScrubPatternType.Custom);
     expect(outcome.hidesFinding).toBe(true);
@@ -279,7 +292,10 @@ describe("a rule that already hid it", () => {
     existing.isEnabled = true;
     logRules = [existing];
 
-    const outcome: ScrubItOutcome = await scrub("us-itin", "attributes.tax.ref");
+    const outcome: ScrubItOutcome = await scrub(
+      "us-itin",
+      "attributes.tax.ref",
+    );
 
     // Not the rule that keeps it: the one that names the attribute.
     expect(outcome.scrubRuleId).toBe(RULE_ID.toString());
@@ -342,7 +358,11 @@ describe("a metric's attribute", () => {
   test("the same ITIN found by its shapes: only the values its pattern finds", async () => {
     foundBy = { isFoundByContext: false, isFoundByModel: false };
 
-    await scrub("us-itin", "attributes.tax.ref", DataStoreKind.TelemetryMetrics);
+    await scrub(
+      "us-itin",
+      "attributes.tax.ref",
+      DataStoreKind.TelemetryMetrics,
+    );
 
     expect(filtersOf(createdMetricRules[0]!)).toEqual([
       {

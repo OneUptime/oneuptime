@@ -202,9 +202,9 @@ function textOf(event: JSONObject): JSONValue | undefined {
 }
 
 function mutatedAttributes(event: JSONObject): JSONObject {
-  return (
-    (event["data"] as JSONObject)["attributes"] as Array<JSONObject>
-  )[0]!["attributes"] as JSONObject;
+  return ((event["data"] as JSONObject)["attributes"] as Array<JSONObject>)[0]![
+    "attributes"
+  ] as JSONObject;
 }
 
 function addedAttributes(event: JSONObject): JSONObject {
@@ -231,7 +231,11 @@ describe("a form field's value is read under what names it (#11501)", () => {
     "a national number typed into a field named for a phone by %s is hidden, in the field and as it is typed",
     async (_label: string, naming: JSONObject) => {
       const snapshot: JSONObject = snapshotOf([
-        { tagName: "input", id: 10, attributes: { ...naming, value: NATIONAL_PHONE } },
+        {
+          tagName: "input",
+          id: 10,
+          attributes: { ...naming, value: NATIONAL_PHONE },
+        },
       ]);
       const typed: JSONObject = inputEvent(10, NATIONAL_PHONE);
       const events: Array<JSONValue> = [snapshot, typed];
@@ -254,7 +258,12 @@ describe("a form field's value is read under what names it (#11501)", () => {
       {
         tagName: "input",
         id: 10,
-        attributes: { name: "search", id: "q", type: "text", value: NATIONAL_PHONE },
+        attributes: {
+          name: "search",
+          id: "q",
+          type: "text",
+          value: NATIONAL_PHONE,
+        },
       },
     ]);
     const typed: JSONObject = inputEvent(10, NATIONAL_PHONE);
@@ -271,7 +280,11 @@ describe("a form field's value is read under what names it (#11501)", () => {
 
   test("a number the rule's own pattern finds is hidden in any field, named or not", async () => {
     const snapshot: JSONObject = snapshotOf([
-      { tagName: "input", id: 10, attributes: { name: "search", value: "201-234-5678" } },
+      {
+        tagName: "input",
+        id: 10,
+        attributes: { name: "search", value: "201-234-5678" },
+      },
     ]);
     const typed: JSONObject = inputEvent(10, "call 201-234-5678");
 
@@ -282,11 +295,36 @@ describe("a form field's value is read under what names it (#11501)", () => {
   });
 
   test.each([
-    ["a ZIP code, into a field whose autocomplete is postal-code", { autocomplete: "postal-code" }, "94107", POSTAL_CODE],
-    ["a ZIP code, into a field named zip", { name: "shipping[zip]" }, "94107-1234", POSTAL_CODE],
-    ["one coordinate, into a field named lat", { name: "lat" }, "37.77493", COORDINATES],
-    ["one coordinate, into a field whose id names a longitude", { id: "dropoffLongitude" }, "-122.41942", COORDINATES],
-    ["an SSN as nine digits, into a field named ssn", { name: "ssn" }, "536221234", SSN],
+    [
+      "a ZIP code, into a field whose autocomplete is postal-code",
+      { autocomplete: "postal-code" },
+      "94107",
+      POSTAL_CODE,
+    ],
+    [
+      "a ZIP code, into a field named zip",
+      { name: "shipping[zip]" },
+      "94107-1234",
+      POSTAL_CODE,
+    ],
+    [
+      "one coordinate, into a field named lat",
+      { name: "lat" },
+      "37.77493",
+      COORDINATES,
+    ],
+    [
+      "one coordinate, into a field whose id names a longitude",
+      { id: "dropoffLongitude" },
+      "-122.41942",
+      COORDINATES,
+    ],
+    [
+      "an SSN as nine digits, into a field named ssn",
+      { name: "ssn" },
+      "536221234",
+      SSN,
+    ],
   ])(
     "%s",
     async (
@@ -317,12 +355,22 @@ describe("a form field's value is read under what names it (#11501)", () => {
       {
         tagName: "input",
         id: 10,
-        attributes: { name: "phone", type: "tel", autocomplete: "postal-code", value: "94107" },
+        attributes: {
+          name: "phone",
+          type: "tel",
+          autocomplete: "postal-code",
+          value: "94107",
+        },
       },
       {
         tagName: "input",
         id: 11,
-        attributes: { name: "phone", type: "tel", autocomplete: "postal-code", value: NATIONAL_PHONE },
+        attributes: {
+          name: "phone",
+          type: "tel",
+          autocomplete: "postal-code",
+          value: NATIONAL_PHONE,
+        },
       },
     ]);
 
@@ -335,8 +383,16 @@ describe("a form field's value is read under what names it (#11501)", () => {
 
   test("a textarea and a select are form fields too", async () => {
     const snapshot: JSONObject = snapshotOf([
-      { tagName: "textarea", id: 10, attributes: { name: "contact_phone", value: NATIONAL_PHONE } },
-      { tagName: "SELECT", id: 11, attributes: { name: "mobile", value: NATIONAL_PHONE } },
+      {
+        tagName: "textarea",
+        id: 10,
+        attributes: { name: "contact_phone", value: NATIONAL_PHONE },
+      },
+      {
+        tagName: "SELECT",
+        id: 11,
+        attributes: { name: "mobile", value: NATIONAL_PHONE },
+      },
     ]);
     const typed: JSONObject = inputEvent(10, NATIONAL_PHONE);
     const chosen: JSONObject = inputEvent(11, NATIONAL_PHONE);
@@ -351,8 +407,16 @@ describe("a form field's value is read under what names it (#11501)", () => {
 
   test("an element that is no form field has its value read alone, whatever its name", async () => {
     const snapshot: JSONObject = snapshotOf([
-      { tagName: "data", id: 10, attributes: { name: "phone", value: NATIONAL_PHONE } },
-      { tagName: "button", id: 11, attributes: { name: "phone", value: NATIONAL_PHONE } },
+      {
+        tagName: "data",
+        id: 10,
+        attributes: { name: "phone", value: NATIONAL_PHONE },
+      },
+      {
+        tagName: "button",
+        id: 11,
+        attributes: { name: "phone", value: NATIONAL_PHONE },
+      },
     ]);
     // An input event for a node that is no form field reads its text alone.
     const typed: JSONObject = inputEvent(10, NATIONAL_PHONE);
@@ -427,7 +491,11 @@ describe("the input events of a field are read under its names, by its node id",
   test("an input event before its field is serialized is read alone: names are read as the walk meets them", async () => {
     const early: JSONObject = inputEvent(10, NATIONAL_PHONE);
     const snapshot: JSONObject = snapshotOf([
-      { tagName: "input", id: 10, attributes: { name: "phone", value: NATIONAL_PHONE } },
+      {
+        tagName: "input",
+        id: 10,
+        attributes: { name: "phone", value: NATIONAL_PHONE },
+      },
     ]);
     const late: JSONObject = inputEvent(10, NATIONAL_PHONE);
 
@@ -459,7 +527,11 @@ describe("the input events of a field are read under its names, by its node id",
     }
 
     // One more than the walk remembers, named for a phone.
-    fields.push({ tagName: "input", id: 10_100, attributes: { name: "phone" } });
+    fields.push({
+      tagName: "input",
+      id: 10_100,
+      attributes: { name: "phone" },
+    });
 
     const first: JSONObject = snapshotOf(fields);
     // The first field again, renamed by a node a mutation adds: remembered as it is now.
@@ -503,9 +575,15 @@ describe("a mutation of a field is read under the names it was serialized with, 
       { tagName: "input", id: 10, attributes: { name: "phone", value: "" } },
       { tagName: "input", id: 11, attributes: { name: "search", value: "" } },
     ]);
-    const ofPhone: JSONObject = attributeMutation(10, { value: NATIONAL_PHONE });
-    const ofSearch: JSONObject = attributeMutation(11, { value: NATIONAL_PHONE });
-    const ofUnseen: JSONObject = attributeMutation(12, { value: NATIONAL_PHONE });
+    const ofPhone: JSONObject = attributeMutation(10, {
+      value: NATIONAL_PHONE,
+    });
+    const ofSearch: JSONObject = attributeMutation(11, {
+      value: NATIONAL_PHONE,
+    });
+    const ofUnseen: JSONObject = attributeMutation(12, {
+      value: NATIONAL_PHONE,
+    });
 
     await scrub([snapshot, ofPhone, ofSearch, ofUnseen], [PHONE]);
 
@@ -553,34 +631,43 @@ describe("a mutation of a field is read under the names it was serialized with, 
 
 describe("a Sensitive Attribute Keys rule hides the whole value of a field its names name", () => {
   test.each([
-    ["a password field, by its type", { type: "password" }, "correct horse battery staple"],
+    [
+      "a password field, by its type",
+      { type: "password" },
+      "correct horse battery staple",
+    ],
     ["a field named for a token", { name: "api_token" }, "tok_live_51HxQ2a"],
     ["a field whose id names a secret", { id: "clientSecret" }, "s3cr3t-value"],
-    ["a field whose autocomplete is a new password", { autocomplete: "new-password" }, "hunter2!"],
-  ])(
-    "%s",
-    async (_label: string, naming: JSONObject, value: string) => {
-      const snapshot: JSONObject = snapshotOf([
-        { tagName: "input", id: 10, attributes: { ...naming, value } },
-      ]);
-      const typed: JSONObject = inputEvent(10, value);
-      const mutated: JSONObject = attributeMutation(10, { value });
+    [
+      "a field whose autocomplete is a new password",
+      { autocomplete: "new-password" },
+      "hunter2!",
+    ],
+  ])("%s", async (_label: string, naming: JSONObject, value: string) => {
+    const snapshot: JSONObject = snapshotOf([
+      { tagName: "input", id: 10, attributes: { ...naming, value } },
+    ]);
+    const typed: JSONObject = inputEvent(10, value);
+    const mutated: JSONObject = attributeMutation(10, { value });
 
-      await scrub([snapshot, typed, mutated], [SENSITIVE_KEYS]);
+    await scrub([snapshot, typed, mutated], [SENSITIVE_KEYS]);
 
-      expect(fieldAttributes(snapshot, 10)["value"]).toBe(REDACTED);
-      expect(textOf(typed)).toBe(REDACTED);
-      expect(mutatedAttributes(mutated)["value"]).toBe(REDACTED);
-      // Its names stay as they are: the DOM needs them.
-      for (const [attribute, name] of Object.entries(naming)) {
-        expect(fieldAttributes(snapshot, 10)[attribute]).toBe(name);
-      }
-    },
-  );
+    expect(fieldAttributes(snapshot, 10)["value"]).toBe(REDACTED);
+    expect(textOf(typed)).toBe(REDACTED);
+    expect(mutatedAttributes(mutated)["value"]).toBe(REDACTED);
+    // Its names stay as they are: the DOM needs them.
+    for (const [attribute, name] of Object.entries(naming)) {
+      expect(fieldAttributes(snapshot, 10)[attribute]).toBe(name);
+    }
+  });
 
   test("a field its names do not name keeps its value", async () => {
     const snapshot: JSONObject = snapshotOf([
-      { tagName: "input", id: 10, attributes: { name: "comment", type: "text", value: "Lovely shop" } },
+      {
+        tagName: "input",
+        id: 10,
+        attributes: { name: "comment", type: "text", value: "Lovely shop" },
+      },
     ]);
     const typed: JSONObject = inputEvent(10, "Lovely shop");
 
@@ -593,7 +680,11 @@ describe("a Sensitive Attribute Keys rule hides the whole value of a field its n
   test("a name of a paragraph's length is read no further than a field's name goes", async () => {
     const longName: string = `${"x".repeat(300)}password`;
     const snapshot: JSONObject = snapshotOf([
-      { tagName: "input", id: 10, attributes: { name: longName, value: "kept" } },
+      {
+        tagName: "input",
+        id: 10,
+        attributes: { name: longName, value: "kept" },
+      },
     ]);
 
     await scrub([snapshot], [SENSITIVE_KEYS]);
@@ -613,10 +704,7 @@ describe("a number under a key that names its type is hidden, as a log's is (#11
       total: 536221234,
     });
 
-    const result: SessionReplayScrubResult = await scrub(
-      [event],
-      [PHONE, SSN],
-    );
+    const result: SessionReplayScrubResult = await scrub([event], [PHONE, SSN]);
 
     expect(payloadOf(event)).toEqual({
       phone: REDACTED,
@@ -655,16 +743,26 @@ describe("a number under a key that names its type is hidden, as a log's is (#11
       "[0-9]+",
     );
     const snapshot: JSONObject = snapshotOf([
-      { tagName: "input", id: 2012345678, attributes: { name: "phone", value: "" } },
+      {
+        tagName: "input",
+        id: 2012345678,
+        attributes: { name: "phone", value: "" },
+      },
     ]);
     const moved: JSONObject = {
       type: 3,
       timestamp: 1_732_780_801_000,
-      data: { source: 1, positions: [{ x: 941, y: 377, id: 2012345678, timeOffset: -50 }] },
+      data: {
+        source: 1,
+        positions: [{ x: 941, y: 377, id: 2012345678, timeOffset: -50 }],
+      },
     };
     const before: string = JSON.stringify([snapshot, moved]);
 
-    await scrub([snapshot, moved], [PHONE, SSN, POSTAL_CODE, COORDINATES, digits, SENSITIVE_KEYS]);
+    await scrub(
+      [snapshot, moved],
+      [PHONE, SSN, POSTAL_CODE, COORDINATES, digits, SENSITIVE_KEYS],
+    );
 
     expect(JSON.stringify([snapshot, moved])).toBe(before);
   });
@@ -743,16 +841,21 @@ describe("a recording of 400,000 characters of form fields is scrubbed in time i
   test.each([
     ["national numbers in their groups, five to a field", FIVE_NUMBERS],
     ["groups of two without end in each field", repeat("12 ", 4_000)],
-    ["a phone word and hyphens without end in each field", `tel ${repeat("0-", 4_000)}`],
+    [
+      "a phone word and hyphens without end in each field",
+      `tel ${repeat("0-", 4_000)}`,
+    ],
     ["fullwidth digits and hyphens in each field", repeat("０３－", 4_000)],
-    ["one field of the longest value a walk reads, sixty thousand characters", repeat(`${NATIONAL_PHONE}, `, 60_000)],
+    [
+      "one field of the longest value a walk reads, sixty thousand characters",
+      repeat(`${NATIONAL_PHONE}, `, 60_000),
+    ],
   ])("%s", async (_label: string, value: string) => {
     const timed: FastestRun<SessionReplayScrubResult> = await fastestRunAsync({
       run: async (): Promise<SessionReplayScrubResult> => {
-        return await SessionReplayScrubService.scrubEvents(
-          recordingOf(value),
-          [PHONE],
-        );
+        return await SessionReplayScrubService.scrubEvents(recordingOf(value), [
+          PHONE,
+        ]);
       },
       limitInMs: LIMIT_IN_MS,
     });
