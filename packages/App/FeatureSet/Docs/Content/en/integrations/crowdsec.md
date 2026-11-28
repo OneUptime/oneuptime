@@ -195,8 +195,8 @@ The connection's **Health** reads **Waiting for alerts** until the first alert a
 Hover its **Enforced At**: it names an allowlist that holds the address, a challenge CrowdSec does not apply, or the Local API's error. While the Local API cannot be reached, OneUptime keeps trying, and the bans CrowdSec already holds stay in force.
 :::
 
-:::details Last Polled is Never and Last Error is empty
-A CrowdSec connection is never polled, so both stay empty. What CrowdSec sends is stored by the background workers: on a self-hosted install with `DISABLE_QUEUE_WORKERS=true` on the app and no separate worker deployment, alerts are taken in and never stored. Set it to `false`, or run the worker deployment (Helm: `worker.enabled: true`).
+:::details CrowdSec sends its alerts, but none is stored
+What CrowdSec sends is stored by the background workers: on a self-hosted install with `DISABLE_QUEUE_WORKERS=true` on the app and no separate worker deployment, alerts are taken in and never stored. **Test connection** shows it as a failed **Background workers** check. Set it to `false`, or run the worker deployment (Helm: `worker.enabled: true`).
 :::
 
 ## Next steps
