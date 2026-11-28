@@ -60,8 +60,16 @@ jobs:
       # Six since 2026-11-16, of two workers each where four shards had
       # jest's three (the test step below says why): the same twelve workers,
       # so each shard keeps about the time it had.
+      #
+      # Eight since 2026-11-28, of two workers each as before. The six had
+      # taken 14 to 22 minutes on the 17.3.0 release branch; on 18.0.0's,
+      # with 101 more test files (3,524), they took 16 to 26 minutes, and
+      # shard 3 of 6 reached the cap after 27 minutes of tests, with Common's
+      # ClickHouse suites still to run. No one file the cause: the slowest,
+      # Tests/Telemetry/IngestKeyBeforeBodyOverHttp.test.ts, took five
+      # minutes in each run.
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}

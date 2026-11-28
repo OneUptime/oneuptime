@@ -150,7 +150,9 @@ else
   done
 fi
 
-COLLECTOR_IMAGE="$(sed -n 's/^ *image: *\(otel\/opentelemetry-collector-contrib:[^ ]*\).*/\1/p' "${WORK_DIR}/docker-compose.yml" | head -n 1)"
+# The collector's image line also names the anchor the PowerStore syslog
+# service reuses the image by (image: &collector-image otel/...).
+COLLECTOR_IMAGE="$(sed -n 's/^ *image: *\(&[A-Za-z0-9_-]* *\)\{0,1\}\(otel\/opentelemetry-collector-contrib:[^ ]*\).*/\2/p' "${WORK_DIR}/docker-compose.yml" | head -n 1)"
 [ -n "${COLLECTOR_IMAGE}" ] || fail "no collector image in docker-compose.yml"
 # The version the agent's files stamp, as the Dashboard compares it: the
 # collector's until the files change on it (AgentFilesVersion.test.ts).
