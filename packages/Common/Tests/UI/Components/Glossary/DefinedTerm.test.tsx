@@ -931,17 +931,17 @@ describe("a press is the word's own", () => {
     expect(readMoreClick.defaultPrevented).toBe(false);
   });
 
-  test("a card that is a link or a button does not hear the press, nor Enter or Space", () => {
+  /*
+   * A card or a row that opens on a click, and on Enter or Space. Not a
+   * control itself: a word is never inside a button or a link
+   * (DefinedTermPlaceGuard).
+   */
+  test("a card or a row that opens on a click does not hear the press, nor Enter or Space", () => {
     const onCardClick: MockFunction = getJestMockFunction();
     const onCardKey: MockFunction = getJestMockFunction();
 
     render(
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={onCardClick}
-        onKeyDown={onCardKey}
-      >
+      <div onClick={onCardClick} onKeyDown={onCardKey}>
         <DefinedTerm term={GlossaryTerm.Criteria}>Criteria</DefinedTerm>
       </div>,
     );

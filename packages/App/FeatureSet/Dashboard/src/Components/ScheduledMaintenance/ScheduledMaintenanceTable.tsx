@@ -24,6 +24,7 @@ import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -107,6 +108,13 @@ export interface ComponentProps {
   emptyState?: EmptyStateOptions | undefined;
   title?: string | undefined;
   description?: string | undefined;
+  /*
+   * The Glossary term the list's title names, for the page where a
+   * newcomer first meets it (All Maintenance Events): its words are drawn
+   * as a defined term (Glossary/DefinedTerm). Not for every tab that lists
+   * a record's events: the word is marked where it is first met.
+   */
+  titleGlossaryTerm?: GlossaryTerm | undefined;
   disableCreate?: boolean | undefined;
   saveFilterProps?: SaveFilterProps | undefined;
   /*
@@ -630,6 +638,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           cardProps={{
             title: cardTitle,
             description: cardDescription,
+            titleGlossaryTerm: props.titleGlossaryTerm,
             buttons: cardbuttons,
           }}
           noItemsMessage={props.noItemsMessage}

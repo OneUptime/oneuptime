@@ -14,6 +14,7 @@ import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
 import { CardMenuExtrasContext } from "../Card/CardMenuExtras";
 import { DetailValueContext } from "../Detail/DetailValueContext";
 import { TableCellContext } from "../Table/TableCellContext";
+import { GlossaryMarksPage } from "../Glossary/GlossaryMarks";
 import ModalFooter from "./ModalFooter";
 import { LOADER_COLOR } from "../Loader/LoaderLayout";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -1028,13 +1029,15 @@ const Modal: FunctionComponent<ComponentProps> = (
                      * what it draws a value of the detail card it was opened
                      * from (DetailValueContext), nor a cell of the table it
                      * was opened from (TableCellContext), nor are its
-                     * options that card's (CardMenuExtrasContext).
+                     * options that card's (CardMenuExtrasContext). It is a
+                     * page of its own for the words it marks too: they are
+                     * counted apart from the page's (GlossaryMarks).
                      */
                     <CardSurfaceContext.Provider value={CardSurface.Page}>
                       <CardMenuExtrasContext.Provider value={null}>
                         <DetailValueContext.Provider value={false}>
                           <TableCellContext.Provider value={false}>
-                            {props.children}
+                            <GlossaryMarksPage>{props.children}</GlossaryMarksPage>
                           </TableCellContext.Provider>
                         </DetailValueContext.Provider>
                       </CardMenuExtrasContext.Provider>

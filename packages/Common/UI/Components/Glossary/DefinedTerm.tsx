@@ -7,6 +7,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
+  useContext,
   useEffect,
   useId,
   useRef,
@@ -32,9 +33,23 @@ import { getTooltipLayer, keepTabOrder } from "../Tooltip/TooltipLayer";
 import {
   DEFINED_TERM_CLASS_NAME,
   DEFINED_TERM_TEST_ID,
+  PLAIN_GLOSSARY_TERM_ATTRIBUTE,
   keepDefinedTermKeys,
   keepDefinedTermPress,
 } from "./DefinedTermWord";
+import {
+  getMisplacedDefinitionMessage,
+  getNameAroundDefinition,
+  isUnderTest,
+  useDefinedTermPlace,
+} from "./DefinedTermPlace";
+import {
+  DEFINITION_HOVER_OPEN_MS,
+  DefinitionOpened,
+  DefinitionOpenedContext,
+  DefinitionOpenedListener,
+  DefinitionOpenedTrigger,
+} from "./DefinitionOpened";
 
 /*
  * A WORD WITH ITS DEFINITION.
@@ -49,9 +64,12 @@ import {
  *
  * Mark a word where a page first uses it - a form field's title (the
  * field's `glossaryTerm`), a card's title (`titleGlossaryTerm`), a line
- * of help - never every time it comes up. A page full of dotted lines is
+ * of help - never every time it comes up, and never inside a button, a
+ * link or a tab (Docs/ux/README.md#names). A page full of dotted lines is
  * worse than none: the Dashboard's GlossaryTermsPerPage guard holds every
- * file to three marked terms, each once.
+ * file to three marked terms, each once, and the page itself counts the
+ * words it draws (GlossaryMarks): the first word of each term is marked,
+ * three terms at most, and any other is drawn as plain words.
  *
  * The word is a real button, so Tab reaches it and a screen reader hears
  * the definition with it (aria-describedby). A press is its own: it does
@@ -73,6 +91,12 @@ import {
  * from the word (keepTabOrder), in a dialog too; and since it is never
  * inside the heading or the field's title its word is in, the definition
  * is never read out as part of that heading's or that field's name (#7594).
+ * In a test, a definition drawn inside such a name fails the test that
+ * opened it (DefinedTermPlace, #7618).
+ *
+ * Opening a definition - a press, the keyboard, or a pointer that rests on
+ * the word - is told once per word, by its term and how, to `onOpened` and
+ * to the page's listener (DefinitionOpened, #7019).
  */
 
 export interface ComponentProps {
@@ -81,10 +105,20 @@ export interface ComponentProps {
   // The word as the page draws it, already in the reader's language.
   children: ReactNode;
   dataTestId?: string | undefined;
+  /*
+   * Told once when someone opens the definition, by its term and how
+   * (DefinitionOpened). The page's own listener (DefinitionOpenedContext)
+   * is told too.
+   */
+  onOpened?: DefinitionOpenedListener | undefined;
 }
 
 // The word, as its place draws it too (DefinedTermWord).
-export { DEFINED_TERM_CLASS_NAME, DEFINED_TERM_TEST_ID };
+export {
+  DEFINED_TERM_CLASS_NAME,
+  DEFINED_TERM_TEST_ID,
+  PLAIN_GLOSSARY_TERM_ATTRIBUTE,
+};
 
 export const DEFINED_TERM_POPOVER_TEST_ID: string = "defined-term-popover";
 export const DEFINED_TERM_DEFINITION_TEST_ID: string =
@@ -246,7 +280,12 @@ const DefinedTermPopover: FunctionComponent<PopoverProps> = (
   );
 };
 
-const DefinedTerm: FunctionComponent<ComponentProps> = (
+/*
+ * The word drawn marked, with its definition: what DefinedTerm draws once
+ * its page has counted it (GlossaryMarks), and what LazyDefinedTerm draws
+ * once this file arrives.
+ */
+const DefinedTermMark: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
@@ -259,12 +298,62 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
   // The event that last asked the popover to show.
   const lastTriggerRef: React.MutableRefObject<string> = useRef<string>("");
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
+  // The page's listener for definitions opened (#7019), if it gave one.
+  const onOpenedFromPage: DefinitionOpenedListener | null = useContext(
+    DefinitionOpenedContext,
+  );
+  // Whether this word has told anyone its definition was opened: once.
+  const hasToldOpenedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  // The wait of a pointer resting on the word (DEFINITION_HOVER_OPEN_MS).
+  const restingTimerRef: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /*
+   * In a test, a definition drawn inside an element named by its own words
+   * (DefinedTermPlace): thrown as the word draws again, so the test that
+   * opened it fails, however Tippy was asked to show it.
+   */
+  const [misplacedDefinition, setMisplacedDefinition] = useState<
+    string | null
+  >(null);
+
+  const stopResting: () => void = (): void => {
+    if (restingTimerRef.current !== null) {
+      clearTimeout(restingTimerRef.current);
+      restingTimerRef.current = null;
+    }
+  };
+
+  // Tells, once, that the definition was opened, and how.
+  const tellOpened: (trigger: DefinitionOpenedTrigger) => void = (
+    trigger: DefinitionOpenedTrigger,
+  ): void => {
+    stopResting();
+
+    if (hasToldOpenedRef.current) {
+      return;
+    }
+
+    hasToldOpenedRef.current = true;
+
+    const opened: DefinitionOpened = { term: props.term, trigger: trigger };
+
+    for (const listener of [props.onOpened, onOpenedFromPage]) {
+      try {
+        listener?.(opened);
+      } catch {
+        // A listener's mistake is never the page's.
+      }
+    }
+  };
 
   useEffect(() => {
     isMountedRef.current = true;
 
     return () => {
       isMountedRef.current = false;
+      stopResting();
     };
   }, []);
 
@@ -293,14 +382,17 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
       });
   };
 
+  if (misplacedDefinition) {
+    throw new Error(misplacedDefinition);
+  }
+
   /*
    * Drawn on the page's body (TooltipLayer), where nothing its word is in
    * can cut it off, and Tab goes from the word to Read more and on from the
    * word as if it sat right after it (keepTabOrder).
    */
   return (
-    <span className="inline">
-      <Tippy
+    <Tippy
         appendTo={getTooltipLayer}
         content={
           <DefinedTermPopover
@@ -356,6 +448,14 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
         onTrigger={(_instance: Instance, event: Event) => {
           lastTriggerRef.current = event.type;
           startReading();
+
+          /*
+           * A press opens it, or keeps one the pointer opened: either way,
+           * someone asked for the definition.
+           */
+          if (event.type === "click") {
+            tellOpened(DefinitionOpenedTrigger.Press);
+          }
         }}
         onShow={(): false | undefined => {
           /*
@@ -372,7 +472,42 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
 
           startReading();
 
+          if (FOCUS_EVENTS.includes(lastTriggerRef.current)) {
+            tellOpened(DefinitionOpenedTrigger.Keyboard);
+          } else if (
+            lastTriggerRef.current === "mouseenter" &&
+            !hasToldOpenedRef.current &&
+            restingTimerRef.current === null
+          ) {
+            /*
+             * Shown at once, but opened only once the pointer has rested
+             * on it: one on its way across the page did not read it.
+             */
+            restingTimerRef.current = setTimeout(() => {
+              restingTimerRef.current = null;
+              tellOpened(DefinitionOpenedTrigger.Hover);
+            }, DEFINITION_HOVER_OPEN_MS);
+          }
+
           return undefined;
+        }}
+        onHide={(): void => {
+          stopResting();
+        }}
+        onMount={(instance: Instance): void => {
+          if (!isUnderTest()) {
+            return;
+          }
+
+          const name: Element | null = getNameAroundDefinition(
+            instance.popper,
+          );
+
+          if (name) {
+            setMisplacedDefinition(
+              getMisplacedDefinitionMessage({ term: props.term, name: name }),
+            );
+          }
         }}
       >
         <button
@@ -398,8 +533,32 @@ const DefinedTerm: FunctionComponent<ComponentProps> = (
           <span id={wordId}>{props.children}</span>
         </button>
       </Tippy>
+  );
+};
+
+/*
+ * A word with its definition, counted with the other words its page marks
+ * (GlossaryMarks): drawn marked when it is the first word of its term on
+ * the page and among its first three terms, and otherwise as plain words.
+ */
+const DefinedTerm: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const placeRef: React.RefObject<HTMLSpanElement> =
+    useRef<HTMLSpanElement>(null);
+  const isMarked: boolean = useDefinedTermPlace(props.term, placeRef);
+
+  return (
+    <span
+      className="inline"
+      ref={placeRef}
+      {...(isMarked ? {} : { [PLAIN_GLOSSARY_TERM_ATTRIBUTE]: props.term })}
+    >
+      {isMarked ? <DefinedTermMark {...props} /> : props.children}
     </span>
   );
 };
+
+export { DefinedTermMark };
 
 export default DefinedTerm;

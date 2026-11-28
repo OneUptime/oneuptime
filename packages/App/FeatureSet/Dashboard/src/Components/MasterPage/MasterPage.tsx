@@ -14,6 +14,8 @@ import AppLink from "../AppLink/AppLink";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
 import TopAlert, { TopAlertType } from "Common/UI/Components/TopAlert/TopAlert";
 import ServerSendingTopAlert from "Common/UI/Components/ServerSending/ServerSendingTopAlert";
+import { DefinitionOpenedContext } from "Common/UI/Components/Glossary/DefinitionOpened";
+import { recordGlossaryDefinitionOpened } from "Common/UI/Utils/GlossaryEvents";
 import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import {
@@ -225,7 +227,17 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
              * else.
              */}
             <WelcomeNextStep />
-            {props.children}
+            {/*
+             * Which dotted words people open the definition of (#7019):
+             * every defined term on the Dashboard's pages tells this, and
+             * it sends glossary/definition_opened where product analytics
+             * is set up and the person allows it (GlossaryEvents).
+             */}
+            <DefinitionOpenedContext.Provider
+              value={recordGlossaryDefinitionOpened}
+            >
+              {props.children}
+            </DefinitionOpenedContext.Provider>
           </>
         )}
       </MasterPage>

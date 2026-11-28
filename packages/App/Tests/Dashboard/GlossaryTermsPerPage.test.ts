@@ -9,19 +9,27 @@ import path from "path";
  * A defined term (Common/UI/Components/Glossary/DefinedTerm) draws a word
  * with a dotted line and shows its Glossary definition on hover, focus or
  * tap (#6819). One marked word where a page first uses it helps; a page
- * full of dotted lines is worse than none. So:
+ * full of dotted lines is worse than none (Docs/ux/README.md#names). So:
  *
  *   - no file marks more than three terms, counting the terms of the
  *     Dashboard components it draws (one level of imports): a form and the
  *     note it draws are one page;
- *   - no file marks the same term twice;
- *   - the twenty-two words the audits found people trip on are each marked
- *     where a core flow first meets them;
- *   - the five hard forms each link the docs page that explains them.
+ *   - no file marks the same term twice, nor do the components it draws
+ *     mark a term it or another of them marks (#7020): two components of
+ *     one page marked the same word;
+ *   - the twenty-eight words the audits found people trip on are each
+ *     marked where a core flow first meets them;
+ *   - the hard forms each link the docs page that explains them.
  *
  * A term is marked by a form field's `glossaryTerm`, a card's or a table's
  * `titleGlossaryTerm`, or a DefinedTerm drawn directly. The marks are read
  * from the source, so this guard sees a mark however a page is reached.
+ * What it cannot see - a page put together from components several imports
+ * apart - the page counts as it draws (GlossaryMarks, held by
+ * Common's GlossaryMarksPerPageGuard): the first word of each term marked,
+ * three terms at most, the rest drawn as plain words. This guard says so
+ * where the code is written, before a mark someone added is quietly drawn
+ * plain.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -72,6 +80,16 @@ const marksIn: (source: string) => Array<string> = (
     });
 };
 
+/*
+ * A Dashboard's source, as the checks below read it: its files by full
+ * path, and where it keeps its components. Read from the checkout, or
+ * planted by the tests that show each check fails.
+ */
+interface DashboardSources {
+  root: string;
+  files: Map<string, string>;
+}
+
 const SOURCE_FILE: RegExp = /\.tsx?$/;
 
 const sourceFiles: (directory: string) => Array<string> = (
@@ -92,19 +110,14 @@ const sourceFiles: (directory: string) => Array<string> = (
   return files;
 };
 
-const FILES: Array<string> = sourceFiles(DASHBOARD_SRC);
-
-const SOURCES: Map<string, string> = new Map(
-  FILES.map((file: string): [string, string] => {
-    return [file, fs.readFileSync(file, "utf8")];
-  }),
-);
-
-const DIRECT_MARKS: Map<string, Array<string>> = new Map(
-  FILES.map((file: string): [string, Array<string>] => {
-    return [file, marksIn(SOURCES.get(file)!)];
-  }),
-);
+const DASHBOARD: DashboardSources = {
+  root: DASHBOARD_SRC,
+  files: new Map(
+    sourceFiles(DASHBOARD_SRC).map((file: string): [string, string] => {
+      return [file, fs.readFileSync(file, "utf8")];
+    }),
+  ),
+};
 
 // The Dashboard files a file imports by a relative path.
 const RELATIVE_IMPORT: RegExp = /from\s+"(\.{1,2}\/[^"]+)"/g;
@@ -114,22 +127,25 @@ const RELATIVE_IMPORT: RegExp = /from\s+"(\.{1,2}\/[^"]+)"/g;
  * imports is a page of its own - a route table imports every page it routes
  * to, and draws one at a time.
  */
-const COMPONENTS_DIR: string = path.join(DASHBOARD_SRC, "Components");
-
-const importedFiles: (file: string) => Array<string> = (
+const importedComponents: (
+  sources: DashboardSources,
+  file: string,
+) => Array<string> = (
+  sources: DashboardSources,
   file: string,
 ): Array<string> => {
+  const componentsDir: string = path.join(sources.root, "Components");
   const imported: Array<string> = [];
 
-  for (const match of SOURCES.get(file)!.matchAll(RELATIVE_IMPORT)) {
+  for (const match of sources.files.get(file)!.matchAll(RELATIVE_IMPORT)) {
     const base: string = path.resolve(path.dirname(file), match[1]!);
 
-    if (!base.startsWith(COMPONENTS_DIR + path.sep)) {
+    if (!base.startsWith(componentsDir + path.sep)) {
       continue;
     }
 
     for (const candidate of [`${base}.tsx`, `${base}.ts`]) {
-      if (SOURCES.has(candidate)) {
+      if (sources.files.has(candidate)) {
         imported.push(candidate);
         break;
       }
@@ -140,26 +156,137 @@ const importedFiles: (file: string) => Array<string> = (
 };
 
 // A file's marks and those of the components it draws, one level down.
-const PAGE_MARKS: Map<string, Array<string>> = new Map(
-  FILES.map((file: string): [string, Array<string>] => {
-    return [
-      file,
-      [
-        ...DIRECT_MARKS.get(file)!,
-        ...importedFiles(file).flatMap((imported: string): Array<string> => {
-          return DIRECT_MARKS.get(imported) || [];
-        }),
-      ],
-    ];
-  }),
-);
+const pageMarksOf: (sources: DashboardSources, file: string) => Array<string> = (
+  sources: DashboardSources,
+  file: string,
+): Array<string> => {
+  return [
+    ...marksIn(sources.files.get(file)!),
+    ...importedComponents(sources, file).flatMap(
+      (imported: string): Array<string> => {
+        return marksIn(sources.files.get(imported)!);
+      },
+    ),
+  ];
+};
 
-const relative: (file: string) => string = (file: string): string => {
-  return path.relative(DASHBOARD_SRC, file).split(path.sep).join("/");
+const relativeTo: (sources: DashboardSources, file: string) => string = (
+  sources: DashboardSources,
+  file: string,
+): string => {
+  return path.relative(sources.root, file).split(path.sep).join("/");
+};
+
+// Pages that mark more than three terms: "Pages/X.tsx: A, B, C, D".
+const crowdedPages: (sources: DashboardSources) => Array<string> = (
+  sources: DashboardSources,
+): Array<string> => {
+  const crowded: Array<string> = [];
+
+  for (const file of Array.from(sources.files.keys())) {
+    const distinct: Set<string> = new Set(pageMarksOf(sources, file));
+
+    if (distinct.size > MAX_MARKED_TERMS_PER_PAGE) {
+      crowded.push(
+        `${relativeTo(sources, file)}: ${Array.from(distinct).join(", ")}`,
+      );
+    }
+  }
+
+  return crowded;
+};
+
+// Files that mark one term twice themselves: "Pages/X.tsx: Probe".
+const filesMarkingTwice: (sources: DashboardSources) => Array<string> = (
+  sources: DashboardSources,
+): Array<string> => {
+  const twice: Array<string> = [];
+
+  for (const [file, source] of Array.from(sources.files.entries())) {
+    const seen: Set<string> = new Set();
+
+    for (const term of marksIn(source)) {
+      if (seen.has(term)) {
+        twice.push(`${relativeTo(sources, file)}: ${term}`);
+      }
+      seen.add(term);
+    }
+  }
+
+  return twice;
+};
+
+/*
+ * Pages whose components mark a term the page, or another of them, marks
+ * too (#7020): "Pages/X.tsx: Probe". One file marking a term twice is
+ * filesMarkingTwice's.
+ */
+const pagesMarkingTwice: (sources: DashboardSources) => Array<string> = (
+  sources: DashboardSources,
+): Array<string> => {
+  const twice: Array<string> = [];
+
+  for (const file of Array.from(sources.files.keys())) {
+    const byFile: Array<Set<string>> = [
+      new Set(marksIn(sources.files.get(file)!)),
+      ...importedComponents(sources, file).map(
+        (imported: string): Set<string> => {
+          return new Set(marksIn(sources.files.get(imported)!));
+        },
+      ),
+    ];
+    const seen: Set<string> = new Set();
+    const repeated: Set<string> = new Set();
+
+    for (const terms of byFile) {
+      for (const term of Array.from(terms)) {
+        if (seen.has(term)) {
+          repeated.add(term);
+        }
+        seen.add(term);
+      }
+    }
+
+    for (const term of Array.from(repeated)) {
+      twice.push(`${relativeTo(sources, file)}: ${term}`);
+    }
+  }
+
+  return twice.sort();
+};
+
+/*
+ * A page whose two parts that mark one term are never drawn together, each
+ * with why. The page counts what it draws (GlossaryMarks) either way; an
+ * entry here says the two marks were meant.
+ */
+const MARKED_TWICE_NEVER_TOGETHER: Readonly<Record<string, string>> = {
+  "Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup.tsx: OnCallPolicy":
+    "Step 2 says the on-call policy it will make (its note marks the word), or shows the existing policy's When this goes down (whose row marks it): one or the other, never both.",
+  "Components/Form/Monitor/MonitorStep.tsx: Criteria":
+    "Its Criteria card for most monitor types, or the telemetry rule editor's When to alert for a Logs, Traces, Metrics or Exceptions monitor (#6935): one or the other, never both.",
 };
 
 const read: (file: string) => string = (file: string): string => {
-  return SOURCES.get(path.join(DASHBOARD_SRC, ...file.split("/")))!;
+  return DASHBOARD.files.get(path.join(DASHBOARD_SRC, ...file.split("/")))!;
+};
+
+// A planted Dashboard: files by their path under its src, as written.
+const planted: (files: Record<string, string>) => DashboardSources = (
+  files: Record<string, string>,
+): DashboardSources => {
+  const root: string = path.join(path.sep, "planted", "src");
+
+  return {
+    root: root,
+    files: new Map(
+      Object.entries(files).map(
+        (entry: [string, string]): [string, string] => {
+          return [path.join(root, ...entry[0].split("/")), entry[1]];
+        },
+      ),
+    ),
+  };
 };
 
 describe("the guard's reading of the source", () => {
@@ -184,19 +311,20 @@ describe("the guard's reading of the source", () => {
   });
 
   test("finds the marks the Dashboard makes", () => {
-    const total: number = Array.from(DIRECT_MARKS.values()).reduce(
-      (sum: number, marks: Array<string>): number => {
-        return sum + marks.length;
+    const total: number = Array.from(DASHBOARD.files.values()).reduce(
+      (sum: number, source: string): number => {
+        return sum + marksIn(source).length;
       },
       0,
     );
 
-    expect(total).toBeGreaterThanOrEqual(21);
+    expect(total).toBeGreaterThanOrEqual(28);
   });
 
   test("counts the marks of a component a file draws", () => {
     expect(
-      PAGE_MARKS.get(
+      pageMarksOf(
+        DASHBOARD,
         path.join(
           DASHBOARD_SRC,
           "Components",
@@ -209,46 +337,118 @@ describe("the guard's reading of the source", () => {
   });
 });
 
+/*
+ * Each check fails on a Dashboard planted with what it forbids, so a check
+ * that stopped finding anything could not pass for one that found nothing
+ * wrong.
+ */
+describe("the checks fail on a planted page", () => {
+  const PLANTED: DashboardSources = planted({
+    // Four terms between a page and the components it draws.
+    "Pages/Crowded.tsx": [
+      'import Note from "../Components/Note";',
+      "<Card titleGlossaryTerm={GlossaryTerm.Probe} />",
+      "<DefinedTerm term={GlossaryTerm.Criteria}>criteria</DefinedTerm>",
+    ].join("\n"),
+    "Components/Note.tsx": [
+      "<DefinedTerm term={GlossaryTerm.Incident}>incident</DefinedTerm>",
+      "<DefinedTerm term={GlossaryTerm.Alert}>alert</DefinedTerm>",
+    ].join("\n"),
+    // Two components of one page that each mark the same word (#7020).
+    "Pages/Twice.tsx": [
+      'import First from "../Components/First";',
+      'import Second from "../Components/Second";',
+    ].join("\n"),
+    "Components/First.tsx": "{ glossaryTerm: GlossaryTerm.Probe }",
+    "Components/Second.tsx":
+      "<DefinedTerm term={GlossaryTerm.Probe}>probes</DefinedTerm>",
+    // A page that marks a word its own component marks too.
+    "Pages/Again.tsx": [
+      'import First from "../Components/First";',
+      "<Card titleGlossaryTerm={GlossaryTerm.Probe} />",
+    ].join("\n"),
+    // One file marking one word twice.
+    "Pages/Repeats.tsx": [
+      "<Card titleGlossaryTerm={GlossaryTerm.Label} />",
+      "{ glossaryTerm: GlossaryTerm.Label }",
+    ].join("\n"),
+    // As it should be: three terms, each once, across the page.
+    "Pages/Fine.tsx": [
+      'import Note from "../Components/Note";',
+      "<Card titleGlossaryTerm={GlossaryTerm.Probe} />",
+    ].join("\n"),
+  });
+
+  test("more than three terms on a page", () => {
+    expect(crowdedPages(PLANTED)).toEqual([
+      "Pages/Crowded.tsx: Probe, Criteria, Incident, Alert",
+    ]);
+  });
+
+  test("a term two components of one page mark, or a page and its component", () => {
+    expect(pagesMarkingTwice(PLANTED)).toEqual([
+      "Pages/Again.tsx: Probe",
+      "Pages/Twice.tsx: Probe",
+    ]);
+  });
+
+  test("a term one file marks twice", () => {
+    expect(filesMarkingTwice(PLANTED)).toEqual(["Pages/Repeats.tsx: Label"]);
+  });
+});
+
 describe("marked words on a page", () => {
   test(`no page marks more than ${MAX_MARKED_TERMS_PER_PAGE} terms`, () => {
-    const crowded: Array<string> = [];
-
-    for (const [file, marks] of PAGE_MARKS) {
-      const distinct: Set<string> = new Set(marks);
-
-      if (distinct.size > MAX_MARKED_TERMS_PER_PAGE) {
-        crowded.push(`${relative(file)}: ${Array.from(distinct).join(", ")}`);
-      }
-    }
-
-    expect(crowded).toEqual([]);
+    expect(crowdedPages(DASHBOARD)).toEqual([]);
   });
 
   test("no file marks the same term twice: only where the page first uses it", () => {
-    const twice: Array<string> = [];
+    expect(filesMarkingTwice(DASHBOARD)).toEqual([]);
+  });
 
-    for (const [file, marks] of DIRECT_MARKS) {
-      const seen: Set<string> = new Set();
-
-      for (const term of marks) {
-        if (seen.has(term)) {
-          twice.push(`${relative(file)}: ${term}`);
-        }
-        seen.add(term);
-      }
-    }
+  test("no two components of a page mark the same term, nor a page and a component it draws (#7020)", () => {
+    const twice: Array<string> = pagesMarkingTwice(DASHBOARD).filter(
+      (entry: string): boolean => {
+        return !MARKED_TWICE_NEVER_TOGETHER[entry];
+      },
+    );
 
     expect(twice).toEqual([]);
+  });
+
+  test("every page listed as marking a term twice still does, with its reason", () => {
+    const found: Set<string> = new Set(pagesMarkingTwice(DASHBOARD));
+
+    for (const [entry, reason] of Object.entries(MARKED_TWICE_NEVER_TOGETHER)) {
+      expect({ entry: entry, stillMarksTwice: found.has(entry) }).toEqual({
+        entry: entry,
+        stillMarksTwice: true,
+      });
+      expect(reason.length).toBeGreaterThan(40);
+    }
   });
 });
 
 /*
- * The words the audits found people trip on (#6819, #9133), and where each is
- * first met in a core flow. "On-call rules" names two things; its one
- * definition says both, and both pages mark it.
+ * The words the audits found people trip on (#6819, #9133, #6935), and where
+ * each is first met in a core flow. "On-call rules" names two things; its
+ * one definition says both, and both pages mark it.
  */
 const TERMS_WHERE_FIRST_MET: ReadonlyArray<[string, Array<string>]> = [
-  ["Criteria", ["Components/Form/Monitor/MonitorStep.tsx"]],
+  /*
+   * A Logs, Traces, Metrics or Exceptions monitor meets its criteria as the
+   * telemetry rule editor's When to alert (#6935); every other monitor
+   * type as MonitorStep's Criteria card.
+   */
+  [
+    "Criteria",
+    [
+      "Components/Form/Monitor/MonitorStep.tsx",
+      "Components/Form/Monitor/TelemetryRule/TelemetryRuleEditor.tsx",
+    ],
+  ],
+  // The project's monitor statuses, under Monitors > Settings (#6935).
+  ["MonitorStatus", ["Pages/Monitor/Settings/MonitorStatus.tsx"]],
   ["Probe", ["Pages/Monitor/Create.tsx", "Pages/Monitor/View/Probes.tsx"]],
   ["Incident", ["Components/Form/Monitor/IncidentOrAlertNote.tsx"]],
   ["Alert", ["Components/Form/Monitor/IncidentOrAlertNote.tsx"]],
@@ -272,6 +472,13 @@ const TERMS_WHERE_FIRST_MET: ReadonlyArray<[string, Array<string>]> = [
   ["OnCallSchedule", ["Pages/OnCallDuty/OnCallDutySchedules.tsx"]],
   ["Layer", ["Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx"]],
   /*
+   * Where a person decides how they are paged, How to Reach Me's line over
+   * its rules (OnCallRulesTabs). The Notification Methods page under User
+   * Settings marks nothing: its first line says what a method is (#8887),
+   * and nothing on it names the word but its title.
+   */
+  ["NotificationMethod", ["Components/NotificationRule/OnCallRulesTabs.tsx"]],
+  /*
    * The project's on-call rules. A person's own were "on-call rules" too,
    * until #6817 named them How to Reach Me: its grid of rules
    * (OnCallRulesTabs) defines the notification method it turns on instead.
@@ -283,6 +490,16 @@ const TERMS_WHERE_FIRST_MET: ReadonlyArray<[string, Array<string>]> = [
       "Pages/Alerts/Settings/AlertOnCallRules.tsx",
     ],
   ],
+  // The Status Pages list, and the Subscribers page of each (#6935).
+  ["StatusPage", ["Pages/StatusPages/StatusPages.tsx"]],
+  ["Subscriber", ["Components/StatusPage/StatusPageSubscriberList.tsx"]],
+  // All Maintenance Events, not every tab that lists a record's (#6935).
+  [
+    "ScheduledMaintenance",
+    ["Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents.tsx"],
+  ],
+  // Settings > Teams (#6935).
+  ["Team", ["Pages/Teams/Index.tsx"]],
   ["Owner", ["Components/Owners/OwnersCard.tsx"]],
   ["Label", ["Pages/Settings/Labels.tsx"]],
   ["MonitorGroup", ["Pages/MonitorGroup/MonitorGroups.tsx"]],
@@ -306,15 +523,15 @@ const TERMS_WHERE_FIRST_MET: ReadonlyArray<[string, Array<string>]> = [
 ];
 
 describe("the words people trip on", () => {
-  test("are twenty-two, each its own term", () => {
-    expect(TERMS_WHERE_FIRST_MET.length).toBe(22);
+  test("are twenty-eight, each its own term", () => {
+    expect(TERMS_WHERE_FIRST_MET.length).toBe(28);
     expect(
       new Set(
         TERMS_WHERE_FIRST_MET.map((entry: [string, Array<string>]): string => {
           return entry[0];
         }),
       ).size,
-    ).toBe(22);
+    ).toBe(28);
   });
 
   test.each(TERMS_WHERE_FIRST_MET)(
@@ -339,6 +556,11 @@ const HARD_FORMS: ReadonlyArray<[string, string, string]> = [
   [
     "monitor criteria",
     "Components/Form/Monitor/MonitorStep.tsx",
+    'docsPath="/docs/monitor/criteria-and-statuses"',
+  ],
+  [
+    "a telemetry monitor's criteria",
+    "Components/Form/Monitor/TelemetryRule/TelemetryRuleEditor.tsx",
     'docsPath="/docs/monitor/criteria-and-statuses"',
   ],
   [

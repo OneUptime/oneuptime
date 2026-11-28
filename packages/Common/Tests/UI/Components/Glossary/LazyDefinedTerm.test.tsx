@@ -35,18 +35,30 @@ import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 const definedTermRenderMock: MockFunction = getJestMockFunction();
 
-// What DefinedTerm draws is DefinedTerm.test.tsx's; here, whether, and with what, it is drawn.
+/*
+ * What DefinedTerm draws is DefinedTerm.test.tsx's; here, whether, and with
+ * what, it is drawn. LazyDefinedTerm counts its word on its page itself
+ * (GlossaryMarks), and draws DefinedTerm's mark (DefinedTermMark) once the
+ * file arrives.
+ */
 jest.mock("../../../../UI/Components/Glossary/DefinedTerm", () => {
+  const Arrived: (props: {
+    term: string;
+    children: React.ReactNode;
+    dataTestId?: string | undefined;
+  }) => React.ReactElement = (props: {
+    term: string;
+    children: React.ReactNode;
+    dataTestId?: string | undefined;
+  }): React.ReactElement => {
+    definedTermRenderMock(props);
+    return <span data-testid="defined-term-arrived">{props.children}</span>;
+  };
+
   return {
     __esModule: true,
-    default: (props: {
-      term: string;
-      children: React.ReactNode;
-      dataTestId?: string | undefined;
-    }): React.ReactElement => {
-      definedTermRenderMock(props);
-      return <span data-testid="defined-term-arrived">{props.children}</span>;
-    },
+    default: Arrived,
+    DefinedTermMark: Arrived,
   };
 });
 
@@ -213,13 +225,13 @@ describe("a word with its definition, as a title draws it", () => {
   });
 
   test("once the file is there, a word drawn after is DefinedTerm from its first frame, asking for nothing", () => {
-    const loaded: { default: unknown } = jest.requireMock(
+    const loaded: { DefinedTermMark: unknown } = jest.requireMock(
       "../../../../UI/Components/Glossary/DefinedTerm",
-    ) as { default: unknown };
+    ) as { DefinedTermMark: unknown };
 
     jest
       .spyOn(LazyLibrary.prototype, "getLoaded")
-      .mockReturnValue(loaded.default);
+      .mockReturnValue(loaded.DefinedTermMark);
 
     render(
       <LazyDefinedTerm term={GlossaryTerm.Criteria}>Criteria</LazyDefinedTerm>,
@@ -255,13 +267,12 @@ describe("a word with its definition, as a title draws it", () => {
     const onCardClick: MockFunction = getJestMockFunction();
     const onCardKeyDown: MockFunction = getJestMockFunction();
 
+    /*
+     * A card that opens on a click, and on Enter or Space: not a control
+     * itself, which a word is never inside (DefinedTermPlace).
+     */
     render(
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={onCardClick}
-        onKeyDown={onCardKeyDown}
-      >
+      <div onClick={onCardClick} onKeyDown={onCardKeyDown}>
         <label>
           <input type="checkbox" data-testid="box" onChange={onChange} />
           <LazyDefinedTerm term={GlossaryTerm.Probe}>Probes</LazyDefinedTerm>
@@ -324,7 +335,7 @@ describe("the imports that keep DefinedTerm out of the first load", () => {
     });
 
     expect(staticImports).toEqual([
-      'import type DefinedTerm from "./DefinedTerm";',
+      'import type { DefinedTermMark } from "./DefinedTerm";',
       'import type { ComponentProps } from "./DefinedTerm";',
     ]);
     expect(source).toContain('await import("./DefinedTerm")');

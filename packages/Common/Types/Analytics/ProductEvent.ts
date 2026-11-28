@@ -72,6 +72,12 @@ export enum ProductEventName {
   // A product was opened from How OneUptime works (#8891).
   HowItWorksProductOpened = "how_it_works/product_opened",
 
+  /*
+   * The definition of a dotted word was opened (#7019): which words still
+   * confuse people. The term and how, never the words around it.
+   */
+  GlossaryDefinitionOpened = "glossary/definition_opened",
+
   // A search in the command palette (Cmd/Ctrl+K) found nothing.
   SearchFoundNothing = "search/no_results",
 
@@ -385,6 +391,20 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       'A product was opened from How OneUptime works: from one of the four steps a problem moves through (place "loop"), or from its category\'s list (place "category"). The product is its key, never its name.',
     properties: [token("product"), token("place")],
+  },
+  {
+    name: ProductEventName.GlossaryDefinitionOpened,
+    description:
+      'The definition of a word a page marks (a dotted word, DefinedTerm) was opened, once per word on a page: which term (term, its Glossary anchor such as "criteria"), how (trigger: press, keyboard, or hover once the pointer rested on the word for a second) and the page as a route with no ids.',
+    properties: [
+      token("term"),
+      token("trigger"),
+      {
+        name: "page",
+        isToken: true,
+        maxLength: FEEDBACK_PAGE_TOKEN_MAX_LENGTH,
+      },
+    ],
   },
   {
     name: ProductEventName.SearchFoundNothing,

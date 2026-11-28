@@ -4,6 +4,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
@@ -61,6 +62,8 @@ const ScheduledMaintenancesPage: FunctionComponent<
           tableId: "all-scheduled-maintenance-events-table",
         }}
         emptyState={firstRun.emptyState}
+        // Where a newcomer first meets the word: what maintenance is (#6935).
+        titleGlossaryTerm={GlossaryTerm.ScheduledMaintenance}
       />
       {firstRun.showcase}
     </Fragment>
