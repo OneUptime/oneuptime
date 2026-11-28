@@ -132,7 +132,10 @@ import Service from "../../../Models/DatabaseModels/Service";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
-import { ActiveFilter } from "../../../UI/Components/TelemetryViewer/types";
+import {
+  ActiveFilter,
+  FacetConfig,
+} from "../../../UI/Components/TelemetryViewer/types";
 import TelemetryEntityNameResolver, {
   ResolvedTelemetryEntity,
   TelemetryEntityLookupResult,
@@ -190,6 +193,25 @@ const chipTexts: ChipTextsFunction = (): Array<string> => {
       return `${filter.displayKey}: ${filter.displayValue}`;
     },
   );
+};
+
+type ServiceFacetNamesFunction = () => Record<string, string>;
+
+/*
+ * The names the Service facet holds, by id: the services the page has read,
+ * from the same render as the rows' services.
+ */
+const serviceFacetNames: ServiceFacetNamesFunction = (): Record<
+  string,
+  string
+> => {
+  const serviceFacet: FacetConfig | undefined = (
+    lastViewerProps().facetConfigs as Array<FacetConfig>
+  ).find((config: FacetConfig): boolean => {
+    return config.key === "primaryEntityId";
+  });
+
+  return serviceFacet?.valueDisplayMap || {};
 };
 
 type FirstChipFunction = () => ActiveFilter;
@@ -502,6 +524,12 @@ describe("TracesViewer names non-Service entities", () => {
     await waitFor(() => {
       expect((lastViewerProps().items as Array<Span>).length).toBe(2);
       expect(chipTexts()).toContain("RUM Application: checkout-web");
+      /*
+       * The rows' services are read by the ids the spans hold, once the
+       * spans have landed: until that read is in, the Service row has no
+       * name to draw.
+       */
+      expect(serviceFacetNames()[SERVICE_ID]).toBe("checkout-api");
     });
 
     const renderRow: (span: Span) => React.ReactElement =
