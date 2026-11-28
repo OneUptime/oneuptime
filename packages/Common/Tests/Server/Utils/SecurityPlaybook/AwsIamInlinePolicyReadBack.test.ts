@@ -17,6 +17,7 @@ import AccountChangeReadBack, {
   AccountChangePolicyDocument,
   AccountChangeState,
   AccountChangeUnknownReason,
+  compareInlinePolicyDocument,
 } from "../../../../Server/Utils/SecurityPlaybook/AccountChangeReadBack";
 import { AWS_SECURITY_CASE_CHECKS_ACTIONS } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { JSONObject } from "../../../../Types/JSON";
@@ -757,6 +758,75 @@ describe("a policy the case's events show written more than once", () => {
       (await readBack(changeOf(firstWrite, lastWrite), deployRole(CI_DEPLOY)))
         .state,
     ).toBe(AccountChangeState.Undone);
+  });
+});
+
+describe("the document now, beside the ones the case's events show written", () => {
+  const ATTACK_FIRST: string = JSON.stringify({
+    Version: "2012-10-17",
+    Statement: { Effect: "Allow", Action: "iam:*", Resource: "*" },
+  });
+  const ATTACK_LAST: string = asSent(EVERYTHING);
+  // As GetRolePolicy writes it: URL-encoded, and written its own way.
+  const asIamWritesIt: (policy: JSONObject) => string = (
+    policy: JSONObject,
+  ): string => {
+    return encodeURIComponent(JSON.stringify(policy));
+  };
+
+  test("the last one the attack wrote, however IAM writes it back: the attack's", () => {
+    expect(
+      compareInlinePolicyDocument({
+        now: asIamWritesIt({
+          Statement: [{ Resource: ["*"], Action: ["*"], Effect: "Allow" }],
+          Version: "2012-10-17",
+        }),
+        written: [ATTACK_FIRST, ATTACK_LAST],
+      }),
+    ).toBe(AccountChangePolicyDocument.Attack);
+    // The last wins over an earlier one of the same policy.
+    expect(
+      compareInlinePolicyDocument({
+        now: asIamWritesIt(EVERYTHING),
+        written: [JSON.stringify(EVERYTHING), ATTACK_LAST],
+      }),
+    ).toBe(AccountChangePolicyDocument.Attack);
+  });
+
+  test("an earlier one: the old one put back, or the attack's first - no telling which", () => {
+    expect(
+      compareInlinePolicyDocument({
+        now: asIamWritesIt(JSON.parse(ATTACK_FIRST) as JSONObject),
+        written: [ATTACK_FIRST, ATTACK_LAST],
+      }),
+    ).toBe(AccountChangePolicyDocument.Earlier);
+  });
+
+  test("none of them, each read whole: the attack's is gone", () => {
+    expect(
+      compareInlinePolicyDocument({
+        now: asIamWritesIt(CI_DEPLOY),
+        written: [ATTACK_FIRST, ATTACK_LAST],
+      }),
+    ).toBe(AccountChangePolicyDocument.Changed);
+  });
+
+  test("anything not read whole is no telling, never gone: one cut short, none at all, or no policy now", () => {
+    for (const data of [
+      { now: asIamWritesIt(CI_DEPLOY), written: [ATTACK_LAST.slice(0, 40)] },
+      {
+        now: asIamWritesIt(CI_DEPLOY),
+        written: [ATTACK_FIRST.slice(0, 30), ATTACK_LAST],
+      },
+      { now: asIamWritesIt(CI_DEPLOY), written: [] },
+      { now: "%7B%22Version", written: [ATTACK_LAST] },
+      { now: "", written: [ATTACK_LAST] },
+    ]) {
+      expect({ data, read: compareInlinePolicyDocument(data) }).toEqual({
+        data,
+        read: AccountChangePolicyDocument.NotComparable,
+      });
+    }
   });
 });
 
