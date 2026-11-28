@@ -151,6 +151,7 @@ POWERSTORE_BULK_METRICS=
 POWERSTORE_API_VERSION=
 POWERSTORE_REQUEST_LIMIT=
 POWERSTORE_SYSLOG_PORT=
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 Для Dell PowerStore также скачайте `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` и `powerstore-syslog.yaml`, задайте `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` и `COMPOSE_PROFILES=powerstore` и заполните `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` и `POWERSTORE_PASSWORD`, пароль — в одинарных кавычках.
@@ -180,6 +181,7 @@ NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
 NETAPP_ONTAP_USERNAME=oneuptime
 NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 Запустите агента:
@@ -244,6 +246,7 @@ Everything is ready. Begin running and processing data.
 | `NETAPP_ONTAP_USERNAME` | ONTAP | REST-пользователь только для чтения, например `oneuptime`. |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | Его пароль. Его читает только Harvest, ровно так, как он записан. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Нет | `true` принимает самоподписанный сертификат массива на нативном эндпоинте и в Harvest; `false` проверяет его. По умолчанию `true`. Экспортёры Pure никогда не проверяют сертификат массива, поэтому к ним это не относится. |
+| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | Нет | Имя контейнера агента. По умолчанию `oneuptime-storage-array-agent`. Агенту второго массива на той же машине нужно собственное имя: см. [Мониторинг нескольких массивов](#мониторинг-нескольких-массивов). Если переменная не задана, скрипт установки называет новый агент по его папке и сохраняет это имя при повторном запуске скрипта. |
 
 ## Как агент опрашивает кластер
 
@@ -340,7 +343,7 @@ processors:
 
 ## Мониторинг нескольких массивов
 
-Один агент читает один массив. Чтобы отслеживать несколько с одной машины, установите каждый в свою папку со своим `.env`, например `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, и задайте каждому собственный `container_name` в его `docker-compose.yml` (например, `oneuptime-storage-array-agent-fa02`): два контейнера не могут иметь одно имя. Передайте папку диагностическому скрипту с помощью `-d`.
+Один агент читает один массив. Чтобы отслеживать несколько с одной машины, установите каждый в свою папку со своим `.env` и своим именем контейнера, так как два контейнера не могут иметь одно имя: `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`. Без `STORAGE_ARRAY_AGENT_CONTAINER_NAME` скрипт называет контейнер по папке, и здесь получается то же имя. Он записывает имя в `.env` этого агента, поэтому имя сохраняется и при повторном запуске скрипта для обновления агента, а агент, чей `container_name` вы когда-то изменили в `docker-compose.yml`, сохраняет это имя. При установке через Docker Compose вместо этого задайте `STORAGE_ARRAY_AGENT_CONTAINER_NAME` в `.env` каждого агента. Передайте папку диагностическому скрипту с помощью `-d`.
 
 Второму агенту PowerStore тоже нужен свой порт syslog: задайте `POWERSTORE_SYSLOG_PORT`, например `5515`, в его `.env`.
 
@@ -358,7 +361,7 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 Агент сообщает версию коллектора, закреплённую в его файлах, как свою **Версия агента**. Если она старше версии, закреплённой в этом выпуске OneUptime, рядом с ней на странице **Обзор** массива появляется предупреждающий значок. Выберите его, чтобы увидеть эти команды. Агент, установленный до того, как его файлы стали сообщать версию, не показывает её, пока не будет обновлён таким способом.
 
-Образ коллектора закреплён в `docker-compose.yml`, а его конфигурации — это файлы рядом, поэтому одно лишь скачивание образов не продвигает агента вперёд. Снова запустите `install.sh`: он использует все значения из вашего существующего `.env` (ничего не спрашивается повторно), обновляет `docker-compose.yml`, все конфигурации коллектора и файлы Harvest (изменённый вами файл сохраняется как `<file>.bak.<timestamp>`) и пересоздаёт агента, чтобы коллектор прочитал новую конфигурацию. Агенту, установленному вне `/opt/oneuptime-storage-array-agent`, нужна его папка: `INSTALL_DIR=<folder> bash install.sh`.
+Образ коллектора закреплён в `docker-compose.yml`, а его конфигурации — это файлы рядом, поэтому одно лишь скачивание образов не продвигает агента вперёд. Снова запустите `install.sh`: он использует все значения из вашего существующего `.env` (ничего не спрашивается повторно), обновляет `docker-compose.yml`, все конфигурации коллектора и файлы Harvest (изменённый вами файл сохраняется как `<file>.bak.<timestamp>`) и пересоздаёт агента, чтобы коллектор прочитал новую конфигурацию. Агенту, установленному вне `/opt/oneuptime-storage-array-agent`, нужна его папка: `INSTALL_DIR=<folder> bash install.sh`. Имя контейнера при этом сохраняется.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh

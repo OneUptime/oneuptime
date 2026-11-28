@@ -151,6 +151,7 @@ POWERSTORE_BULK_METRICS=
 POWERSTORE_API_VERSION=
 POWERSTORE_REQUEST_LIMIT=
 POWERSTORE_SYSLOG_PORT=
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 Dell PowerStore के लिए `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` और `powerstore-syslog.yaml` भी डाउनलोड करें, `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` और `COMPOSE_PROFILES=powerstore` सेट करें, और `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` और `POWERSTORE_PASSWORD` भरें, पासवर्ड सिंगल कोट्स में।
@@ -180,6 +181,7 @@ NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
 NETAPP_ONTAP_USERNAME=oneuptime
 NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 एजेंट शुरू करें:
@@ -244,6 +246,7 @@ Dell का एक्सपोर्टर न होस्ट रिपोर�
 | `NETAPP_ONTAP_USERNAME` | ONTAP | केवल-पढ़ने वाला REST उपयोगकर्ता, जैसे `oneuptime`। |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | उसका पासवर्ड। इसे सिर्फ़ Harvest पढ़ता है, ठीक वैसा ही जैसा लिखा है। |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | नहीं | `true` नेटिव एंडपॉइंट पर और Harvest में ऐरे का सेल्फ़-साइन्ड सर्टिफ़िकेट स्वीकार करता है; `false` उसे सत्यापित करता है। डिफ़ॉल्ट `true` है। Pure के एक्सपोर्टर ऐरे का सर्टिफ़िकेट कभी सत्यापित नहीं करते, इसलिए यह उन पर लागू नहीं होता। |
+| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | नहीं | एजेंट के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-storage-array-agent` है। उसी मशीन पर दूसरे ऐरे के एजेंट को अपना अलग नाम चाहिए: देखें [कई ऐरे की निगरानी](#कई-ऐरे-की-निगरानी)। अगर आप इसे सेट नहीं करते, तो इंस्टॉल स्क्रिप्ट नए एजेंट का नाम उसके फ़ोल्डर पर रखती है, और स्क्रिप्ट फिर से चलाने पर उसे बनाए रखती है। |
 
 ## एजेंट कैसे स्क्रैप करता है
 
@@ -340,7 +343,7 @@ processors:
 
 ## कई ऐरे की निगरानी
 
-एक एजेंट एक ऐरे पढ़ता है। एक ही मशीन से कई ऐरे की निगरानी के लिए, हर एक को अपने `.env` के साथ उसके अपने फ़ोल्डर में इंस्टॉल करें, जैसे `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, और हर एक को अपना `container_name` दें, उसकी `docker-compose.yml` में (जैसे `oneuptime-storage-array-agent-fa02`): दो कंटेनर एक नाम साझा नहीं कर सकते। फ़ोल्डर को डायग्नोस्टिक स्क्रिप्ट को `-d` से दें।
+एक एजेंट एक ऐरे पढ़ता है। एक ही मशीन से कई ऐरे की निगरानी के लिए, हर एक को उसकी अपनी `.env` और उसके अपने कंटेनर नाम के साथ उसके अपने फ़ोल्डर में इंस्टॉल करें, क्योंकि दो कंटेनर एक नाम साझा नहीं कर सकते: `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`। `STORAGE_ARRAY_AGENT_CONTAINER_NAME` के बिना स्क्रिप्ट कंटेनर का नाम फ़ोल्डर के नाम पर रखती है, जो यहाँ वही नाम है। स्क्रिप्ट यह नाम उस एजेंट की `.env` में सहेज लेती है, इसलिए एजेंट अपग्रेड करने के लिए स्क्रिप्ट फिर से चलाने पर भी नाम बना रहता है, और जिस एजेंट का `container_name` आपने कभी `docker-compose.yml` में बदला था, वह वही नाम रखता है। Docker Compose के साथ, इसके बजाय `STORAGE_ARRAY_AGENT_CONTAINER_NAME` को हर एजेंट की `.env` में सेट करें। फ़ोल्डर को डायग्नोस्टिक स्क्रिप्ट को `-d` से दें।
 
 दूसरे PowerStore एजेंट को भी अपना syslog पोर्ट चाहिए: `POWERSTORE_SYSLOG_PORT` को, जैसे `5515`, उसकी `.env` में सेट करें।
 
@@ -358,7 +361,7 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 एजेंट अपनी फ़ाइलों द्वारा पिन किए गए कलेक्टर वर्शन को अपने **एजेंट संस्करण** के रूप में बताता है। जब वह इस OneUptime रिलीज़ के पिन किए वर्शन से पुराना होता है, तो ऐरे के **अवलोकन** पर उसके बगल में एक चेतावनी चिह्न दिखता है। ये कमांड देखने के लिए उसे चुनें। जो एजेंट उसकी फ़ाइलों के वर्शन बताने से पहले इंस्टॉल हुआ था, वह इस तरह अपग्रेड होने तक कोई वर्शन नहीं दिखाता।
 
-कलेक्टर इमेज `docker-compose.yml` में पिन है और उसके कॉन्फ़िगरेशन उसके बगल की फ़ाइलें हैं, इसलिए सिर्फ़ पुल करने से एजेंट आगे नहीं बढ़ता। `install.sh` फिर से चलाएँ: यह आपकी मौजूदा `.env` का हर मान दोबारा उपयोग करती है (कुछ भी फिर से नहीं पूछा जाता), `docker-compose.yml`, हर कलेक्टर कॉन्फ़िगरेशन और Harvest की फ़ाइलें ताज़ा करती है (आपकी संपादित फ़ाइल `<file>.bak.<timestamp>` के रूप में रखी जाती है), और एजेंट दोबारा बनाती है ताकि कलेक्टर अपना नया कॉन्फ़िगरेशन पढ़े। `/opt/oneuptime-storage-array-agent` के बाहर इंस्टॉल किए गए एजेंट को अपना फ़ोल्डर चाहिए: `INSTALL_DIR=<folder> bash install.sh`।
+कलेक्टर इमेज `docker-compose.yml` में पिन है और उसके कॉन्फ़िगरेशन उसके बगल की फ़ाइलें हैं, इसलिए सिर्फ़ पुल करने से एजेंट आगे नहीं बढ़ता। `install.sh` फिर से चलाएँ: यह आपकी मौजूदा `.env` का हर मान दोबारा उपयोग करती है (कुछ भी फिर से नहीं पूछा जाता), `docker-compose.yml`, हर कलेक्टर कॉन्फ़िगरेशन और Harvest की फ़ाइलें ताज़ा करती है (आपकी संपादित फ़ाइल `<file>.bak.<timestamp>` के रूप में रखी जाती है), और एजेंट दोबारा बनाती है ताकि कलेक्टर अपना नया कॉन्फ़िगरेशन पढ़े। `/opt/oneuptime-storage-array-agent` के बाहर इंस्टॉल किए गए एजेंट को अपना फ़ोल्डर चाहिए: `INSTALL_DIR=<folder> bash install.sh`। उसका कंटेनर नाम बना रहता है।
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh

@@ -54,6 +54,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_NAME` | 아니요 | OneUptime에서 이 Xen Orchestra를 부를 이름으로, 각 풀의 설정에 표시됩니다(기본값: 그 주소) |",
   "| `XO_TLS_SERVER_NAME` | No | The name Xen Orchestra's certificate is checked against, when `XO_ADDRESS` is an address the certificate does not list |":
     "| `XO_TLS_SERVER_NAME` | 아니요 | `XO_ADDRESS`가 인증서에 없는 주소일 때 Xen Orchestra의 인증서를 대조할 이름 |",
+  "| `XCP_NG_AGENT_CONTAINER_NAME` | No | The agent's container name (default: `oneuptime-xcp-ng-agent`). A second Xen Orchestra's agent on the same machine needs one of its own: the install script names a new agent after its folder unless you set it, and keeps it when you run the script again |":
+    "| `XCP_NG_AGENT_CONTAINER_NAME` | 아니요 | 에이전트의 컨테이너 이름(기본값: `oneuptime-xcp-ng-agent`). 같은 머신에 있는 두 번째 Xen Orchestra의 에이전트에는 고유한 이름이 필요합니다. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다 |",
   "| `XO_URL` | Install script | Xen Orchestra's address as typed; the script derives `XO_SCHEME` and `XO_ADDRESS` from it |":
     "| `XO_URL` | 설치 스크립트 | 입력한 그대로의 Xen Orchestra 주소. 스크립트가 여기서 `XO_SCHEME`과 `XO_ADDRESS`를 도출합니다 |",
   "| `XO_TLS_FINGERPRINT` | Install script | The SHA-256 fingerprint of Xen Orchestra's own certificate, when the agent trusts that certificate and nothing else |":
@@ -95,8 +97,10 @@ const TRANSLATION: SetupGuideTranslation = {
     "OneUptime은 풀마다 0/1 시리즈 4개를 추가하며, 경고 템플릿이 이를 읽습니다: `xcp_ng.host.running`, `xcp_ng.host.enabled`, `xcp_ng.vm.running`, `xcp_ng.vm.stopped_after_running`(지난 하루 안에 실행되었다가 중지되거나 일시 중지된 VM). 또한 모든 포인트에 `xcp_ng.scope`(`pool`, `host`, `vm`, `sr`, `vdi`, `xostor` 중 하나)와 `xcp_ng.id`(그 객체의 UUID)를 붙이며, 모니터와 대시보드는 이것으로 필터링합니다.",
   "Not kept: Xen Orchestra's own process series (`xo_*`), which belong to no pool, and a host's power read over IPMI, which the plugin sends without its pool. Each VM's estimated share of it is kept.":
     "남기지 않는 것: 어떤 풀에도 속하지 않는 Xen Orchestra 자체의 프로세스 시리즈(`xo_*`)와, 플러그인이 풀 없이 보내는 IPMI로 읽은 호스트 전력. 그중 각 VM의 추정 몫은 남깁니다.",
-  "One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with its own `container_name` in its `docker-compose.yml`:":
-    "에이전트 하나는 Xen Orchestra 하나와 그것이 관리하는 모든 풀을 읽습니다. 두 번째 Xen Orchestra에는 별도 폴더에 두 번째 에이전트를 설치하고, 그 `docker-compose.yml`에 고유한 `container_name`을 지정하세요:",
+  "One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with a container name of its own — two containers cannot share one:":
+    "에이전트 하나는 Xen Orchestra 하나와 그것이 관리하는 모든 풀을 읽습니다. 두 번째 Xen Orchestra에는 별도 폴더에 고유한 컨테이너 이름으로 두 번째 에이전트를 설치하세요. 두 컨테이너는 이름을 공유할 수 없습니다:",
+  "Without `XCP_NG_AGENT_CONTAINER_NAME`, the script names the container after the folder. It keeps the name in that agent's `.env`, so running the script again to upgrade the agent keeps it, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. With Docker Compose, set `XCP_NG_AGENT_CONTAINER_NAME` in each agent's `.env` instead.":
+    "`XCP_NG_AGENT_CONTAINER_NAME`을 지정하지 않으면 스크립트가 폴더 이름을 따서 컨테이너 이름을 짓습니다. 스크립트는 그 이름을 해당 에이전트의 `.env`에 보관하므로, 에이전트를 업그레이드하려고 스크립트를 다시 실행해도 이름이 유지되며, `docker-compose.yml`에서 `container_name`을 직접 수정한 적이 있는 에이전트도 그 이름을 유지합니다. Docker Compose로 설치했다면 대신 각 에이전트의 `.env`에 `XCP_NG_AGENT_CONTAINER_NAME`을 설정하세요.",
   "Don't let two Xen Orchestras that manage the same pool both be read: the pool is one pool in OneUptime, by its UUID, and would be reported twice.":
     "같은 풀을 관리하는 두 Xen Orchestra를 둘 다 읽지 마세요. 그 풀은 UUID로 보아 OneUptime에서 하나의 풀이므로 두 번 보고됩니다.",
   "Any resource attribute prefixed with `oneuptime.label.` becomes a project label on each pool the agent reads: `oneuptime.label.<dimension>=<value>` is the label `<dimension>:<value>`. Add them to the `resource` processor in `otel-collector-config.yaml`, next to `oneuptime.agent.version`:":

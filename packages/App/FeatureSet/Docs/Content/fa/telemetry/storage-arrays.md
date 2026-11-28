@@ -151,6 +151,7 @@ POWERSTORE_BULK_METRICS=
 POWERSTORE_API_VERSION=
 POWERSTORE_REQUEST_LIMIT=
 POWERSTORE_SYSLOG_PORT=
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 برای Dell PowerStore، `otel-collector-config.powerstore.yaml`، `powerstore-exporter.Dockerfile` و `powerstore-syslog.yaml` را هم دانلود کنید، `STORAGE_SYSTEM=dell.powerstore`، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` و `COMPOSE_PROFILES=powerstore` را تنظیم کنید، و `POWERSTORE_ENDPOINT`، `POWERSTORE_USERNAME` و `POWERSTORE_PASSWORD` را پر کنید، گذرواژه را داخل علامت نقل‌قول تکی.
@@ -180,6 +181,7 @@ NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
 NETAPP_ONTAP_USERNAME=oneuptime
 NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 عامل را راه بیندازید:
@@ -244,6 +246,7 @@ Everything is ready. Begin running and processing data.
 | `NETAPP_ONTAP_USERNAME` | ONTAP | کاربر REST فقط‌خواندنی، مانند `oneuptime`. |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | گذرواژه آن کاربر. فقط Harvest آن را می‌خواند، دقیقاً همان‌طور که نوشته شده است. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | خیر | `true` گواهی خودامضای آرایه را روی نقطه پایانی بومی و در Harvest می‌پذیرد؛ `false` آن را اعتبارسنجی می‌کند. پیش‌فرض آن `true` است. صادرکننده‌های Pure هرگز گواهی آرایه را اعتبارسنجی نمی‌کنند، پس این متغیر بر آن‌ها اثری ندارد. |
+| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | خیر | نام کانتینر عامل. پیش‌فرض آن `oneuptime-storage-array-agent` است. عامل آرایه دوم روی همان ماشین به نام خودش نیاز دارد: [پایش چند آرایه](#پایش-چند-آرایه) را ببینید. اسکریپت نصب، اگر آن را تنظیم نکنید، عامل تازه را به نام پوشه‌اش می‌نامد و وقتی اسکریپت را دوباره اجرا می‌کنید آن را نگه می‌دارد. |
 
 ## عامل چگونه برداشت می‌کند
 
@@ -340,7 +343,7 @@ processors:
 
 ## پایش چند آرایه
 
-یک عامل یک آرایه را می‌خواند. برای پایش چند آرایه از یک ماشین، هر کدام را در پوشه خودش با `.env` خودش نصب کنید، مانند `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`، و به هر کدام `container_name` خودش را در `docker-compose.yml` آن بدهید (مانند `oneuptime-storage-array-agent-fa02`): دو کانتینر نمی‌توانند یک نام داشته باشند. پوشه را با `-d` به اسکریپت تشخیصی بدهید.
+یک عامل یک آرایه را می‌خواند. برای پایش چند آرایه از یک ماشین، هر کدام را در پوشه خودش با `.env` خودش و نام کانتینر خودش نصب کنید، چون دو کانتینر نمی‌توانند یک نام داشته باشند: `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`. بدون `STORAGE_ARRAY_AGENT_CONTAINER_NAME`، اسکریپت نام کانتینر را از روی پوشه می‌گذارد که اینجا همان نام است. اسکریپت این نام را در `.env` همان عامل نگه می‌دارد، پس اجرای دوباره اسکریپت برای به‌روزرسانی عامل هم آن را حفظ می‌کند، و عاملی که `container_name` آن را زمانی در `docker-compose.yml` ویرایش کرده‌اید همان نام را نگه می‌دارد. با Docker Compose، به‌جای آن `STORAGE_ARRAY_AGENT_CONTAINER_NAME` را در `.env` هر عامل تنظیم کنید. پوشه را با `-d` به اسکریپت تشخیصی بدهید.
 
 یک عامل PowerStore دوم هم به پورت syslog خودش نیاز دارد: `POWERSTORE_SYSLOG_PORT` را، مثلاً `5515`، در `.env` آن تنظیم کنید.
 
@@ -358,7 +361,7 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 عامل نسخه کالکتوری را که فایل‌هایش ثابت کرده‌اند به‌عنوان **نسخه عامل** خود گزارش می‌دهد. وقتی این نسخه از نسخه‌ای که این انتشار OneUptime ثابت کرده قدیمی‌تر باشد، کنار آن یک نشانه هشدار در **نمای کلی** آرایه نمایان می‌شود. آن را انتخاب کنید تا این فرمان‌ها را ببینید. عاملی که پیش از آنکه فایل‌هایش نسخه‌ای گزارش دهند نصب شده باشد، تا وقتی به این روش به‌روزرسانی نشود هیچ نسخه‌ای نشان نمی‌دهد.
 
-ایمیج کالکتور در `docker-compose.yml` ثابت شده و پیکربندی‌هایش فایل‌هایی کنار آن هستند، پس فقط کشیدن ایمیج‌ها عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml`، همه پیکربندی‌های کالکتور و فایل‌های Harvest را تازه می‌کند (فایلی که ویرایش کرده‌اید به‌صورت `<file>.bak.<timestamp>` نگه داشته می‌شود)، و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند. عاملی که بیرون از `/opt/oneuptime-storage-array-agent` نصب شده، پوشه‌اش را لازم دارد: `INSTALL_DIR=<folder> bash install.sh`.
+ایمیج کالکتور در `docker-compose.yml` ثابت شده و پیکربندی‌هایش فایل‌هایی کنار آن هستند، پس فقط کشیدن ایمیج‌ها عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml`، همه پیکربندی‌های کالکتور و فایل‌های Harvest را تازه می‌کند (فایلی که ویرایش کرده‌اید به‌صورت `<file>.bak.<timestamp>` نگه داشته می‌شود)، و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند. عاملی که بیرون از `/opt/oneuptime-storage-array-agent` نصب شده، پوشه‌اش را لازم دارد: `INSTALL_DIR=<folder> bash install.sh`. نام کانتینرش حفظ می‌شود.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh

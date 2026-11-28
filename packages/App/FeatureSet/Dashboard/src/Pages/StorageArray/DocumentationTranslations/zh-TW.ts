@@ -76,6 +76,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `PURE_FB_API_TOKEN` | FlashBlade | 具有 readonly 角色的 FlashBlade 使用者的 API 權杖 |",
   "| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | No | `true` accepts the array's self-signed certificate on the native endpoint; `false` verifies it (default: `true`). Pure's exporters never verify the array's certificate, so it does not apply to them |":
     "| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 否 | `true` 在原生端點上接受陣列的自我簽署憑證；`false` 則驗證它（預設：`true`）。Pure 的匯出器從不驗證陣列的憑證，所以此項對它們不適用 |",
+  "| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | No | The agent's container name (default: `oneuptime-storage-array-agent`). A second array's agent on the same machine needs one of its own: the install script names a new agent after its folder unless you set it, and keeps it when you run the script again |":
+    "| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | 否 | 代理程式的容器名稱（預設：`oneuptime-storage-array-agent`）。同一台機器上第二個陣列的代理程式需要自己的容器名稱：除非你自行設定，否則安裝指令碼會依新代理程式的資料夾為它命名，並在你再次執行指令碼時保留該名稱 |",
   "- The collector reads the FlashArray's own OpenMetrics endpoint over HTTPS with the token as a Bearer credential — no exporter runs.":
     "- 收集器透過 HTTPS 讀取 FlashArray 本身的 OpenMetrics 端點，並以權杖作為 Bearer 認證——不執行任何匯出器。",
   "- **One scrape job per endpoint**, each read as often as it is worth: `/metrics/array` every 60 seconds; `/metrics/volumes`, `/metrics/hosts` and `/metrics/pods` every 2 minutes; `/metrics/directories` every 30 minutes — directory space is expensive for the array to compute.":
@@ -116,8 +118,10 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **Pod**（`/metrics/pods`） | ActiveCluster 與 ActiveDR 複本連結延遲、仲裁器狀態、效能與空間 |",
   "| **Directories** (`/metrics/directories`) | Space and performance of FlashArray file services' managed directories |":
     "| **目錄**（`/metrics/directories`） | FlashArray 檔案服務中受管目錄的空間與效能 |",
-  "One agent reads one array. To monitor several from the same machine, install each into its own folder with its own `.env`, and give each its own `container_name` in its `docker-compose.yml` (for example `oneuptime-storage-array-agent-fa02`) — two containers cannot share a name:":
-    "一個代理程式讀取一個陣列。要從同一台機器監控多個陣列，請把每個代理程式安裝到各自的資料夾中，使用各自的 `.env`，並在各自的 `docker-compose.yml` 中設定各自的 `container_name`（例如 `oneuptime-storage-array-agent-fa02`）——兩個容器不能共用一個名稱：",
+  "One agent reads one array. To monitor several from the same machine, install each into its own folder with its own `.env` and its own container name — two containers cannot share one:":
+    "一個代理程式讀取一個陣列。要從同一台機器監控多個陣列，請把每個代理程式安裝到各自的資料夾中，使用各自的 `.env` 和各自的容器名稱——兩個容器不能共用一個名稱：",
+  "Without `STORAGE_ARRAY_AGENT_CONTAINER_NAME`, the script names the container after the folder. It keeps the name in that agent's `.env`, so running the script again to upgrade the agent keeps it, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. With Docker Compose, set `STORAGE_ARRAY_AGENT_CONTAINER_NAME` in each agent's `.env` instead.":
+    "若未設定 `STORAGE_ARRAY_AGENT_CONTAINER_NAME`，指令碼會依資料夾為容器命名。它會把名稱保存在該代理程式的 `.env` 中，所以再次執行指令碼來升級代理程式時會保留它；而你曾在 `docker-compose.yml` 中編輯過 `container_name` 的代理程式，也會保留那個名稱。使用 Docker Compose 時，請改為在每個代理程式的 `.env` 中設定 `STORAGE_ARRAY_AGENT_CONTAINER_NAME`。",
   "The agent ships a systemd unit that assumes the install script's folder, `/opt/oneuptime-storage-array-agent`. The install script does not download it, so fetch it:":
     "代理程式附帶一個 systemd 單元，它假定使用安裝指令碼的資料夾 `/opt/oneuptime-storage-array-agent`。安裝指令碼不會下載它，所以請自行取得：",
   "**Upgrade** — the collector image is pinned in `docker-compose.yml` and its configs are files beside it, so pulling alone does not move the agent forward. Re-run the install script. It reuses every value in your existing `.env` (nothing is prompted for again), downloads the latest `docker-compose.yml` and collector configs — a file you edited is kept next to the new one as `<file>.bak.<timestamp>` — and recreates the agent with them:":

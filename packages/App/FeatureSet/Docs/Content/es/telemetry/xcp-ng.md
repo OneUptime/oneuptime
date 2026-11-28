@@ -109,6 +109,7 @@ XO_ADDRESS=xo.example.com
 XO_OPENMETRICS_SECRET='your-plugin-secret'
 XO_NAME='Xen Orchestra'
 XO_TLS_SERVER_NAME=
+XCP_NG_AGENT_CONTAINER_NAME=oneuptime-xcp-ng-agent
 ```
 
 `XO_ADDRESS` es el `host` o el `host:port` de Xen Orchestra, sin `https://`. Pon el secreto del plugin entre comillas simples y escribe cada `$` que contenga como `$$`: el colector vuelve a leer el valor una vez más y tomaría un `$` por el inicio de una variable. Un secreto con una `'` no puede ir entre comillas simples: deja que lo escriba el script de instalación, o elige otro secreto en Xen Orchestra.
@@ -197,6 +198,7 @@ El script de instalación las escribe en `/opt/oneuptime-xcp-ng-agent/.env`; una
 | `XO_TLS_FINGERPRINT` | Script de instalación | La huella SHA-256 del propio certificado de Xen Orchestra, tal como la imprime `openssl x509 -fingerprint -sha256`, con los dos puntos opcionales, cuando el agente confía en ese certificado y en nada más. El script de instalación rechaza un certificado que no coincida con ella. |
 | `XO_CA_FILE` | Script de instalación | Un paquete de CA que emitió el certificado de Xen Orchestra; el script de instalación comprueba el certificado con él y lo copia en `xo-ca.pem`. |
 | `XO_TLS_SERVER_NAME` | No | El nombre con el que se comprueba el certificado de Xen Orchestra, cuando `XO_ADDRESS` es una dirección que el certificado no incluye. Vacío: el host de `XO_ADDRESS`. |
+| `XCP_NG_AGENT_CONTAINER_NAME` | No | El nombre del contenedor del agente. Por defecto, `oneuptime-xcp-ng-agent`. El agente de un segundo Xen Orchestra en la misma máquina necesita uno propio: consulta [Leer varios Xen Orchestra](#leer-varios-xen-orchestra). El script de instalación nombra un agente nuevo según su carpeta, salvo que lo establezcas tú, y lo conserva cuando vuelves a ejecutar el script. |
 
 ## Qué recopila el agente
 
@@ -282,7 +284,7 @@ El colector solo lee su configuración al arrancar: ejecuta `docker compose rest
 
 ## Leer varios Xen Orchestra
 
-Un agente lee un Xen Orchestra y cada pool que gestiona. Para leer un segundo Xen Orchestra desde la misma máquina, instala un segundo agente en su propia carpeta con su propio `.env`, como `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh`, y dale su propio `container_name` en su `docker-compose.yml` (como `oneuptime-xcp-ng-agent-lab`): dos contenedores no pueden compartir nombre. Dale a cada uno su propio `XO_NAME`, para que los **Ajustes** de cada pool digan qué Xen Orchestra lo lee, y pasa la carpeta al script de diagnóstico con `-d`.
+Un agente lee un Xen Orchestra y cada pool que gestiona. Para leer un segundo Xen Orchestra desde la misma máquina, instala un segundo agente en su propia carpeta con su propio `.env` y su propio nombre de contenedor, ya que dos contenedores no pueden compartir nombre: `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab XCP_NG_AGENT_CONTAINER_NAME=oneuptime-xcp-ng-agent-lab bash install.sh`. Sin `XCP_NG_AGENT_CONTAINER_NAME`, el script nombra el contenedor según la carpeta, lo que aquí da el mismo nombre. Guarda el nombre en el `.env` de ese agente, así que volver a ejecutar el script para actualizar el agente también lo conserva, y un agente cuyo `container_name` editaste alguna vez en `docker-compose.yml` conserva ese nombre. Con Docker Compose, establece en su lugar `XCP_NG_AGENT_CONTAINER_NAME` en el `.env` de cada agente. Dale a cada uno su propio `XO_NAME`, para que los **Ajustes** de cada pool digan qué Xen Orchestra lo lee, y pasa la carpeta al script de diagnóstico con `-d`.
 
 Nunca dejes que dos agentes lean el mismo pool, a través de dos Xen Orchestra que lo gestionen ambos: es un solo pool en OneUptime, por su UUID, y se informaría de él dos veces.
 
@@ -300,7 +302,7 @@ sudo systemctl enable --now oneuptime-xcp-ng-agent
 
 El agente informa como su **Versión del agente** de la versión del colector que fijan sus archivos, en la **Vista general** y los **Ajustes** de cada pool. Cuando es más antigua que la versión que fija esta versión de OneUptime, aparece un signo de advertencia a su lado. Selecciónalo para ver estos comandos.
 
-La imagen del colector está fijada en `docker-compose.yml` y su configuración es un archivo situado al lado, así que descargar la imagen no basta para que el agente avance. Vuelve a ejecutar `install.sh`: reutiliza cada valor de tu `.env` existente (no se vuelve a preguntar nada), comprueba el certificado de Xen Orchestra de la misma forma, actualiza `docker-compose.yml` y `otel-collector-config.yaml` (un archivo que hayas editado se conserva como `<file>.bak.<timestamp>`), descarga la imagen y recrea el agente para que el colector lea su configuración nueva. Un agente instalado fuera de `/opt/oneuptime-xcp-ng-agent` necesita su carpeta: `INSTALL_DIR=<folder> bash install.sh`.
+La imagen del colector está fijada en `docker-compose.yml` y su configuración es un archivo situado al lado, así que descargar la imagen no basta para que el agente avance. Vuelve a ejecutar `install.sh`: reutiliza cada valor de tu `.env` existente (no se vuelve a preguntar nada), comprueba el certificado de Xen Orchestra de la misma forma, actualiza `docker-compose.yml` y `otel-collector-config.yaml` (un archivo que hayas editado se conserva como `<file>.bak.<timestamp>`), descarga la imagen y recrea el agente para que el colector lea su configuración nueva. Un agente instalado fuera de `/opt/oneuptime-xcp-ng-agent` necesita su carpeta: `INSTALL_DIR=<folder> bash install.sh`. Conserva su nombre de contenedor.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/xcp-ng-agent -o install.sh

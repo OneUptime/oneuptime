@@ -151,6 +151,7 @@ POWERSTORE_BULK_METRICS=
 POWERSTORE_API_VERSION=
 POWERSTORE_REQUEST_LIMIT=
 POWERSTORE_SYSLOG_PORT=
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 Per un Dell PowerStore, scarica anche `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` e `powerstore-syslog.yaml`, imposta `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` e `COMPOSE_PROFILES=powerstore`, e compila `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` e `POWERSTORE_PASSWORD`, la password tra apici singoli.
@@ -180,6 +181,7 @@ NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
 NETAPP_ONTAP_USERNAME=oneuptime
 NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 Avvia l'agent:
@@ -244,6 +246,7 @@ Lo script di installazione le scrive in `/opt/oneuptime-storage-array-agent/.env
 | `NETAPP_ONTAP_USERNAME` | ONTAP | L'utente REST in sola lettura, come `oneuptime`. |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | La sua password. La legge solo Harvest, esattamente come è scritta. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | No | `true` accetta il certificato autofirmato dell'array sull'endpoint nativo e in Harvest; `false` lo verifica. Il valore predefinito è `true`. Gli exporter di Pure non verificano mai il certificato dell'array, quindi non si applica a loro. |
+| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | No | Il nome del container dell'agent. Il valore predefinito è `oneuptime-storage-array-agent`. L'agent di un secondo array sulla stessa macchina ne ha bisogno di uno proprio: vedi [Monitorare più array](#monitorare-più-array). Lo script di installazione dà a un nuovo agent il nome della sua cartella, a meno che tu non lo imposti, e lo mantiene quando esegui di nuovo lo script. |
 
 ## Come raccoglie l'agent
 
@@ -340,7 +343,7 @@ Il collector legge la sua configurazione solo all'avvio: esegui `docker compose 
 
 ## Monitorare più array
 
-Un agent legge un array. Per monitorarne diversi dalla stessa macchina, installa ciascuno nella propria cartella con il proprio `.env`, come `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, e dai a ciascuno il proprio `container_name` nel suo `docker-compose.yml` (come `oneuptime-storage-array-agent-fa02`): due container non possono condividere un nome. Passa la cartella allo script di diagnostica con `-d`.
+Un agent legge un array. Per monitorarne diversi dalla stessa macchina, installa ciascuno nella propria cartella con il proprio `.env` e il proprio nome di container, perché due container non possono condividere un nome: `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`. Senza `STORAGE_ARRAY_AGENT_CONTAINER_NAME`, lo script dà al container il nome della cartella, che qui è lo stesso nome. Lo script salva il nome nel `.env` di quell'agent, quindi il nome resta anche quando esegui di nuovo lo script per aggiornare l'agent, e un agent di cui hai modificato una volta il `container_name` in `docker-compose.yml` mantiene quel nome. Con Docker Compose, imposta invece `STORAGE_ARRAY_AGENT_CONTAINER_NAME` nel `.env` di ciascun agent. Passa la cartella allo script di diagnostica con `-d`.
 
 Un secondo agente PowerStore ha bisogno anche di una propria porta syslog: imposta `POWERSTORE_SYSLOG_PORT`, per esempio `5515`, nel suo `.env`.
 
@@ -358,7 +361,7 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 L'agent riporta come sua **Versione dell'agente** la versione del collector fissata dai suoi file. Quando è più vecchia della versione fissata da questa release di OneUptime, compare un segnale di avviso accanto a essa nella pagina **Panoramica** dell'array. Selezionalo per vedere questi comandi. Un agent installato prima che i suoi file riportassero una versione non ne mostra nessuna finché non viene aggiornato in questo modo.
 
-L'immagine del collector è fissata in `docker-compose.yml` e le sue configurazioni sono file accanto, quindi scaricare le immagini da solo non porta avanti l'agent. Esegui di nuovo `install.sh`: riutilizza ogni valore del tuo `.env` esistente (non viene chiesto nulla di nuovo), aggiorna `docker-compose.yml`, tutte le configurazioni del collector e i file di Harvest (un file che hai modificato viene conservato come `<file>.bak.<timestamp>`) e ricrea l'agent così che il collector legga la sua nuova configurazione. Un agent installato fuori da `/opt/oneuptime-storage-array-agent` ha bisogno della sua cartella: `INSTALL_DIR=<folder> bash install.sh`.
+L'immagine del collector è fissata in `docker-compose.yml` e le sue configurazioni sono file accanto, quindi scaricare le immagini da solo non porta avanti l'agent. Esegui di nuovo `install.sh`: riutilizza ogni valore del tuo `.env` esistente (non viene chiesto nulla di nuovo), aggiorna `docker-compose.yml`, tutte le configurazioni del collector e i file di Harvest (un file che hai modificato viene conservato come `<file>.bak.<timestamp>`) e ricrea l'agent così che il collector legga la sua nuova configurazione. Un agent installato fuori da `/opt/oneuptime-storage-array-agent` ha bisogno della sua cartella: `INSTALL_DIR=<folder> bash install.sh`. Mantiene il suo nome di container.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
