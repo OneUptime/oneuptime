@@ -590,7 +590,7 @@ describe("the template's page", () => {
    * - each named on the page as the Dashboard draws it.
    */
   const BULK_ACTIONS_FILE: string =
-    "packages/App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/useMonitorTemplateBulkActions.tsx";
+    "App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/useMonitorTemplateBulkActions.tsx";
 
   it("moves monitors to another template from Linked Monitors or the Monitors list, as the bulk actions are titled", () => {
     const bulkActions: string = readRepoFile(BULK_ACTIONS_FILE);
