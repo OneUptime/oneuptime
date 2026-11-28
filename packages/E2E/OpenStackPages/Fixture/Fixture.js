@@ -74,6 +74,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
+import { answerSharedNames } from "../../SuiteHelpers/SharedNameAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import CloudLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
 import CloudOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index";
@@ -175,6 +176,7 @@ import LabelRules from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Se
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OpenStackBudget from "Common/Models/DatabaseModels/OpenStackBudget";
 import Project from "Common/Models/DatabaseModels/Project";
 import Color from "Common/Types/Color";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -2638,6 +2640,26 @@ async function handleApi(method, options) {
     const names = answerUniqueNames({ url });
     if (names) {
       return ok(names);
+    }
+
+    /*
+     * Which budgets share a name (#11021): a cloud's budgets list asks with
+     * every read of its rows, to mark them - from the budgets it holds now,
+     * one a test made among them.
+     */
+    const twins = answerSharedNames({
+      url,
+      kinds: [
+        {
+          modelType: OpenStackBudget,
+          records: () => {
+            return store.OpenStackBudget;
+          },
+        },
+      ],
+    });
+    if (twins) {
+      return ok(twins);
     }
   }
 
