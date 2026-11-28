@@ -38,6 +38,7 @@ import {
 import DOCKER_SWARM_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/DockerSwarm/DockerSwarmClusterShowcase";
 import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/AgentInstallCommands";
 import { getInstallScriptEntry } from "../../../Types/InstallScripts/InstallScripts";
+import { getSetupGuideTableVariables } from "../../Helpers/SetupGuideVariableTable";
 
 /*
  * The Docker Swarm agent guide asks how the agent is installed — the
@@ -1016,11 +1017,7 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
       guideFor("docker-compose").advanced,
       "Environment variables",
     ).markdown;
-    const names: Array<string> = Array.from(
-      table.matchAll(/^\| `([A-Z_]+)` \|/gm),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    });
+    const names: Array<string> = getSetupGuideTableVariables(table);
     const settings: Set<string> = new Set<string>([
       ...envNamesOf(repoCompose[DOCKER_SWARM_COLLECTOR_CONTAINER_NAME]!),
       ...envNamesOf(repoCompose[DOCKER_SWARM_INVENTORY_CONTAINER_NAME]!),
