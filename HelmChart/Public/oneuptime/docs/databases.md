@@ -217,10 +217,17 @@ valkey:
     nodeSelector: {}
     tolerations: []
     affinity: {}
-    resources: {}
-  commonConfiguration: |-
-   appendonly no
-   save ""
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        memory: 4Gi # no CPU limit: it throttles Valkey's one thread
+  # Empty: 75% of resources.limits.memory (60% with persistence on).
+  maxmemory: ""
+  maxmemoryPercentOfMemoryLimit:
+  # Extra valkey.conf lines, written after the chart's own, so they win.
+  commonConfiguration: ""
   # Also publish the Service under its pre-13.0.0 name,
   # <release>-redis-master. Keeps pods that have not yet rolled onto the new
   # spec resolving during the upgrade. Set to false once everything has rolled.
@@ -228,9 +235,37 @@ valkey:
 ```
 
 The generated password lives in the `<release>-valkey` Secret under the key
-`valkey-password`. Note that persistence is off and nothing is written to disk
-(`appendonly no`, `save ""`), so the cache is rebuilt from scratch whenever the
-pod restarts — it is not a source of truth.
+`valkey-password`.
+
+**Memory.** Valkey holds OneUptime's caches and every background queue,
+including each batch of telemetry waiting to be written to ClickHouse. It runs
+with a memory cap, `maxmemory`, of 75% of its container's memory limit (3 GiB
+of the 4Gi default) and `maxmemory-policy noeviction`: at the cap it refuses
+writes with an OOM error, which OneUptime answers with a retryable error, and
+keeps serving reads and the workers that drain the queues. The remaining
+quarter of the limit is headroom for what `maxmemory` does not count, so the
+kernel never kills the server first. Raise `resources.limits.memory` to give it
+more, or set `maxmemory` itself (`"6gb"`, or a Kubernetes quantity such as
+`"6Gi"`). Setting `resources.limits.memory: null` with no `maxmemory` leaves
+Valkey without a cap, growing until its node runs out of memory.
+
+**Persistence.** Off by default: nothing is written to disk (`appendonly no`,
+`save ""`), so a restarted Valkey starts empty and the jobs it was holding are
+lost. Every queued telemetry batch passes through Valkey, so an append-only file
+is written as fast as telemetry arrives, and on a slow disk the fsync stalls
+Valkey's single thread. Turn `persistence.enabled` on, on a fast disk, for queued
+work that must survive a restart: Valkey then writes an append-only file
+(`appendfsync everysec`, at most a second of writes lost) to a
+PersistentVolumeClaim at `/data`, and its cap is derived at 60% of the limit to
+leave room for the fork that rewrites that file. Switching persistence on or off
+on an installed release changes the StatefulSet's volume claims, which
+Kubernetes does not allow: run
+`kubectl delete statefulset <release>-valkey --cascade=orphan` first.
+
+**Health checks.** The liveness probe is a TCP connect to the Valkey port, so a
+server that is busy (draining a deep queue, loading its append-only file) is
+never restarted; only one that stopped listening is. Readiness runs
+`valkey-cli ping`.
 
 ### External
 
