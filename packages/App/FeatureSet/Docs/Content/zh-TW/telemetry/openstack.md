@@ -292,6 +292,12 @@ ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
 COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
+OPENSTACK_AGENT_CONTAINER_NAME=oneuptime-openstack-agent
+OPENSTACK_EXPORTER_CONTAINER_NAME=oneuptime-openstack-exporter
+OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME=oneuptime-openstack-quota-exporter
+OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-database-exporter
+OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-worker-state-exporter
+OPENSTACK_AI_AGENT_CONTAINER_NAME=oneuptime-openstack-ai-agent
 ```
 
 `OPENSTACK_EXPORTER_CLOUDS` 以方括號列出每個區域，`COMPOSE_PROFILES` 則啟動內附的匯出器與 [AI 代理程式](#ai-代理程式)。兩個檔案都含有機密。匯出器以 uid 65532 執行，而且它必須是唯一能讀取 `clouds.yaml` 的帳號。啟動代理程式：
@@ -380,6 +386,12 @@ Everything is ready. Begin running and processing data.
 | `OPENSTACK_AGENT_SERVICES` | 否 | 這個代理程式讀取哪些服務，用於[在代理程式之間共用一個雲端](/docs/telemetry/openstack-very-large-clouds#在收集器之間分擔一個雲端)，例如 `compute\|placement`。預設為全部。 |
 | `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | 否 | 收集器可在記憶體中保留的量。非常大的雲端進行一次擷取所需的量，超過預設的 `512`。 |
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | 否 | `openstack_database_exporter`，用於[資料庫路徑](/docs/telemetry/openstack-very-large-clouds#資料庫路徑)：`[openstack-database-exporter:9180]`。預設為無。該路徑的其他設定列在那裡。 |
+| `OPENSTACK_AGENT_CONTAINER_NAME` | 否 | 收集器的容器名稱。預設為 `oneuptime-openstack-agent`。同一台機器上第二個雲端的代理程式需要自己的容器名稱：請參閱 [監控多個雲端](#監控多個雲端)。除非你自行設定，否則安裝指令碼會依新代理程式的資料夾為其容器命名，並在你再次執行指令碼時保留這些名稱。 |
+| `OPENSTACK_EXPORTER_CONTAINER_NAME` | 否 | 內附的匯出器的容器名稱。預設為 `oneuptime-openstack-exporter`，第二個代理程式則預設使用與其收集器名稱並列的名稱，例如 `oneuptime-openstack-exporter-cloud2`。 |
+| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | 否 | 配額匯出器的容器名稱。預設為 `oneuptime-openstack-quota-exporter`，第二個代理程式則預設使用與其收集器名稱並列的名稱，例如 `oneuptime-openstack-quota-exporter-cloud2`。 |
+| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | 否 | 資料庫匯出器的容器名稱。預設為 `oneuptime-openstack-database-exporter`，第二個代理程式則預設使用與其收集器名稱並列的名稱，例如 `oneuptime-openstack-database-exporter-cloud2`。 |
+| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | 否 | 工作程序狀態匯出器的容器名稱。預設為 `oneuptime-openstack-worker-state-exporter`，第二個代理程式則預設使用與其收集器名稱並列的名稱，例如 `oneuptime-openstack-worker-state-exporter-cloud2`。 |
+| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理程式的容器名稱。預設為 `oneuptime-openstack-ai-agent`，第二個代理程式則預設使用與其收集器名稱並列的名稱，例如 `oneuptime-openstack-ai-agent-cloud2`。 |
 
 安裝指令碼也會從環境讀取憑證，以略過它的提問：`OPENSTACK_APPLICATION_CREDENTIAL_ID` 與 `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`，或是 `OPENSTACK_USERNAME`、`OPENSTACK_PASSWORD`、`OPENSTACK_PROJECT_NAME`、`OPENSTACK_USER_DOMAIN_NAME` 與 `OPENSTACK_PROJECT_DOMAIN_NAME`。它們有自己的名稱，而不是 openrc 檔案所設定的 `OS_*`，所以 admin 載入的 openrc 不會在沒有人被詢問的情況下變成代理程式的憑證。應用程式憑證比使用者名稱與密碼更好：它可以限制為只能讀取，而且可以過期。
 
@@ -1025,6 +1037,7 @@ sudo bash install-logs.sh
 | `OPENSTACK_LOGS_DIRECTORY` | Kolla-Ansible 的日誌所在位置，如果不在它平常的 Docker 磁碟區中 |
 | `OPENSTACK_LOGS_TIMEZONE` | oslo.log 寫入時間所用的時區。預設為 `UTC` |
 | `OPENSTACK_LOGS_UNITS` | 要讀取的日誌（journal）單元，以方括號表示。預設為每個 OpenStack 服務的 |
+| `OPENSTACK_LOGS_CONTAINER_NAME` | 使用 Docker 時收集器的容器名稱。預設為 `oneuptime-openstack-logs`。再次執行指令碼會保留它 |
 
 檔案設定檔依名稱讀取 OpenStack 的服務，所以同一個資料夾中的 RabbitMQ、MariaDB、HAProxy 和 libvirt 不會被動到。之後重新啟動的收集器會從它已讀到的那一行繼續。
 
@@ -1645,6 +1658,20 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 工作流程可以從 OpenStack 警示開始並提出修正：**提出 OpenStack 修正** 步驟接收警示或事件，以及命令。它與 OneUptime AI 提出的修正走同樣的政策、同樣的寫入範圍，以及同樣對變更所碰觸對象的讀取，它不需要 AI 模型，並且由人在警示上核准。無論雲端的修正模式為何，工作流程都無法自行進行變更，也無法核准它所提出的內容。**Propose taking a failing OpenStack compute service out of scheduling** 範本是一個起點。
 
+## 監控多個雲端
+
+一個代理程式讀取一個雲端。要從同一台機器監控多個雲端，請把每個代理程式安裝到各自的資料夾中，並使用各自的 `.env` 和各自的容器名稱，因為兩個容器不能同名：
+
+```bash
+INSTALL_DIR=/opt/oneuptime-openstack-agent-cloud2 bash install.sh
+```
+
+指令碼會依資料夾為代理程式的容器命名：`oneuptime-openstack-agent-cloud2`、`oneuptime-openstack-exporter-cloud2`、`oneuptime-openstack-quota-exporter-cloud2`、`oneuptime-openstack-database-exporter-cloud2`、`oneuptime-openstack-worker-state-exporter-cloud2` 和 `oneuptime-openstack-ai-agent-cloud2`。若要自行選擇名稱，請在執行指令碼時設定 `OPENSTACK_AGENT_CONTAINER_NAME` 以及上表中的其他變數。它會把名稱保存在該代理程式的 `.env` 中，所以再次執行指令碼來升級代理程式時會保留這些名稱；而若代理程式的 `container_name` 曾由你在 `docker-compose.yml` 中編輯過，它也會保留那個名稱。請為每個資料夾取一個獨有的名稱：Docker Compose 只依資料夾為專案命名，因此如果某個資料夾與別處已在執行代理程式的資料夾同名，指令碼會拒絕它。使用 Docker Compose 時，請改為在每個代理程式的 `.env` 中設定這些名稱。
+
+這些名稱在使用 Docker 時適用：不使用 Docker 的安裝不執行容器。日誌和追蹤的收集器也以同樣的方式從 `.env` 讀取自己的名稱：`OPENSTACK_LOGS_CONTAINER_NAME` 和 `OPENSTACK_TRACES_CONTAINER_NAME`。
+
+systemd 單元假設代理程式位於 `/opt/oneuptime-openstack-agent`：若使用其他資料夾，請以另一個名稱儲存它，例如 `oneuptime-openstack-agent-cloud2.service`，並修改它的 `WorkingDirectory`。用 `-d` 把資料夾傳給診斷指令碼。
+
 ## 以 systemd 服務執行
 
 若要讓代理程式隨機器啟動，並在失敗時重新啟動，請安裝它的 systemd 單元。它假設代理程式位於 `/opt/oneuptime-openstack-agent`，也就是安裝指令碼放置它的地方。不使用 Docker 的安裝本身就是 systemd 服務。
@@ -1659,7 +1686,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 代理程式會回報它的檔案版本，作為它的**代理程式版本**：即它們所固定的收集器版本，並在檔案於該收集器上每次變更時，將最後一個數字加一。當它比這個 OneUptime 版本所固定的版本更舊時，它旁邊會出現警告符號。選取它即可看到這些命令。
 
-收集器映像檔固定在 `docker-compose.yml` 中，而它的設定是旁邊的檔案，所以只拉取映像檔並不會讓代理程式前進。請再次執行 `install.sh`，如果你是不使用 Docker 安裝的，則加上 `sudo`：它會重用你現有 `.env` 中的每個值和 `clouds.yaml` 中的憑證（不會再問任何事），向 Keystone 檢查憑證，更新代理程式的檔案（你編輯過的檔案會保留為 `<file>.bak.<timestamp>`），拉取映像檔，並重新建立代理程式，讓收集器讀取它的新設定。
+收集器映像檔固定在 `docker-compose.yml` 中，而它的設定是旁邊的檔案，所以只拉取映像檔並不會讓代理程式前進。請再次執行 `install.sh`，如果你是不使用 Docker 安裝的，則加上 `sudo`：它會重用你現有 `.env` 中的每個值和 `clouds.yaml` 中的憑證（不會再問任何事），向 Keystone 檢查憑證，更新代理程式的檔案（你編輯過的檔案會保留為 `<file>.bak.<timestamp>`），拉取映像檔，並重新建立代理程式，讓收集器讀取它的新設定。安裝在 `/opt/oneuptime-openstack-agent` 之外的代理程式需要指定它的資料夾，也就是 `INSTALL_DIR=<folder> bash install.sh`，並會保留它的容器名稱。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh

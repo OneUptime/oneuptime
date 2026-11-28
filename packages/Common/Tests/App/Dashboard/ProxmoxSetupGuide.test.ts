@@ -285,6 +285,41 @@ const composeVariables: (serviceName: string) => Map<string, string | null> = (
   return variables;
 };
 
+/*
+ * The containers' names the compose file reads from .env, with their
+ * defaults: each service runs as `container_name: ${NAME:-default}`, so a
+ * second cluster's agent on the same machine runs under names of its own
+ * (#11434).
+ */
+const containerNameVariables: () => Map<string, string> = (): Map<
+  string,
+  string
+> => {
+  const variables: Map<string, string> = new Map();
+  for (const service of Object.values(
+    composeFile()["services"] as Record<string, Record<string, string>>,
+  )) {
+    const match: RegExpMatchArray | null = (
+      service["container_name"] || ""
+    ).match(/^\$\{([A-Z0-9_]+):-([^}]+)\}$/);
+    if (!match) {
+      throw new Error(
+        `A container whose name is not read from .env: ${service["container_name"]}`,
+      );
+    }
+    variables.set(match[1]!, match[2]!);
+  }
+  return variables;
+};
+
+// The container a service of the compose file runs as, for a first agent.
+const containerOf: (serviceName: string) => string = (
+  serviceName: string,
+): string => {
+  const name: string = composeFile()["services"][serviceName]["container_name"];
+  return name.replace(/^\$\{[A-Z0-9_]+:-([^}]+)\}$/, "$1");
+};
+
 // The rows of the guide's environment variable table.
 const envTableRows: (
   guide: SetupGuideContent,
@@ -528,7 +563,7 @@ describe.each(AGENT_METHODS)(
       }
     });
 
-    test("has Advanced topics for settings, exporter, data, node failover, config, logs, labels, AI and upgrades", () => {
+    test("has Advanced topics for settings, exporter, data, node failover, config, logs, labels, AI, several clusters and upgrades", () => {
       expect(topicTitles(guide.advanced)).toEqual([
         "Environment variables",
         "Use your own prometheus-pve-exporter",
@@ -538,6 +573,7 @@ describe.each(AGENT_METHODS)(
         "Ship Proxmox service logs",
         "Tag the cluster with project labels",
         "OneUptime AI agent",
+        "Monitoring several clusters",
         "Upgrade or uninstall the agent",
       ]);
     });
@@ -1549,7 +1585,7 @@ describe("drift guards against agents/ProxmoxAgent", () => {
       const failover: Record<string, any> =
         compose["services"]["pve-api-failover"];
 
-      expect(failover["container_name"]).toBe(PROXMOX_FAILOVER_CONTAINER);
+      expect(containerOf("pve-api-failover")).toBe(PROXMOX_FAILOVER_CONTAINER);
       expect(collector["volumes"]).toContain(
         "pve-api-target:/etc/oneuptime/pve-api:ro",
       );
@@ -1615,12 +1651,19 @@ describe("drift guards against agents/ProxmoxAgent", () => {
     });
   });
 
-  test("the environment table documents exactly what the collector and the bundled exporter read", () => {
+  test("the environment table documents exactly what the collector and the bundled exporter read, and every container's name", () => {
+    expect(Array.from(containerNameVariables().keys()).sort()).toEqual([
+      "PROXMOX_AGENT_CONTAINER_NAME",
+      "PROXMOX_AI_AGENT_CONTAINER_NAME",
+      "PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME",
+      "PROXMOX_PVE_EXPORTER_CONTAINER_NAME",
+    ]);
     const expected: Set<string> = new Set([
       ...Array.from(composeVariables(PROXMOX_AGENT_CONTAINER).keys()),
       ...Array.from(composeVariables("pve-exporter").keys()),
       // Read by Docker Compose itself, to pick the bundled exporter.
       "COMPOSE_PROFILES",
+      ...Array.from(containerNameVariables().keys()),
     ]);
     for (const method of AGENT_METHODS) {
       expect(Array.from(envTableRows(guideFor(method)).keys()).sort()).toEqual(
@@ -1633,6 +1676,7 @@ describe("drift guards against agents/ProxmoxAgent", () => {
     const variables: Map<string, string | null> = new Map([
       ...Array.from(composeVariables(PROXMOX_AGENT_CONTAINER)),
       ...Array.from(composeVariables("pve-exporter")),
+      ...Array.from(containerNameVariables()),
     ]);
     const rows: Map<string, { required: string; description: string }> =
       envTableRows(guideFor("docker-compose"));
@@ -1649,7 +1693,8 @@ describe("drift guards against agents/ProxmoxAgent", () => {
         checked++;
       }
     }
-    expect(checked).toBe(3);
+    // Three settings', and the four containers' names.
+    expect(checked).toBe(7);
   });
 
   test("the .env block sets only variables the agent reads", () => {
@@ -1674,9 +1719,7 @@ describe("drift guards against agents/ProxmoxAgent", () => {
     expect(compose["services"]["pve-exporter"]["profiles"]).toEqual([
       "pve-exporter",
     ]);
-    expect(compose["services"]["pve-exporter"]["container_name"]).toBe(
-      PROXMOX_EXPORTER_CONTAINER,
-    );
+    expect(containerOf("pve-exporter")).toBe(PROXMOX_EXPORTER_CONTAINER);
     // It splits user@realm!tokenname itself, so .env holds the id whole.
     expect(readAgentFile("docker-compose.yml")).toContain(
       'PVE_USER="$${PVE_API_TOKEN_ID%%!*}" PVE_TOKEN_NAME="$${PVE_API_TOKEN_ID##*!}"',
@@ -1710,7 +1753,7 @@ describe("drift guards against agents/ProxmoxAgent", () => {
 
   test("the install script recreates the containers, so a re-run starts the new config", () => {
     expect(readAgentFile("install.sh")).toMatch(
-      /^docker compose up -d --force-recreate$/m,
+      /^if ! docker compose up -d --force-recreate; then$/m,
     );
   });
 
@@ -1802,11 +1845,10 @@ describe("drift guards against agents/ProxmoxAgent", () => {
   });
 
   test("the containers the guide names are the compose file's", () => {
-    const containers: Array<string> = Object.values(
-      composeFile()["services"] as Record<string, Record<string, string>>,
-    ).map((service: Record<string, string>): string => {
-      return service["container_name"]!;
-    });
+    // A first agent's: the default of each name .env may set.
+    const containers: Array<string> = Array.from(
+      containerNameVariables().values(),
+    );
     expect(containers.sort()).toEqual(
       [
         PROXMOX_AGENT_CONTAINER,

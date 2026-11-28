@@ -18,7 +18,8 @@ echo ""
 # Running it again is the upgrade, and keeps every answer.
 
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY OPENSTACK_CLOUD_NAME \
-OPENSTACK_REGION_NAME OPENSTACK_NODE_NAME OPENSTACK_LOGS_DIRECTORY OPENSTACK_LOGS_TIMEZONE OPENSTACK_LOGS_UNITS"
+OPENSTACK_REGION_NAME OPENSTACK_NODE_NAME OPENSTACK_LOGS_DIRECTORY OPENSTACK_LOGS_TIMEZONE OPENSTACK_LOGS_UNITS \
+OPENSTACK_LOGS_CONTAINER_NAME"
 
 # An answer given as an environment variable stays this script's, and is handed to no
 # program it runs. Compose gives variables in its environment precedence over .env, so
@@ -120,6 +121,163 @@ file_sha256() {
         sha256sum "$1" | cut -d ' ' -f 1
     elif command -v shasum >/dev/null 2>&1; then
         shasum -a 256 "$1" | cut -d ' ' -f 1
+    fi
+}
+
+# ----------------------------------------------------------------------------
+# The collector's container name, with Docker
+# ----------------------------------------------------------------------------
+# One of these runs on a machine, under its default name. Another one on the same machine,
+# in a directory of its own, needs a name of its own: docker-compose.logs.yml reads it from
+# .env (container_name: ${OPENSTACK_LOGS_CONTAINER_NAME:-oneuptime-openstack-logs}). It is
+# OPENSTACK_LOGS_CONTAINER_NAME exported, or in .env on a re-run, like every other answer; else,
+# for an install set up before .env held it, the name its compose file was given by hand or
+# its container runs as; else the directory's, oneuptime-openstack-logs-<project> (the default
+# directory's is the default name). Compose names a project after its directory: two
+# directories of one name are one project, and an install whose project another directory
+# runs stops before it changes anything. The helpers are install.sh's.
+COMPOSE_FILE_NAME="docker-compose.logs.yml"
+AGENT_SERVICE="oneuptime-openstack-logs"
+DEFAULT_CONTAINER_NAME="oneuptime-openstack-logs"
+
+# compose_project_name reads .env as Compose does, which env_get does too.
+dotenv_get() {
+    env_get "$@"
+}
+
+# Whether $1 is a name Docker gives a container: a letter or a digit, then at
+# least one more letter, digit, _, . or -.
+is_container_name() {
+    case "$1" in
+        "" | ? | [!a-zA-Z0-9]* | *[!a-zA-Z0-9_.-]*) return 1 ;;
+    esac
+    return 0
+}
+
+# compose_container_name <compose file>: the container_name the agent's
+# service sets there, when it is a name written out (not ${...}), or nothing.
+compose_container_name() {
+    local value=""
+    [ -f "$1" ] || return 0
+    value="$(awk -v service="$AGENT_SERVICE" '
+        /^[[:space:]]*(#.*)?$/ { next }
+        {
+            match($0, /^[[:space:]]*/)
+            indent = RLENGTH
+            if (inside && indent <= service_indent) { inside = 0 }
+            if (!inside && $0 ~ ("^[[:space:]]+" service ":[[:space:]]*(#.*)?$")) {
+                inside = 1
+                service_indent = indent
+                next
+            }
+            if (inside && $0 ~ /^[[:space:]]+container_name:/) {
+                sub(/^[[:space:]]+container_name:[[:space:]]*/, "")
+                sub(/[[:space:]]+#.*$/, "")
+                sub(/[[:space:]]+$/, "")
+                print
+                exit
+            }
+        }' "$1" 2>/dev/null)" || true
+    case "$value" in
+        \"*\") value="${value#\"}"; value="${value%\"}" ;;
+        \'*\') value="${value#\'}"; value="${value%\'}" ;;
+    esac
+    if is_container_name "$value"; then
+        printf '%s' "$value"
+    fi
+}
+
+# The installation directory's container name for this agent: after the
+# Compose project the directory runs (a-z 0-9 _ - only, so a container name
+# too, once it starts with this agent's name).
+directory_container_name() {
+    local project=""
+    project="$(compose_project_name)"
+    case "$project" in
+        "") printf '%s' "$DEFAULT_CONTAINER_NAME" ;;
+        "$DEFAULT_CONTAINER_NAME"*) printf '%s' "$project" ;;
+        *) printf '%s-%s' "$DEFAULT_CONTAINER_NAME" "$project" ;;
+    esac
+}
+
+# The installation directory as Compose records it (an absolute path, with
+# no trailing /).
+absolute_install_dir() {
+    local dir="$INSTALL_DIR"
+    case "$dir" in
+        /*) ;;
+        *) dir="$(pwd)/$dir" ;;
+    esac
+    while [ "${dir%/}" != "$dir" ] && [ -n "${dir%/}" ]; do
+        dir="${dir%/}"
+    done
+    printf '%s' "$dir"
+}
+
+# The name of the Compose project the installation directory runs as.
+compose_project_name() {
+    local name="${COMPOSE_PROJECT_NAME:-}" dir=""
+    if [ -z "$name" ] && [ -f "$ENV_FILE" ]; then
+        name="$(dotenv_get COMPOSE_PROJECT_NAME "$ENV_FILE")"
+    fi
+    if [ -z "$name" ]; then
+        dir="$(absolute_install_dir)"
+        name="${dir##*/}"
+    fi
+    printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-' | sed 's/^[-_]*//'
+}
+
+# Whether $1 and $2 are one directory on this machine, however each is
+# spelled (a symlink, a trailing /).
+same_directory() {
+    local first="" second=""
+    first="$(cd "$1" 2>/dev/null && pwd -P)" || return 1
+    second="$(cd "$2" 2>/dev/null && pwd -P)" || return 1
+    [ "$first" = "$second" ]
+}
+
+# Another directory, still on this machine, whose containers run in the
+# Compose project this one would run in, or nothing. A directory that is
+# gone (the agent was moved) holds no agent but those containers, which are
+# this one's to replace.
+other_project_directory() {
+    local project="" here="" dir=""
+    project="$(compose_project_name)"
+    [ -n "$project" ] || return 0
+    here="$(absolute_install_dir)"
+    while IFS= read -r dir; do
+        dir="${dir%/}"
+        [ -n "$dir" ] && [ "$dir" != "$here" ] && [ -d "$dir" ] || continue
+        same_directory "$dir" "$here" && continue
+        printf '%s' "$dir"
+        return 0
+    done <<PROJECT_DIRECTORIES_EOF
+$(docker ps -a --filter "label=com.docker.compose.project=$project" \
+    --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | sort -u)
+PROJECT_DIRECTORIES_EOF
+}
+
+# choose_collector_container_name: the name of an install that was set up before .env held
+# it: the one its compose file was given by hand, else the one its container runs as (an
+# upgrade never renames it); else, for a new one, its directory's.
+choose_collector_container_name() {
+    local edited="" id="" running=""
+    edited="$(compose_container_name "$INSTALL_DIR/$COMPOSE_FILE_NAME")"
+    if [ -n "$edited" ] && [ "$edited" != "$DEFAULT_CONTAINER_NAME" ]; then
+        printf '%s' "$edited"
+        return 0
+    fi
+    if [ -f "$INSTALL_DIR/$COMPOSE_FILE_NAME" ]; then
+        id="$(cd "$INSTALL_DIR" 2>/dev/null && docker compose -f "$COMPOSE_FILE_NAME" ps -a -q "$AGENT_SERVICE" 2>/dev/null | head -n 1)" || true
+        if [ -n "$id" ]; then
+            running="$(docker inspect -f '{{.Name}}' "$id" 2>/dev/null | head -n 1)" || true
+            running="${running#/}"
+        fi
+    fi
+    if is_container_name "$running"; then
+        printf '%s' "$running"
+    else
+        directory_container_name
     fi
 }
 
@@ -298,6 +456,29 @@ download_agent_file() {
     mv -f "$tmp" "$dest"
 }
 
+SCRIPT_NAME="install-logs.sh"
+if [ "$PROFILE" = "files" ]; then
+    # The collector's container name (see "The collector's container name" above), and the
+    # directory, before anything is written or stopped.
+    if [ -n "$OPENSTACK_LOGS_CONTAINER_NAME" ]; then
+        if ! is_container_name "$OPENSTACK_LOGS_CONTAINER_NAME"; then
+            echo "Error: OPENSTACK_LOGS_CONTAINER_NAME=\"$OPENSTACK_LOGS_CONTAINER_NAME\" is not a container name: a letter or a digit,"
+            echo "then letters, digits, _, . or - (e.g. $DEFAULT_CONTAINER_NAME-2). Nothing was installed or changed."
+            exit 1
+        fi
+    else
+        OPENSTACK_LOGS_CONTAINER_NAME="$(choose_collector_container_name)"
+    fi
+    OTHER_PROJECT_DIR="$(other_project_directory)"
+    if [ -n "$OTHER_PROJECT_DIR" ]; then
+        echo "Error: $OTHER_PROJECT_DIR already runs containers in the Docker Compose project"
+        echo "\"$(compose_project_name)\": Compose names a project after its directory, and gives $INSTALL_DIR"
+        echo "that name too. Installing here would recreate them and run this collector in their place. Install"
+        echo "it into a directory of another name instead, e.g. INSTALL_DIR=$(absolute_install_dir)-2 bash $SCRIPT_NAME"
+        exit 1
+    fi
+fi
+
 echo ""
 echo "Installing to: $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
@@ -319,6 +500,7 @@ OPENSTACK_REGION_NAME=$(compose_env_quote "$OPENSTACK_REGION_NAME")
 OPENSTACK_NODE_NAME=$(compose_env_quote "$OPENSTACK_NODE_NAME")
 OPENSTACK_LOGS_DIRECTORY=$(compose_env_quote "${OPENSTACK_LOGS_DIRECTORY:-$KOLLA_LOGS_DIRECTORY}")
 OPENSTACK_LOGS_TIMEZONE=$(compose_env_quote "${OPENSTACK_LOGS_TIMEZONE:-UTC}")
+OPENSTACK_LOGS_CONTAINER_NAME=$(compose_env_quote "$OPENSTACK_LOGS_CONTAINER_NAME")
 ENVEOF
     chmod 600 "$ENV_FILE"
 
@@ -328,7 +510,14 @@ ENVEOF
     fi
     # --force-recreate: the collector reads its config only when it starts, and Compose
     # recreates a container for a changed definition, never for a changed bind mount.
-    docker compose -f docker-compose.logs.yml up -d --force-recreate
+    if ! docker compose -f docker-compose.logs.yml up -d --force-recreate; then
+        echo ""
+        echo "Error: it did not start. If Docker reports that the container name \"$OPENSTACK_LOGS_CONTAINER_NAME\" is"
+        echo "already in use, another container on this machine has it: give this one a name of its own and"
+        echo "run this again, e.g. OPENSTACK_LOGS_CONTAINER_NAME=$DEFAULT_CONTAINER_NAME-2 INSTALL_DIR=$INSTALL_DIR bash install-logs.sh"
+        echo "It is kept in $ENV_FILE from then on."
+        exit 1
+    fi
 
     echo ""
     echo "=========================================="
@@ -338,7 +527,7 @@ ENVEOF
     echo "This machine's OpenStack logs appear on the Logs page of cloud \"$OPENSTACK_CLOUD_NAME\"."
     echo ""
     echo "To check status:  cd $INSTALL_DIR && docker compose -f docker-compose.logs.yml ps"
-    echo "To view its log:  docker logs -f $SERVICE_NAME"
+    echo "To view its log:  docker logs -f $OPENSTACK_LOGS_CONTAINER_NAME"
     echo "To stop:          cd $INSTALL_DIR && docker compose -f docker-compose.logs.yml down"
 fi
 

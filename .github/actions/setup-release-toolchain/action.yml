@@ -1,0 +1,120 @@
+name: Set up the release toolchain
+description: >-
+  Puts Go and GoReleaser on PATH, and syft when asked, at the exact versions
+  versions.env (beside this file) pins: the toolchain every release build of
+  the Terraform provider and the infrastructure agent uses, so a version
+  built again from its tag is the same bytes. Needs the repository checked
+  out.
+
+# Why this exists (#11464): the release builds installed Go with
+# `go-version: stable` (or the runner's own Go) and GoReleaser with `~> v2`,
+# and nfpm and syft at their newest, all of which move. A provider or agent
+# version built again weeks later could get other ones, and with them other
+# bytes, though the build itself is reproducible
+# (Scripts/TerraformProvider/Core/TerraformProviderGenerator.ts,
+# agents/InfrastructureAgent/.goreleaser.yaml). With one pin for all of them,
+# anyone can build a published version again from its tag and check that it
+# is what the registries and package managers hold. Each release's notes
+# name the toolchain (Scripts/Release/ReleaseToolchain.js).
+#
+# GOTOOLCHAIN=local, for every later step of the job: a go.mod's toolchain
+# line asking for a newer Go fails the build, instead of Go downloading that
+# one and building with it, unpinned.
+
+inputs:
+  syft:
+    description: Also put syft on PATH, for the infrastructure agent's SBOMs.
+    required: false
+    default: "false"
+
+outputs:
+  go-version:
+    description: The Go installed, e.g. 1.27.4.
+    value: ${{ steps.pin.outputs.go }}
+  goreleaser-version:
+    description: The GoReleaser installed, e.g. v2.20.3.
+    value: ${{ steps.pin.outputs.goreleaser }}
+  syft-version:
+    description: The syft its pin names (installed only with syft true).
+    value: ${{ steps.pin.outputs.syft }}
+
+runs:
+  using: composite
+  steps:
+    - name: Read the pinned versions
+      id: pin
+      shell: bash
+      env:
+        PINS: ${{ github.action_path }}/versions.env
+      run: |
+        set -euo pipefail
+        # NAME=value lines; the last one wins, and a comment may follow.
+        read_pin() {
+          local value
+          value="$(sed -n "s/^$1=\([^[:space:]#]*\).*$/\1/p" "$PINS" | tail -n 1)"
+          if [[ ! "$value" =~ $2 ]]; then
+            echo "::error title=Release toolchain pin::$PINS gives $1 '${value}', and it must be an exact version ($3): a range would move." >&2
+            exit 1
+          fi
+          printf '%s' "$value"
+        }
+        go="$(read_pin GO_VERSION '^[0-9]+\.[0-9]+\.[0-9]+$' 'e.g. 1.27.4')"
+        goreleaser="$(read_pin GORELEASER_VERSION '^v2\.[0-9]+\.[0-9]+$' 'e.g. v2.20.3')"
+        syft="$(read_pin SYFT_VERSION '^v[0-9]+\.[0-9]+\.[0-9]+$' 'e.g. v1.57.2')"
+        {
+          echo "go=${go}"
+          echo "goreleaser=${goreleaser}"
+          echo "syft=${syft}"
+        } >>"$GITHUB_OUTPUT"
+        echo "GOTOOLCHAIN=local" >>"$GITHUB_ENV"
+
+    # No Go cache: setup-go keys it on a go.sum the repository does not have
+    # at its root, so it restored nothing (terraform-provider-generation.yml
+    # says more).
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ steps.pin.outputs.go }}
+        cache: false
+
+    - name: Install GoReleaser
+      uses: goreleaser/goreleaser-action@v6.1.0
+      with:
+        install-only: true
+        version: ${{ steps.pin.outputs.goreleaser }}
+
+    - name: Install syft
+      if: inputs.syft == 'true'
+      uses: anchore/sbom-action/download-syft@v0
+      with:
+        syft-version: ${{ steps.pin.outputs.syft }}
+
+    # What is on PATH now is what the pins say, or the job stops here, before
+    # anything is built with something else.
+    - name: Check the toolchain on PATH
+      shell: bash
+      env:
+        GO_PIN: ${{ steps.pin.outputs.go }}
+        GORELEASER_PIN: ${{ steps.pin.outputs.goreleaser }}
+        SYFT_PIN: ${{ steps.pin.outputs.syft }}
+        WITH_SYFT: ${{ inputs.syft }}
+      run: |
+        set -euo pipefail
+        check() {
+          local what="$1" pinned="$2" installed="$3"
+          echo "${what}: ${installed:-none}"
+          if [[ "$installed" != "$pinned" ]]; then
+            echo "::error title=Release toolchain::${what} ${pinned} is pinned (.github/actions/setup-release-toolchain/versions.env), and ${installed:-no ${what}} is on PATH." >&2
+            exit 1
+          fi
+        }
+        # Captured first: a version piped into grep -q can SIGPIPE under
+        # pipefail.
+        go_version="$(go env GOVERSION)"
+        check Go "go${GO_PIN}" "$go_version"
+        goreleaser_version="$(goreleaser --version 2>&1 | sed -n 's/^GitVersion:[[:space:]]*//p' | head -n 1)"
+        check GoReleaser "${GORELEASER_PIN#v}" "$goreleaser_version"
+        if [[ "$WITH_SYFT" == "true" ]]; then
+          syft_version="$(syft version 2>&1 | sed -n 's/^Version:[[:space:]]*//p' | head -n 1)"
+          check syft "${SYFT_PIN#v}" "$syft_version"
+        fi

@@ -292,6 +292,12 @@ ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
 COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
+OPENSTACK_AGENT_CONTAINER_NAME=oneuptime-openstack-agent
+OPENSTACK_EXPORTER_CONTAINER_NAME=oneuptime-openstack-exporter
+OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME=oneuptime-openstack-quota-exporter
+OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-database-exporter
+OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-worker-state-exporter
+OPENSTACK_AI_AGENT_CONTAINER_NAME=oneuptime-openstack-ai-agent
 ```
 
 `OPENSTACK_EXPORTER_CLOUDS` listet jede Region in eckigen Klammern auf, und `COMPOSE_PROFILES` startet den mitgelieferten Exporter und den [KI-Agent](#ki-agent). Beide Dateien enthalten Secrets. Der Exporter läuft als uid 65532 und muss das einzige Konto sein, das `clouds.yaml` lesen kann. Starten Sie den Agent:
@@ -380,6 +386,12 @@ Das Installationsskript schreibt diese nach `/opt/oneuptime-openstack-agent/.env
 | `OPENSTACK_AGENT_SERVICES` | Nein | Welche Dienste dieser Agent liest, um [eine Cloud zwischen Agents zu teilen](/docs/telemetry/openstack-very-large-clouds#eine-cloud-auf-mehrere-collectors-aufteilen), etwa `compute\|placement`. Standard sind alle. |
 | `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | Nein | Was der Collector im Speicher halten darf. Der Scrape einer sehr großen Cloud braucht mehr als den Standard von `512`. |
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | Nein | `openstack_database_exporter`, für [den Datenbankpfad](/docs/telemetry/openstack-very-large-clouds#der-datenbankpfad): `[openstack-database-exporter:9180]`. Standard ist keine. Die übrigen Einstellungen dieses Pfads sind dort aufgeführt. |
+| `OPENSTACK_AGENT_CONTAINER_NAME` | Nein | Der Containername des Collectors. Standard ist `oneuptime-openstack-agent`. Der Agent einer zweiten Cloud auf derselben Maschine braucht eigene Namen, siehe [Mehrere Clouds überwachen](#mehrere-clouds-überwachen). Das Installationsskript benennt die Container eines neuen Agents nach seinem Ordner, sofern Sie sie nicht setzen, und behält sie bei, wenn Sie das Skript erneut ausführen. |
+| `OPENSTACK_EXPORTER_CONTAINER_NAME` | Nein | Der Containername des mitgelieferten Exporters. Standard ist `oneuptime-openstack-exporter`, bei einem zweiten Agent ein Name neben dem seines Collectors, etwa `oneuptime-openstack-exporter-cloud2`. |
+| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | Nein | Der Containername des Quota-Exporters. Standard ist `oneuptime-openstack-quota-exporter`, bei einem zweiten Agent ein Name neben dem seines Collectors, etwa `oneuptime-openstack-quota-exporter-cloud2`. |
+| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | Nein | Der Containername des Datenbank-Exporters. Standard ist `oneuptime-openstack-database-exporter`, bei einem zweiten Agent ein Name neben dem seines Collectors, etwa `oneuptime-openstack-database-exporter-cloud2`. |
+| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | Nein | Der Containername des Worker-Status-Exporters. Standard ist `oneuptime-openstack-worker-state-exporter`, bei einem zweiten Agent ein Name neben dem seines Collectors, etwa `oneuptime-openstack-worker-state-exporter-cloud2`. |
+| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | Nein | Der Containername des KI-Agents. Standard ist `oneuptime-openstack-ai-agent`, bei einem zweiten Agent ein Name neben dem seines Collectors, etwa `oneuptime-openstack-ai-agent-cloud2`. |
 
 Das Installationsskript liest die Credential auch aus der Umgebung, um seine Fragen zu überspringen: `OPENSTACK_APPLICATION_CREDENTIAL_ID` und `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, oder `OPENSTACK_USERNAME`, `OPENSTACK_PASSWORD`, `OPENSTACK_PROJECT_NAME`, `OPENSTACK_USER_DOMAIN_NAME` und `OPENSTACK_PROJECT_DOMAIN_NAME`. Sie haben eigene Namen statt der `OS_*`-Namen, die eine openrc-Datei setzt, sodass die eingelesene openrc eines Admins nie zur Credential des Agents wird, ohne dass jemand gefragt wird. Eine Application Credential ist besser als Benutzername und Passwort: Sie kann auf Lesen beschränkt werden und ablaufen.
 
@@ -1025,6 +1037,7 @@ Ohne Argument sieht sich das Skript die Maschine an und fragt, wenn es das nicht
 | `OPENSTACK_LOGS_DIRECTORY` | Wo die Logs von Kolla-Ansible liegen, falls nicht in seinem üblichen Docker-Volume |
 | `OPENSTACK_LOGS_TIMEZONE` | Die Zone, in der oslo.log seine Zeiten schreibt. Standard ist `UTC` |
 | `OPENSTACK_LOGS_UNITS` | Die Units des Journals, die gelesen werden, in eckigen Klammern. Standard sind die jedes OpenStack-Dienstes |
+| `OPENSTACK_LOGS_CONTAINER_NAME` | Der Containername des Collectors, mit Docker. Standard ist `oneuptime-openstack-logs`. Ein erneuter Aufruf des Skripts behält ihn bei |
 
 Das Dateien-Profil liest die Dienste von OpenStack nach Namen, RabbitMQ, MariaDB, HAProxy und libvirt im selben Ordner bleiben also unberührt. Ein später neu gestarteter Collector macht bei der Zeile weiter, die er erreicht hatte.
 
@@ -1645,6 +1658,20 @@ Die Seite **KI-Agent** der Cloud bietet für jeden davon ein Runbook an, das Sie
 
 Ein Workflow kann von einem OpenStack-Warnung ausgehen und einen Fix vorschlagen: Der Schritt **OpenStack-Korrektur vorschlagen** nimmt die Warnung oder Incident und den Befehl. Er durchläuft dieselbe Policy, denselben Schreibbereich und dasselbe Lesen dessen, was eine Änderung berührt, wie ein Fix, den OneUptime AI vorschlägt, braucht kein KI-Modell, und eine Person genehmigt ihn an der Warnung. Ein Workflow kann die Änderung nicht selbst vornehmen oder genehmigen, was er vorschlägt, was der Fix-Modus der Cloud auch ist. Die Vorlage **Propose taking a failing OpenStack compute service out of scheduling** ist ein Ort zum Beginnen.
 
+## Mehrere Clouds überwachen
+
+Ein Agent liest eine Cloud. Um mehrere von derselben Maschine aus zu überwachen, installieren Sie jeden in einen eigenen Ordner, mit eigener `.env` und eigenen Containernamen, denn zwei Container können sich keinen Namen teilen:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-openstack-agent-cloud2 bash install.sh
+```
+
+Das Skript benennt die Container des Agents nach dem Ordner: `oneuptime-openstack-agent-cloud2`, `oneuptime-openstack-exporter-cloud2`, `oneuptime-openstack-quota-exporter-cloud2`, `oneuptime-openstack-database-exporter-cloud2`, `oneuptime-openstack-worker-state-exporter-cloud2` und `oneuptime-openstack-ai-agent-cloud2`. Um sie selbst zu wählen, setzen Sie `OPENSTACK_AGENT_CONTAINER_NAME` und die übrigen aus der Tabelle oben, wenn Sie es ausführen. Es hinterlegt die Namen in der `.env` dieses Agents, sodass sie ein erneuter Aufruf des Skripts zum Aktualisieren des Agents beibehält, und ein Agent, dessen `container_name` Sie einmal in `docker-compose.yml` bearbeitet haben, behält diesen Namen. Geben Sie jedem Ordner einen eigenen Namen: Docker Compose benennt ein Projekt allein nach seinem Ordner, daher lehnt das Skript einen Ordner ab, der so heißt wie einer, in dem bereits anderswo ein Agent läuft. Setzen Sie bei Docker Compose stattdessen die Namen in der `.env` jedes Agents.
+
+Die Namen gelten mit Docker: Eine Installation ohne Docker führt keinen Container aus. Die Collectors der Logs und Traces lesen ihre eigenen Namen auf dieselbe Weise aus `.env`: `OPENSTACK_LOGS_CONTAINER_NAME` und `OPENSTACK_TRACES_CONTAINER_NAME`.
+
+Die systemd-Unit geht von `/opt/oneuptime-openstack-agent` aus: Speichern Sie sie für einen anderen Ordner unter einem anderen Namen, etwa `oneuptime-openstack-agent-cloud2.service`, und ändern Sie ihr `WorkingDirectory`. Übergeben Sie den Ordner mit `-d` an das Diagnoseskript.
+
 ## Als systemd-Dienst ausführen
 
 Um den Agent mit der Maschine zu starten und bei einem Fehler neu zu starten, installieren Sie seine systemd-Unit. Sie nimmt an, dass der Agent in `/opt/oneuptime-openstack-agent` liegt, wohin das Installationsskript ihn legt. Eine Installation ohne Docker ist bereits ein systemd-Dienst.
@@ -1659,7 +1686,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 Der Agent meldet die Version seiner Dateien als seine **Agent-Version**: die Collector-Version, die sie festlegen, wobei die letzte Zahl jedes Mal erhöht wird, wenn sich die Dateien auf diesem Collector ändern. Ist diese älter als die Version, die dieses OneUptime-Release festlegt, erscheint daneben ein Warnzeichen. Wählen Sie es aus, um diese Befehle zu sehen.
 
-Das Collector-Image ist in `docker-compose.yml` festgelegt und seine Konfiguration ist eine Datei daneben, ein bloßes Pull bringt den Agent also nicht voran. Führen Sie `install.sh` erneut aus, mit `sudo`, wenn Sie ohne Docker installiert haben: Es verwendet jeden Wert in Ihrer bestehenden `.env` und die Credential in `clouds.yaml` weiter (nichts wird erneut gefragt), prüft die Credential bei Keystone, erneuert die Dateien des Agents (eine von Ihnen bearbeitete Datei wird als `<file>.bak.<timestamp>` behalten), zieht die Images und erstellt den Agent neu, damit der Collector seine neue Konfiguration liest.
+Das Collector-Image ist in `docker-compose.yml` festgelegt und seine Konfiguration ist eine Datei daneben, ein bloßes Pull bringt den Agent also nicht voran. Führen Sie `install.sh` erneut aus, mit `sudo`, wenn Sie ohne Docker installiert haben: Es verwendet jeden Wert in Ihrer bestehenden `.env` und die Credential in `clouds.yaml` weiter (nichts wird erneut gefragt), prüft die Credential bei Keystone, erneuert die Dateien des Agents (eine von Ihnen bearbeitete Datei wird als `<file>.bak.<timestamp>` behalten), zieht die Images und erstellt den Agent neu, damit der Collector seine neue Konfiguration liest. Ein Agent, der außerhalb von `/opt/oneuptime-openstack-agent` installiert ist, braucht seinen Ordner, `INSTALL_DIR=<folder> bash install.sh`, und behält seine Containernamen.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh

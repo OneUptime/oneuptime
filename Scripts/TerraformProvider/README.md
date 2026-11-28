@@ -262,6 +262,14 @@ then:
   time (`mod_timestamp`, and `mtime` for `LICENSE` and `README.md`), where
   GoReleaser used to stamp the build's, so a rebuild made other zips with the
   same files in them (`Tests/GoReleaserConfig.test.ts` builds one twice);
+- and built with the same Go and GoReleaser, however much later: every job
+  that builds or tests the provider for a release installs the exact versions
+  in `.github/actions/setup-release-toolchain/versions.env`, where they used
+  to take `go-version: stable` and GoReleaser `~> v2`, which moved (#11464).
+  Each release's notes name the ones it was built with ("Built with:"), read
+  from the tools themselves; the script warns when they are not the pinned
+  ones, and the Release Toolchain Pins workflow keeps an issue open while a
+  pin is behind its newest release;
 - after each publish, **Terraform Provider Registry Checksums**
   (`.github/workflows/terraform-provider-registry-checksums.yml`) compares what
   registry.terraform.io and registry.opentofu.org read with what the release

@@ -629,7 +629,13 @@ describe("the install guide embeds the real agent configuration", () => {
     const imageMatch: RegExpMatchArray | null = compose.match(/image:\s*(\S+)/);
     expect(imageMatch).not.toBeNull();
     expect(unescaped).toContain(`image: ${imageMatch![1]}`);
-    expect(unescaped).toContain("container_name: oneuptime-vmware-agent");
+    // Read from .env, so a second vCenter's agent runs under names of its own (#11434).
+    expect(unescaped).toContain(
+      "container_name: ${VMWARE_AGENT_CONTAINER_NAME:-oneuptime-vmware-agent}",
+    );
+    expect(compose).toContain(
+      "container_name: ${VMWARE_AGENT_CONTAINER_NAME:-oneuptime-vmware-agent}",
+    );
   });
 
   test("the config forbids splitting a scrape across exports", () => {

@@ -104,6 +104,16 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     version: "0.165.1",
     digest: "039fd2c14810d1715f0745b79f8eaf139deef10ed21a57182bba8d3f43203df4",
   },
+  /*
+   * The Proxmox, OpenStack, Ceph and VMware agents' compose files (and
+   * OpenStack's logs and traces ones) read every container's name from
+   * .env since 0.165.0 shipped, each with its old name as the default, so
+   * a second agent on the same machine keeps names of its own when it is
+   * upgraded (#11434). Pinned again on 0.165.0: an installed agent runs
+   * under the same names, with the same collector and config, and reports
+   * the same data, so there is nothing to tell it to upgrade for, and a
+   * second agent gets the new files from its own install.
+   */
   {
     kind: AgentKind.ProxmoxAgent,
     directory: "ProxmoxAgent",
@@ -112,7 +122,7 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "agents/ProxmoxAgent/otel-collector-config.yaml",
     ],
     version: "0.165.0",
-    digest: "d74cf6d1bd7008db727eed8e24db2414fc55d8ae2e9b7488cec4d17a60cb027f",
+    digest: "6dc41d1494ae445b5771157c38a5f0b909d1442b057b05e077417bfbbe308f54",
   },
   /*
    * The logs and traces profiles' compose files and collector configs, on
@@ -133,7 +143,7 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "agents/OpenStackAgent/otel-collector-traces.yaml",
     ],
     version: "0.165.0",
-    digest: "066474b59a54170ad7b713825a90f7273ba556d6c10127d3ae59b50ace348529",
+    digest: "c4592a501b9093088b58b7b0d4bea48020670c8aa9b2eaa0f015905d9f67af9c",
   },
   {
     kind: AgentKind.CephAgent,
@@ -143,7 +153,7 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "agents/CephAgent/otel-collector-config.yaml",
     ],
     version: "0.165.0",
-    digest: "266612e94e52a236925092813d6de67f86d2e0ca539207de1154fecb659c04e3",
+    digest: "99d650c2e41e7c6b0aa8ced03d19889fda875bde3ac90ee2001366b2c435b202",
   },
   {
     kind: AgentKind.VMwareAgent,
@@ -153,7 +163,7 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "agents/VMwareAgent/otel-collector-config.yaml",
     ],
     version: "0.165.0",
-    digest: "b46cd85d6dd36b0f33a2387094b9f2b065978db1b56e83c4ac8778e0c0ae11db",
+    digest: "7c407ea3f2f25449fbca9ea499409618e46c46d0b0a05ab52237fea8f66a015e",
   },
   /*
    * 0.165.1: NetApp ONTAP, Dell PowerStore and Dell PowerScale beside Pure

@@ -520,6 +520,8 @@ const METRICS_CLICKHOUSE_SETTINGS: JSONObject = {
  * settings over them.
  */
 const METRICS_INSERT_CLICKHOUSE_SETTINGS: Record<string, unknown> = {
+  // Async, said outright: an async insert is sent without its token (#11536).
+  async_insert: 1,
   ...readAsyncInsertBufferSettingsFromEnv(),
   ...METRICS_CLICKHOUSE_SETTINGS,
 };

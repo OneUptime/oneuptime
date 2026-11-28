@@ -760,6 +760,8 @@ describe("ProcessTelemetry handler — metrics jobs batch through the writer too
      * buffer limits the writer puts under every insert.
      */
     expect(options?.clickhouseSettings).toEqual({
+      // Async, said outright: an async insert is sent without its token (#11536).
+      async_insert: 1,
       ...readAsyncInsertBufferSettingsFromEnv(),
       distributed_foreground_insert: 1,
     });

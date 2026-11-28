@@ -42,6 +42,13 @@ jest.mock(
   },
 );
 
+jest.mock(
+  "../../../../Server/Services/TelemetryIngestionKeyRefusalService",
+  () => {
+    return { __esModule: true, default: { findBy: jest.fn() } };
+  },
+);
+
 jest.mock("../../../../Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -64,6 +71,10 @@ import TelemetryIngestionBudgetCounter, {
 } from "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter";
 import TelemetryIngestionKeyService from "../../../../Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionTeamLabelBudgetService from "../../../../Server/Services/TelemetryIngestionTeamLabelBudgetService";
+import TelemetryIngestionKeyRefusalService from "../../../../Server/Services/TelemetryIngestionKeyRefusalService";
+import logger from "../../../../Server/Utils/Logger";
+import GreaterThan from "../../../../Types/BaseDatabase/GreaterThan";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../../Types/JSON";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
@@ -147,6 +158,9 @@ beforeEach(() => {
   );
   (
     TelemetryIngestionTeamLabelBudgetService.findBy as unknown as MockFn
+  ).mockResolvedValue([] as never);
+  (
+    TelemetryIngestionKeyRefusalService.findBy as unknown as MockFn
   ).mockResolvedValue([] as never);
   (
     TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
@@ -695,5 +709,218 @@ describe("what the Dashboard reads back of each answer", () => {
     expect(status.countersAvailable).toBe(false);
 
     readsBackAsItself(status);
+  });
+});
+
+/*
+ * What the telemetry queue refused while OneUptime caught up (#11440): no
+ * budget of the project's, but every key's refusals of the past day, added
+ * up by signal, for the Usage page and the explorers' banner.
+ */
+describe("what the telemetry queue refused, in the status", () => {
+  const at: (time: string) => Date = (time: string): Date => {
+    return new Date(`2026-11-09T${time}:00Z`);
+  };
+
+  const row: (data: {
+    reason: string;
+    surface: string;
+    count: number;
+    first: string;
+    last: string;
+  }) => JSONObject = (data: {
+    reason: string;
+    surface: string;
+    count: number;
+    first: string;
+    last: string;
+  }): JSONObject => {
+    return {
+      reason: data.reason,
+      surface: data.surface,
+      refusedCount: data.count,
+      firstRefusedAt: at(data.first),
+      lastRefusedAt: at(data.last),
+    } as unknown as JSONObject;
+  };
+
+  test("tells of nothing unless asked: Security Events' scans ask only about budgets", async () => {
+    const status: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+      });
+
+    expect(status.queueRefusals).toEqual([]);
+    expect(TelemetryIngestionKeyRefusalService.findBy).not.toHaveBeenCalled();
+  });
+
+  test("adds every key's refusals of the past day up by signal and kind, the latest first", async () => {
+    (
+      TelemetryIngestionKeyRefusalService.findBy as unknown as MockFn
+    ).mockResolvedValue([
+      // Two keys' metrics, in one stretch.
+      row({
+        reason: "queue-backlogged",
+        surface: "otel-metrics",
+        count: 100,
+        first: "11:00",
+        last: "11:55",
+      }),
+      row({
+        reason: "queue-backlogged",
+        surface: "otel-metrics",
+        count: 50,
+        first: "11:10",
+        last: "11:58",
+      }),
+      // Logs while the queue was full for everyone.
+      row({
+        reason: "queue-full",
+        surface: "otel-logs",
+        count: 5,
+        first: "11:50",
+        last: "11:52",
+      }),
+    ] as never);
+
+    const status: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+        includesQueueRefusals: true,
+      });
+
+    expect(status.queueRefusals).toEqual([
+      {
+        signal: ProductType.Metrics,
+        kind: "queue-backlogged",
+        refusedRequests: 150,
+        firstRefusedAt: "2026-11-09T11:00:00.000Z",
+        lastRefusedAt: "2026-11-09T11:58:00.000Z",
+      },
+      {
+        signal: ProductType.Logs,
+        kind: "queue-full",
+        refusedRequests: 5,
+        firstRefusedAt: "2026-11-09T11:50:00.000Z",
+        lastRefusedAt: "2026-11-09T11:52:00.000Z",
+      },
+    ]);
+
+    // The budgets are answered beside them, as ever.
+    expect(status.project.signals).toHaveLength(5);
+
+    // Read as root, only the project's, only the queue's reasons, only the past day.
+    const call: JSONObject = (
+      TelemetryIngestionKeyRefusalService.findBy as unknown as MockFn
+    ).mock.calls[0]![0] as JSONObject;
+    const query: JSONObject = call["query"] as JSONObject;
+
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(query["reason"]).toBeInstanceOf(Includes);
+    expect((query["reason"] as Includes).values).toEqual([
+      "queue-backlogged",
+      "queue-full",
+    ]);
+    expect(query["lastRefusedAt"]).toBeInstanceOf(GreaterThan);
+    expect((query["lastRefusedAt"] as GreaterThan<Date>).value).toEqual(
+      new Date("2026-11-08T12:00:00.000Z"),
+    );
+    expect(call["props"]).toEqual({ isRoot: true });
+  });
+
+  test("tells only the latest stretch of a signal, and nothing of rows it cannot read", async () => {
+    (
+      TelemetryIngestionKeyRefusalService.findBy as unknown as MockFn
+    ).mockResolvedValue([
+      // A stretch that ended this morning...
+      row({
+        reason: "queue-backlogged",
+        surface: "otel-traces",
+        count: 900,
+        first: "02:00",
+        last: "03:00",
+      }),
+      // ...and one that began long after.
+      row({
+        reason: "queue-backlogged",
+        surface: "otel-traces",
+        count: 7,
+        first: "11:40",
+        last: "11:45",
+      }),
+      // A surface no signal's queue refusals are counted under.
+      row({
+        reason: "queue-backlogged",
+        surface: "grpc",
+        count: 3,
+        first: "11:40",
+        last: "11:45",
+      }),
+    ] as never);
+
+    const status: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+        includesQueueRefusals: true,
+      });
+
+    expect(status.queueRefusals).toEqual([
+      {
+        signal: ProductType.Traces,
+        kind: "queue-backlogged",
+        refusedRequests: 7,
+        firstRefusedAt: "2026-11-09T11:40:00.000Z",
+        lastRefusedAt: "2026-11-09T11:45:00.000Z",
+      },
+    ]);
+  });
+
+  test("a read that fails tells of nothing, and the budgets are still answered", async () => {
+    (
+      TelemetryIngestionKeyRefusalService.findBy as unknown as MockFn
+    ).mockRejectedValue(new Error("Postgres is away") as never);
+
+    const status: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+        includesQueueRefusals: true,
+      });
+
+    expect(status.queueRefusals).toEqual([]);
+    expect(status.project.signals[0]!.usedBytes).toBe(9 * GB);
+    expect(logger.warn).toHaveBeenCalledWith(
+      `TelemetryIngestionBudgetStatusReader: could not read what the telemetry queue refused of project ${PROJECT_ID.toString()}`,
+    );
+  });
+
+  test("the Dashboard reads the answer back as it was sent", async () => {
+    (
+      TelemetryIngestionKeyRefusalService.findBy as unknown as MockFn
+    ).mockResolvedValue([
+      row({
+        reason: "queue-full",
+        surface: "security-events",
+        count: 12,
+        first: "11:30",
+        last: "11:59",
+      }),
+    ] as never);
+
+    const status: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+        includesQueueRefusals: true,
+      });
+
+    const wire: JSONObject = JSON.parse(JSON.stringify(status)) as JSONObject;
+
+    expect(readTelemetryIngestionBudgetStatus(wire)?.queueRefusals).toEqual(
+      status.queueRefusals,
+    );
   });
 });

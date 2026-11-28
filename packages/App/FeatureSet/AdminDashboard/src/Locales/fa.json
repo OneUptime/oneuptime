@@ -4671,5 +4671,11 @@
   "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "مجوز شما فقط به آن دسته از {{items}} می‌رسد که برچسب‌های مشخصی دارند و به آن دسته از {{items}} که شما یا تیم‌هایتان مالکشان هستید.",
   "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "حذف یک قالب مانیتور پیوند مانیتورهایش را لغو می‌کند. آن‌ها معیارها و تنظیماتی را که قالب به آن‌ها داده است نگه می‌دارند و به بررسی و هشداردادن ادامه می‌دهند.",
   "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "دستگاهی که این مانیتور برای آن ساخته شده، از قبل مانیتوری دارد که به این قالب پیوند دارد: {{monitorName}}. یکی از این دو را حذف کنید، یا این یکی را به قالب دیگری پیوند دهید.",
-  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "دستگاهی که این مانیتور برای آن ساخته شده، از قبل مانیتوری دارد که به این قالب پیوند دارد. یکی از این دو را حذف کنید، یا این یکی را به قالب دیگری پیوند دهید."
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "دستگاهی که این مانیتور برای آن ساخته شده، از قبل مانیتوری دارد که به این قالب پیوند دارد. یکی از این دو را حذف کنید، یا این یکی را به قالب دیگری پیوند دهید.",
+  "Behind by {{count}} minutes": "{{count}} دقیقه عقب",
+  "Behind by {{count}} minutes_one": "{{count}} دقیقه عقب",
+  "Behind by {{count}} hours": "{{count}} ساعت عقب",
+  "Behind by {{count}} hours_one": "{{count}} ساعت عقب",
+  "Behind by {{count}} days": "{{count}} روز عقب",
+  "Behind by {{count}} days_one": "{{count}} روز عقب"
 }

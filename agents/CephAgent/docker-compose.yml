@@ -7,7 +7,11 @@ services:
     # together; Tests/Ops/validate-collector-configs.sh validates the config
     # against this version.
     image: otel/opentelemetry-collector-contrib:0.165.0
-    container_name: oneuptime-ceph-agent
+    # The container's name, from .env: a second cluster's agent on this
+    # machine, in a directory of its own, has names of its own, which
+    # install.sh writes there and an upgrade keeps (README.md, "Monitoring
+    # several clusters").
+    container_name: ${CEPH_AGENT_CONTAINER_NAME:-oneuptime-ceph-agent}
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
       # Uncomment (together with the filelog receiver and logs pipeline in
@@ -45,7 +49,8 @@ services:
   # not use OneUptime AI.
   oneuptime-ceph-ai-agent:
     image: oneuptime/resource-ai-agent:release
-    container_name: oneuptime-ceph-ai-agent
+    # Named beside the collector, from .env (see above).
+    container_name: ${CEPH_AI_AGENT_CONTAINER_NAME:-oneuptime-ceph-ai-agent}
     # It only talks to the Ceph daemons and to OneUptime: no root, no
     # capabilities, a read-only root filesystem, and its private
     # per-command directories on a tmpfs.

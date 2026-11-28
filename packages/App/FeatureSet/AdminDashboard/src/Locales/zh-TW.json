@@ -4671,5 +4671,11 @@
   "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "您的權限僅限於帶有特定標籤的{{items}}，以及您或您的團隊擁有的{{items}}。",
   "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "刪除監測器範本會取消連結其監測器。這些監測器會保留範本給予的條件和設定，並繼續檢查及發出警示。",
   "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "為其建立此監測器的裝置已有一個連結至此範本的監測器：{{monitorName}}。請刪除兩者之一，或將此監測器連結至其他範本。",
-  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "為其建立此監測器的裝置已有一個連結至此範本的監測器。請刪除兩者之一，或將此監測器連結至其他範本。"
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "為其建立此監測器的裝置已有一個連結至此範本的監測器。請刪除兩者之一，或將此監測器連結至其他範本。",
+  "Behind by {{count}} minutes": "落後 {{count}} 分鐘",
+  "Behind by {{count}} minutes_one": "落後 {{count}} 分鐘",
+  "Behind by {{count}} hours": "落後 {{count}} 小時",
+  "Behind by {{count}} hours_one": "落後 {{count}} 小時",
+  "Behind by {{count}} days": "落後 {{count}} 天",
+  "Behind by {{count}} days_one": "落後 {{count}} 天"
 }

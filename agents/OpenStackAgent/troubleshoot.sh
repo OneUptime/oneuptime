@@ -52,6 +52,8 @@ EXPORTER_CONTAINER="oneuptime-openstack-exporter"
 AGENT_SERVICE="oneuptime-openstack-agent"
 EXPORTER_SERVICE="oneuptime-openstack-exporter"
 QUOTA_EXPORTER_CONTAINER="oneuptime-openstack-quota-exporter"
+DATABASE_EXPORTER_CONTAINER="oneuptime-openstack-database-exporter"
+WORKER_STATE_EXPORTER_CONTAINER="oneuptime-openstack-worker-state-exporter"
 QUOTA_EXPORTER_SERVICE="oneuptime-openstack-quota-exporter"
 EXPORTER_SYSTEM_USER="oneuptime-openstack"
 
@@ -148,6 +150,21 @@ dotenv_get() {
       ;;
   esac
   printf '%s' "$value"
+}
+
+# service_container <compose service> <.env variable> <default name>: the
+# container that service of this directory runs as, whatever it is named: the
+# one Compose says, else the name .env gives it (install.sh writes one for
+# each), else the default.
+service_container() {
+  local name="" cid="" found=""
+  name=$(dotenv_get "$2" "$ENV_FILE")
+  cid=$(cd "$DIR" 2>/dev/null && docker compose ps -a -q "$1" 2>/dev/null | head -1)
+  if [ -n "$cid" ]; then
+    found=$(docker inspect -f '{{.Name}}' "$cid" 2>/dev/null | sed 's#^/##')
+    [ -n "$found" ] && name="$found"
+  fi
+  printf '%s' "${name:-$3}"
 }
 
 # The same for the .env of an install without Docker, which systemd reads: $ is
@@ -458,6 +475,15 @@ else
 
   if [ -d "$DIR" ] && [ -f "$DIR/docker-compose.yml" ]; then
     pass "Install dir '$DIR' exists (compose install)"
+    # A second cloud's agent on this machine has container names of its own
+    # (README.md, "Monitoring several clouds"): the ones install.sh writes to
+    # .env, which docker-compose.yml reads. Each is the one Compose says this
+    # directory runs, else .env's, else the default.
+    AGENT_CONTAINER=$(service_container oneuptime-openstack-agent OPENSTACK_AGENT_CONTAINER_NAME "$AGENT_CONTAINER")
+    EXPORTER_CONTAINER=$(service_container openstack-exporter OPENSTACK_EXPORTER_CONTAINER_NAME "$EXPORTER_CONTAINER")
+    QUOTA_EXPORTER_CONTAINER=$(service_container openstack-quota-exporter OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME "$QUOTA_EXPORTER_CONTAINER")
+    DATABASE_EXPORTER_CONTAINER=$(service_container openstack-database-exporter OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME "$DATABASE_EXPORTER_CONTAINER")
+    WORKER_STATE_EXPORTER_CONTAINER=$(service_container openstack-worker-state-exporter OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME "$WORKER_STATE_EXPORTER_CONTAINER")
   else
     warn "No compose install at '$DIR' — re-run with -d <dir> if you installed elsewhere."
   fi
@@ -502,8 +528,6 @@ SINGLE_CLOUD_TARGETS=$(agent_env OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS)
 # The largest clouds' path: an exporter that reads each service's database, on /metrics, and
 # one more that reads what a database cannot say. "The database path" in the docs turns it on,
 # and with OPENSTACK_EXPORTER_CLOUDS=[] nothing asks the exporter of the APIs for anything.
-DATABASE_EXPORTER_CONTAINER="oneuptime-openstack-database-exporter"
-WORKER_STATE_EXPORTER_CONTAINER="oneuptime-openstack-worker-state-exporter"
 DATABASE_TARGETS=$(agent_env OPENSTACK_DATABASE_EXPORTER_TARGETS)
 [ "$DATABASE_TARGETS" = "[]" ] && DATABASE_TARGETS=""
 WORKER_STATE_CLOUDS=$(agent_env OPENSTACK_WORKER_STATE_CLOUDS)

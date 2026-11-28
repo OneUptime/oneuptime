@@ -56,19 +56,21 @@ export { type ClickHouseSettings } from "@clickhouse/client";
  *   and a crash before flush loses the buffer); when set to true, the ack
  *   waits for the durable flush. Either way jobs await it before
  *   completing, so BullMQ retries any payload ClickHouse never accepted.
- * - submit() captures a deterministic insert_deduplication_token from the
- *   ambient runWithInsertDedup context AT SUBMIT TIME (still inside the
- *   job's scope). Tokened submissions are inserted individually under that
- *   token — "<jobId>:<table>:<chunkIndex>", byte-identical when a BullMQ
- *   retry re-processes the same payload — so ClickHouse drops rows a prior
- *   attempt already landed. Merging them under one cross-job token would
- *   forfeit exactly that guarantee.
- * - Submissions arriving outside any dedup scope are merged into one insert
- *   under a minted per-batch token, unique per batch and reused only across
- *   the writer's own in-place retries of it. Either way, transient errors
- *   (overload, timeouts, network) retry with the SAME token, so an
- *   ambiguous failure whose rows actually landed never double-writes (the
- *   telemetry tables set non_replicated_deduplication_window).
+ * - submit() captures a deterministic token from the ambient
+ *   runWithInsertDedup context AT SUBMIT TIME (still inside the job's
+ *   scope). Tokened submissions are inserted individually under that token
+ *   — "<jobId>:<table>:<chunkIndex>" — and submissions arriving outside any
+ *   dedup scope are merged into one insert under a minted per-batch token,
+ *   reused only across the writer's own in-place retries of it.
+ * - The tokens group and label the inserts - and ride the transport's hop
+ *   to the writer tier - but ClickHouse never sees them: every insert here
+ *   is async, and an async insert is sent without its token (#11536).
+ *   Through the Distributed table OneUptime inserts into, a token on an
+ *   async insert dedups a whole flush under its first entry's token, so a
+ *   retry that led a later flush would drop every other group's rows in
+ *   it. Without one, a retry after an ambiguous failure (its rows had
+ *   landed) lands twice - the trade every signal accepts - and never takes
+ *   anyone else's rows with it.
  * - A submission is never split across batches, so an insert failure
  *   rejects exactly the submissions it contains and nothing else.
  *
@@ -932,14 +934,12 @@ export class TelemetryFanInWriter {
   /*
    * Insert one batch while holding a single insert slot. Submissions that
    * carry a deterministic per-job dedup token are inserted INDIVIDUALLY
-   * under their own token — this is what keeps BullMQ job retries
-   * duplicate-free: the retry re-derives byte-identical tokens and
-   * ClickHouse drops blocks a prior attempt already landed. Merging them
-   * under one shared cross-job token would break that (a token dedups by
-   * token, not content, so a differently-composed block under a reused
-   * token would silently drop other jobs' rows — the same hazard that kept
-   * the probe paths off dedup tokens historically). Untokened submissions
-   * are merged into one insert under a minted per-batch token.
+   * under their own token; untokened submissions are merged into one
+   * insert under a minted per-batch token. ClickHouse sees neither token:
+   * the inserts are async, and an async insert is sent without one
+   * (#11536) - a token there dedups a whole Distributed flush under its
+   * first entry's, which is how a reused token could silently drop other
+   * jobs' rows.
    *
    * The tokened inserts run sequentially within this one slot, so the
    * per-pod concurrency cap — the property that fixes the
@@ -1045,9 +1045,12 @@ export class TelemetryFanInWriter {
 
   /*
    * Insert one token group, retrying transient failures with full-jitter
-   * exponential backoff and the SAME dedup token — an ambiguous failure
-   * (timeout, connection reset) whose rows actually landed is dropped
-   * server-side on the retry. The insert slot is held across backoff sleeps
+   * exponential backoff and the SAME dedup token, which the transport
+   * carries to the writer tier. ClickHouse never sees it on these async
+   * inserts (#11536), so an ambiguous failure (timeout, connection reset)
+   * whose rows actually landed lands again on the retry - rather than a
+   * retry dropping a whole flush of other groups' rows. The insert slot is
+   * held across backoff sleeps
    * on purpose: when ClickHouse is saturated, offering it MORE concurrent
    * load from this pod is the failure mode this component exists to
    * prevent. Never rejects — outcomes are routed to the group's acks, so
@@ -1074,13 +1077,19 @@ export class TelemetryFanInWriter {
      * that receives them inserts through a writer of its own, which adds
      * its insertClickhouseSettings there.
      */
-    const directInsertSettings: ClickHouseSettings | undefined = this.options
-      .insertClickhouseSettings
-      ? {
-          ...this.options.insertClickhouseSettings,
-          ...(clickhouseSettings || {}),
-        }
-      : clickhouseSettings;
+    /*
+     * Async, said outright: an async insert is sent without the group's
+     * token (getInsertJsonRowsSettings, #11536). Through the Distributed
+     * table a token on an async insert dedups a whole flush under its first
+     * entry's token, so a retry that led a later flush would drop the other
+     * groups' rows in it; without one, a retry after an ambiguous failure
+     * may land twice instead.
+     */
+    const directInsertSettings: ClickHouseSettings = {
+      async_insert: 1,
+      ...(this.options.insertClickhouseSettings || {}),
+      ...(clickhouseSettings || {}),
+    };
     const sleep: (ms: number) => Promise<void> =
       this.options.sleep ??
       ((ms: number): Promise<void> => {
