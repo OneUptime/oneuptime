@@ -221,6 +221,33 @@ export const FormsCopy: {
   stepPublishing: string;
   deletedRecord: string;
 
+  // On Submit: follow-ups.
+  followUpsCardTitle: string;
+  followUpsCardDescription: string;
+  followUpsToggle: string;
+  followUpsOn: string;
+  followUpsOff: string;
+
+  // A record's page: its follow-up.
+  followUpRecordTitle: string;
+  followUpRecordDescription: string;
+  followUpRecordOff: string;
+  followUpSubmittedThrough: string;
+  followUpPeopleTitle: string;
+  followUpSubmitterBadge: string;
+  followUpAddPerson: string;
+  followUpAddPersonDescription: string;
+  followUpRemovePerson: string;
+  followUpRemovePersonTitle: string;
+  followUpRemovePersonDescription: string;
+  followUpConversationTitle: string;
+  followUpNoMessages: string;
+  followUpTeamBadge: string;
+  followUpReplyLabel: string;
+  followUpReplyHelp: string;
+  followUpSendReply: string;
+  followUpReplySent: string;
+
   // Share.
   statusCardTitle: string;
   statusCardDescription: string;
@@ -553,6 +580,39 @@ export const FormsCopy: {
   stepOwners: "Owners",
   stepPublishing: "Publishing",
   deletedRecord: "Deleted",
+
+  followUpsCardTitle: "Follow-Ups",
+  followUpsCardDescription:
+    "Let the people who submit the form follow what they sent, write to your team and add others.",
+  followUpsToggle: "Follow-Ups",
+  followUpsOn:
+    "Submitters are emailed a private link to what they sent. Your team replies from the record's page.",
+  followUpsOff:
+    "Nothing is sent to the people who submit the form, and nobody can follow what they sent.",
+
+  followUpRecordTitle: "Follow-Ups",
+  followUpRecordDescription:
+    "The people following this form request are emailed every reply. What they write arrives here and as a private note.",
+  followUpRecordOff:
+    "Follow-ups are off for this form, so nobody is emailed and nobody can write. Turn them on in the form's On Submit page.",
+  followUpSubmittedThrough: "Submitted Through",
+  followUpPeopleTitle: "People Following",
+  followUpSubmitterBadge: "Submitted It",
+  followUpAddPerson: "Add Person",
+  followUpAddPersonDescription:
+    "They are emailed a private link to this request, and every reply after.",
+  followUpRemovePerson: "Remove",
+  followUpRemovePersonTitle: "Remove This Person?",
+  followUpRemovePersonDescription:
+    "They get no more emails about this request, and their link stops working.",
+  followUpConversationTitle: "Conversation",
+  followUpNoMessages: "No messages yet.",
+  followUpTeamBadge: "Team",
+  followUpReplyLabel: "Reply",
+  followUpReplyHelp:
+    "Emailed to everybody following this request, and kept as your private note on this record.",
+  followUpSendReply: "Send Reply",
+  followUpReplySent: "Reply sent",
 
   statusCardTitle: "Status",
   statusCardDescription:

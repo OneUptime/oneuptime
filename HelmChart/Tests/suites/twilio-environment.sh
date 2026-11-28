@@ -30,6 +30,11 @@
 #   6. twilio.callVoice, the voice the server's calls speak with (#11064),
 #      reaches exactly the same workloads, with the account or without it,
 #      and the schema takes only a voice OneUptime offers.
+#   7. twilio.letProjectsChooseCallVoice, whether projects choose their own
+#      call voice (#11462), reaches exactly the same workloads too, true and
+#      false alike, with the account or without it; left empty it renders
+#      byte for byte as the defaults do; and the schema takes nothing but
+#      true or false.
 #
 # Everything here is `helm template`: no cluster, no images, no API server.
 
@@ -404,5 +409,62 @@ for voice in "Polly.Joanna" "polly.joanna-neural" "alice" "Polly.Vicki-Neural"; 
     assert_present "the refusal of the call voice ${voice} names twilio" "$refusal" "twilio"
     assert_present "the refusal of the call voice ${voice} names callVoice" "$refusal" "callVoice"
 done
+
+# ---------------------------------------------------------------------------
+# 7. twilio.letProjectsChooseCallVoice: a setting of its own too, false as
+#    surely as true.
+# ---------------------------------------------------------------------------
+SWITCH_VARIABLE="GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE"
+
+for value in true false; do
+    render_all_on "${WORK_DIR}/switch-${value}.yaml" --set "twilio.letProjectsChooseCallVoice=${value}"
+    split_workloads "${WORK_DIR}/switch-${value}.yaml" "${WORK_DIR}/switch-${value}.d"
+    assert_eq "the switch set to ${value} reaches every workload that runs the server's env helper, and no other" "$expected_workloads" "$(workloads_with "${WORK_DIR}/switch-${value}.d" "$SWITCH_VARIABLE")"
+    assert_eq "every ${SWITCH_VARIABLE} entry holds ${value}" "" "$(entries_other_than "${WORK_DIR}/switch-${value}.d" "$SWITCH_VARIABLE" "value=${value}")"
+    assert_eq "the switch alone (${value}) renders none of the account's variables" "" "$(workloads_with "${WORK_DIR}/switch-${value}.d" GLOBAL_TWILIO_ACCOUNT_SID)"
+    assert_eq "the switch alone (${value}) renders no call voice" "" "$(workloads_with "${WORK_DIR}/switch-${value}.d" GLOBAL_TWILIO_CALL_VOICE)"
+done
+
+render_all_on "${WORK_DIR}/switch-and-account.yaml" "${ACCOUNT_SETTINGS[@]}" --set "twilio.authToken=${TOKEN}" --set "twilio.letProjectsChooseCallVoice=true" --set "twilio.callVoice=${VOICE}"
+split_workloads "${WORK_DIR}/switch-and-account.yaml" "${WORK_DIR}/switch-and-account.d"
+assert_eq "beside the account and the voice, every workload that gets the account gets the switch" "$expected_workloads" "$(workloads_with "${WORK_DIR}/switch-and-account.d" "$SWITCH_VARIABLE")"
+assert_eq "beside the account and the voice, every ${SWITCH_VARIABLE} entry holds true" "" "$(entries_other_than "${WORK_DIR}/switch-and-account.d" "$SWITCH_VARIABLE" "value=true")"
+assert_eq "beside the switch, every workload still gets the voice" "" "$(entries_other_than "${WORK_DIR}/switch-and-account.d" GLOBAL_TWILIO_CALL_VOICE "value=${VOICE}")"
+
+# Quoted, as a values file may write it, it is the same switch.
+render_all_on "${WORK_DIR}/switch-quoted.yaml" --set-string "twilio.letProjectsChooseCallVoice=false"
+split_workloads "${WORK_DIR}/switch-quoted.yaml" "${WORK_DIR}/switch-quoted.d"
+assert_eq "the switch quoted as \"false\" reaches the same workloads, holding false" "" "$(entries_other_than "${WORK_DIR}/switch-quoted.d" "$SWITCH_VARIABLE" "value=false")"
+assert_eq "the switch quoted reaches every workload that runs the server's env helper" "$expected_workloads" "$(workloads_with "${WORK_DIR}/switch-quoted.d" "$SWITCH_VARIABLE")"
+
+# Left empty, or null, nothing changes: the switch is the Admin Dashboard's.
+for setting in "twilio.letProjectsChooseCallVoice=" "twilio.letProjectsChooseCallVoice=null"; do
+    render_all_on "${WORK_DIR}/switch-unset.yaml" --set "$setting"
+    if diff -q <(normalise "${WORK_DIR}/default.yaml") <(normalise "${WORK_DIR}/switch-unset.yaml") >/dev/null; then
+        pass "the switch unset (${setting}): the chart renders exactly as with its defaults"
+    else
+        fail "the switch unset (${setting}) changed the render"
+        diff <(normalise "${WORK_DIR}/default.yaml") <(normalise "${WORK_DIR}/switch-unset.yaml") | head -40 | sed 's/^/        /'
+    fi
+done
+
+# Neither true nor false: refused at install, by the schema, naming the value.
+for value in "yes" "TRUE" "1" "on" "truee"; do
+    refusal="$(render_refused "${WORK_DIR}/switch-refused.yaml" --set-string "twilio.letProjectsChooseCallVoice=${value}")"
+    if [ -n "$refusal" ]; then
+        pass "the schema refuses the switch ${value}"
+    else
+        fail "the chart rendered the switch ${value}"
+    fi
+    assert_present "the refusal of the switch ${value} names twilio" "$refusal" "twilio"
+    assert_present "the refusal of the switch ${value} names letProjectsChooseCallVoice" "$refusal" "letProjectsChooseCallVoice"
+done
+
+refusal="$(render_refused "${WORK_DIR}/switch-number.yaml" --set "twilio.letProjectsChooseCallVoice=1")"
+if [ -n "$refusal" ]; then
+    pass "the schema refuses the switch as a number"
+else
+    fail "the chart rendered the switch as a number"
+fi
 
 harness_report

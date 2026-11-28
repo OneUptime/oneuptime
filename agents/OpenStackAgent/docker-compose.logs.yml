@@ -8,7 +8,9 @@ services:
     # config reports this pin as the agent's version. Bump them together;
     # Tests/Ops/validate-collector-configs.sh validates the config against this version.
     image: otel/opentelemetry-collector-contrib:0.165.0
-    container_name: oneuptime-openstack-logs
+    # Its name, from .env: another one on the same machine, in a directory of its own, has a
+    # name of its own, which install-logs.sh writes there and an upgrade keeps.
+    container_name: ${OPENSTACK_LOGS_CONTAINER_NAME:-oneuptime-openstack-logs}
     # Kolla's logs belong to its services' own users. It runs as root to read them,
     # keeping one capability of root's: reading a file whoever owns it. It can write
     # nowhere but its own place in the files it reads.

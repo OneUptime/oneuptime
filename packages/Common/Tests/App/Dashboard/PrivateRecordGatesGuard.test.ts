@@ -537,6 +537,45 @@ describe("the shared cards and tables", () => {
     "packages/Common/UI/Components/CustomFields/CustomFieldsDetail.tsx",
   ];
 
+  const SCOPE_FILE: string = "packages/Common/UI/Utils/PrivateRecordScope.ts";
+
+  /*
+   * The hooks that hand a gate the private record scope of the model it
+   * draws: usePrivateRecordGateOptions, and the two that start from it for
+   * a gate about one record (useRecordGateOptions: a detail card, a delete)
+   * and for a list's rows (useListGateOptions), which leave out only the
+   * page's own answer where it is about another record of the page's kind
+   * (#11259). The test below holds both to starting from it.
+   */
+  const SCOPE_HOOKS: Array<string> = [
+    "usePrivateRecordGateOptions",
+    "useRecordGateOptions",
+    "useListGateOptions",
+  ];
+
+  // The body of a function PrivateRecordScope.ts exports, as written.
+  function bodyOf(name: string): string {
+    const source: ts.SourceFile = ts.createSourceFile(
+      SCOPE_FILE,
+      fs.readFileSync(path.join(REPOSITORY_ROOT, SCOPE_FILE), "utf8"),
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    let body: string = "";
+
+    source.forEachChild((node: ts.Node): void => {
+      if (
+        ts.isFunctionDeclaration(node) &&
+        node.name?.text === name &&
+        node.body
+      ) {
+        body = node.body.getText(source);
+      }
+    });
+
+    return body.replace(/\s+/g, " ");
+  }
+
   test.each(SHARED)(
     "%s asks with the scope of the model it draws",
     (file: string) => {
@@ -544,8 +583,35 @@ describe("the shared cards and tables", () => {
         .readFileSync(path.join(REPOSITORY_ROOT, file), "utf8")
         .replace(/\s+/g, " ");
 
-      expect(code).toContain("usePrivateRecordGateOptions(");
+      expect({
+        file,
+        asksWithTheScope: SCOPE_HOOKS.some((hook: string): boolean => {
+          return code.includes(`${hook}(`);
+        }),
+      }).toEqual({ file, asksWithTheScope: true });
       expect(code).toContain('from "../../Utils/PrivateRecordScope"');
     },
   );
+
+  test.each(["useRecordGateOptions", "useListGateOptions"])(
+    "%s starts from the private record scope of its model, and keeps it",
+    (hook: string) => {
+      const body: string = bodyOf(hook);
+
+      expect(body).toContain(
+        "const options: PermissionGateOptions | undefined = usePrivateRecordGateOptions(model);",
+      );
+      // What it hands back is those options, less the page's answer at most.
+      expect(body).toContain("options: options,");
+      expect(body).toContain("withoutAnswerForOtherRecords(");
+    },
+  );
+
+  test("leaving out the page's answer keeps the private record scope", () => {
+    const body: string = bodyOf("withoutAnswerForOtherRecords");
+
+    expect(body).toContain("delete rest.recordAccess;");
+    expect(body).not.toContain("delete rest.held");
+    expect(body).not.toContain("delete rest.privateRecordReason");
+  });
 });

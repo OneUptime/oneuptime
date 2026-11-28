@@ -14,6 +14,7 @@ import {
   toFindingSampleRecord,
 } from "../../../../Types/DataSecurity/FindingSampleRecord";
 import { METRIC_NAME_LOCATION } from "../../../../Types/DataSecurity/TelemetryScrubTarget";
+import { RUM_SESSION_TAGS_PREFIX } from "../../../../Types/DataSecurity/RumSessionPlaces";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -107,8 +108,10 @@ import {
  *    gen_ai.prompt[].content - and every other attribute;
  *  - session replays, a RUM application's: the attributes of its spans
  *    (spans.attributes.<key>) and logs (logs.attributes.<key>), and its
- *    sessions' attributes, the traits identify() gave its users and the
- *    user reference it was given (sessions.*). Never a recording: a replay
+ *    sessions' attributes, the tags its page gave them with setTags() and
+ *    addTag() (sessions.tags.<key>, #11458), the traits identify() gave
+ *    its users and the user reference it was given (sessions.*). Never a
+ *    recording: a replay
  *    chunk (RumSessionChunkV1.payload) holds the text of the pages people
  *    saw, which takes a permission of its own to watch, and a finding read
  *    out of it would show masked page text to everyone who reads Data
@@ -754,6 +757,18 @@ function appendColumnsRead(
       break;
     case TelemetrySampleSource.RumSessions:
       statement.append(", sessionId AS readSessionId");
+      /*
+       * The tags the page gave it (setTags(), addTag()): stored as sent in
+       * every masking mode, and read by everyone who can list sessions
+       * (#11458) - cut as its other pairs are.
+       */
+      appendPairs(
+        statement,
+        "tags",
+        "readTags",
+        caps.attributesPerRecord,
+        caps.attributeValueLength,
+      );
       appendPairs(
         statement,
         "identifiedUserTraits",
@@ -2122,6 +2137,12 @@ function readAttributeValues(
     pairs: Array<[string, string]>;
     caps: TelemetrySampleCaps;
     isConversation: boolean;
+    /*
+     * Whether a key under OneUptime's own prefix is left out: an attribute
+     * it stamps itself is no data of the project's. A session's tags are
+     * all the page's - the recorders add none - so none of them is.
+     */
+    isOneUptimeKeySkipped?: boolean | undefined;
   },
   values: Array<TelemetryRecordValue>,
 ): void {
@@ -2131,7 +2152,10 @@ function readAttributeValues(
   )) {
     const boundedKey: string = key.slice(0, TELEMETRY_SCAN_MAX_KEY_LENGTH);
 
-    if (boundedKey.startsWith(ONEUPTIME_ATTRIBUTE_PREFIX)) {
+    if (
+      data.isOneUptimeKeySkipped !== false &&
+      boundedKey.startsWith(ONEUPTIME_ATTRIBUTE_PREFIX)
+    ) {
       continue;
     }
 
@@ -2284,6 +2308,17 @@ export function readTelemetryRecordValues(
           pairs: attributes,
           caps,
           isConversation: false,
+        },
+        values,
+      );
+      // Its tags, which every reader of the session list reads (#11458).
+      readAttributeValues(
+        {
+          base: RUM_SESSION_TAGS_PREFIX,
+          pairs: readPairs(row["readTags"]),
+          caps,
+          isConversation: false,
+          isOneUptimeKeySkipped: false,
         },
         values,
       );

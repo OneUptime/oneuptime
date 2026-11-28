@@ -27,7 +27,9 @@ import {
 /*
  * Telemetry ingestion budgets, read: today's budget, rate, usage, drops and
  * throttling for each signal of a project, and of each of its ingestion keys
- * that has a budget of its own (TelemetryIngestionBudgetStatusReader).
+ * that has a budget of its own (TelemetryIngestionBudgetStatusReader) - and
+ * what the telemetry queue refused of each signal in the past day while
+ * OneUptime caught up, which no budget of the project's did (#11440).
  *
  *   GET /telemetry-ingestion-budget/project - the caller's project (its
  *     tenantid header), for whoever reads its telemetry usage
@@ -70,6 +72,8 @@ router.get(
       const status: TelemetryIngestionBudgetStatus =
         await TelemetryIngestionBudgetStatusReader.getProjectStatus({
           projectId: projectId,
+          // What the telemetry queue refused too (#11440), for the Usage page and the explorers.
+          includesQueueRefusals: true,
         });
 
       return Response.sendJsonObjectResponse(
@@ -107,6 +111,7 @@ router.get(
       const status: TelemetryIngestionBudgetStatus =
         await TelemetryIngestionBudgetStatusReader.getProjectStatus({
           projectId: project.id,
+          includesQueueRefusals: true,
         });
 
       return Response.sendJsonObjectResponse(

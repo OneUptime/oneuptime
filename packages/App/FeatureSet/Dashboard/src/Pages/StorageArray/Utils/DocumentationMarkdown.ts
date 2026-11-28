@@ -262,20 +262,31 @@ export const STORAGE_ARRAY_PLATFORM_SETTINGS: Record<
   ),
 ) as Record<StorageArrayPlatform, PlatformSettings>;
 
-// The files Docker Compose needs: the compose file and every collector config.
-export const STORAGE_ARRAY_AGENT_FILES: Array<string> = [
-  STORAGE_ARRAY_COMPOSE_FILE,
-  ...Array.from(
-    new Set(
-      STORAGE_ARRAY_PLATFORMS.map(
-        (option: SetupGuideOption<StorageArrayPlatform>): string => {
-          return STORAGE_ARRAY_PLATFORM_SETTINGS[option.key]
-            .collectorConfigFile;
-        },
-      ),
+/*
+ * Every file the agent runs, the files install.sh downloads: the compose
+ * file, then each way the agent reads an array (every platform's
+ * agentConfigs, in the registry's order) with its collector config and the
+ * other files it runs with (an exporter's Dockerfile, a sidecar's config),
+ * each once. A Docker Compose install takes them all, whichever array it
+ * reads, and so does its upgrade, so a PowerStore's or an ONTAP cluster's
+ * agent gets the new version of every file it runs too, and switching the
+ * array type later stays an .env edit, as with install.sh. Every OneUptime
+ * serves each of them (Common/Types/InstallScripts).
+ */
+export const STORAGE_ARRAY_AGENT_FILES: Array<string> = Array.from(
+  new Set([
+    STORAGE_ARRAY_COMPOSE_FILE,
+    ...StorageArrayPlatformRegistry.getPlatforms().flatMap(
+      (platform: StorageArrayPlatformDefinition): Array<string> => {
+        return platform.agentConfigs.flatMap(
+          (config: StorageArrayAgentConfig): Array<string> => {
+            return [config.collectorConfigFile, ...(config.otherFiles || [])];
+          },
+        );
+      },
     ),
-  ),
-];
+  ]),
+);
 
 /*
  * agents/StorageArrayAgent/otel-collector-config*.yaml, verbatim — the
@@ -469,10 +480,11 @@ processors:
         value: "\${env:STORAGE_SYSTEM}"
         action: upsert
       # Shown as the agent version on the array's page, with a sign when
-      # a newer one is out. Keep it in step with the collector image
-      # docker-compose.yml pins.
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time the agent's files change on that
+      # collector (0.165.1: PowerStore, ONTAP and PowerScale beside Pure).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
@@ -697,10 +709,11 @@ processors:
         value: "\${env:STORAGE_SYSTEM}"
         action: upsert
       # Shown as the agent version on the array's page, with a sign when
-      # a newer one is out. Keep it in step with the collector image
-      # docker-compose.yml pins.
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time the agent's files change on that
+      # collector (0.165.1: PowerStore, ONTAP and PowerScale beside Pure).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
@@ -875,10 +888,11 @@ processors:
         value: "\${env:STORAGE_SYSTEM}"
         action: upsert
       # Shown as the agent version on the array's page, with a sign when
-      # a newer one is out. Keep it in step with the collector image
-      # docker-compose.yml pins.
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time the agent's files change on that
+      # collector (0.165.1: PowerStore, ONTAP and PowerScale beside Pure).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
@@ -1033,14 +1047,14 @@ export function getStorageArrayInstallScriptCommand(data: {
  * never moves the agent forward. An install-script install runs the script
  * again with nothing in its environment, since a value there would override
  * the one in .env: it reuses every value in .env (nothing is asked again),
- * downloads the latest docker-compose.yml and collector configs (a file the
- * reader edited is kept as <file>.bak.<timestamp>) and recreates the
- * containers. A Docker Compose install downloads the four files itself and
- * recreates the containers: Compose recreates a container for a new image
- * or environment, never for a new config file, and the collector reads its
- * config only when it starts. The guide's "Upgrade or uninstall the agent"
- * topic and the dialog beside an outdated agent version
- * (Components/AgentVersion) both show these.
+ * downloads the latest of every file the agent runs (a file the reader
+ * edited is kept as <file>.bak.<timestamp>) and recreates the containers. A
+ * Docker Compose install downloads the same files itself
+ * (STORAGE_ARRAY_AGENT_FILES) and recreates the containers: Compose
+ * recreates a container for a new image or environment, never for a new
+ * config file, and the collector reads its config only when it starts. The
+ * guide's "Upgrade or uninstall the agent" topic and the dialog beside an
+ * outdated agent version (Components/AgentVersion) both show these.
  */
 export function getStorageArrayAgentUpgradeCommand(
   oneuptimeUrl: string,
@@ -1515,7 +1529,11 @@ function getSeveralArraysTopic(): SetupGuideTopic {
 
 ${codeBlock(
   "bash",
-  `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=${STORAGE_ARRAY_AGENT_CONTAINER}-fa02 bash install.sh`,
+  [
+    `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 \\`,
+    `  ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=${STORAGE_ARRAY_AGENT_CONTAINER}-fa02 \\`,
+    "  bash install.sh",
+  ].join("\n"),
 )}
 
 Without \`${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}\`, the script names the container after the folder. It keeps the name in that agent's \`.env\`, so running the script again to upgrade the agent keeps it, and an agent whose \`container_name\` you once edited in \`docker-compose.yml\` keeps that name. With Docker Compose, set \`${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}\` in each agent's \`.env\` instead.`,

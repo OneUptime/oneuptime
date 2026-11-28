@@ -43,6 +43,8 @@ Les modèles, selon la catégorie sous laquelle le sélecteur les range :
 
 **Recommandés** contient Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard et Metrics Dashboard. Un modèle est un point de départ, pas un lien : une fois le tableau de bord créé, modifiez-le comme vous voulez. Le modèle ne le met plus à jour ensuite.
 
+Chaque modèle d'infrastructure n'affiche que son propre genre de ressource, par le [Type de ressource](/docs/dashboards/variables#telemetry-attribute) de sa variable : un Docker Swarm Dashboard dans un projet sans swarm reste vide, et le dit, plutôt que d'afficher les conteneurs et les journaux de tout le reste.
+
 ## Modifier et enregistrer
 
 Un tableau de bord s'ouvre en mode lecture. Pour le modifier, ouvrez le menu **⋯** de sa barre d'outils et choisissez **Modifier le tableau de bord**. La barre d'outils affiche **Modification** à côté du nom et remplace la plage temporelle et ses autres contrôles par **Ajouter un widget**, **Variables**, **Annuler** et **Enregistrer les modifications**, avec en dessous une ligne pour la **Période par défaut** et l'**Actualisation automatique par défaut** du tableau de bord.

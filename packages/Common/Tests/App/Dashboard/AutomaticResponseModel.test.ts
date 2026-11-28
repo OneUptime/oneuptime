@@ -144,6 +144,7 @@ const finishedTrial: Partial<SecurityAutomaticResponseOverviewPolicy> = {
     sparedSignedIn: 0,
     sparedProtected: 0,
     sparedCannotTell: 0,
+    sparedUnvouchedProxy: 0,
     wouldHaveStopped: 0,
   },
 };
@@ -300,6 +301,7 @@ describe("what it would have done, and did", () => {
             sparedSignedIn: 3,
             sparedProtected: 0,
             sparedCannotTell: 1,
+            sparedUnvouchedProxy: 2,
             wouldHaveStopped: 1,
           },
         }),
@@ -311,6 +313,7 @@ describe("what it would have done, and did", () => {
       "None were yours.",
       "A signed-in user was seen later from 2 of them, so it would have lifted those blocks.",
       "It could not tell whether signed-in users had used 1 address, so it left it for a person.",
+      "It left 2 addresses for a person: they came through a private address you haven't listed as a proxy, which may have passed on what the client wrote.",
       "It would have reached the hourly limit of automatic blocks once, and paged your security owners.",
     ]);
 

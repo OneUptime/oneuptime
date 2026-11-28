@@ -92,6 +92,8 @@ export const getMarkdownRecordTypeOptions: GetMarkdownRecordTypeOptionsFunction 
         return {
           label: model.singularName || model.tableName || "",
           value: model.tableName || "",
+          // A kind of record by the product's own name: looked up, in the reader's words.
+          isUserContent: false,
         };
       });
     }

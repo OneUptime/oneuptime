@@ -23,10 +23,16 @@ import TelemetryIngestionKeyRefusalService, {
   TelemetryIngestRefusalBatch,
   TelemetryIngestRefusalUpsert,
   buildTelemetryIngestRefusalUpsert,
+  isTelemetryIngestRefusalCountedByStretch,
   mergeTelemetryIngestRefusalBatches,
   toTelemetryIngestRefusedCount,
 } from "../../../Server/Services/TelemetryIngestionKeyRefusalService";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  ALL_TELEMETRY_INGEST_REFUSAL_REASONS,
+  TELEMETRY_INGEST_REFUSAL_STRETCH_GAP_MS,
+  TelemetryIngestRefusalReason,
+} from "../../../Types/Telemetry/TelemetryIngestRefusal";
 
 /*
  * THE ONE STATEMENT REFUSED TELEMETRY IS COUNTED WITH (issue #6378).
@@ -211,10 +217,10 @@ describe("buildTelemetryIngestRefusalUpsert", () => {
       'ON CONFLICT ("telemetryIngestionKeyId", "reason", "surface") DO UPDATE SET',
     );
     expect(query).toContain(
-      `"refusedCount" = LEAST("TelemetryIngestionKeyRefusal"."refusedCount"::bigint + EXCLUDED."refusedCount", ${MAX_TELEMETRY_INGEST_REFUSED_COUNT})`,
+      `ELSE LEAST("TelemetryIngestionKeyRefusal"."refusedCount"::bigint + EXCLUDED."refusedCount", ${MAX_TELEMETRY_INGEST_REFUSED_COUNT}) END`,
     );
     expect(query).toContain(
-      '"firstRefusedAt" = LEAST("TelemetryIngestionKeyRefusal"."firstRefusedAt", EXCLUDED."firstRefusedAt")',
+      'ELSE LEAST("TelemetryIngestionKeyRefusal"."firstRefusedAt", EXCLUDED."firstRefusedAt") END',
     );
     expect(query).toContain(
       '"lastRefusedAt" = GREATEST("TelemetryIngestionKeyRefusal"."lastRefusedAt", EXCLUDED."lastRefusedAt")',
@@ -314,5 +320,118 @@ describe("TelemetryIngestionKeyRefusalService.addRefusals", () => {
     await TelemetryIngestionKeyRefusalService.addRefusals([]);
 
     expect(query).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A refusal of the telemetry queue comes and goes (#11440): OneUptime
+ * refuses a project's signal while it catches up, and takes it again once
+ * it has. Its row tells the latest stretch, so "since" says when this one
+ * began - not the first refusal ever.
+ */
+describe("refusals told apart by stretch", () => {
+  const GAP_MINUTES: number = TELEMETRY_INGEST_REFUSAL_STRETCH_GAP_MS / 60_000;
+
+  const queueBatch: (
+    overrides: Partial<TelemetryIngestRefusalBatch>,
+  ) => TelemetryIngestRefusalBatch = (
+    overrides: Partial<TelemetryIngestRefusalBatch>,
+  ): TelemetryIngestRefusalBatch => {
+    return batch({
+      reason: TelemetryIngestRefusalReason.QueueBacklogged,
+      surface: "otel-metrics",
+      ...overrides,
+    });
+  };
+
+  test("only the telemetry queue's reasons are", () => {
+    expect(
+      ALL_TELEMETRY_INGEST_REFUSAL_REASONS.filter(
+        isTelemetryIngestRefusalCountedByStretch,
+      ),
+    ).toEqual([
+      TelemetryIngestRefusalReason.QueueBacklogged,
+      TelemetryIngestRefusalReason.QueueFull,
+    ]);
+    expect(isTelemetryIngestRefusalCountedByStretch("not-a-reason")).toBe(
+      false,
+    );
+  });
+
+  test("batches of one stretch are added together, as any reason's are", () => {
+    const merged: Array<TelemetryIngestRefusalBatch> =
+      mergeTelemetryIngestRefusalBatches([
+        queueBatch({
+          count: 3,
+          firstRefusedAt: AT,
+          lastRefusedAt: minutesAfter(4),
+        }),
+        queueBatch({
+          count: 2,
+          firstRefusedAt: minutesAfter(4 + GAP_MINUTES),
+          lastRefusedAt: minutesAfter(5 + GAP_MINUTES),
+        }),
+      ]);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0]!.count).toBe(5);
+    expect(merged[0]!.firstRefusedAt).toEqual(AT);
+    expect(merged[0]!.lastRefusedAt).toEqual(minutesAfter(5 + GAP_MINUTES));
+  });
+
+  test("a batch that begins more than the gap after another ends is a later stretch, which replaces it", () => {
+    const later: TelemetryIngestRefusalBatch = queueBatch({
+      count: 2,
+      firstRefusedAt: minutesAfter(5 + GAP_MINUTES),
+      lastRefusedAt: minutesAfter(6 + GAP_MINUTES),
+    });
+
+    for (const order of [
+      [queueBatch({ count: 900, lastRefusedAt: minutesAfter(4) }), later],
+      [later, queueBatch({ count: 900, lastRefusedAt: minutesAfter(4) })],
+    ]) {
+      const merged: Array<TelemetryIngestRefusalBatch> =
+        mergeTelemetryIngestRefusalBatches(order);
+
+      expect(merged).toHaveLength(1);
+      expect(merged[0]!.count).toBe(2);
+      expect(merged[0]!.firstRefusedAt).toEqual(later.firstRefusedAt);
+      expect(merged[0]!.lastRefusedAt).toEqual(later.lastRefusedAt);
+    }
+  });
+
+  test("another reason's batches are added together however far apart", () => {
+    const merged: Array<TelemetryIngestRefusalBatch> =
+      mergeTelemetryIngestRefusalBatches([
+        batch({ count: 3 }),
+        batch({
+          count: 2,
+          firstRefusedAt: minutesAfter(10 * GAP_MINUTES),
+          lastRefusedAt: minutesAfter(10 * GAP_MINUTES),
+        }),
+      ]);
+
+    expect(merged[0]!.count).toBe(5);
+    expect(merged[0]!.firstRefusedAt).toEqual(AT);
+  });
+
+  test("the statement starts a row's count and first refusal again for a later stretch of the queue's reasons only", () => {
+    const query: string = buildTelemetryIngestRefusalUpsert([
+      queueBatch({}),
+    ]).query;
+    const newStretch: string = `(EXCLUDED."reason" IN ('queue-backlogged', 'queue-full') AND "TelemetryIngestionKeyRefusal"."lastRefusedAt" < EXCLUDED."firstRefusedAt" - (${TELEMETRY_INGEST_REFUSAL_STRETCH_GAP_MS} * interval '1 millisecond'))`;
+
+    expect(query).toContain(
+      `"refusedCount" = CASE WHEN ${newStretch} THEN EXCLUDED."refusedCount" ELSE`,
+    );
+    expect(query).toContain(
+      `"firstRefusedAt" = CASE WHEN ${newStretch} THEN EXCLUDED."firstRefusedAt" ELSE`,
+    );
+    // The latest refusal is the latest, whichever stretch it is in.
+    expect(query).toContain(
+      '"lastRefusedAt" = GREATEST("TelemetryIngestionKeyRefusal"."lastRefusedAt", EXCLUDED."lastRefusedAt")',
+    );
+    // The reasons are the enum's own words, never a parameter's text.
+    expect(query).not.toMatch(/IN \(\$/);
   });
 });

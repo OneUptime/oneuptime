@@ -37,6 +37,11 @@ import {
   MAX_SUGGESTED_ATTRIBUTE_VALUE_LENGTH,
 } from "../../Types/Telemetry/AttributeSuggestionLimits";
 import crypto from "crypto";
+import IsNull from "../../Types/BaseDatabase/IsNull";
+import {
+  DashboardResourceScope,
+  getDashboardResourceScopeAttributes,
+} from "../../Types/Dashboard/DashboardResourceScope";
 import AnalyticsDatabaseService, {
   DbJSONResponse,
   Results,
@@ -627,6 +632,12 @@ export class TelemetryAttributeService {
     serviceFilter?: TelemetryServiceFilter | undefined;
     startTime?: Date | undefined;
     endTime?: Date | undefined;
+    /*
+     * Only the values on one kind of resource's telemetry: a template's Host
+     * variable offers hosts, never a Docker host's or a pod's name
+     * (DashboardResourceScope, issue #11258).
+     */
+    resourceScope?: DashboardResourceScope | undefined;
   }): Promise<string[]> {
     const source: TelemetrySource | null = this.getTelemetrySource(
       data.telemetryType,
@@ -668,6 +679,7 @@ export class TelemetryAttributeService {
       window: window,
       attributeKey: data.attributeKey,
       searchText: searchText,
+      resourceScope: data.resourceScope,
     });
 
     const cached: AttributeValueSuggestionCacheEntry | undefined =
@@ -700,6 +712,7 @@ export class TelemetryAttributeService {
               searchText: searchText,
               serviceFilter: data.serviceFilter,
               window: window,
+              resourceScope: data.resourceScope,
             });
 
           TelemetryAttributeService.valueCache.setValues(cacheKey, found);
@@ -775,6 +788,7 @@ export class TelemetryAttributeService {
     window: AttributeValueLookupWindow;
     attributeKey: string;
     searchText?: string | undefined;
+    resourceScope?: DashboardResourceScope | undefined;
   }): string {
     const question: string = JSON.stringify([
       data.telemetryType,
@@ -786,6 +800,7 @@ export class TelemetryAttributeService {
       data.window.endTime.getTime(),
       data.attributeKey,
       data.searchText || "",
+      data.resourceScope || "",
     ]);
 
     return `${data.projectId.toString()}:${crypto
@@ -826,6 +841,7 @@ export class TelemetryAttributeService {
     searchText?: string | undefined;
     serviceFilter?: TelemetryServiceFilter | undefined;
     window?: AttributeValueLookupWindow | undefined;
+    resourceScope?: DashboardResourceScope | undefined;
   }): Statement {
     const window: AttributeValueLookupWindow =
       data.window ||
@@ -843,6 +859,7 @@ export class TelemetryAttributeService {
           searchText: data.searchText,
           window: window,
           serviceFilter: data.serviceFilter,
+          resourceScope: data.resourceScope,
         },
       );
     }
@@ -950,8 +967,11 @@ export class TelemetryAttributeService {
       source: TelemetrySource;
       attributeKey: string;
       searchText?: string | undefined;
+      resourceScope?: DashboardResourceScope | undefined;
     },
   ): void {
+    TelemetryAttributeService.appendResourceScopeFilter(statement, data);
+
     statement.append(
       SQL`
           AND ${data.source.attributesColumn}[${{
@@ -981,6 +1001,42 @@ export class TelemetryAttributeService {
     }
   }
 
+  /*
+   * Only rows of the kind a scoped variable picks among
+   * (DashboardResourceScope): the kind's identity present and not empty,
+   * each attribute that rules a row out of it empty. The same rows its
+   * widgets read (DashboardVariableInterpolation), over the exact keys the
+   * kind's resources are stored under, so a direct map subscript, as the
+   * key itself is read above: a missing key reads as ''.
+   */
+  private static appendResourceScopeFilter(
+    statement: Statement,
+    data: {
+      source: TelemetrySource;
+      resourceScope?: DashboardResourceScope | undefined;
+    },
+  ): void {
+    if (!data.resourceScope) {
+      return;
+    }
+
+    const scopeAttributes: Record<string, unknown> =
+      getDashboardResourceScopeAttributes(data.resourceScope);
+
+    for (const key of Object.keys(scopeAttributes)) {
+      const isEmpty: boolean = scopeAttributes[key] instanceof IsNull;
+
+      statement.append(
+        SQL`
+          AND ${data.source.attributesColumn}[${{
+            type: TableColumnType.Text,
+            value: key,
+          }}] `,
+      );
+      statement.append(isEmpty ? SQL`= ''` : SQL`!= ''`);
+    }
+  }
+
   private static async fetchAttributeValuesFromDatabase(data: {
     projectId: ObjectID;
     source: TelemetrySource;
@@ -989,6 +1045,7 @@ export class TelemetryAttributeService {
     searchText?: string | undefined;
     serviceFilter?: TelemetryServiceFilter | undefined;
     window: AttributeValueLookupWindow;
+    resourceScope?: DashboardResourceScope | undefined;
   }): Promise<Array<string>> {
     const statement: Statement =
       TelemetryAttributeService.buildAttributeValuesStatement(data);
@@ -1094,6 +1151,7 @@ export class TelemetryAttributeService {
     searchText?: string | undefined;
     window: AttributeValueLookupWindow;
     serviceFilter?: TelemetryServiceFilter | undefined;
+    resourceScope?: DashboardResourceScope | undefined;
   }): Statement {
     const statement: Statement = SQL`
       SELECT DISTINCT ${data.source.attributesColumn}[${{

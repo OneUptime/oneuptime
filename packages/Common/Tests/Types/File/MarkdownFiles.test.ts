@@ -148,12 +148,13 @@ describe("the limits", () => {
       );
     }
 
+    // The figure keeps its unit on its line (NumbersKeepTheirUnitsInCodeGuard).
     expect(
       MARKDOWN_FILE_LEFT_OUT_MESSAGES[MarkdownFileLeftOutReason.TooLarge],
-    ).toContain("10 MB");
+    ).toContain("10\u00A0MB");
     expect(
       MARKDOWN_FILE_LEFT_OUT_MESSAGES[MarkdownFileLeftOutReason.OverTotalSize],
-    ).toContain("10 MB");
+    ).toContain("10\u00A0MB");
     expect(
       MARKDOWN_FILE_LEFT_OUT_MESSAGES[MarkdownFileLeftOutReason.TooMany],
     ).toContain("20");

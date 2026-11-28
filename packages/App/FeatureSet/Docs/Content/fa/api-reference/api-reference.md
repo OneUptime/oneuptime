@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-کلیدی که نامش عوض شود همچنان با نام قدیمی‌اش هم خوانده می‌شود: نوع محدودیت یک لایه زیر `restrictionType` یا زیر املای قدیمی‌تر آن `restictionType` نوشته می‌شود و یک پاسخ هر دو را دارد.
+کلیدی که نامش عوض شود همچنان با نام قدیمی‌اش هم خوانده می‌شود: نوع محدودیت یک لایه زیر `restrictionType` یا زیر املای قدیمی‌تر آن `restictionType` نوشته می‌شود و یک پاسخ هر دو را دارد. املای قدیمی‌تر در پاسخ‌ها منسوخ شده است: پاسخ‌ها آن را تا نخستین نسخهٔ اصلی‌ای که در 1 ژوئن 2027 یا پس از آن منتشر شود دارند. نوشتن‌ها همیشه آن را می‌خوانند.
+
+یک مقدار به آنچه می‌گوید هم پایبند نگه داشته می‌شود. بازه هفتگی یک لایه در روزهایی که نام می‌برد آنکال است، پس `startTime` و `endTime` آن باید در منطقه زمانی زمان‌بندی بر `startDay` و `endDay` آن بیفتند. بازه‌ای که تاریخش در روزهای دیگری باشد با یک `400` رد می‌شود که بازه را نام می‌برد و زمانی در روز نام‌برده می‌دهد که می‌توان به‌جای آن فرستاد:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### پروژه از کجا خریده شده
 

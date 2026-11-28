@@ -1446,8 +1446,7 @@
                   "name": {
                     "type": "string",
                     "pattern": "^[a-z0-9]([-a-z0-9]{0,18}[a-z0-9])?$",
-                    "not": { "const": "control-plane" },
-                    "description": "The group's name, in its CronJob's: lowercase letters, digits and hyphens, at most 20."
+                    "description": "The group's name, in its CronJob's: lowercase letters, digits and hyphens, at most 20, and not control-plane, the name of the run on a control plane node."
                   },
                   "nodeSelector": {
                     "type": "object",

@@ -12,7 +12,10 @@ import {
   VapidPublicKey,
 } from "../../EnvironmentConfig";
 import { SERVER_CHANNEL_SETUP_SELECT } from "../ServerSending/ServerChannelSetup";
-import { getServerTwilioCallVoice } from "../ServerTwilioConfig";
+import {
+  getServerTwilioCallVoice,
+  getServerTwilioProjectCallVoices,
+} from "../ServerTwilioConfig";
 import { getServerInstallKind } from "./ServerInstallKind";
 import { toServerEmailSettings } from "../ServerEmailSettings";
 import ServerSendingStatus from "../ServerSending/ServerSendingStatus";
@@ -336,6 +339,8 @@ export default class ServerSetupChecklist {
       choices: ServerSetupChecklistUtil.readChoices(config?.serverSetupChoices),
       // A voice GLOBAL_TWILIO_CALL_VOICE names that OneUptime does not offer (#11064).
       callVoiceProblem: getServerTwilioCallVoice().problem,
+      // A GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE that does not read (#11462).
+      projectCallVoicesProblem: getServerTwilioProjectCallVoices().problem,
     };
   }
 

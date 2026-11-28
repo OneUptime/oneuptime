@@ -421,6 +421,32 @@ export function aiReadiness() {
 }
 
 /*
+ * The project's repositories in Code, as its routes read them for the
+ * reader (#10921): acme/checkout and acme/platform, on GitHub and
+ * connected, so OneUptime reads their code and the reader may ask in them -
+ * none with ?offer=connect. Fix with AI's picker searches them.
+ */
+export function codeRepositories() {
+  if (offerMode === "connect") {
+    return [];
+  }
+  return [
+    {
+      id: REPOSITORY_IDS.checkout,
+      name: "acme/checkout",
+      organizationName: "acme",
+      repositoryName: "checkout",
+    },
+    {
+      id: REPOSITORY_IDS.platform,
+      name: "acme/platform",
+      organizationName: "acme",
+      repositoryName: "platform",
+    },
+  ];
+}
+
+/*
  * Fix with AI on a finding, as MetricInsightFix.getSuggestion decides it:
  * the offer from Common's getTelemetryAiFixOffer, the repository the code
  * was found in or the ones to pick from.

@@ -309,7 +309,13 @@ Some fields hold a JSON value with a shape of its own, such as an on-call schedu
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-A key that is renamed keeps being read under its old name: a layer's restriction type is written under `restrictionType`, or under its older spelling `restictionType`, and an answer carries both.
+A key that is renamed keeps being read under its old name: a layer's restriction type is written under `restrictionType`, or under its older spelling `restictionType`, and an answer carries both. The older spelling is deprecated in answers: they carry it until the first major version released on or after 1 June 2027. Writes always read it.
+
+A value is also held to what it says. A layer's weekly window is on call on the days it names, so its `startTime` and `endTime` must fall on its `startDay` and `endDay` in the schedule's time zone. A window dated on other days is refused with a `400` that names the window, and gives a time on the named day to send instead:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Where a project was bought
 

@@ -12,6 +12,7 @@ import { CallAndSmsGateway } from "Common/Types/CallAndSMS/CallAndSmsProvider";
 import {
   buildCallAndSmsGatewayMessagePayload,
   CallAndSmsGatewayEvent,
+  CallAndSmsGatewayInLanguage,
 } from "Common/Types/CallAndSMS/CallAndSmsGatewayPayload";
 import CustomChannelActionToken from "Common/Server/Utils/OnCall/CustomChannelActionToken";
 import CallRequest, {
@@ -36,7 +37,6 @@ import CallLogService from "Common/Server/Services/CallLogService";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
-import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import ProjectCallVoice from "Common/Types/Call/ProjectCallVoice";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
@@ -100,8 +100,12 @@ import {
   renderSpeechAsText,
 } from "Common/Utils/Call/CallSpeech";
 import { SpokenCall, getSpokenCalls } from "Common/Utils/Call/CallLanguage";
+import { asSentenceInLanguage } from "Common/Utils/Call/OnCallPageCall";
 import { getCallTranslator } from "Common/Server/Utils/ServerTranslation";
-import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
+import {
+  DEFAULT_READER_LANGUAGE,
+  toReaderLanguage,
+} from "Common/Types/ReaderLanguage";
 import {
   CALL_KEYPAD_FINISH_ON_KEY,
   CALL_PROMPT_REPEATS,
@@ -191,18 +195,19 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
 }
 
 /*
- * How a sentence ends: a full stop, a question mark, an exclamation mark - or
- * the "…" of a title cut for speech.
- */
-const SENTENCE_END: RegExp = new RegExp("[.!?…]$");
-
-/*
  * What a call says, for a gateway that makes it (CallAndSmsGatewayPayload):
  * its spoken sentences in order. The "press 1" a call asks for is left out -
  * it is Twilio's keypad, and the gateway offers the page's actions its own
- * way - as are the answers to a key press.
+ * way - as are the answers to a key press. Of a call request, its English
+ * words; of one way of speaking it, those words, in their `language`. Each
+ * sentence is ended once, as its language ends one: a full stop, a
+ * question or exclamation mark - or the "…" of a title cut for speech - and
+ * "。", "।" or "؟" in the languages that write them (asSentenceInLanguage).
  */
-export function getCallGatewayMessage(callRequest: CallRequest): string {
+export function getCallGatewayMessage(
+  callRequest: CallRequest | CallRequestMessage,
+  language: string = DEFAULT_READER_LANGUAGE,
+): string {
   const sentences: Array<string> = [];
 
   for (const item of callRequest.data || []) {
@@ -213,11 +218,52 @@ export function getCallGatewayMessage(callRequest: CallRequest): string {
     }
 
     // Each a sentence of its own, ended as one.
-    const sentence: string = sayMessage.trim();
-    sentences.push(SENTENCE_END.test(sentence) ? sentence : `${sentence}.`);
+    sentences.push(asSentenceInLanguage(sayMessage.trim(), language));
   }
 
   return sentences.join(" ");
+}
+
+/*
+ * What a call says in the language of the person it calls, for a gateway
+ * that makes it (#11459): the language - as OneUptime names it, a BCP 47
+ * tag - and the call's sentences in it, as getCallGatewayMessage says the
+ * English ones. Every language the call carries words in, Persian among
+ * them: the gateway picks its own voice, and may have one that Twilio has
+ * not (Utils/Call/CallInLanguage). Undefined for a call in English only, a
+ * language OneUptime does not write in, and words that say nothing: the
+ * gateway then has the English alone, as it always had.
+ */
+export function getCallGatewayMessageInLanguage(
+  callRequest: CallRequestMessage,
+): CallAndSmsGatewayInLanguage | undefined {
+  const inLanguage: CallRequestMessage["inLanguage"] = callRequest.inLanguage;
+
+  if (
+    !inLanguage ||
+    typeof inLanguage !== "object" ||
+    !Array.isArray(inLanguage.data) ||
+    typeof inLanguage.language !== "string"
+  ) {
+    return undefined;
+  }
+
+  const language: string = toReaderLanguage(inLanguage.language);
+
+  if (language === DEFAULT_READER_LANGUAGE) {
+    return undefined;
+  }
+
+  const message: string = getCallGatewayMessage(
+    { data: inLanguage.data },
+    language,
+  );
+
+  if (!message) {
+    return undefined;
+  }
+
+  return { language: language, message: message };
 }
 
 /*
@@ -253,7 +299,10 @@ export function getCallVoicemailWords(
     ).trim();
 
     if (sentence) {
-      sentences.push(SENTENCE_END.test(sentence) ? sentence : `${sentence}.`);
+      // Ended once, as the words' language ends a sentence.
+      sentences.push(
+        asSentenceInLanguage(sentence, language || DEFAULT_READER_LANGUAGE),
+      );
     }
   }
 
@@ -794,7 +843,10 @@ export default class CallService {
         /*
          * The gateway is told what the call says, and - for an on-call
          * page - given the links that act on it (CustomChannelActionToken),
-         * which it can offer as key presses of its own.
+         * which it can offer as key presses of its own. What it says is in
+         * English, as every gateway has read it, and - for a person who
+         * reads another language - in theirs too, with the language's code,
+         * for a gateway with a voice of it to speak instead (#11459).
          */
         const payload: ReturnType<typeof buildCallAndSmsGatewayMessagePayload> =
           buildCallAndSmsGatewayMessagePayload({
@@ -813,6 +865,7 @@ export default class CallService {
                   options.userOnCallLogTimelineId,
                 )
               : undefined,
+            inLanguage: getCallGatewayMessageInLanguage(callRequest),
           });
 
         // Handed to the gateway from here on.
@@ -1167,13 +1220,15 @@ export default class CallService {
   /*
    * The voice a call through the server's own Twilio account speaks with
    * (#11065, Types/Call/ProjectCallVoice): the project's own, while the
-   * server's master admin lets projects choose one
-   * (GlobalConfig.letProjectsChooseCallVoice) - never on OneUptime Cloud,
-   * whose account OneUptime pays for - else the server's (GLOBAL_TWILIO_
-   * CALL_VOICE, or the one chosen in the Admin Dashboard). The switch is
-   * read only for a project that chose a voice. A voice never stops a
-   * call: should the switch not be read, the call speaks with the server's
-   * voice, as it would with the switch off.
+   * server lets projects choose one - its master admin's switch
+   * (GlobalConfig.letProjectsChooseCallVoice), or GLOBAL_TWILIO_LET_
+   * PROJECTS_CHOOSE_CALL_VOICE once it is set (#11462,
+   * GlobalConfigService.canProjectsChooseCallVoice) - never on OneUptime
+   * Cloud, whose account OneUptime pays for; else the server's
+   * (GLOBAL_TWILIO_CALL_VOICE, or the one chosen in the Admin Dashboard).
+   * The switch is read only for a project that chose a voice. A voice never
+   * stops a call: should the switch not be read, the call speaks with the
+   * server's voice, as it would with the switch off.
    */
   public static async getServerAccountCallVoice(data: {
     serverVoice: unknown;
@@ -1187,18 +1242,10 @@ export default class CallService {
       return toCallVoiceValue(data.serverVoice);
     }
 
-    let letProjectsChooseCallVoice: boolean | undefined = undefined;
+    let areOffered: boolean = false;
 
     try {
-      const config: GlobalConfig | null = await GlobalConfigService.findOneById(
-        {
-          id: ObjectID.getZeroObjectID(),
-          select: { letProjectsChooseCallVoice: true },
-          props: { isRoot: true },
-        },
-      );
-
-      letProjectsChooseCallVoice = config?.letProjectsChooseCallVoice;
+      areOffered = await GlobalConfigService.canProjectsChooseCallVoice();
     } catch (err) {
       logger.error(err);
     }
@@ -1206,10 +1253,7 @@ export default class CallService {
     return ProjectCallVoice.getVoiceOnServerAccount({
       serverVoice: data.serverVoice,
       projectVoice: projectVoice,
-      areOffered: ProjectCallVoice.areOffered({
-        isBillingEnabled: IsBillingEnabled,
-        letProjectsChooseCallVoice: letProjectsChooseCallVoice,
-      }),
+      areOffered: areOffered,
     });
   }
 

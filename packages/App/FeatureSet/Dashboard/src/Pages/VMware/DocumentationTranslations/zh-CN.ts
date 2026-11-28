@@ -273,6 +273,24 @@ const TRANSLATION: SetupGuideTranslation = {
     "vCenter 的标识来自 `VMWARE_VCENTER_NAME`，它以 `vmware.vcenter.name` 的形式打在每条指标上。在 `/opt/oneuptime-vmware-agent/.env` 中修正它，并用 `sudo systemctl restart oneuptime-vmware-agent` 应用。注意，新名称会注册为一个新的 vCenter。",
   "The vCenter identity comes from `VMWARE_VCENTER_NAME`, stamped on every metric as `vmware.vcenter.name`. This vCenter is **`vcenter-1`**. Fix it in `/opt/oneuptime-vmware-agent/.env` and apply it with `sudo systemctl restart oneuptime-vmware-agent` — note that a new name registers a new vCenter.":
     "vCenter 的标识来自 `VMWARE_VCENTER_NAME`，它以 `vmware.vcenter.name` 的形式打在每条指标上。此 vCenter 为 **`vcenter-1`**。在 `/opt/oneuptime-vmware-agent/.env` 中修正它，并用 `sudo systemctl restart oneuptime-vmware-agent` 应用。注意，新名称会注册为一个新的 vCenter。",
+  "| `VMWARE_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-vmware-agent`). A second vCenter's agent on the same machine needs names of its own: the install script names a new agent's containers after its folder unless you set them, and keeps them when you run the script again |":
+    "| `VMWARE_AGENT_CONTAINER_NAME` | 否 | 收集器的容器名称（默认：`oneuptime-vmware-agent`）。同一台机器上第二个 vCenter 的代理需要自己的容器名称：除非你自行设置，否则安装脚本会按新代理的文件夹为其容器命名，并在你再次运行脚本时保留这些名称 |",
+  "| `VMWARE_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-vmware-ai-agent`). The install script names a second vCenter's AI agent after its collector (`oneuptime-vmware-ai-agent-vcenter2` beside `oneuptime-vmware-agent-vcenter2`) unless you set it, and keeps it when you run the script again |":
+    "| `VMWARE_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理的容器名称（默认：`oneuptime-vmware-ai-agent`）。除非你自行设置，否则安装脚本会按第二个 vCenter 的收集器为其 AI 代理命名（`oneuptime-vmware-ai-agent-vcenter2` 与 `oneuptime-vmware-agent-vcenter2` 并列），并在你再次运行脚本时保留该名称 |",
+  "One agent reads one vCenter. For a second vCenter, install a second agent in a folder of its own, with container names of its own — two containers cannot share a name:":
+    "一个代理读取一个 vCenter。对于第二个 vCenter，请在单独的文件夹中安装第二个代理，并使用它自己的容器名称——两个容器不能共用一个名称：",
+  "The script names the containers after the folder, such as `oneuptime-vmware-agent-vcenter2`, unless you set their variables, such as `VMWARE_AGENT_CONTAINER_NAME`. It keeps the names in that agent's `.env`, so running the script again with the same `INSTALL_DIR` to upgrade the agent keeps them, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name.":
+    "除非你设置它们的变量（例如 `VMWARE_AGENT_CONTAINER_NAME`），否则脚本会按文件夹为容器命名，例如 `oneuptime-vmware-agent-vcenter2`。它会把名称保存在该代理的 `.env` 中，所以用同一个 `INSTALL_DIR` 再次运行脚本来升级代理时会保留这些名称；而你曾在 `docker-compose.yml` 中编辑过 `container_name` 的代理，也会保留那个名称。",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so the script refuses a folder named like one that already runs an agent elsewhere. Pass the folder to the diagnostic script with `-d`.":
+    "请为每个文件夹取一个独有的名称：Docker Compose 只按文件夹为项目命名，因此如果某个文件夹与别处已在运行代理的文件夹同名，脚本会拒绝它。用 `-d` 把文件夹传给诊断脚本。",
+  "| `VMWARE_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-vmware-agent`). A second vCenter's agent on the same machine needs one of its own |":
+    "| `VMWARE_AGENT_CONTAINER_NAME` | 否 | 收集器的容器名称（默认：`oneuptime-vmware-agent`）。同一台机器上第二个 vCenter 的代理需要自己的容器名称 |",
+  "| `VMWARE_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-vmware-ai-agent`). A second vCenter's agent on the same machine needs one of its own |":
+    "| `VMWARE_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理的容器名称（默认：`oneuptime-vmware-ai-agent`）。同一台机器上第二个 vCenter 的代理需要自己的容器名称 |",
+  "One agent reads one vCenter. For a second vCenter, set up a second agent in a folder of its own, with container names of its own — two containers cannot share a name. Set them in that agent's `.env`:":
+    "一个代理读取一个 vCenter。对于第二个 vCenter，请在单独的文件夹中设置第二个代理，并使用它自己的容器名称——两个容器不能共用一个名称。请在该代理的 `.env` 中设置这些名称：",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so a second folder of the same name would replace the first agent's containers. Keep the names out of `docker-compose.yml`, which an upgrade replaces.":
+    "请为每个文件夹取一个独有的名称：Docker Compose 只按文件夹为项目命名，因此同名的第二个文件夹会替换第一个代理的容器。不要把这些名称写进 `docker-compose.yml`，升级会替换该文件。",
 };
 
 export default TRANSLATION;

@@ -58,6 +58,16 @@ function registeredWidgets(): Array<RegisteredWidget> {
     imports.set(match[1]!, match[2]!);
   }
 
+  /*
+   * A widget the board loads the first time it draws one
+   * (LazyDashboardWidget) is read from the module its import() names.
+   */
+  for (const match of registry.matchAll(
+    /const (\w+): ComponentType<any> =\s*lazyDashboardWidget\(\s*\{[\s\S]*?import\("\.\/(\w+)"\)/g,
+  )) {
+    imports.set(match[1]!, match[2]!);
+  }
+
   const widgets: Array<RegisteredWidget> = [];
 
   for (const match of block.matchAll(

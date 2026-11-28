@@ -3,10 +3,8 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
-  RUM_CLIENT_KIND_BROWSER,
-  RUM_CLIENT_KIND_MOBILE,
-  RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
   RumClientKind,
+  getRumClientKindOfResource,
 } from "Common/Types/Rum/RumClientKind";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import DockerHostService from "Common/Server/Services/DockerHostService";
@@ -106,6 +104,10 @@ import {
   keyForDatabaseServerRow,
 } from "Common/Utils/Telemetry/EntityKey";
 import { normalizeHostIpAddresses } from "Common/Utils/Telemetry/HostIpAddresses";
+import {
+  NotAHostReason,
+  getNotAHostReason,
+} from "Common/Utils/Telemetry/HostResource";
 import Dictionary from "Common/Types/Dictionary";
 import {
   FAAS_CLOUD_PLATFORM_VALUES,
@@ -5080,58 +5082,27 @@ export default abstract class OtelIngestBaseService {
     attributes: JSONArray,
   ): RumClientKind | null {
     /*
-     * Stamped on everything a public ingestion key writes
-     * (PinRumClientResource): a Mobile key's is its app's mobile RUM
-     * (issue #6457), a Browser key's its page's browser RUM (issue #10539),
-     * whatever else the resource carried - read first, so a copied key's
-     * other client's attributes or a resource with no browser.* at all
-     * never file it as anything else, a backend Service included.
-     */
-    const stampedClientKind: string | null = this.getStringAttribute(
-      attributes,
-      RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
-    );
-
-    if (stampedClientKind === RUM_CLIENT_KIND_MOBILE) {
-      return RUM_CLIENT_KIND_MOBILE;
-    }
-
-    if (stampedClientKind === RUM_CLIENT_KIND_BROWSER) {
-      return RUM_CLIENT_KIND_BROWSER;
-    }
-
-    const hasBrowser: boolean = Boolean(
-      this.getStringAttribute(attributes, "browser.platform") ||
-        this.getStringAttribute(attributes, "browser.language") ||
-        this.getStringArrayAttribute(attributes, "browser.brands").length > 0,
-    );
-    if (hasBrowser) {
-      return RUM_CLIENT_KIND_BROWSER;
-    }
-    const hasDevice: boolean = Boolean(
-      this.getStringAttribute(attributes, "device.id") ||
-        this.getStringAttribute(attributes, "device.model.identifier"),
-    );
-    if (hasDevice) {
-      return RUM_CLIENT_KIND_MOBILE;
-    }
-
-    /*
-     * `device.manufacturer` on its own is no longer proof of a phone.
-     * OneUptime now reads a machine's make and model as host inventory
-     * metadata (issue #3866), and an operator stamps those onto the
-     * collector's resource — often machine-wide through
-     * OTEL_RESOURCE_ATTRIBUTES, which every process on the box inherits.
+     * The reading itself is shared with the Inventory's Host resolver
+     * (getRumClientKindOfResource in Common/Types/Rum/RumClientKind), which
+     * keeps a device the app names in host.name as a host item there:
      *
-     * Classifying those batches as RUM is not a cosmetic mislabel: it
-     * makes `getServiceNameFromAttributes` return null, so the host's
-     * real Service row stops being created, and it makes
-     * `autoDiscoverRum` mint a Mobile RUM Application named after that
-     * service. A genuine mobile resource carries no host identity — the
-     * mobile SDKs set `device.*` and `os.*` and nothing in the `host.*`
-     * namespace — so require its absence before trusting the weaker
-     * signal. `device.id` and `device.model.identifier` above are
-     * unambiguous and stay unconditional.
+     *   - The kind a public ingestion key stamps on everything it writes
+     *     (PinRumClientResource) is read first: a Mobile key's is its app's
+     *     mobile RUM (issue #6457), a Browser key's its page's browser RUM
+     *     (issue #10539), whatever else the resource carried - so a copied
+     *     key's other client's attributes or a resource with no browser.* at
+     *     all never file it as anything else, a backend Service included.
+     *   - `device.manufacturer` on its own is no longer proof of a phone.
+     *     OneUptime reads a machine's make and model as host inventory
+     *     metadata (issue #3866), and an operator stamps those onto the
+     *     collector's resource - often machine-wide through
+     *     OTEL_RESOURCE_ATTRIBUTES, which every process on the box inherits.
+     *     Classifying those batches as RUM is not a cosmetic mislabel: it
+     *     makes `getServiceNameFromAttributes` return null, so the host's
+     *     real Service row stops being created, and it makes
+     *     `autoDiscoverRum` mint a Mobile RUM Application named after that
+     *     service. A genuine mobile resource carries no host identity, so its
+     *     absence is required before the weaker signal is trusted.
      *
      * Host identity is read through `getHostNameFromAttributes` rather than
      * a raw `host.name` lookup, so a node whose collector labels it with
@@ -5140,16 +5111,20 @@ export default abstract class OtelIngestBaseService {
      * accessor, so both host branches of this file agree on what host
      * identity means.
      */
-    const hasDeviceManufacturerOnly: boolean = Boolean(
-      this.getStringAttribute(attributes, "device.manufacturer") &&
-        !this.getHostNameFromAttributes(attributes) &&
-        !this.getStringAttribute(attributes, "host.id"),
-    );
-    if (hasDeviceManufacturerOnly) {
-      return RUM_CLIENT_KIND_MOBILE;
-    }
-
-    return null;
+    return getRumClientKindOfResource({
+      read: (key: string): string | null => {
+        return this.getStringAttribute(attributes, key);
+      },
+      readList: (key: string): Array<string> => {
+        return this.getStringArrayAttribute(attributes, key);
+      },
+      hasHostIdentity: (): boolean => {
+        return Boolean(
+          this.getHostNameFromAttributes(attributes) ||
+            this.getStringAttribute(attributes, "host.id"),
+        );
+      },
+    });
   }
 
   /*
@@ -5893,21 +5868,27 @@ export default abstract class OtelIngestBaseService {
   /**
    * Auto-discover a Host (generic OTel host) from resource attributes.
    *
-   * Phantom-host gate: only register a row when the batch carries a
-   * strong signal that this is real host telemetry, not an application
-   * SDK auto-detecting hostname inside a pod and not a Kubernetes node
-   * or pod (those have their own KubernetesCluster home). Requires:
+   * Phantom-host gate: only register a row when the batch is a machine's
+   * own telemetry - its collector's hostmetrics, journald or event log
+   * receivers, or the Android Agent - and not an application, a container,
+   * a container engine or Kubernetes naming the host it runs on
+   * (Common/Utils/Telemetry/HostResource, issue #11257). Requires:
    *
    *   1. Explicit `host.name` resource attribute. The k8s.node.name
    *      fallback used by `getHostNameFromAttributes` for service-name
    *      synthesis is NOT accepted here — kubeletstats labels pod and
    *      node metrics with k8s.node.name only, which would otherwise
    *      flood the Hosts list with k8s node names.
-   *   2. No supported Kubernetes identity resource attribute. This uses the
-   *      same predicate as InventoryItem extraction, including pod/node UIDs,
-   *      namespace and deployment identities as well as pod/node/cluster
-   *      names. Keeping one shared gate prevents one path from suppressing a
-   *      phantom registry Host while this path recreates its typed Host row.
+   *   2. Nothing on the resource that says it is not a host's own
+   *      (getNotAHostReason): a Kubernetes identity (the same keys the
+   *      Inventory's Kubernetes resolvers read, so one path never suppresses
+   *      a registry Host while this one recreates its typed Host row), a
+   *      `container.runtime` (the Docker and Podman agents stamp it on
+   *      everything - read from the resource, so a Docker host that did not
+   *      resolve in this batch, its row gone or its lookup failed, is still
+   *      no Host), a `container.id` (from inside a container), or an
+   *      OpenTelemetry SDK's `telemetry.sdk.*` (an application's resource,
+   *      whose host.name is where it runs - in a pod, the pod).
    *   3. The same batch did not already resolve to a DockerHost or
    *      KubernetesCluster row. Docker hosts and K8s clusters/nodes have
    *      their own dedicated tables; we don't want a duplicate Host row
@@ -5921,12 +5902,12 @@ export default abstract class OtelIngestBaseService {
    *      in one pipeline is still the database's.)
    *   4. One of:
    *        - os.type resource attribute (set by the resourcedetection
-   *          system detector via native OS calls — app SDKs typically
-   *          don't include it)
-   *        - container.runtime resource attribute (non-Docker container
-   *          host — Docker is already excluded by gate (3))
+   *          system detector; the SDKs' OS detectors set it too, which is
+   *          why gate (2) reads the SDK's own attributes first)
    *        - hasInfraSignal=true (caller saw system.* / process.*
-   *          metrics that only a host agent emits)
+   *          metrics, which a host's collector sends - and an SDK's
+   *          runtime metrics, `process.runtime.*`, which gate (2) rules
+   *          out first)
    *
    * Notably we DO NOT accept host.id or host.arch alone — both are
    * commonly auto-detected by application SDKs from inside a container,
@@ -6001,7 +5982,7 @@ export default abstract class OtelIngestBaseService {
       return null;
     }
 
-    if (this.hasKubernetesIdentity(data.attributes)) {
+    if (this.getNotAHostReason(data.attributes)) {
       return null;
     }
 
@@ -6027,18 +6008,26 @@ export default abstract class OtelIngestBaseService {
       data.attributes,
       "os.type",
     );
-    const containerRuntime: string | null = this.getStringAttribute(
-      data.attributes,
-      "container.runtime",
-    );
 
-    const hasResourceSignal: boolean = Boolean(osType || containerRuntime);
-
-    if (!hasResourceSignal && !data.hasInfraSignal) {
+    if (!osType && !data.hasInfraSignal) {
       return null;
     }
 
     return hostName;
+  }
+
+  /*
+   * Why a resource block is not a host's own telemetry (Common/Utils/
+   * Telemetry/HostResource), or null when nothing on it says so. The Host
+   * gate above and the metrics batch enrichment both refuse on it, so they
+   * agree with each other and with the Inventory's Host resolver.
+   */
+  protected static getNotAHostReason(
+    attributes: JSONArray,
+  ): NotAHostReason | null {
+    return getNotAHostReason((key: string): string | null => {
+      return this.getStringAttribute(attributes, key);
+    });
   }
 
   @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverHost" })
@@ -6081,11 +6070,13 @@ export default abstract class OtelIngestBaseService {
       const osVersion: string | null =
         this.getStringAttribute(data.attributes, "os.description") ||
         this.getStringAttribute(data.attributes, "os.version");
-      const containerRuntime: string | null = this.getStringAttribute(
-        data.attributes,
-        "container.runtime",
-      );
 
+      /*
+       * No container runtime, Docker host or Kubernetes cluster is written
+       * onto a Host: the gate refused every resource that carries one
+       * (getNotAHostReason, and the dockerHostId / kubernetesClusterId it
+       * returns early on), so a Host's own telemetry never names them.
+       */
       const hostIdStr: string | null = await this.resolveDiscoveredResourceId({
         kindName: "Host",
         projectId: data.projectId,
@@ -6157,9 +6148,6 @@ export default abstract class OtelIngestBaseService {
               cpuCores: data.cpuCores,
               totalMemoryBytes: data.totalMemoryBytes,
               processCount: data.processCount,
-              containerRuntime: containerRuntime || undefined,
-              dockerHostId: data.dockerHostId || undefined,
-              kubernetesClusterId: data.kubernetesClusterId || undefined,
               agentVersion: agentVersion || undefined,
               deploymentEnvironment: deploymentEnvironment || undefined,
               runtimeName: runtimeName || undefined,

@@ -2,10 +2,14 @@ services:
   oneuptime-xcp-ng-agent:
     # Upstream collector, pinned. There is no oneuptime/xcp-ng-agent image -
     # the agent is entirely defined by otel-collector-config.yaml, which
-    # install.sh downloads next to this file, and that config reports this
-    # pin as the agent's version (oneuptime.agent.version). Bump the two
-    # together; Tests/Ops/validate-collector-configs.sh validates the config
-    # against this version.
+    # install.sh downloads next to this file, and that config reports the
+    # agent's version (oneuptime.agent.version): this pin, its last number
+    # raised each time the agent's files change on it - this file too - or
+    # an installed agent is never told to upgrade
+    # (packages/Common/Tests/App/Dashboard/AgentFilesVersion.test.ts fails
+    # until the version moves with the files). A new pin starts again at its
+    # own version; Tests/Ops/validate-collector-configs.sh validates the
+    # config against it.
     image: otel/opentelemetry-collector-contrib:0.165.0
     # One agent reads one Xen Orchestra, and every pool it manages. Two
     # containers cannot share a name, so a second Xen Orchestra's agent on

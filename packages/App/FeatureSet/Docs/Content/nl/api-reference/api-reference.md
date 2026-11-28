@@ -309,7 +309,13 @@ Sommige velden bevatten een JSON-waarde met een eigen vorm, zoals `rotation` en 
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Een sleutel die een andere naam krijgt, wordt ook onder zijn oude naam gelezen: het beperkingstype van een laag wordt geschreven onder `restrictionType` of onder de oudere spelling `restictionType`, en een antwoord bevat beide.
+Een sleutel die een andere naam krijgt, wordt ook onder zijn oude naam gelezen: het beperkingstype van een laag wordt geschreven onder `restrictionType` of onder de oudere spelling `restictionType`, en een antwoord bevat beide. De oudere spelling is verouderd in antwoorden: ze bevatten die tot de eerste hoofdversie die op of na 1 juni 2027 uitkomt. Schrijfacties lezen die altijd.
+
+Een waarde wordt ook aan haar woord gehouden. Het wekelijkse venster van een laag heeft dienst op de dagen die het noemt, dus zijn `startTime` en `endTime` moeten in de tijdzone van het schema op zijn `startDay` en `endDay` vallen. Een venster dat op andere dagen is gedateerd, wordt geweigerd met een `400` die het venster noemt en een tijd op de genoemde dag geeft om in plaats daarvan te sturen:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Waar een project is gekocht
 

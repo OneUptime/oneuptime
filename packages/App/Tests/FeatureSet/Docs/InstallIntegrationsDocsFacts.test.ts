@@ -6,6 +6,7 @@ import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspacePro
 import ServerTwilioEnvironment, {
   SERVER_TWILIO_CALL_VOICE_VARIABLE,
   SERVER_TWILIO_ENVIRONMENT_VARIABLES,
+  SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE,
   SERVER_TWILIO_USED_FOR_VALUES,
   ServerTwilioEnvironmentVariable,
 } from "Common/Types/CallAndSMS/ServerTwilioEnvironment";
@@ -2589,7 +2590,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
         return unwrap(cells[0] as string);
       });
 
-    expect(fields).toHaveLength(6);
+    expect(fields).toHaveLength(7);
 
     for (const field of fields) {
       expect({ field, answered: answered.includes(field) }).toEqual({
@@ -3630,7 +3631,10 @@ describe("Twilio Integration, against the notification server and the forms", ()
       );
     });
 
-    // The account's, in their order, then the call voice's of its own (#11064).
+    /*
+     * The account's, in their order, then the call voice's of its own
+     * (#11064), then the switch's that lets projects choose theirs (#11462).
+     */
     it("lists every variable the server reads, in its order, and no other", () => {
       expect(
         rows.map((row: Array<string>): string => {
@@ -3639,6 +3643,7 @@ describe("Twilio Integration, against the notification server and the forms", ()
       ).toEqual([
         ...SERVER_TWILIO_ENVIRONMENT_VARIABLES,
         SERVER_TWILIO_CALL_VOICE_VARIABLE,
+        SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE,
       ]);
     });
 
@@ -3684,6 +3689,7 @@ describe("Twilio Integration, against the notification server and the forms", ()
       for (const variable of [
         ...SERVER_TWILIO_ENVIRONMENT_VARIABLES,
         SERVER_TWILIO_CALL_VOICE_VARIABLE,
+        SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE,
       ]) {
         expect({
           variable,
@@ -3738,12 +3744,27 @@ describe("Twilio Integration, against the notification server and the forms", ()
       const helpers: string = readSource("chartHelpers");
 
       expect(section).toContain(
-        "The chart also refuses other `twilio` values without `twilio.accountSid` (all but `twilio.callVoice`, which sets the voice whoever sets the account), an Account SID without an auth token, an auth token given both in `twilio.authToken` and in a Secret, and a `twilio.callVoice` that is not one of the voices.",
+        "The chart also refuses other `twilio` values without `twilio.accountSid` (all but `twilio.callVoice` and `twilio.letProjectsChooseCallVoice`, which apply whoever sets the account), an Account SID without an auth token, an auth token given both in `twilio.authToken` and in a Secret, a `twilio.callVoice` that is not one of the voices, and a `twilio.letProjectsChooseCallVoice` that is not `true` or `false`.",
       );
-      // The voice is never counted among the values nothing reads (#11064)...
+      /*
+       * Neither the voice (#11064) nor the switch (#11462) is counted among
+       * the values nothing reads...
+       */
       expect(helpers).toContain(
         '{{- range $key := list "authToken" "usedFor" "primaryPhoneNumber" "secondaryPhoneNumbers" "smsPhoneNumbers" }}',
       );
+      // ...and the schema takes only true, false or nothing for the switch.
+      expect(
+        valueAt(
+          JSON.parse(
+            fs.readFileSync(
+              path.join(REPO_DIR, CHART, "values.schema.json"),
+              "utf8",
+            ),
+          ),
+          "properties.twilio.properties.letProjectsChooseCallVoice.enum",
+        ),
+      ).toEqual([null, "", true, false, "true", "false"]);
       // ...and the schema takes only OneUptime's voices.
       expect(
         valueAt(

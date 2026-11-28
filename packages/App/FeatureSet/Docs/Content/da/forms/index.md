@@ -8,6 +8,7 @@ Brug en formular, når de mennesker, der opdager et problem eller har brug for e
 - [Opret din første formular](#opret-din-første-formular): Fra en tom formular til et link, du kan dele.
 - [Byg en formular](/docs/forms/building): Spørgsmål, svartyper, skjulte spørgsmål, skabeloner og branding.
 - [Hvad en indsendelse opretter](/docs/forms/on-submit): Hvordan svarene og indstillingerne bliver til en hændelse eller en vedligeholdelseshændelse.
+- [Opfølgning på en indsendelse](/docs/forms/follow-ups): Den, der sender, følger sin anmodning, skriver til dit team og tilføjer andre.
 - [Deling & sikkerhed](/docs/forms/sharing-and-security): Linket, IP-tilladelseslisten, hastighedsgrænser og fejlfinding.
 :::
 
@@ -290,6 +291,7 @@ De gamle dashboardsider viderestiller til de nye.
 :::cards
 - [Byg en formular](/docs/forms/building): Spørgsmål, svartyper, tilknyttede felter, brugerdefinerede felter og forhåndsvisningen.
 - [Hvad en indsendelse opretter](/docs/forms/on-submit): Hvordan svarene og indstillingerne under Ved indsendelse bliver til en hændelse eller en vedligeholdelseshændelse.
+- [Opfølgning på en indsendelse](/docs/forms/follow-ups): Den, der sender, følger sin anmodning, skriver til dit team og tilføjer andre.
 - [Deling & sikkerhed](/docs/forms/sharing-and-security): Linket, IP-tilladelseslisten, hastighedsgrænser, captcha og fejlfinding.
 - [Opret en hændelse](/docs/incidents/declaring-incidents): De andre måder at oprette hændelser på.
 :::

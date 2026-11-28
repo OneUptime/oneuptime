@@ -3,18 +3,27 @@ import ModelImportExportUtil, {
   ImportResult,
 } from "../../Utils/ModelImportExport";
 import PermissionGate, {
-  LabelLockAction,
   ModelAction,
-  ModelLabelLock,
   PermissionGateResult,
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import RecordLocks, {
+  LabelLockAction,
+  ModelRecordLock,
+} from "../../Utils/RecordLocks";
 import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import {
   getRecordLabelIds,
   getRecordLabelRefusal,
   useLabelNames,
 } from "../../Utils/RecordLabelLock";
+import {
+  getRecordOwnershipFacts,
+  isRecordOwnershipWanted,
+  RecordOwnershipState,
+  useRecordOwnership,
+} from "../../Utils/RecordOwnershipRead";
+import LabelAccess from "../../../Types/LabelAccess/LabelAccess";
 import {
   FormType,
   ModelField,
@@ -197,15 +206,35 @@ const ModelTable: <TBaseModel extends BaseModel>(
    * why (BaseModelTable's runBulkAction reads the same reason). The rows
    * are read with their labels' ids for it - nothing more for anyone else -
    * and a row read without them is left to the server.
+   *
+   * AND WHO OWNS EACH ROW (#11436): for a reader with a grant scoped to
+   * Owned - or beside their labels - on a kind with owner tables, the list
+   * asks the server once for the rows on screen who owns each
+   * (RecordOwnershipRead), and locks the changes of a row neither they nor
+   * those grants' teams own: "Your permission is limited to monitors you or
+   * your teams own." Until it lands, the rows are offered as before, and
+   * the server keeps the last word.
    */
-  const labelLock: ModelLabelLock | null = PermissionGate.getLabelLock(model);
-  const rowLabelLock: ModelLabelLock | null =
-    labelLock && PermissionGate.canReadColumn(model, labelLock.labelsColumn)
-      ? labelLock
+  const recordLock: ModelRecordLock | null = RecordLocks.getRecordLock(model);
+  const rowLabelLock: ModelRecordLock | null =
+    recordLock &&
+    (!recordLock.labelsColumn ||
+      PermissionGate.canReadColumn(model, recordLock.labelsColumn))
+      ? recordLock
       : null;
   const rowLabelNames: ReadonlyMap<string, string> = useLabelNames(
     rowLabelLock ? rowLabelLock.labelIds : [],
   );
+
+  const isRowOwnershipWanted: boolean = Boolean(
+    rowLabelLock?.isDecidedByOwners && isRecordOwnershipWanted(props.modelType),
+  );
+  const [rowIds, setRowIds] = useState<Array<string>>([]);
+  const rowOwnership: RecordOwnershipState = useRecordOwnership({
+    modelType: props.modelType,
+    ids: rowIds,
+    isWanted: isRowOwnershipWanted,
+  });
 
   const getRowLabelLock: (
     item: TBaseModel,
@@ -218,16 +247,23 @@ const ModelTable: <TBaseModel extends BaseModel>(
       return undefined;
     }
 
+    const rowId: string = LabelAccess.readId(
+      (item as BaseModel)._id || (item as BaseModel).id,
+    );
+
     const reason: string | null = getRecordLabelRefusal({
       lock: rowLabelLock,
       action: action,
-      recordLabelIds: getRecordLabelIds(item, rowLabelLock.labelsColumn),
+      recordLabelIds: rowLabelLock.labelsColumn
+        ? getRecordLabelIds(item, rowLabelLock.labelsColumn)
+        : [],
       nouns: {
         singularName: props.singularName || model.singularName || "",
         pluralName: props.pluralName || model.pluralName || "",
       },
       labelNames: rowLabelNames,
       translator: translator,
+      ownership: getRecordOwnershipFacts(rowOwnership.result, rowId),
     });
 
     if (!reason) {
@@ -453,16 +489,17 @@ const ModelTable: <TBaseModel extends BaseModel>(
     } as Select<TBaseModel>;
   }
 
-  if (rowLabelLock) {
+  if (rowLabelLock?.labelsColumn) {
+    const labelsColumn: string = rowLabelLock.labelsColumn;
     const selected: Dictionary<unknown> =
       ((rowSelectMoreFields ||
         props.selectMoreFields ||
         {}) as Dictionary<unknown>) || {};
-    const labelsSelect: unknown = selected[rowLabelLock.labelsColumn];
+    const labelsSelect: unknown = selected[labelsColumn];
 
     rowSelectMoreFields = {
       ...selected,
-      [rowLabelLock.labelsColumn]: {
+      [labelsColumn]: {
         ...(labelsSelect && typeof labelsSelect === "object"
           ? (labelsSelect as Dictionary<unknown>)
           : {}),
@@ -470,6 +507,42 @@ const ModelTable: <TBaseModel extends BaseModel>(
       },
     } as Select<TBaseModel>;
   }
+
+  /*
+   * What the rows' locks are worked out from that lands after the rows: the
+   * names of the labels a reason names, and who owns each row. The list
+   * draws its rows' actions again when it changes (BaseModelTable's
+   * rowLocksKey), so a row's menu says what its lock says now.
+   */
+  const rowLocksKey: string = rowLabelLock
+    ? JSON.stringify([
+        Array.from(rowLabelNames.entries()),
+        rowOwnership.isRead,
+        rowOwnership.result,
+      ])
+    : "";
+
+  /*
+   * The rows on screen, for who owns them (#11436): kept only for a reader
+   * whose rows' owners may lock something, so nobody else's list draws
+   * again for it.
+   */
+  const onFetchSuccess: (
+    data: Array<TBaseModel>,
+    totalCount: number,
+  ) => void = (data: Array<TBaseModel>, totalCount: number): void => {
+    if (isRowOwnershipWanted) {
+      setRowIds(
+        data
+          .map((item: TBaseModel): string => {
+            return LabelAccess.readId(item._id || item.id);
+          })
+          .filter(Boolean),
+      );
+    }
+
+    props.onFetchSuccess?.(data, totalCount);
+  };
 
   if (props.enableJsonImportExport) {
     bulkActions = {
@@ -545,6 +618,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
           : {})}
         getEditDisabledReason={getEditDisabledReason}
         getDeleteDisabledReason={getDeleteDisabledReason}
+        rowLocksKey={rowLocksKey}
+        onFetchSuccess={onFetchSuccess}
         helpContent={ruleCriteriaTable.helpContent}
         bulkActions={bulkActions}
         cardProps={cardProps}

@@ -137,6 +137,45 @@ describe("ProjectService.applyNewProjectSecurityDefaults", () => {
 
     expect(project.securityRiskCaseThreshold).toBeUndefined();
   });
+
+  /*
+   * #11389: a new project trusts no private address as a proxy unlisted - a
+   * TCP proxy at one would pass on what a client wrote - while the column's
+   * own default keeps every project from before trusting them as it did.
+   */
+  it("turns Private Addresses off when the request leaves it unset or null", () => {
+    const unset: { securityTrustPrivateAddresses?: boolean | null } = {};
+    const asNull: { securityTrustPrivateAddresses?: boolean | null } = {
+      securityTrustPrivateAddresses: null,
+    };
+
+    ProjectService.applyNewProjectSecurityDefaults(unset);
+    ProjectService.applyNewProjectSecurityDefaults(asNull);
+
+    expect(unset.securityTrustPrivateAddresses).toBe(false);
+    expect(asNull.securityTrustPrivateAddresses).toBe(false);
+  });
+
+  it("keeps Private Addresses on when the request says so", () => {
+    const on: { securityTrustPrivateAddresses?: boolean | null } = {
+      securityTrustPrivateAddresses: true,
+    };
+
+    ProjectService.applyNewProjectSecurityDefaults(on);
+
+    expect(on.securityTrustPrivateAddresses).toBe(true);
+  });
+
+  it("its column stays on, for the projects from before and a Terraform apply alike", () => {
+    const metadata: ReturnType<Project["getTableColumnMetadata"]> =
+      new Project().getTableColumnMetadata("securityTrustPrivateAddresses");
+
+    expect(metadata?.type).toBe(TableColumnType.Boolean);
+    expect(metadata?.required).toBe(true);
+    expect(metadata?.defaultValue).toBe(true);
+    expect(metadata?.isDefaultValueColumn).toBe(true);
+    expect(metadata?.description).toContain("Off for a new project");
+  });
 });
 
 describe("ProjectService.onBeforeCreate: entity risk for a new project", () => {
@@ -171,6 +210,26 @@ describe("ProjectService.onBeforeCreate: entity risk for a new project", () => {
     const created: Project = await runOnBeforeCreate(project);
 
     expect(created.enableSecurityRiskCases).toBe(false);
+  });
+
+  // #11389: the safe start.
+  it("a project created in the dashboard trusts no private address unlisted", async () => {
+    const project: Project = new Project();
+    project.name = "Acme";
+
+    const created: Project = await runOnBeforeCreate(project);
+
+    expect(created.securityTrustPrivateAddresses).toBe(false);
+  });
+
+  it("a create request that turns Private Addresses on keeps it on", async () => {
+    const project: Project = new Project();
+    project.name = "Acme";
+    project.securityTrustPrivateAddresses = true;
+
+    const created: Project = await runOnBeforeCreate(project);
+
+    expect(created.securityTrustPrivateAddresses).toBe(true);
   });
 
   it("applies to a root create too", async () => {

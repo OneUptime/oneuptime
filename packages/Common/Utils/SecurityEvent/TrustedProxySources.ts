@@ -11,18 +11,28 @@ import { AccessLogFormat } from "./LogParsers/AccessLogFormat";
 /*
  * WHERE EACH PROXY A PROJECT TRUSTS COMES FROM (#11046), kept apart so the
  * scans and Check a log line read one set of them the same way, and the
- * check can say why an address is trusted:
+ * check can say why an address is trusted - the first reason that holds,
+ * the most particular first:
  *
- *   - Private: nobody's on the internet (ClientAddressTrust.isTrustedProxy
- *     trusts these by their scope, unlisted);
  *   - Listed: the project's Trusted Proxies;
  *   - Edge: the published ranges of an edge the project connected
  *     (Cloudflare);
- *   - OwnLoadBalancer: the public addresses of the project's own
- *     application load balancers (#10546);
+ *   - OwnLoadBalancer: the addresses of the project's own application load
+ *     balancers (#10546), and the Google Cloud proxy-only subnets only its
+ *     Application Load Balancers connect from (#11389);
  *   - GoogleFrontEnd: Google's front ends, which a connected Google Cloud
  *     project's global external Application Load Balancer brought
- *     (#11047).
+ *     (#11047);
+ *   - Private: nobody's on the internet, while the project trusts those
+ *     (Project.securityTrustPrivateAddresses, #11389;
+ *     ClientAddressTrust.isTrustedProxy trusts them by their scope,
+ *     unlisted). Last: such an address is trusted for what it is when
+ *     anything above says so, and only for its scope otherwise - which is
+ *     what an automatic response asks (isVouchedProxy).
+ *
+ * Before any of them, the ranges never trusted (untrusted, #11389): where a
+ * load balancer of the project's that passes on what a client wrote
+ * connects from.
  *
  * The server reads them (Server/Utils/SecurityEvent/SecurityTrustedProxies);
  * trustedProxiesOf is the one way they become what the parsers read. Pure.
@@ -63,25 +73,49 @@ export interface TrustedProxySources {
   ownLoadBalancers: ReadonlyArray<NetworkAddressBlock>;
   // Google's front ends, while a global external Application Load Balancer brings them.
   googleFrontEnds: ReadonlyArray<NetworkAddressBlock>;
+  /*
+   * Where its load balancers that pass on what a client wrote connect from
+   * (#11389): never trusted, whatever above lists them.
+   */
+  untrusted: ReadonlyArray<NetworkAddressBlock>;
+  // Whether an address that is nobody's on the internet is trusted unlisted (#11389).
+  trustsPrivateAddresses: boolean;
   // Whether its access logs are read for X-Forwarded-For (#10548).
   readsAccessLogForwardedFor: boolean;
   // Its own access log format, read (#11048); null when it gave none.
   accessLogFormat: AccessLogFormat | null;
 }
 
-// Only what every project trusts: addresses that are nobody's on the internet.
+/*
+ * Only what a project trusts that said nothing: addresses that are nobody's
+ * on the internet, as every project did before it could say (#11389).
+ */
 export const NO_TRUSTED_PROXY_SOURCES: TrustedProxySources = {
   listed: [],
   edges: [],
   ownLoadBalancers: [],
   googleFrontEnds: [],
+  untrusted: [],
+  trustsPrivateAddresses: true,
   readsAccessLogForwardedFor: false,
   accessLogFormat: null,
 };
 
 /*
+ * What a project whose settings could not be read trusts (#11389): nothing,
+ * not even a private address, since it may have turned those off - a read
+ * that fails trusts less, never more. Every address a proxy forwarded is
+ * then claimed, and the next scan reads again.
+ */
+export const UNREAD_TRUSTED_PROXY_SOURCES: TrustedProxySources = {
+  ...NO_TRUSTED_PROXY_SOURCES,
+  trustsPrivateAddresses: false,
+};
+
+/*
  * What the parsers read: every block of every source, the project's own
- * list first, and what it says of its access logs.
+ * list first, the ranges never trusted, whether private addresses are, and
+ * what it says of its access logs.
  */
 export function trustedProxiesOf(sources: TrustedProxySources): TrustedProxies {
   return {
@@ -95,6 +129,8 @@ export function trustedProxiesOf(sources: TrustedProxySources): TrustedProxies {
       ...sources.ownLoadBalancers,
       ...sources.googleFrontEnds,
     ],
+    untrustedBlocks: sources.untrusted,
+    trustsPrivateAddresses: sources.trustsPrivateAddresses,
     readsAccessLogForwardedFor: sources.readsAccessLogForwardedFor,
     accessLogFormat: sources.accessLogFormat,
   };
@@ -120,7 +156,9 @@ function holds(
 /*
  * Why the project trusts `address` as a proxy, the first reason that holds
  * in the order above - an address that is nobody's on the internet is
- * private whatever else lists it - or null when it trusts it for none.
+ * private only when nothing more particular holds it - or null when it
+ * trusts it for none, as for every address where a load balancer that
+ * passes on what a client wrote connects from (#11389).
  */
 export function findTrustedProxySource(
   address: string,
@@ -128,12 +166,8 @@ export function findTrustedProxySource(
 ): TrustedProxyReason | null {
   const scope: SecurityAddressScope | null = getSecurityAddressScope(address);
 
-  if (!scope) {
+  if (!scope || holds(sources.untrusted, address)) {
     return null;
-  }
-
-  if (scope !== SecurityAddressScope.Public) {
-    return { address, source: TrustedProxySource.Private, edgeName: "" };
   }
 
   if (holds(sources.listed, address)) {
@@ -160,6 +194,10 @@ export function findTrustedProxySource(
       source: TrustedProxySource.GoogleFrontEnd,
       edgeName: "",
     };
+  }
+
+  if (scope !== SecurityAddressScope.Public && sources.trustsPrivateAddresses) {
+    return { address, source: TrustedProxySource.Private, edgeName: "" };
   }
 
   return null;

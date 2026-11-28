@@ -112,6 +112,10 @@ PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
+PROXMOX_AGENT_CONTAINER_NAME=oneuptime-proxmox-agent
+PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME=oneuptime-pve-api-failover
+PROXMOX_PVE_EXPORTER_CONTAINER_NAME=oneuptime-pve-exporter
+PROXMOX_AI_AGENT_CONTAINER_NAME=oneuptime-proxmox-ai-agent
 ```
 
 `PVE_NODES` 用方括号按每个节点自己的地址列出所有节点，`COMPOSE_PROFILES=pve-exporter` 还会启动内置的导出器。启动代理：
@@ -161,6 +165,10 @@ Everything is ready. Begin running and processing data.
 | `PVE_API_TOKEN_SECRET` | 内置导出器或 AI 代理 | Proxmox API 令牌密钥。 |
 | `PVE_VERIFY_SSL` | 否 | 验证 Proxmox API 的 TLS 证书（导出器和 AI 代理）。默认为 `false`，因为 Proxmox 自带的是自签名证书。 |
 | `COMPOSE_PROFILES` | 否 | 设置为 `pve-exporter` 可启动内置的导出器容器。 |
+| `PROXMOX_AGENT_CONTAINER_NAME` | 否 | Collector 的容器名称。默认为 `oneuptime-proxmox-agent`。同一台机器上第二个集群的代理需要自己的容器名称：参见 [监控多个集群](#监控多个集群)。除非你自行设置，否则安装脚本会按新代理的文件夹为其容器命名，并在你再次运行脚本时保留这些名称。 |
+| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | 否 | API 故障转移 sidecar 的容器名称。默认为 `oneuptime-pve-api-failover`，第二个代理则默认使用与其 Collector 名称并列的名称，例如 `oneuptime-pve-api-failover-cluster2`。 |
+| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | 否 | 内置导出器的容器名称。默认为 `oneuptime-pve-exporter`，第二个代理则默认使用与其 Collector 名称并列的名称，例如 `oneuptime-pve-exporter-cluster2`。 |
+| `PROXMOX_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理的容器名称。默认为 `oneuptime-proxmox-ai-agent`，第二个代理则默认使用与其 Collector 名称并列的名称，例如 `oneuptime-proxmox-ai-agent-cluster2`。 |
 
 ## 代理采集的内容
 
@@ -336,6 +344,18 @@ Proxmox VE 9.0 及更高版本自带一个 OpenTelemetry 指标服务器，可�
 
 备份结果、被隔离的节点和失败的复制仍然可以到达 OneUptime：[发送 Proxmox VE 的通知](#发送-proxmox-ve-的通知)，它同样适用于原生推送。
 
+## 监控多个集群
+
+一个代理读取一个集群。要从同一台机器监控多个集群，请把每个代理安装到各自的文件夹中，并使用各自的 `.env` 和各自的容器名称，因为两个容器不能同名：
+
+```bash
+INSTALL_DIR=/opt/oneuptime-proxmox-agent-cluster2 bash install.sh
+```
+
+脚本会按文件夹为代理的容器命名：`oneuptime-proxmox-agent-cluster2`、`oneuptime-pve-api-failover-cluster2`、`oneuptime-pve-exporter-cluster2` 和 `oneuptime-proxmox-ai-agent-cluster2`。若要自行选择名称，请在运行脚本时设置 `PROXMOX_AGENT_CONTAINER_NAME` 以及上表中的其他变量。它会把名称保存在该代理的 `.env` 中，所以再次运行脚本来升级代理时会保留这些名称；而若代理的 `container_name` 曾由你在 `docker-compose.yml` 中编辑过，它也会保留那个名称。请为每个文件夹取一个独有的名称：Docker Compose 只按文件夹为项目命名，因此如果某个文件夹与别处已在运行代理的文件夹同名，脚本会拒绝它。使用 Docker Compose 时，请改为在每个代理的 `.env` 中设置这些名称。
+
+systemd 单元假定代理位于 `/opt/oneuptime-proxmox-agent`：若使用其他文件夹，请以另一个名称保存它，例如 `oneuptime-proxmox-agent-cluster2.service`，并修改它的 `WorkingDirectory`。用 `-d` 把文件夹传给诊断脚本。
+
 ## 作为 systemd 服务运行
 
 要让代理随机器启动，并在失败时重新启动，请安装它的 systemd 单元。它假定代理位于 `/opt/oneuptime-proxmox-agent`，即安装脚本放置它的位置：
@@ -350,7 +370,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 代理会把其文件所固定的 Collector 版本报告为它的 **代理版本**。当它比此 OneUptime 发布所固定的版本旧时，集群 **概览** 上它的旁边会出现警告标志。选择该标志即可看到这些命令。在其文件开始报告版本之前安装的代理，在以这种方式升级之前不会显示版本。
 
-Collector 镜像固定在 `docker-compose.yml` 中，其配置是旁边的一个文件，因此仅拉取镜像并不能让代理升级。请再次运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再询问任何内容），刷新 `docker-compose.yml` 和 `otel-collector-config.yaml`（你编辑过的文件会保留为 `<file>.bak.<timestamp>`），拉取镜像并重新创建代理，使 Collector 读取新的配置。早于 `PVE_NODES` 的 `.env` 仍然只读取 `PVE_HOST`，脚本会列出需要添加的节点。
+Collector 镜像固定在 `docker-compose.yml` 中，其配置是旁边的一个文件，因此仅拉取镜像并不能让代理升级。请再次运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再询问任何内容），刷新 `docker-compose.yml` 和 `otel-collector-config.yaml`（你编辑过的文件会保留为 `<file>.bak.<timestamp>`），拉取镜像并重新创建代理，使 Collector 读取新的配置。早于 `PVE_NODES` 的 `.env` 仍然只读取 `PVE_HOST`，脚本会列出需要添加的节点。安装在 `/opt/oneuptime-proxmox-agent` 之外的代理需要指定它的文件夹，即 `INSTALL_DIR=<folder> bash install.sh`，并会保留它的容器名称。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh

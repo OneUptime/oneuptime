@@ -274,4 +274,5 @@ OneUptime에 포함된 ClamAV는 시작할 때 `database.clamav.net`에서 시�
 - [양식 개요](/docs/forms/index): 양식의 용도, 권한, API.
 - [양식 만들기](/docs/forms/building): 질문, 숨겨진 질문, 템플릿.
 - [제출로 만들어지는 항목](/docs/forms/on-submit): 각 제출이 만드는 인시던트나 이벤트.
+- [제출 후속 조치](/docs/forms/follow-ups): 보낸 사람이 자신의 요청을 팔로우하고, 팀에 메시지를 쓰고, 다른 사람을 추가합니다.
 :::

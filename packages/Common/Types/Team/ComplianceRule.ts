@@ -107,7 +107,12 @@ export const COMPLIANCE_CHANNEL_DEFINITIONS: ReadonlyArray<ComplianceChannelDefi
   [
     {
       channel: ComplianceNotificationChannel.Call,
-      label: translationKey("Call"),
+      /*
+       * A phone call, by a key that names its meaning (#11418): the bare
+       * "Call" is a function call in Chinese (调用), Korean (호출) and
+       * Russian (Вызов). English reads "Call".
+       */
+      label: translationKey("Call (phone call)"),
       method: { noun: "phone number for calls", hasVerification: true },
     },
     {

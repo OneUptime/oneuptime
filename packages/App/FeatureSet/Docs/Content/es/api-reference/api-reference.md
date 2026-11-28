@@ -309,7 +309,13 @@ Algunos campos contienen un valor JSON con una forma propia, como `rotation` y `
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Una clave que se renombra se sigue leyendo con su nombre antiguo: el tipo de restricción de una capa se escribe en `restrictionType` o en su grafía antigua `restictionType`, y una respuesta lleva ambas.
+Una clave que se renombra se sigue leyendo con su nombre antiguo: el tipo de restricción de una capa se escribe en `restrictionType` o en su grafía antigua `restictionType`, y una respuesta lleva ambas. La grafía antigua está obsoleta en las respuestas: la llevan hasta la primera versión principal publicada el 1 de junio de 2027 o después. Las escrituras siempre la leen.
+
+A un valor también se le toma la palabra. La franja semanal de una capa está de guardia los días que nombra, así que su `startTime` y su `endTime` deben caer en su `startDay` y su `endDay` en la zona horaria de la programación. Una franja fechada en otros días se rechaza con un `400` que nombra la franja y da una hora del día nombrado para enviar en su lugar:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Dónde se compró un proyecto
 

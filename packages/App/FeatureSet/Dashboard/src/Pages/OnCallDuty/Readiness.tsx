@@ -63,6 +63,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Filter from "Common/UI/Components/Filters/Types/Filter";
 import FilterData from "Common/UI/Components/Filters/Types/FilterData";
 import Icon from "Common/UI/Components/Icon/Icon";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -575,7 +576,12 @@ const ChannelMeter: FunctionComponent<ChannelMeterProps> = (
                   icon={CHANNEL_ICONS[channel] || IconProp.Bell}
                   className="h-3 w-3 text-gray-400"
                 />
-                {translator.translateText(channel)}
+                {/*
+                 * The method's name in the reader's language, "Phone call"
+                 * for "Call" (#11418): the bare "Call" is a function call in
+                 * Chinese and "Push" a payment in Arabic.
+                 */}
+                {NotificationMethodUtil.getMethodName(translator, channel)}
               </span>
               <span className="text-gray-500">
                 {method

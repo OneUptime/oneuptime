@@ -80,6 +80,8 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 CEPH_CLUSTER_NAME=my-ceph-cluster
 CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]
+CEPH_AGENT_CONTAINER_NAME=oneuptime-ceph-agent
+CEPH_AI_AGENT_CONTAINER_NAME=oneuptime-ceph-ai-agent
 ```
 
 활성 mgr과 대기 mgr을 모두 포함해 모든 mgr 데몬을 쉼표로 구분하고 대괄호로 감싸 나열하세요. 대괄호가 있어야 Collector가 값을 스크레이프 대상 목록으로 읽습니다. 에이전트를 시작하세요:
@@ -119,6 +121,8 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 예 | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**의 수집 키. |
 | `CEPH_CLUSTER_NAME` | 아니요 | OneUptime에서의 클러스터 이름으로, 모든 메트릭에 `ceph.cluster.name` 리소스 속성으로 붙습니다. 바꾸지 마세요. 나중에 바꾸면 별도의 클러스터가 등록됩니다. 기본값은 `ceph`입니다. |
 | `CEPH_MGR_ENDPOINTS` | 예 | 모든 mgr 데몬을 대괄호로 감싼 쉼표 구분 `host:port` 목록으로 지정합니다. 예: `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. 대괄호는 설치 스크립트가 붙여 줍니다. |
+| `CEPH_AGENT_CONTAINER_NAME` | 아니요 | Collector의 컨테이너 이름입니다. 기본값은 `oneuptime-ceph-agent`입니다. 같은 머신에 있는 두 번째 클러스터의 에이전트에는 고유한 이름이 필요합니다. [여러 클러스터 모니터링](#여러-클러스터-모니터링)을 참고하세요. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 컨테이너 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다. |
+| `CEPH_AI_AGENT_CONTAINER_NAME` | 아니요 | AI 에이전트의 컨테이너 이름입니다. 기본값은 `oneuptime-ceph-ai-agent`이고, 두 번째 에이전트에서는 `oneuptime-ceph-ai-agent-cluster2`처럼 Collector 이름과 나란한 이름이 됩니다. |
 
 AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있습니다.
 
@@ -206,6 +210,18 @@ processors:
 
 Collector는 시작할 때만 구성을 읽습니다. `docker compose restart oneuptime-ceph-agent`를 실행하세요. 그러면 클러스터에 `team:storage`와 `env:production` 레이블이 표시됩니다. 레이블은 대소문자를 구분하지 않고 비교되므로 기존 `Production` 레이블은 중복되지 않고 재사용되며, 에이전트는 누군가 OneUptime에서 추가한 레이블을 절대 제거하지 않습니다.
 
+## 여러 클러스터 모니터링
+
+에이전트 하나는 클러스터 하나를 읽습니다. 같은 머신에서 여러 클러스터를 모니터링하려면 두 컨테이너가 같은 이름을 가질 수는 없으므로 각 에이전트를 전용 `.env`와 고유한 컨테이너 이름을 가진 전용 폴더에 설치하세요:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-ceph-agent-cluster2 bash install.sh
+```
+
+스크립트는 폴더 이름을 따서 에이전트의 컨테이너 이름을 `oneuptime-ceph-agent-cluster2`와 `oneuptime-ceph-ai-agent-cluster2`로 짓습니다. 직접 정하려면 스크립트를 실행할 때 `CEPH_AGENT_CONTAINER_NAME`과 `CEPH_AI_AGENT_CONTAINER_NAME`을 설정하세요. 스크립트는 그 이름을 해당 에이전트의 `.env`에 보관하므로 에이전트를 업그레이드하려고 스크립트를 다시 실행해도 이름이 유지되며, `container_name`을 예전에 `docker-compose.yml`에서 직접 수정한 에이전트도 그 이름을 유지합니다. 폴더마다 고유한 이름을 붙이세요. Docker Compose는 폴더 이름만으로 프로젝트 이름을 짓기 때문에, 스크립트는 다른 곳에서 이미 에이전트를 실행 중인 폴더와 같은 이름의 폴더를 거부합니다. Docker Compose를 쓴다면 대신 각 에이전트의 `.env`에 이름을 설정하세요.
+
+systemd 유닛은 `/opt/oneuptime-ceph-agent`를 가정합니다. 다른 폴더라면 `oneuptime-ceph-agent-cluster2.service`처럼 다른 이름으로 저장하고 `WorkingDirectory`를 바꾸세요. 진단 스크립트에는 `-d`로 폴더를 넘기세요.
+
 ## systemd 서비스로 실행
 
 머신과 함께 에이전트를 시작하고 실패하면 다시 시작하려면 systemd 유닛을 설치하세요. 설치 스크립트가 에이전트를 두는 `/opt/oneuptime-ceph-agent`에 에이전트가 있다고 가정합니다:
@@ -220,7 +236,7 @@ sudo systemctl enable --now oneuptime-ceph-agent
 
 에이전트는 파일이 고정한 Collector 버전을 **에이전트 버전**으로 보고합니다. 그것이 이 OneUptime 릴리스가 고정한 버전보다 오래되었으면 클러스터의 **개요**에서 그 옆에 경고 표시가 나타납니다. 표시를 선택하면 이 명령들이 보입니다. 파일이 버전을 보고하기 전에 설치된 에이전트는 이 방법으로 업그레이드할 때까지 버전이 표시되지 않습니다.
 
-Collector 이미지는 `docker-compose.yml`에 고정되어 있고 구성은 그 옆의 파일이므로, 가져오기만으로는 에이전트가 새 버전이 되지 않습니다. `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치며(편집한 파일은 `<file>.bak.<timestamp>`로 보관), 이미지를 가져와 에이전트를 다시 만들므로 Collector가 새 구성을 읽습니다. AI 에이전트의 `ceph/` 폴더는 그대로 남습니다.
+Collector 이미지는 `docker-compose.yml`에 고정되어 있고 구성은 그 옆의 파일이므로, 가져오기만으로는 에이전트가 새 버전이 되지 않습니다. `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치며(편집한 파일은 `<file>.bak.<timestamp>`로 보관), 이미지를 가져와 에이전트를 다시 만들므로 Collector가 새 구성을 읽습니다. AI 에이전트의 `ceph/` 폴더는 그대로 남습니다. `/opt/oneuptime-ceph-agent` 밖에 설치한 에이전트에는 폴더를 지정해야 하며(`INSTALL_DIR=<folder> bash install.sh`), 컨테이너 이름은 유지됩니다.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/ceph-agent -o install.sh

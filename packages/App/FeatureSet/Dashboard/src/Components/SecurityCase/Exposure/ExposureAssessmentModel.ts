@@ -10,6 +10,7 @@ import {
   ANSWER_SUMMARY_DRAFTED_ON_NOTICES,
   ANSWER_SUMMARY_TO_WRITE,
   ANSWER_SUMMARY_TO_WRITE_ON_NOTICES,
+  AS_SOON_AS_PRACTICABLE,
   DUE_ON,
   DUE_ON_AT_THE_LATEST,
   IF_AT_LEAST_PEOPLE,
@@ -18,6 +19,8 @@ import {
   IF_MORE_THAN_PEOPLE,
   IF_PEOPLE_LIVE_IN,
   IF_READ_FROM_OUTSIDE,
+  IMMEDIATELY,
+  IN_FORCE_AFTER_FOUND,
   IN_FORCE_FROM,
   LAW_AND_PROVISION,
   LOGS_BEST_EFFORT,
@@ -351,6 +354,11 @@ export function describeDeadline(
       return say(translator, WITHOUT_UNREASONABLE_DELAY);
     case BreachDeadlineUnit.NoFixedTime:
       return say(translator, NO_FIXED_TIME);
+    // The notices to the data's owner (#11427).
+    case BreachDeadlineUnit.Immediately:
+      return say(translator, IMMEDIATELY);
+    case BreachDeadlineUnit.AsSoonAsPracticable:
+      return say(translator, AS_SOON_AS_PRACTICABLE);
     default:
       break;
   }
@@ -505,6 +513,16 @@ function describeReasonAgainst(
     case BreachReasonKind.NotInForce:
       return reason.date
         ? translator.translateTemplate(IN_FORCE_FROM, {
+            date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              `${reason.date}T00:00:00.000Z`,
+              true,
+            ),
+          })
+        : "";
+    // A newer text that took effect after the exposure was found (#11425).
+    case BreachReasonKind.InForceAfterFound:
+      return reason.date
+        ? translator.translateTemplate(IN_FORCE_AFTER_FOUND, {
             date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
               `${reason.date}T00:00:00.000Z`,
               true,

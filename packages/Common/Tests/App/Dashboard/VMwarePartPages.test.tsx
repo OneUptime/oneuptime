@@ -20,6 +20,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * The page of a virtual machine, a datastore and a cluster inside a vCenter
@@ -391,6 +392,13 @@ beforeEach(() => {
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
+  /*
+   * A part's alerts card asks the server which of its recommended alerts a
+   * monitor covers (#11074): none does yet.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
 });
 
 afterEach(() => {

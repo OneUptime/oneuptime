@@ -48,6 +48,8 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
       setIsLoadingOptions(true);
       MetricUtil.getTelemetryAttributeValues({
         attributeKey: variable.attributeKey,
+        // Only the values of the kind it picks among (issue #11258).
+        resourceScope: variable.resourceScope,
       })
         .then((values: Array<string>) => {
           if (cancelled) {
@@ -73,7 +75,7 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
     return () => {
       cancelled = true;
     };
-  }, [variable.type, variable.attributeKey]);
+  }, [variable.type, variable.attributeKey, variable.resourceScope]);
 
   return (
     <DashboardVariableControl

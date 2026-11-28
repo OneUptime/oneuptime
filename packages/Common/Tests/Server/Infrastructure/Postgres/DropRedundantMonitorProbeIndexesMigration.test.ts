@@ -157,7 +157,7 @@ describe("the MonitorProbe model says the same", () => {
     ).toEqual([
       "monitorId, probeId",
       "monitorId, projectId",
-      "probeId, isEnabled, nextPingAt",
+      "probeId, isEnabled, nextPingAt, lastPingAt",
       "projectId",
     ]);
   });

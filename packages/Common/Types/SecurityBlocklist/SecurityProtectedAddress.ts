@@ -23,7 +23,12 @@ import NetworkAddressBlockUtil, {
  *   - private, loopback, link-local and other ranges that are not on the
  *     internet;
  *   - the published ranges of the edge in front of the app, when one is
- *     connected (Cloudflare: blocking it at an origin WAF takes the site down).
+ *     connected (Cloudflare: blocking it at an origin WAF takes the site down);
+ *   - Google Cloud's load balancers' front ends and health checks (#11388),
+ *     always: nobody but Google connects from them, and a block of one
+ *     cuts off every visitor a Google Cloud load balancer carries and fails
+ *     its health checks - whether or not the Google Cloud project is
+ *     connected, and whatever Security Events trusts.
  *
  * Here: where a protection comes from, what one says, and the ranges that
  * are not on the internet. The server reads the rest
@@ -64,6 +69,13 @@ export enum SecurityProtectedAddressSource {
   OneUptimeCloud = "OneUptimeCloud",
   // The published ranges of an edge the project has connected (Cloudflare).
   Edge = "Edge",
+  /*
+   * Google Cloud's load balancers' front ends and health checks (#11388):
+   * nobody else connects from them, and a block of one cuts off every
+   * visitor a Google Cloud load balancer carries and fails its health
+   * checks.
+   */
+  GoogleFrontEnd = "GoogleFrontEnd",
   /*
    * What protects a domain, a URL or a file (#10346), the project's own
    * list aside (ProtectedEntity), and a cloud resource's DNS name or DNS
@@ -143,6 +155,9 @@ export const SECURITY_PROTECTED_ADDRESS_SENTENCES: Readonly<
   [SecurityProtectedAddressSource.Edge]: translationKey(
     "{{address}} is one of {{name}}'s addresses, and {{name}} is in front of your app: blocking it would take your site down.",
   ),
+  [SecurityProtectedAddressSource.GoogleFrontEnd]: translationKey(
+    "{{address}} is where Google Cloud's front ends and health checks reach the backends of your load balancer {{name}} from: blocking it would cut off its visitors and fail its health checks.",
+  ),
   [SecurityProtectedAddressSource.OneUptime]: translationKey(
     "{{address}} is OneUptime's own address: blocking it would cut your machines and agents off from OneUptime.",
   ),
@@ -169,6 +184,16 @@ export const SECURITY_PROTECTED_ADDRESS_SENTENCES: Readonly<
  */
 export const SECURITY_PROTECTED_CLOUD_RESOURCE_WITHOUT_ACCOUNT: string =
   translationKey("{{address}} is the address of {{kind}} {{name}}.");
+
+/*
+ * Google's front ends and health checks with no load balancer of the
+ * project's named (#11388): protected whether or not one is connected,
+ * since nobody but Google connects from them.
+ */
+export const SECURITY_PROTECTED_GOOGLE_FRONT_END_WITHOUT_LOAD_BALANCER: string =
+  translationKey(
+    "{{address}} is where Google Cloud's front ends and health checks connect from, and nobody else does: blocking it would cut off the visitors of a Google Cloud load balancer in front of your app and fail its health checks.",
+  );
 
 /*
  * A record's address, said to someone who may not read that kind of
@@ -366,6 +391,13 @@ export function getSecurityProtectionSentence(
     !protection.where
   ) {
     return SECURITY_PROTECTED_CLOUD_RESOURCE_WITHOUT_ACCOUNT;
+  }
+
+  if (
+    protection.source === SecurityProtectedAddressSource.GoogleFrontEnd &&
+    !protection.name
+  ) {
+    return SECURITY_PROTECTED_GOOGLE_FRONT_END_WITHOUT_LOAD_BALANCER;
   }
 
   return SECURITY_PROTECTED_ADDRESS_SENTENCES[protection.source];

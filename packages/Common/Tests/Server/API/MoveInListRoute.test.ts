@@ -386,7 +386,8 @@ describe("the ordered lists' APIs", () => {
       expect(listTables).toContain(table);
     }
 
-    expect(listTables.length).toBe(NUMBERED_LIST_TABLES.length + 39);
+    // The drag-ordered lists: 40, the latest a cost view's groups (#11006).
+    expect(listTables.length).toBe(NUMBERED_LIST_TABLES.length + 40);
   });
 
   it.each(listTables)(
@@ -404,6 +405,29 @@ describe("the ordered lists' APIs", () => {
       ].filter((api: string): boolean => {
         return compact.includes(`new${api}<${model},${model}ServiceType>`);
       });
+
+      /*
+       * Or an API of the model's own, registered with no type arguments,
+       * that extends BaseAPI with the model and its service: a cost
+       * group's, which adds the group's spend beside BaseAPI's routes
+       * (#11006).
+       */
+      const ownApi: string = `${model}API`;
+      const ownApiFile: string = path.join(
+        __dirname,
+        `../../../Server/API/${ownApi}.ts`,
+      );
+
+      if (
+        compact.includes(`new${ownApi}()`) &&
+        fs.existsSync(ownApiFile) &&
+        fs
+          .readFileSync(ownApiFile, "utf-8")
+          .replace(/\s+/g, "")
+          .includes(`extendsBaseAPI<${model},${model}ServiceType>`)
+      ) {
+        servedBy.push(ownApi);
+      }
 
       expect({ model, servedBy }).toEqual({
         model,

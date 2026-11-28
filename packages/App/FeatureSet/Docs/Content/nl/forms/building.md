@@ -256,6 +256,7 @@ Een inzending die een limiet overschrijdt, een verplicht antwoord weglaat of een
 
 :::cards
 - [Wat een inzending aanmaakt](/docs/forms/on-submit): Hoe de antwoorden en de instellingen Bij verzenden een incident of een onderhoudsgebeurtenis worden.
+- [Een inzending opvolgen](/docs/forms/follow-ups): Wie verstuurt, volgt de eigen aanvraag, schrijft uw team en voegt anderen toe.
 - [Delen & beveiliging](/docs/forms/sharing-and-security): De link delen, een link voor elk sjabloon, en wat ze beschermt.
 - [Incidentinstellingen en automatisering](/docs/incidents/settings): Aangepaste velden en sjablonen voor incidenten.
 :::

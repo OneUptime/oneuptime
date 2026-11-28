@@ -257,6 +257,16 @@ const EXPECTED: Record<string, ListOrderSettings> = {
     scopeColumns: ["projectId"],
     sortOrder: SortOrder.Ascending,
   },
+  /*
+   * A cost view's groups (#11006): a cost falls into the first group whose
+   * rules match it, so where a group sits is whose a cost is. Each view
+   * has its own list.
+   */
+  CloudCostGroup: {
+    column: "order",
+    scopeColumns: ["cloudCostViewId"],
+    sortOrder: SortOrder.Ascending,
+  },
 };
 
 const listModels: Array<ModelType> = (

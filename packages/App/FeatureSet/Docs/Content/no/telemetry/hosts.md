@@ -79,6 +79,16 @@ Hver OneUptime leverer sine egne installasjonsprogrammer, så en selvdriftet One
 Det siste trinnet i dialogen viser når verten kobler til, med en lenke til den. I listen vises den som **Starter** til de første målingene kommer, vanligvis innen et minutt, og deretter med tilstanden sin, **Feilfri** når ingenting på den bør sjekkes, og innsamleren **Kjører**. Vertens side **Topologi** tegner på ett kart hva som kjører på den, hva som kaller den og hva den kaller: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
 
+## Hva som teller som en vert
+
+Listen **Verter** viser maskinene som sender sin egen telemetri fra en innsamler på maskinen. Annen telemetri navngir også en maskin i `host.name`, men legger aldri til en vert:
+
+- telemetrien fra en Docker- eller Podman-vert, som har `container.runtime`: Den hører til under **Docker** eller **Podman**;
+- telemetrien fra en Kubernetes-klynge, -node eller -pod, som har `k8s.cluster.name`, `k8s.node.name` eller `k8s.pod.name`: Den hører til under **Kubernetes**;
+- en containers egen telemetri, som har `container.id`, og en applikasjons, som har `telemetry.sdk.name`: Den hører til under applikasjonens tjeneste.
+
+Tidligere utgivelser la til noen av disse maskinene som verter: Docker- og Podman-verter, Kubernetes-noder og -pods, og en vert for hver pod i en app som eksporterer rett til OneUptime, med én til for hver utrulling. Oppgraderingen arkiverte dem, hver med en oppføring i feeden sin som sier hvorfor. Den beholdt hver vert du la til selv, hver vert der OneUptime administrerer innsamleren, og hver vert som sendte en verts egne målinger. De arkiverte ligger under **Avansert → Arkivert** i listen **Verter**, der **Fjern fra arkivet** henter en tilbake.
+
 ## Se hvilke verter som krever oppmerksomhet
 
 Listen **Verter** begynner med **Krever oppmerksomhet**: hver vert som er ødelagt eller bør sjekkes, den mest akutte først, hver med årsaken og ett steg til siden sin. En vert som har sluttet å rapportere, sier når den sist gjorde det. Krever ingenting oppmerksomhet, er det ikke noe kort.

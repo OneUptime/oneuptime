@@ -159,8 +159,8 @@ export const MARKDOWN_FILE_LEFT_OUT_MESSAGES: Readonly<
     "No file of this project has this address. It may have been deleted, or copied from another project.",
   [MarkdownFileLeftOutReason.NotAPicture]:
     "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out.",
-  [MarkdownFileLeftOutReason.TooLarge]: `It is larger than ${MARKDOWN_FILE_MAX_SIZE_IN_BYTES / (1024 * 1024)} MB, the most one file may be.`,
-  [MarkdownFileLeftOutReason.OverTotalSize]: `With the files before it, it would come to more than ${MARKDOWN_FILES_MAX_TOTAL_SIZE_IN_BYTES / (1024 * 1024)} MB, the most one read hands out.`,
+  [MarkdownFileLeftOutReason.TooLarge]: `It is larger than ${MARKDOWN_FILE_MAX_SIZE_IN_BYTES / (1024 * 1024)}\u00A0MB, the most one file may be.`,
+  [MarkdownFileLeftOutReason.OverTotalSize]: `With the files before it, it would come to more than ${MARKDOWN_FILES_MAX_TOTAL_SIZE_IN_BYTES / (1024 * 1024)}\u00A0MB, the most one read hands out.`,
   [MarkdownFileLeftOutReason.TooMany]: `The record shows more than ${MARKDOWN_FILES_MAX_COUNT} files. Only the first ${MARKDOWN_FILES_MAX_COUNT} pictures are handed out.`,
 };
 

@@ -55,7 +55,10 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
     # report). This is the version Tests/Ops/validate-collector-configs.sh
     # validates the configs against; bump the two together. The
     # oneuptime.agent.version every configs/*.yaml stamps is this release,
-    # its last number raised each time the files change on it.
+    # its last number raised each time the files change on it - this file
+    # too - or an installed agent is never told to upgrade:
+    # packages/Common/Tests/App/Dashboard/AgentFilesVersion.test.ts fails
+    # until the version moves with the files.
     image: otel/opentelemetry-collector-contrib:0.165.0
     # Deliberately no container_name: one agent monitors ONE database, so a
     # machine watching several databases runs several copies of this file
@@ -222,6 +225,19 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
       - ONEUPTIME_AI_ALLOW_WRITES=\${ONEUPTIME_AI_ALLOW_WRITES:-false}
       - ONEUPTIME_AI_WRITE_TARGETS=\${ONEUPTIME_AI_WRITE_TARGETS:-}
       - ONEUPTIME_AI_PROTECTED_TARGETS=\${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # Data Observability (README.md): off unless exactly "true". Then the
+      # agent reads the catalogs of the databases you connect through it in
+      # OneUptime, and runs their checks, read-only, with statements it
+      # builds itself. Optional logins of its own, read as written (no $$
+      # doubling): one for the catalog, one for checks that read rows; else
+      # the collector's. Custom SQL checks run only with ..._ALLOW_CUSTOM_SQL=true.
+      - ONEUPTIME_DATA_OBSERVABILITY=\${ONEUPTIME_DATA_OBSERVABILITY:-}
+      - ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME=\${ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME:-}
+      - ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD=\${ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD:-}
+      - ONEUPTIME_DATA_OBSERVABILITY_CHECKS=\${ONEUPTIME_DATA_OBSERVABILITY_CHECKS:-}
+      - ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME=\${ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME:-}
+      - ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD=\${ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD:-}
+      - ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=\${ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL:-}
       # Overrides the database identity above as the name the AI agent registers under.
       - ONEUPTIME_AI_AGENT_RESOURCE_NAME=\${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
       # The AI agent's log level: debug, info, warn or error.
@@ -446,9 +462,10 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -720,9 +737,10 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -910,9 +928,10 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1109,9 +1128,10 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1304,9 +1324,10 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1483,9 +1504,10 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1645,9 +1667,10 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
@@ -1764,9 +1787,10 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Defensive: the receiver does not set service.name, but
       # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime

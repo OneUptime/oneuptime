@@ -1,6 +1,11 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
 import ObjectID from "../../Types/ObjectID";
+import {
+  QUEUE_TELEMETRY_INGEST_REFUSAL_REASONS,
+  TELEMETRY_INGEST_REFUSAL_STRETCH_GAP_MS,
+  TelemetryIngestRefusalReason,
+} from "../../Types/Telemetry/TelemetryIngestRefusal";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -47,11 +52,22 @@ export function toTelemetryIngestRefusedCount(count: number): number {
   );
 }
 
+// Whether a reason's refusals are told apart by stretch (#11440).
+export function isTelemetryIngestRefusalCountedByStretch(
+  reason: string,
+): boolean {
+  return QUEUE_TELEMETRY_INGEST_REFUSAL_REASONS.has(
+    reason as TelemetryIngestRefusalReason,
+  );
+}
+
 /*
  * One batch per (key, reason, surface): Postgres refuses a statement whose
  * ON CONFLICT would update the same row twice, so batches that share a row
  * are added together first - their counts summed, the earliest first and
- * the latest last kept.
+ * the latest last kept. For a reason counted by stretch, a batch that
+ * begins more than the gap after another ends is a later stretch, which
+ * the row keeps instead of the earlier one, as the statement does.
  */
 export function mergeTelemetryIngestRefusalBatches(
   batches: Array<TelemetryIngestRefusalBatch>,
@@ -68,6 +84,28 @@ export function mergeTelemetryIngestRefusalBatches(
         count: toTelemetryIngestRefusedCount(batch.count),
       });
       continue;
+    }
+
+    if (isTelemetryIngestRefusalCountedByStretch(batch.reason)) {
+      if (
+        batch.firstRefusedAt.getTime() - existing.lastRefusedAt.getTime() >
+        TELEMETRY_INGEST_REFUSAL_STRETCH_GAP_MS
+      ) {
+        // A later stretch: it replaces the one before.
+        merged.set(id, {
+          ...batch,
+          count: toTelemetryIngestRefusedCount(batch.count),
+        });
+        continue;
+      }
+
+      if (
+        existing.firstRefusedAt.getTime() - batch.lastRefusedAt.getTime() >
+        TELEMETRY_INGEST_REFUSAL_STRETCH_GAP_MS
+      ) {
+        // An earlier stretch, which the later one already replaced.
+        continue;
+      }
     }
 
     existing.count = toTelemetryIngestRefusedCount(
@@ -87,9 +125,35 @@ export function mergeTelemetryIngestRefusalBatches(
 }
 
 /*
+ * The reasons counted by stretch, as SQL string literals. Each is checked
+ * to be a plain slug, so nothing but the enum's own values is ever put in
+ * the statement's text.
+ */
+const REFUSAL_REASON_SLUG: RegExp = /^[a-z-]+$/;
+
+const getStretchReasonsSql: () => string = (): string => {
+  return Array.from(QUEUE_TELEMETRY_INGEST_REFUSAL_REASONS)
+    .map((reason: string): string => {
+      if (!REFUSAL_REASON_SLUG.test(reason)) {
+        throw new Error(`Not a refusal reason: ${reason}`);
+      }
+
+      return `'${reason}'`;
+    })
+    .join(", ");
+};
+
+/*
  * ONE statement that adds every batch to its row: inserts the row, or -
  * when the key already has one for that reason and surface - adds the
  * count, keeps the earliest first and the latest last.
+ *
+ * A reason the telemetry queue refuses for comes and goes (#11440): a batch
+ * that begins more than TELEMETRY_INGEST_REFUSAL_STRETCH_GAP_MS after the
+ * row's latest refusal begins a new stretch, so its count and first
+ * refusal replace the row's. Every expression of the SET reads the row as
+ * it was before the statement, so the stretch is decided by the row's
+ * latest refusal before this batch, whatever order the columns are set in.
  *
  * A batch whose key is gone (deleted while its refusals waited, or a key of
  * another project) is skipped rather than failing the statement on the
@@ -118,13 +182,16 @@ export function buildTelemetryIngestRefusalUpsert(
     },
   );
 
+  // Whether the batch begins a new stretch of a reason counted by stretch.
+  const newStretch: string = `(EXCLUDED."reason" IN (${getStretchReasonsSql()}) AND "TelemetryIngestionKeyRefusal"."lastRefusedAt" < EXCLUDED."firstRefusedAt" - (${TELEMETRY_INGEST_REFUSAL_STRETCH_GAP_MS} * interval '1 millisecond'))`;
+
   const query: string = `INSERT INTO "TelemetryIngestionKeyRefusal" ("projectId", "telemetryIngestionKeyId", "reason", "surface", "refusedCount", "firstRefusedAt", "lastRefusedAt", "version")
      SELECT refused."projectId", refused."telemetryIngestionKeyId", refused."reason", refused."surface", refused."refusedCount", refused."firstRefusedAt", refused."lastRefusedAt", 1
      FROM (VALUES ${values.join(", ")}) AS refused ("projectId", "telemetryIngestionKeyId", "reason", "surface", "refusedCount", "firstRefusedAt", "lastRefusedAt")
      WHERE EXISTS (SELECT 1 FROM "TelemetryIngestionKey" AS ingestionKey WHERE ingestionKey."_id" = refused."telemetryIngestionKeyId" AND ingestionKey."projectId" = refused."projectId")
      ON CONFLICT ("telemetryIngestionKeyId", "reason", "surface") DO UPDATE SET
-       "refusedCount" = LEAST("TelemetryIngestionKeyRefusal"."refusedCount"::bigint + EXCLUDED."refusedCount", ${MAX_TELEMETRY_INGEST_REFUSED_COUNT}),
-       "firstRefusedAt" = LEAST("TelemetryIngestionKeyRefusal"."firstRefusedAt", EXCLUDED."firstRefusedAt"),
+       "refusedCount" = CASE WHEN ${newStretch} THEN EXCLUDED."refusedCount" ELSE LEAST("TelemetryIngestionKeyRefusal"."refusedCount"::bigint + EXCLUDED."refusedCount", ${MAX_TELEMETRY_INGEST_REFUSED_COUNT}) END,
+       "firstRefusedAt" = CASE WHEN ${newStretch} THEN EXCLUDED."firstRefusedAt" ELSE LEAST("TelemetryIngestionKeyRefusal"."firstRefusedAt", EXCLUDED."firstRefusedAt") END,
        "lastRefusedAt" = GREATEST("TelemetryIngestionKeyRefusal"."lastRefusedAt", EXCLUDED."lastRefusedAt"),
        "updatedAt" = now()`;
 

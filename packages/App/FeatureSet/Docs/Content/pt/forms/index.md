@@ -8,6 +8,7 @@ Use um formulário quando quem percebe um problema, ou precisa de uma mudança, 
 - [Criar seu primeiro formulário](#criar-seu-primeiro-formulário): De um formulário em branco a um link que você pode compartilhar.
 - [Criar um formulário](/docs/forms/building): Perguntas, tipos de resposta, perguntas ocultas, modelos e marca.
 - [O que um envio cria](/docs/forms/on-submit): Como as respostas e as configurações viram um incidente ou um evento de manutenção.
+- [Acompanhar um envio](/docs/forms/follow-ups): Quem envia acompanha a sua solicitação, escreve para a sua equipe e adiciona outras pessoas.
 - [Partilha e segurança](/docs/forms/sharing-and-security): O link, a lista de IPs permitidos, os limites de taxa e a solução de problemas.
 :::
 
@@ -290,6 +291,7 @@ As páginas antigas do dashboard redirecionam para as novas.
 :::cards
 - [Criar um formulário](/docs/forms/building): Perguntas, tipos de resposta, campos vinculados, campos personalizados e a pré-visualização.
 - [O que um envio cria](/docs/forms/on-submit): Como as respostas e as configurações de Ao enviar viram um incidente ou um evento de manutenção.
+- [Acompanhar um envio](/docs/forms/follow-ups): Quem envia acompanha a sua solicitação, escreve para a sua equipe e adiciona outras pessoas.
 - [Partilha e segurança](/docs/forms/sharing-and-security): O link, a lista de IPs permitidos, os limites de taxa, o captcha e a solução de problemas.
 - [Declarar um incidente](/docs/incidents/declaring-incidents): As outras formas de declarar incidentes.
 :::

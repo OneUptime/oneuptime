@@ -256,6 +256,7 @@ En indsendelse, der overskrider en grænse, udelader et påkrævet svar eller gi
 
 :::cards
 - [Hvad en indsendelse opretter](/docs/forms/on-submit): Hvordan svarene og indstillingerne Ved indsendelse bliver til en hændelse eller en vedligeholdelseshændelse.
+- [Opfølgning på en indsendelse](/docs/forms/follow-ups): Den, der sender, følger sin anmodning, skriver til dit team og tilføjer andre.
 - [Deling & sikkerhed](/docs/forms/sharing-and-security): Del linket, et link til hver skabelon, og hvad der beskytter dem.
 - [Hændelsesindstillinger og automatisering](/docs/incidents/settings): Brugerdefinerede felter og skabeloner for hændelser.
 :::

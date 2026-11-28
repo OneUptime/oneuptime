@@ -24,6 +24,7 @@ import SecurityEdgeRanges, {
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityEdgeRanges";
 import SecurityProtectedAddresses, {
   DNS_FAILURE_RETRY_IN_MS,
+  GOOGLE_LOAD_BALANCERS_NAMED,
   LOAD_BALANCERS_RESOLVED_PER_CHECK,
   LOAD_BALANCER_TYPES,
   PROTECTED_ADDRESSES_LISTED_PER_SOURCE,
@@ -32,6 +33,14 @@ import SecurityProtectedAddresses, {
   SecurityProtectionCheck,
   getProtectedAddressPrefilter,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityProtectedAddresses";
+import {
+  GCP_FORWARDING_RULE_TYPE,
+  GOOGLE_FRONT_END_RANGES,
+  GOOGLE_HEALTH_CHECK_RANGES,
+  GOOGLE_HEALTH_CHECK_RANGES_CHECKED_ON,
+  GOOGLE_HEALTH_CHECK_RANGES_SOURCE,
+  GOOGLE_LOAD_BALANCER_SOURCE_RANGES,
+} from "../../../../Utils/SecurityEvent/OwnLoadBalancers";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
@@ -254,6 +263,11 @@ function install(records: Records = {}): Reads {
       answer(
         records.cloudResources,
         (row: CloudResource, query: Query): boolean => {
+          // #11388: the Google Cloud load balancers Google's front ends reach, by their forwarding rules.
+          if (query["cloudResourceType"] === GCP_FORWARDING_RULE_TYPE) {
+            return row.cloudResourceType === GCP_FORWARDING_RULE_TYPE;
+          }
+
           if (query["cloudResourceType"] !== undefined) {
             return LOAD_BALANCER_TYPES.includes(row.cloudResourceType || "");
           }
@@ -1442,6 +1456,251 @@ describe("SecurityProtectedAddresses.findProtection", () => {
   });
 });
 
+/*
+ * #11388: GOOGLE CLOUD'S FRONT ENDS AND HEALTH CHECKS, protected in every
+ * project. Nobody but Google connects from them: a block of one could only
+ * cut off the visitors of a Google Cloud load balancer in front of the
+ * project's app and fail its health checks - whether or not its Google
+ * Cloud project is connected, and whatever Security Events trusts.
+ */
+describe("Google Cloud's front ends and health checks", () => {
+  test("every range is protected, an address inside it as the range itself, and nothing is read", async () => {
+    for (const range of GOOGLE_LOAD_BALANCER_SOURCE_RANGES) {
+      const reads: Reads = install({});
+      const inside: string = block(range).text.split("/")[0]!;
+
+      await expect(find(inside)).resolves.toEqual({
+        protection: {
+          source: SecurityProtectedAddressSource.GoogleFrontEnd,
+          protectedValue: block(range).text,
+          // A refused block names no load balancer: none is read for it.
+          name: "",
+        },
+        unreadSources: [],
+      });
+      expectNothingRead(reads);
+    }
+  });
+
+  test("the issue's addresses: a front end, a health check, and an IPv6 front end", async () => {
+    install({});
+
+    for (const [address, range] of [
+      ["35.191.4.8", "35.191.0.0/16"],
+      ["130.211.2.9", "130.211.0.0/22"],
+      ["2600:2d00:1:1::17", "2600:2d00:1:1::/64"],
+      ["209.85.152.4", "209.85.152.0/22"],
+      ["209.85.207.250", "209.85.204.0/22"],
+    ] as Array<[string, string]>) {
+      expect((await find(address)).protection).toEqual({
+        source: SecurityProtectedAddressSource.GoogleFrontEnd,
+        protectedValue: range,
+        name: "",
+      });
+    }
+  });
+
+  test("a range that holds one is refused too", async () => {
+    install({});
+
+    expect((await find("35.0.0.0/8")).protection).toEqual({
+      source: SecurityProtectedAddressSource.GoogleFrontEnd,
+      protectedValue: "35.191.0.0/16",
+      name: "",
+    });
+    expect((await find("130.211.0.0/16")).protection?.protectedValue).toBe(
+      "130.211.0.0/22",
+    );
+  });
+
+  test("their neighbours are not theirs: a block of one is decided as any other", async () => {
+    install({});
+
+    for (const address of [
+      "35.190.255.255",
+      "35.192.0.0",
+      "130.210.255.255",
+      "130.211.4.0",
+      "209.85.151.255",
+      "209.85.156.0",
+      "209.85.203.255",
+      "209.85.208.0",
+      "2600:2d00:1:2::1",
+    ]) {
+      const check: SecurityProtectionCheck = await find(address);
+
+      expect(check.protection?.source).not.toBe(
+        SecurityProtectedAddressSource.GoogleFrontEnd,
+      );
+    }
+  });
+
+  test("are what Google's load balancing firewall rules and health check documentation list, each a range", () => {
+    expect([...GOOGLE_LOAD_BALANCER_SOURCE_RANGES]).toEqual([
+      ...GOOGLE_FRONT_END_RANGES,
+      ...GOOGLE_HEALTH_CHECK_RANGES,
+    ]);
+    expect([...GOOGLE_FRONT_END_RANGES]).toEqual([
+      "35.191.0.0/16",
+      "130.211.0.0/22",
+      "2600:2d00:1:1::/64",
+    ]);
+
+    for (const range of GOOGLE_LOAD_BALANCER_SOURCE_RANGES) {
+      expect(NetworkAddressBlockUtil.parse(range)?.text).toBe(range);
+    }
+
+    expect(GOOGLE_HEALTH_CHECK_RANGES_SOURCE).toMatch(
+      /^https:\/\/cloud\.google\.com\//,
+    );
+    expect(GOOGLE_HEALTH_CHECK_RANGES_CHECKED_ON).toMatch(
+      /^\d{4}-\d{2}-\d{2}$/,
+    );
+  });
+
+  test("a feed's snapshot of what is protected holds them, so a feed never serves one", async () => {
+    install({});
+
+    const snapshot: Awaited<
+      ReturnType<typeof SecurityProtectedAddresses.readAllProtections>
+    > = await SecurityProtectedAddresses.readAllProtections({
+      projectId: PROJECT_ID,
+      limitPerSource: 100,
+    });
+
+    expect(
+      snapshot.protections
+        .filter((protection: SecurityAddressProtection): boolean => {
+          return (
+            protection.source === SecurityProtectedAddressSource.GoogleFrontEnd
+          );
+        })
+        .map((protection: SecurityAddressProtection): string => {
+          return protection.protectedValue;
+        }),
+    ).toEqual([...GOOGLE_LOAD_BALANCER_SOURCE_RANGES]);
+  });
+
+  describe("listed on Protected Entities", () => {
+    function rule(data: {
+      name: string;
+      scheme?: string;
+      account?: string;
+    }): CloudResource {
+      return cloudResource({
+        name: data.name,
+        type: GCP_FORWARDING_RULE_TYPE,
+        properties:
+          data.scheme === undefined ? {} : { loadBalancingScheme: data.scheme },
+        ...(data.account === undefined ? {} : { account: data.account }),
+      });
+    }
+
+    async function googleGroup(): Promise<
+      SecurityProtectedAddressGroup | undefined
+    > {
+      return groupOf(
+        await list(reader([Permission.ProjectOwner])),
+        SecurityProtectedAddressSource.GoogleFrontEnd,
+      );
+    }
+
+    test("every range, named by a load balancer of the project's they reach, and its cloud account", async () => {
+      install({
+        cloudResources: [
+          rule({
+            name: "web-https",
+            scheme: "EXTERNAL_MANAGED",
+            account: "Google Cloud shop",
+          }),
+        ],
+      });
+
+      const group: SecurityProtectedAddressGroup | undefined =
+        await googleGroup();
+
+      expect(group?.isRead).toBe(true);
+      expect(group?.hasMore).toBe(false);
+      expect(group?.protections).toEqual(
+        GOOGLE_LOAD_BALANCER_SOURCE_RANGES.map((range: string) => {
+          return {
+            source: SecurityProtectedAddressSource.GoogleFrontEnd,
+            protectedValue: range,
+            name: "web-https",
+            where: "Google Cloud shop",
+          };
+        }),
+      );
+    });
+
+    test("a project with no Google Cloud load balancer lists them all the same, naming none", async () => {
+      install({});
+
+      const group: SecurityProtectedAddressGroup | undefined =
+        await googleGroup();
+
+      expect(group?.protections).toHaveLength(
+        GOOGLE_LOAD_BALANCER_SOURCE_RANGES.length,
+      );
+      for (const protection of group?.protections || []) {
+        expect(protection.name).toBeFalsy();
+      }
+    });
+
+    test("a Private Service Connect endpoint, which no health check reaches, is never the one named", async () => {
+      install({
+        cloudResources: [
+          rule({ name: "psc-to-apis", scheme: "" }),
+          rule({ name: "psc-legacy" }),
+          rule({ name: "db-tcp", scheme: "EXTERNAL" }),
+        ],
+      });
+
+      expect((await googleGroup())?.protections[0]?.name).toBe("db-tcp");
+    });
+
+    test("a read of the load balancers that fails lists them all the same, naming none", async () => {
+      install({});
+      getJestSpyOn(CloudResourceService, "findBy").mockRejectedValue(
+        new Error("connection refused") as never,
+      );
+
+      const group: SecurityProtectedAddressGroup | undefined =
+        await googleGroup();
+
+      expect(group?.isRead).toBe(true);
+      expect(group?.protections).toHaveLength(
+        GOOGLE_LOAD_BALANCER_SOURCE_RANGES.length,
+      );
+      expect(group?.protections[0]?.name).toBeFalsy();
+    });
+
+    test("the load balancer is read as the reader reads: one who may not read cloud resources is told of none", async () => {
+      const props: DatabaseCommonInteractionProps = reader([
+        Permission.SecurityViewer,
+      ]);
+      const reads: Reads = install({
+        cloudResources: [
+          rule({ name: "web-https", scheme: "EXTERNAL_MANAGED" }),
+        ],
+      });
+
+      await list(props);
+
+      const asked: Array<FindInput> = inputsOf(reads.cloudResources).filter(
+        (input: FindInput): boolean => {
+          return input.query["cloudResourceType"] === GCP_FORWARDING_RULE_TYPE;
+        },
+      );
+
+      expect(asked).toHaveLength(1);
+      expect(asked[0]?.props).toBe(props);
+      expect(asked[0]?.query["projectId"]).toEqual(PROJECT_ID);
+      expect(asked[0]?.query["isArchived"]).toBe(false);
+    });
+  });
+});
+
 describe("SecurityProtectedAddresses.listAutomaticProtections", () => {
   test("lists what each source protects, in the order the page shows them", async () => {
     setCloudSetting("198.51.100.20");
@@ -1517,6 +1776,8 @@ describe("SecurityProtectedAddresses.listAutomaticProtections", () => {
       SecurityProtectedAddressSource.NetworkDevice,
       SecurityProtectedAddressSource.NetworkEndpoint,
       SecurityProtectedAddressSource.Edge,
+      // #11388: in every project, read from nothing.
+      SecurityProtectedAddressSource.GoogleFrontEnd,
     ]);
 
     for (const group of groups) {
@@ -1848,9 +2109,22 @@ describe("SecurityProtectedAddresses.listAutomaticProtections", () => {
 
       for (const input of inputsOf(spy)) {
         expect(input.props).toBe(props);
+
+        // #11388: the one read that names a load balancer Google's front ends reach, a few rules at most.
+        if (input.query["cloudResourceType"] === GCP_FORWARDING_RULE_TYPE) {
+          expect(input.limit).toBe(GOOGLE_LOAD_BALANCERS_NAMED);
+          continue;
+        }
+
         expect(input.limit).toBe(PROTECTED_ADDRESSES_LISTED_PER_SOURCE + 1);
       }
     }
+
+    expect(
+      inputsOf(reads.cloudResources).filter((input: FindInput): boolean => {
+        return input.query["cloudResourceType"] === GCP_FORWARDING_RULE_TYPE;
+      }),
+    ).toHaveLength(1);
 
     expect(
       searchedText(inputsOf(reads.hosts)[0]?.query["hostIpAddresses"]),

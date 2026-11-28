@@ -20,7 +20,13 @@ import {
 import logger from "Common/Server/Utils/Logger";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
-import CallRequest from "Common/Types/Call/CallRequest";
+import CallRequest, { CallInLanguage } from "Common/Types/Call/CallRequest";
+import getCallInLanguage from "Common/Server/Utils/Call/CallInLanguage";
+import { Translator } from "Common/Types/Translator";
+import {
+  SERVER_TEST_CALL_ENGLISH,
+  getServerTestCallData,
+} from "Common/Utils/Call/TestCall";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
@@ -61,9 +67,9 @@ export const SERVER_TEST_SMS_TEXT: string =
 /*
  * "OneUptime", which an installation that goes by its own name says instead
  * (ProductBrandingText), and which the call says as two words (CallSpeech).
+ * In English; the admin's own language beside it (Utils/Call/TestCall).
  */
-export const SERVER_TEST_CALL_TEXT: string =
-  "This is a test call from OneUptime. Calls from this server work.";
+export const SERVER_TEST_CALL_TEXT: string = SERVER_TEST_CALL_ENGLISH;
 
 export const SERVER_TEST_PUSH_TITLE: string = "Test push from OneUptime";
 
@@ -199,7 +205,17 @@ export default class ServerTestSendService {
     return answer;
   }
 
-  public static async makeCall(to: Phone): Promise<ServerTestSendAnswer> {
+  /*
+   * "Make test call": through the server's own settings, to the number the
+   * master admin typed - their own phone - in English as it always was and,
+   * for an admin who reads another language, in theirs too (#11461): a voice
+   * of it says the call where the account has one, as a page's call is.
+   */
+  public static async makeCall(
+    to: Phone,
+    // The admin's language (Types/UserLanguage); English when left out.
+    language?: string | undefined,
+  ): Promise<ServerTestSendAnswer> {
     const config: GlobalConfig | null =
       await ServerTestSendService.readConfig();
     const problem: ServerSetUpProblemReading | null =
@@ -218,13 +234,20 @@ export default class ServerTestSendService {
     }
 
     const callRequest: CallRequest = {
-      data: [
-        {
-          sayMessage: SERVER_TEST_CALL_TEXT,
-        },
-      ],
+      data: getServerTestCallData(),
       to: to,
     };
+
+    const inLanguage: CallInLanguage | undefined = getCallInLanguage(
+      language,
+      (translator: Translator): CallRequest["data"] => {
+        return getServerTestCallData(translator);
+      },
+    );
+
+    if (inLanguage) {
+      callRequest.inLanguage = inLanguage;
+    }
 
     try {
       await CallService.makeCall(callRequest, {

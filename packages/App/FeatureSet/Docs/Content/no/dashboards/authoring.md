@@ -43,6 +43,8 @@ Malene, etter kategorien velgeren viser dem under:
 
 **Anbefalt** har Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard og Metrics Dashboard. En mal er et utgangspunkt, ikke en kobling: når dashbordet er opprettet, endrer du det som du vil. Malen oppdaterer det ikke senere.
 
+Hver infrastrukturmal viser bare sin egen slags ressurs, gjennom variabelens [Ressurstype](/docs/dashboards/variables#telemetry-attribute): et Docker Swarm Dashboard i et prosjekt uten swarm forblir tomt, og sier det, i stedet for å vise containerne og loggene til alt annet.
+
 ## Rediger og lagre
 
 Et dashbord åpnes i visningsmodus, for lesing. For å endre det åpner du **⋯**-menyen i verktøylinjen og velger **Rediger dashbord**. Verktøylinjen viser **Redigerer** ved siden av navnet og bytter ut tidsintervallet og de andre kontrollene med **Legg til widget**, **Variabler**, **Avbryt** og **Lagre endringer**, med en rad under for dashbordets **Standard tidsrom** og **Standard automatisk oppdatering**.

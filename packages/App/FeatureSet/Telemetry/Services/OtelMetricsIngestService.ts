@@ -770,7 +770,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       cpuCores: number | null;
       totalMemoryBytes: number | null;
       processCount: number | null;
-      containerRuntime: string | null;
       /*
        * The oneuptime.agent.version the host's collector stamps (the host
        * guide's config does). Written with the rest of the batch's host
@@ -800,13 +799,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
       /*
        * Mirror the phantom-host gate from `autoDiscoverHost`: require
-       * explicit host.name and reject k8s/Docker telemetry. Application
-       * SDKs inside pods set host.name to the pod's container hostname
-       * (the pod name) and os.type=linux, which used to slip into the
-       * Host table from this batch-enrichment pass even after
-       * autoDiscoverHost rejected the same batch. k8s pods/nodes belong
-       * in KubernetesResource (kind=Pod / kind=Node), and Docker hosts
-       * belong in the DockerHost table — neither should land here.
+       * explicit host.name and refuse whatever is not a host's own
+       * telemetry (getNotAHostReason - Kubernetes, a container engine, a
+       * container, an application's SDK). Application SDKs inside pods set
+       * host.name to the pod's container hostname (the pod name) and
+       * os.type=linux, which used to slip into the Host table from this
+       * batch-enrichment pass even after autoDiscoverHost rejected the same
+       * batch. k8s pods/nodes belong in KubernetesResource (kind=Pod /
+       * kind=Node), and Docker / Podman hosts in their own tables — none of
+       * them lands here.
        */
       const hostName: string | null = OtelIngestBaseService.getStringAttribute(
         ras,
@@ -816,15 +817,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         continue;
       }
 
-      if (this.hasKubernetesIdentity(ras)) {
-        continue;
-      }
-
-      if (OtelIngestBaseService.isDockerRuntime(ras)) {
-        continue;
-      }
-
-      if (OtelIngestBaseService.isPodmanRuntime(ras)) {
+      if (this.getNotAHostReason(ras)) {
         continue;
       }
 
@@ -863,7 +856,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           cpuCores: null,
           totalMemoryBytes: null,
           processCount: null,
-          containerRuntime: null,
           agentVersion: null,
           hasInfraSignal: false,
           labelNames: new Set<string>(),
@@ -918,12 +910,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           OtelIngestBaseService.getStringArrayAttribute(ras, "host.ip");
         entry.hostIpAddresses = normalizeHostIpAddresses(ips);
       }
-      if (!entry.containerRuntime) {
-        entry.containerRuntime = OtelIngestBaseService.getStringAttribute(
-          ras,
-          "container.runtime",
-        );
-      }
       if (!entry.agentVersion) {
         entry.agentVersion = OtelIngestBaseService.getStringAttribute(
           ras,
@@ -958,13 +944,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     for (const [hostName, entry] of aggregator) {
       /*
        * Phantom-host gate: only touch the row if we have at least one
-       * real host signal (an OS, a container runtime, or any system./
-       * process. metric in this batch).
+       * real host signal (an OS, or any system./process. metric in this
+       * batch). A container runtime is no longer one: the resources that
+       * carry it were refused above.
        */
-      const hasResourceSignal: boolean = Boolean(
-        entry.osType || entry.containerRuntime,
-      );
-      if (!hasResourceSignal && !entry.hasInfraSignal) {
+      if (!entry.osType && !entry.hasInfraSignal) {
         continue;
       }
 
@@ -989,7 +973,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           cpuCores: entry.cpuCores ?? undefined,
           totalMemoryBytes: entry.totalMemoryBytes ?? undefined,
           processCount: entry.processCount ?? undefined,
-          containerRuntime: entry.containerRuntime ?? undefined,
           agentVersion: entry.agentVersion ?? undefined,
           readings: hasHostReadings(entry.readings)
             ? toHostReadingColumns(entry.readings)

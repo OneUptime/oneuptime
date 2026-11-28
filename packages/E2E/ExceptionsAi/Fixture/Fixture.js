@@ -61,10 +61,12 @@ import {
   aiProviders,
   aiReadiness,
   aiRules,
+  codeRepositories,
   filterInsights,
   fixSuggestion,
   saveProjectSwitches,
 } from "./ExceptionFindings";
+import { answerCodeRepositoryChoices } from "../../SuiteHelpers/CodeRepositoryChoiceAnswers";
 
 const params = new URLSearchParams(window.location.search);
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -157,6 +159,17 @@ async function handleApi(method, options) {
 
   if (url.includes("/ai-insight/triage-run")) {
     return ok({ run: null, events: [] });
+  }
+
+  // Fix with AI's picker: the repositories the fix may be asked in, searched.
+  const choices = answerCodeRepositoryChoices({
+    method,
+    url,
+    body,
+    repositories: codeRepositories(),
+  });
+  if (choices) {
+    return choices;
   }
 
   return ok({});

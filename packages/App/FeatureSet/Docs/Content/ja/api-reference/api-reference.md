@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-名前が変わったキーは、以前の名前でも引き続き読み取られます。レイヤーの制限の種類は `restrictionType` 、または以前の綴り `restictionType` に書き、応答には両方が含まれます。
+名前が変わったキーは、以前の名前でも引き続き読み取られます。レイヤーの制限の種類は `restrictionType` 、または以前の綴り `restictionType` に書き、応答には両方が含まれます。古い綴りは応答では非推奨です。応答には 2027 年 6 月 1 日以降にリリースされる最初のメジャーバージョンまで含まれます。書き込みでは常に読み取られます。
+
+値は、それが示す内容どおりであることも求められます。レイヤーの週単位の時間帯は指定した曜日にオンコールになるため、その `startTime` と `endTime` は、スケジュールのタイムゾーンでそれぞれ `startDay` と `endDay` の曜日に当たる必要があります。別の曜日の日付になっている時間帯は、その時間帯を示し、代わりに送れる指定曜日の時刻を示す `400` で拒否されます:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### プロジェクトの購入元
 

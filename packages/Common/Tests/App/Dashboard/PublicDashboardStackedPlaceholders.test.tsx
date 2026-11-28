@@ -215,7 +215,7 @@ const CONFIG: DashboardViewConfig = {
   ],
 };
 
-function renderBoard(): void {
+async function renderBoard(): Promise<void> {
   render(
     <DashboardCanvas
       dashboardViewConfig={CONFIG}
@@ -229,6 +229,15 @@ function renderBoard(): void {
       dashboardStartAndEndDate={{ range: TimeRange.PAST_ONE_HOUR }}
     />,
   );
+
+  /*
+   * The log, trace and security widgets are files of their own, which the
+   * board loads the first time it draws one (LazyDashboardWidget): each is
+   * drawn once its file has arrived.
+   */
+  for (const id of Object.values(ID)) {
+    await screen.findByTestId(`widget-${id}`);
+  }
 }
 
 function heightOf(key: string): number {
@@ -276,8 +285,8 @@ describe("a phone's public dashboard: a widget it cannot draw takes the room of 
     });
   });
 
-  test("the log, trace and security widgets, which say they are not available there, take two rows - not a chart's 400px, not their own five", () => {
-    renderBoard();
+  test("the log, trace and security widgets, which say they are not available there, take two rows - not a chart's 400px, not their own five", async () => {
+    await renderBoard();
 
     expect(screen.getByTestId(DASHBOARD_BOARD_TEST_ID)).toHaveAttribute(
       "data-arrangement",
@@ -305,8 +314,8 @@ describe("a phone's public dashboard: a widget it cannot draw takes the room of 
     }
   });
 
-  test("a metric chart and a PromQL chart, which a public dashboard draws, keep a chart's 400px", () => {
-    renderBoard();
+  test("a metric chart and a PromQL chart, which a public dashboard draws, keep a chart's 400px", async () => {
+    await renderBoard();
 
     expect(heightOf("metrics")).toBe(400);
     expect(wrapperHeight("metrics")).toBe("400px");
@@ -319,8 +328,8 @@ describe("a phone's public dashboard: a widget it cannot draw takes the room of 
 });
 
 describe("inside OneUptime, where every widget is drawn", () => {
-  test("every chart keeps a chart's 400px on a phone, and a table or a list its rows", () => {
-    renderBoard();
+  test("every chart keeps a chart's 400px on a phone, and a table or a list its rows", async () => {
+    await renderBoard();
 
     for (const key of ["metrics", "logs", "traces", "dataSource"]) {
       expect(heightOf(key)).toBe(400);
@@ -403,6 +412,34 @@ describe("the widgets a public dashboard cannot draw", () => {
   const REGISTRY_ENTRY: RegExp = /\[DashboardComponentType\.(\w+)\]:\s*(\w+),/g;
   // `import DashboardLogChartComponent from "./DashboardLogChartComponent";`
   const WIDGET_IMPORT: RegExp = /^import (\w+) from "\.\/(\w+)";$/gm;
+  /*
+   * A widget the board loads the first time it draws one
+   * (LazyDashboardWidget): `const DashboardLogChartComponent: ... =
+   * lazyDashboardWidget({ ... import("./DashboardLogChartComponent") ...`.
+   */
+  const LAZY_WIDGET: RegExp =
+    /^const (\w+): ComponentType<any> =\s*lazyDashboardWidget\(\s*\{[\s\S]*?import\("\.\/(\w+)"\)/gm;
+
+  function readRegistry(): string {
+    return fs.readFileSync(
+      path.join(COMPONENTS_DIR, "DashboardBaseComponent.tsx"),
+      "utf8",
+    );
+  }
+
+  // The widget each identifier the registry names is drawn by, lazily or not.
+  function widgetFileByIdentifier(registry: string): Map<string, string> {
+    const fileByIdentifier: Map<string, string> = new Map<string, string>();
+
+    for (const match of [
+      ...registry.matchAll(WIDGET_IMPORT),
+      ...registry.matchAll(LAZY_WIDGET),
+    ]) {
+      fileByIdentifier.set(match[1]!, `${match[2]!}.tsx`);
+    }
+
+    return fileByIdentifier;
+  }
 
   // What a widget that declines on a public dashboard writes or draws there.
   const NOT_AVAILABLE_HERE: string = "not available on public dashboards";
@@ -427,15 +464,9 @@ describe("the widgets a public dashboard cannot draw", () => {
     "DashboardProductAnalyticsWidget.tsx";
 
   function widgetSourcesByType(): Map<string, string> {
-    const registry: string = fs.readFileSync(
-      path.join(COMPONENTS_DIR, "DashboardBaseComponent.tsx"),
-      "utf8",
-    );
-    const fileByIdentifier: Map<string, string> = new Map<string, string>();
-
-    for (const match of registry.matchAll(WIDGET_IMPORT)) {
-      fileByIdentifier.set(match[1]!, `${match[2]!}.tsx`);
-    }
+    const registry: string = readRegistry();
+    const fileByIdentifier: Map<string, string> =
+      widgetFileByIdentifier(registry);
 
     const sources: Map<string, string> = new Map<string, string>();
 
@@ -476,6 +507,56 @@ ${fs.readFileSync(
 
     for (const componentType of Object.values(DashboardComponentType)) {
       expect(sources.has(componentType)).toBe(true);
+    }
+  });
+
+  /*
+   * There, each only says under its title that it is not available, so its
+   * code - and the models it reads - is loaded the first time a board draws
+   * one, not before every public dashboard draws
+   * (packages/Common/Scripts/first-load-budgets.js).
+   */
+  test("each widget the board names is a file of its own, loaded the first time a board draws one", () => {
+    const registry: string = readRegistry();
+    const lazyFileByIdentifier: Map<string, string> = new Map<string, string>(
+      Array.from(registry.matchAll(LAZY_WIDGET)).map(
+        (match: RegExpMatchArray): [string, string] => {
+          return [match[1]!, match[2]!];
+        },
+      ),
+    );
+    const staticallyImported: Set<string> = new Set<string>(
+      Array.from(registry.matchAll(WIDGET_IMPORT)).map(
+        (match: RegExpMatchArray): string => {
+          return match[2]!;
+        },
+      ),
+    );
+    const identifierByType: Map<string, string> = new Map<string, string>(
+      Array.from(registry.matchAll(REGISTRY_ENTRY)).map(
+        (match: RegExpMatchArray): [string, string] => {
+          return [match[1]!, match[2]!];
+        },
+      ),
+    );
+
+    for (const componentType of PUBLIC_PLACEHOLDER_TYPES) {
+      const lazyFile: string | undefined = lazyFileByIdentifier.get(
+        identifierByType.get(componentType) || "",
+      );
+
+      expect({
+        componentType,
+        isLoadedWhenDrawn: Boolean(lazyFile),
+        // Nor does a static import bring its module in after all.
+        isImportedStatically: Boolean(
+          lazyFile && staticallyImported.has(lazyFile),
+        ),
+      }).toEqual({
+        componentType,
+        isLoadedWhenDrawn: true,
+        isImportedStatically: false,
+      });
     }
   });
 

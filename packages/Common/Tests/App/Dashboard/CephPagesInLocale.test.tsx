@@ -24,6 +24,7 @@ import { initReactI18next } from "react-i18next";
 import fs from "fs";
 import path from "path";
 import * as React from "react";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * THE CEPH PAGES IN THE READER'S LANGUAGE - from the Dashboard's shipped
@@ -512,6 +513,13 @@ beforeEach(async () => {
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
+  /*
+   * A part's alerts card asks the server which of its recommended alerts a
+   * monitor covers (#11074): none does yet.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   window.localStorage.clear();
 });
 

@@ -4,8 +4,10 @@ import {
   getSpokenCallVoice,
 } from "../../../Types/Call/CallVoice";
 import {
+  CALL_CODE_PAUSE,
   SayRecordNumber,
   SpeechPart,
+  getSpeechCharacters,
   getSpeechParts,
   isSsmlVoice,
   renderSpeechAsText,
@@ -33,9 +35,11 @@ import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
  *   - a record's number ("INC-42") spelled with SSML's
  *     <say-as interpret-as="characters"> for a voice that reads it, and with
  *     spaced letters ("I N C 42") for any other, the account's default among
- *     them (Utils/Call/CallSpeech). The number is the only SSML a call ever
- *     carries, so a <Say> that has no number - the keys' prompt, a goodbye -
- *     is plain text in any voice;
+ *     them (Utils/Call/CallSpeech). A code a sentence says (Say.code,
+ *     #11461) is spelled the same way, a character at a time, with a
+ *     <break> between each. The number and the code are the only SSML a call
+ *     ever carries, so a <Say> that has neither - the keys' prompt, a
+ *     goodbye - is plain text in any voice;
  *   - every text in characters TwiML can carry, through Twilio's builder,
  *     which escapes it: a title, a name or a voice is never TwiML or SSML.
  */
@@ -73,6 +77,28 @@ export interface CallSpeechOptions {
 // A text as it is: what a call says, when nothing measures it.
 const AS_IT_IS: (text: string) => string = (text: string): string => {
   return text;
+};
+
+/*
+ * A code's characters into a <Say>, one at a time (#11461): each its own
+ * <say-as interpret-as="characters">, which every voice of OneUptime's lists
+ * reads as that one character - a digit as its name, in the voice's language
+ * - with a pause of CALL_CODE_PAUSE between two, so the code is heard as
+ * its characters, never as a number.
+ */
+const sayCodeInto: (node: VoiceResponse.Say, characters: string) => void = (
+  node: VoiceResponse.Say,
+  characters: string,
+): void => {
+  getSpeechCharacters(characters).forEach(
+    (character: string, index: number): void => {
+      if (index > 0) {
+        node.break({ time: CALL_CODE_PAUSE });
+      }
+
+      node.sayAs({ "interpret-as": "characters" }, character);
+    },
+  );
 };
 
 // The voice a call names, from OneUptime's lists, or null for the account's default.
@@ -137,7 +163,7 @@ export function sayInto(
     const text: string = renderSpeechAsText(
       parts.map((part: SpeechPart): SpeechPart => {
         return "characters" in part
-          ? { characters: toTwimlText(part.characters) }
+          ? { characters: toTwimlText(part.characters), isPaced: part.isPaced }
           : { text: toSpokenText(part.text) };
       }),
     );
@@ -153,7 +179,10 @@ export function sayInto(
   const spoken: Array<SpeechPart> = parts
     .map((part: SpeechPart): SpeechPart => {
       return "characters" in part
-        ? { characters: toTwimlText(part.characters).trim() }
+        ? {
+            characters: toTwimlText(part.characters).trim(),
+            isPaced: part.isPaced,
+          }
         : { text: toSpokenText(part.text) };
     })
     .filter((part: SpeechPart): boolean => {
@@ -171,7 +200,9 @@ export function sayInto(
   const node: VoiceResponse.Say = parent.say(attributes, "");
 
   for (const part of spoken) {
-    if ("characters" in part) {
+    if ("characters" in part && part.isPaced) {
+      sayCodeInto(node, part.characters);
+    } else if ("characters" in part) {
       node.sayAs({ "interpret-as": "characters" }, part.characters);
     } else {
       node.addText(say(part.text));

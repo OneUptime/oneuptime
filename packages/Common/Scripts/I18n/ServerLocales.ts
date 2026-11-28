@@ -180,6 +180,12 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Server/Utils/OnCall/OnCallPageCallAnswers.ts",
   "packages/App/FeatureSet/Notification/Utils/AnsweredBy.ts",
   /*
+   * The call that reads a person their phone number's verification code,
+   * and Send Test Call (#11461), in the language of the person it calls.
+   */
+  "packages/Common/Utils/Call/VerificationCodeCall.ts",
+  "packages/Common/Utils/Call/TestCall.ts",
+  /*
    * The email that tells a person their sign-in settings were cleared
    * (#9818, #9820), in the language on their account.
    */

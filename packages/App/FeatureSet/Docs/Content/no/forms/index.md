@@ -8,6 +8,7 @@ Bruk et skjema når de som oppdager et problem, eller trenger en endring, ikke e
 - [Opprett ditt første skjema](#opprett-ditt-første-skjema): Fra et tomt skjema til en lenke du kan dele.
 - [Bygg et skjema](/docs/forms/building): Spørsmål, svartyper, skjulte spørsmål, maler og merkevare.
 - [Hva en innsending oppretter](/docs/forms/on-submit): Hvordan svarene og innstillingene blir til en hendelse eller en vedlikeholdshendelse.
+- [Følge opp en innsending](/docs/forms/follow-ups): Den som sender, følger forespørselen sin, skriver til teamet ditt og legger til andre.
 - [Deling og sikkerhet](/docs/forms/sharing-and-security): Lenken, IP-tillatelseslisten, hastighetsgrenser og feilsøking.
 :::
 
@@ -290,6 +291,7 @@ De gamle dashbordsidene videresender til de nye.
 :::cards
 - [Bygg et skjema](/docs/forms/building): Spørsmål, svartyper, tilknyttede felt, egendefinerte felt og forhåndsvisningen.
 - [Hva en innsending oppretter](/docs/forms/on-submit): Hvordan svarene og innstillingene under Ved innsending blir til en hendelse eller en vedlikeholdshendelse.
+- [Følge opp en innsending](/docs/forms/follow-ups): Den som sender, følger forespørselen sin, skriver til teamet ditt og legger til andre.
 - [Deling og sikkerhet](/docs/forms/sharing-and-security): Lenken, IP-tillatelseslisten, hastighetsgrenser, captcha og feilsøking.
 - [Opprette en hendelse](/docs/incidents/declaring-incidents): De andre måtene å opprette hendelser på.
 :::

@@ -205,7 +205,7 @@ tests:
         disableDeployments: true
     asserts:
       - failedTemplate:
-          errorPattern: 'host is 2001:db8::1, an IPv6 address without brackets, so no browser can open OneUptime at it\.'
+          errorMessage: 'host is 2001:db8::1, an IPv6 address without brackets, so no browser can open OneUptime at it. Write it in brackets, with any port after them, such as [2001:db8::1]:8080: --set host=[2001:db8::1], or in a values file, in quotes so YAML reads it as text, host: "[2001:db8::1]".'
 
   - it: refuses it written with spaces around it, which the pods never see
     templates:
@@ -234,7 +234,7 @@ tests:
       host: "::1"
     asserts:
       - failedTemplate:
-          errorPattern: 'host is ::1, an IPv6 address without brackets'
+          errorMessage: 'host is ::1, an IPv6 address without brackets, so no browser can open OneUptime at it. Write it in brackets, with any port after them, such as [2001:db8::1]:8080: --set host=[::1], or in a values file, in quotes so YAML reads it as text, host: "[::1]".'
 
   # -------------------------------------------------------------------------
   # The rest of the shape is refused too, as npm start stops on it (#8877):
@@ -281,7 +281,7 @@ tests:
         disableDeployments: true
     asserts:
       - failedTemplate:
-          errorPattern: 'host is oneuptime,example.com, which is not a domain name'
+          errorMessage: 'host is oneuptime,example.com, which is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "," is none of them.'
 
   - it: names the name when the host has a port
     templates:

@@ -786,7 +786,25 @@ describe("what the guide says matches the product", () => {
     );
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    const classify: string = ingest.slice(start, end);
+
+    /*
+     * The ingest reads a resource with the RUM client classifier it shares
+     * with Inventory since #11257 (getRumClientKindOfResource), handing it
+     * what names a machine.
+     */
+    const kinds: string = read("packages/Common/Types/Rum/RumClientKind.ts");
+    const kindStart: number = kinds.indexOf(
+      "export function getRumClientKindOfResource(",
+    );
+    expect(kindStart).toBeGreaterThan(-1);
+    const kindEnd: number = kinds.indexOf("\n}\n", kindStart);
+    expect(kindEnd).toBeGreaterThan(kindStart);
+
+    const classify: string = `${ingest.slice(start, end)}\n${kinds.slice(
+      kindStart,
+      kindEnd,
+    )}`;
+    expect(classify).toContain("return getRumClientKindOfResource({");
     for (const attribute of [
       "browser.platform",
       "browser.language",

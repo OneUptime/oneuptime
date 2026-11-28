@@ -8,6 +8,7 @@ Verwenden Sie ein Formular, wenn die Menschen, die ein Problem bemerken – oder
 - [Ihr erstes Formular anlegen](#ihr-erstes-formular-anlegen): Von einem leeren Formular zu einem Link, den Sie teilen können.
 - [Ein Formular erstellen](/docs/forms/building): Fragen, Antworttypen, ausgeblendete Fragen, Vorlagen und Branding.
 - [Was eine Einreichung erstellt](/docs/forms/on-submit): Wie aus den Antworten und den Einstellungen ein Vorfall oder ein Wartungsereignis wird.
+- [Eine Einreichung nachverfolgen](/docs/forms/follow-ups): Wer sendet, verfolgt die eigene Anfrage, schreibt Ihrem Team und fügt andere hinzu.
 - [Teilen & Sicherheit](/docs/forms/sharing-and-security): Der Link, die IP-Zulassungsliste, Ratenbegrenzungen und Fehlerbehebung.
 :::
 
@@ -290,6 +291,7 @@ Die alten Dashboard-Seiten leiten auf die neuen weiter.
 :::cards
 - [Ein Formular erstellen](/docs/forms/building): Fragen, Antworttypen, verknüpfte Felder, benutzerdefinierte Felder und die Vorschau.
 - [Was eine Einreichung erstellt](/docs/forms/on-submit): Wie aus den Antworten und den Einstellungen unter Beim Absenden ein Vorfall oder ein Wartungsereignis wird.
+- [Eine Einreichung nachverfolgen](/docs/forms/follow-ups): Wer sendet, verfolgt die eigene Anfrage, schreibt Ihrem Team und fügt andere hinzu.
 - [Teilen & Sicherheit](/docs/forms/sharing-and-security): Der Link, die IP-Zulassungsliste, Ratenbegrenzungen, Captcha und Fehlerbehebung.
 - [Einen Vorfall melden](/docs/incidents/declaring-incidents): Die anderen Wege, Vorfälle zu melden.
 :::

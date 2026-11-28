@@ -756,6 +756,11 @@ for owner in $OWNERS; do
         (.metadata.labels // {} | keys[] | "label " + .),
         (.metadata.annotations // {} | keys[] | "annotation " + .),
         (.metadata.managedFields // [] | .[] | "manager " + .manager)')"
+    # An owner in OWNERS with no case in expected_markers_of would loop over
+    # nothing and check nothing (#11403).
+    if [ -z "$(expected_markers_of "$owner")" ]; then
+        fail "${owner}: expected_markers_of lists no marker for it, so none of its markers would be checked"
+    fi
     for marker in $(expected_markers_of "$owner"); do
         assert_present "${owner}: the Deployment carries ${marker//+/ }" "$markers" "${marker//+/ }"
     done

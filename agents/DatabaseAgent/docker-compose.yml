@@ -10,7 +10,10 @@ services:
     # report). This is the version Tests/Ops/validate-collector-configs.sh
     # validates the configs against; bump the two together. The
     # oneuptime.agent.version every configs/*.yaml stamps is this release,
-    # its last number raised each time the files change on it.
+    # its last number raised each time the files change on it - this file
+    # too - or an installed agent is never told to upgrade:
+    # packages/Common/Tests/App/Dashboard/AgentFilesVersion.test.ts fails
+    # until the version moves with the files.
     image: otel/opentelemetry-collector-contrib:0.165.0
     # Deliberately no container_name: one agent monitors ONE database, so a
     # machine watching several databases runs several copies of this file

@@ -6,6 +6,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+// The spy type of the jest imported above.
+import type { SpyInstance } from "jest-mock";
 import { readSessionReplayFrustrationSignalsConfig } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
@@ -29,6 +31,15 @@ import {
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayIdentity from "Common/Server/Utils/SessionReplay/SessionReplayIdentity";
 import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
+import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
+import { compileScrubRule } from "Common/Server/Utils/Telemetry/ScrubEngine/CompiledScrubRule";
+import ScrubRuleValueCounter from "Common/Server/Utils/Telemetry/ScrubRuleValueCounter";
+import LogScrubAction from "Common/Types/Log/LogScrubAction";
+import LogScrubField from "Common/Types/Log/LogScrubField";
+import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
+import SessionReplayScrubService, {
+  CompiledScrubRule,
+} from "../../FeatureSet/Telemetry/Services/SessionReplayScrubService";
 import zlib from "zlib";
 
 jest.mock("Common/Server/Utils/Logger", () => {
@@ -265,11 +276,27 @@ jest.mock("Common/Server/Utils/Telemetry/TelemetryFanInWriter", () => {
 jest.mock(
   "../../FeatureSet/Telemetry/Services/SessionReplayScrubService",
   () => {
+    /*
+     * A session's tags go through the real engine (#11458): what the
+     * project's rules leave of them is what the header row says.
+     */
+    type ActualScrubService = {
+      default: {
+        scrubTags: (data: unknown) => Record<string, string>;
+      };
+    };
+    const actual: ActualScrubService = jest.requireActual(
+      "../../FeatureSet/Telemetry/Services/SessionReplayScrubService",
+    ) as ActualScrubService;
+
     return {
       __esModule: true,
       default: {
         loadRules: jest.fn(),
         scrubEvents: jest.fn(),
+        scrubTags: jest.fn((data: unknown) => {
+          return actual.default.scrubTags(data);
+        }),
       },
     };
   },
@@ -334,7 +361,6 @@ import SessionReplayHealthCounters from "Common/Server/Utils/SessionReplay/Sessi
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import logger from "Common/Server/Utils/Logger";
 import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
-import SessionReplayScrubService from "../../FeatureSet/Telemetry/Services/SessionReplayScrubService";
 import SessionReplayChunkStore from "../../FeatureSet/Telemetry/Utils/SessionReplayChunkStore";
 import SessionReplaySignalMetrics from "../../FeatureSet/Telemetry/Utils/SessionReplaySignalMetrics";
 import SessionReplayRateLimiter, {
@@ -3406,6 +3432,152 @@ describe("SessionReplayIngestService.processFromQueue - engagement, tags, traits
     expect(getSubmittedRows("RumSessionV1")[0]!["tags"]).toEqual({
       build: "abc",
       tier: "1",
+    });
+  });
+
+  /*
+   * A session's tags (#11458): the recorder never masks them, and everyone
+   * who can list sessions reads them, so the project's rules - those for
+   * every service and app, as loadRules hands them - run over them before
+   * they reach the session's carry, Redis or a header row, as over a log's
+   * attributes. That is what makes Scrub It's rule for a tag reach it.
+   */
+  describe("a session's tags go through the project's rules (#11458)", () => {
+    const TAGGED_EMAIL: string = "noor.haddad@acmecorp.io";
+
+    function compiled(rule: Partial<LogScrubRule>): CompiledScrubRule {
+      const saved: LogScrubRule = new LogScrubRule();
+
+      saved._id = ObjectID.generate().toString();
+      saved.projectId = PROJECT_ID;
+      saved.name = "Data Security: Email address in log attributes";
+      saved.scrubAction = LogScrubAction.Mask;
+      saved.fieldsToScrub = LogScrubField.Attributes;
+      Object.assign(saved, rule);
+
+      return compileScrubRule(saved)!;
+    }
+
+    async function tagSession(
+      tags: Record<string, string>,
+      appVersion: string = "2026.11.28",
+    ): Promise<Record<string, string>> {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              meta: { ...buildEnvelope().meta!, tags, appVersion },
+            },
+          ]),
+        ),
+      );
+
+      return getSubmittedRows("RumSessionV1")[0]!["tags"] as Record<
+        string,
+        string
+      >;
+    }
+
+    test("an email a rule of every service masks never reaches the header row, the carry or Redis", async () => {
+      loadRulesMock.mockResolvedValue([
+        compiled({ patternType: LogScrubPatternType.Email }),
+      ] as never);
+
+      const tags: Record<string, string> = await tagSession({
+        customer: TAGGED_EMAIL,
+        build: "2026.11.28",
+      });
+
+      expect(Object.keys(tags)).toEqual(["customer", "build"]);
+      expect(tags["build"]).toBe("2026.11.28");
+      expect(tags["customer"]).not.toBe(TAGGED_EMAIL);
+      expect(tags["customer"]).not.toContain("noor.haddad");
+      expect(JSON.stringify(Array.from(redisStrings.values()))).not.toContain(
+        TAGGED_EMAIL,
+      );
+    });
+
+    test("with no rule, the tags are stored as the page sent them", async () => {
+      loadRulesMock.mockResolvedValue([] as never);
+
+      expect(await tagSession({ customer: TAGGED_EMAIL })).toEqual({
+        customer: TAGGED_EMAIL,
+      });
+    });
+
+    test("a rule that reads only bodies leaves the tags, as it leaves a log's attributes", async () => {
+      loadRulesMock.mockResolvedValue([
+        compiled({
+          patternType: LogScrubPatternType.Email,
+          fieldsToScrub: LogScrubField.Body,
+        }),
+      ] as never);
+
+      expect(await tagSession({ customer: TAGGED_EMAIL })).toEqual({
+        customer: TAGGED_EMAIL,
+      });
+    });
+
+    test("a Named Attributes rule hides the whole tag it names, and no other", async () => {
+      loadRulesMock.mockResolvedValue([
+        compiled({
+          patternType: LogScrubPatternType.NamedKeys,
+          scrubAction: LogScrubAction.Redact,
+          attributeKeys: ["customer_name"],
+        }),
+      ] as never);
+
+      const tags: Record<string, string> = await tagSession({
+        customer_name: "Noor Haddad",
+        plan: "Noor's plan",
+      });
+
+      expect(tags["customer_name"]).not.toContain("Noor");
+      expect(tags["plan"]).toBe("Noor's plan");
+    });
+
+    test("a Sensitive Attribute Keys rule hides a tag under a key that looks secret", async () => {
+      loadRulesMock.mockResolvedValue([
+        compiled({
+          patternType: LogScrubPatternType.SensitiveKeys,
+          scrubAction: LogScrubAction.Redact,
+        }),
+      ] as never);
+
+      const tags: Record<string, string> = await tagSession({
+        api_token: "tok_live_9f8e7d6c5b4a",
+        build: "2026.11.28",
+      });
+
+      expect(tags["api_token"]).not.toContain("tok_live");
+      expect(tags["build"]).toBe("2026.11.28");
+    });
+
+    test("each value a rule changes in a tag is counted under the application and the session's app version", async () => {
+      const add: SpyInstance<typeof ScrubRuleValueCounter.add> = jest
+        .spyOn(ScrubRuleValueCounter, "add")
+        .mockImplementation((): void => {});
+      const rule: CompiledScrubRule = compiled({
+        patternType: LogScrubPatternType.Email,
+      });
+
+      loadRulesMock.mockResolvedValue([rule] as never);
+
+      await tagSession(
+        { customer: TAGGED_EMAIL, contact: "rafa.ortiz@acmecorp.io" },
+        "4.2.0",
+      );
+
+      expect(add).toHaveBeenCalledWith({
+        projectId: PROJECT_ID.toString().toLowerCase(),
+        signal: "log",
+        serviceId: RUM_APPLICATION_ID.toString().toLowerCase(),
+        serviceVersion: "4.2.0",
+        counts: [[rule.rule._id!.toString().toLowerCase(), 2]],
+      });
+
+      add.mockRestore();
     });
   });
 

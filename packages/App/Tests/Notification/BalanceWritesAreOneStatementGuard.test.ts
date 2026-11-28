@@ -186,6 +186,23 @@ describe("prepaid balances are changed only by one statement that adds", () => {
     }
   });
 
+  /*
+   * listSourceFiles reads a folder that is not there as an empty one. Core CI
+   * has no ee/, so ee/Server is skipped there on purpose; where ee/ is
+   * checked out, ee/Server moved would be scanned as nothing (#11403).
+   */
+  test("the scan reads ee/Server wherever ee/ is checked out", () => {
+    if (!fs.existsSync(path.join(REPO, "ee"))) {
+      return;
+    }
+
+    expect(
+      files.some((file: string): boolean => {
+        return file.startsWith(path.join(REPO, "ee", "Server") + path.sep);
+      }),
+    ).toBe(true);
+  });
+
   test("no server code writes a balance it worked out itself", () => {
     const writes: Array<BalanceWrite> = files.flatMap((file: string) => {
       return findBalanceWrites(file);

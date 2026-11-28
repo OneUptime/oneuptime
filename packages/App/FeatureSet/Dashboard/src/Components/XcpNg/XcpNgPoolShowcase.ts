@@ -78,7 +78,12 @@ const XCP_NG_POOL_SHOWCASE: ResourceShowcase = {
       },
       { label: translationKey("VMs running"), value: { count: 40, outOf: 42 } },
       { label: translationKey("CPU"), value: { percent: 38.2 } },
-      { label: translationKey("Storage"), value: { percentUsed: 71 } },
+      /*
+       * A tile's figure is a number, its label what it counts, as Ceph's
+       * and a storage array's "Capacity used": "71% used" is a row's state,
+       * and in a tile it ran onto a second line in Persian.
+       */
+      { label: translationKey("Storage used"), value: { percent: 71 } },
     ],
     chart: {
       label: translationKey("Pool CPU"),

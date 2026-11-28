@@ -18,8 +18,10 @@ import ServerEmailLogReader from "../Utils/ServerSending/ServerEmailLogReader";
 import { ServerEmailLogAnswer } from "../../Types/Email/ServerEmailLog";
 import { SERVER_CHANNEL_SETUP_SELECT } from "../Utils/ServerSending/ServerChannelSetup";
 import {
+  getLetProjectsChooseCallVoice,
   getServerTwilioCallVoice,
   getServerTwilioEnvironment,
+  getServerTwilioProjectCallVoices,
 } from "../Utils/ServerTwilioConfig";
 import ServerTwilioEnvironment, {
   ServerTwilioEnvironmentAnswer,
@@ -860,6 +862,12 @@ export default class GlobalConfigAPI extends BaseAPI<
             ServerTwilioEnvironment.toAnswer(
               getServerTwilioEnvironment(),
               getServerTwilioCallVoice(),
+              /*
+               * And whether GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE sets
+               * the switch (#11462), which the Project Call Voices card then
+               * shows locked.
+               */
+              getServerTwilioProjectCallVoices(),
             );
 
           return Response.sendJsonObjectResponse(
@@ -1058,7 +1066,10 @@ export default class GlobalConfigAPI extends BaseAPI<
        */
       canProjectsChooseCallVoice: ProjectCallVoice.areOffered({
         isBillingEnabled: IsBillingEnabled,
-        letProjectsChooseCallVoice: globalConfig?.letProjectsChooseCallVoice,
+        // Or GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE, once it is set (#11462).
+        letProjectsChooseCallVoice: getLetProjectsChooseCallVoice(
+          globalConfig?.letProjectsChooseCallVoice,
+        ),
       }),
     };
   }

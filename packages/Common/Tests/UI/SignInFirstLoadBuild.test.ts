@@ -74,6 +74,20 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * of their own (Types/Product/TablesOfNoProduct), not built from these
  * modules at all.
  *
+ * Through FormField every form brought the color field, with its custom
+ * color panel and the color math they read, though no sign-in page's form
+ * picks a color: it loads with the first form that has a color field
+ * (LazyColorPicker), and so does the icon field, with its grid of every
+ * icon (LazyIconPicker). The key/value list does as well (LazyDictionary),
+ * which Table's filters still bring here
+ * (FormEntityDropdownFirstLoadBuild.test.ts holds a form to all three).
+ *
+ * PermissionGate, which every button and form asks, weighed one record's
+ * labels and owners as well (#11259, #11435, #11436): the locks of a
+ * record's list and its page, with the server's answer for who owns it, of
+ * which no sign-in page shows one. Those are a module of their own
+ * (RecordLocks), which only the pages that show records import.
+ *
  * Built here as the frontends build (the shared esbuild config, for
  * production), with these modules as the entry, and read from esbuild's
  * metafile (Helpers/FirstLoadBuild): the first load is the entry's file and
@@ -131,6 +145,21 @@ interface LeftOut {
 }
 
 const LEFT_OUT: ReadonlyArray<LeftOut> = [
+  {
+    name: "the color field, loaded by the first form that picks a color",
+    path: "UI/Components/Forms/Fields/ColorPicker.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the color field's custom color panel",
+    path: "UI/Components/ColorPicker/CustomColorPanel.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the icon field, loaded by the first form that picks an icon",
+    path: "UI/Components/Forms/Fields/IconPicker.tsx",
+    isLoadedWhenNeeded: true,
+  },
   {
     name: "posthog-js, which loads once analytics starts",
     path: "node_modules/posthog-js/",
@@ -379,6 +408,16 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "the ciphers crypto-js's index brought (AES, Triple DES, Blowfish, RC4, Rabbit)",
     path: "node_modules/crypto-js/cipher-core.js",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "the locks a record's labels and owners put on it and its parts, which only a page that shows records reads",
+    path: "UI/Utils/RecordLocks.ts",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "the server's answer for who owns a record, which those locks weigh",
+    path: "Types/RecordAccess/RecordOwnership.ts",
     isLoadedWhenNeeded: false,
   },
 ];

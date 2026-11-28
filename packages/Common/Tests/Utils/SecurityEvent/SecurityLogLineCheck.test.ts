@@ -41,6 +41,7 @@ import {
   NO_TRUSTED_PROXY_SOURCES,
   TrustedProxySource,
   TrustedProxySources,
+  UNREAD_TRUSTED_PROXY_SOURCES,
   findTrustedProxySource,
   trustedProxiesOf,
 } from "../../../Utils/SecurityEvent/TrustedProxySources";
@@ -398,7 +399,13 @@ describe("each source of trust, and why it is trusted", () => {
     expect(result.trustedProxies).toEqual([]);
   });
 
-  test("a private address is private whatever else lists it", () => {
+  /*
+   * #11389: a private address is trusted for what it is when anything more
+   * particular holds it, and only for its scope otherwise - what an
+   * automatic response asks, which acts only on a proxy something vouches
+   * for.
+   */
+  test("a private address something lists is trusted for that; private only when nothing else holds it", () => {
     expect(
       findTrustedProxySource(
         PRIVATE_PROXY,
@@ -406,11 +413,86 @@ describe("each source of trust, and why it is trusted", () => {
       ),
     ).toEqual({
       address: PRIVATE_PROXY,
+      source: TrustedProxySource.Listed,
+      edgeName: "",
+    });
+    expect(
+      findTrustedProxySource(
+        PRIVATE_PROXY,
+        sources({ ownLoadBalancers: blocks(`${PRIVATE_PROXY}/32`) }),
+      ),
+    ).toEqual({
+      address: PRIVATE_PROXY,
+      source: TrustedProxySource.OwnLoadBalancer,
+      edgeName: "",
+    });
+    expect(findTrustedProxySource(PRIVATE_PROXY, sources())).toEqual({
+      address: PRIVATE_PROXY,
       source: TrustedProxySource.Private,
       edgeName: "",
     });
     expect(findTrustedProxySource("not an address", sources())).toBeNull();
     expect(findTrustedProxySource(UNTRUSTED_HOST, sources())).toBeNull();
+  });
+
+  test("a project that stopped trusting private addresses trusts one only when something lists it", () => {
+    const off: Partial<TrustedProxySources> = { trustsPrivateAddresses: false };
+
+    expect(findTrustedProxySource(PRIVATE_PROXY, sources(off))).toBeNull();
+    expect(findTrustedProxySource("127.0.0.1", sources(off))).toBeNull();
+    expect(findTrustedProxySource("fd00::5", sources(off))).toBeNull();
+    expect(
+      findTrustedProxySource(
+        PRIVATE_PROXY,
+        sources({ ...off, listed: blocks("10.0.0.0/8") }),
+      )?.source,
+    ).toBe(TrustedProxySource.Listed);
+
+    // The issue's line then names the proxy, and why: nothing trusts it.
+    const result: SecurityLogLineCheckResult = check(
+      issueLine(),
+      sayingSo(off),
+    );
+
+    expect(onlyEvent(result).principalIp).toBe(PRIVATE_PROXY);
+    expect(result.trustedProxies).toEqual([]);
+  });
+
+  test("where a load balancer that passes on what a client wrote connects from is trusted by no source, whatever lists it", () => {
+    const untrusted: Partial<TrustedProxySources> = {
+      untrusted: blocks("10.0.0.0/24"),
+    };
+
+    for (const listedToo of [
+      { listed: blocks("10.0.0.0/8") },
+      { ownLoadBalancers: blocks(`${PRIVATE_PROXY}/32`) },
+      { edges: [{ name: "Cloudflare", blocks: blocks("10.0.0.0/16") }] },
+      {},
+    ]) {
+      expect(
+        findTrustedProxySource(
+          PRIVATE_PROXY,
+          sources({ ...untrusted, ...listedToo }),
+        ),
+      ).toBeNull();
+    }
+
+    // Beside it, the rest of the listed range is still trusted.
+    expect(
+      findTrustedProxySource(
+        "10.0.1.5",
+        sources({ ...untrusted, listed: blocks("10.0.0.0/8") }),
+      )?.source,
+    ).toBe(TrustedProxySource.Listed);
+
+    // The issue's line, through such a load balancer: its own address, the client's header a claim.
+    const result: SecurityLogLineCheckResult = check(
+      issueLine(),
+      sayingSo({ ...untrusted, listed: blocks("10.0.0.0/8") }),
+    );
+
+    expect(onlyEvent(result).principalIp).toBe(PRIVATE_PROXY);
+    expect(result.trustedProxies).toEqual([]);
   });
 
   test("each proxy is said once, however many events came through it", () => {
@@ -437,11 +519,32 @@ describe("each source of trust, and why it is trusted", () => {
       }),
     ).toEqual(["203.0.113.0/24", "104.16.0.0/13", OWN_ALB, "35.191.0.0/16"]);
     expect(trustedProxiesOf(trust).readsAccessLogForwardedFor).toBe(true);
+    // A project that said nothing trusts private addresses, as every project did (#11389).
     expect(trustedProxiesOf(NO_TRUSTED_PROXY_SOURCES)).toEqual({
       blocks: [],
+      untrustedBlocks: [],
+      trustsPrivateAddresses: true,
       readsAccessLogForwardedFor: false,
       accessLogFormat: null,
     });
+    // One whose settings could not be read trusts none.
+    expect(
+      trustedProxiesOf(UNREAD_TRUSTED_PROXY_SOURCES).trustsPrivateAddresses,
+    ).toBe(false);
+    // What is never trusted, and the switch, reach the parsers as the sources say them.
+    expect(
+      trustedProxiesOf(
+        sources({
+          untrusted: blocks("10.129.0.0/23"),
+          trustsPrivateAddresses: false,
+        }),
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        untrustedBlocks: blocks("10.129.0.0/23"),
+        trustsPrivateAddresses: false,
+      }),
+    );
   });
 });
 

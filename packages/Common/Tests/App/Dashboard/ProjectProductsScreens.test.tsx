@@ -339,7 +339,7 @@ describe("the nav bar", () => {
 });
 
 describe("Project Settings > Products", () => {
-  test("a switch for every product but the three always shown, on for the shown ones", () => {
+  test("a switch for every product but the three always shown, XCP-ng's among them, on for the shown ones", () => {
     given({
       hidden: [ProductKey.Kubernetes],
       canChooseProducts: true,
@@ -354,6 +354,10 @@ describe("Project Settings > Products", () => {
     expect(
       screen.getByTestId(getProductSwitchTestId(ProductKey.Kubernetes)),
     ).toHaveAttribute("aria-checked", "false");
+    // The newest infrastructure product (#11093) is a switch like the rest.
+    expect(
+      screen.getByTestId(getProductSwitchTestId(ProductKey.XcpNg)),
+    ).toHaveAttribute("aria-checked", "true");
     expect(
       screen.queryByTestId(getProductSwitchTestId(ProductKey.ProjectSettings)),
     ).toBeNull();
@@ -362,8 +366,11 @@ describe("Project Settings > Products", () => {
         `${getProductSwitchTestId(ProductKey.ProjectSettings)}-row`,
       ),
     ).toHaveTextContent("Always shown");
-    // Each category says how many it shows.
-    expect(screen.getByText("11 of 12 shown")).toBeInTheDocument();
+    /*
+     * Each category says how many it shows: Kubernetes hidden, twelve of
+     * Infrastructure's thirteen, XCP-ng the newest.
+     */
+    expect(screen.getByText("12 of 13 shown")).toBeInTheDocument();
   });
 
   test("flipping a switch hides the product, says Saved, and sends the event", async () => {

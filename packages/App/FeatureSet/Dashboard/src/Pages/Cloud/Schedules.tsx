@@ -23,6 +23,7 @@ import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Fi
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
@@ -272,8 +273,8 @@ const CloudSchedules: FunctionComponent<
                     {getWorkingDaysText(
                       readCloudOffHoursDays(item.workingDays),
                       translator,
-                    )}{" "}
-                    ·{" "}
+                    )}
+                    <InlineSeparator />
                     <bdi>{`${item.startTime || ""}–${item.stopTime || ""}`}</bdi>
                   </div>
                   <div className="text-xs text-gray-500">

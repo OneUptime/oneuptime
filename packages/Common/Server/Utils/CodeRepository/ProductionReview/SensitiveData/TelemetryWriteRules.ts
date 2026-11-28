@@ -9,6 +9,7 @@ import {
 } from "../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import DataSensitivity from "../../../../../Types/DataSecurity/DataSensitivity";
 import { getBuiltInDataType } from "../../../../../Types/DataSecurity/DataTypeCatalog";
+import { RUM_SESSION_TAGS_PREFIX } from "../../../../../Types/DataSecurity/RumSessionPlaces";
 import {
   CodeLanguage,
   CodeToken,
@@ -67,7 +68,10 @@ import { describeDataType } from "./SensitiveDataWords";
  *     `FS('setIdentity', ...)`, `posthog.identify`, `datadogRum.setUser`,
  *     OpenReplay's `tracker.setUserID`, Hotjar's, Smartlook's,
  *     Mixpanel's, Amplitude's and Heap's. A session identified by an
- *     opaque id (`identify(user.id)`, a hash) is no point.
+ *     opaque id (`identify(user.id)`, a hash) is no point. And the tags
+ *     OneUptime's recorder is handed (#11458): `setTags({...})`,
+ *     `addTag(key, value)` and the queue's `["setTags", ...]` and
+ *     `["addTag", ...]`, which every reader of the session list reads.
  *
  * What each is handed is read (SensitiveDataCode): the names it is
  * handed, the keys they go in under, and what its strings interpolate. A
@@ -598,6 +602,32 @@ const SESSION_RECEIVERS: ReadonlySet<string> = new Set<string>([
 ]);
 
 /*
+ * OneUptime's own session recorder among them, the one SDK whose sessions
+ * keep tags (#11458): `OneUptimeReplay`, the hook's `replay`, a module's
+ * `recorder`.
+ */
+const ONEUPTIME_SESSION_RECEIVERS: ReadonlySet<string> = new Set<string>([
+  "oneuptimereplay",
+  "recorder",
+  "sessionrecorder",
+  "session_recorder",
+  "replayrecorder",
+  "replay",
+  "sessionreplay",
+  "session_replay",
+]);
+
+/*
+ * What gives a recorded session its tags (#11458), lower case: OneUptime's
+ * `setTags({ key: value })` and `addTag(key, value)`. The tags are stored as
+ * sent in every masking mode, and everyone who can list sessions reads them.
+ */
+const SESSION_TAG_METHODS: ReadonlySet<string> = new Set<string>([
+  "settags",
+  "addtag",
+]);
+
+/*
  * What tells a session's SDK who its user is, lower case: the first thing
  * it is handed - `identify(userRef, traits)`, `setUserID(id)` - or the
  * object of the user it is handed (`datadogRum.setUser({ id, email })`).
@@ -630,6 +660,17 @@ const SESSION_PEOPLE_METHODS: ReadonlySet<string> = new Set<string>([
 ]);
 
 /*
+ * What a session SDK's call tells a recorded session: who its user is, a
+ * detail of that user under a key, or - OneUptime's - a tag of the session
+ * under its key (#11458).
+ */
+export enum SessionCallKind {
+  Identity = "Identity",
+  UserDetail = "UserDetail",
+  Tags = "Tags",
+}
+
+/*
  * A session SDK called as a function with its command first, by the
  * call's last part, lower case, and the commands of it that say who the
  * session's user is: FullStory's `FS('setIdentity', { uid, properties })`
@@ -639,24 +680,30 @@ const SESSION_PEOPLE_METHODS: ReadonlySet<string> = new Set<string>([
  */
 const SESSION_COMMAND_FUNCTIONS: ReadonlyMap<
   string,
-  ReadonlyMap<string, boolean>
-> = new Map<string, ReadonlyMap<string, boolean>>([
+  ReadonlyMap<string, SessionCallKind>
+> = new Map<string, ReadonlyMap<string, SessionCallKind>>([
   [
     "fs",
-    new Map<string, boolean>([
-      ["setidentity", true],
-      ["setproperties", false],
+    new Map<string, SessionCallKind>([
+      ["setidentity", SessionCallKind.Identity],
+      ["setproperties", SessionCallKind.UserDetail],
     ]),
   ],
   [
     "fullstory",
-    new Map<string, boolean>([
-      ["setidentity", true],
-      ["setproperties", false],
+    new Map<string, SessionCallKind>([
+      ["setidentity", SessionCallKind.Identity],
+      ["setproperties", SessionCallKind.UserDetail],
     ]),
   ],
-  ["hj", new Map<string, boolean>([["identify", true]])],
-  ["smartlook", new Map<string, boolean>([["identify", true]])],
+  [
+    "hj",
+    new Map<string, SessionCallKind>([["identify", SessionCallKind.Identity]]),
+  ],
+  [
+    "smartlook",
+    new Map<string, SessionCallKind>([["identify", SessionCallKind.Identity]]),
+  ],
 ]);
 
 /*
@@ -666,6 +713,20 @@ const SESSION_COMMAND_FUNCTIONS: ReadonlyMap<
  */
 const SESSION_QUEUES: ReadonlySet<string> = new Set<string>([
   "oneuptimereplayqueue",
+]);
+
+/*
+ * The queue's commands that tell a recorded session something: who its
+ * user is (`["identify", ref, traits]`), and its tags (#11458):
+ * `["setTags", { key: value }]` and `["addTag", key, value]`.
+ */
+const SESSION_QUEUE_COMMANDS: ReadonlyMap<string, SessionCallKind> = new Map<
+  string,
+  SessionCallKind
+>([
+  ["identify", SessionCallKind.Identity],
+  ["settags", SessionCallKind.Tags],
+  ["addtag", SessionCallKind.Tags],
 ]);
 
 // The keys a session's user object holds its identity under: the rest are its traits.
@@ -685,6 +746,16 @@ const SESSION_IDENTITY_KEYS: ReadonlySet<string> = new Set<string>([
 export const SESSION_LABEL_LOCATION: string = "sessions.identifiedUserLabel";
 export const SESSION_TRAITS_LOCATION_PREFIX: string =
   "sessions.identifiedUserTraits.";
+
+/*
+ * And its tags (#11458), each under its key: `sessions.tags.<key>`. A tag
+ * whose key the code does not spell out is the session's tags as a whole.
+ */
+export const SESSION_TAGS_LOCATION_PREFIX: string = RUM_SESSION_TAGS_PREFIX;
+export const SESSION_TAGS_LOCATION: string = RUM_SESSION_TAGS_PREFIX.slice(
+  0,
+  -1,
+);
 
 /*
  * The words of a function's name that say it changes a value into one
@@ -930,6 +1001,12 @@ export interface SinkCall {
    * (`setUserProperty("plan", plan)`).
    */
   isIdentity?: boolean | undefined;
+  /*
+   * A recorded session's tags (#11458): `setTags({ key: value })`,
+   * `addTag(key, value)`. Each value is under its key, and none is who the
+   * session's user is, whatever its key says.
+   */
+  isTags?: boolean | undefined;
 }
 
 function toLower(text: string): string {
@@ -1147,6 +1224,8 @@ export interface ReadSink {
   isErrorReport: boolean;
   // A recorded session's: the call says who its user is (SinkCall.isIdentity).
   isIdentity?: boolean | undefined;
+  // A recorded session's tags (SinkCall.isTags, #11458).
+  isTags?: boolean | undefined;
 }
 
 /*
@@ -1243,9 +1322,23 @@ function readExceptionSink(data: {
 }
 
 /*
+ * What a session call tells a recorded session, as a sink: who its user
+ * is, a detail of the user, or its tags (#11458).
+ */
+function sessionSinkOf(kind: SessionCallKind): ReadSink {
+  return {
+    sink: SensitiveDataSink.Session,
+    isErrorReport: false,
+    isIdentity: kind === SessionCallKind.Identity,
+    ...(kind === SessionCallKind.Tags ? { isTags: true } : {}),
+  };
+}
+
+/*
  * A recorded session's identity a call gives (#11395), by its method and
- * what it is called on - a session SDK, or its `people` - or null for a
- * call that is no session's.
+ * what it is called on - a session SDK, or its `people` - or the tags
+ * OneUptime's recorder is given (#11458), or null for a call that is no
+ * session's.
  */
 function readSessionSink(data: {
   method: string;
@@ -1258,15 +1351,21 @@ function readSessionSink(data: {
   const session: (isIdentity: boolean) => ReadSink = (
     isIdentity: boolean,
   ): ReadSink => {
-    return {
-      sink: SensitiveDataSink.Session,
-      isErrorReport: false,
-      isIdentity,
-    };
+    return sessionSinkOf(
+      isIdentity ? SessionCallKind.Identity : SessionCallKind.UserDetail,
+    );
   };
 
   if (last === undefined) {
     return null;
+  }
+
+  // OneUptime's recorder's tags, which only its sessions keep (#11458).
+  if (
+    ONEUPTIME_SESSION_RECEIVERS.has(last) &&
+    SESSION_TAG_METHODS.has(data.method)
+  ) {
+    return sessionSinkOf(SessionCallKind.Tags);
   }
 
   if (SESSION_RECEIVERS.has(last)) {
@@ -1440,10 +1539,12 @@ function readWordsBefore(
  * A session SDK's call with its command first (#11395), read from just
  * past its "(": FullStory's `FS('setIdentity', {...})`, Hotjar's
  * `hj('identify', ...)` - or OneUptime's queue, whose entries are arrays
- * with the command first, one of them `["identify", ref, traits]`, as its
- * docs write it over several lines. The call, read from just past the
- * command - so its first value is the user, never a key - or null for a
- * call that is no session command.
+ * with the command first, `["identify", ref, traits]` and the tags'
+ * `["setTags", {...}]` and `["addTag", key, value]` (#11458), as its docs
+ * write them over several lines. Each call, read from just past its
+ * command - so an identity's first value is the user, never a key - and
+ * every entry of one push (`push(["identify", ...], ["setTags", ...])`);
+ * none for a call that is no session command.
  */
 function findSessionCommand(data: {
   // The call's name as written, and what it is called on: a queue's `push` names its queue.
@@ -1453,19 +1554,20 @@ function findSessionCommand(data: {
   language: CodeLanguage;
   line: number;
   column: number;
-}): SinkCall | null {
+}): Array<SinkCall> {
   const method: string = toLower(lastPartOf(data.name));
   const receiverLast: string = withoutLeadingUnderscores(
     toLower(lastPartOf(data.receiver)),
   );
   const isQueue: boolean =
     method === "push" && SESSION_QUEUES.has(receiverLast);
-  const commands: ReadonlyMap<string, boolean> | undefined = isQueue
-    ? new Map<string, boolean>([["identify", true]])
+  const commands: ReadonlyMap<string, SessionCallKind> | undefined = isQueue
+    ? SESSION_QUEUE_COMMANDS
     : SESSION_COMMAND_FUNCTIONS.get(method);
+  const calls: Array<SinkCall> = [];
 
   if (!commands) {
-    return null;
+    return calls;
   }
 
   const tokens: Array<CodeToken> = tokenize({
@@ -1485,7 +1587,7 @@ function findSessionCommand(data: {
     const isAtCommand: boolean = isQueue
       ? depth === 1 && isPunct(tokens[index - 1], "[")
       : index === 0;
-    const isIdentity: boolean | undefined = isAtCommand
+    const kind: SessionCallKind | undefined = isAtCommand
       ? commands.get(toLower(token.text))
       : undefined;
 
@@ -1493,12 +1595,12 @@ function findSessionCommand(data: {
       isAtCommand &&
       token.kind === CodeTokenKind.String &&
       token.parts.length === 0 &&
-      isIdentity !== undefined &&
+      kind !== undefined &&
       isPunct(tokens[index + 1], ",")
     ) {
       const comma: CodeToken = tokens[index + 1]!;
 
-      return {
+      calls.push({
         sink: SensitiveDataSink.Session,
         name: (isQueue
           ? `${data.receiver}.push(["${token.text}"])`
@@ -1507,12 +1609,14 @@ function findSessionCommand(data: {
         line: comma.line,
         column: comma.column + 1,
         isParenless: false,
-        isIdentity,
-      };
+        isIdentity: kind === SessionCallKind.Identity,
+        ...(kind === SessionCallKind.Tags ? { isTags: true } : {}),
+      });
     }
 
+    // A command function has one command, its first argument.
     if (!isQueue) {
-      return null;
+      return calls;
     }
 
     if (token.kind === CodeTokenKind.Punct) {
@@ -1528,7 +1632,7 @@ function findSessionCommand(data: {
     }
   }
 
-  return null;
+  return calls;
 }
 
 /*
@@ -1637,15 +1741,16 @@ export function findSinkCalls(data: {
           ...(read.isIdentity !== undefined
             ? { isIdentity: read.isIdentity }
             : {}),
+          ...(read.isTags ? { isTags: true } : {}),
         });
 
         continue;
       }
 
-      // A session SDK's command, or OneUptime's queue (#11395).
-      const command: SinkCall | null =
+      // A session SDK's command, or OneUptime's queue's each (#11395, #11458).
+      const commands: Array<SinkCall> =
         isMacro || wordsBefore.isConstructor
-          ? null
+          ? []
           : findSessionCommand({
               name: token.text,
               receiver: isChained
@@ -1657,9 +1762,7 @@ export function findSinkCalls(data: {
               column: open.column + 1,
             });
 
-      if (command) {
-        calls.push(command);
-      }
+      calls.push(...commands);
 
       continue;
     }
@@ -2138,13 +2241,25 @@ const SINK_WORDS: Readonly<Record<SensitiveDataSink, string>> = {
 /*
  * A value a session's call is handed is who its user is - handed on its
  * own, or under the key an identity is (`uid`, `id`) - or one of the
- * user's traits, under its key (#11395).
+ * user's traits, under its key (#11395). A tag is never who the user is,
+ * whatever its key (#11458).
  */
-function isSessionLabel(value: Pick<WrittenValue, "key">): boolean {
+function isSessionLabel(
+  call: Pick<SinkCall, "isTags">,
+  value: Pick<WrittenValue, "key">,
+): boolean {
+  if (call.isTags) {
+    return false;
+  }
+
   return (
     !value.key || SESSION_IDENTITY_KEYS.has(toLower(lastPartOf(value.key)))
   );
 }
+
+// Why a session's tag is a point of its own (#11458): who reads it.
+export const SESSION_TAGS_WHY: string =
+  "A session's tags are stored as sent, and everyone who can list sessions reads them.";
 
 /*
  * How a point's sentence says where its value goes: an exception's
@@ -2157,7 +2272,11 @@ function sinkWordsOf(
   value: Pick<WrittenValue, "key" | "isInString">,
 ): string {
   if (call.sink === SensitiveDataSink.Session) {
-    return isSessionLabel(value)
+    if (call.isTags) {
+      return "Writes {{what}} to a recorded session's tags";
+    }
+
+    return isSessionLabel(call, value)
       ? SINK_WORDS[SensitiveDataSink.Session]
       : "Writes {{what}} to a recorded session's user";
   }
@@ -2179,11 +2298,19 @@ function sinkWordsOf(
  * Where production would keep what a call writes, as a telemetry finding
  * names it: an attribute under its key, a log's body - and an exception's
  * message, or the attribute an error report is handed it under; a
- * session's user label, or the trait it is handed under (#11395).
+ * session's user label, or the trait it is handed under (#11395); a
+ * session's tag, under its key (#11458).
  */
 function locationOf(call: SinkCall, value: Pick<WrittenValue, "key">): string {
   if (call.sink === SensitiveDataSink.Session) {
-    return isSessionLabel(value)
+    // A tag under its key; one whose key is not spelled out, the tags whole (#11458).
+    if (call.isTags) {
+      return value.key
+        ? `${SESSION_TAGS_LOCATION_PREFIX}${value.key}`
+        : SESSION_TAGS_LOCATION;
+    }
+
+    return isSessionLabel(call, value)
       ? SESSION_LABEL_LOCATION
       : `${SESSION_TRAITS_LOCATION_PREFIX}${value.key}`;
   }
@@ -2221,6 +2348,13 @@ function sentenceOf(data: {
   return `${data.words.replace("{{what}}", data.what)}: \`${data.subject}\`, in \`${data.where}\`.`;
 }
 
+// A point's sentence, with who reads a session's tags after it when it is about one (#11458).
+function withSessionTagsWhy(call: SinkCall, text: string): string {
+  return call.sink === SensitiveDataSink.Session && call.isTags
+    ? `${text} ${SESSION_TAGS_WHY}`
+    : text;
+}
+
 /*
  * The change that fixes a candidate, in English: leave it out, or hash it -
  * or, when the change already passes values through a function that
@@ -2237,6 +2371,8 @@ function fixOf(data: {
   isErrorReport?: boolean | undefined;
   // A session's: who its user is, rather than one of the user's traits.
   isSessionLabel?: boolean | undefined;
+  // A session's tag (#11458).
+  isSessionTag?: boolean | undefined;
 }): string {
   if (data.whole) {
     return data.whole === WholeObjectKind.Record
@@ -2265,6 +2401,10 @@ function fixOf(data: {
     return data.isErrorReport
       ? `Leave \`${data.subject}\` out of the error report, or send a hash of it when you need to tell values apart.`
       : `Leave \`${data.subject}\` out of the exception: name the field it is about, never what it holds.`;
+  }
+
+  if (data.sink === SensitiveDataSink.Session && data.isSessionTag) {
+    return `Leave \`${data.subject}\` out of the session's tags, or tag the session with an opaque value instead, such as an id.`;
   }
 
   if (data.sink === SensitiveDataSink.Session) {
@@ -2587,12 +2727,15 @@ function toCandidate(data: {
       dataTypes: types,
       sensitivity,
       isBlocking: isSecret || sensitivity === DataSensitivity.Restricted,
-      text: `${sentenceOf({
-        words: sinkWordsOf(data.call, value),
-        what: WHOLE_WORDS[value.whole],
-        subject,
-        where,
-      })} ${WHOLE_WHY[value.whole]}`,
+      text: withSessionTagsWhy(
+        data.call,
+        `${sentenceOf({
+          words: sinkWordsOf(data.call, value),
+          what: WHOLE_WORDS[value.whole],
+          subject,
+          where,
+        })} ${WHOLE_WHY[value.whole]}`,
+      ),
       fix: fixOf({
         sink: data.call.sink,
         subject,
@@ -2600,7 +2743,8 @@ function toCandidate(data: {
         whole: value.whole,
         helper: data.helper,
         isErrorReport: data.call.isErrorReport,
-        isSessionLabel: isSessionLabel(value),
+        isSessionLabel: isSessionLabel(data.call, value),
+        isSessionTag: data.call.isTags === true,
       }),
       location: locationOf(data.call, value),
     };
@@ -2680,12 +2824,15 @@ function toCandidate(data: {
     dataTypes: types,
     sensitivity,
     isBlocking: isSecret || sensitivity === DataSensitivity.Restricted,
-    text: sentenceOf({
-      words: sinkWordsOf(data.call, value),
-      what: describeDataType(types[0]!),
-      subject,
-      where,
-    }),
+    text: withSessionTagsWhy(
+      data.call,
+      sentenceOf({
+        words: sinkWordsOf(data.call, value),
+        what: describeDataType(types[0]!),
+        subject,
+        where,
+      }),
+    ),
     fix: fixOf({
       sink: data.call.sink,
       subject,
@@ -2693,7 +2840,8 @@ function toCandidate(data: {
       whole: null,
       helper: data.helper,
       isErrorReport: data.call.isErrorReport,
-      isSessionLabel: isSessionLabel(value),
+      isSessionLabel: isSessionLabel(data.call, value),
+      isSessionTag: data.call.isTags === true,
     }),
     ...(replacement !== null
       ? {

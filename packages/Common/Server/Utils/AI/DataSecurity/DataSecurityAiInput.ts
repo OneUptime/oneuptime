@@ -5138,13 +5138,15 @@ export function exposureAssessmentFacts(data: {
     });
 
   /*
-   * A US state's notice is a fact of its own where a person said some of
-   * the people live in that state (#10952). The others - every state's,
+   * A US state's notice is a fact of its own where some of the people are
+   * known to live in that state (#10952): a person said so or - for Puerto
+   * Rico, Guam and the US Virgin Islands, which have country codes of their
+   * own (#11424, #11426) - the data does. The others - every state's,
    * while nobody said which - are counted in one fact: fifty states' rows
    * would crowd the rest out of the draft's facts, and a draft names a
    * state's law only once its people are known to live there.
    */
-  const named: ReadonlyArray<BreachPlace> = view.whose.placesNamed || [];
+  const named: ReadonlyArray<BreachPlace> = view.whose.places || [];
   const statesIfPeopleLiveThere: Set<BreachPlace> = new Set();
   let noticesIfPeopleLiveThere: number = 0;
 
