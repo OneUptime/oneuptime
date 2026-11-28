@@ -22,6 +22,12 @@ import {
   TextReading,
   TextReadings,
 } from "../../Utils/DataSecurity/TextReadings";
+import {
+  placeRangesOnNumbers,
+  placeRangesOnStrings,
+  readStoredText,
+  StoredText,
+} from "../../Utils/Telemetry/ScrubStoredText";
 import LinearRegExp from "../../Utils/LinearRegExp/LinearRegExp";
 import {
   getLinearRegExp,
@@ -153,6 +159,52 @@ export function scrubRegExpUnderKey(
   value: unknown,
 ): ScrubRegExp {
   return regex.underKey && key ? regex.underKey(key, value) : regex;
+}
+
+/*
+ * A rule's pattern as it reads a value held under any of several keys
+ * (#11501): a session replay's form field, whose typed value is recorded
+ * under `value` or as an input event's text, while what names it sits
+ * beside it - `name="phone"`, `type="tel"`, `autocomplete="postal-code"`.
+ * Each is read as the value's key, and what any of them finds is hidden;
+ * the pattern itself where none changes what it finds.
+ */
+export function scrubRegExpUnderKeys(
+  regex: ScrubRegExp,
+  keys: ReadonlyArray<string | null | undefined>,
+  value: unknown,
+): ScrubRegExp {
+  const read: Array<ScrubRegExp> = [];
+
+  for (const key of keys) {
+    const underKey: ScrubRegExp = scrubRegExpUnderKey(regex, key, value);
+
+    if (underKey !== regex) {
+      read.push(underKey);
+    }
+  }
+
+  if (read.length === 0) {
+    return regex;
+  }
+
+  if (read.length === 1) {
+    return read[0]!;
+  }
+
+  return scrubRegExpFromRanges({
+    source: regex.source,
+    flags: regex.flags,
+    findRanges: (text: string): Array<[number, number]> => {
+      const found: Array<TextRange> = [];
+
+      for (const pattern of read) {
+        found.push(...pattern.matchRanges(text));
+      }
+
+      return mergeRanges(found);
+    },
+  });
 }
 
 /*
@@ -766,6 +818,63 @@ class ReadingsScrubRegExp implements ScrubRegExp {
     return mergeRanges(found);
   }
 
+  /*
+   * A list or a map read as the JSON text the table stores it as (#11502):
+   * what the pattern finds there is hidden in the texts and the numbers
+   * that hold it, as it is in the same value sent as a JSON text
+   * (Utils/Telemetry/ScrubJsonText) - beside what it finds in each text
+   * alone, as before. Data Security reads that JSON text, so a pattern
+   * whose words sit in a map's key - Scrub It's for a card's security
+   * code, "cvv": "123", for a secret assigned to a key, "api_key": "..." -
+   * found what the rule, reading each text alone, kept. A key is never
+   * changed. Any other value - a text, a number - is read as it always is.
+   */
+  public underKey(_key: string, value: unknown): ScrubRegExp {
+    const stored: StoredText | null = readStoredText(value);
+
+    if (!stored) {
+      return this;
+    }
+
+    const found: Array<TextRange> = this.matchRanges(stored.text).filter(
+      ([start, end]: TextRange): boolean => {
+        return end > start;
+      },
+    );
+
+    if (found.length === 0) {
+      return this;
+    }
+
+    const placed: Map<string, Array<TextRange>> = placeRangesOnStrings(
+      stored,
+      found,
+    );
+    const onNumbers: Map<string, Array<TextRange>> = placeRangesOnNumbers(
+      stored,
+      found,
+    );
+
+    if (placed.size === 0 && onNumbers.size === 0) {
+      return this;
+    }
+
+    return new PlacedScrubRegExp({
+      base: this,
+      placed,
+      numbersInside:
+        onNumbers.size > 0
+          ? scrubRegExpFromRanges({
+              source: this.source,
+              flags: this.flags,
+              findRanges: (numberText: string): Array<[number, number]> => {
+                return mergeRanges(onNumbers.get(numberText) || []);
+              },
+            })
+          : undefined,
+    });
+  }
+
   // Whether the pattern, as written, finds the whole of a text as one match.
   private matchesWhole(text: string): boolean {
     return this.written
@@ -827,6 +936,67 @@ class ReadingsScrubRegExp implements ScrubRegExp {
     }
 
     return matchedText;
+  }
+}
+
+/*
+ * A pattern as it reads the texts of a list or a map held under a key
+ * (#11502): what it finds in a text alone, and what it found in the
+ * value's JSON text on that text's characters - and in its numbers, as
+ * numbersInside says. A match reads as the pattern's does (readMatch).
+ */
+class PlacedScrubRegExp implements ScrubRegExp {
+  public readonly source: string;
+  public readonly flags: string;
+  public readonly numbersInside: ScrubRegExp | undefined;
+  private readonly base: ScrubRegExp;
+  private readonly placed: ReadonlyMap<string, Array<TextRange>>;
+
+  public constructor(data: {
+    base: ScrubRegExp;
+    placed: ReadonlyMap<string, Array<TextRange>>;
+    numbersInside?: ScrubRegExp | undefined;
+  }) {
+    this.base = data.base;
+    this.placed = data.placed;
+    this.numbersInside = data.numbersInside;
+    this.source = data.base.source;
+    this.flags = data.base.flags;
+  }
+
+  public matchRanges(text: string): Array<[number, number]> {
+    const own: Array<[number, number]> = this.base.matchRanges(text);
+    const inStoredText: Array<TextRange> | undefined = this.placed.get(text);
+
+    return inStoredText ? mergeRanges([...own, ...inStoredText]) : own;
+  }
+
+  public test(text: string): boolean {
+    return this.matchRanges(text).length > 0;
+  }
+
+  public replace(
+    text: string,
+    replacer: (matchedText: string) => string,
+  ): string {
+    const pieces: Array<string> = [];
+    let copiedUpTo: number = 0;
+
+    for (const [start, end] of this.matchRanges(text)) {
+      pieces.push(
+        text.slice(copiedUpTo, start),
+        replacer(text.slice(start, end)),
+      );
+      copiedUpTo = end;
+    }
+
+    pieces.push(text.slice(copiedUpTo));
+
+    return pieces.join("");
+  }
+
+  public readMatch(matchedText: string): string {
+    return readScrubMatch(this.base, matchedText);
   }
 }
 
