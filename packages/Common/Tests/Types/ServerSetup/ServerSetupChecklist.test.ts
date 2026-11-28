@@ -863,6 +863,96 @@ describe("SMS and calls", () => {
       }
     });
   });
+
+  /*
+   * #11462: a GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE that is neither
+   * true nor false keeps every project on the server's voice: calls still
+   * go out, so SMS and calls stand as they do, and it is said beside them,
+   * after the voice's problem when both are wrong.
+   */
+  describe("a GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE that does not read", () => {
+    const VOICE_PROBLEM: string =
+      'GLOBAL_TWILIO_CALL_VOICE: "Polly.Joanna" is not a voice OneUptime offers.';
+    const SWITCH_PROBLEM: string =
+      'GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE: "yes" is neither true nor false, so projects speak with the server\'s voice until it is fixed. Set it to true or false, or leave it empty to set Let projects choose their call voice in the Admin Dashboard.';
+
+    test.each([
+      ["not set up", {}, ServerSetupStatus.NotSetUp],
+      [
+        "working",
+        {
+          sms: channel(ServerSendingChannel.SMS, ServerSendingState.Working),
+          call: channel(ServerSendingChannel.Call, ServerSendingState.Working),
+        },
+        ServerSetupStatus.Done,
+      ],
+      [
+        "failing",
+        {
+          sms: channel(ServerSendingChannel.SMS, ServerSendingState.Working),
+          call: channel(ServerSendingChannel.Call, ServerSendingState.Failing),
+        },
+        ServerSetupStatus.Failing,
+      ],
+    ] as Array<[string, Partial<ServerSetupFacts>, ServerSetupStatus]>)(
+      "%s: stands as it does, and says the problem",
+      (
+        _label: string,
+        overrides: Partial<ServerSetupFacts>,
+        status: ServerSetupStatus,
+      ) => {
+        const without: ServerSetupCheckResult = check(
+          freshFacts(overrides),
+          ServerSetupCheckId.SmsAndCalls,
+        );
+        const withProblem: ServerSetupCheckResult = check(
+          freshFacts({ ...overrides, projectCallVoicesProblem: SWITCH_PROBLEM }),
+          ServerSetupCheckId.SmsAndCalls,
+        );
+
+        expect(withProblem.status).toBe(status);
+        expect(withProblem.notes).toEqual([SWITCH_PROBLEM]);
+        expect({ ...withProblem, notes: undefined }).toEqual({
+          ...without,
+          notes: undefined,
+        });
+      },
+    );
+
+    test("beside the voice's problem: both said, the voice's first", () => {
+      expect(
+        check(
+          freshFacts({
+            callVoiceProblem: VOICE_PROBLEM,
+            projectCallVoicesProblem: SWITCH_PROBLEM,
+          }),
+          ServerSetupCheckId.SmsAndCalls,
+        ).notes,
+      ).toEqual([VOICE_PROBLEM, SWITCH_PROBLEM]);
+    });
+
+    test("no problem, or an older server that says nothing of one: no notes at all", () => {
+      for (const projectCallVoicesProblem of [null, undefined, ""]) {
+        const result: ServerSetupCheckResult = check(
+          freshFacts({ projectCallVoicesProblem: projectCallVoicesProblem }),
+          ServerSetupCheckId.SmsAndCalls,
+        );
+
+        expect(Object.keys(result)).not.toContain("notes");
+      }
+    });
+
+    test("said beside SMS and calls only", () => {
+      for (const result of ServerSetupChecklistUtil.evaluate(
+        freshFacts({ projectCallVoicesProblem: SWITCH_PROBLEM }),
+        NOW,
+      )) {
+        if (result.id !== ServerSetupCheckId.SmsAndCalls) {
+          expect(result.notes).toBeUndefined();
+        }
+      }
+    });
+  });
 });
 
 describe("probes, backups and update checks", () => {
