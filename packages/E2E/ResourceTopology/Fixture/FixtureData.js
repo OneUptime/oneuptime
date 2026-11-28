@@ -50,7 +50,8 @@ export const NAMES = {
 };
 
 const MINUTE = 60 * 1000;
-const GIB = 1024 * 1024 * 1024;
+const MIB = 1024 * 1024;
+const GIB = 1024 * MIB;
 
 export function buildEstate(options) {
   const loadedAt = options.loadedAt;
@@ -181,6 +182,17 @@ export function buildEstate(options) {
               latestCpuPercent: off ? undefined : 5 + random(60),
               latestMemoryPercent: off ? undefined : 20 + random(60),
               memorySwappedBytes: swapping ? 2 * GIB : 0,
+              /*
+               * The host swapping it out now: the rates the ingest works out
+               * from how much more is swapped than at the last report
+               * (#11157).
+               */
+              ...(swapping
+                ? {
+                    memorySwapOutBytesPerSecond: 4 * MIB,
+                    memorySwapInBytesPerSecond: 0,
+                  }
+                : {}),
               cpuReadinessPercent: contended ? 14.6 : 1 + random(4),
               metricsUpdatedAt: notReporting ? stale : fresh,
             });
