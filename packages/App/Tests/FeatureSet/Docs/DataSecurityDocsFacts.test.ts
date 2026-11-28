@@ -21,7 +21,10 @@ import {
   ASSESSED_ON_ITS_OWN_SENSITIVITIES,
   EXPOSING_CHANGE_LOOKBACK_IN_DAYS,
 } from "Common/Types/DataSecurity/ExposureAssessment";
-import { nameScrubItRule } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  METRIC_PATTERN_TYPE_OF_DATA_TYPE,
+  nameScrubItRule,
+} from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import {
   ModelBudget,
   ModelStoreBudget,
@@ -4264,6 +4267,9 @@ describe("What a value is read as, and what a leak's template keeps", () => {
       ["DE44%205001%200517%205407%203249%2031", "iban"],
       ["SW1A+2AA", "postal-code"],
       ["10+Downing+Street", "postal-address"],
+      // #11115: a number typed wholly in fullwidth, its signs and separators too.
+      ["＋８１ ３－１２３４－５６７８", "phone-number"],
+      ["５３６－２２－８７３１", "us-ssn"],
     ] as Array<[string, string]>) {
       expect(paragraph).toContain(`\`${value}\``);
       expect({ value, found: foundWhole(value, dataTypeId) }).toEqual({
@@ -4316,9 +4322,15 @@ describe("What a value is read as, and what a leak's template keeps", () => {
           dataTypeId,
           digits: detector.readsDigitsOfEveryScript,
           url: detector.readsPlusAsSpace && detector.readsPercentEncoded,
-        }).toEqual({ dataTypeId, digits: true, url: true });
+          // And typed wholly in fullwidth, its signs and separators too (#11115).
+          fullwidth: detector.readsFullwidthForms,
+        }).toEqual({ dataTypeId, digits: true, url: true, fullwidth: true });
       }
     }
+
+    expect(paragraph).toContain(
+      "Such a number typed wholly in fullwidth, as Japanese and Chinese text writes one, is read with its plus sign, hyphens, parentheses, full stops, slashes and ideographic spaces as ASCII ones too",
+    );
 
     // A street address is words, read in a URL as a form writes them.
     expect(
@@ -4328,6 +4340,45 @@ describe("What a value is read as, and what a leak's template keeps", () => {
         },
       ),
     ).toBe(true);
+  });
+
+  /*
+   * #11112: Scrub It's metric rule for a phone or a Social Security number
+   * matches the type's Pattern Type, as its rule for the three types before
+   * them does, and a rule made with the frozen pattern before is moved to
+   * it when OneUptime is upgraded.
+   */
+  it("says which types Scrub It's metric rule matches by Pattern Type, as the code maps them, and that rules made before are moved", () => {
+    const row: string = lineOf(
+      TELEMETRY,
+      "| Any data type in a metric's attribute |",
+    );
+    const item: string = lineOf(TELEMETRY, "- **A metric's attribute.**");
+
+    expect(Array.from(METRIC_PATTERN_TYPE_OF_DATA_TYPE.keys()).sort()).toEqual([
+      "credit-card-number",
+      "email-address",
+      "ip-address",
+      "phone-number",
+      "us-ssn",
+    ]);
+    expect(row).toContain(
+      "For an IP address, an email address, a card number, a phone number or a US Social Security number, its filter is **Matches Pattern Type** of that type",
+    );
+    expect(item).toContain(
+      "A rule **Scrub It** made for an IP address, an email address, a card number, a phone number or a US Social Security number before its filter was **Matches Pattern Type** is moved to that filter when you upgrade",
+    );
+
+    const migrations: string = source(
+      "App/FeatureSet/Workers/DataMigrations/Index.ts",
+    );
+
+    for (const migration of [
+      "MetricScrubRulesMatchTheirPatternType",
+      "MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType",
+    ]) {
+      expect(migrations).toContain(`new ${migration}()`);
+    }
   });
 
   it("finds a person's name under a URL's query parameter named for one, High, and leaves one named name to the model (#11034)", () => {

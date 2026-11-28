@@ -2,6 +2,7 @@ import McpRemediationRunner, {
   McpFixTarget,
 } from "../../../../Server/Utils/AI/Remediation/McpRemediationRunner";
 import RemediationExecutionRunner from "../../../../Server/Utils/AI/Remediation/RemediationExecutionRunner";
+import ExternalMcpToolReadOnlyMarkService from "../../../../Server/Services/ExternalMcpToolReadOnlyMarkService";
 import { EXPLAIN_NO_FIX_RULE } from "../../../../Server/Utils/AI/Remediation/RemediationRoundRun";
 import { EXPLAIN_NO_FIX_TOOL_NAME } from "../../../../Types/AutoRemediation/RemediationRound";
 import AIInvestigationEngine, {
@@ -209,6 +210,10 @@ beforeEach(() => {
   jest
     .spyOn(ReadAudienceReader, "forSubject")
     .mockResolvedValue(readAudienceOf({ projectId: PROJECT_ID }));
+  // No Project Admin has marked a tool read-only (#11081: McpRunToolkitMarks).
+  jest
+    .spyOn(ExternalMcpToolReadOnlyMarkService, "findMarksOfServer")
+    .mockResolvedValue([]);
 });
 
 beforeEach(() => {

@@ -274,7 +274,12 @@ const CloudForecastPage: FunctionComponent<
             isClearable={false}
             options={context.accounts.map(
               (account: { id: string; name: string }): DropdownOption => {
-                return { label: account.name, value: account.id };
+                return {
+                  label: account.name,
+                  value: account.id,
+                  // An account's name, as written: never looked up.
+                  isUserContent: true,
+                };
               },
             )}
             value={context.accounts
@@ -282,7 +287,12 @@ const CloudForecastPage: FunctionComponent<
                 return account.id === accountId;
               })
               .map((account: { id: string; name: string }) => {
-                return { label: account.name, value: account.id };
+                return {
+                  label: account.name,
+                  value: account.id,
+                  // An account's name, as written: never looked up.
+                  isUserContent: true,
+                };
               })
               .shift()}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
@@ -318,10 +328,15 @@ const CloudForecastPage: FunctionComponent<
             isClearable={false}
             options={context.ruleContext.options.services.map(
               (name: string): DropdownOption => {
-                return { label: name, value: name };
+                // A service's name, as its telemetry names it.
+                return { label: name, value: name, isUserContent: true };
               },
             )}
-            value={service ? { label: service, value: service } : undefined}
+            value={
+              service
+                ? { label: service, value: service, isUserContent: true }
+                : undefined
+            }
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               setService(value ? String(value) : null);
             }}

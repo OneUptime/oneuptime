@@ -1,7 +1,9 @@
 import {
   getDateLocale,
+  getDateTimeFormat,
   getNumberLocale,
   formatReaderFigure,
+  ReaderDateTimeFormat,
 } from "../DateLanguage";
 import { PluralTemplate, Translator, translationKey } from "../Translator";
 import { CLOUD_COST_BASIS_LABELS, isCloudCostBasis } from "./CloudCostBasis";
@@ -67,7 +69,12 @@ export const REPORT_COMMITMENTS: string = translationKey("Commitments cover");
 export const REPORT_COMMITMENTS_USED: string = translationKey(
   "{{percent}} of them used",
 );
-export const REPORT_NO_COMMITMENTS: string = translationKey("None");
+/*
+ * The tile's words for a project with no commitments, its own: the server
+ * copies them from the Dashboard's wording (DASHBOARD_SHARED_TEXT_SOURCES),
+ * so they are not the "None" a status page's subscriber email words itself.
+ */
+export const REPORT_NO_COMMITMENTS: string = translationKey("No commitments");
 export const REPORT_RISES: string = translationKey("Rose the most");
 export const REPORT_FALLS: string = translationKey("Fell the most");
 export const REPORT_BY_GROUP: string = translationKey("By cost group");
@@ -175,6 +182,24 @@ export function formatCloudCostMoney(data: {
 }
 
 /*
+ * The clouds' days are UTC days, so each is written on UTC's calendar in
+ * every reader's zone, by DateLanguage's formatter (the one writer of a
+ * page's dates, DatesWrittenByOneHelperGuard): the reader's words and
+ * order, the wall clock read with OneUptime's zone data. Null where the
+ * engine cannot write the language, and the caller writes the day as stored.
+ */
+function getUtcDayFormat(
+  language: string | undefined,
+  options: Intl.DateTimeFormatOptions,
+): ReaderDateTimeFormat | null {
+  return getDateTimeFormat({
+    locale: getDateLocale(language || "en"),
+    timezones: ["UTC"],
+    options,
+  });
+}
+
+/*
  * A day, or two, as the reader writes dates: "16 Nov 2026", "16 – 22 Nov
  * 2026" - the clouds' UTC days, in every reader's zone.
  */
@@ -183,35 +208,27 @@ export function formatCloudCostDays(data: {
   lastDay?: string | undefined;
   language: string | undefined;
 }): string {
-  const options: Intl.DateTimeFormatOptions = {
+  const asStored: string =
+    data.lastDay && data.lastDay !== data.start
+      ? `${data.start} – ${data.lastDay}`
+      : data.start;
+  const format: ReaderDateTimeFormat | null = getUtcDayFormat(data.language, {
     day: "numeric",
     month: "short",
     year: "numeric",
-    timeZone: "UTC",
-  };
+  });
   const start: Date = fromCloudCostDay(data.start);
 
-  try {
-    const format: Intl.DateTimeFormat = new Intl.DateTimeFormat(
-      getDateLocale(data.language || "en"),
-      options,
-    );
-
-    if (!data.lastDay || data.lastDay === data.start) {
-      return format.format(start);
-    }
-
-    // formatRange writes "16 – 22 Nov 2026" each language's own way.
-    return (
-      format as unknown as {
-        formatRange: (rangeStart: Date, rangeEnd: Date) => string;
-      }
-    ).formatRange(start, fromCloudCostDay(data.lastDay));
-  } catch {
-    return data.lastDay && data.lastDay !== data.start
-      ? `${data.start} – ${data.lastDay}`
-      : data.start;
+  if (!format) {
+    return asStored;
   }
+
+  if (!data.lastDay || data.lastDay === data.start) {
+    return format.format(start);
+  }
+
+  // formatRange writes "16 – 22 Nov 2026" each language's own way.
+  return format.formatRange(start, fromCloudCostDay(data.lastDay)) || asStored;
 }
 
 // A month, "2026-11", as the reader writes it: "November 2026".
@@ -219,15 +236,14 @@ export function formatCloudCostMonth(data: {
   month: string;
   language: string | undefined;
 }): string {
-  try {
-    return new Intl.DateTimeFormat(getDateLocale(data.language || "en"), {
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    }).format(fromCloudCostDay(`${data.month}-01`));
-  } catch {
-    return data.month;
-  }
+  const format: ReaderDateTimeFormat | null = getUtcDayFormat(data.language, {
+    month: "long",
+    year: "numeric",
+  });
+
+  return format
+    ? format.format(fromCloudCostDay(`${data.month}-01`))
+    : data.month;
 }
 
 function formatPercent(value: number, language: string | undefined): string {

@@ -176,6 +176,8 @@ export interface CloudSavingsSummary {
 export enum CloudOffHoursSkipReason {
   Production = "Production",
   EnvironmentNotKnown = "EnvironmentNotKnown",
+  // Only its OneUptime labels say it is not production: a schedule never reads a label so (#11347).
+  OnlyLabelsSayNonProduction = "OnlyLabelsSayNonProduction",
   SavingsActionsOff = "SavingsActionsOff",
   NotScheduledKind = "NotScheduledKind",
 }

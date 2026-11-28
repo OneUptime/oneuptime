@@ -46,8 +46,10 @@ export interface ComponentProps {
  * being listed. One address or range a line, checked as it is typed and
  * again by the server (ProjectService.applySecurityTrustedProxyRules).
  *
- * It takes a Project Owner or Admin, as the project's other Security Events
- * settings do; anyone else sees it locked, with the permission it needs.
+ * A Project Owner, a Project Admin or a Security Admin edits it (#11049), as
+ * they flip the two switches beside it; anyone else sees it locked, with
+ * the roles that may (the column's own update list, ProjectColumnEditGate).
+ * Every change is in the project's audit log.
  */
 const SecurityTrustedProxiesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

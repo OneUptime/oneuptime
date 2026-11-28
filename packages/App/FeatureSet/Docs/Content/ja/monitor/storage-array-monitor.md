@@ -4,6 +4,8 @@
 
 Dell PowerStore (`dell.powerstore`) にも、Dell の `powerstore_*` シリーズから対応します。
 
+Dell PowerScale (`dell.powerscale`) にも、Dell の `powerscale_*` シリーズから対応します。
+
 :::cards
 - [モニターを作成する](#ストレージアレイ-モニターを作成する): ダッシュボードでの六つのステップ。
 - [テンプレート](#組み込みのアラートテンプレート): 組み込みのアラート。ボリューム、ホスト、アプライアンス、コンポーネントごとに一つのインシデント。
@@ -13,7 +15,7 @@ Dell PowerStore (`dell.powerstore`) にも、Dell の `powerstore_*` シリー�
 
 ## 仕組み
 
-OneUptime Storage Array Agent は、アレイの管理インターフェイスに到達できるマシンで動作します。読み取り専用の API トークンでアレイのメトリクスを読み取り、アレイの名前 `storage.array.name` とプラットフォーム `storage.system` のラベルを付けて、OTLP で OneUptime に送信します。最初のデータでアレイが登録されます。
+OneUptime Storage Array Agent は、アレイの管理インターフェイスに到達できるマシンで動作します。読み取り専用の API トークンでアレイのメトリクスを読み取り (PowerScale の場合は、読み取り専用コミュニティまたは SNMPv3 ユーザーを使って SNMP で読み取ります)、アレイの名前 `storage.array.name` とプラットフォーム `storage.system` のラベルを付けて、OTLP で OneUptime に送信します。最初のデータでアレイが登録されます。
 
 Dell PowerMax (`dell.powermax`) にはエージェントが不要です。OneUptime のプローブが 5 分ごとに読み取り専用アカウントで Unisphere for PowerMax にログインし、Unisphere が管理するすべてのアレイを同じように送信します。アレイの名前は、変更するまで Symmetrix ID になります ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))。
 
@@ -82,15 +84,15 @@ flowchart TB
 | **ボリューム** | Custom Metric、詳細 | 1 つのボリューム。FlashArray では `name` ラベルで指定します (`vol-db-01` など。Pod やボリュームグループ内のボリュームは `pod::volume` や `group/volume` という名前になります)。ONTAP では `volume` ラベルで指定し、このラベルは 2 つの SVM で同じになることがあります。PowerMax では `volume` ラベル (`00847` などのデバイス ID) で指定します。 |
 | **ホスト** | Custom Metric、詳細 | FlashArray のみ。アレイが認識している 1 つのホストを `host` ラベルで (`esxi-01` など)。 |
 | **Pod** | Custom Metric、詳細 | FlashArray のみ。1 つの ActiveCluster または ActiveDR Pod を `name` ラベルで、レプリカリンクのシリーズでは `local_pod` で。 |
-| **ハードウェアコンポーネント** | Custom Metric、詳細 | 1 つのハードウェアコンポーネント (`CH0.BAY1` や `CT0` など)。FlashArray では `component_name` ラベル、FlashBlade では `name`、ONTAP ではシリーズがそれを識別するラベル (`node`、`disk`、`shelf`、`port`)、PowerMax では `component` (`FA-1D` などのディレクター、または `FA-1D:4` などのポート)。 |
-| **ファイルシステム** | Custom Metric、詳細 | FlashBlade のみ。`name` ラベルで 1 つのファイルシステム。 |
+| **ハードウェアコンポーネント** | Custom Metric、詳細 | 1 つのハードウェアコンポーネント (`CH0.BAY1` や `CT0` など)。FlashArray では `component_name` ラベル、FlashBlade では `name`、ONTAP ではシリーズがそれを識別するラベル (`node`、`disk`、`shelf`、`port`)、PowerMax では `component` (`FA-1D` などのディレクター、または `FA-1D:4` などのポート)、PowerScale では `node` (`ps-prod-2` などのノード)。 |
+| **ファイルシステム** | Custom Metric、詳細 | FlashBlade と PowerScale。FlashBlade では `name` ラベルで 1 つのファイルシステム、PowerScale では `quota` ラベルで 1 つのクォータ (`/ifs/data/home` など)。 |
 | **バケット** | Custom Metric、詳細 | FlashBlade のみ。`name` ラベルで 1 つのオブジェクトストアのバケット。 |
 | **Storage Array Metric** | Custom Metric | [カタログ](#収集されるメトリクス) の 1 つのメトリクス。フォームはその意味を決めるラベルフィルターを追加し、説明するオブジェクトでグループ化するため、各ボリューム、ホスト、コンポーネントが個別に判定されます。 |
 | **集計** | Custom Metric | サンプルの組み合わせ方: **平均**、**最大**、**最小**、**合計**、**カウント**。メトリクスの通常の集計から始まります。 |
 | **時間範囲** | すべて | クエリが読み取る移動ウィンドウ。**Past 1 Minute** から **Past 365 Days** まで。新しいモニターは **過去 5 分** から、ファイルシステムやバケットのカスタムメトリクスは **過去 15 分** から始まります。テンプレートは独自の値を設定します。 |
 | **メトリクスを選択** | 詳細 | クエリビルダー: **メトリクス**、**集計の基準**、**属性で絞り込み**、**グループ化**、さらにクエリを組み合わせる **メトリクスを追加** と **数式を追加**。 |
 
-エージェントはアレイのエンドポイントを 60 秒ごとに、ボリューム、ホスト、Pod を 2 分ごとに読み取るため、5 分のウィンドウには必ずサンプルがあります。FlashBlade のファイルシステムとバケットは 5 分ごと (そのため 15 分)、FlashArray のディレクトリは 30 分ごとに読み取ります。ディレクトリのモニターには 60 分のウィンドウを指定してください。ONTAP では、Harvest がクラスターのパフォーマンスを毎分、構成、状態、EMS イベントを 3 分ごとに読み取るため、5 分のウィンドウには必ずサンプルがあります。
+エージェントはアレイのエンドポイントを 60 秒ごとに、ボリューム、ホスト、Pod を 2 分ごとに読み取るため、5 分のウィンドウには必ずサンプルがあります。FlashBlade のファイルシステムとバケットは 5 分ごと (そのため 15 分)、FlashArray のディレクトリは 30 分ごとに読み取ります。ディレクトリのモニターには 60 分のウィンドウを指定してください。ONTAP では、Harvest がクラスターのパフォーマンスを毎分、構成、状態、EMS イベントを 3 分ごとに読み取るため、5 分のウィンドウには必ずサンプルがあります。PowerScale のクラスターと各ノードは 60 秒ごとに、クォータは 5 分ごとにポーリングします。クォータのモニターには 15 分のウィンドウを指定してください。
 
 PowerStore は 5 分ごとに、そのクラスターの状態は 60 秒ごとに読み取ります。PowerStore のモニターには 15 分のウィンドウを設定してください。
 
@@ -114,7 +116,7 @@ Pure は **1 つの** メトリクス名に複数の値を載せ、ラベルで�
 
 PowerMax のシリーズはそれぞれ単一の値を持ち、その値にちなんだ名前が付いています。`powermax_array_response_time_usec` は `operation` で読み取りと書き込みを区別します。状態を表すシリーズも同様に、何か問題がある間だけ存在します。`powermax_alert_open` は Unisphere にオープンなアラートがある間、`powermax_director_offline` はディレクターがオンラインでない間、`powermax_port_offline` は誰かが利用しているポートがダウンしている間、`powermax_srdf_group_not_healthy` は SRDF グループが一時停止またはオフラインの間に存在します。
 
-モニターのフィルターとグループ化のキーでは、エージェントの属性は `resource.` で始まり (`resource.storage.array.name`、`resource.storage.system`)、Pure 自身のラベルはそうではありません (`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。PowerMax のラベルも同様です (`storage_group`、`volume`、`director`、`port_id`、`srdf_group`)。
+モニターのフィルターとグループ化のキーでは、エージェントの属性は `resource.` で始まり (`resource.storage.array.name`、`resource.storage.system`)、Pure 自身のラベルはそうではありません (`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。PowerMax のラベルも同様です (`storage_group`、`volume`、`director`、`port_id`、`srdf_group`)。PowerScale のラベルも同様です (`node`、`quota`、`drive`、`protocol`)。
 
 ## PowerStore のシリーズの形
 
@@ -136,7 +138,7 @@ ONTAP の状態は 3 つの形で表されます。
 
 ## 組み込みのアラートテンプレート
 
-OneUptime には 80 個のテンプレートがあり (FlashArray 用が 12 個、FlashBlade 用が 8 個、PowerStore 用が 16 個、ONTAP 用が 31 個、PowerMax 用が 13 個)、**アラートの対象** の一覧はアレイのプラットフォームに合うものを提示します。各テンプレートは完全なモニターを作ります。メトリクスのクエリ、そのラベルフィルター、オブジェクト自身のラベルによるグループ化、発火する条件と回復する条件です。しきい値は編集できる出発点です。
+OneUptime には 93 個のテンプレートがあり (FlashArray 用が 12 個、FlashBlade 用が 8 個、PowerStore 用が 16 個、ONTAP 用が 31 個、PowerMax 用が 13 個、PowerScale 用が 13 個)、**アラートの対象** の一覧はアレイのプラットフォームに合うものを提示します。各テンプレートは完全なモニターを作ります。メトリクスのクエリ、そのラベルフィルター、オブジェクト自身のラベルによるグループ化、発火する条件と回復する条件です。しきい値は編集できる出発点です。
 
 条件は、ウィンドウ内の **すべての** 値で条件が成り立つときだけ発火します。ただし ONTAP の EMS テンプレートは例外です。Harvest はイベントを 1 回のポーリングの間しかエクスポートしないため、読み取り値は 1 つで足ります。容量、レイテンシ、遅延、比率のしきい値で発火したモニターは、しきい値から 10% 離れて初めて回復するため、しきい値付近を行き来する値で状態がばたつくことはありません。アラート、ハードウェア、接続のテンプレートは、状態が 5 分間のウィンドウ全体で見えたときに発火し、状態が解消されてから約 5 分後に回復します。
 
@@ -255,11 +257,29 @@ PowerStore 自身のアラートはログとして届くため、そのテンプ
 | SRDF Group Suspended or Offline | レプリケーション | 重大 | `powermax_srdf_group_not_healthy`、`srdf_group` ごとに Max、過去 10 分 | > 0 — グループのリンクがオフライン、またはペアが一時停止・分割・フェイルオーバーの状態で、リモートコピーが最新に保たれていない。グループごとに一つのインシデント。再び同期すると回復 |
 | SRDF/A Lag Above 2 Minutes | レプリケーション | 警告 | `powermax_srdf_group_lag_seconds`、`srdf_group` ごとに Avg、過去 15 分 | > 120 (2 分) — 今フェイルオーバーすると、計画以上に最近の書き込みが失われる。グループごとに一つのインシデント。≤ 108 で回復 |
 
+### PowerScale
+
+| テンプレート | カテゴリ | 重大度 | 監視対象 | 発火する条件 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 重大 | `powerscale_cluster_health`、Count、過去 10 分 | ウィンドウ全体でデータがない — Storage Array Agent が停止した、OneUptime への経路を失った、トークンが取り消された、またはクラスターがポーリングに応答しなくなった。データが再び届くと回復 |
+| Cluster Needs Attention | アレイのヘルス | 警告 | `powerscale_cluster_health`、Max、過去 5 分 | > 0 — OneFS がクラスターを要注意、ダウン、または無効と報告している。理由は `isi event groups list` で分かる。≤ 0 で回復 |
+| Cluster Down | アレイのヘルス | 重大 | `powerscale_cluster_health`、Max、過去 5 分 | ≥ 2 — OneFS がクラスターをダウンまたは無効と報告している。< 2 で回復 |
+| Node Offline | ハードウェア | 重大 | `powerscale_cluster_offline_nodes`、Max、過去 5 分 | > 0 — クラスターのノードがオフラインで、どのノードかは `offline_nodes` に並ぶ。≤ 0 で回復 |
+| Node Needs Attention | ハードウェア | 警告 | `powerscale_node_health`、`node` ごとに Max、過去 5 分 | > 0 — ノードが要注意、ダウン、または無効を報告している。ノードごとに一つのインシデント。≤ 0 で回復 |
+| Node Read-Only | ハードウェア | 警告 | `powerscale_node_read_only`、`node` ごとに Max、過去 5 分 | > 0 — ノードが読み取り専用モードで、そのノードに接続しているクライアントは書き込めない。ノードごとに一つのインシデント。≤ 0 で回復 |
+| Drive Failed | ハードウェア | 重大 | `powerscale_drive_size_bytes` を `status=DEAD` に絞り込み、`drive` ごとに Count、過去 5 分 | > 0 — ドライブが故障し、OneFS がそのデータを残りのドライブで保護し直している。ドライブごとに一つのインシデント。別のステータスを報告すると回復 |
+| Drive Smartfailed | ハードウェア | 警告 | `powerscale_drive_size_bytes` を `status=SMARTFAIL` に絞り込み、`drive` ごとに Count、過去 5 分 | > 0 — OneFS が、交換前に故障しかけているドライブからデータを移している。ドライブごとに一つのインシデント。別のステータスを報告すると回復 |
+| Capacity Above 80% | 容量 | 警告 | `powerscale_ifs_used_percent`、Max、過去 15 分 | > 80 (仮想ホットスペア用に確保された容量を含む)。≤ 72 で回復 |
+| Capacity Above 90% | 容量 | 重大 | `powerscale_ifs_used_percent`、Max、過去 5 分 | > 90 — クラスターが書き込みを拒否する寸前。≤ 81 で回復 |
+| Quota Near Its Limit | 容量 | 警告 | `powerscale_quota_used_percent`、`quota` ごとに Max、過去 15 分 | ハード制限 (ない場合はソフト制限) の > 90。クォータごとに一つのインシデント。≤ 81 で回復 |
+| Quota Full | 容量 | 重大 | `powerscale_quota_used_percent`、`quota` ごとに Max、過去 5 分 | ≥ 100 — ハード制限では、クォータのパス配下への書き込みが失敗する。クォータごとに一つのインシデント。< 90 で回復 |
+| High Protocol Latency | パフォーマンス | 警告 | `powerscale_protocol_latency_microseconds`、`protocol` ごとに Max、過去 10 分 | 最も遅いノードで > 20000 µs (20 ms)。プロトコルごとに一つのインシデント。≤ 18000 で回復 |
+
 **重大度** はピッカーが表示するラベルです。テンプレートが作成するインシデントとアラートは、プロジェクトで最も重大なインシデントとアラートの重大度から始まります。条件の中で変更してください。
 
-- **Array Stopped Reporting** は、プラットフォームの識別シリーズを数えます (`purefa_info` または `purefb_info`。エージェントが読み取るすべてのエンドポイントが読み取りのたびにエクスポートします。または `powermax_array_info`。PowerMax の収集のたびに書き込まれます)。データが途絶えると、ほかのテンプレートは比較するものがなくなって最後のステータスを保ったままになるため、それを知らせてくれるのはこのテンプレートです。
+- **Array Stopped Reporting** は、プラットフォームの識別シリーズを数えます (`purefa_info` または `purefb_info`。エージェントが読み取るすべてのエンドポイントが読み取りのたびにエクスポートします。または `powermax_array_info`。PowerMax の収集のたびに書き込まれます)。PowerScale の場合は `powerscale_cluster_health` で、エージェントのクラスターへのポーリングが毎分送ります。データが途絶えると、ほかのテンプレートは比較するものがなくなって最後のステータスを保ったままになるため、それを知らせてくれるのはこのテンプレートです。
 - **オープンなアラートとハードウェアの状態は Max を使います**。アラートがオープンな間、またはコンポーネントがその状態にある間しか存在しないシリーズなので、状態が 5 分間のウィンドウ全体で見えた時点でしきい値を超えます。
-- **オブジェクトごとのテンプレートは、すべてオブジェクト自身のラベルでグループ化します** (`summary`、`component_name`、`host`、`local_pod`、`name`、PowerMax では `description`、`component`、`srp`、`srdf_group`、`storage_group`)。そのため、影響を受けたオブジェクトごとに一つのインシデントが発火し、インシデントはそのオブジェクトの名前を示します。
+- **オブジェクトごとのテンプレートは、すべてオブジェクト自身のラベルでグループ化します** (`summary`、`component_name`、`host`、`local_pod`、`name`、PowerMax では `description`、`component`、`srp`、`srdf_group`、`storage_group`、および PowerScale の `node`、`drive`、`quota`、`protocol`)。そのため、影響を受けたオブジェクトごとに一つのインシデントが発火し、インシデントはそのオブジェクトの名前を示します。
 - **レイテンシのテンプレートは Avg を使います**。アレイ自身による操作あたりの平均値の Avg です。容量のテンプレートは、アレイ自身の使用率の **Max** を使います。レイテンシはマイクロ秒、容量はパーセントに固定されています。
 - **Hardware Component Unhealthy はコンポーネントごとに Min を使います**。正常なときは 1、そうでないときは 0 に下がります。
 
@@ -283,6 +303,8 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `powermax_alert_open` | — | PowerMax | `count` | Unisphere がアレイについて開いているアラートごとに 1 シリーズ (値は 1)。確認済みでなく、クリアされておらず、Minor 以上のものが対象です。severity ラベルは critical (Critical と Fatal) または warning (Warning と Minor) で、alert_type、object、description ラベルが内容を示します。Unisphere でアラートを確認すると、シリーズは消えます |
 | `powermax_array_health_score` | — | PowerMax | `score` | Unisphere によるアレイのヘルススコア (0～100)。health_metric ごとに、全体と、評価する各領域 (容量、構成、パフォーマンス、サービスレベル準拠) の値があります |
 | `powermax_array_performance_collection` | — | PowerMax | `count` | Unisphere がアレイの 5 分間隔のパフォーマンスデータを収集している間は 1、収集していない間は 0。オフの場合も OneUptime はアレイのインベントリとアラートを一覧表示しますが、パフォーマンスのグラフは描画しません。Unisphere の Settings > Performance > System Registrations でオンにしてください |
+| `powerscale_cluster_health` | — | PowerScale | — | OneFS が報告するクラスターのヘルス: 0 は OK、1 は要注意、2 はダウン、3 は無効。変化を見逃さないよう最大値を使います |
+| `powerscale_cluster_offline_nodes` | — | PowerScale | `count` | クラスターのノードのうちオフラインのものの数。`offline_nodes` ラベルにその論理ノード番号が並びます |
 
 ### 容量
 
@@ -318,6 +340,12 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | ホストが書き込んだデータが、圧縮と重複排除の後に占める領域の何倍あるか (Unisphere の報告値) |
 | `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | srp ラベルごとの、各ストレージリソースプールの使用可能な容量のうち使用中の割合 (%)。プールがいっぱいになると、そのプール内のすべてのストレージグループで新しい書き込みを受け付けなくなります |
 | `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | srp ラベルごとの、各ストレージリソースプールで使用中の使用可能な容量 (バイト) |
+| `powerscale_ifs_used_percent` | — | PowerScale | `%` | クラスターの容量のうち、書き込みにもう使えない割合。使用中の容量に、OneFS が仮想ホットスペア用に確保している容量を加えたものです |
+| `powerscale_ifs_available_bytes` | — | PowerScale | `bytes` | `/ifs` で書き込みにまだ使える容量 |
+| `powerscale_ifs_used_bytes` | — | PowerScale | `bytes` | OneFS が数えた `/ifs` の使用中の容量 |
+| `powerscale_ifs_total_bytes` | — | PowerScale | `bytes` | クラスター全体の `/ifs` のサイズ |
+| `powerscale_quota_used_percent` | — | PowerScale | `%` | 各クォータの使用量のハード制限に対する割合。ハード制限がない場合はソフト制限に対する割合です (どちらかは `limit` ラベルで分かります)。`quota` でグループ化します |
+| `powerscale_quota_usage_bytes` | — | PowerScale | `bytes` | OneFS が各クォータに計上する使用量 |
 
 ### パフォーマンス
 
@@ -375,6 +403,16 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `powermax_array_backend_busy_percent` | — | PowerMax | `%` | ドライブを処理するディレクターのビジー率 (%) |
 | `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | 他のアレイへ複製するディレクターのビジー率 (%) |
 | `powermax_srp_response_time_usec` | — | PowerMax | `µs` | srp ラベルごとの、各ストレージリソースプールで I/O にかかる平均時間 (マイクロ秒) |
+| `powerscale_cluster_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | クラスター全体で `/ifs` から読み取られる毎秒のバイト数 |
+| `powerscale_cluster_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | クラスター全体で `/ifs` に書き込まれる毎秒のバイト数 |
+| `powerscale_cluster_network_in_bytes_per_second` | — | PowerScale | `bytes/s` | クラスターのフロントエンドポートが受信する毎秒のバイト数 |
+| `powerscale_cluster_network_out_bytes_per_second` | — | PowerScale | `bytes/s` | クラスターのフロントエンドポートが送信する毎秒のバイト数 |
+| `powerscale_cluster_cpu_busy_percent` | — | PowerScale | `%` | 使用中の CPU 時間の割合を、クラスターのノード全体で平均したもの |
+| `powerscale_protocol_latency_microseconds` | — | PowerScale | `µs` | 各ノードでのプロトコル (NFS、SMB、HDFS、...) ごとの操作にかかる平均時間。最大値は最も遅いノードです。`protocol` または `node` でグループ化します |
+| `powerscale_protocol_latency_max_microseconds` | — | PowerScale | `µs` | 各ノードでのプロトコルごとの最も遅い単一の操作 |
+| `powerscale_protocol_operations_per_second` | — | PowerScale | `ops/s` | 各ノードでのプロトコルごとの毎秒の操作数。最大値は最も負荷の高いノードです |
+| `powerscale_protocol_in_bytes_per_second` | — | PowerScale | `bytes/s` | クライアントが各ノードに各プロトコルで送る毎秒のバイト数 (書き込みとリクエスト) |
+| `powerscale_protocol_out_bytes_per_second` | — | PowerScale | `bytes/s` | 各ノードが各プロトコルでクライアントに送る毎秒のバイト数 (読み取りと応答) |
 
 ### ボリューム
 
@@ -532,6 +570,16 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `powermax_port_busy_percent` | — | PowerMax | `%` | component ラベル (FA-1D:4 など) ごとの、各ポートのビジー率 (%) |
 | `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | component ラベルごとの、各ポートを通じて読み取られる 1 秒あたりのバイト数 |
 | `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | component ラベルごとの、各光ポートが受信する光パワー (ミリワット)。値が下がっている場合は、光モジュールまたはケーブルが劣化しています。Unisphere 10.3 以降が必要です |
+| `powerscale_node_health` | — | PowerScale | — | 各ノードが報告するヘルス: 0 は OK、1 は要注意、2 はダウン、3 は無効。`node` でグループ化します |
+| `powerscale_node_read_only` | — | PowerScale | — | ノードが読み取り専用モードの間は 1、それ以外は 0。`node` でグループ化します |
+| `powerscale_node_cpu_busy_percent` | — | PowerScale | `%` | 各ノードの使用中の CPU 時間の割合。`node` でグループ化します |
+| `powerscale_node_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | 各ノード経由で `/ifs` から読み取られる毎秒のバイト数 |
+| `powerscale_node_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | 各ノード経由で `/ifs` に書き込まれる毎秒のバイト数 |
+| `powerscale_drive_size_bytes` | — | PowerScale | `bytes` | ドライブベイごとに一つのシリーズで、値はドライブのサイズ、ラベルは `status` (`HEALTHY`、`SMARTFAIL`、`DEAD`、...)、`model`、`serial` |
+| `powerscale_drive_operations_per_second` | — | PowerScale | `ops/s` | 各ドライブが処理する毎秒の操作数。`drive` でグループ化します |
+| `powerscale_temperature_celsius` | — | PowerScale | `°C` | 各ノードの各温度センサーの読み取り値。ノードごとの最大値は、そのノードで最も高温のセンサーです |
+| `powerscale_fan_speed_rpm` | — | PowerScale | `rpm` | 各ノードの各ファンの速度。最小値で回転が落ちているファンを見つけられます |
+| `powerscale_interface_status` | — | PowerScale | — | 各ノードポートの状態: 1 はアップ、2 はダウン、7 はポートの下位層がダウン (リンクなし)。`admin_status` は、アップであるべきポートでは 1 です |
 
 ### ファイルシステム
 

@@ -21,6 +21,8 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { wordStepCheckSentence } from "Common/Utils/SecurityCase/ResponsePlan/StepCheckSentences";
 import { WrittenMoment, writeReaderMoment } from "Common/Utils/MomentPhrases";
 import {
+  CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION,
+  CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS,
   STEP_CHECK_OPEN_BLOCKLIST,
   STEP_CHECK_OPEN_EVENTS,
   STEP_CHECK_OPEN_PROVIDER,
@@ -203,8 +205,33 @@ export interface StepCheckLinkTarget {
   values: Record<string, string>;
 }
 
+/*
+ * What the reader may do on Cloud > Connect (#11039): see the page - it
+ * lists the connections, which the cloud connections' read permission
+ * reads - and change a connection there, which only a project's owners and
+ * admins may.
+ */
+export interface CloudConnectionsAccess {
+  mayRead: boolean;
+  mayUpdate: boolean;
+}
+
+export const NO_CLOUD_CONNECTIONS_ACCESS: CloudConnectionsAccess = {
+  mayRead: false,
+  mayUpdate: false,
+};
+
+/*
+ * Where a link of the evidence - the step's, or a fact's own - opens, and
+ * its words. Cloud > Connect (#11039) only for a reader who may see the
+ * page: on the connection's form, "Edit Connection", for one who may
+ * change it; the page itself, "Open Cloud Connections", for one who may
+ * only see it. A reader who may not see it gets no link: the line names
+ * the menu path, for someone who may.
+ */
 export function getStepCheckLinkTarget(
   link: ResponseLink,
+  access: CloudConnectionsAccess = NO_CLOUD_CONNECTIONS_ACCESS,
 ): StepCheckLinkTarget | null {
   switch (link.kind) {
     case ResponseLinkKind.OpenTraces:
@@ -240,6 +267,27 @@ export function getStepCheckLinkTarget(
             url,
             title: STEP_CHECK_OPEN_PROVIDER,
             values: { provider: link.provider },
+          }
+        : null;
+    }
+
+    case ResponseLinkKind.OpenCloudConnection: {
+      if (!access.mayRead) {
+        return null;
+      }
+
+      const canEdit: boolean = Boolean(link.connectionId) && access.mayUpdate;
+      const route: Route | null = getResponseLinkRoute(
+        canEdit ? link : { kind: ResponseLinkKind.OpenCloudConnection },
+      );
+
+      return route
+        ? {
+            route,
+            title: canEdit
+              ? CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION
+              : CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS,
+            values: {},
           }
         : null;
     }

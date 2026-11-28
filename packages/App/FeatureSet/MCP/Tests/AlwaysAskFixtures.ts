@@ -26,6 +26,19 @@ export const SETTING_ID: string = "11177000-0000-4000-8000-000000000015";
 export const PLAYBOOK_ID: string = "11177000-0000-4000-8000-000000000016";
 export const USER_ID: string = "11177000-0000-4000-8000-000000000017";
 export const CONNECTION_ID: string = "11177000-0000-4000-8000-000000000018";
+export const LABEL_ID: string = "11347000-0000-4000-8000-000000000019";
+
+/*
+ * A label as the API holds it (#11347): its name says production, so it
+ * holds the cloud resources it is on back from what nobody approves.
+ */
+export function holdsLabel(
+  name: string,
+): (api: FakeOneUptimeApi, apiPathOf: ApiPathOf) => void {
+  return (api: FakeOneUptimeApi, apiPathOf: ApiPathOf): void => {
+    api.holds(apiPathOf("Label"), LABEL_ID, { projectId: PROJECT_ID, name });
+  };
+}
 
 // A record's route, by its table: what the fake API holds a record under.
 export type ApiPathOf = (tableName: string) => string;
@@ -232,6 +245,22 @@ export const MAKES_THE_CHANGE: Record<string, AlwaysAskFixture> = {
       });
     },
   },
+  [fixtureKey({
+    change: "A label that says production renamed or deleted",
+    tableName: "Label",
+    write: "update",
+  })]: {
+    args: { id: LABEL_ID, name: "dev" },
+    prepare: holdsLabel("Production"),
+  },
+  [fixtureKey({
+    change: "A label that says production renamed or deleted",
+    tableName: "Label",
+    write: "delete",
+  })]: {
+    args: { id: LABEL_ID },
+    prepare: holdsLabel("Production"),
+  },
 };
 
 export interface OrdinaryWrite {
@@ -389,5 +418,47 @@ export const ORDINARY_WRITES: ReadonlyArray<OrdinaryWrite> = [
         steps: [suspendStep("suspend", true), NOTE_STEP],
       });
     },
+  },
+  {
+    label: "Rename a label that says nothing of production",
+    tableName: "Label",
+    operation: "update",
+    args: { id: LABEL_ID, name: "Team Alpha" },
+    prepare: holdsLabel("Team A"),
+  },
+  {
+    label:
+      "Rename a label to dev, which a schedule never reads as non-production",
+    tableName: "Label",
+    operation: "update",
+    args: { id: LABEL_ID, name: "dev" },
+    prepare: holdsLabel("team-a"),
+  },
+  {
+    label: "Rename a production label to another name that says production",
+    tableName: "Label",
+    operation: "update",
+    args: { id: LABEL_ID, name: "prod" },
+    prepare: holdsLabel("Production"),
+  },
+  {
+    label: "Describe a production label",
+    tableName: "Label",
+    operation: "update",
+    args: { id: LABEL_ID, description: "Customer facing." },
+    prepare: holdsLabel("Production"),
+  },
+  {
+    label: "Delete a label that says nothing of production",
+    tableName: "Label",
+    operation: "delete",
+    args: { id: LABEL_ID },
+    prepare: holdsLabel("team-a"),
+  },
+  {
+    label: "Create a label named Production",
+    tableName: "Label",
+    operation: "create",
+    args: { name: "Production" },
   },
 ];

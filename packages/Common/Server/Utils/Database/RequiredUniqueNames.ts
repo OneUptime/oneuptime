@@ -26,6 +26,7 @@ import {
   MAX_DUPLICATE_RECORDS_PER_GROUP,
   UniqueNameCheckAnswer,
 } from "../../../Types/Database/RequiredUniqueNames";
+import { SharedNamesAnswer } from "../../../Types/Database/SharedNames";
 import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnLength";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import {
@@ -709,6 +710,137 @@ export default class RequiredUniqueNames {
       groupCount: keys.length,
       groups: groups,
     };
+  }
+
+  /*
+   * THE RECORDS OF A KIND THE SETTING HOLDS THAT SHARE A NAME, for every
+   * list of the kind to mark (GET /shared-names/<TableName>, #11021) -
+   * whatever the setting says: two monitors called "API Health Check" read
+   * alike in a list and a picker either way.
+   *
+   * Each group is the records whose names read as one name, as
+   * findWithSameName reads them, found among every record of the kind in
+   * the project as OneUptime, in one query the name index serves
+   * (AddUniqueNameIndexes); then only those the reader may read are kept,
+   * read with the reader's own permissions, and a group is answered only
+   * while two of it or more are left: a mark never says that a record the
+   * reader may not read has the name. A kind with an archive counts its
+   * records in service and its archived ones apart, since a list shows the
+   * one or the other. With each record kept, when it was made, by which
+   * the list tells twins apart.
+   *
+   * At most LIMIT_PER_PROJECT records are read. A reader who may not read
+   * the kind at all is refused, as a list of it would be.
+   */
+  public static async findTwinsOfKind<TBaseModel extends BaseModel>(data: {
+    service: DatabaseService<TBaseModel>;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<SharedNamesAnswer> {
+    const column: string | null = RequiredUniqueNames.getColumn(data.service);
+
+    if (!column) {
+      return { groups: [], createdAt: {} };
+    }
+
+    const nameKey: string = getNameKeySql({
+      textSql: `"${column}"`,
+      patternSql: "$2",
+    });
+
+    const isArchivable: boolean = data.service
+      .getModel()
+      .hasColumn(ARCHIVED_COLUMN);
+
+    // Records in service and archived ones are each another list's.
+    const archivedSql: string = isArchivable
+      ? `COALESCE("${ARCHIVED_COLUMN}", false)`
+      : "false";
+
+    const rows: Array<{
+      id: string;
+      nameKey: string;
+      isArchived: boolean | string | null;
+    }> = await data.service
+      .getRepository()
+      .query(
+        `SELECT "id", "nameKey", "isArchived" FROM (SELECT "_id" AS "id", ${nameKey} AS "nameKey", ${archivedSql} AS "isArchived", COUNT(*) OVER (PARTITION BY ${nameKey}, ${archivedSql}) AS "count" FROM "${data.service.getRepository().metadata.tableName}" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "${column}" IS NOT NULL) AS "named" WHERE "count" > 1 AND "nameKey" <> '' ORDER BY "nameKey", "isArchived", "id" LIMIT ${LIMIT_PER_PROJECT}`,
+        [data.projectId.toString(), NAME_WHITE_SPACE_RUN_PATTERN],
+      );
+
+    if (rows.length === 0) {
+      return { groups: [], createdAt: {} };
+    }
+
+    // The reader's own read: a refusal of the kind is the route's answer.
+    const readable: Array<TBaseModel> = await data.service.findBy({
+      query: {
+        projectId: data.projectId,
+        _id: QueryHelper.any(
+          rows.map((row: { id: string }): ObjectID => {
+            return new ObjectID(toIdText(row.id));
+          }),
+        ),
+      } as unknown as Query<TBaseModel>,
+      select: { _id: true, createdAt: true } as Select<TBaseModel>,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: data.props,
+    });
+
+    const createdAtById: Map<string, string | null> = new Map<
+      string,
+      string | null
+    >();
+
+    for (const record of readable) {
+      createdAtById.set(
+        toIdText(record.id),
+        toDateText(readColumn(record, "createdAt")),
+      );
+    }
+
+    // The groups, by the name as it reads and whether they are archived.
+    const idsByGroup: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
+
+    for (const row of rows) {
+      const id: string = toIdText(row.id);
+
+      if (!createdAtById.has(id)) {
+        continue;
+      }
+
+      const isArchived: boolean =
+        row.isArchived === true || row.isArchived === "true";
+      const groupKey: string = `${isArchived ? "archived" : "in-service"}\u0000${row.nameKey}`;
+
+      idsByGroup.set(groupKey, [...(idsByGroup.get(groupKey) || []), id]);
+    }
+
+    const groups: Array<Array<string>> = [];
+    const createdAt: Record<string, string> = {};
+
+    for (const ids of idsByGroup.values()) {
+      // Two the reader may read, or no mark: the other may be hidden from them.
+      if (ids.length < 2) {
+        continue;
+      }
+
+      groups.push(ids);
+
+      for (const id of ids) {
+        const date: string | null | undefined = createdAtById.get(id);
+
+        if (date) {
+          createdAt[id] = date;
+        }
+      }
+    }
+
+    return { groups: groups, createdAt: createdAt };
   }
 
   /*

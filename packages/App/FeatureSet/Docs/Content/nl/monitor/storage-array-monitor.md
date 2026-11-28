@@ -4,6 +4,8 @@ Een opslagarray-monitor houdt één opslagarray in de gaten en laat je weten wan
 
 Hij werkt ook met Dell PowerStore (`dell.powerstore`), op basis van de reeksen `powerstore_*` van Dell.
 
+Hij werkt ook met Dell PowerScale (`dell.powerscale`), op basis van de reeksen `powerscale_*` van Dell.
+
 :::cards
 - [De monitor maken](#een-opslagarray-monitor-maken): Zes stappen in het dashboard.
 - [Templates](#kant-en-klare-waarschuwingstemplates): Kant-en-klare waarschuwingen, één incident per volume, host, appliance of component.
@@ -13,7 +15,7 @@ Hij werkt ook met Dell PowerStore (`dell.powerstore`), op basis van de reeksen `
 
 ## Hoe het werkt
 
-De OneUptime Storage Array Agent draait op een machine die de beheerinterface van de array kan bereiken. Hij leest de metrieken van de array met een alleen-lezen API-token, labelt ze met de naam van de array, `storage.array.name`, en het platform ervan, `storage.system`, en stuurt ze via OTLP naar OneUptime. De eerste gegevens registreren de array.
+De OneUptime Storage Array Agent draait op een machine die de beheerinterface van de array kan bereiken. Hij leest de metrieken van de array met een alleen-lezen API-token (die van een PowerScale via SNMP, met een alleen-lezen-community of een SNMPv3-gebruiker), labelt ze met de naam van de array, `storage.array.name`, en het platform ervan, `storage.system`, en stuurt ze via OTLP naar OneUptime. De eerste gegevens registreren de array.
 
 Een Dell PowerMax (`dell.powermax`) heeft geen agent nodig: een OneUptime-sonde meldt zich elke 5 minuten met een alleen-lezenaccount aan bij Unisphere for PowerMax en stuurt elke array die deze beheert op dezelfde manier, genoemd naar zijn Symmetrix ID totdat je hem hernoemt ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
 
@@ -82,15 +84,15 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **Volume** | Custom Metric, Geavanceerd | Eén volume: op een FlashArray via het label `name`, zoals `vol-db-01` (een volume in een pod of een volumegroep heet `pod::volume` of `group/volume`); op ONTAP via het label `volume`, dat twee SVM's kunnen delen; op een PowerMax via het label `volume`, zijn apparaat-ID, zoals `00847`. |
 | **Host** | Custom Metric, Geavanceerd | Alleen FlashArray. Eén host zoals de array hem kent, via het label `host`, zoals `esxi-01`. |
 | **Pod** | Custom Metric, Geavanceerd | Alleen FlashArray. Eén ActiveCluster- of ActiveDR-pod, via het label `name`, of `local_pod` op reeksen van replicakoppelingen. |
-| **Hardwarecomponent** | Custom Metric, Geavanceerd | Eén hardwarecomponent, zoals `CH0.BAY1` of `CT0`: het label `component_name` op een FlashArray, `name` op een FlashBlade, op ONTAP het label waarmee de reeks het component benoemt (`node`, `disk`, `shelf` of `port`), en `component` op een PowerMax, een director zoals `FA-1D` of een poort zoals `FA-1D:4`. |
-| **Bestandssysteem** | Custom Metric, Geavanceerd | Alleen FlashBlade. Eén bestandssysteem, via het label `name`. |
+| **Hardwarecomponent** | Custom Metric, Geavanceerd | Eén hardwarecomponent, zoals `CH0.BAY1` of `CT0`: het label `component_name` op een FlashArray, `name` op een FlashBlade, op ONTAP het label waarmee de reeks het component benoemt (`node`, `disk`, `shelf` of `port`), en `component` op een PowerMax, een director zoals `FA-1D` of een poort zoals `FA-1D:4`. Op een PowerScale een node via het label `node`, zoals `ps-prod-2`. |
+| **Bestandssysteem** | Custom Metric, Geavanceerd | FlashBlade en PowerScale. Eén bestandssysteem via het label `name` op een FlashBlade; één quotum via het label `quota` op een PowerScale, zoals `/ifs/data/home`. |
 | **Bucket** | Custom Metric, Geavanceerd | Alleen FlashBlade. Eén objectopslagbucket, via het label `name`. |
 | **Storage Array Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). Het formulier voegt het labelfilter toe dat haar betekenis geeft, en groepeert haar op het object dat ze beschrijft, zodat elk volume, elke host of elk component afzonderlijk wordt beoordeeld. |
 | **Aggregatie** | Custom Metric | Hoe monsters worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
 | **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Afgelopen 5 minuten**; een eigen metriek van een bestandssysteem of bucket bij **Afgelopen 15 minuten**; templates stellen hun eigen venster in. |
 | **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregeren op**, **Filteren op attributen**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
 
-De agent leest het array-endpoint elke 60 seconden, en volumes, hosts en pods elke 2 minuten, dus een venster van 5 minuten bevat altijd een monster. De bestandssystemen en buckets van een FlashBlade leest hij elke 5 minuten, vandaar 15, en FlashArray-mappen elke 30 minuten: geef een mapmonitor een venster van 60 minuten. Op ONTAP leest Harvest de prestaties van het cluster elke minuut en de configuratie, status en EMS-gebeurtenissen elke 3 minuten, dus een venster van 5 minuten bevat altijd een monster.
+De agent leest het array-endpoint elke 60 seconden, en volumes, hosts en pods elke 2 minuten, dus een venster van 5 minuten bevat altijd een monster. De bestandssystemen en buckets van een FlashBlade leest hij elke 5 minuten, vandaar 15, en FlashArray-mappen elke 30 minuten: geef een mapmonitor een venster van 60 minuten. Op ONTAP leest Harvest de prestaties van het cluster elke minuut en de configuratie, status en EMS-gebeurtenissen elke 3 minuten, dus een venster van 5 minuten bevat altijd een monster. Een PowerScale-cluster en elk van zijn nodes bevraagt hij elke 60 seconden, en zijn quota elke 5 minuten: geef een quotummonitor een venster van 15 minuten.
 
 Hij leest een PowerStore elke 5 minuten, en de toestand van zijn cluster elke 60 seconden: geef een PowerStore-monitor een venster van 15 minuten.
 
@@ -114,7 +116,7 @@ Een reeks die gefilterd is op een slechte toestand bestaat alleen zolang iets in
 
 De reeksen van een PowerMax bevatten elk één waarde en zijn ernaar genoemd: `powermax_array_response_time_usec` onderscheidt leesacties van schrijfacties met `operation`. Zijn toestandsreeksen bestaan op dezelfde manier alleen zolang er iets mis is: `powermax_alert_open` zolang Unisphere een waarschuwing open heeft, `powermax_director_offline` zolang een director niet online is, `powermax_port_offline` zolang een poort waarop iemand vertrouwt uitgevallen is, en `powermax_srdf_group_not_healthy` zolang een SRDF-groep onderbroken of offline is.
 
-In monitorfilters en groeperingssleutels beginnen de attributen van de agent met `resource.` (`resource.storage.array.name`, `resource.storage.system`), terwijl de eigen labels van Pure dat niet doen (`name`, `host`, `component_name`, `dimension`, `space`, `severity`), en die van PowerMax evenmin (`storage_group`, `volume`, `director`, `port_id`, `srdf_group`).
+In monitorfilters en groeperingssleutels beginnen de attributen van de agent met `resource.` (`resource.storage.array.name`, `resource.storage.system`), terwijl de eigen labels van Pure dat niet doen (`name`, `host`, `component_name`, `dimension`, `space`, `severity`), en die van PowerMax evenmin (`storage_group`, `volume`, `director`, `port_id`, `srdf_group`), en die van PowerScale evenmin (`node`, `quota`, `drive`, `protocol`).
 
 ## Hoe de reeksen van PowerStore zijn opgebouwd
 
@@ -136,7 +138,7 @@ Een toestand als getal gaat af wanneer elke meting in het venster onder 1 ligt, 
 
 ## Kant-en-klare waarschuwingstemplates
 
-OneUptime levert 80 templates — 12 voor FlashArray, 8 voor FlashBlade, 16 voor PowerStore, 31 voor ONTAP en 13 voor PowerMax — en de lijst onder **Waarover te waarschuwen** biedt die voor het platform van de array aan. Elk template bouwt een volledige monitor: de metriekquery, de labelfilters, een groepering op het eigen label van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
+OneUptime levert 93 templates — 12 voor FlashArray, 8 voor FlashBlade, 16 voor PowerStore, 31 voor ONTAP, 13 voor PowerMax en 13 voor PowerScale — en de lijst onder **Waarover te waarschuwen** biedt die voor het platform van de array aan. Elk template bouwt een volledige monitor: de metriekquery, de labelfilters, een groepering op het eigen label van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
 
 Een criterium gaat alleen af als de voorwaarde geldt voor **elke** waarde in zijn venster, behalve bij een EMS-template van ONTAP: Harvest exporteert een gebeurtenis voor één opvraging, dus één meting is genoeg. Een monitor die afging op een drempel voor capaciteit, latentie, achterstand of verhouding herstelt pas 10 % voorbij die drempel, zodat een waarde die rond de drempel schommelt niet heen en weer springt. De templates voor waarschuwingen, hardware en connectiviteit gaan af zodra een toestand hun hele venster van 5 minuten zichtbaar was, en herstellen ongeveer 5 minuten nadat die verdwenen is.
 
@@ -255,11 +257,29 @@ De eigen waarschuwingen van een PowerStore komen als logboeken binnen, dus hun t
 | SRDF Group Suspended or Offline | Replicatie | Kritiek | `powermax_srdf_group_not_healthy`, Max per `srdf_group`, laatste 10 minuten | > 0 — de link van de groep is offline of de paren zijn onderbroken, gesplitst of overgeschakeld (failover), zodat de externe kopie niet actueel blijft. Eén incident per groep; herstelt als hij weer synchroon is |
 | SRDF/A Lag Above 2 Minutes | Replicatie | Waarschuwing | `powermax_srdf_group_lag_seconds`, Avg per `srdf_group`, laatste 15 minuten | > 120 (2 minuten) — een failover nu zou meer recente schrijfacties verliezen dan gepland. Eén incident per groep; herstelt bij ≤ 108 |
 
+### PowerScale
+
+| Template | Categorie | Ernst | Houdt in de gaten | Gaat af als |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Beschikbaarheid | Kritiek | `powerscale_cluster_health`, Count, laatste 10 minuten | Geen gegevens gedurende het hele venster — de Storage Array Agent is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken, of het cluster antwoordt niet meer op zijn bevragingen; herstelt als er weer gegevens binnenkomen |
+| Cluster Needs Attention | Arraygezondheid | Waarschuwing | `powerscale_cluster_health`, Max, laatste 5 minuten | > 0 — OneFS meldt dat het cluster aandacht vraagt, uitgevallen of ongeldig is, en `isi event groups list` zegt waarom; herstelt bij ≤ 0 |
+| Cluster Down | Arraygezondheid | Kritiek | `powerscale_cluster_health`, Max, laatste 5 minuten | ≥ 2 — OneFS meldt het cluster als uitgevallen of ongeldig; herstelt bij < 2 |
+| Node Offline | Hardware | Kritiek | `powerscale_cluster_offline_nodes`, Max, laatste 5 minuten | > 0 — een node van het cluster is offline, en `offline_nodes` noemt welke; herstelt bij ≤ 0 |
+| Node Needs Attention | Hardware | Waarschuwing | `powerscale_node_health`, Max per `node`, laatste 5 minuten | > 0 — een node meldt dat hij aandacht vraagt, uitgevallen of ongeldig is. Eén incident per node; herstelt bij ≤ 0 |
+| Node Read-Only | Hardware | Waarschuwing | `powerscale_node_read_only`, Max per `node`, laatste 5 minuten | > 0 — een node staat in alleen-lezenmodus, en clients die ermee verbonden zijn, kunnen niet schrijven. Eén incident per node; herstelt bij ≤ 0 |
+| Drive Failed | Hardware | Kritiek | `powerscale_drive_size_bytes` gefilterd op `status=DEAD`, Count per `drive`, laatste 5 minuten | > 0 — een schijf is dood, en OneFS beschermt zijn gegevens opnieuw op de andere. Eén incident per schijf; herstelt als hij een andere status meldt |
+| Drive Smartfailed | Hardware | Waarschuwing | `powerscale_drive_size_bytes` gefilterd op `status=SMARTFAIL`, Count per `drive`, laatste 5 minuten | > 0 — OneFS verplaatst de gegevens van een falende schijf voordat die wordt vervangen. Eén incident per schijf; herstelt als hij een andere status meldt |
+| Capacity Above 80% | Capaciteit | Waarschuwing | `powerscale_ifs_used_percent`, Max, laatste 15 minuten | > 80, inclusief de ruimte die voor virtuele hot spares wordt achtergehouden; herstelt bij ≤ 72 |
+| Capacity Above 90% | Capaciteit | Kritiek | `powerscale_ifs_used_percent`, Max, laatste 5 minuten | > 90 — het cluster staat op het punt schrijfacties te weigeren; herstelt bij ≤ 81 |
+| Quota Near Its Limit | Capaciteit | Waarschuwing | `powerscale_quota_used_percent`, Max per `quota`, laatste 15 minuten | > 90 van zijn harde limiet, of van zijn zachte limiet als het er geen heeft. Eén incident per quotum; herstelt bij ≤ 81 |
+| Quota Full | Capaciteit | Kritiek | `powerscale_quota_used_percent`, Max per `quota`, laatste 5 minuten | ≥ 100 — schrijfacties onder het pad van het quotum mislukken bij een harde limiet. Eén incident per quotum; herstelt bij < 90 |
+| High Protocol Latency | Prestaties | Waarschuwing | `powerscale_protocol_latency_microseconds`, Max per `protocol`, laatste 10 minuten | > 20000 µs (20 ms) op de traagste node. Eén incident per protocol; herstelt bij ≤ 18000 |
+
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een template maakt, beginnen op de zwaarste incident- en waarschuwingsernst van je project; wijzig ze in het criterium.
 
-- **Array Stopped Reporting** telt de identiteitsreeks van het platform (`purefa_info` of `purefb_info`, die elk endpoint dat de agent uitleest bij elke uitlezing exporteert, of `powermax_array_info`, dat elke PowerMax-verzameling schrijft). Als er geen gegevens meer komen, hebben de andere templates niets om te vergelijken en houden ze hun laatste status, dus dit is het template dat het je laat weten.
+- **Array Stopped Reporting** telt de identiteitsreeks van het platform (`purefa_info` of `purefb_info`, die elk endpoint dat de agent uitleest bij elke uitlezing exporteert, of `powermax_array_info`, dat elke PowerMax-verzameling schrijft); die van een PowerScale is `powerscale_cluster_health`, die de bevraging van het cluster door de agent elke minuut stuurt. Als er geen gegevens meer komen, hebben de andere templates niets om te vergelijken en houden ze hun laatste status, dus dit is het template dat het je laat weten.
 - **Openstaande waarschuwingen en hardwaretoestanden gebruiken Max** van een reeks die alleen bestaat zolang de waarschuwing open is of het component in die toestand is, dus de toestand overschrijdt de drempel zodra die het hele venster van 5 minuten zichtbaar was.
-- **Elk template per object groepeert op het eigen label van het object** (`summary`, `component_name`, `host`, `local_pod`, `name` en op een PowerMax `description`, `component`, `srp`, `srdf_group` en `storage_group`), dus er gaat één incident af per getroffen object, en het incident noemt het.
+- **Elk template per object groepeert op het eigen label van het object** (`summary`, `component_name`, `host`, `local_pod`, `name` en op een PowerMax `description`, `component`, `srp`, `srdf_group` en `storage_group`, en bij een PowerScale `node`, `drive`, `quota` en `protocol`), dus er gaat één incident af per getroffen object, en het incident noemt het.
 - **Latentietemplates gebruiken Avg** van het eigen gemiddelde per operatie van de array, en capaciteitstemplates **Max.** van het eigen bezettingspercentage. Latenties staan vast in microseconden en capaciteit in procenten.
 - **Hardware Component Unhealthy gebruikt Min** per component: de gezondheid is 1 als het gezond is en zakt naar 0 als dat niet zo is.
 
@@ -283,6 +303,8 @@ De agent stuurt alles wat de array exporteert, en een sonde alles wat ze van een
 | `powermax_alert_open` | — | PowerMax | `count` | Eén reeks per waarschuwing die Unisphere voor de array open heeft (waarde 1): niet bevestigd, niet gewist en Minor of erger. Het label severity is critical (Critical en Fatal) of warning (Warning en Minor); de labels alert_type, object en description zeggen waar het om gaat. Bevestig de waarschuwing in Unisphere en de reeks verdwijnt |
 | `powermax_array_health_score` | — | PowerMax | `score` | De gezondheidsscore van de array volgens Unisphere, van 0 tot 100, per health_metric: totaal, en voor elk gebied dat hij beoordeelt (capaciteit, configuratie, prestaties, naleving van het serviceniveau) |
 | `powermax_array_performance_collection` | — | PowerMax | `count` | 1 zolang Unisphere prestatiegegevens per 5 minuten voor de array verzamelt, 0 zolang dat niet gebeurt. Staat het uit, dan toont OneUptime nog steeds de inventaris en waarschuwingen van de array, maar geen prestatiegrafieken. Zet het aan in Unisphere via Settings > Performance > System Registrations |
+| `powerscale_cluster_health` | — | PowerScale | — | De gezondheid die OneFS voor het cluster meldt: 0 is OK, 1 vraagt aandacht, 2 is uitgevallen en 3 is ongeldig. Neem het maximum om elke verandering te zien |
+| `powerscale_cluster_offline_nodes` | — | PowerScale | `count` | Hoeveel nodes van het cluster offline zijn; het label `offline_nodes` somt hun logische nodenummers op |
 
 ### Capaciteit
 
@@ -318,6 +340,12 @@ De agent stuurt alles wat de array exporteert, en een sonde alles wat ze van een
 | `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | Hoeveel keer groter de gegevens die hosts schreven zijn dan de ruimte die ze na compressie en deduplicatie innemen, zoals Unisphere meldt |
 | `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | Aandeel van de bruikbare capaciteit van elke opslagresourcepool dat in gebruik is, in procenten, op het label srp. Een volle pool neemt voor geen enkele opslaggroep erin nog nieuwe schrijfacties aan |
 | `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | Gebruikte bruikbare capaciteit van elke opslagresourcepool, in bytes, op het label srp |
+| `powerscale_ifs_used_percent` | — | PowerScale | `%` | Aandeel van de capaciteit van het cluster dat niet meer beschikbaar is voor schrijfbewerkingen: wat in gebruik is, plus de ruimte die OneFS achterhoudt voor virtuele hot spares |
+| `powerscale_ifs_available_bytes` | — | PowerScale | `bytes` | Ruimte die nog beschikbaar is voor schrijfbewerkingen op `/ifs` |
+| `powerscale_ifs_used_bytes` | — | PowerScale | `bytes` | Ruimte in gebruik op `/ifs`, zoals OneFS die telt |
+| `powerscale_ifs_total_bytes` | — | PowerScale | `bytes` | De grootte van `/ifs` over het hele cluster |
+| `powerscale_quota_used_percent` | — | PowerScale | `%` | Het gebruik van elk quotum als aandeel van zijn harde limiet, of van zijn zachte limiet als het geen harde heeft (het label `limit` zegt welke) — groepeer op `quota` |
+| `powerscale_quota_usage_bytes` | — | PowerScale | `bytes` | Wat elk quotum bevat, zoals OneFS het aan het quotum toerekent |
 
 ### Prestaties
 
@@ -375,6 +403,16 @@ De agent stuurt alles wat de array exporteert, en een sonde alles wat ze van een
 | `powermax_array_backend_busy_percent` | — | PowerMax | `%` | Hoe bezet de directors zijn die de schijven bedienen, in procenten |
 | `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | Hoe bezet de directors zijn die naar andere arrays repliceren, in procenten |
 | `powermax_srp_response_time_usec` | — | PowerMax | `µs` | Gemiddelde tijd van een I/O in elke opslagresourcepool, in microseconden, op het label srp |
+| `powerscale_cluster_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes per seconde die uit `/ifs` worden gelezen, over het hele cluster |
+| `powerscale_cluster_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes per seconde die naar `/ifs` worden geschreven, over het hele cluster |
+| `powerscale_cluster_network_in_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes per seconde die de front-endpoorten van het cluster ontvangen |
+| `powerscale_cluster_network_out_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes per seconde die de front-endpoorten van het cluster versturen |
+| `powerscale_cluster_cpu_busy_percent` | — | PowerScale | `%` | Aandeel van de CPU-tijd in gebruik, gemiddeld over de nodes van het cluster |
+| `powerscale_protocol_latency_microseconds` | — | PowerScale | `µs` | Gemiddelde duur van een bewerking per protocol (NFS, SMB, HDFS, ...) op elke node; het maximum is de traagste node — groepeer op `protocol` of `node` |
+| `powerscale_protocol_latency_max_microseconds` | — | PowerScale | `µs` | De traagste afzonderlijke bewerking per protocol op elke node |
+| `powerscale_protocol_operations_per_second` | — | PowerScale | `ops/s` | Bewerkingen per seconde per protocol op elke node; het maximum is de drukste node |
+| `powerscale_protocol_in_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes per seconde die clients via elk protocol naar elke node sturen: schrijfbewerkingen en verzoeken |
+| `powerscale_protocol_out_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes per seconde die elke node via elk protocol naar clients stuurt: leesbewerkingen en antwoorden |
 
 ### Volumes
 
@@ -532,6 +570,16 @@ De agent stuurt alles wat de array exporteert, en een sonde alles wat ze van een
 | `powermax_port_busy_percent` | — | PowerMax | `%` | Hoe bezet elke poort is, in procenten, op het label component (zoals FA-1D:4) |
 | `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes per seconde die via elke poort worden gelezen, op het label component |
 | `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | Het lichtvermogen dat elke optische poort ontvangt, in milliwatt, op het label component. Een dalende waarde wijst op een optiek of kabel die slechter wordt. Vereist Unisphere 10.3 of nieuwer |
+| `powerscale_node_health` | — | PowerScale | — | De gezondheid die elke node meldt: 0 is OK, 1 vraagt aandacht, 2 is uitgevallen en 3 is ongeldig — groepeer op `node` |
+| `powerscale_node_read_only` | — | PowerScale | — | 1 zolang een node in alleen-lezenmodus staat, anders 0 — groepeer op `node` |
+| `powerscale_node_cpu_busy_percent` | — | PowerScale | `%` | Aandeel van de CPU-tijd van elke node in gebruik — groepeer op `node` |
+| `powerscale_node_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes per seconde die via elke node uit `/ifs` worden gelezen |
+| `powerscale_node_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes per seconde die via elke node naar `/ifs` worden geschreven |
+| `powerscale_drive_size_bytes` | — | PowerScale | `bytes` | Eén reeks per schijfslot, met de grootte van de schijf als waarde en de labels `status` (`HEALTHY`, `SMARTFAIL`, `DEAD`, ...), `model` en `serial` |
+| `powerscale_drive_operations_per_second` | — | PowerScale | `ops/s` | Bewerkingen per seconde die elke schijf afhandelt — groepeer op `drive` |
+| `powerscale_temperature_celsius` | — | PowerScale | `°C` | De meetwaarde van elke temperatuursensor op elke node; het maximum per node is de heetste sensor |
+| `powerscale_fan_speed_rpm` | — | PowerScale | `rpm` | De snelheid van elke ventilator op elke node; het minimum vindt een ventilator die vertraagt |
+| `powerscale_interface_status` | — | PowerScale | — | De toestand van elke nodepoort: 1 is actief, 2 is inactief, 7 is inactief onder de poort (geen link); `admin_status` is 1 voor een poort die actief hoort te zijn |
 
 ### Bestandssystemen
 

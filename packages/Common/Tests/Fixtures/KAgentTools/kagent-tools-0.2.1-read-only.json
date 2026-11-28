@@ -1,0 +1,1762 @@
+{
+  "serverInfo": {
+    "name": "kagent-tools-server",
+    "version": "0.2.1"
+  },
+  "protocolVersion": "2025-06-18",
+  "capabilities": {
+    "tools": {
+      "listChanged": true
+    }
+  },
+  "tools": [
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Check the logs of the Argo Rollouts Gateway API plugin",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "description": "The namespace of the plugin resources",
+            "type": "string"
+          },
+          "timeout": {
+            "description": "Timeout for log collection in seconds",
+            "type": "string"
+          }
+        }
+      },
+      "name": "argo_check_plugin_logs"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List rollouts or experiments",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "description": "The namespace of the rollout",
+            "type": "string"
+          },
+          "type": {
+            "default": "rollouts",
+            "description": "What to list: rollouts or experiments",
+            "type": "string"
+          }
+        }
+      },
+      "name": "argo_rollouts_list"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Verify that the Argo Rollouts controller is installed and running",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "description": "The label of the Argo Rollouts controller pods",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "The namespace where Argo Rollouts is installed",
+            "type": "string"
+          }
+        }
+      },
+      "name": "argo_verify_argo_rollouts_controller_install"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Verify that the kubectl Argo Rollouts plugin is installed",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "argo_verify_kubectl_plugin_install"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Display the encryption state for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the encryption state for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_display_encryption_state"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Display policy node information for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "labels": {
+            "description": "The labels to get policy node information for",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get policy node information for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_display_policy_node_information"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Display selectors for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get selectors for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_display_selectors"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Manage the FQDN cache for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "description": "The command to perform on the FQDN cache (list, clean, or a specific command)",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to manage the FQDN cache for",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command"
+        ]
+      },
+      "name": "cilium_fqdn_cache"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get BPF map for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "map_name": {
+            "description": "The name of the BPF map to get",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get the BPF map for",
+            "type": "string"
+          }
+        },
+        "required": [
+          "map_name"
+        ]
+      },
+      "name": "cilium_get_bpf_map"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get the status of the Cilium daemon for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "brief": {
+            "description": "Whether to show a brief status",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get the daemon status for",
+            "type": "string"
+          },
+          "show_all_addresses": {
+            "description": "Whether to show all addresses",
+            "type": "string"
+          },
+          "show_all_clusters": {
+            "description": "Whether to show all clusters",
+            "type": "string"
+          },
+          "show_all_controllers": {
+            "description": "Whether to show all controllers",
+            "type": "string"
+          },
+          "show_all_nodes": {
+            "description": "Whether to show all nodes",
+            "type": "string"
+          },
+          "show_all_redirects": {
+            "description": "Whether to show all redirects",
+            "type": "string"
+          },
+          "show_health": {
+            "description": "Whether to show health",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_get_daemon_status"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List the details of an endpoint in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "endpoint_id": {
+            "description": "The ID of the endpoint to get details for",
+            "type": "string"
+          },
+          "labels": {
+            "description": "The labels of the endpoint to get details for",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get the endpoint details for",
+            "type": "string"
+          },
+          "output_format": {
+            "description": "The output format of the endpoint details (json, yaml, jsonpath)",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_get_endpoint_details"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get the health of an endpoint in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "endpoint_id": {
+            "description": "The ID of the endpoint to get health for",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get the endpoint health for",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint_id"
+        ]
+      },
+      "name": "cilium_get_endpoint_health"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get the logs of an endpoint in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "endpoint_id": {
+            "description": "The ID of the endpoint to get logs for",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get the endpoint logs for",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint_id"
+        ]
+      },
+      "name": "cilium_get_endpoint_logs"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get the list of all endpoints in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the endpoints list for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_get_endpoints_list"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get the details of an identity in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "identity_id": {
+            "description": "The ID of the identity to get details for",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get the identity details for",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id"
+        ]
+      },
+      "name": "cilium_get_identity_details"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get a key from the kvstore for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "description": "The key to get from the kvstore",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get the key from",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      },
+      "name": "cilium_get_kv_store_key"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get a PCAP recorder for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the PCAP recorder for",
+            "type": "string"
+          },
+          "recorder_id": {
+            "description": "The ID of the PCAP recorder to get",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recorder_id"
+        ]
+      },
+      "name": "cilium_get_pcap_recorder"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get information about a service in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the service information for",
+            "type": "string"
+          },
+          "service_id": {
+            "description": "The ID of the service to get information about",
+            "type": "string"
+          }
+        },
+        "required": [
+          "service_id"
+        ]
+      },
+      "name": "cilium_get_service_information"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List BGP peers",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "cilium_list_bgp_peers"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List BGP routes",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "cilium_list_bgp_routes"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List BPF map events for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "map_name": {
+            "description": "The name of the BPF map to get events for",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get the BPF map events for",
+            "type": "string"
+          }
+        },
+        "required": [
+          "map_name"
+        ]
+      },
+      "name": "cilium_list_bpf_map_events"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List BPF maps for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the BPF maps for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_list_bpf_maps"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List cluster nodes for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the cluster nodes for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_list_cluster_nodes"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List the Envoy configuration for a resource in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the Envoy configuration for",
+            "type": "string"
+          },
+          "resource_name": {
+            "description": "The name of the resource to get the Envoy configuration for",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_name"
+        ]
+      },
+      "name": "cilium_list_envoy_config"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List all identities in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to list the identities for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_list_identities"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List the IP addresses for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the IP addresses for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_list_ip_addresses"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List local redirect policies for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the local redirect policies for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_list_local_redirect_policies"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List metrics for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "match_pattern": {
+            "description": "The match pattern to filter metrics by",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get the metrics for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_list_metrics"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List node IDs for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the node IDs for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_list_node_ids"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List PCAP recorders for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the PCAP recorders for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_list_pcap_recorders"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List services for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the services for",
+            "type": "string"
+          },
+          "show_cluster_mesh_affinity": {
+            "description": "Whether to show cluster mesh affinity",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_list_services"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List XDP CIDR filters for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the XDP CIDR filters for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_list_xdp_cidr_filters"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Request debugging information for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the debugging information for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_request_debugging_information"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Show cluster mesh status",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "cilium_show_cluster_mesh_status"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Show Cilium configuration options",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "list_all": {
+            "description": "Whether to list all configuration options",
+            "type": "string"
+          },
+          "list_options": {
+            "description": "Whether to list options",
+            "type": "string"
+          },
+          "list_read_only": {
+            "description": "Whether to list read-only configuration options",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to show the configuration options for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_show_configuration_options"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Show the DNS names for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the DNS names for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_show_dns_names"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Show Cilium features status",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "cilium_show_features_status"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Show the IP cache information for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cidr": {
+            "description": "The CIDR of the IP to get cache information for",
+            "type": "string"
+          },
+          "labels": {
+            "description": "The labels of the IP to get cache information for",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to get the IP cache information for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_show_ip_cache_information"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Show load information for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "description": "The name of the node to get the load information for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_show_load_information"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get the status and version of Cilium installation",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "cilium_status_and_version"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Validate Cilium network policies for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "enable_k8s": {
+            "description": "Whether to enable k8s API discovery",
+            "type": "string"
+          },
+          "enable_k8s_api_discovery": {
+            "description": "Whether to enable k8s API discovery",
+            "type": "string"
+          },
+          "node_name": {
+            "description": "The name of the node to validate the Cilium network policies for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "cilium_validate_cilium_network_policies"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Returns the current date and time in ISO 8601 format.",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "datetime_get_current_time"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get extended information about a Helm release",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The name of the release",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "The namespace of the release",
+            "type": "string"
+          },
+          "resource": {
+            "description": "The resource to get (all, hooks, manifest, notes, values)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "namespace"
+        ]
+      },
+      "name": "helm_get_release"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List Helm releases in a namespace",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "all": {
+            "description": "Show all releases without any filter applied",
+            "type": "string"
+          },
+          "all_namespaces": {
+            "description": "List releases from all namespaces",
+            "type": "string"
+          },
+          "deployed": {
+            "description": "List deployed releases",
+            "type": "string"
+          },
+          "failed": {
+            "description": "List failed releases",
+            "type": "string"
+          },
+          "filter": {
+            "description": "A regular expression to filter releases by",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "The namespace to list releases from",
+            "type": "string"
+          },
+          "output": {
+            "description": "The output format (e.g., 'json', 'yaml', 'table')",
+            "type": "string"
+          },
+          "pending": {
+            "description": "List pending releases",
+            "type": "string"
+          },
+          "uninstalled": {
+            "description": "List uninstalled releases",
+            "type": "string"
+          },
+          "uninstalling": {
+            "description": "List uninstalling releases",
+            "type": "string"
+          }
+        }
+      },
+      "name": "helm_list_releases"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Update information of available charts locally from chart repositories",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "helm_repo_update"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Analyze Istio cluster configuration for issues",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "istio_analyze_cluster_configuration"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Generate Istio manifest for a given profile",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "description": "Istio configuration profile (ambient, default, demo, minimal, empty)",
+            "type": "string"
+          }
+        }
+      },
+      "name": "istio_generate_manifest"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Generate a waypoint resource YAML",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "istio_generate_waypoint"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List all waypoints in the mesh",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "istio_list_waypoints"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get specific proxy configuration for a single pod",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "config_type": {
+            "description": "Type of configuration (all, bootstrap, cluster, ecds, listener, log, route, secret)",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace of the pod",
+            "type": "string"
+          },
+          "pod_name": {
+            "description": "Name of the pod to get proxy configuration for",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pod_name"
+        ]
+      },
+      "name": "istio_proxy_config"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get Envoy proxy status for pods, retrieves last sent and acknowledged xDS sync from Istiod to each Envoy in the mesh",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "description": "Namespace of the pod",
+            "type": "string"
+          },
+          "pod_name": {
+            "description": "Name of the pod to get proxy status for",
+            "type": "string"
+          }
+        }
+      },
+      "name": "istio_proxy_status"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List remote clusters registered with Istio",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "istio_remote_clusters"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get Istio version information",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "istio_version"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get the status of a waypoint resource",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "istio_waypoint_status"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get the ztunnel configuration for a namespace",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "istio_ztunnel_config"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Describe a Kubernetes resource in detail",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "description": "Namespace of the resource (optional)",
+            "type": "string"
+          },
+          "resource_name": {
+            "description": "Name of the resource",
+            "type": "string"
+          },
+          "resource_type": {
+            "description": "Type of resource (deployment, service, pod, node, etc.)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_type",
+          "resource_name"
+        ]
+      },
+      "name": "k8s_describe_resource"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Generate a Kubernetes resource YAML from a description",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "resource_description": {
+            "description": "Detailed description of the resource to generate",
+            "type": "string"
+          },
+          "resource_type": {
+            "description": "Type of resource to generate (gateway_api_gateway_class, argo_rollout, argo_analysis_template, istio_auth_policy, istio_virtual_service, gateway_api_reference_grant, gateway_api_grpc_route, gateway_api_gateway, gateway_api_http_route)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_description",
+          "resource_type"
+        ]
+      },
+      "name": "k8s_generate_resource"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get available Kubernetes API resources",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "k8s_get_available_api_resources"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get cluster configuration details",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "k8s_get_cluster_configuration"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get events from a Kubernetes namespace",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "description": "Namespace to get events from (default: default)",
+            "type": "string"
+          }
+        }
+      },
+      "name": "k8s_get_events"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get logs from a Kubernetes pod",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "container": {
+            "description": "Container name (for multi-container pods)",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace of the pod (default: default)",
+            "type": "string"
+          },
+          "pod_name": {
+            "description": "Name of the pod",
+            "type": "string"
+          },
+          "tail_lines": {
+            "description": "Number of lines to show from the end (default: 50)",
+            "type": "number"
+          }
+        },
+        "required": [
+          "pod_name"
+        ]
+      },
+      "name": "k8s_get_pod_logs"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get the YAML representation of a Kubernetes resource",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "description": "Namespace of the resource (optional)",
+            "type": "string"
+          },
+          "resource_name": {
+            "description": "Name of the resource",
+            "type": "string"
+          },
+          "resource_type": {
+            "description": "Type of resource",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_type",
+          "resource_name"
+        ]
+      },
+      "name": "k8s_get_resource_yaml"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get Kubernetes resources using kubectl",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "all_namespaces": {
+            "description": "Query all namespaces (true/false)",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace to query (optional)",
+            "type": "string"
+          },
+          "output": {
+            "default": "wide",
+            "description": "Output format (json, yaml, wide)",
+            "type": "string"
+          },
+          "resource_name": {
+            "description": "Name of specific resource (optional)",
+            "type": "string"
+          },
+          "resource_type": {
+            "description": "Type of resource (pod, service, deployment, etc.)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_type"
+        ]
+      },
+      "name": "k8s_get_resources"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Check if Kubescape operator is installed and operational. Verifies namespace, operator pods, storage pods, CRDs, and scan data availability.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "description": "Namespace to check (default: kubescape)",
+            "type": "string"
+          }
+        }
+      },
+      "name": "kubescape_check_health"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get detailed runtime behavior profile for a specific workload. Shows what processes run, what files are accessed, what system calls are made, and what capabilities are used per container. Compare with CVE findings to prioritize remediation - focus on vulnerabilities affecting actively used components.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Name of the application profile",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace of the profile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "namespace",
+          "name"
+        ]
+      },
+      "name": "kubescape_get_application_profile"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get detailed configuration security scan results for a specific workload, including failed controls and remediation guidance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "manifest_name": {
+            "description": "Name of the configuration scan manifest",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace of the scan (default: kubescape)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "manifest_name"
+        ]
+      },
+      "name": "kubescape_get_configuration_scan"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get detailed network connections for a specific workload. Shows all observed ingress and egress traffic with DNS names, IPs, ports, and protocols. Use this to verify if a workload with a vulnerability is actually exposed to the network.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Name of the network neighborhood",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace of the network neighborhood",
+            "type": "string"
+          }
+        },
+        "required": [
+          "namespace",
+          "name"
+        ]
+      },
+      "name": "kubescape_get_network_neighborhood"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get detailed information about a specific CVE in a vulnerability manifest, including affected packages and fix information.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cve_id": {
+            "description": "CVE identifier (e.g., CVE-2023-12345)",
+            "type": "string"
+          },
+          "manifest_name": {
+            "description": "Name of the vulnerability manifest",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace of the manifest (default: kubescape)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "manifest_name",
+          "cve_id"
+        ]
+      },
+      "name": "kubescape_get_vulnerability_details"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List ApplicationProfiles showing runtime behavior of workloads. These profiles capture: executed processes (Execs), file access patterns (Opens), system calls (Syscalls), Linux capabilities used, and HTTP endpoints. Use this data to prioritize vulnerability findings - a CVE in an unused package is lower priority than one in an actively running process. Requires 'capabilities.runtimeObservability=enable' in Kubescape Helm chart.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "description": "Filter by namespace (optional, defaults to all namespaces)",
+            "type": "string"
+          }
+        }
+      },
+      "name": "kubescape_list_application_profiles"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List configuration security scan results from Kubescape operator. Shows workloads that have been scanned for security misconfigurations.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "description": "Filter by namespace (optional, defaults to all namespaces)",
+            "type": "string"
+          }
+        }
+      },
+      "name": "kubescape_list_configuration_scans"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List NetworkNeighborhoods showing actual network communication patterns of workloads. These capture: ingress connections (who talks TO the workload), egress connections (who the workload talks TO), including DNS names, IP addresses, ports, and protocols. Use this to understand attack surface and prioritize network-related security findings. Requires 'capabilities.runtimeObservability=enable' in Kubescape Helm chart.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "description": "Filter by namespace (optional, defaults to all namespaces)",
+            "type": "string"
+          }
+        }
+      },
+      "name": "kubescape_list_network_neighborhoods"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List all CVEs/vulnerabilities found in a specific vulnerability manifest. Returns severity summary and vulnerability details.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "manifest_name": {
+            "description": "Name of the vulnerability manifest",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Namespace of the manifest (default: kubescape)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "manifest_name"
+        ]
+      },
+      "name": "kubescape_list_vulnerabilities"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "List vulnerability manifests from Kubescape operator. Returns vulnerability scan results at image or workload level.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "description": "Type of manifests to list: 'image', 'workload', or 'both' (default: both)",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Filter by namespace (optional, defaults to all namespaces)",
+            "type": "string"
+          }
+        }
+      },
+      "name": "kubescape_list_vulnerability_manifests"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get all available labels from Prometheus",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prometheus_url": {
+            "description": "Prometheus server URL (default: http://localhost:9090)",
+            "type": "string"
+          }
+        }
+      },
+      "name": "prometheus_label_names_tool"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Generate a PromQL query",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query_description": {
+            "description": "A string describing the query to generate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query_description"
+        ]
+      },
+      "name": "prometheus_promql_tool"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Execute a PromQL range query against Prometheus",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "end": {
+            "description": "End time (Unix timestamp or relative time)",
+            "type": "string"
+          },
+          "prometheus_url": {
+            "description": "Prometheus server URL (default: http://localhost:9090)",
+            "type": "string"
+          },
+          "query": {
+            "description": "PromQL query to execute",
+            "type": "string"
+          },
+          "start": {
+            "description": "Start time (Unix timestamp or relative time)",
+            "type": "string"
+          },
+          "step": {
+            "description": "Query resolution step (default: 15s)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "name": "prometheus_query_range_tool"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Execute a PromQL query against Prometheus",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prometheus_url": {
+            "description": "Prometheus server URL (default: http://localhost:9090)",
+            "type": "string"
+          },
+          "query": {
+            "description": "PromQL query to execute",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "name": "prometheus_query_tool"
+    },
+    {
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "description": "Get all Prometheus targets and their status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prometheus_url": {
+            "description": "Prometheus server URL (default: http://localhost:9090)",
+            "type": "string"
+          }
+        }
+      },
+      "name": "prometheus_targets_tool"
+    }
+  ]
+}

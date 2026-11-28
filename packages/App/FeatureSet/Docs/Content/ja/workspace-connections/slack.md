@@ -247,7 +247,7 @@ Slack のサイドバーの **Apps** から OneUptime を開くと、 **Home** �
 
 ## Slack から OneUptime AI に質問する
 
-ログ、トレース、メトリクス、インシデント、モニターについて普段の言葉で質問できます。チャネルで OneUptime を @メンションするか、ダイレクトメッセージを送ると、スレッドで回答します。 `/oneuptime ask which monitors are down?` は回答をチャネルに投稿します。どちらも自分の Slack アカウントの接続と、プロジェクトで AI がオンになっていることが必要です。Slack での回答は読み取るだけです。変更を頼むと、OneUptime AI は `/oneuptime incident` や OneUptime のメッセージのボタンなど、Slack から変更する方法を伝え、それ以外は AI に質問へのリンクを示します。インシデントやアラート専用のチャネルで質問すると、そのインシデントやアラートについて回答します。[AI に質問](/docs/ai/ask-ai) を参照してください。
+ログ、トレース、メトリクス、インシデント、モニターについて普段の言葉で質問できます。チャネルで OneUptime を @メンションするか、ダイレクトメッセージを送ると、スレッドで回答します。 `/oneuptime ask which monitors are down?` は回答をチャネルに投稿します。どちらも自分の Slack アカウントの接続と、プロジェクトで AI がオンになっていることが必要です。Slack での回答は読み取るだけです。変更を頼むと、OneUptime AI は `/oneuptime incident` や OneUptime のメッセージのボタンなど、Slack から変更する方法を伝え、それ以外は AI に質問へのリンクを示します。インシデントやアラート専用のチャネルで質問すると、そのインシデントやアラートについて回答します。接続したあなたの OneUptime アカウントに許される範囲で、プロジェクトの [外部 MCP サーバー](/docs/ai/external-mcp-servers#slack-と-microsoft-teams-で) を使って読むこともできます。使うのは、それらのサーバーの読み取るツールだけです。[AI に質問](/docs/ai/ask-ai) を参照してください。
 
 OneUptime は、自分に向けられたものにだけ応答します。
 

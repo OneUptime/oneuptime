@@ -39,8 +39,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- アレイの証明書を検証するかどうか: 信頼できる CA の証明書をアレイに入れていない限り **N** と答えます (アレイは自己署名の証明書付きで出荷されます)",
   "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the API token) and starts the agent with Docker Compose.":
     "`/opt/oneuptime-storage-array-agent` にインストールし、自分だけが読める `.env` ファイル (API トークンを含みます) を書き込み、Docker Compose でエージェントを起動します。",
-  "Download the compose file and the three collector configs from this OneUptime into a new folder:":
-    "この OneUptime から compose ファイルと 3 つのコレクター設定を新しいフォルダーにダウンロードします:",
+  "Download the compose file and the collector configs from this OneUptime into a new folder:":
+    "この OneUptime から compose ファイルとコレクター設定を新しいフォルダーにダウンロードします:",
   "Create a `.env` file next to them:": "その隣に `.env` ファイルを作成します:",
   "- Replace `my-storage-array` with a name for this array, such as `fa-prod-01`. It is how the array appears in OneUptime, so keep it stable: a new name registers a new storage array.":
     "- `my-storage-array` をこのアレイの名前 (例: `fa-prod-01`) に置き換えます。OneUptime ではこの名前でアレイが表示されるので、変えないでください。新しい名前は新しいストレージアレイとして登録されます。",
@@ -124,8 +124,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "**アップグレード**: コレクターのイメージは `docker-compose.yml` で固定され、その設定は隣のファイルにあるため、プルだけではエージェントは新しくなりません。インストールスクリプトをもう一度実行します。既存の `.env` の値をすべて再利用し (何も改めて尋ねません)、最新の `docker-compose.yml` とコレクター設定をダウンロードし (編集したファイルは新しいファイルの隣に `<file>.bak.<timestamp>` として残ります)、それらでエージェントを作り直します:",
   "An agent installed outside `/opt/oneuptime-storage-array-agent` (a second array's, say) needs its folder: `INSTALL_DIR=<folder> bash install.sh`.":
     "`/opt/oneuptime-storage-array-agent` 以外にインストールしたエージェント (2 台目のアレイ用など) では、そのフォルダーを指定します: `INSTALL_DIR=<folder> bash install.sh`。",
-  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
-    "代わりに Docker Compose でインストールした場合: エージェントのフォルダーで compose ファイルと 3 つのコレクター設定をもう一度ダウンロードします。`.env` はそのまま残りますが、これらのファイルに加えた変更はやり直す必要があります:",
+  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
+    "代わりに Docker Compose でインストールした場合: エージェントのフォルダーで compose ファイルとコレクター設定をもう一度ダウンロードします。`.env` はそのまま残りますが、これらのファイルに加えた変更はやり直す必要があります:",
   "Then pull the images and recreate the agent, so the collector reads its new config:":
     "その後、イメージをプルしてエージェントを作り直し、コレクターが新しい設定を読み込むようにします:",
   "The config reports the collector version it pins as the array's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.":
@@ -205,6 +205,76 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **ファイルシステム** (`/metrics/filesystems`) | ファイルシステムごとの容量、データ削減、パフォーマンス |",
   "| **Object store** (`/metrics/objectstore`) | Space, quota, object counts and performance per bucket |":
     "| **オブジェクトストア** (`/metrics/objectstore`) | バケットごとの容量、クォータ、オブジェクト数、パフォーマンス |",
+  "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that reaches every node of the cluster on UDP 161 (SNMP)":
+    "Docker Engine 20.10 以降と Docker Compose v2 プラグインが入った、クラスターのすべてのノードに UDP 161 (SNMP) で到達できるマシン",
+  "An administrator account on the cluster, to turn on SNMP and set the agent's read-only community or SNMPv3 user":
+    "クラスターの管理者アカウント (SNMP を有効にし、エージェント用の読み取り専用コミュニティまたは SNMPv3 ユーザーを設定するため)",
+  "SSH to any node as an administrator: OneFS applies SNMP settings to the whole cluster. If the cluster already answers SNMP for another tool, give the agent the same community or user and skip this step. Otherwise, turn on SNMP v2c with a read-only community of your own, not OneFS's default `I$ilonpublic`:":
+    "管理者として任意のノードに SSH で接続します。OneFS は SNMP の設定をクラスター全体に適用します。クラスターがすでに別のツールのために SNMP に応答している場合は、エージェントにも同じコミュニティまたはユーザーを渡し、この手順は飛ばしてください。そうでなければ、OneFS の既定の `I$ilonpublic` ではなく、独自の読み取り専用コミュニティで SNMP v2c を有効にします:",
+  "Or turn on SNMPv3, which authenticates and encrypts every poll. OneFS has one SNMPv3 read-only user, `general` until you rename it: give it passwords of at least eight characters, without spaces:":
+    "または SNMPv3 を有効にします。SNMPv3 はすべてのポーリングを認証して暗号化します。OneFS には SNMPv3 の読み取り専用ユーザーが 1 人だけいて、名前を変えるまでは `general` です。スペースを含まない 8 文字以上のパスワードを設定してください:",
+  "`isi snmp settings view` shows the settings, with the user's authentication and privacy protocols. Allow UDP 161 from the agent's machine to every node, and list the nodes' addresses with `isi network interfaces list`.":
+    "`isi snmp settings view` は、ユーザーの認証プロトコルとプライバシープロトコルを含めて設定を表示します。エージェントのマシンからすべてのノードへの UDP 161 を許可し、`isi network interfaces list` でノードのアドレスを一覧表示します。",
+  "- **every node's address**, separated by commas: each node's own address, never the SmartConnect zone name, since a node answers only for its own drives, sensors and ports":
+    "- **すべてのノードのアドレス** (カンマ区切り): SmartConnect のゾーン名ではなく、各ノード自身のアドレスです。ノードは自分のドライブ、センサー、ポートについてしか応答しないためです",
+  "- the **SNMP version**, then the read-only **community**, or the SNMPv3 **user** and its two passwords, each read without echo":
+    "- **SNMP のバージョン**、次に読み取り専用の **コミュニティ**、または SNMPv3 の **ユーザー** とその 2 つのパスワード (いずれも画面に表示せずに読み込みます)",
+  "A user whose protocols are not SHA and AES needs `POWERSCALE_SNMP_AUTH_PROTOCOL` and `POWERSCALE_SNMP_PRIVACY_PROTOCOL` in front of `bash install.sh`, and a user without privacy `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.":
+    "プロトコルが SHA と AES 以外のユーザーには、`bash install.sh` の前に `POWERSCALE_SNMP_AUTH_PROTOCOL` と `POWERSCALE_SNMP_PRIVACY_PROTOCOL` が必要です。プライバシーなしのユーザーには `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv` が必要です。",
+  "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the community or the SNMPv3 passwords), with one poll per node, and starts the agent with Docker Compose. When the cluster gains a node, add its address to `POWERSCALE_NODES` in that file and run `bash install.sh` again.":
+    "`/opt/oneuptime-storage-array-agent` にインストールし、自分だけが読める `.env` ファイル (コミュニティまたは SNMPv3 のパスワードを含みます) をノードごとに 1 つのポーリングとともに書き込み、Docker Compose でエージェントを起動します。クラスターにノードが増えたら、そのファイルの `POWERSCALE_NODES` にアドレスを追加し、もう一度 `bash install.sh` を実行してください。",
+  "- Replace `my-storage-array` with a name for this cluster, such as `ps-prod`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new storage array.":
+    "- `my-storage-array` をこのクラスターの名前 (例: `ps-prod`) に置き換えます。OneUptime ではこの名前でクラスターが表示されるので、変えないでください。新しい名前は新しいストレージアレイとして登録されます。",
+  "- List every node in `POWERSCALE_NODES` and give each its own `POWERSCALE_NODE_<n>` and `snmp/node-<n>` in `POWERSCALE_SNMP_RECEIVERS`, up to 252, after `snmp/cluster` and `snmp/quotas`. An IPv6 address goes in brackets, such as `[fd00::11]`.":
+    "- すべてのノードを `POWERSCALE_NODES` に並べ、それぞれに専用の `POWERSCALE_NODE_<n>` と、`POWERSCALE_SNMP_RECEIVERS` 内の `snmp/cluster` と `snmp/quotas` の後に専用の `snmp/node-<n>` を割り当てます (最大 252)。IPv6 アドレスは `[fd00::11]` のように角かっこで囲みます。",
+  "- For SNMPv3, set `POWERSCALE_SNMP_VERSION=v3`, `POWERSCALE_SNMP_USER`, `POWERSCALE_SNMP_AUTH_PASSWORD` and `POWERSCALE_SNMP_PRIVACY_PASSWORD` instead of the community. Run `chmod 600 .env`: it holds the community or the passwords.":
+    "- SNMPv3 では、コミュニティの代わりに `POWERSCALE_SNMP_VERSION=v3`、`POWERSCALE_SNMP_USER`、`POWERSCALE_SNMP_AUTH_PASSWORD`、`POWERSCALE_SNMP_PRIVACY_PASSWORD` を設定します。コミュニティまたはパスワードを含むので `chmod 600 .env` を実行してください。",
+  "| `STORAGE_ARRAY_NAME` | Yes | The name this cluster registers under in OneUptime, stamped on every metric as `storage.array.name`. Keep it stable — changing it registers a new storage array |":
+    "| `STORAGE_ARRAY_NAME` | はい | このクラスターが OneUptime に登録される名前。すべてのメトリクスに `storage.array.name` として付きます。変えないでください。変更すると新しいストレージアレイとして登録されます |",
+  "| `STORAGE_SYSTEM` | Yes | `dell.powerscale` |":
+    "| `STORAGE_SYSTEM` | はい | `dell.powerscale` |",
+  "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Yes | `otel-collector-config.powerscale.yaml` |":
+    "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | はい | `otel-collector-config.powerscale.yaml` |",
+  "| `POWERSCALE_NODES` | Yes | Every node's address, separated by commas. The install script writes the polls below from it |":
+    "| `POWERSCALE_NODES` | はい | すべてのノードのアドレス (カンマ区切り)。インストールスクリプトはここから下記のポーリングを書き込みます |",
+  "| `POWERSCALE_ENDPOINT` | Yes | The node the cluster's own health, capacity and quotas are read through: the first in `POWERSCALE_NODES` |":
+    "| `POWERSCALE_ENDPOINT` | はい | クラスター自体のヘルス、容量、クォータを読み取るときに経由するノード。`POWERSCALE_NODES` の最初のノードです |",
+  "| `POWERSCALE_SNMP_RECEIVERS` | Yes | The polls the collector runs: `snmp/cluster`, `snmp/quotas`, then `snmp/node-<n>` for each node |":
+    "| `POWERSCALE_SNMP_RECEIVERS` | はい | コレクターが実行するポーリング: `snmp/cluster`、`snmp/quotas`、続いて各ノードの `snmp/node-<n>` |",
+  "| `POWERSCALE_NODE_<n>` | Yes | Node `<n>`'s address, from 1 to 252 |":
+    "| `POWERSCALE_NODE_<n>` | はい | ノード `<n>` のアドレス (1 から 252 まで) |",
+  "| `POWERSCALE_SNMP_VERSION` | No | `v2c` (default) or `v3` |":
+    "| `POWERSCALE_SNMP_VERSION` | いいえ | `v2c` (既定値) または `v3` |",
+  "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | The cluster's read-only community |":
+    "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | クラスターの読み取り専用コミュニティ |",
+  "| `POWERSCALE_SNMP_USER` | SNMPv3 | The cluster's SNMPv3 read-only user |":
+    "| `POWERSCALE_SNMP_USER` | SNMPv3 | クラスターの SNMPv3 読み取り専用ユーザー |",
+  "| `POWERSCALE_SNMP_SECURITY_LEVEL` | No | `auth_priv` (default), `auth_no_priv` or `no_auth_no_priv` |":
+    "| `POWERSCALE_SNMP_SECURITY_LEVEL` | いいえ | `auth_priv` (既定値)、`auth_no_priv` または `no_auth_no_priv` |",
+  "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | No | `SHA` (default), `MD5`, `SHA224`, `SHA256`, `SHA384` or `SHA512` |":
+    "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | いいえ | `SHA` (既定値)、`MD5`、`SHA224`、`SHA256`、`SHA384` または `SHA512` |",
+  "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | The SNMPv3 user's authentication password |":
+    "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3 ユーザーの認証パスワード |",
+  "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | No | `AES` (default), `DES`, `AES192`, `AES256`, `AES192C` or `AES256C` |":
+    "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | いいえ | `AES` (既定値)、`DES`、`AES192`、`AES256`、`AES192C` または `AES256C` |",
+  "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | The SNMPv3 user's privacy password |":
+    "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 ユーザーのプライバシーパスワード |",
+  "- **One collector, no exporter.** The collector's own SNMP receiver reads Dell's ISILON-MIB; nothing else runs beside it.":
+    "- **コレクターは 1 つで、エクスポーターはありません。** コレクター自身の SNMP レシーバーが Dell の ISILON-MIB を読み取ります。その隣で動くものはありません。",
+  "- **The cluster's objects once, through `POWERSCALE_ENDPOINT`:** its health, capacity, throughput and node counts every 60 seconds (`snmp/cluster`), and its SmartQuotas every 5 minutes (`snmp/quotas`).":
+    "- **クラスターのオブジェクトは `POWERSCALE_ENDPOINT` 経由で 1 回:** ヘルス、容量、スループット、ノード数を 60 秒ごと (`snmp/cluster`)、SmartQuotas を 5 分ごと (`snmp/quotas`) に読み取ります。",
+  "- **Each node's from the node:** its health, CPU, protocol performance, drives, sensors and ports every 60 seconds (`snmp/node-<n>`).":
+    "- **各ノードのオブジェクトはそのノードから:** ヘルス、CPU、プロトコルのパフォーマンス、ドライブ、センサー、ポートを 60 秒ごと (`snmp/node-<n>`) に読み取ります。",
+  "- **Every poll labels its series `scrape_endpoint: <poll>`**, so OneUptime knows which objects a batch is the complete list of — that is how a deleted quota leaves the inventory. Keep the labels as shipped.":
+    "- **各ポーリングは系列に `scrape_endpoint: <poll>` というラベルを付けます**。これにより OneUptime は、バッチがどのオブジェクトの完全な一覧なのかを把握します。削除されたクォータがインベントリから消えるのはこの仕組みです。ラベルは出荷時のままにしてください。",
+  "The full config, one SNMP receiver per node slot, is `otel-collector-config.powerscale.yaml` in the agent's folder:":
+    "ノードの枠ごとに SNMP レシーバーが 1 つずつある完全な設定は、エージェントのフォルダーの `otel-collector-config.powerscale.yaml` です:",
+  "Then turn SNMP off on the cluster, or change the agent's community or SNMPv3 passwords, if nothing else polls it.":
+    "その後、ほかに何もポーリングしていなければ、クラスターで SNMP を無効にするか、エージェントのコミュニティまたは SNMPv3 のパスワードを変更します。",
+  "`troubleshoot.sh` checks the whole chain — the container runtime, the node addresses and the community or SNMPv3 user in `.env`, each node with `snmpget` when the machine has it, array-name stamping, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key.":
+    "`troubleshoot.sh` は、チェーン全体 (コンテナーランタイム、`.env` 内のノードのアドレスとコミュニティまたは SNMPv3 ユーザー、マシンに `snmpget` があればそれによる各ノード、アレイ名の付与、コレクター自身のメトリクス) を確認し、取り込みキーを受け付けるかどうかを OneUptime に直接尋ねます。",
+  "`Error scraping metrics` with `request timeout` in `docker logs oneuptime-storage-array-agent` names a node that does not answer SNMP from this machine: SNMP is off for the version the agent uses, the community or SNMPv3 user is not the cluster's, or UDP 161 is blocked on the way. A node that answers but is missing from the cluster's nodes is not in `POWERSCALE_NODES`: add it and run `bash install.sh` again.":
+    "`docker logs oneuptime-storage-array-agent` の `request timeout` を伴う `Error scraping metrics` は、このマシンからの SNMP に応答しないノードを示しています: エージェントが使うバージョンの SNMP が無効になっている、コミュニティまたは SNMPv3 ユーザーがクラスターのものではない、または途中で UDP 161 がブロックされているのいずれかです。応答はするのにクラスターのノードに含まれないノードは `POWERSCALE_NODES` にありません。追加して、もう一度 `bash install.sh` を実行してください。",
 };
 
 export default TRANSLATION;

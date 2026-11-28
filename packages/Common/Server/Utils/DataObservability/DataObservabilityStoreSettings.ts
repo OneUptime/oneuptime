@@ -34,6 +34,8 @@ import {
   getDataStoreKindInfo,
 } from "../../../Types/DataSecurity/DataStoreKind";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -206,19 +208,55 @@ function mayConnect(props: DatabaseCommonInteractionProps): boolean {
   );
 }
 
-// Whether the caller may change, or delete, Data Security's data stores at all: the table half.
-function mayDataSecurity(
+// What a record's update or delete check answers with when it says no.
+const REFUSAL_CODES: ReadonlyArray<ExceptionCode> = [
+  ExceptionCode.NotAuthorizedException,
+  ExceptionCode.NotAuthenticatedException,
+  ExceptionCode.ForbiddenException,
+  ExceptionCode.PaymentRequiredException,
+  ExceptionCode.NotFoundException,
+];
+
+/*
+ * Whether the caller may change, or delete, this data store as Data
+ * Security's: decided on the store's own row, as an update or a delete of
+ * it through the API is (DatabaseService.findOneUpdatableById and
+ * findOneDeletableById) - the table's permissions, a team's block on one
+ * of the store's labels, a grant limited to labels or to what is owned.
+ * Holding the permission for some stores is no permission for this one
+ * (TableHalfWriteGuard).
+ */
+async function mayDataSecurity(
   props: DatabaseCommonInteractionProps,
+  dataStoreId: ObjectID,
   operation: "update" | "delete",
-): boolean {
-  return (
-    Boolean(props.isRoot) ||
-    Boolean(props.isMasterAdmin) ||
-    CallerPermission.holdsModelPermission(props, {
-      model: new DataStore(),
-      operation,
-    })
-  );
+): Promise<boolean> {
+  if (props.isRoot || props.isMasterAdmin) {
+    return true;
+  }
+
+  try {
+    const store: DataStore | null =
+      operation === "update"
+        ? await DataStoreService.findOneUpdatableById({
+            id: dataStoreId,
+            select: { _id: true },
+            props,
+          })
+        : await DataStoreService.findOneDeletableById({
+            id: dataStoreId,
+            select: { _id: true },
+            props,
+          });
+
+    return Boolean(store);
+  } catch (error) {
+    if (error instanceof Exception && REFUSAL_CODES.includes(error.code)) {
+      return false;
+    }
+
+    throw error;
+  }
 }
 
 // The way in a change asks for, read from the request.
@@ -245,6 +283,14 @@ export default class DataObservabilityStoreSettings {
     const uses: DataObservabilityStoreUses = await this.readUses(store);
     const relies: boolean = isDataSecurityRelyingOn(store, uses);
     const canEdit: boolean = mayConnect(data.props);
+    const mayChangeSampledConnection: boolean =
+      canEdit && isContentSampledThroughConnection(store)
+        ? await mayDataSecurity(data.props, store.id!, "update")
+        : true;
+    const mayDeleteRelied: boolean =
+      canEdit && relies
+        ? await mayDataSecurity(data.props, store.id!, "delete")
+        : true;
 
     return {
       dataStoreId: store.id!.toString(),
@@ -255,16 +301,13 @@ export default class DataObservabilityStoreSettings {
       uses,
       isDataSecurityRelyingOnIt: relies,
       canEdit,
-      connectionRefusal:
-        canEdit &&
-        isContentSampledThroughConnection(store) &&
-        !mayDataSecurity(data.props, "update")
-          ? DataObservabilityStoreRefusal.DataSecuritySamplesIt
-          : null,
+      connectionRefusal: !mayChangeSampledConnection
+        ? DataObservabilityStoreRefusal.DataSecuritySamplesIt
+        : null,
       canRemove: canEdit,
       deleteRefusal: !canEdit
         ? DataObservabilityStoreRefusal.NotPermitted
-        : relies && !mayDataSecurity(data.props, "delete")
+        : !mayDeleteRelied
           ? DataObservabilityStoreRefusal.DataSecurityReliesOnIt
           : null,
     };
@@ -347,7 +390,7 @@ export default class DataObservabilityStoreSettings {
     const isSampled: boolean = isContentSampledThroughConnection(store);
 
     if (Object.keys(sharedChanges).length > 0 && isSampled) {
-      if (!mayDataSecurity(data.props, "update")) {
+      if (!(await mayDataSecurity(data.props, store.id!, "update"))) {
         throw new NotAuthorizedException(CONNECTION_CHANGE_REFUSAL);
       }
 
@@ -488,7 +531,7 @@ export default class DataObservabilityStoreSettings {
     const uses: DataObservabilityStoreUses = await this.readUses(store);
 
     if (isDataSecurityRelyingOn(store, uses)) {
-      if (!mayDataSecurity(data.props, "delete")) {
+      if (!(await mayDataSecurity(data.props, store.id!, "delete"))) {
         throw new NotAuthorizedException(DELETE_REFUSAL);
       }
 

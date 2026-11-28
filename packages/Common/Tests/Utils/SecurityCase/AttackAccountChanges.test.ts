@@ -6,9 +6,12 @@ import {
 } from "../../../Types/SecurityCase/SecurityCaseMatches";
 import {
   ACCOUNT_CHANGES_MAX,
+  ACCOUNT_CHANGE_KINDS,
+  AWS_IAM_ROLE_CHANGES,
   AccountChange,
   AccountChangeKind,
   AccountChangeProvider,
+  AccountChangeSubject,
   getAttackAccountChanges,
   readAccountChange,
   readAwsPolicyName,
@@ -19,6 +22,14 @@ import {
   CLOUD_AUDIT_ACCOUNT_ATTRIBUTE,
   CLOUD_AUDIT_CONNECTION_ATTRIBUTE,
 } from "../../../Server/Utils/SecurityEvent/CloudAudit/CloudAuditSecurityEvents";
+import {
+  ATTACH_ROLE_POLICY_RECORD,
+  CREATE_ROLE_RECORD,
+  PUT_ROLE_POLICY_RECORD,
+  RECORDED_ACCOUNT,
+  UPDATE_ASSUME_ROLE_POLICY_RECORD,
+  readRecordedEvent,
+} from "../../Helpers/AwsIamRoleRecords";
 
 /*
  * What an attack changed on accounts, read from a case's events (#10603):
@@ -938,5 +949,360 @@ describe("a case's changes", () => {
     expect(getAttackAccountChanges({ matches: matches(many) }).length).toBe(
       ACCOUNT_CHANGES_MAX,
     );
+  });
+});
+
+// ---------- AWS CloudTrail: a role's calls (#11038) ----------
+
+describe("AWS CloudTrail's IAM role calls (#11038)", () => {
+  // A trust policy an attack set: its own account let in.
+  const BACKDOOR_TRUST: string =
+    '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::444455556666:root"},"Action":"sts:AssumeRole"}]}';
+
+  test("a backdoor role, a role made to trust someone else and a role given more power are each a change - before #11038 the step never listed them", () => {
+    const read: Array<{ eventName: string; read: boolean }> = [];
+
+    for (const [eventName, fields] of [
+      [
+        "CreateRole",
+        {
+          "requestParameters.roleName": "backdoor",
+          "responseElements.role.roleId": "AROA6ON6E4XEFFEXAMPLE",
+        },
+      ],
+      [
+        "UpdateAssumeRolePolicy",
+        {
+          "requestParameters.roleName": "Deploy",
+          "requestParameters.policyDocument": BACKDOOR_TRUST,
+        },
+      ],
+      [
+        "AttachRolePolicy",
+        {
+          "requestParameters.roleName": "Deploy",
+          "requestParameters.policyArn":
+            "arn:aws:iam::aws:policy/AdministratorAccess",
+        },
+      ],
+      [
+        "PutRolePolicy",
+        {
+          "requestParameters.roleName": "Deploy",
+          "requestParameters.policyName": "escalate",
+        },
+      ],
+    ] as Array<[string, Record<string, string>]>) {
+      read.push({
+        eventName,
+        read: readAccountChange(cloudTrail(eventName, fields)) !== null,
+      });
+    }
+
+    expect(read).toEqual([
+      { eventName: "CreateRole", read: true },
+      { eventName: "UpdateAssumeRolePolicy", read: true },
+      { eventName: "AttachRolePolicy", read: true },
+      { eventName: "PutRolePolicy", read: true },
+    ]);
+  });
+
+  test("a case of AWS's own recorded role calls lists each as a change to its role - before #11038 it listed none", () => {
+    expect(
+      getAttackAccountChanges({
+        matches: null,
+        keptEvents: [
+          CREATE_ROLE_RECORD,
+          UPDATE_ASSUME_ROLE_POLICY_RECORD,
+          ATTACH_ROLE_POLICY_RECORD,
+          PUT_ROLE_POLICY_RECORD,
+        ].map(readRecordedEvent),
+      }).map((change: AccountChange): [string, string, string] => {
+        return [change.eventName, change.account, change.cloudAccountId];
+      }),
+    ).toEqual([
+      ["CreateRole", "TestRole", RECORDED_ACCOUNT],
+      ["UpdateAssumeRolePolicy", "S3AccessForEC2Instances", RECORDED_ACCOUNT],
+      ["AttachRolePolicy", "ReadOnlyRole", RECORDED_ACCOUNT],
+      ["PutRolePolicy", "S3Access", RECORDED_ACCOUNT],
+    ]);
+  });
+
+  test.each([
+    [
+      "CreateRole",
+      {
+        "requestParameters.roleName": "backdoor",
+        "responseElements.role.roleId": "AROA6ON6E4XEFFEXAMPLE",
+      },
+      {
+        kind: AccountChangeKind.Account,
+        account: "backdoor",
+        accountId: "AROA6ON6E4XEFFEXAMPLE",
+        objectId: "",
+        objectName: "",
+        trustPolicies: [],
+      },
+    ],
+    [
+      "UpdateAssumeRolePolicy",
+      {
+        "requestParameters.roleName": "Deploy",
+        "requestParameters.policyDocument": BACKDOOR_TRUST,
+      },
+      {
+        kind: AccountChangeKind.Trust,
+        account: "Deploy",
+        accountId: "",
+        objectId: "",
+        objectName: "",
+        trustPolicies: [BACKDOOR_TRUST],
+      },
+    ],
+    [
+      "AttachRolePolicy",
+      {
+        "requestParameters.roleName": "Deploy",
+        "requestParameters.policyArn":
+          "arn:aws:iam::aws:policy/AdministratorAccess",
+      },
+      {
+        kind: AccountChangeKind.Policy,
+        account: "Deploy",
+        accountId: "",
+        objectId: "arn:aws:iam::aws:policy/AdministratorAccess",
+        objectName: "AdministratorAccess",
+        trustPolicies: [],
+      },
+    ],
+    [
+      "PutRolePolicy",
+      {
+        "requestParameters.roleName": "Deploy",
+        "requestParameters.policyName": "escalate",
+        "requestParameters.policyDocument":
+          '{"Version":"2012-10-17","Statement":{"Effect":"Allow","Action":"*","Resource":"*"}}',
+      },
+      {
+        kind: AccountChangeKind.Policy,
+        account: "Deploy",
+        accountId: "",
+        objectId: "",
+        objectName: "escalate",
+        trustPolicies: [],
+      },
+    ],
+  ])(
+    "%s: a change to the role, by what it gave",
+    (
+      eventName: string,
+      fields: Record<string, string>,
+      expected: Partial<AccountChange>,
+    ) => {
+      expect(
+        readAccountChange(
+          cloudTrail(eventName, {
+            recipientAccountId: "123456789012",
+            ...fields,
+          }),
+        ),
+      ).toEqual({
+        provider: AccountChangeProvider.Aws,
+        subject: AccountChangeSubject.Role,
+        detailId: "",
+        ownerType: "",
+        cloudAccountId: "123456789012",
+        cloudConnectionId: "",
+        eventName,
+        eventUid: "event-1",
+        time: "2026-11-17T19:30:00.000Z",
+        ...expected,
+      });
+    },
+  );
+
+  test("every role call the step reads, and nothing else of a role's", () => {
+    expect(AWS_IAM_ROLE_CHANGES).toEqual({
+      CreateRole: AccountChangeKind.Account,
+      UpdateAssumeRolePolicy: AccountChangeKind.Trust,
+      AttachRolePolicy: AccountChangeKind.Policy,
+      PutRolePolicy: AccountChangeKind.Policy,
+    });
+    expect(ACCOUNT_CHANGE_KINDS).toContain(AccountChangeKind.Trust);
+
+    for (const eventName of [
+      "GetRole",
+      "ListRolePolicies",
+      "DeleteRole",
+      "DetachRolePolicy",
+      "DeleteRolePolicy",
+      "TagRole",
+      "UpdateRole",
+    ]) {
+      expect({
+        eventName,
+        change: readAccountChange(
+          cloudTrail(eventName, { "requestParameters.roleName": "Deploy" }),
+        ),
+      }).toEqual({ eventName, change: null });
+    }
+  });
+
+  test("a role's change is the role's the call names, never the caller's: a call that names none is no change", () => {
+    expect(
+      readAccountChange(
+        cloudTrail("AttachRolePolicy", {
+          "userIdentity.userName": "attacker",
+          "requestParameters.policyArn":
+            "arn:aws:iam::aws:policy/AdministratorAccess",
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      readAccountChange(
+        cloudTrail("AttachRolePolicy", {
+          "userIdentity.userName": "attacker",
+          "requestParameters.roleName": "Deploy",
+          "requestParameters.policyArn":
+            "arn:aws:iam::aws:policy/AdministratorAccess",
+        }),
+      )?.account,
+    ).toBe("Deploy");
+  });
+
+  test("a refused role call gave nothing", () => {
+    expect(
+      readAccountChange(
+        cloudTrail("UpdateAssumeRolePolicy", {
+          "requestParameters.roleName": "Deploy",
+          "requestParameters.policyDocument": BACKDOOR_TRUST,
+          errorCode: "AccessDenied",
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("the account it was made in and the connection that read it, as for a user's", () => {
+    expect(
+      readAccountChange(
+        cloudTrail("CreateRole", {
+          "requestParameters.roleName": "backdoor",
+          [CLOUD_AUDIT_ACCOUNT_ATTRIBUTE]: "210987654321",
+          [CLOUD_AUDIT_CONNECTION_ATTRIBUTE]:
+            "5d0c2a7e-0000-4000-8000-00000000c0de",
+        }),
+      ),
+    ).toMatchObject({
+      cloudAccountId: "210987654321",
+      cloudConnectionId: "5d0c2a7e-0000-4000-8000-00000000c0de",
+    });
+  });
+
+  test("a user's change still has an account as its subject, and no trust policy", () => {
+    expect(
+      readAccountChange(
+        cloudTrail("AttachUserPolicy", {
+          "requestParameters.userName": "Deploy",
+          "requestParameters.policyArn":
+            "arn:aws:iam::aws:policy/AdministratorAccess",
+        }),
+      ),
+    ).toMatchObject({
+      subject: AccountChangeSubject.Account,
+      kind: AccountChangeKind.Policy,
+      account: "Deploy",
+      trustPolicies: [],
+    });
+  });
+
+  test("a user and a role of one name, given the same policy, are two changes", () => {
+    const given: (
+      eventName: string,
+      field: string,
+      uid: string,
+    ) => SecurityCaseEventSnapshot = (
+      eventName: string,
+      field: string,
+      uid: string,
+    ): SecurityCaseEventSnapshot => {
+      return {
+        ...cloudTrail(eventName, {
+          [field]: "Deploy",
+          "requestParameters.policyArn":
+            "arn:aws:iam::aws:policy/AdministratorAccess",
+          recipientAccountId: "123456789012",
+        }),
+        eventUid: uid,
+      };
+    };
+
+    expect(
+      getAttackAccountChanges({
+        matches: null,
+        keptEvents: [
+          given("AttachUserPolicy", "requestParameters.userName", "a"),
+          given("AttachRolePolicy", "requestParameters.roleName", "b"),
+          given("AttachRolePolicy", "requestParameters.roleName", "c"),
+        ],
+      }).map((change: AccountChange): [string, string] => {
+        return [change.subject, change.eventUid];
+      }),
+    ).toEqual([
+      [AccountChangeSubject.Account, "a"],
+      [AccountChangeSubject.Role, "b"],
+    ]);
+  });
+
+  test("a role's trust policy set more than once is one change keeping each policy once, oldest first - and the last the attack set, last", () => {
+    const set: (
+      policy: string,
+      time: string,
+      uid: string,
+    ) => SecurityCaseEventSnapshot = (
+      policy: string,
+      time: string,
+      uid: string,
+    ): SecurityCaseEventSnapshot => {
+      return {
+        ...cloudTrail("UpdateAssumeRolePolicy", {
+          "requestParameters.roleName": "Deploy",
+          "requestParameters.policyDocument": policy,
+          recipientAccountId: "123456789012",
+        }),
+        time,
+        eventUid: uid,
+      };
+    };
+    const first: string = BACKDOOR_TRUST;
+    const second: string =
+      BACKDOOR_TRUST.split("444455556666").join("555555555555");
+
+    const changes: Array<AccountChange> = getAttackAccountChanges({
+      matches: null,
+      // Out of order, as a case's events may be; and the first set again last.
+      keptEvents: [
+        set(second, "2026-11-17T19:31:00.000Z", "b"),
+        set(first, "2026-11-17T19:30:00.000Z", "a"),
+        set(first, "2026-11-17T19:32:00.000Z", "c"),
+      ],
+    });
+
+    expect(changes).toHaveLength(1);
+    // The change is the first event's; its policies, each where it was set last.
+    expect(changes[0]).toMatchObject({
+      kind: AccountChangeKind.Trust,
+      eventUid: "a",
+      trustPolicies: [second, first],
+    });
+  });
+
+  test("a trust policy the event recorded nothing of keeps none", () => {
+    expect(
+      readAccountChange(
+        cloudTrail("UpdateAssumeRolePolicy", {
+          "requestParameters.roleName": "Deploy",
+        }),
+      )?.trustPolicies,
+    ).toEqual([]);
   });
 });

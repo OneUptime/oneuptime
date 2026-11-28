@@ -11,7 +11,9 @@ import { ResponseLink, readResponseLink } from "./SecurityCaseResponseLink";
  *             before." - an English key of the Dashboard's locales
  *             (StepCheckWords) and its parts, worded where it is drawn;
  *   facts     what else OneUptime saw, each a sentence: the "How we know"
- *             fold;
+ *             fold - a line that says what to change can link to where it
+ *             is changed (its own link: the AWS connection to turn Security
+ *             case checks on for, #11039);
  *   links     where the evidence is: the traces, the events, the product;
  *   docsPath  for a step OneUptime cannot tell about, the docs page that
  *             says how to let it (a path under the docs' address);
@@ -71,6 +73,11 @@ export interface SecurityCaseStepCheckSentence {
   count?: number | undefined;
   // A fact's: what it says of the thing it names (StepCheckFactMark).
   mark?: StepCheckFactMark | undefined;
+  /*
+   * A fact's: where what it says to change is changed, drawn after its
+   * words - a descriptor the reader routes, never an address (#11039).
+   */
+  link?: ResponseLink | undefined;
 }
 
 export type SecurityCaseStepCheckData = Record<
@@ -158,6 +165,8 @@ export function readStepCheckSentence(
     },
   );
   const count: JSONValue | undefined = sentence["count"];
+  // Only a link of a kind the readers route: anything else is dropped.
+  const link: ResponseLink | null = readResponseLink(sentence["link"]);
 
   return {
     template,
@@ -177,6 +186,7 @@ export function readStepCheckSentence(
     STEP_CHECK_FACT_MARKS.includes(sentence["mark"])
       ? { mark: sentence["mark"] as StepCheckFactMark }
       : {}),
+    ...(link ? { link } : {}),
   };
 }
 

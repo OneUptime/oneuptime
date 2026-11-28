@@ -1,9 +1,21 @@
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import CloudSavingsAction from "../../../Models/DatabaseModels/CloudSavingsAction";
+import Label from "../../../Models/DatabaseModels/Label";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
+import {
+  CloudResourceEnvironmentReadings,
+  getCloudResourceEnvironmentReadings,
+} from "../../../Types/Cloud/CloudResourceEnvironment";
+import {
+  CLOUD_SAVINGS_AI_REASON_SENTENCES,
+  CloudSavingsAiReason,
+  getCloudSavingsAiEnvironmentReason,
+} from "../../../Types/Cloud/CloudSavingsAi";
 import {
   CloudSavingsActionKind,
   CloudSavingsActionOrigin,
@@ -20,7 +32,9 @@ import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import CloudAccountService from "../../Services/CloudAccountService";
 import CloudConnectionService from "../../Services/CloudConnectionService";
+import CloudResourceService from "../../Services/CloudResourceService";
 import CloudSavingsActionService, {
   CloudSavingsActionTransitionSet,
 } from "../../Services/CloudSavingsActionService";
@@ -69,6 +83,18 @@ import {
  * The connection is read again on every step: a change approved before
  * someone turned Savings actions off fails, saying so, rather than being
  * made through access the account no longer gives.
+ *
+ * A change nobody approves - an AI rule's made without asking, an
+ * off-hours schedule's stop - reads its resource's environment again too,
+ * at the moment it is about to touch the cloud, never trusting the read
+ * that decided it (#11347): its tags, its account's setting and its labels,
+ * as a change nobody approves reads them (Types/Cloud/CloudResource
+ * Environment: a label may say production, never non-production). One no
+ * longer known not to be production is not made. A rule's becomes a
+ * proposal for an owner, saying why; a schedule's stop is left, the
+ * resource running. Once a change has taken a step it is finished: half
+ * made - an instance stopped to be resized - it would be worse than
+ * either end.
  *
  * Done, it is Applied (AppliedWithoutAsking when an AI rule made it on its
  * own), read against the bill from then on (CloudSavingsMeasurement); taken
@@ -147,6 +173,41 @@ export function clampText(value: string, length: number): string {
 function errorMessageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
+
+/*
+ * Whether nobody approved a change: an AI rule makes it without asking, or
+ * an off-hours schedule stops a resource. Its resource's environment is
+ * read again before it touches the cloud (#11347).
+ */
+export function isMadeByNobody(action: CloudSavingsAction): boolean {
+  return (
+    action.origin === CloudSavingsActionOrigin.Schedule ||
+    (action.origin === CloudSavingsActionOrigin.Rule &&
+      !action.approvedByUserId)
+  );
+}
+
+// Whether a change has taken a step in its cloud: its progress holds where it got to.
+export function hasTakenAStep(
+  progress: CloudSavingsProgress | undefined | null,
+): boolean {
+  return Object.keys(progress || {}).length > 0;
+}
+
+/*
+ * What a schedule's stop says when, read again as it was about to be made,
+ * its resource was no longer known not to be production: it is left.
+ */
+export const CLOUD_OFF_HOURS_STOP_HELD_SUMMARIES: Readonly<
+  Partial<Record<CloudSavingsAiReason, string>>
+> = {
+  [CloudSavingsAiReason.Production]:
+    "Not stopped: read again as it was about to be stopped, the resource is production, so the schedule leaves it running.",
+  [CloudSavingsAiReason.OnlyLabelsSayNonProduction]:
+    "Not stopped: read again as it was about to be stopped, only its OneUptime labels say the resource is not production, so the schedule leaves it running.",
+  [CloudSavingsAiReason.EnvironmentNotKnown]:
+    "Not stopped: read again as it was about to be stopped, nothing says the resource is not production, so the schedule leaves it running.",
+};
 
 export interface CloudSavingsRunnerOptions {
   now?: Date | undefined;
@@ -244,6 +305,25 @@ export default class CloudSavingsActionRunner {
     const progress: CloudSavingsProgress = ((isUndo
       ? action.undoProgress
       : action.progress) || {}) as CloudSavingsProgress;
+
+    /*
+     * Nobody approved it, and it has not touched the cloud yet: its
+     * resource's environment is read again now. A read that fails throws,
+     * so nothing is made unread; the worker tries again once its lease ends.
+     */
+    if (
+      !isUndo &&
+      isMadeByNobody(action) &&
+      !hasTakenAStep(action.progress as CloudSavingsProgress | undefined)
+    ) {
+      const held: CloudSavingsAction | null =
+        await CloudSavingsActionRunner.holdIfNotNonProduction({ action, now });
+
+      if (held) {
+        return held;
+      }
+    }
+
     let outcome: CloudSavingsStepOutcome;
 
     try {
@@ -315,6 +395,115 @@ export default class CloudSavingsActionRunner {
     return isUndo
       ? await CloudSavingsActionRunner.recordUndone({ action, outcome, now })
       : await CloudSavingsActionRunner.recordApplied({ action, outcome, now });
+  }
+
+  /*
+   * A change's resource's environment as it is now, from the resource's own
+   * row and its account's: both readings, every sign's and what a change
+   * nobody approves reads (#11347). A resource or an account that is gone,
+   * or a change that names no project, says nothing: not known.
+   */
+  public static async readEnvironmentNow(
+    action: CloudSavingsAction,
+  ): Promise<CloudResourceEnvironmentReadings> {
+    const projectId: ObjectID | undefined = action.projectId;
+    const resource: CloudResource | null =
+      projectId && action.cloudResourceId
+        ? await CloudResourceService.findOneBy({
+            query: { _id: action.cloudResourceId, projectId },
+            select: { _id: true, cloudTags: true, labels: { name: true } },
+            props: { isRoot: true },
+          })
+        : null;
+    const account: CloudAccount | null =
+      projectId && action.cloudAccountId
+        ? await CloudAccountService.findOneBy({
+            query: { _id: action.cloudAccountId, projectId },
+            select: { _id: true, environment: true },
+            props: { isRoot: true },
+          })
+        : null;
+
+    return getCloudResourceEnvironmentReadings({
+      tags: resource?.cloudTags,
+      accountEnvironment: account?.environment,
+      labelNames: (resource?.labels || []).map(
+        (label: Label): string | undefined => {
+          return label.name;
+        },
+      ),
+    });
+  }
+
+  /*
+   * A change nobody approved, before it touches the cloud, when its
+   * resource is no longer known not to be production (#11347): a rule's is
+   * proposed to an owner instead, saying why, as the rule would have if it
+   * had read this; a schedule's stop is left, the resource running, with
+   * what it was read as (production, or not known), which the schedule's
+   * run counts. Returns the change as held, or null when it may be made. A
+   * change someone else moved on meanwhile is left as they left it, and is
+   * not made here either.
+   */
+  public static async holdIfNotNonProduction(data: {
+    action: CloudSavingsAction;
+    now: Date;
+  }): Promise<CloudSavingsAction | null> {
+    const action: CloudSavingsAction = data.action;
+    const readings: CloudResourceEnvironmentReadings =
+      await CloudSavingsActionRunner.readEnvironmentNow(action);
+    const reason: CloudSavingsAiReason | null =
+      getCloudSavingsAiEnvironmentReason({
+        environment: readings.reading.environment,
+        unattendedEnvironment: readings.unattended.environment,
+      });
+
+    if (!reason) {
+      return null;
+    }
+
+    const isSchedule: boolean =
+      action.origin === CloudSavingsActionOrigin.Schedule;
+    const set: CloudSavingsActionTransitionSet = isSchedule
+      ? {
+          status: CloudSavingsActionStatus.Expired,
+          expiredAt: data.now,
+          nextStepAt: null,
+          environment: readings.unattended.environment,
+          summary: CLOUD_OFF_HOURS_STOP_HELD_SUMMARIES[reason] || "",
+        }
+      : {
+          status: CloudSavingsActionStatus.Proposed,
+          nextStepAt: null,
+          environment: readings.reading.environment,
+          summary: clampText(
+            CLOUD_SAVINGS_AI_REASON_SENTENCES[reason],
+            ColumnLength.LongText,
+          ),
+        };
+    const claimed: number = await CloudSavingsActionService.attemptTransition({
+      actionId: action.id!,
+      fromStatuses: [CloudSavingsActionStatus.Applying],
+      set,
+    });
+
+    if (claimed === 0) {
+      return action;
+    }
+
+    const held: CloudSavingsAction = {
+      ...action,
+      ...set,
+    } as CloudSavingsAction;
+
+    if (!isSchedule) {
+      await writeCloudSavingsFeed({
+        event: CloudSavingsFeedEvent.Proposed,
+        action: held,
+      });
+    }
+
+    return held;
   }
 
   /*

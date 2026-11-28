@@ -569,6 +569,10 @@ export default class MonitorResourceUtil {
       evaluationSummary.judgedWindow = {
         startsAt: new Date(options.judgedWindow.startsAt),
         endsAt: new Date(options.judgedWindow.endsAt),
+        // Which end it held (#11334), when the check says.
+        ...(typeof options.judgedWindow.includesEnd === "boolean"
+          ? { includesEnd: options.judgedWindow.includesEnd }
+          : {}),
       };
     }
 

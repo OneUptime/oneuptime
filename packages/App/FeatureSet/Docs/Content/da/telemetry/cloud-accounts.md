@@ -275,9 +275,9 @@ Et lavere niveaus kommando erstatter AWS-politikken med den lavere. **Fra** tilf
 
 ## Sikkerhedssagstjek
 
-På AWS kan den samme forbindelse lade en [sikkerhedssag](/docs/telemetry/security-cases#sådan-kontrollerer-oneuptime-et-trin) tjekke, at det, et angreb ændrede på en IAM-bruger, er fortrudt: den adgangsnøgle, det oprettede, den konsoladgangskode, det satte, de politikker, det tilknyttede eller skrev, de grupper, det føjede brugeren til, den MFA-enhed, det aktiverede, og den bruger, det oprettede. Under **Flere felter** står **Sikkerhedssagstjek** på **Fra**, indtil du slår det til, og den kommando, formularen viser, ændrer sig med det. Hver handling læser kun, og ingen læser en hemmelighed: en adgangsnøgles id og om den er aktiv, aldrig nøglen, og at en konsoladgangskode er sat, aldrig adgangskoden.
+På AWS kan den samme forbindelse lade en [sikkerhedssag](/docs/telemetry/security-cases#sådan-kontrollerer-oneuptime-et-trin) tjekke, at det, et angreb ændrede på en IAM-bruger eller -rolle, er fortrudt: den adgangsnøgle, det oprettede, den konsoladgangskode, det satte, de politikker, det tilknyttede eller skrev, de grupper, det føjede brugeren til, den MFA-enhed, det aktiverede, den bruger eller rolle, det oprettede, og den tillidspolitik, det satte på en rolle. Under **Flere felter** står **Sikkerhedssagstjek** på **Fra**, indtil du slår det til, og den kommando, formularen viser, ændrer sig med det. Hver handling læser kun, og ingen læser en hemmelighed: en adgangsnøgles id og om den er aktiv, aldrig nøglen, og at en konsoladgangskode er sat, aldrig adgangskoden.
 
-| Hvad sagen læser om hver bruger, som dens CloudTrail-hændelser nævner | Handlinger |
+| Hvad sagen læser om hver bruger og rolle, som dens CloudTrail-hændelser nævner | Handlinger |
 | --- | --- |
 | Brugeren, eller at den ikke findes længere | `iam:GetUser` |
 | Dens adgangsnøgler, og om hver af dem er aktiv | `iam:ListAccessKeys` |
@@ -285,11 +285,13 @@ På AWS kan den samme forbindelse lade en [sikkerhedssag](/docs/telemetry/securi
 | Dens administrerede politikker og navnene på dens inline-politikker | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | De grupper, den er med i | `iam:ListGroupsForUser` |
 | Dens MFA-enheder | `iam:ListMFADevices` |
+| Rollen, hvem dens tillidspolitik har tillid til, eller at den er væk | `iam:GetRole` |
+| Rollens administrerede politikker og navnene på dens indbyggede politikker | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 Rollens kommando tilføjer en egen inline-politik, `OneUptimeSecurityCaseChecks`, med én linje mere, og en organisations StackSet lægger den i hver kontos rolle:
 
 ```bash
-aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 ```
 
 Med en **Adgangsnøgle** lægges politikken på en gruppe med samme navn, `OneUptimeSecurityCaseChecks`, som brugeren bliver medlem af:
@@ -298,12 +300,12 @@ Med en **Adgangsnøgle** lægges politikken på en gruppe med samme navn, `OneUp
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
 aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
-aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-En sag læser kun en ændring gennem en forbindelse, der når den konto, ændringen blev lavet i, og spørger ikke IAM om noget gennem en forbindelse, hvis **Sikkerhedssagstjek** står på **Fra**: den nævner de ændringer, så du kan bekræfte dem, og siger, at du skal slå indstillingen til. **Fra** tilføjer intet, så det lader det, en tidligere kommando gav adgang til, blive på plads, indtil du sletter det, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+En sag læser kun en ændring gennem en forbindelse, der når den konto, ændringen blev lavet i, og spørger ikke IAM om noget gennem en forbindelse, hvis **Sikkerhedssagstjek** står på **Fra**: den nævner de ændringer, så du kan bekræfte dem, og siger, at du skal slå indstillingen til. **Fra** tilføjer intet, så det lader det, en tidligere kommando gav adgang til, blive på plads, indtil du sletter det, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`. En kommando, der blev kørt, før indstillingen læste roller, giver kun adgang til at læse en bruger: kør forbindelsens kommando igen, og indtil du gør det, nævner en sag sine rolleændringer, så du kan bekræfte dem, og siger, at du skal køre den.
 
 ## Hvad OneUptime læser
 

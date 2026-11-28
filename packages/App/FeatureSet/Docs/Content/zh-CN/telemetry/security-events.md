@@ -206,7 +206,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Kubernetes 审计日志 | API 服务器的审计日志文件，由收集器的 `filelog` 接收器读取 |
 | Web 攻击 | Web 服务器的访问日志，由收集器的 `filelog` 接收器读取 |
 
-在 **你的日志** 上，每一类都会显示上次发现它的时间，**检查一行日志** 则会在任何日志到达之前，显示你粘贴的一行会变成什么。
+在 **你的日志** 上，每一类都会显示上次发现它的时间，**检查一行日志** 则会在任何日志到达之前，显示你粘贴的一行会变成什么。OneUptime 会像扫描读取你的日志那样，结合你的[受信任的代理](#受信任的代理)和访问日志的设置来读取这一行，所以它指出的客户端与存储的事件将指出的相同，并且不保存任何内容。
 
 安全产品写入日志的威胁，例如 CEF 或 LEEF 的发现，或 Palo Alto Networks、FortiGate 或 Cisco ASA 的威胁，会像已连接产品的警报一样打开 [案例](/docs/telemetry/security-cases)，并提高它所指的用户、主机或地址的风险。**你的日志** 上的 **从以下级别开启案例** 决定从哪个严重程度开始：默认为 **高及以上**，你也可以选择其他级别或 **从未**。该产品的登录和被阻止的连接仍然是事件，供你的规则读取。
 
@@ -299,6 +299,8 @@ Key Vault、存储账户和 Azure SQL 数据库各自保留一份自己的审计
 
 声称的地址永远不会从案例中被封禁：任何人都可以发送 `X-Forwarded-For: 192.0.2.44`，封禁会把 192.0.2.44 背后的人挡在外面。只有声称地址的事件，其 **响应计划** 会让你到负载均衡器或防火墙的日志中寻找真实地址。
 
+如果事件的客户端是由你信任的代理转发的，事件会以 **转发代理** 列出它经过的代理：按 `X-Forwarded-For` 列出的顺序，连接自身的地址排在最后。它们记录在 `oneuptime.request.forwarded_by` 中，**检查一行日志** 会说明每一个受信任的原因。
+
 为了让地址经过验证，请在应用的服务器跨度上记录两样东西：连接本身的地址 `network.peer.address`，OpenTelemetry 的 HTTP 插桩会设置它；以及在代理之后的 `X-Forwarded-For` 标头，把它加入 `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST` 后，插桩会把它记录为 `http.request.header.x-forwarded-for`。JSON 访问日志的读取方式相同：它的客户端字段（例如 `remote_addr`）是连接的地址，它的 `http_x_forwarded_for` 字段是标头。
 
 #### 受信任的代理
@@ -311,10 +313,15 @@ Key Vault、存储账户和 Azure SQL 数据库各自保留一份自己的审计
 | 列在 **受信任的代理** 中 | 你列出了它 |
 | 在你连接的边缘网络公布的地址范围中，例如 [Cloudflare](/docs/integrations/cloudflare) | 连接存在期间 |
 | 你自己的应用负载均衡器之一 | 除非你关闭它 |
+| 你的 Google Cloud Application Load Balancer 之后的 Google 前端之一 | 随你的负载均衡器一起信任，除非你的某个 TCP 或 SSL 代理负载均衡器也从这些前端连接 |
 
-**安全事件 → 连接 → 更多设置** 中有 **受信任的代理**（你填写的列表）和 **自动信任**（显示其余受信任的项目及原因）。当代理的地址是公网地址并且没有其他项目信任它时，请把它列在 **受信任的代理** 中，每行一个地址或范围：例如你没有连接的 CDN、经由互联网到达你的应用的负载均衡器，或者在有公网地址的服务器上、位于你的应用前面的 nginx 等反向代理。在你列出之前，经过它的每次攻击都会被归咎于代理。在 Google Cloud 全球外部应用负载均衡器之后，到你的应用的连接来自 Google 的前端：请列出 `35.191.0.0/16` 和 `130.211.0.0/22`。
+在 TCP 层工作的代理不会向 `X-Forwarded-For` 添加任何内容：它会原样传递客户端写入的标头。例如 Network Load Balancer、`mode tcp` 下的 HAProxy，以及使用 `externalTrafficPolicy: Cluster` 的 Kubernetes Service，后者会从某个节点的地址把每个连接交给你的入口。这样的代理位于私有地址时会受到信任，所以它后面的客户端可以选择攻击被归咎于哪个地址。在这样的代理之后，请通过客户端 IP 保留或 `externalTrafficPolicy: Local` 在连接上保留客户端自己的地址，并且不要记录 `X-Forwarded-For`，也不要把它写入日志。
+
+**安全事件 → 连接 → 更多设置** 中有 **受信任的代理**（你填写的列表）和 **自动信任**（显示其余受信任的项目及原因）。当代理的地址是公网地址并且没有其他项目信任它时，请把它列在 **受信任的代理** 中，每行一个地址或范围：例如你没有连接的 CDN、经由互联网到达你的应用的负载均衡器，或者在有公网地址的服务器上、位于你的应用前面的 nginx 等反向代理。在你列出之前，经过它的每次攻击都会被归咎于代理。比代理的范围更宽的范围（例如 `0.0.0.0/0`）会被拒绝：它会信任所有地址，这样任何人都能选择攻击被归咎于哪个地址。项目所有者、项目管理员或安全管理员可以编辑该列表，每次更改都会记录在项目的[审计日志](/docs/configuration/audit-logs)中。
 
 你自己的应用负载均衡器是你[连接的云账户](/docs/telemetry/cloud-accounts)列出的那些：AWS Application Load Balancer、所有监听器都是 HTTP 或 HTTPS 的 AWS Classic Load Balancer、Google Cloud Application Load Balancer 和 Azure Application Gateway，按它们的公网地址。每一个都会把它转发的客户端添加到 `X-Forwarded-For`。Google Cloud 负载均衡器会在客户端地址之后追加自己的地址，Application Gateway 会从自己的地址连接公网后端，所以没有这一项，经过它们的每次攻击都会被归咎于负载均衡器。**自动信任** 中的 **你的负载均衡器** 会列出它们，项目所有者、项目管理员或安全管理员可以关闭它。
+
+在 Google Cloud 全球外部应用负载均衡器或经典版负载均衡器之后，到你的应用的连接来自 Google 的前端，而不是负载均衡器自己的地址。因此，只要某个已连接的 Google Cloud 项目中有这样的负载均衡器，安全事件也会信任这些前端的地址范围：`35.191.0.0/16`、`130.211.0.0/22` 和 `2600:2d00:1:1::/64`，与 Google 的[负载均衡防火墙规则](https://cloud.google.com/load-balancing/docs/firewall-rules)列出的一致。**你的负载均衡器** 会在列表的最后一行显示它们，以及带来它们的负载均衡器，它的开关也会关闭它们。Google 之外没有人会从这些范围连接，信任它们也不会让任何人能冒称客户端：经过别人负载均衡器的请求，其 `X-Forwarded-For` 以该负载均衡器的地址结尾，而它不是你的，所以事件会指出这个地址。但 Google 的 TCP 和 SSL 代理负载均衡器也从相同的范围连接，并按客户端发送的原样传递请求，所以只要你有这样的负载均衡器，或者没能列出全部负载均衡器，这些范围就不受信任，该行会说明原因。如果这样的负载均衡器位于你尚未连接的 Google Cloud 项目中，请连接该项目，或关闭 **你的负载均衡器**。
 
 你的其他任何东西都不会被自动信任：不包括你的主机、Kubernetes 节点、探测器或虚拟机、NAT 网关，以及 Network、Gateway 或 Azure 负载均衡器。它们不转发任何人，或者原样传递请求，所以其上运行的任何东西都可能冒称任何客户端：监控带着自己的标头发出的请求、一个 Pod、网关后面的一台笔记本电脑。如果其中一个是你的代理，请把它添加到 **受信任的代理**。Kubernetes 入口会作为它实际所是的负载均衡器受到信任：GKE 入口是 Google Cloud Application Load Balancer，AKS 的 Application Gateway 入口是 Application Gateway，类为 `alb` 的 EKS 入口是 AWS Application Load Balancer。集群内的入口控制器从私有地址转发，私有地址始终受信任。
 
@@ -337,6 +344,25 @@ log_format main '$remote_addr - $remote_user [$time_local] "$request" '
 - 该字段是 `-`，或者是最后一个地址不带端口的地址列表。
 
 如果你的格式以另一个包含地址的标头结尾（例如 `X-Real-IP`），或者你的 Web 服务器写入标头时不转义其中的引号（例如 Express 的 `morgan`），请保持关闭：否则请求自己的用户代理就能添加一个字段。JSON 访问日志不需要这个开关，因为它的字段是有名字的。
+
+#### 你自己的日志格式
+
+如果你的 Web 服务器没有把 `X-Forwarded-For` 放在最后，请提供它们的格式：**更多设置** 下 **访问日志** 中的 **日志格式**。按 `nginx.conf` 中的写法粘贴你的 nginx `log_format`，或从已知格式开始：nginx 的 `main` 或 ingress-nginx 的 `upstreaminfo`。例如，下面的格式在标头之后记录每个请求耗费的时间：
+
+```nginx
+log_format timed '$remote_addr - $remote_user [$time_local] "$request" '
+                 '$status $body_bytes_sent "$http_referer" '
+                 '"$http_user_agent" "$http_x_forwarded_for" $request_time';
+```
+
+符合你的格式的每一行都按字段读取：发起连接的地址取自 `$remote_addr`，`X-Forwarded-For` 取自 `$http_x_forwarded_for`，无论格式把它放在哪里。它的读取方式与任何 `X-Forwarded-For` 相同：只有在 `$remote_addr` 是你信任的代理时才读取，并且从右往左读。任何其他字段都不会被当作这两者之一，不符合你的格式的行照旧读取，由 **日志以 X-Forwarded-For 结尾** 决定其最后一个字段。
+
+- nginx 会把客户端发送的引号转义为 `\x22`，所以一行中的每个引号都属于你的格式。引号比你的格式多的行（不转义引号的服务器会写出这样的行，例如 `escape=none`、Express 的 `morgan`）不是你的格式的行，其中的任何内容都不会按格式读取。
+- **日志格式** 会拒绝其 `X-Forwarded-For` 或 `$remote_addr` 无法与相邻字段区分开的格式，例如位于客户端写入的两个字段之间、没有引号的标头，并提示你给它加上引号，写成 `"$http_x_forwarded_for"`。
+- ingress-nginx 的 `upstreaminfo` 不记录 `X-Forwarded-For`，所以每行的客户端就是它的 `$remote_addr`。如果它前面有 Application Load Balancer 或其他 HTTP 代理，请在你的 `log-format-upstream` 中添加 `"$http_x_forwarded_for"`，以读取它转发的客户端。在会原样传递客户端所写标头的 Network Load Balancer 之后，则不要添加。
+- 当 nginx 通过它的 realip 模块或 ingress-nginx 的 `use-forwarded-headers`，自己根据 `X-Forwarded-For` 设置 `$remote_addr` 时，它会相信 `set_real_ip_from` 或 `proxy-real-ip-cidr` 指定的任何人，而 ingress-nginx 的默认值指定了所有人。请在 `$http_x_forwarded_for` 旁边记录真正发起连接的地址 `$realip_remote_addr`：安全事件随后会把 `$realip_remote_addr` 读作连接，把 `$remote_addr` 只读作声称的地址，并依据你的受信任的代理作出判断。
+
+项目所有者、项目管理员或安全管理员可以提供该格式，每次更改都会记录在项目的审计日志中。
 
 ### 已被清除规则隐藏
 
@@ -394,9 +420,9 @@ log_format main '$remote_addr - $remote_user [$time_local] "$request" '
 - 任何网页都不会有的类型，例如 `text/plain` 或 `application/octet-stream`：文件本身。
 - 网页，或者对并非 JSON 的文件返回的 JSON：你的网站自己的页面。
 - 响应为空：没有任何东西被拿走。
-- 只有大小而没有类型，就像 Web 服务器访问日志所记录的那样：如果没有其他路径得到这个大小，并且你的网站对它没有的路径返回 404，就是文件本身；如果同一个大小回应了两个不同的路径，就是你的网站自己的页面。如果无法判断，该请求不会成为事件。
+- 只有大小而没有类型，就像 Web 服务器访问日志所记录的那样：如果没有其他路径得到这个大小，并且你的网站对它没有的路径返回 404，就是文件本身；如果同一个大小回应了两个不同的路径，就是你的网站自己的页面。旁边没有其他请求的单个请求（例如扫描器单独请求的 `/.env`），按你的网站在过去一天里的响应来判断。如果无法判断，该请求不会成为事件。
 
-被提供出去的文件为 Critical，规则库中的 **Sensitive file served** 会为它打开一个案例，并给出下线该文件、轮换其中机密的步骤。这些请求每一个也都会计入 **Scanning for sensitive files**，单页应用的请求也包括在内。你的网站提供的管理页面（例如 WordPress 的）永远不算，而 WordPress 执行的 `wp-config.php` 是你的网站自己的。Cloudflare 的防火墙事件不会说明你的源站发送了什么，因此 Cloudflare 放行的请求只计入扫描。事件面板会在 **后续情况** 下说明你的网站发送了什么。
+被提供出去的文件为 Critical，规则库中的 **Sensitive file served** 会为它打开一个案例，并给出下线该文件、轮换其中机密的步骤。这些请求每一个也都会计入 **Scanning for sensitive files**，单页应用的请求也包括在内。你的网站提供的管理页面（例如 WordPress 的）永远不算，而 WordPress 执行的 `wp-config.php` 是你的网站自己的。Cloudflare 的防火墙事件不会说明你的源站发送了什么，因此 Cloudflare 放行的请求只计入扫描。事件面板会在 **后续情况** 下说明你的网站发送了什么。在 **Sensitive file served** 成为推荐的规则之前就开启了推荐的规则、并且运行着其他所有推荐规则的项目，已在升级时获得这条规则，**概览** 也会说明这一点。
 
 ### Campaigns
 

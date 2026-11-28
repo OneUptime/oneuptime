@@ -24,10 +24,14 @@ import { MutableRefObject, useCallback, useRef, useState } from "react";
  * is the synthetic "Unknown Service" (TelemetryService), never read.
  */
 
-// What a row's service is drawn with (ServiceElement): its name and colour.
+/*
+ * What a row's service is drawn with (ServiceElement): its name and colour -
+ * and whether it is archived, which a chip naming it says (#11213).
+ */
 export const TELEMETRY_ROW_SERVICE_SELECT: Select<Service> = {
   name: true,
   serviceColor: true,
+  isArchived: true,
 };
 
 type RowEntityId = ObjectID | string | null | undefined;

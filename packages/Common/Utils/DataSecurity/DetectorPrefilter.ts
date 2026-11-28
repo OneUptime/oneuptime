@@ -1,5 +1,6 @@
 import { DIGIT_ZEROS } from "./DigitReadings";
 import { getBuiltInDetectorsOf } from "./Detectors/Index";
+import { FULLWIDTH_FORMS } from "./FullwidthForms";
 import { ScanDetector } from "./TextScanner";
 import CharacterSet from "../LinearRegExp/CharacterSet";
 import { parsePattern, PatternFlags } from "../LinearRegExp/Parser";
@@ -72,6 +73,31 @@ export const DIGIT_OF_EVERY_SCRIPT_PREFILTER: string = `[${DIGIT_ZEROS.filter(
       .toUpperCase()}}`;
   })
   .join("")}]`;
+
+/*
+ * What a detector that reads a number's fullwidth forms also finds in
+ * (readsFullwidthForms, #11115): a text holding one of those forms - the
+ * plus sign, the hyphen, a parenthesis, the full stop, the solidus or the
+ * ideographic space - right beside a digit of any script, since only such
+ * a text is read so (FullwidthForms), and what that reading finds and the
+ * text as written does not, it finds because of one. A form beside an
+ * escape the text as its escapes read places beside a digit is a text
+ * holding an escape, which PERCENT_ESCAPE_PREFILTER takes: every such
+ * detector reads those too. More is fine, never less.
+ */
+const ANY_DIGIT_CLASS: string = `[${DIGIT_ZEROS.map((zero: number): string => {
+  return `\\x{${zero.toString(16).toUpperCase()}}-\\x{${(zero + 9)
+    .toString(16)
+    .toUpperCase()}}`;
+}).join("")}]`;
+
+const FULLWIDTH_FORM_CLASS: string = `[${FULLWIDTH_FORMS.map(
+  (form: number): string => {
+    return `\\x{${form.toString(16).toUpperCase()}}`;
+  },
+).join("")}]`;
+
+export const FULLWIDTH_FORM_PREFILTER: string = `${FULLWIDTH_FORM_CLASS}${ANY_DIGIT_CLASS}|${ANY_DIGIT_CLASS}${FULLWIDTH_FORM_CLASS}`;
 
 /*
  * What a detector that reads a text as a URL's query string reads it also
@@ -774,6 +800,14 @@ export function getDataTypePrefilter(data: {
       !expressions.includes(DIGIT_OF_EVERY_SCRIPT_PREFILTER)
     ) {
       expressions.push(DIGIT_OF_EVERY_SCRIPT_PREFILTER);
+    }
+
+    // A number typed wholly in fullwidth, its signs and separators too (#11115).
+    if (
+      detector.readsFullwidthForms &&
+      !expressions.includes(FULLWIDTH_FORM_PREFILTER)
+    ) {
+      expressions.push(FULLWIDTH_FORM_PREFILTER);
     }
   }
 

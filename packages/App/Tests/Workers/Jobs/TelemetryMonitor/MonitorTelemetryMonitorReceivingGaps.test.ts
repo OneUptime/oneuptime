@@ -663,4 +663,34 @@ describe("A telemetry check that runs late (#11248)", () => {
       5 * MINUTE,
     );
   });
+
+  // #11334: every check's window holds its start and not its end, and says so.
+  test("its log entry says the window held its start and not its end, as every read of it did", async () => {
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const dueAt: Date = new Date(Date.now() - 25 * SECOND);
+
+    await runJob({ dueAt: dueAt });
+
+    expect(monitorResource.mock.calls[0]![1]).toMatchObject({
+      judgedWindow: {
+        startsAt: new Date(dueAt.getTime() - MINUTE),
+        endsAt: dueAt,
+        includesEnd: false,
+      },
+    });
+
+    monitorResource.mockClear();
+    ReceivingCoverage.clearCache();
+    givenMonitor(MonitorType.Host, hostStep(RollingTime.Past5Minutes));
+
+    await runJob({ dueAt: dueAt });
+
+    expect(
+      (
+        monitorResource.mock.calls[0]![1] as {
+          judgedWindow: { includesEnd?: boolean };
+        }
+      ).judgedWindow.includesEnd,
+    ).toBe(false);
+  });
 });

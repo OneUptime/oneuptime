@@ -387,12 +387,14 @@ const NAMES: Record<string, Array<string>> = {
   [STORAGE_ARRAYS]: [
     "Pure Storage FlashArray",
     "Pure Storage FlashBlade",
+    "Dell PowerStore",
     "Everpure",
     "NetApp ONTAP",
     "Amazon FSx for NetApp ONTAP",
     "SnapMirror",
     "Dell PowerStore",
     "Dell PowerMax",
+    "Dell PowerScale",
   ],
   [DATABASES]: [
     "PostgreSQL",
@@ -698,6 +700,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Every job labels its series `scrape_endpoint: <endpoint>`.",
     "Per-volume and per-host latency keeps three dimensions.",
     "The API token is a Bearer token.",
+    "A PowerStore every 5 minutes.",
     "No `send_batch_max_size`.",
     "datapoint labels",
     // What the array's pages show, part by part.
@@ -708,6 +711,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "File systems.",
     "An ONTAP cluster's own objects.",
     "ONTAP: Harvest polls the cluster, the collector scrapes Harvest.",
+    // A PowerScale cluster, as the agent reads it (#11003).
+    "Every node is polled at its own address.",
+    "The cluster's own objects are read once, through the first node:",
+    "Readings OneFS gives as text or in other units",
+    "OneFS's events and its storage pools.",
   ],
   /*
    * (yes is a Dashboard label since #6369, a recorder decision's value on

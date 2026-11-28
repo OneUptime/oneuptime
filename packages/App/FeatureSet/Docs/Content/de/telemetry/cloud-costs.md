@@ -225,16 +225,15 @@ Wenn die Arbeitszeit endet, stoppt ein Zeitplan jede laufende Ressource, die sei
 Ein Zeitplan stoppt nie Produktion und nie eine Ressource, deren Umgebung nichts angibt. Eine Ressource ist bekanntermaßen keine Produktion, wenn:
 
 - eines ihrer Tags das sagt, unter einem Schlüssel wie `environment`, `env`, `stage`, `tier` oder `deployment.environment`, mit einem Wort wie `dev`, `test`, `qa`, `staging` oder `sandbox`;
-- ihr Konto unter **Umgebung** in den **Einstellungen** des Kontos als **Nicht-Produktion** markiert ist;
-- oder eine ihrer Beschriftungen das sagt, etwa `Staging` oder `env: dev`.
+- oder ihr Konto unter **Umgebung** in den **Einstellungen** des Kontos als **Nicht-Produktion** markiert ist.
 
-Produktion gewinnt: Ein Tag, das `prod`, `production` oder `live` sagt, oder ein als **Produktion** markiertes Konto lässt eine Ressource weiterlaufen, egal was sonst etwas sagt. Der Name einer Ressource wird dafür nie gelesen. Schalten Sie einen Zeitplan aus, stoppt er nichts mehr und startet das, was er gestoppt hat, wenn seine Arbeitszeit beginnt; löschen Sie ihn, wird das, was er gestoppt hat, sofort gestartet.
+Eine OneUptime-Beschriftung macht eine Ressource für einen Zeitplan nie zur Nicht-Produktion. Eine umbenannte Beschriftung ändert jede Ressource, die sie trägt, auf einmal, daher wird eine Beschriftung wie `Staging` oder `env: dev` nur dort gelesen, wo eine Person die Änderung genehmigt, wie bei **Anwenden**. Produktion gewinnt: Ein Tag, das `prod`, `production` oder `live` sagt, ein als **Produktion** markiertes Konto oder eine Beschriftung wie `Production` oder `env: prod` lässt eine Ressource weiterlaufen, egal was sonst etwas sagt. Der Name einer Ressource wird dafür nie gelesen. Jeder Stopp liest die Ressource unmittelbar vorher erneut. Schalten Sie einen Zeitplan aus, stoppt er nichts mehr und startet das, was er gestoppt hat, wenn seine Arbeitszeit beginnt; löschen Sie ihn, wird das, was er gestoppt hat, sofort gestartet.
 
 ## KI-Regeln für Einsparungen
 
 Mit eingeschaltetem **KI aktivieren** schlägt OneUptime AI nach jedem Lesen der Einsparungen des Kontos jede Einsparung, die es umsetzen kann, den Eigentümern der Ressource vor, und sie genehmigen oder verwerfen sie unter **Wartet auf Genehmigung**. Unter **Cloud → Einstellungen → KI-Regeln für Einsparungen** sagt eine Regel, was OneUptime AI mit den Einsparungen tut, auf die sie passt, nach Art der Änderung, Umgebung der Ressource und ihrer Cloud: **Aus**, **Dem Eigentümer vorschlagen** oder **Ohne Rückfrage handeln**, bis zu einem monatlichen Limit. Ohne Regel wird jede Einsparung vorgeschlagen und keine umgesetzt; mit Regeln nur, worauf eine Regel passt, und zwischen passenden Regeln gewinnt die vorsichtigere.
 
-Eine Regel handelt ohne Rückfrage nur bei einer Ressource, die bekanntermaßen keine Produktion ist, nur bei einer Änderung, die sich rückgängig machen lässt, nur bis zum kleinsten Limit der passenden Regeln und höchstens 10 Mal pro Stunde in einem Projekt: Alles andere wird vorgeschlagen. Eine ohne Rückfrage vorgenommene Änderung steht in den Zeitleisten mit der Regel, die sie vorgenommen hat, und ihre Eigentümer können sie rückgängig machen. Eine verworfene oder rückgängig gemachte Einsparung wird 30 Tage lang nicht erneut vorgeschlagen.
+Eine Regel handelt ohne Rückfrage nur bei einer Ressource, die bekanntermaßen keine Produktion ist, so wie ein Zeitplan es liest, also nach ihren Tags oder ihrem Konto und nie allein nach ihren Beschriftungen, nur bei einer Änderung, die sich rückgängig machen lässt, nur bis zum kleinsten Limit der passenden Regeln und höchstens 10 Mal pro Stunde in einem Projekt: Alles andere wird vorgeschlagen. Die Ressource wird unmittelbar vor der Änderung erneut gelesen, und eine, die bis dahin nicht mehr bekanntermaßen keine Produktion ist, wird stattdessen vorgeschlagen. Eine ohne Rückfrage vorgenommene Änderung steht in den Zeitleisten mit der Regel, die sie vorgenommen hat, und ihre Eigentümer können sie rückgängig machen. Eine verworfene oder rückgängig gemachte Einsparung wird 30 Tage lang nicht erneut vorgeschlagen.
 
 ## Budgets
 
@@ -481,7 +480,11 @@ OneUptime nimmt nur Änderungen in einem Schritt vor: Eine Zusage oder eine Empf
 :::
 
 :::details Ein Zeitplan lässt eine Ressource weiterlaufen
-**Ressourcen anzeigen** sagt, warum: Sie ist Produktion, nichts sagt, dass sie keine Produktion ist, oder die Verbindung ihres Kontos erlaubt keine Einsparungsaktionen. Taggen Sie sie, zum Beispiel `environment` = `dev`, oder markieren Sie ihr Konto als **Nicht-Produktion**.
+**Ressourcen anzeigen** sagt, warum: Sie ist Produktion, nichts sagt, dass sie keine Produktion ist, nur ihre Beschriftungen sagen das, oder die Verbindung ihres Kontos erlaubt keine Einsparungsaktionen. Taggen Sie sie in Ihrer Cloud, zum Beispiel `environment` = `dev`, oder markieren Sie ihr Konto als **Nicht-Produktion**.
+:::
+
+:::details Eine Regel schlägt eine Änderung vor, die sie früher ohne Rückfrage vorgenommen hat
+Ihre Karte sagt, warum. Eine Regel nimmt eine Änderung nur bei einer Ressource ohne Rückfrage vor, die laut ihren Tags oder ihrem Konto keine Produktion ist: Eine, die nur ihre Beschriftungen als Nicht-Produktion bezeichnen, wird stattdessen ihren Eigentümern vorgeschlagen. Taggen Sie sie in Ihrer Cloud, zum Beispiel `environment` = `dev`, oder markieren Sie ihr Konto als **Nicht-Produktion**.
 :::
 
 :::details Eine Prognose hat keinen wahrscheinlichen Bereich

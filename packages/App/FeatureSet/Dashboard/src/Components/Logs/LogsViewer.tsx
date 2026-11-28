@@ -113,7 +113,10 @@ import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import Select from "Common/Types/BaseDatabase/Select";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
-import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  TelemetryEntityLookup,
+  useTelemetryEntityLookup,
+} from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import OpenStackLogRequestLink from "../OpenStack/OpenStackLogRequestLink";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
 import { useReportTelemetryDataShown } from "../Telemetry/TelemetryFirstRunHost";
@@ -1196,10 +1199,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return buildLogsEntityTypeHints(props.serviceIds, props.scopeEntityType);
     }, [props.serviceIds, props.scopeEntityType]);
 
-  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+  /*
+   * The names, and the ids every read answered nothing for: a chip a link
+   * or a saved view brought naming a deleted service reads "No longer
+   * available", never its id (#11213).
+   */
+  const entityLookup: TelemetryEntityLookup = useTelemetryEntityLookup(
     entityChipIds,
     { typeHints: entityTypeHints },
   );
+  const entityNameMap: TelemetryEntityNameMap = entityLookup.names;
 
   /*
    * Extract trace/span IDs for API calls (histogram + facets must respect these
@@ -3173,11 +3182,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       scopeIds: props.serviceIds,
       scopeEntityType: props.scopeEntityType,
       knownNames: entityFacetDisplayNames,
+      notFound: entityLookup.notFound,
     });
   }, [
     appliedFacetFilters,
     traceIdStrings,
     entityNameMap,
+    entityLookup.notFound,
     props.serviceIds,
     props.scopeEntityType,
     entityFacetDisplayNames,

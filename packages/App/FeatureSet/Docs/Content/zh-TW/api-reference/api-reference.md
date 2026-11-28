@@ -274,7 +274,7 @@ Incident Severity with the same name already exists.
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-這類拒絕還包含 `takenById`，即占用該名稱的記錄的 ID，前提是你的金鑰可以讀取該記錄。在專案要求名稱唯一之前就已同名的記錄會保留名稱，直到被重新命名；一次更新也不能為多筆同類記錄設定同一個名稱。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` 會在你傳送之前回答名稱是否已被占用，`GET /api/unique-names/duplicates` 依類型列出專案中被多次使用的名稱。
+這類拒絕還包含 `takenById`，即占用該名稱的記錄的 ID，前提是你的金鑰可以讀取該記錄。在專案要求名稱唯一之前就已同名的記錄會保留名稱，直到被重新命名；一次更新也不能為多筆同類記錄設定同一個名稱。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` 會在你傳送之前回答名稱是否已被占用，`GET /api/unique-names/duplicates` 依類型列出專案中被多次使用的名稱。`GET /api/shared-names/Monitor`（或該設定涵蓋的任何其他類型的資料表名稱）會像儀表板中的清單標示它們那樣，回答該類型的哪些記錄同名：`{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`，每個群組是你的金鑰可以讀取的兩筆或更多記錄，並附有每筆記錄的建立時間。已封存的記錄與正在使用的記錄分開分組。
 
 #### 其他記錄已在使用的值
 

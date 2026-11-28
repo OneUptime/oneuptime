@@ -40,6 +40,13 @@ const ANSWER: AutomaticTrustedProxies = {
       addresses: ["52.1.2.3", "2600:1f18:4000::7"],
     },
   ],
+  googleFrontEnds: {
+    ranges: ["35.191.0.0/16", "130.211.0.0/22", "2600:2d00:1:1::/64"],
+    broughtBy: [{ name: "web-https", where: "Google Cloud shop" }],
+    withheldBy: [],
+    isWithheldForIncompleteRead: false,
+    isTrusted: true,
+  },
   areLoadBalancersRead: true,
   areLoadBalancersComplete: false,
 };
@@ -96,6 +103,7 @@ describe("the answer", () => {
           addresses: ["20.50.1.7"],
         },
       ],
+      googleFrontEnds: null,
       areLoadBalancersRead: true,
       areLoadBalancersComplete: true,
     });
@@ -106,10 +114,76 @@ describe("the answer", () => {
       expect(readAutomaticTrustedProxies(value as never)).toEqual({
         edges: [],
         loadBalancers: [],
+        googleFrontEnds: null,
         areLoadBalancersRead: false,
         areLoadBalancersComplete: true,
       });
     }
+  });
+});
+
+// #11047: Google's front ends, with the load balancers that bring them and what keeps them untrusted.
+describe("Google's front ends in the answer", () => {
+  const BROUGHT: Record<string, unknown> = {
+    ranges: ["35.191.0.0/16", "130.211.0.0/22"],
+    broughtBy: [{ name: "shop-https", where: "Google Cloud shop" }],
+    withheldBy: [],
+    isWithheldForIncompleteRead: false,
+    isTrusted: true,
+  };
+
+  test("are none when no load balancer brings them, or no range is said", () => {
+    for (const googleFrontEnds of [
+      undefined,
+      null,
+      "35.191.0.0/16",
+      { ...BROUGHT, broughtBy: [] },
+      { ...BROUGHT, ranges: [] },
+      { ...BROUGHT, ranges: ["", 7] },
+    ]) {
+      expect(
+        readAutomaticTrustedProxies({
+          areLoadBalancersRead: true,
+          googleFrontEnds,
+        } as never).googleFrontEnds,
+      ).toBeNull();
+    }
+  });
+
+  test("are trusted only when the answer says so, and never while anything withholds them", () => {
+    const read: (value: Record<string, unknown>) => boolean | undefined = (
+      value: Record<string, unknown>,
+    ): boolean | undefined => {
+      return readAutomaticTrustedProxies({
+        areLoadBalancersRead: true,
+        googleFrontEnds: value,
+      } as never).googleFrontEnds?.isTrusted;
+    };
+
+    expect(read(BROUGHT)).toBe(true);
+    expect(read({ ...BROUGHT, isTrusted: "yes" })).toBe(false);
+    expect(read({ ...BROUGHT, isTrusted: undefined })).toBe(false);
+    expect(read({ ...BROUGHT, withheldBy: [{ name: "db", where: "" }] })).toBe(
+      false,
+    );
+    expect(read({ ...BROUGHT, isWithheldForIncompleteRead: true })).toBe(false);
+  });
+
+  test("name the load balancers that withhold them, as written", () => {
+    expect(
+      readAutomaticTrustedProxies({
+        areLoadBalancersRead: true,
+        googleFrontEnds: {
+          ...BROUGHT,
+          isTrusted: false,
+          withheldBy: [
+            { name: "db", where: "Google Cloud shop" },
+            "mail",
+            null,
+          ],
+        },
+      } as never).googleFrontEnds?.withheldBy,
+    ).toEqual([{ name: "db", where: "Google Cloud shop" }]);
   });
 });
 

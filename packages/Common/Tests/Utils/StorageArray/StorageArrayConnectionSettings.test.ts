@@ -37,7 +37,7 @@ describe("how often a connection is read", () => {
           value,
           POWERMAX_PROBE_COLLECTOR,
         ),
-      ).toBe("Collect every 5 to 10 minutes, in whole minutes.");
+      ).toBe("Collect every 5 to 10\u00a0minutes, in whole minutes.");
     }
   });
 

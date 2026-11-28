@@ -38,6 +38,14 @@ import ServiceType from "../../../../../Types/Telemetry/ServiceType";
 import { buildTelemetrySecurityEvent } from "../../../../../Utils/SecurityEvent/TelemetryScan/TelemetrySecurityEvent";
 import Redis from "../../../../../Server/Infrastructure/Redis";
 import RefusedTelemetryReader from "../../../../../Server/Utils/SecurityEvent/RefusedTelemetryReader";
+import SecurityAddressVaultLookup from "../../../../../Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultLookup";
+import SecurityRequestTrace from "../../../../../Server/Utils/SecurityEvent/RequestTrace/SecurityRequestTrace";
+import ScrubbedClientAddresses from "../../../../../Server/Utils/SecurityEvent/ScrubbedClientAddresses";
+import SensitiveFileSiteMemoryStore, {
+  SensitiveFileMemoryScan,
+} from "../../../../../Server/Utils/SecurityEvent/SensitiveFileSiteMemoryStore";
+import SecurityUserVaultLookup from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserVaultLookup";
+import { buildTraceWebAttackEvent } from "../../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
 import TelemetryIngestionBudgetStatusReader from "../../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetStatusReader";
 import ProductType from "../../../../../Types/MeteredPlan/ProductType";
 import {
@@ -543,6 +551,207 @@ describe("what a scan stores", () => {
     );
 
     expect(prepare).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * A TRACE'S LONE REQUEST FOR /.env, JUDGED BY WHAT ITS APP ANSWERED BEFORE
+ * (#11036): the trace scan hands every page one memory, and keeps it once at
+ * its end; a span that recorded only its body's size is judged by it.
+ */
+describe("what each app answered before, in the trace scan", () => {
+  const APP: string = "0192f1a0-0000-7000-8000-0000000d1036";
+  let spanNumber: number = 0;
+
+  function span(
+    url: string,
+    status: string,
+    size: string,
+  ): NormalizedSecurityEvent {
+    spanNumber++;
+
+    return buildTraceWebAttackEvent({
+      traceId: `4bf92f3577b34da6a3ce929d0e0e${String(spanNumber).padStart(4, "0")}`,
+      spanId: `00f067aa0ba9${String(spanNumber).padStart(4, "0")}`,
+      parentSpanId: "",
+      sessionId: "",
+      name: "GET",
+      kind: "SPAN_KIND_SERVER",
+      durationMs: 2,
+      startTime: new Date(NOW.getTime() - 5 * 60 * 1000),
+      serviceId: APP,
+      serviceType: "Service",
+      isLlmSpan: false,
+      llmUserMessagePreview: "",
+      llmUserId: "",
+      llmSystem: "",
+      llmRequestModel: "",
+      llmOperation: "",
+      attributes: {
+        "url.full": url,
+        "http.request.method": "GET",
+        "http.response.status_code": status,
+        "network.peer.address": "198.51.100.23",
+        "http.response.body.size": size,
+      },
+    })!;
+  }
+
+  // What prepareEvents does beside the judging, stood in for.
+  function standFollowUps(): void {
+    jest
+      .spyOn(TraceSecurityScan, "leaveRequestsToTheirLogs")
+      .mockImplementation(
+        async (data: {
+          events: Array<NormalizedSecurityEvent>;
+        }): Promise<Array<NormalizedSecurityEvent>> => {
+          return data.events;
+        },
+      );
+    jest
+      .spyOn(SecurityRequestTrace, "followEvents")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(SecurityAddressVaultLookup, "nameHashedAddresses")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(SecurityUserVaultLookup, "nameHashedUsers")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(ScrubbedClientAddresses, "nameScrubRules")
+      .mockResolvedValue(undefined as never);
+  }
+
+  test("one memory for every page of a trace scan, kept once at its end", async () => {
+    stand({
+      reads: [
+        {
+          events: [span("https://shop.example/.git/config", "404", "153")],
+          recordsRead: TELEMETRY_SCAN_PAGE_SIZE,
+          pageRows: TELEMETRY_SCAN_PAGE_SIZE,
+          hasMore: true,
+        },
+        {
+          events: [span("https://shop.example/.env", "200", "412")],
+          recordsRead: 1,
+          pageRows: 1,
+          hasMore: false,
+        },
+      ],
+    });
+    standFollowUps();
+    jest.spyOn(Redis, "isConnected").mockReturnValue(false);
+
+    const prepare: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      TraceSecurityScan,
+      "prepareEvents",
+    );
+    const save: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      SensitiveFileSiteMemoryStore.prototype,
+      "save",
+    );
+    const settle: number =
+      TELEMETRY_SCAN_PLANS[SecurityTelemetrySourceKind.Traces].settleInSeconds;
+
+    const result: SecurityTelemetryScanResult =
+      await SecurityTelemetryScanner.scanSource(
+        source(
+          SecurityTelemetrySourceKind.Traces,
+          new Date(NOW.getTime() - settle * 1000 - 60 * 1000).toISOString(),
+        ),
+      );
+
+    expect(prepare).toHaveBeenCalledTimes(2);
+
+    const memories: Array<unknown> = prepare.mock.calls.map(
+      (call: Array<unknown>): unknown => {
+        return (call[0] as { siteMemory?: unknown }).siteMemory;
+      },
+    );
+
+    expect(memories[0]).toBeInstanceOf(SensitiveFileSiteMemoryStore);
+    expect(memories[1]).toBe(memories[0]);
+    expect(save).toHaveBeenCalledTimes(1);
+
+    // The 404 of the first page decided the .env alone on the second: the file.
+    expect(result.eventsFound).toBe(2);
+    expect(result.bySignal).toEqual({ [SecurityTelemetrySignal.WebAttack]: 2 });
+  });
+
+  test("a scan of another kind keeps no memory of sites", async () => {
+    stand({
+      reads: [
+        {
+          events: [event("f1")],
+          recordsRead: 1,
+          pageRows: 1,
+          hasMore: false,
+        },
+      ],
+    });
+
+    const save: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      SensitiveFileSiteMemoryStore.prototype,
+      "save",
+    );
+    const plan: { settleInSeconds: number; windowInSeconds: number } =
+      TELEMETRY_SCAN_PLANS[SecurityTelemetrySourceKind.NetworkFlows];
+
+    await SecurityTelemetryScanner.scanSource(
+      source(
+        SecurityTelemetrySourceKind.NetworkFlows,
+        new Date(
+          NOW.getTime() -
+            plan.settleInSeconds * 1000 -
+            plan.windowInSeconds * 1000,
+        ).toISOString(),
+      ),
+    );
+
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  test("prepareEvents judges a lone span by what the app answered before - and by its page alone without a memory", async () => {
+    standFollowUps();
+    jest.spyOn(Redis, "isConnected").mockReturnValue(false);
+
+    const memory: SensitiveFileSiteMemoryStore =
+      SensitiveFileSiteMemoryStore.forScan({
+        projectId: PROJECT_ID,
+        scan: SensitiveFileMemoryScan.Traces,
+        now: NOW,
+      });
+
+    await TraceSecurityScan.prepareEvents({
+      projectId: PROJECT_ID,
+      events: [span("https://shop.example/.git/config", "404", "153")],
+      siteMemory: memory,
+    });
+
+    const lone: () => Array<NormalizedSecurityEvent> =
+      (): Array<NormalizedSecurityEvent> => {
+        return [span("https://shop.example/.env", "200", "412")];
+      };
+
+    expect(
+      await TraceSecurityScan.prepareEvents({
+        projectId: PROJECT_ID,
+        events: lone(),
+      }),
+    ).toEqual([]);
+
+    const stored: Array<NormalizedSecurityEvent> =
+      await TraceSecurityScan.prepareEvents({
+        projectId: PROJECT_ID,
+        events: lone(),
+        siteMemory: memory,
+      });
+
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.severityName).toBe(OcsfSeverity.Critical);
+    expect(stored[0]!.message).toBe(
+      "Sensitive file served: GET https://shop.example/.env → 200",
+    );
   });
 });
 

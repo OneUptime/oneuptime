@@ -242,6 +242,11 @@ const groupedCardDetector: DataTypeDetector = {
    */
   readsPercentEncoded: true,
   readsPlusAsSpace: true,
+  /*
+   * And typed wholly in fullwidth, its groups apart by fullwidth hyphens
+   * or ideographic spaces (#11115): ４１１１－１１１１－１１１１－１１１１.
+   */
+  readsFullwidthForms: true,
 };
 
 const grouped19DigitCardDetector: DataTypeDetector = {
@@ -274,10 +279,11 @@ const contiguousCardDetector: DataTypeDetector = {
   specificity: 3,
   isTestValue: isTestCardNumber,
   fieldValuePattern: /^[0-9][0-9 -]{10,22}[0-9]$/,
-  // In another script's digits (#10960) and in a URL (#11199), as groupedCardDetector.
+  // In another script's digits (#10960), in a URL (#11199) and in fullwidth (#11115), as groupedCardDetector.
   readsDigitsOfEveryScript: true,
   readsPercentEncoded: true,
   readsPlusAsSpace: true,
+  readsFullwidthForms: true,
 };
 
 /*

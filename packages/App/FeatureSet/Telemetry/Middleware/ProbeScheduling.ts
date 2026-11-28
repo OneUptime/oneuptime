@@ -19,6 +19,9 @@ import ProbeCapability, {
   ProbeCapabilityUtil,
 } from "Common/Types/Probe/ProbeCapability";
 import ProbeSchedulingLane from "Common/Server/Utils/Probe/ProbeSchedulingLane";
+import ProbeSchedulingReconnectInstance, {
+  ProbeSchedulingReconnect,
+} from "Common/Server/Utils/Probe/ProbeSchedulingReconnect";
 
 /*
  * Holds a request a probe makes for work - /monitor/list, /monitor-test/list,
@@ -48,6 +51,14 @@ import ProbeSchedulingLane from "Common/Server/Utils/Probe/ProbeSchedulingLane";
  * without a word, where a 429 would reach its log every tick (its monitor
  * and monitor test fetches parse any answer as a list, and its other work
  * fetches log a refused request as a failure).
+ *
+ * While the lane has requests waiting for a slot here, the answer to a
+ * request it ran asks its client to reconnect ("Connection: close", at
+ * most one answer a lane every PROBE_SCHEDULING_RECONNECT_EVERY_MS): the
+ * probe's or nginx's next request then opens a new connection, which
+ * kube-proxy may send to a pod KEDA added for the probes, or to one less
+ * busy (ProbeSchedulingReconnect, #11121). Kept alive, the probes'
+ * connections stayed on the pods that were there when they were opened.
  */
 
 // The endpoint's answer when it has nothing to hand out.
@@ -79,6 +90,8 @@ export interface ProbeSchedulingLimitOptions {
    * probe hung up: PROBE_SCHEDULING_MAX_SLOT_HOLD_MS unless said.
    */
   maxSlotHoldMs?: number | undefined;
+  // What says when an answer asks to reconnect: the process's unless said.
+  reconnect?: ProbeSchedulingReconnect | undefined;
 }
 
 interface ResponseEvents {
@@ -120,6 +133,46 @@ function abandonedWhenClientLeaves(res: ExpressResponse): AbortSignal {
   }
 
   return controller.signal;
+}
+
+interface AnswerHeaders {
+  writeHead?: (...args: Array<unknown>) => unknown;
+  headersSent?: boolean;
+}
+
+/*
+ * Runs `decide` just before the answer's headers are written, however the
+ * handler sends it (res.send writes them through writeHead too), so what it
+ * sets goes out with them. An answer whose headers have gone already, or a
+ * bare object with nothing to write them (a unit test's), is left alone.
+ */
+export function beforeAnswerHeaders(
+  res: ExpressResponse,
+  decide: () => void,
+): void {
+  const response: AnswerHeaders = res as unknown as AnswerHeaders;
+  const writeHead: ((...args: Array<unknown>) => unknown) | undefined =
+    response.writeHead;
+
+  if (typeof writeHead !== "function" || response.headersSent) {
+    return;
+  }
+
+  response.writeHead = function (
+    this: unknown,
+    ...args: Array<unknown>
+  ): unknown {
+    response.writeHead = writeHead;
+
+    try {
+      decide();
+    } catch (error) {
+      // What it would have set is not worth the answer.
+      logger.error(error);
+    }
+
+    return writeHead.apply(this, args);
+  };
 }
 
 /*
@@ -215,6 +268,9 @@ export default class ProbeSchedulingMiddleware {
         : options.retriesWhenBusy;
     const maxSlotHoldMs: number =
       options.maxSlotHoldMs ?? PROBE_SCHEDULING_MAX_SLOT_HOLD_MS;
+    const reconnect: ProbeSchedulingReconnect =
+      options.reconnect || ProbeSchedulingReconnectInstance;
+    const lane: ProbeSchedulingLane = options.lane || ProbeSchedulingLane.Work;
 
     return async (
       req: ExpressRequest,
@@ -269,6 +325,22 @@ export default class ProbeSchedulingMiddleware {
         release();
         return;
       }
+
+      /*
+       * Requests waiting behind this one as its answer goes: the answer
+       * moves the probe's connection, so its next request may go to another
+       * pod (see the comment at the top).
+       */
+      beforeAnswerHeaders(res, (): void => {
+        if (
+          reconnect.shouldAskToReconnect({
+            lane: lane,
+            waiting: limiter.waitingCount(undefined, lane),
+          })
+        ) {
+          res.setHeader("Connection", "close");
+        }
+      });
 
       releaseWhenAnswered({
         req: req,

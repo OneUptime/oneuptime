@@ -458,6 +458,7 @@ export const AI_ACTION_LINES: {
   serviceMonitorOpensAlerts: string;
   mcpCallSendsOutside: string;
   mcpToolDoesNotSay: string;
+  mcpToolMarkLapsed: string;
 } = {
   // A new incident's or alert's resources: "Linked to host "test01"."
   linkedTo: translationKey("Linked to {{resources}}."),
@@ -662,8 +663,17 @@ export const AI_ACTION_LINES: {
   mcpCallSendsOutside: translationKey(
     "Sends the arguments below to {{server}}, outside OneUptime. OneUptime cannot undo what it changes there.",
   ),
+  /*
+   * No Project Admin has marked it read-only either (#11081): a tool that
+   * only reads, an admin can mark on the server's page, and OneUptime AI
+   * then calls it without asking.
+   */
   mcpToolDoesNotSay: translationKey(
-    "{{server}} does not say whether {{tool}} changes anything, so OneUptime asks first.",
+    "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.",
+  ),
+  // A mark the server outdated by changing the tool since (#11081).
+  mcpToolMarkLapsed: translationKey(
+    "A Project Admin marked {{tool}} read-only, but {{server}} has changed it since, so OneUptime asks first.",
   ),
 };
 
