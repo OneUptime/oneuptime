@@ -1221,6 +1221,7 @@ import { AddXcpNgPoolEventsAndBackups1809187780997 } from "./1809187780997-AddXc
 import { AddStorageArrayConnections1809187781104 } from "./1809187781104-AddStorageArrayConnections";
 import { AddDetectionRuleAddedByOneUptimeAt1809187791037 } from "./1809187791037-AddDetectionRuleAddedByOneUptimeAt";
 import { AddExternalMcpToolReadOnlyMarks1809187791081 } from "./1809187791081-AddExternalMcpToolReadOnlyMarks";
+import { AddScheduleRosterTurnAndRestrictionTypeKey1809187791269 } from "./1809187791269-AddScheduleRosterTurnAndRestrictionTypeKey";
 
 export default [
   InitialMigration,
@@ -2446,4 +2447,5 @@ export default [
   AddStorageArrayConnections1809187781104,
   AddDetectionRuleAddedByOneUptimeAt1809187791037,
   AddExternalMcpToolReadOnlyMarks1809187791081,
+  AddScheduleRosterTurnAndRestrictionTypeKey1809187791269,
 ];
