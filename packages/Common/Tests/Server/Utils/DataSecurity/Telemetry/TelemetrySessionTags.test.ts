@@ -45,6 +45,13 @@ import {
   SESSION_DETAILS_NOT_SCRUBBABLE,
 } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import {
+  pickUnprovenScrubRuleCandidate,
+  planScrubRuleCandidates,
+  ScrubPlanFinding,
+  ScrubRuleCandidate,
+  ScrubRuleSource,
+} from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubPlanner";
+import {
   describeUnplacedAttribute,
   getTelemetryAttributeKey,
 } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryUnplacedAttributes";
@@ -71,8 +78,10 @@ import {
   getScrubTarget,
   getScrubUnavailableReason,
   ScrubbedField,
+  ScrubTarget,
   TelemetryScrubUnavailableReason,
 } from "../../../../../Types/DataSecurity/TelemetryScrubTarget";
+import DataCategory from "../../../../../Types/DataSecurity/DataCategory";
 import { JSONObject } from "../../../../../Types/JSON";
 import LogScrubAction from "../../../../../Types/Log/LogScrubAction";
 import LogScrubField from "../../../../../Types/Log/LogScrubField";
@@ -634,6 +643,141 @@ describe("Scrub It reaches a session's tags, and only them of its details (#1145
       scrubAction: LogScrubAction.Redact,
       fieldsToScrub: LogScrubField.Attributes,
     });
+  });
+});
+
+/*
+ * A session replay's rule is never proven on its records: Scrub It makes
+ * the narrowest candidate, unproven. For a secret in an attribute - a tag,
+ * a browser log's or span's attribute - that was the secret type's own
+ * pattern, which can miss the very value the scan told apart by its key
+ * (a password under `password`), while coverage counted the finding as
+ * scrubbed. Unproven, a secret's attribute is now hidden whole.
+ */
+describe("the rule made where no record proves one (#11458)", () => {
+  function candidatesFor(
+    dataTypeId: string,
+    location: string,
+  ): {
+    finding: ScrubPlanFinding;
+    candidates: Array<ScrubRuleCandidate>;
+  } {
+    const target: ScrubTarget = getScrubTarget(
+      DataStoreKind.TelemetrySessionReplays,
+      location,
+    )!;
+    const finding: ScrubPlanFinding = {
+      dataTypeId,
+      location,
+      target: target as ScrubTarget & { signal: "log" | "trace" },
+    };
+
+    return { finding, candidates: planScrubRuleCandidates({ finding }) };
+  }
+
+  test("a secret in a tag: the tag whole, never the type's pattern no record proved", () => {
+    const planned: {
+      finding: ScrubPlanFinding;
+      candidates: Array<ScrubRuleCandidate>;
+    } = candidatesFor("generic-secret", "sessions.tags.password");
+
+    // The narrowest is still the type's pattern, which a proof would try first.
+    expect(planned.candidates[0]!.source).toBe(ScrubRuleSource.TypePattern);
+    expect(
+      pickUnprovenScrubRuleCandidate({
+        candidates: planned.candidates,
+        finding: planned.finding,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        source: ScrubRuleSource.NamedKeys,
+        signal: "log",
+        attributeKeys: ["password"],
+        scrubAction: LogScrubAction.Redact,
+        fieldsToScrub: LogScrubField.Attributes,
+      }),
+    );
+  });
+
+  test("so is a token of a known shape, and a browser log's secret attribute", () => {
+    for (const [dataTypeId, location, key] of [
+      ["github-token", "sessions.tags.github", "github"],
+      ["generic-secret", "logs.attributes.db.password", "db.password"],
+    ] as Array<[string, string, string]>) {
+      const planned: {
+        finding: ScrubPlanFinding;
+        candidates: Array<ScrubRuleCandidate>;
+      } = candidatesFor(dataTypeId, location);
+
+      expect(
+        pickUnprovenScrubRuleCandidate({
+          candidates: planned.candidates,
+          finding: planned.finding,
+        })?.attributeKeys,
+      ).toEqual([key]);
+    }
+  });
+
+  test("personal data keeps the narrowest: its own pattern, masked", () => {
+    const planned: {
+      finding: ScrubPlanFinding;
+      candidates: Array<ScrubRuleCandidate>;
+    } = candidatesFor("email-address", "sessions.tags.customer");
+
+    expect(
+      pickUnprovenScrubRuleCandidate({
+        candidates: planned.candidates,
+        finding: planned.finding,
+      }),
+    ).toBe(planned.candidates[0]);
+    expect(planned.candidates[0]).toEqual(
+      expect.objectContaining({
+        source: ScrubRuleSource.TypePattern,
+        patternType: LogScrubPatternType.Email,
+        scrubAction: LogScrubAction.Mask,
+      }),
+    );
+  });
+
+  test("a secret with no attribute to hide whole keeps the narrowest, and none is none", () => {
+    const body: ScrubRuleCandidate = {
+      source: ScrubRuleSource.TypePattern,
+      signal: "log",
+      patternType: "custom",
+      customRegex: "ghp_[A-Za-z0-9]{36}",
+      scrubAction: LogScrubAction.Redact,
+      fieldsToScrub: LogScrubField.Body,
+    };
+
+    expect(
+      pickUnprovenScrubRuleCandidate({
+        candidates: [body],
+        finding: { dataTypeId: "github-token" },
+      }),
+    ).toBe(body);
+    expect(
+      pickUnprovenScrubRuleCandidate({
+        candidates: [],
+        finding: { dataTypeId: "github-token" },
+      }),
+    ).toBeNull();
+  });
+
+  test("the finding's own category decides: one of the project's own secrets is hidden whole too", () => {
+    const planned: {
+      finding: ScrubPlanFinding;
+      candidates: Array<ScrubRuleCandidate>;
+    } = candidatesFor("custom:1111", "sessions.tags.license");
+
+    expect(
+      pickUnprovenScrubRuleCandidate({
+        candidates: planned.candidates,
+        finding: {
+          ...planned.finding,
+          dataCategory: DataCategory.SecretsAndCredentials,
+        },
+      })?.source,
+    ).toBe(ScrubRuleSource.NamedKeys);
   });
 });
 
