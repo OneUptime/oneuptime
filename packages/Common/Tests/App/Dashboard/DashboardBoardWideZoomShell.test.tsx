@@ -323,6 +323,14 @@ jest.mock("recharts", () => {
 });
 
 import DashboardViewer from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/DashboardView";
+/*
+ * The log and trace charts are files of their own, which the board loads the
+ * first time it draws one (LazyDashboardWidget). Read before the board draws,
+ * as a browser that has them already would, so each wait below is the
+ * board's own and not that of putting their modules through ts-jest.
+ */
+import "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardLogChartComponent";
+import "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardTraceChartComponent";
 import { SPARKLINE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/ValueWidgetView";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
