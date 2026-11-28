@@ -12,8 +12,9 @@
  * stamp and how they scrape, so their shape is part of the product:
  *
  *  - the `resource` processor UPSERTS `storage.array.name` (the join key),
- *    `storage.system` and `oneuptime.agent.version` — exactly the collector
- *    image docker-compose.yml pins, the version the array's page shows and
+ *    `storage.system` and `oneuptime.agent.version` — the agent's version,
+ *    the collector image docker-compose.yml pins with its last number raised
+ *    each time the files change on it, which the array's page shows and
  *    compares with the newest — and DELETES `service.name` /
  *    `service.instance.id`, which the prometheus receiver synthesizes from
  *    the job name — left in, the batch routes to a phantom Service;
@@ -1329,5 +1330,76 @@ describe("agents/StorageArrayAgent/systemd/oneuptime-storage-array-agent.service
         ),
       ),
     ).toBe(true);
+  });
+});
+
+/*
+ * Tests/Ops/validate-collector-configs.sh runs the real collector over every
+ * config (it needs Docker, so it runs in its own workflow): each shipped
+ * config once as it is, and once more with its commented-out syslog option
+ * uncommented, as its comments tell users to. A config with no syslog to
+ * offer (PowerScale's, read over SNMP) has nothing to uncomment, and the
+ * script stopped there on main (#11430) - so its lists are held here, where
+ * a config that gains or drops the option is caught without Docker.
+ */
+describe("Tests/Ops/validate-collector-configs.sh", () => {
+  const script = read("Tests/Ops/validate-collector-configs.sh");
+
+  // The words of one of the script's bash arrays, `NAME=( ... )`.
+  function bashArray(name) {
+    const match = new RegExp(`^${name}=\\(\\n([^)]*)\\)$`, "m").exec(script);
+    expect({ name, found: Boolean(match) }).toEqual({ name, found: true });
+    return match[1].split(/\s+/).filter(Boolean);
+  }
+
+  // The shipped files that run a collector: every config, PowerStore's syslog one too.
+  const shipped = fs
+    .readdirSync(path.join(REPO_ROOT, AGENT_DIR))
+    .filter((name) => {
+      return (
+        /^otel-collector-config.*\.yaml$/.test(name) ||
+        name === "powerstore-syslog.yaml"
+      );
+    })
+    .sort();
+
+  // The configs that ship the syslog option, commented out.
+  const withSyslogOption = shipped.filter((name) => {
+    return configText(name).includes("  # syslog/tcp:\n");
+  });
+
+  test("validates every collector config the agent ships", () => {
+    // PowerStore's two are validated on their own, its syslog TLS receiver too.
+    const powerStore = /^for config in ([^;]+); do$/m
+      .exec(script.slice(script.indexOf("# Dell PowerStore (#11002)")))[1]
+      .split(/\s+/);
+    expect(
+      [...bashArray("STORAGE_ARRAY_AGENT_CONFIGS"), ...powerStore].sort(),
+    ).toEqual(shipped);
+  });
+
+  test("uncomments the syslog option in exactly the configs that ship it", () => {
+    expect(bashArray("STORAGE_ARRAY_AGENT_SYSLOG_CONFIGS").sort()).toEqual(
+      withSyslogOption,
+    );
+    expect(script).toContain(
+      'for config in "${STORAGE_ARRAY_AGENT_SYSLOG_CONFIGS[@]}"; do\n  node -e',
+    );
+    // The loop's own check, which fails a config whose uncomment matched nothing.
+    expect(script).toContain(
+      "uncommenting found no syslog receivers / logs pipeline",
+    );
+  });
+
+  test("offers no syslog in PowerScale's config, which polls the cluster over SNMP", () => {
+    expect(configText("otel-collector-config.powerscale.yaml")).not.toContain(
+      "syslog/",
+    );
+    expect(withSyslogOption).toEqual([
+      "otel-collector-config.flasharray-exporter.yaml",
+      "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.netapp-ontap.yaml",
+      "otel-collector-config.yaml",
+    ]);
   });
 });
