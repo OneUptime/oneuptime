@@ -108,6 +108,8 @@ import usePassOnPage, {
 } from "../../../Components/OnCallPolicy/PassOn/usePassOnPage";
 import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
+import FormFollowUpRecordCard from "../../../Components/FormBuilder/FollowUp/FormFollowUpRecordCard";
+import FormTargetType from "Common/Types/Form/FormTargetType";
 import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
@@ -1723,6 +1725,16 @@ const IncidentView: FunctionComponent<
             recordId={modelId}
             links={channelLinks}
             // Somebody added is a new feed entry.
+            onChanged={refreshFeed}
+          />
+
+          {/*
+           * A form submission's follow-up, when a form created this record:
+           * a reply is a new private note in the feed.
+           */}
+          <FormFollowUpRecordCard
+            recordType={FormTargetType.Incident}
+            recordId={modelId}
             onChanged={refreshFeed}
           />
 

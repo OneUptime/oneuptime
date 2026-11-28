@@ -201,5 +201,6 @@ Una domanda di file tiene nel browser i file che sceglie chi compila e li invia 
 - [Creare un modulo](/docs/forms/building): Le domande che alimentano questi campi, le domande nascoste e i modelli.
 - [Impostazioni e automazione degli incidenti](/docs/incidents/settings): Modelli degli incidenti e campi personalizzati.
 - [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed): Note private, note pubbliche e proprietari.
+- [Seguire un invio](/docs/forms/follow-ups): Chi invia segue la propria richiesta, scrive al tuo team e aggiunge altre persone.
 - [Condivisione e sicurezza](/docs/forms/sharing-and-security): Chi può inviare, e con quale frequenza.
 :::

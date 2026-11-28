@@ -112,6 +112,14 @@ enum EmailTemplateType {
   PrivateUserInvitation = "PrivateUserInvitation.hbs",
   PrivateUserForgotPassword = "PrivateUserForgotPassword.hbs",
   PrivateUserPasswordChanged = "PrivateUserPasswordChanged.hbs",
+  /*
+   * A form's follow-ups (Server/Utils/Form/FormFollowUp): to the person who
+   * submitted, their link to what they sent; to somebody added, their link
+   * and who added them; and to everybody following, a new message.
+   */
+  FormFollowUpStarted = "FormFollowUpStarted.hbs",
+  FormFollowUpPersonAdded = "FormFollowUpPersonAdded.hbs",
+  FormFollowUpMessage = "FormFollowUpMessage.hbs",
   SubscriberScheduledMaintenanceEventNoteCreated = "SubscriberScheduledMaintenanceEventNoteCreated.hbs",
   SubscriberScheduledMaintenanceEventNoteUpdated = "SubscriberScheduledMaintenanceEventNoteUpdated.hbs",
   SMTPTest = "SMTPTest.hbs",

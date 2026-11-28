@@ -1359,6 +1359,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/forms/on-submit",
       },
       {
+        title: "Following Up on a Submission",
+        url: "/docs/forms/follow-ups",
+      },
+      {
         title: "Sharing & Security",
         url: "/docs/forms/sharing-and-security",
       },

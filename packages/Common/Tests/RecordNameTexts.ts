@@ -61,6 +61,8 @@ export const DECIDING_CALLS: ReadonlyArray<string> = [
   // The status page's and the on-call page's, by the same rule (#8066).
   "translateStatusName",
   "getOnCallPageStateName",
+  // A form's request page's, handed the state's list (Accounts Utils/FormFollowUp).
+  "getFormRequestStateName",
   // When this goes down's, which hand an event's kind its list.
   "getWhoIsToldSeverityValue",
   "getWhoIsToldStatusValue",

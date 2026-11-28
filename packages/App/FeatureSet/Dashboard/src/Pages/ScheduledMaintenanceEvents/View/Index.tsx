@@ -115,6 +115,8 @@ import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
 import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
+import FormFollowUpRecordCard from "../../../Components/FormBuilder/FollowUp/FormFollowUpRecordCard";
+import FormTargetType from "Common/Types/Form/FormTargetType";
 import EventFactLinks, {
   EventFactLinkItem,
 } from "../../../Components/EventView/EventFactLinks";
@@ -797,6 +799,20 @@ const ScheduledMaintenanceView: FunctionComponent<
             recordId={modelId}
             links={channelLinks}
             // Somebody added is a new feed entry.
+            onChanged={() => {
+              setFeedRefreshToken((token: number) => {
+                return token + 1;
+              });
+            }}
+          />
+
+          {/*
+           * A form submission's follow-up, when a form created this record:
+           * a reply is a new private note in the feed.
+           */}
+          <FormFollowUpRecordCard
+            recordType={FormTargetType.ScheduledMaintenance}
+            recordId={modelId}
             onChanged={() => {
               setFeedRefreshToken((token: number) => {
                 return token + 1;
