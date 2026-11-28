@@ -347,15 +347,16 @@ reject_dollar() {
 #     was given by hand (what README.md said to do): read from that file
 #     before this run replaces it, else from the container this directory
 #     runs, else from the newest docker-compose.yml.bak.<timestamp> an
-#     earlier upgrade kept. An upgrade never takes a second agent's name away;
+#     earlier upgrade kept; and an agent that runs under the default name
+#     keeps it. An upgrade never renames an agent;
 #   - otherwise the directory's: oneuptime-xcp-ng-agent-<project>, <project>
 #     being the name Compose gives the directory's project (see "The agent's
 #     Compose project" below: lab for /opt/lab), or the project's name itself
 #     when it starts with oneuptime-xcp-ng-agent. One directory is one
 #     project, and one name. The default directory's is the default name, so
 #     a first agent is named as it always was.
-# Every OneUptime agent container keeps oneuptime-xcp-ng-agent in its name
-# unless someone exports another, and the compose service is always
+# A name install.sh gives always starts with oneuptime-xcp-ng-agent, and
+# the compose service is always
 # oneuptime-xcp-ng-agent: `docker compose ps` / `logs` in the directory find
 # the container whatever its name.
 AGENT_SERVICE="oneuptime-xcp-ng-agent"
