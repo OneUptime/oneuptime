@@ -240,6 +240,8 @@ describe("a Worker queue job at its time limit, on a real Valkey", () => {
   test("is completed, not failed, when it stops at its deadline", async () => {
     const jobName: string = `${JOB_NAME_PREFIX}:WorksThroughABacklog`;
     let pages: number = 0;
+    // How many pages were done when the deadline passed, read as it passed.
+    const atDeadline: { pages: number | null } = { pages: null };
     let stoppedBecause: Error | null = null;
 
     JobDictionary.setTimeoutInMs(jobName, TIME_LIMIT_MS);
@@ -249,6 +251,10 @@ describe("a Worker queue job at its time limit, on a real Valkey", () => {
         _job?: QueueJob,
         deadline: JobDeadline = JobDeadline.none(),
       ): Promise<void> => {
+        deadline.onPassed(() => {
+          atDeadline.pages = pages;
+        });
+
         // A page every 100 ms of a backlog far longer than one run reaches.
         while (!deadline.hasPassed()) {
           await sleep(100);
@@ -271,9 +277,19 @@ describe("a Worker queue job at its time limit, on a real Valkey", () => {
     expect(await queue.getJobCounts("failed")).toEqual({ failed: 0 });
     expect(loggedFailedJobs()).toEqual([]);
 
-    // It worked until its deadline and stopped there, as it was asked to.
+    /*
+     * It worked until its deadline and stopped there, as it was asked to.
+     * How many 100 ms pages fit in the second is the event loop's to say,
+     * not the queue's: one stall on a busy runner - a collection, a starved
+     * CPU - fires every timer after it late, and a CI run counted 4. What
+     * the queue decides is the order, and timers fire in the order they are
+     * due: the first page, due at 100 ms, was done before the deadline at
+     * 1 s passed, the page in flight then finished, and none started after.
+     * The run lasting its whole time limit says the deadline came no sooner.
+     */
     expect(stoppedBecause).toBeInstanceOf(TimeoutException);
-    expect(pages).toBeGreaterThanOrEqual(5);
+    expect(atDeadline.pages).toBeGreaterThanOrEqual(1);
+    expect(pages).toBe((atDeadline.pages ?? 0) + 1);
     expect(Date.now() - startedAt).toBeGreaterThanOrEqual(TIME_LIMIT_MS);
   });
 
