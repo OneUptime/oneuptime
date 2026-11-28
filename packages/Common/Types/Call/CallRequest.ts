@@ -17,6 +17,16 @@ export interface Say {
    */
   recordNumber?: string | undefined;
   /*
+   * A code the sentence says, as the sentence writes it - a verification
+   * code, "4  8  2  9  1  3" - whose characters a voice says one at a time,
+   * with a pause between each, so that no voice, in any language, reads it
+   * as one number (#11461, Utils/Call/CallSpeech): each its own <say-as
+   * interpret-as="characters">, a <break> between them, for a voice that
+   * reads SSML; as written for any other. A call in English says its code
+   * as it always did, with no such field.
+   */
+  code?: string | undefined;
+  /*
    * In a call that asks for a key (GatherInput), said after the prompt the
    * first time: the details, after "Press 1 to acknowledge ...". Said before
    * it without this.
