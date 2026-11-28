@@ -6,6 +6,7 @@ Una plantilla de monitor es una configuración de monitor guardada (un tipo, cri
 - [Crear una plantilla](#crear-una-plantilla): Cuatro pasos, como Crear monitor.
 - [Crear monitores a partir de ella](#crear-monitores-a-partir-de-una-plantilla): Un clic, o vincule monitores que ya tiene.
 - [Sincronizar cambios](#sincronizar-cambios-con-los-monitores-vinculados): Qué copia cada botón de sincronización.
+- [Mover monitores a otra plantilla](#mover-monitores-a-otra-plantilla): Una plantilla mejor, y cada monitor conserva su historial.
 - [Conservar valores propios de cada monitor](#conservar-valores-propios-de-cada-monitor): Proteger un destino o unos encabezados de una sincronización.
 :::
 
@@ -55,7 +56,7 @@ La plantilla se añade a la lista. Ábrala para ver su página, con una tarjeta 
 ## Crear monitores a partir de una plantilla
 
 - **Monitor nuevo.** Haga clic en **Crear monitor** en la fila de la plantilla en la lista, o en **Crear monitor desde plantilla** en su página. **Crear monitor** se abre con el tipo y los ajustes de la plantilla rellenados; cambie lo que necesite y créelo. El monitor nuevo queda vinculado a la plantilla.
-- **Monitores que ya tiene.** En **Monitores vinculados**, haga clic en **Vincular monitores existentes** y elíjalos. Conservan sus ajustes hasta que sincroniza.
+- **Monitores que ya tiene.** En **Monitores vinculados**, haga clic en **Vincular monitores existentes** y elíjalos. Con **Usar los criterios y el intervalo de la plantilla** activado, toman los criterios, el intervalo y el acuerdo de sondas de la plantilla al vincularse; desactivado, conservan sus ajustes hasta que sincroniza. Un monitor vinculado a otra plantilla pasa a esta.
 
 Los valores definidos en **Valores predeterminados de campos personalizados** se escriben en cada monitor creado a partir de la plantilla, incluidos los monitores que las reglas de importación automática y las políticas de alertas crean a partir de ella.
 
@@ -70,9 +71,60 @@ Editar una plantilla solo cambia la plantilla. Para copiar un cambio en los moni
 | **Sincronizar etiquetas con los monitores vinculados** | Las etiquetas, y nada más | Todo lo demás |
 | **Sincronizar campos personalizados con los monitores vinculados** | Los campos personalizados para los que la plantilla tiene un valor predeterminado, sustituyendo lo que tenía cada monitor | Los campos personalizados que la plantilla deja en blanco, y todo lo demás |
 
-Para sincronizar un solo monitor, haga clic en **Sincronizar desde la plantilla** en su fila de **Monitores vinculados**. Eso copia los criterios y los ajustes del paso (excepto los campos protegidos), el intervalo de monitoreo, el acuerdo mínimo de sondas y las etiquetas, y deja sin tocar el nombre, la descripción y los valores de los campos personalizados del monitor. **Desvincular de la plantilla** desconecta un monitor; conserva sus ajustes.
+Para sincronizar un solo monitor, haga clic en **Sincronizar desde la plantilla** en su fila de **Monitores vinculados**. Eso copia los criterios y los ajustes del paso (excepto los campos protegidos), el intervalo de monitoreo, el acuerdo mínimo de sondas y las etiquetas, y deja sin tocar el nombre, la descripción y los valores de los campos personalizados del monitor. Para desconectar un monitor, consulte [Desvincular monitores de una plantilla](#desvincular-monitores-de-una-plantilla).
 
 Después de una sincronización, un resumen indica cuántos monitores se actualizaron. **Sincronizado parcialmente** significa que algunos monitores vinculados todavía tienen la configuración anterior, normalmente porque sus permisos no los cubren.
+
+## Mover monitores a otra plantilla
+
+Cuando una plantilla mejor sustituye a otra, mueva sus monitores a ella en lugar de eliminarlos. Cada monitor conserva su nombre, su historial de estado, sus etiquetas, sus propietarios y sus incidentes, y toma los criterios de la nueva plantilla.
+
+:::steps
+### Seleccionar los monitores
+
+Abra la plantilla a la que están vinculados ahora. En **Monitores vinculados**, seleccione los monitores, o todos. También puede seleccionar monitores en la lista de monitores, filtrada por cualquier columna.
+
+### Moverlos
+
+En **Acciones masivas**, haga clic en **Mover a otra plantilla** (en la lista de monitores, **Vincular a una plantilla**). Elija la plantilla.
+
+### Dejar activados los ajustes de la plantilla
+
+Deje activado **Usar los criterios y el intervalo de la plantilla**, para que cada monitor tome ahora los criterios, los ajustes del paso, el intervalo y el acuerdo de sondas de la plantilla. Desactivado, cada uno conserva los suyos hasta que sincroniza. Luego confirme.
+:::
+
+Lo que hace el traslado:
+
+- Los criterios, el intervalo y el acuerdo de sondas de los monitores se sustituyen por los de la plantilla. Se resuelve el incidente o la alerta abiertos que sus criterios anteriores tenían configurados para resolverse automáticamente, y los nuevos criterios abren uno nuevo si el problema sigue presente. Cada monitor de dispositivo de red sigue vigilando su propio dispositivo, y cada monitor de dirección o de URL sigue comprobando la dirección de su propio dispositivo.
+- Los nombres, las descripciones, el historial de estado, las etiquetas, los propietarios, los valores de los campos personalizados y los enlaces a incidentes se mantienen como están.
+- Un monitor que creó una importación, una regla de importación automática o una política de alertas de red conserva la plantilla a partir de la que se creó. Esa regla no vuelve a crearlo, y una política de alertas lo deja ir: ya no lo elimina ni lo sustituye.
+- Un dispositivo tiene un monitor de cada plantilla. Cuando un dispositivo ya tiene un monitor creado para él a partir de la nueva plantilla, su otro monitor se omite, y el cambio nombra el que estorba: elimine uno de los dos y vuelva a moverlo.
+- Se omite un monitor de un tipo distinto al de la plantilla.
+
+El cambio se ejecuta en el servidor, hasta 10 000 monitores a la vez, y muestra su progreso: qué se movió, qué se omitió y por qué, y los incidentes y alertas abiertos que resolvió. Cerrar el cuadro de diálogo no lo detiene, y la página de la plantilla muestra un cambio que sigue en curso. **Detener** lo detiene antes del siguiente monitor, y **Reintentar** vuelve a intentarlo con los monitores que fallaron o no se alcanzaron.
+
+> [!TIP]
+> ¿Mueve los dispositivos de una regla de importación automática a una plantilla nueva? Mueva primero los monitores y luego apunte la regla a la nueva plantilla. En el orden inverso, la regla da a cada dispositivo un segundo monitor, de la nueva plantilla, junto al que ya tiene.
+
+## Desvincular monitores de una plantilla
+
+Haga clic en **Desvincular de la plantilla** en la fila de un monitor en **Monitores vinculados**, o seleccione monitores allí o en la lista de monitores y use **Desvincular de la plantilla** en **Acciones masivas**. Elija qué conservan los monitores:
+
+| Opción | Qué hacen los monitores después |
+| --- | --- |
+| **Conservar su configuración** | Siguen comprobando y generando alertas con los criterios que tienen ahora, como monitores propios, y ya no reciben las actualizaciones de la plantilla. |
+| **Quitarles los criterios de la plantilla** | Siguen comprobando, pero no generan incidentes ni alertas ni establecen ningún estado hasta que los vuelva a vincular a una plantilla. Se resuelve el incidente o la alerta abiertos que sus criterios tenían configurados para resolverse automáticamente. |
+
+En ambos casos conservan sus nombres, su historial de estado, sus etiquetas, sus propietarios y sus incidentes, y una regla que los creó no vuelve a crearlos.
+
+## Eliminar una plantilla
+
+No se puede eliminar una plantilla a partir de la cual aprovisiona una política de alertas de red o una regla de importación automática: apunte primero la política o la regla a otra plantilla. Cuando hay monitores vinculados a la plantilla, su eliminación pregunta qué pasa con ellos:
+
+- **Conservar su configuración** (la opción predeterminada): la eliminación los desvincula, y siguen comprobando y generando alertas con los criterios que tienen.
+- **Quitarles los criterios de esta plantilla**: cada uno se desvincula y se le quitan los criterios, como arriba, y luego se elimina la plantilla. Cuando un monitor sigue vinculado, como uno que sus permisos no cubren, la plantilla se conserva, y el cuadro de diálogo indica cuántos.
+
+Para mover los monitores a otra plantilla en su lugar, use **Mover a otra plantilla** antes de eliminarla.
 
 ## Conservar valores propios de cada monitor
 
@@ -174,6 +226,14 @@ Un campo protegido no se pudo emparejar con un paso de uno de los monitores, as�
 
 :::details Los botones de sincronización aparecen atenuados
 Todavía no hay ningún monitor vinculado a la plantilla. Cree un monitor a partir de ella, o haga clic en **Vincular monitores existentes** en **Monitores vinculados**.
+:::
+
+:::details Un traslado omite un monitor: «El dispositivo para el que se creó este monitor ya tiene un monitor vinculado a esta plantilla»
+El dispositivo tiene un monitor creado para él a partir de la plantilla a la que está moviendo, normalmente porque una regla de importación automática se apuntó a esa plantilla antes del traslado. Elimine el que no necesite (el más reciente es el que tiene menos historial) y vuelva a moverlo.
+:::
+
+:::details Después de que una regla de importación automática pasara a una plantilla nueva, los dispositivos tienen dos monitores
+La regla dio a cada dispositivo el monitor de la nueva plantilla junto al que tenía. Elimine los monitores nuevos y luego mueva los antiguos a la nueva plantilla: conservan su historial, y la regla no vuelve a crear ninguno.
 :::
 
 :::details Guardar falla con «Unsupported do not sync field»
