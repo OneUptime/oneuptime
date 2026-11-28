@@ -15,7 +15,7 @@ import {
 import {
   writeErasingLine,
   writeErasureStatusLine,
-} from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/ErasureRequests/ErasureRequestCells";
+} from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/ErasureRequests/ErasureRequestLines";
 import * as Copy from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/ErasureRequests/ErasureRequestCopy";
 
 /*
