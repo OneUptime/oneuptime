@@ -254,6 +254,12 @@ describe("the builder loads the webhook secret key only for those who may see it
         // Who may change it and run it by hand (#9695): read by every reader.
         runAs: true,
         runAsCustomRoleId: true,
+        /*
+         * Its labels' ids (#11259): a key read only on the workflows carrying
+         * some labels is left out of the others, and is hidden there, not
+         * missing. Read by every reader.
+         */
+        labels: { _id: true },
         webhookSecretKey: true,
         incomingEmailSecretKey: true,
       });
@@ -287,6 +293,7 @@ describe("the builder loads the webhook secret key only for those who may see it
         "isArchived",
         "runAs",
         "runAsCustomRoleId",
+        "labels",
       ]);
       expect(canvas().webhookSecretKey).toBe("");
       expect(canvas().canSeeWebhookSecretKey).toBe(false);
@@ -309,6 +316,7 @@ describe("the builder loads the webhook secret key only for those who may see it
       "isArchived",
       "runAs",
       "runAsCustomRoleId",
+      "labels",
     ]);
     expect(canvas().canSeeWebhookSecretKey).toBe(false);
   });
