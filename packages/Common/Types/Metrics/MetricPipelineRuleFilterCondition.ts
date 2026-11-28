@@ -41,6 +41,8 @@ export const METRIC_FILTER_PATTERN_TYPES: ReadonlyArray<string> = [
   LogScrubPatternType.SSN,
   LogScrubPatternType.PhoneNumber,
   LogScrubPatternType.IPAddress,
+  LogScrubPatternType.PostalCode,
+  LogScrubPatternType.Coordinates,
 ];
 
 export function isMetricFilterPatternType(value: unknown): boolean {

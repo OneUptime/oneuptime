@@ -21,11 +21,15 @@ import {
   CreatedScrubRule,
   createScrubRuleForFinding,
   describeRule,
+  doesScrubRuleCover,
+  FindingFoundBy,
   findCoveringScrubRule,
   getScrubCoverage,
   nameScrubItRule,
   planScrubRule,
+  readFindingFoundBy,
   readFindingServiceId,
+  readFoundByOf,
   readScrubbableTarget,
   readScrubScopeOfFinding,
   ScrubItRule,
@@ -33,6 +37,7 @@ import {
   ScrubRulePlan,
   ScrubRuleScopeOfFinding,
   nameTypeForRule,
+  TelemetryFindingReference,
 } from "./TelemetryScrubCoverage";
 import {
   findSecurityEventsSources,
@@ -190,23 +195,47 @@ export async function planProvenScrubItRule(data: {
           })
         : null;
 
+    const candidates: Array<ScrubRuleCandidate> = planScrubRuleCandidates({
+      finding: {
+        dataTypeId: data.dataTypeId,
+        dataCategory: record?.dataCategory || null,
+        location: data.location,
+        target: data.target,
+        projectType:
+          record?.projectType ||
+          (await readProjectDataTypePattern({
+            projectId: data.projectId,
+            dataTypeId: data.dataTypeId,
+          })),
+      },
+      securityEventsSources: sources?.isChecked ? sources.sources : [],
+      serviceId: scope.serviceId?.toString().toLowerCase() || null,
+    });
+    /*
+     * The narrowest that hides what the finding found, as coverage reads
+     * it (#11502): a pattern of the type's shapes keeps what was found only
+     * beside its words or under the key's name, and the rule that names the
+     * attribute does not - the narrowest of all where none does.
+     */
+    const foundBy: FindingFoundBy = record
+      ? readFoundByOf(record)
+      : await readFindingFoundBy({
+          projectId: data.projectId,
+          findingId: data.findingId,
+        });
+    const reference: TelemetryFindingReference = {
+      kind: data.kind,
+      dataTypeId: data.dataTypeId,
+      location: data.location,
+      ...foundBy,
+    };
+
     candidate =
-      planScrubRuleCandidates({
-        finding: {
-          dataTypeId: data.dataTypeId,
-          dataCategory: record?.dataCategory || null,
-          location: data.location,
-          target: data.target,
-          projectType:
-            record?.projectType ||
-            (await readProjectDataTypePattern({
-              projectId: data.projectId,
-              dataTypeId: data.dataTypeId,
-            })),
-        },
-        securityEventsSources: sources?.isChecked ? sources.sources : [],
-        serviceId: scope.serviceId?.toString().toLowerCase() || null,
-      })[0] || null;
+      candidates.find((planned: ScrubRuleCandidate): boolean => {
+        return doesScrubRuleCover(planned, reference);
+      }) ||
+      candidates[0] ||
+      null;
 
     if (!candidate) {
       // Throws, saying why no rule can hide this data.
@@ -404,9 +433,15 @@ export async function scrubFindingWithProvenRule(data: {
     target: ScrubTarget;
   } = readScrubbableTarget(data);
 
+  // How its values were found, which says whether a rule hides them (#11502).
+  const foundBy: FindingFoundBy = await readFindingFoundBy({
+    projectId: data.projectId,
+    findingId: data.findingId,
+  });
+
   if (scrubbable.target.signal === "metric") {
     return {
-      ...(await createScrubRuleForFinding(data)),
+      ...(await createScrubRuleForFinding({ ...data, ...foundBy })),
       isProven: false,
     };
   }
@@ -418,6 +453,7 @@ export async function scrubFindingWithProvenRule(data: {
       dataTypeId: scrubbable.dataTypeId,
       location: scrubbable.location,
       serviceId: readFindingServiceId(data) || data.serviceId,
+      ...foundBy,
     },
   );
 

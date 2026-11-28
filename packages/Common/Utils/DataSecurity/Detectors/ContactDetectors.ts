@@ -1365,6 +1365,38 @@ const vinDetector: DataTypeDetector = {
 };
 
 /*
+ * WHAT DATA SECURITY CALLS A POSTAL CODE: a UK postcode and a Canadian
+ * postal code, each on its own, and a US ZIP code or ZIP+4 only beside a
+ * word that names it ("zip 94107") or alone under a key that names one
+ * (`address.zip`). Each read however it is written (withEveryReading), as
+ * a phone number is: in every script's digits (#11200) - a UK postcode's
+ * digits in fullwidth ones its own - and in a URL (#11199):
+ * postcode=SW1A+2AA. A Postal Code scrub rule hides what these find
+ * (Utils/Telemetry/ScrubBuiltInPatterns.ts, #11502): the ZIP code only
+ * with one of its words near it in the value the rule reads, or under a
+ * key that names it, as the scanner judges it
+ * (TextReadings.findDetectorRanges), so "order 94107" keeps its digits.
+ */
+export const POSTAL_CODE_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  withEveryReading(ukPostcodeDetector),
+  withEveryReading(canadaPostalCodeDetector),
+  withEveryReading(usZipDetector),
+];
+
+/*
+ * WHAT DATA SECURITY CALLS A PRECISE LOCATION: a latitude and longitude
+ * pair on its own, and one coordinate only beside a word that names it
+ * ("lat 51.50722") or alone under a key that names one (`location.lat`),
+ * each with at least four decimals. A Coordinates scrub rule hides what
+ * these find (Utils/Telemetry/ScrubBuiltInPatterns.ts, #11502), the lone
+ * coordinate as the scanner judges it, so "ratio 0.12345" keeps its digits.
+ */
+export const COORDINATE_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  coordinatePairDetector,
+  singleCoordinateDetector,
+];
+
+/*
  * A postal code and a date of birth read however they are written
  * (withEveryReading), as a phone number is: in every script's digits
  * (#11200) - ١٩٨٥-٠٣-١٢ beside "date of birth" is the date it is, a UK
@@ -1385,17 +1417,14 @@ export const CONTACT_DETECTORS: ReadonlyArray<DataTypeDetector> = [
     readsPercentEncoded: true,
     readsPlusAsSpace: true,
   },
-  withEveryReading(ukPostcodeDetector),
-  withEveryReading(canadaPostalCodeDetector),
-  withEveryReading(usZipDetector),
+  ...POSTAL_CODE_DETECTORS,
   withEveryReading(numericBirthDateDetector),
   withEveryReading(writtenBirthDateDetector),
   ipv4Detector,
   ipv6Detector,
   macDetector,
   advertisingIdDetector,
-  coordinatePairDetector,
-  singleCoordinateDetector,
+  ...COORDINATE_DETECTORS,
   vinDetector,
 ];
 

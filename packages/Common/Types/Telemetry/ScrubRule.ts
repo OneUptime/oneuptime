@@ -128,6 +128,16 @@ export interface ScrubRegExp {
    * (scrubRegExpUnderKey).
    */
   underKey?(key: string, value: unknown): ScrubRegExp;
+  /*
+   * Of a pattern a list or a map under a key is read with (underKey): how
+   * it reads a number inside that value, as JSON writes it (#11500) - what
+   * Data Security finds on the number's characters in the value's JSON
+   * text, beside a word or under the key that names it: 2012345678 in
+   * [{"system":"phone","value":2012345678}]. A number it finds anything in
+   * is written as the rule's text, as one alone under its key is. None when
+   * the value holds no number the rule hides: its numbers stay numbers.
+   */
+  readonly numbersInside?: ScrubRegExp | undefined;
 }
 
 /*
@@ -348,6 +358,7 @@ class BuiltInScrubRegExp implements ScrubRegExp {
 class RangesScrubRegExp implements ScrubRegExp {
   public readonly source: string;
   public readonly flags: string;
+  public readonly numbersInside: ScrubRegExp | undefined;
   private readonly findRanges: (text: string) => Array<[number, number]>;
   private readonly findRangesUnderKey: FindRangesUnderKey | undefined;
 
@@ -356,27 +367,37 @@ class RangesScrubRegExp implements ScrubRegExp {
     flags: string;
     findRanges: (text: string) => Array<[number, number]>;
     findRangesUnderKey?: FindRangesUnderKey | undefined;
+    numbersInside?: ScrubRegExp | undefined;
   }) {
     this.source = data.source;
     this.flags = data.flags;
     this.findRanges = data.findRanges;
     this.findRangesUnderKey = data.findRangesUnderKey;
+    this.numbersInside = data.numbersInside;
   }
 
   // See ScrubRegExp.underKey: this, when the key and the value change nothing.
   public underKey(key: string, value: unknown): ScrubRegExp {
-    const findRanges: ((text: string) => Array<[number, number]>) | null = this
-      .findRangesUnderKey
+    const found: FoundUnderKey | null = this.findRangesUnderKey
       ? this.findRangesUnderKey(key, value)
       : null;
 
-    return findRanges
-      ? new RangesScrubRegExp({
-          source: this.source,
-          flags: this.flags,
-          findRanges,
-        })
-      : this;
+    if (!found) {
+      return this;
+    }
+
+    return new RangesScrubRegExp({
+      source: this.source,
+      flags: this.flags,
+      findRanges: found.findRanges,
+      numbersInside: found.findNumberRanges
+        ? new RangesScrubRegExp({
+            source: this.source,
+            flags: this.flags,
+            findRanges: found.findNumberRanges,
+          })
+        : undefined,
+    });
   }
 
   public test(text: string): boolean {
@@ -424,6 +445,18 @@ export function scrubRegExpFromBuiltIn(regex: RegExp): ScrubRegExp {
 }
 
 /*
+ * How a built-in pattern finds its matches in a value held under a key
+ * (ScrubRegExp.underKey, #11383): in each of its texts, and in each number
+ * inside it, as JSON writes it, where it hides any (#11500).
+ */
+export interface FoundUnderKey {
+  findRanges: (text: string) => Array<[number, number]>;
+  findNumberRanges?:
+    | ((numberText: string) => Array<[number, number]>)
+    | undefined;
+}
+
+/*
  * How a built-in pattern finds its matches in the texts of a value held
  * under a key (ScrubRegExp.underKey, #11383): a finder of its own for
  * them, or null when the key and the value change nothing it finds.
@@ -431,7 +464,7 @@ export function scrubRegExpFromBuiltIn(regex: RegExp): ScrubRegExp {
 export type FindRangesUnderKey = (
   key: string,
   value: unknown,
-) => ((text: string) => Array<[number, number]>) | null;
+) => FoundUnderKey | null;
 
 /*
  * A built-in pattern whose matches `findRanges` finds: [start, end) pairs,
@@ -493,7 +526,13 @@ export const SCRUB_RULE_BUILT_IN_PATTERNS: Readonly<Record<string, RegExp>> = {
 export const SCRUB_RULE_SENSITIVE_KEY_REGEX: RegExp =
   /(password|passwd|pwd|secret|token|api[._-]?key|access[._-]?key|private[._-]?key|client[._-]?secret|authorization|auth[._-]?header|cookie|session[._-]?id|credit[._-]?card|card[._-]?number|ssn|csrf|xsrf)/i;
 
-// The data type each built-in pattern type finds. Log and trace rules share them.
+/*
+ * The data type each built-in pattern type finds. Log and trace rules share
+ * them. Postal Code and Coordinates read the words and the key a value
+ * needs, as Data Security does (#11502): a Custom Regex rule of the type's
+ * shapes kept a ZIP code beside "zip" and a lone coordinate under
+ * `location.lat`.
+ */
 export const DATA_TYPE_OF_SCRUB_PATTERN_TYPE: Readonly<Record<string, string>> =
   {
     [LogScrubPatternType.Email]: "email-address",
@@ -501,6 +540,8 @@ export const DATA_TYPE_OF_SCRUB_PATTERN_TYPE: Readonly<Record<string, string>> =
     [LogScrubPatternType.SSN]: "us-ssn",
     [LogScrubPatternType.PhoneNumber]: "phone-number",
     [LogScrubPatternType.IPAddress]: "ip-address",
+    [LogScrubPatternType.PostalCode]: "postal-code",
+    [LogScrubPatternType.Coordinates]: "geolocation",
   };
 
 export const LOG_SCRUB_PATTERN_TYPES: ReadonlyArray<string> =

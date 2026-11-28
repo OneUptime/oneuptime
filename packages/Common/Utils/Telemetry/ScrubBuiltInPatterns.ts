@@ -1,6 +1,7 @@
 import LogScrubPatternType from "../../Types/Log/LogScrubPatternType";
 import {
   FindRangesUnderKey,
+  FoundUnderKey,
   SCRUB_RULE_BUILT_IN_PATTERNS,
   ScrubRegExp,
   scrubRegExpFromBuiltIn,
@@ -8,8 +9,10 @@ import {
 } from "../../Types/Telemetry/ScrubRule";
 import { DataTypeDetector } from "../DataSecurity/Detector";
 import {
+  COORDINATE_DETECTORS,
   EMAIL_ADDRESS_DETECTORS,
   PHONE_NUMBER_DETECTORS,
+  POSTAL_CODE_DETECTORS,
 } from "../DataSecurity/Detectors/ContactDetectors";
 import { CARD_NUMBER_DETECTORS } from "../DataSecurity/Detectors/FinancialDetectors";
 import { US_SSN_DETECTORS } from "../DataSecurity/Detectors/GovernmentIdDetectors";
@@ -28,6 +31,7 @@ import {
 import { readOwnValue } from "../LookupTable";
 import ScrubIpAddress from "./ScrubIpAddress";
 import {
+  placeRangesOnNumbers,
   placeRangesOnStrings,
   readStoredText,
   StoredText,
@@ -194,9 +198,15 @@ const EVERY_READING_OF_A_NUMBER: ReadingNeeds = {
  * Where a Credit Card rule's matches are: its pattern's, in every reading
  * of a number - as written, in a URL with %20 or "+" between its groups,
  * in every script's digits - and every card the card detectors find,
- * ranges two of them share made one.
+ * ranges two of them share made one. `hintedDataTypeIds`: as
+ * findPhoneNumberRanges' - under `payment.card_number` a whole value of a
+ * card's shape that passes its check is one, written in groups no brand
+ * prints, 4111 11 1111 1111 1111 (#11502).
  */
-export function findCardNumberRanges(text: string): Array<TextRange> {
+export function findCardNumberRanges(
+  text: string,
+  hintedDataTypeIds?: ReadonlySet<string> | undefined,
+): Array<TextRange> {
   if (!text) {
     return [];
   }
@@ -212,7 +222,9 @@ export function findCardNumberRanges(text: string): Array<TextRange> {
       },
       readings,
     }),
-    ...findDetectorRanges(CARD_NUMBER_DETECTORS, text, readings),
+    ...findDetectorRanges(CARD_NUMBER_DETECTORS, text, readings, {
+      hintedDataTypeIds,
+    }),
   ]);
 }
 
@@ -285,6 +297,56 @@ export function findSsnRanges(
   ]);
 }
 
+/*
+ * Where a Postal Code rule's matches are (#11502): every postal code the
+ * detectors find - a UK postcode and a Canadian postal code on their own,
+ * in every reading they read, and a US ZIP code or ZIP+4 beside a word
+ * that names it ("zip 94107"), as the scanner judges the word near it.
+ * `hintedDataTypeIds`: as findPhoneNumberRanges' - under `address.zip` a
+ * ZIP code needs no word, and a whole value of its shape is one.
+ */
+export function findPostalCodeRanges(
+  text: string,
+  hintedDataTypeIds?: ReadonlySet<string> | undefined,
+): Array<TextRange> {
+  if (!text) {
+    return [];
+  }
+
+  return findDetectorRanges(POSTAL_CODE_DETECTORS, text, undefined, {
+    hintedDataTypeIds,
+  });
+}
+
+/*
+ * Where a Coordinates rule's matches are (#11502): every precise location
+ * the detectors find - a latitude and longitude pair on its own, and one
+ * coordinate beside a word that names it ("lat 51.50722").
+ * `hintedDataTypeIds`: as findPhoneNumberRanges' - under `location.lat` a
+ * lone coordinate needs no word, and a whole value of its shape is one.
+ */
+export function findCoordinateRanges(
+  text: string,
+  hintedDataTypeIds?: ReadonlySet<string> | undefined,
+): Array<TextRange> {
+  if (!text) {
+    return [];
+  }
+
+  return findDetectorRanges(COORDINATE_DETECTORS, text, undefined, {
+    hintedDataTypeIds,
+  });
+}
+
+// What a pattern reads, as a RegExp's source would say it: its detectors' patterns side by side.
+function sourceOfDetectors(detectors: ReadonlyArray<DataTypeDetector>): string {
+  return detectors
+    .map((detector: DataTypeDetector): string => {
+      return `(?:${detector.pattern.source})`;
+    })
+    .join("|");
+}
+
 // The most keys whose hints are remembered: a project's attributes are a few hundred.
 const MAX_REMEMBERED_KEYS: number = 4_096;
 
@@ -316,18 +378,21 @@ export function getHintsOfKey(key: string): ReadonlySet<string> {
 }
 
 /*
- * A PHONE NUMBER OR SSN RULE READS A VALUE UNDER ITS KEY AS DATA SECURITY
- * READS IT (#11383).
+ * A RULE OF A TYPE DATA SECURITY FINDS BY A KEY OR A WORD READS A VALUE
+ * UNDER ITS KEY AS DATA SECURITY READS IT (#11383, #11500, #11502).
  *
  * Data Security finds a national number of 9 to 12 digits, or an SSN as
  * nine digits in a row, beside a word that names it - and in a field whose
  * name names it: `user.phone` holding 02012345678, `customer.ssn` holding
  * 536221234 (TextScanner's hintedDataTypeIds), and a whole value of a
- * phone's shape there, "020 1234 5678" (FieldClassifier). A rule handed
- * the value alone kept those values, while Data Security's coverage said
- * the rule hid them. So an engine hands a rule the key a value is held
- * under (ScrubRegExp.underKey), and the rule reads the value as Data
- * Security reads it:
+ * phone's shape there, "020 1234 5678" (FieldClassifier). So it finds a US
+ * ZIP code beside "zip" or under `address.zip`, a lone coordinate beside
+ * "lat" or under `location.lat`, and a card under `payment.card_number`
+ * written in groups no brand prints. A rule handed the value alone kept
+ * those values, while Data Security's coverage said the rule hid them. So
+ * an engine hands a rule the key a value is held under
+ * (ScrubRegExp.underKey), and the rule reads the value as Data Security
+ * reads it:
  *
  *  - a text under a key whose name hints the type is read with the name
  *    for the word every candidate needs, and whole by the type's shape
@@ -341,7 +406,11 @@ export function getHintsOfKey(key: string): ReadonlySet<string> {
  *    beside its value, and a word another of its texts writes is near it,
  *    [{"system":"phone","value":"02012345678"}]. What the detectors that
  *    need words find there is hidden in the texts that hold it, and each
- *    text is read as itself as well, as before.
+ *    text is read as itself as well, as before - and in the numbers that
+ *    hold it (#11500): [{"system":"phone","value":2012345678}], or
+ *    [536221234] under `customer.ssn`, has its number written as the rule's
+ *    text, as a number alone under its key is. A number nothing found
+ *    there, under no word and no such key, stays the number it is.
  *
  * A key that hints nothing, over a text, changes nothing: the rule reads
  * the value alone, as it always has.
@@ -361,10 +430,7 @@ function readsUnderKey(data: {
     },
   );
 
-  return (
-    key: string,
-    value: unknown,
-  ): ((text: string) => Array<TextRange>) | null => {
+  return (key: string, value: unknown): FoundUnderKey | null => {
     const hints: ReadonlySet<string> = getHintsOfKey(key);
     const hinted: ReadonlySet<string> | undefined = hints.has(data.dataTypeId)
       ? hints
@@ -373,10 +439,17 @@ function readsUnderKey(data: {
     // A text, or a number, which the table stores and Data Security reads as its text.
     if (typeof value === "string" || typeof value === "number") {
       return hinted
-        ? (text: string): Array<TextRange> => {
-            return data.findRanges(text, hinted);
+        ? {
+            findRanges: (text: string): Array<TextRange> => {
+              return data.findRanges(text, hinted);
+            },
           }
         : null;
+    }
+
+    // A type no word finds: a list or a map reads as its texts do.
+    if (wordDetectors.length === 0) {
+      return null;
     }
 
     const stored: StoredText | null = readStoredText(value);
@@ -391,19 +464,38 @@ function readsUnderKey(data: {
       undefined,
       { hintedDataTypeIds: hinted },
     );
-    const placed: Map<string, Array<TextRange>> = found.length > 0
-      ? placeRangesOnStrings(stored, found)
-      : new Map();
 
-    if (placed.size === 0) {
+    if (found.length === 0) {
       return null;
     }
 
-    return (text: string): Array<TextRange> => {
-      const own: Array<TextRange> = data.findRanges(text);
-      const inStoredText: Array<TextRange> | undefined = placed.get(text);
+    const placed: Map<string, Array<TextRange>> = placeRangesOnStrings(
+      stored,
+      found,
+    );
+    const onNumbers: Map<string, Array<TextRange>> = placeRangesOnNumbers(
+      stored,
+      found,
+    );
 
-      return inStoredText ? mergeRanges([...own, ...inStoredText]) : own;
+    if (placed.size === 0 && onNumbers.size === 0) {
+      return null;
+    }
+
+    return {
+      findRanges: (text: string): Array<TextRange> => {
+        const own: Array<TextRange> = data.findRanges(text);
+        const inStoredText: Array<TextRange> | undefined = placed.get(text);
+
+        return inStoredText ? mergeRanges([...own, ...inStoredText]) : own;
+      },
+      // Only what was found on a number's characters: never the type's own pattern (#11500).
+      findNumberRanges:
+        onNumbers.size > 0
+          ? (numberText: string): Array<TextRange> => {
+              return mergeRanges(onNumbers.get(numberText) || []);
+            }
+          : undefined,
     };
   };
 }
@@ -419,6 +511,27 @@ const SSN_UNDER_KEY: FindRangesUnderKey = readsUnderKey({
   detectors: US_SSN_DETECTORS,
   findRanges: findSsnRanges,
 });
+
+const CARD_NUMBER_UNDER_KEY: FindRangesUnderKey = readsUnderKey({
+  dataTypeId: "credit-card-number",
+  detectors: CARD_NUMBER_DETECTORS,
+  findRanges: findCardNumberRanges,
+});
+
+const POSTAL_CODE_UNDER_KEY: FindRangesUnderKey = readsUnderKey({
+  dataTypeId: "postal-code",
+  detectors: POSTAL_CODE_DETECTORS,
+  findRanges: findPostalCodeRanges,
+});
+
+const COORDINATES_UNDER_KEY: FindRangesUnderKey = readsUnderKey({
+  dataTypeId: "geolocation",
+  detectors: COORDINATE_DETECTORS,
+  findRanges: findCoordinateRanges,
+});
+
+const POSTAL_CODE_SOURCE: string = sourceOfDetectors(POSTAL_CODE_DETECTORS);
+const COORDINATES_SOURCE: string = sourceOfDetectors(COORDINATE_DETECTORS);
 
 /*
  * A built-in pattern as a rule runs it - or null for a pattern type no
@@ -441,7 +554,10 @@ export function compileBuiltInScrubPattern(
       return scrubRegExpFromRanges({
         source: CREDIT_CARD_PATTERN.source,
         flags: CREDIT_CARD_PATTERN.flags,
-        findRanges: findCardNumberRanges,
+        findRanges: (text: string): Array<TextRange> => {
+          return findCardNumberRanges(text);
+        },
+        findRangesUnderKey: CARD_NUMBER_UNDER_KEY,
       });
     case LogScrubPatternType.PhoneNumber:
       return scrubRegExpFromRanges({
@@ -460,6 +576,24 @@ export function compileBuiltInScrubPattern(
           return findSsnRanges(text);
         },
         findRangesUnderKey: SSN_UNDER_KEY,
+      });
+    case LogScrubPatternType.PostalCode:
+      return scrubRegExpFromRanges({
+        source: POSTAL_CODE_SOURCE,
+        flags: "g",
+        findRanges: (text: string): Array<TextRange> => {
+          return findPostalCodeRanges(text);
+        },
+        findRangesUnderKey: POSTAL_CODE_UNDER_KEY,
+      });
+    case LogScrubPatternType.Coordinates:
+      return scrubRegExpFromRanges({
+        source: COORDINATES_SOURCE,
+        flags: "g",
+        findRanges: (text: string): Array<TextRange> => {
+          return findCoordinateRanges(text);
+        },
+        findRangesUnderKey: COORDINATES_UNDER_KEY,
       });
     default: {
       /*

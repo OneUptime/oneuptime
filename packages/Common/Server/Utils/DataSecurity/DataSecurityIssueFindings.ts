@@ -67,6 +67,9 @@ export async function readCountedTelemetryFindings(data: {
         lastSeenAt: true,
         // A finding a verified code fix stopped is not counted (#10368).
         fixedAt: true,
+        // How its values were found says whether a rule hides them (#11502).
+        isFoundByContext: true,
+        isFoundByModel: true,
       },
       sort: { matchCount: SortOrder.Descending },
       skip: 0,

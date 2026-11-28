@@ -635,6 +635,7 @@ export function classifyFreeText(
       isTestValue: match.isTestValue,
       raw: bounded.slice(match.start, match.end),
       fromModel: match.fromModel,
+      fromContext: match.fromContext,
     });
 
     if (match.isTestValue) {
@@ -677,6 +678,11 @@ export function classifyFreeText(
 
     if (tally.modelMatchCount > 0) {
       classification.foundByModel = true;
+    }
+
+    // Some of its values found only beside the word that names their type (#11502).
+    if (tally.contextMatchCount > 0) {
+      classification.foundByContext = true;
     }
 
     classifications.push(classification);

@@ -601,6 +601,34 @@ export default class DataStoreFinding extends BaseModel {
   })
   public isFoundByModel?: boolean = undefined;
 
+  /*
+   * Whether some of its values were found only with what is around them
+   * (#11502): beside a word that names their type - a US ZIP code beside
+   * "zip", a lone coordinate beside "lat" - or under a location whose name
+   * names it, a whole value of its type's shape there among them. A Custom
+   * Regex rule Scrub It made from the type's detectors that need no
+   * context reads neither, so Data Security's coverage counts one only for
+   * a finding that is not (TelemetryScrubCoverage). Kept once seen: a later
+   * scan's sample may hold none of those values while the place still
+   * sends them. Null for a finding written before it was kept - not
+   * known, and read as found so where its type can be.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Found By Context",
+    description:
+      "Some of its values were found only by the words beside them or the location's name, not by their shape alone. Empty for a finding written before this was kept.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public isFoundByContext?: boolean | null = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.Boolean,

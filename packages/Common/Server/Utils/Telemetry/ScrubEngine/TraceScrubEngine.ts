@@ -23,7 +23,9 @@ import ScrubJsonTextUtil, {
 } from "../../../../Utils/Telemetry/ScrubJsonText";
 import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
+  ScrubNestedOf,
   ScrubNumberOf,
+  ScrubOfNestedValue,
 } from "../../../../Utils/Telemetry/ScrubNestedValues";
 import PatternWorkScope from "../../PatternWorkScope";
 import ScrubAction, {
@@ -452,11 +454,55 @@ export default class TraceScrubEngine {
           };
     };
 
+    /*
+     * A list or a map: its texts, and the numbers inside it - every one of
+     * them for a Named Attributes rule, which hides the whole value, and
+     * for a Phone Number or SSN rule those it finds beside their words or
+     * under the key that names them (#11500) - read once, as the key it is
+     * held under says.
+     */
+    const scrubNestedOf: ScrubNestedOf = (
+      key: string,
+      value: unknown,
+    ): ScrubOfNestedValue => {
+      if (isNamedKeys) {
+        return { scrubText: hideText, scrubNumber: hideText };
+      }
+
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        data.eventName !== undefined ? `${data.eventName}.${key}` : key,
+        value,
+      );
+      const scrubWith: (pattern: ScrubRegExp) => (text: string) => string = (
+        pattern: ScrubRegExp,
+      ): ((text: string) => string) => {
+        return (text: string): string => {
+          return this.scrubString(
+            text,
+            compiled,
+            data.jsonTexts,
+            data.tally,
+            data.recorder,
+            pattern,
+          );
+        };
+      };
+
+      return {
+        scrubText: scrubWith(regex),
+        scrubNumber: regex.numbersInside
+          ? scrubWith(regex.numbersInside)
+          : null,
+      };
+    };
+
     if (!compiled.keys) {
       ScrubNestedValuesUtil.scrubAttributeTextsUnderKeys(
         attributes,
         scrubTextOf,
         scrubNumberOf,
+        scrubNestedOf,
       );
       return;
     }
@@ -476,6 +522,7 @@ export default class TraceScrubEngine {
         value,
         scrubTextOf,
         scrubNumberOf,
+        scrubNestedOf,
       );
 
       if (scrubbed !== value) {

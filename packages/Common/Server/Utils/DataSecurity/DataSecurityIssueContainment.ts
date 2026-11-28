@@ -39,6 +39,7 @@ import { getTelemetryStoreOwnerId } from "./Telemetry/TelemetryFindingOccurrence
 import {
   CoveringScrubRule,
   findCoveringScrubRule,
+  readFoundByOf,
   getScrubCoverage,
   ScrubCoverage,
 } from "./Telemetry/TelemetryScrubCoverage";
@@ -187,6 +188,9 @@ export default class DataSecurityIssueContainmentReader {
           isAiSuggested: true,
           isScrubbed: true,
           fixedAt: true,
+          // How its values were found says whether a rule hides them (#11502).
+          isFoundByContext: true,
+          isFoundByModel: true,
         },
         skip: 0,
         limit: MAX_FINDINGS_READ,
@@ -212,6 +216,7 @@ export default class DataSecurityIssueContainmentReader {
           dataTypeId: finding.dataTypeId || "",
           location: finding.location || "",
           serviceId,
+          ...readFoundByOf(finding),
         });
 
         if (rule && !rules.has(rule.id)) {

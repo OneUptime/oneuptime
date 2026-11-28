@@ -35,7 +35,13 @@ import ProjectDataTypeNames from "./ProjectDataTypeNames";
 import DataSecurityResponse from "./DataSecurityResponse";
 import { queueDataSecurityEvaluation } from "./DataSecurityJobs";
 import TelemetryLeakFix from "./TelemetryLeakFix";
-import { CreatedScrubRule } from "./Telemetry/TelemetryScrubCoverage";
+import {
+  CreatedScrubRule,
+  getScrubCoverage,
+  isFindingScrubbed,
+  readFindingServiceId,
+  readFoundByOf,
+} from "./Telemetry/TelemetryScrubCoverage";
 import { getScrubItImpact } from "./Telemetry/TelemetryScrubImpact";
 import { scrubFindingWithProvenRule } from "./Telemetry/TelemetryScrubIt";
 
@@ -173,6 +179,9 @@ export async function readTelemetryFindingForCaller(data: {
         dataStoreId: true,
         // Its key names its service, for a store kept without one (#10433).
         dataStore: { kind: true, serviceId: true, storeKey: true },
+        // How its values were found says whether a rule hides them (#11502).
+        isFoundByContext: true,
+        isFoundByModel: true,
       },
       props: { isRoot: true },
     });
@@ -269,9 +278,28 @@ export default class DataSecurityButtons {
         storeKey: finding.dataStore!.storeKey || null,
       });
 
+    /*
+     * Scrubbed when a rule now hides what it found: the one made, or the
+     * one that already did. A rule of the type's shapes, made where nothing
+     * could be proven, keeps what was found only beside its words (#11502),
+     * and the finding says so.
+     */
     await DataStoreFindingService.updateColumnsByIdWithoutHooks({
       id: finding.id!,
-      data: { isScrubbed: true },
+      data: {
+        isScrubbed: isFindingScrubbed(await getScrubCoverage(data.projectId), {
+          kind: finding.dataStore!.kind as DataStoreKind,
+          dataTypeId: finding.dataTypeId!,
+          location: finding.location!,
+          serviceId:
+            readFindingServiceId({
+              kind: finding.dataStore!.kind,
+              serviceId: finding.dataStore!.serviceId || null,
+              storeKey: finding.dataStore!.storeKey || null,
+            }) || finding.dataStore!.serviceId,
+          ...readFoundByOf(finding),
+        }),
+      },
     });
     await queueDataSecurityEvaluation(data.projectId);
 

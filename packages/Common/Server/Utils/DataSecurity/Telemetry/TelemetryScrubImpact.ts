@@ -40,8 +40,10 @@ import { findTelemetryFieldReaders } from "../../Telemetry/TelemetryFieldReaders
 import {
   buildMetricScrubRule,
   CoveringScrubRule,
+  FindingFoundBy,
   findCoveringScrubRule,
   getScrubCoverage,
+  readFindingFoundBy,
   readFindingServiceId,
   readScrubbableTarget,
 } from "./TelemetryScrubCoverage";
@@ -245,6 +247,8 @@ export async function getScrubItImpact(data: {
       target,
     }: { location: string; dataTypeId: string; target: ScrubTarget } =
       readScrubbableTarget(data);
+    // How its values were found, which says whether a rule hides them (#11502).
+    const foundBy: FindingFoundBy = await readFindingFoundBy(data);
     const existing: CoveringScrubRule | null = findCoveringScrubRule(
       await getScrubCoverage(data.projectId),
       {
@@ -252,6 +256,7 @@ export async function getScrubItImpact(data: {
         dataTypeId,
         location,
         serviceId: readFindingServiceId(data) || data.serviceId,
+        ...foundBy,
       },
     );
 
@@ -274,6 +279,7 @@ export async function getScrubItImpact(data: {
         dataTypeId,
         location,
         target,
+        ...foundBy,
       });
 
       return {

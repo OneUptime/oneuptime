@@ -15,8 +15,10 @@ import ScrubJsonTextUtil, {
   ScrubJsonTexts,
 } from "../../../../Utils/Telemetry/ScrubJsonText";
 import ScrubNestedValuesUtil, {
+  ScrubNestedOf,
   ScrubNestedValuesAllowance,
   ScrubNumberOf,
+  ScrubOfNestedValue,
 } from "../../../../Utils/Telemetry/ScrubNestedValues";
 import PatternWorkScope from "../../PatternWorkScope";
 import ScrubAction, {
@@ -292,6 +294,10 @@ export default class LogScrubEngine {
           (): ((text: string) => string) => {
             return hideText;
           },
+          // A list's or a map's numbers too: the whole value it names (#11500).
+          (): ScrubOfNestedValue => {
+            return { scrubText: hideText, scrubNumber: hideText };
+          },
         );
 
         if (hidden !== value) {
@@ -360,11 +366,49 @@ export default class LogScrubEngine {
           };
     };
 
+    /*
+     * A list or a map: its texts, and the numbers inside it a Phone Number
+     * or SSN rule finds beside their words or under the key that names
+     * them (#11500) - read once, as the key it is held under says.
+     */
+    const scrubNestedOf: ScrubNestedOf = (
+      key: string,
+      value: unknown,
+    ): ScrubOfNestedValue => {
+      const regex: ScrubRegExp = scrubRegExpUnderKey(
+        compiled.regex,
+        key,
+        value,
+      );
+      const scrubWith: (pattern: ScrubRegExp) => (text: string) => string = (
+        pattern: ScrubRegExp,
+      ): ((text: string) => string) => {
+        return (text: string): string => {
+          return this.scrubString(
+            text,
+            compiled,
+            data.jsonTexts,
+            data.tally,
+            data.recorder,
+            pattern,
+          );
+        };
+      };
+
+      return {
+        scrubText: scrubWith(regex),
+        scrubNumber: regex.numbersInside
+          ? scrubWith(regex.numbersInside)
+          : null,
+      };
+    };
+
     if (!compiled.keys) {
       ScrubNestedValuesUtil.scrubAttributeTextsUnderKeys(
         attributes,
         scrubTextOf,
         scrubNumberOf,
+        scrubNestedOf,
       );
       return;
     }
@@ -381,6 +425,7 @@ export default class LogScrubEngine {
         value,
         scrubTextOf,
         scrubNumberOf,
+        scrubNestedOf,
       );
 
       if (scrubbed !== value) {

@@ -64,6 +64,7 @@ import {
   createScrubRuleForFinding,
   describeRule,
   findCoveringScrubRule,
+  readFoundByOf,
   getScrubCoverage,
   nameScrubItRule,
   previewScrubRuleForFinding,
@@ -289,6 +290,9 @@ function referenceOf(
     dataTypeId: place.dataTypeId,
     location: place.location,
     serviceId: plan.serviceId || null,
+    // As the finding said when the plan was made (#11502).
+    isFoundByContext: place.isFoundByContext,
+    isFoundByModel: place.isFoundByModel,
   };
 }
 
@@ -1122,6 +1126,11 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
           ? { lastSeenAt: new Date(finding.lastSeenAt).toISOString() }
           : {}),
         matchCount: finding.matchCount || 0,
+        // How its values were found says whether a rule hides them (#11502).
+        ...(typeof finding.isFoundByContext === "boolean"
+          ? { isFoundByContext: finding.isFoundByContext }
+          : {}),
+        ...(finding.isFoundByModel === true ? { isFoundByModel: true } : {}),
       };
 
       if (seen.has(placeKey(place))) {
@@ -1137,6 +1146,7 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
           dataTypeId: place.dataTypeId,
           location: place.location,
           serviceId: serviceId || null,
+          ...readFoundByOf(finding),
         })
       ) {
         continue;
@@ -1169,6 +1179,7 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
             dataTypeName: place.dataTypeName,
             location: place.location,
             serviceId,
+            ...readFoundByOf(finding),
           });
 
           options =
@@ -1478,6 +1489,8 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
             dataTypeName: place.dataTypeName,
             location: place.location,
             serviceId: plan.serviceId || null,
+            isFoundByContext: place.isFoundByContext,
+            isFoundByModel: place.isFoundByModel,
           });
 
           used.push({
@@ -1554,6 +1567,8 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
               dataTypeName: place.dataTypeName,
               location: place.location,
               serviceId: plan.serviceId || null,
+              isFoundByContext: place.isFoundByContext,
+              isFoundByModel: place.isFoundByModel,
             });
 
             used.push({

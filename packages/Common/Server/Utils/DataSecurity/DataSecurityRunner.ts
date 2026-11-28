@@ -89,6 +89,7 @@ import {
 import {
   getScrubCoverage,
   isFindingScrubbed,
+  readFoundByOf,
   ScrubCoverage,
 } from "./Telemetry/TelemetryScrubCoverage";
 import logger from "../Logger";
@@ -1482,9 +1483,19 @@ export default class DataSecurityRunner {
       dataTypeId?: string;
       location?: string;
       isScrubbed?: boolean;
+      isFoundByContext?: boolean | null;
+      isFoundByModel?: boolean;
     }> = await DataStoreFindingService.findBy({
       query: { dataStoreId },
-      select: { _id: true, dataTypeId: true, location: true, isScrubbed: true },
+      select: {
+        _id: true,
+        dataTypeId: true,
+        location: true,
+        isScrubbed: true,
+        // How its values were found says whether a rule hides them (#11502).
+        isFoundByContext: true,
+        isFoundByModel: true,
+      },
       skip: 0,
       limit: 2000,
       props: { isRoot: true },
@@ -1500,6 +1511,7 @@ export default class DataSecurityRunner {
         dataTypeId: finding.dataTypeId,
         location: finding.location,
         serviceId,
+        ...readFoundByOf(finding),
       });
 
       if (scrubbed !== Boolean(finding.isScrubbed)) {

@@ -112,6 +112,13 @@ export interface ScrubPlace {
   lastSeenAt?: string | undefined;
   // How many values matched in the last scans.
   matchCount?: number | undefined;
+  /*
+   * How its values were found, as the finding said when the plan was made
+   * (#11502): some only beside their words or under the key's name, some
+   * by the names-and-addresses model. Left out when not known.
+   */
+  isFoundByContext?: boolean | undefined;
+  isFoundByModel?: boolean | undefined;
 }
 
 // What reads what a rule hides, by kind, as OneUptime counted it.
@@ -220,6 +227,14 @@ function readPlace(item: unknown): ScrubPlace | null {
 
   if (readCount(place["matchCount"]) !== undefined) {
     read.matchCount = readCount(place["matchCount"]);
+  }
+
+  if (typeof place["isFoundByContext"] === "boolean") {
+    read.isFoundByContext = place["isFoundByContext"];
+  }
+
+  if (place["isFoundByModel"] === true) {
+    read.isFoundByModel = true;
   }
 
   return read;
