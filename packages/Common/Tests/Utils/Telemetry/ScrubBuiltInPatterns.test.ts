@@ -509,7 +509,6 @@ describe("a Phone Number rule (#11025, #11030)", () => {
     ["almost a phone number", "call +1 2 3 4 5 6 7 8 failed"],
     ["almost a phone number", "call +44 20 7946 0958 12 34 failed"],
     ["almost a phone number", "call +1-800-FLOWERS failed"],
-    ["almost a phone number", "call 020 7946 0958 failed"],
     ["almost a phone number", "call +999 1234 5678 failed"],
   ])("leaves %s as it was: %s", (_kind: string, text: string) => {
     expect(findPhoneNumberRanges(text)).toEqual(
@@ -939,7 +938,18 @@ describe("a Phone Number rule, a national number beside the word that names it (
       "mobile 447911123456",
       "mobile [REDACTED]",
     ],
-    ["of nine digits after cell", "cell: 201234567", "cell: [REDACTED]"],
+    // #11496: "cell" alone names no run of digits; "cell number" does.
+    [
+      "of nine digits after cell number",
+      "cell number: 201234567",
+      "cell number: [REDACTED]",
+    ],
+    // #11496: and "cell" alone does before a number with its trunk prefix.
+    [
+      "of ten digits after cell, its trunk prefix first",
+      "cell: 0612345678",
+      "cell: [REDACTED]",
+    ],
     ["after fax", "fax 02012345678", "fax [REDACTED]"],
     ["after contact", "contact 02012345678", "contact [REDACTED]"],
     ["after a word that follows it", "02012345678 (tel)", "[REDACTED] (tel)"],
@@ -992,6 +1002,9 @@ describe("a Phone Number rule, a national number beside the word that names it (
     ["too many digits", "tel 02012345678901234 ok"],
     ["one digit repeated", "tel 111111111 ok"],
     ["a reference beside no word", "ref 201234567 ok"],
+    // #11496: "cell" alone, before no trunk prefix: a size, a count.
+    ["no trunk prefix after cell", "cell: 201234567"],
+    ["a size after cell", "cell 104857600"],
   ])("leaves a number with %s: %s", (_kind: string, text: string) => {
     expect(findPhoneNumberRanges(text)).toEqual(ownPatternRanges(PHONE, text));
   });

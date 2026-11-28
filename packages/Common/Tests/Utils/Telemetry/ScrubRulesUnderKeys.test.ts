@@ -764,8 +764,22 @@ describe("each built-in pattern under a key", () => {
     ).toEqual([]);
   });
 
-  test("a list's numbers, and a value deeper than a rule reads, are read as they always were", () => {
-    expect(scrubRegExpUnderKey(PHONE, "user.phone", [2012345678])).toBe(PHONE);
+  test("a list's numbers under a key that names them are read as their text, and a value deeper than a rule reads as it always was", () => {
+    // #11500: [2012345678] under `user.phone` is a phone number to Data Security, which reads its JSON text.
+    const underKey: ScrubRegExp = scrubRegExpUnderKey(
+      PHONE,
+      "user.phone",
+      [2012345678],
+    );
+
+    expect(underKey).not.toBe(PHONE);
+    expect(underKey.numbersInside!.matchRanges("2012345678")).toEqual([
+      [0, 10],
+    ]);
+    // A number of the list nothing found is kept.
+    expect(underKey.numbersInside!.matchRanges("42")).toEqual([]);
+    // Under a key that names nothing, a list's numbers are kept as they always were.
+    expect(scrubRegExpUnderKey(PHONE, "order.ids", [2012345678])).toBe(PHONE);
 
     let deep: unknown = ["tel 02012345678"];
 

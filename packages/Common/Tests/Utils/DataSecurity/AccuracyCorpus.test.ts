@@ -1,5 +1,32 @@
 import { describe, expect, test } from "@jest/globals";
+import {
+  CoveringScrubRule,
+  isFindingScrubbed,
+} from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  planScrubRuleCandidates,
+  ScrubRuleCandidate,
+} from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubPlanner";
+import {
+  CompiledScrubRule,
+  compileScrubRule,
+} from "../../../Server/Utils/Telemetry/ScrubEngine/CompiledScrubRule";
+import LogScrubEngine from "../../../Server/Utils/Telemetry/ScrubEngine/LogScrubEngine";
+import TraceScrubEngine from "../../../Server/Utils/Telemetry/ScrubEngine/TraceScrubEngine";
 import DataConfidence from "../../../Types/DataSecurity/DataConfidence";
+import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
+import {
+  getScrubTarget,
+  ScrubTarget,
+} from "../../../Types/DataSecurity/TelemetryScrubTarget";
+import { JSONObject } from "../../../Types/JSON";
+import LogScrubPatternType from "../../../Types/Log/LogScrubPatternType";
+import {
+  ScrubRegExp,
+  scrubRegExpUnderKey,
+} from "../../../Types/Telemetry/ScrubRule";
+import { compileBuiltInScrubPattern } from "../../../Utils/Telemetry/ScrubBuiltInPatterns";
+import ScrubNestedValuesUtil from "../../../Utils/Telemetry/ScrubNestedValues";
 import {
   DATA_TYPE_CATALOG,
   DataTypeInfo,
@@ -291,6 +318,8 @@ function findAsRead(
         normalized,
         confidence: DataConfidence.Medium,
         isTestValue: Boolean(detector.isTestValue?.(normalized)),
+        // Of its type by the field's name and its shape alone, as FieldClassifier says (#11502).
+        fromContext: true,
       });
     }
   }
@@ -2389,6 +2418,282 @@ const READING_CASES_OF: Readonly<
       };
     },
   /*
+   * #11493: a national phone number written in the groups people write it
+   * in, beside a word that names a phone - Tokyo's 03-1234-5678, London's
+   * 020 3123 4567, Paris's 01.23.45.67.89, Madrid's 612 34 56 78, Sydney's
+   * (02) 1234 5678, and Tokyo's with the prolonged sound mark a number typed
+   * in Japanese is set apart by. And what only looks like one beside the
+   * same words: a date and a time, a time, a version, a range of pages, a
+   * range of two numbers of one length, counts, an IPv4 address.
+   */
+  "phone-number: a national number in groups beside the word that names it":
+    (): CorpusEntry => {
+      const tokyo: string = `03-${drawnDigitsOf(4, "1")}-${drawnDigitsOf(4)}`;
+      const london: string = `020 3${drawnDigitsOf(3)} ${drawnDigitsOf(4)}`;
+      const paris: string = `01.${drawnDigitsOf(2, "2")}.${drawnDigitsOf(2, "3")}.${drawnDigitsOf(2, "4")}.${drawnDigitsOf(2, "5")}`;
+      const madrid: string = `6${drawnDigitsOf(2)} ${drawnDigitsOf(2, "3")} ${drawnDigitsOf(2, "4")} ${drawnDigitsOf(2, "5")}`;
+      const sydney: string = `(02) ${drawnDigitsOf(4, "9")} ${drawnDigitsOf(4)}`;
+      const typed: string = `03ー${drawnDigitsOf(4, "2")}ー${drawnDigitsOf(4)}`;
+
+      return {
+        positives: [
+          labelled(
+            "phone-number",
+            `2026-10-27T10:15:02Z INFO customer called back on tel ${tokyo} ok`,
+            tokyo,
+          ),
+          labelled(
+            "phone-number",
+            `{"phone": "${london}", "batch": "nightly"}`,
+            london,
+          ),
+          labelled("phone-number", `fax ${paris} sent`, paris),
+          labelled(
+            "phone-number",
+            `2026-10-27T10:15:02Z INFO mobile ${madrid} verified`,
+            madrid,
+          ),
+          labelled("phone-number", `{"telephone": "${sydney}"}`, sydney),
+          labelled("phone-number", `連絡先 tel ${typed}`, typed),
+        ],
+        nearMisses: [
+          labelled(
+            "phone-number",
+            `2026-10-27T10:15:02Z INFO tel 2026-11-${10 + random(18)} 10:30:00 ok`,
+            "",
+          ),
+          labelled("phone-number", `phone 10:${10 + random(50)}:00 ok`, ""),
+          labelled("phone-number", `tel version 1.2.${random(10)} ok`, ""),
+          labelled("phone-number", `phone pages 10-${20 + random(70)} ok`, ""),
+          labelled(
+            "phone-number",
+            `tel ${10000 + random(40000)}-${60000 + random(30000)} ok`,
+            "",
+          ),
+          labelled(
+            "phone-number",
+            `phone counts 10 ${20 + random(9)} 30 ${40 + random(9)} 50 ok`,
+            "",
+          ),
+          labelled(
+            "phone-number",
+            `tel 192.168.${100 + random(100)}.${100 + random(100)} ok`,
+            "",
+          ),
+        ],
+      };
+    },
+  /*
+   * #11496: "call", "cell" and "contact" name a phone number only with a
+   * word after them that names a number - "call me on", "contact number" -
+   * or before a national number dialled with its trunk prefix, 0. A Unix
+   * time after "call", a size after "cell" and an id after "contact" are
+   * no phone numbers.
+   */
+  "phone-number: beside call, cell or contact": (): CorpusEntry => {
+    const onCall: string = `2${drawnDigitsOf(9)}`;
+    const contactNumber: string = `6${drawnDigitsOf(8)}`;
+    const cell: string = `06${drawnDigitsOf(8)}`;
+    const grouped: string = `020 3${drawnDigitsOf(3)} ${drawnDigitsOf(4)}`;
+    const unixTime: string = drawnUntaken(
+      "phone-number",
+      (): string => {
+        return `17${drawnDigitsOf(8)}`;
+      },
+      (drawn: string): string => {
+        return `2026-10-27T10:15:02Z INFO call started at ${drawn} ok`;
+      },
+    );
+    const size: string = drawnUntaken(
+      "phone-number",
+      (): string => {
+        return drawnDigitsOf(9, "1");
+      },
+      (drawn: string): string => {
+        return `2026-10-27T10:15:02Z INFO cell ${drawn} bytes written`;
+      },
+    );
+    const id: string = drawnUntaken(
+      "phone-number",
+      (): string => {
+        return drawnDigitsOf(12, "4");
+      },
+      (drawn: string): string => {
+        return `{"contact": ${drawn}, "batch": "nightly"}`;
+      },
+    );
+
+    return {
+      positives: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO please call me on ${onCall} tomorrow`,
+          onCall,
+        ),
+        labelled(
+          "phone-number",
+          `{"contact number": "${contactNumber}", "batch": "nightly"}`,
+          contactNumber,
+        ),
+        labelled("phone-number", `support cell: ${cell}`, cell),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO call ${grouped} queued`,
+          grouped,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO call started at ${unixTime} ok`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO cell ${size} bytes written`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `{"contact": ${id}, "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  /*
+   * #11502: a US ZIP code or ZIP+4 beside a word that names it, and alone
+   * under a key that names a postal code - what a Postal Code rule hides
+   * and a Custom Regex rule of the UK and Canadian postcodes' shapes keeps.
+   * The same digits beside no such word, or under a key that names
+   * nothing, are no postal code.
+   */
+  "postal-code: a US ZIP code beside its word or under its key":
+    (): CorpusEntry => {
+      const zip: string = drawnDigitsOf(5, "9");
+      const plus4: string = `${drawnDigitsOf(5, "1")}-${drawnDigitsOf(4)}`;
+      const keyed: string = drawnDigitsOf(5, "3");
+      const named: string = drawnDigitsOf(5, "6");
+
+      return {
+        positives: [
+          labelled(
+            "postal-code",
+            `2026-10-27T10:15:02Z INFO parcel shipped to zip ${zip} ok`,
+            zip,
+          ),
+          labelled(
+            "postal-code",
+            `{"zip code": "${plus4}", "batch": "nightly"}`,
+            plus4,
+          ),
+          labelled("postal-code", keyed, keyed, "address.zip"),
+          labelled("postal-code", named, named, "shipping.postal_code"),
+        ],
+        nearMisses: [
+          labelled(
+            "postal-code",
+            `2026-10-27T10:15:02Z INFO order ${zip} shipped ok`,
+            "",
+          ),
+          labelled("postal-code", keyed, "", "order.count"),
+          labelled("postal-code", "00000", "", "address.zip"),
+        ],
+      };
+    },
+  /*
+   * #11502: one coordinate beside a word that names it, and alone under a
+   * key that names one - what a Coordinates rule hides and a Custom Regex
+   * rule of a coordinate pair's shape keeps. A decimal beside no such word,
+   * one under a key that names nothing, and a coordinate too imprecise to
+   * find a building are none.
+   */
+  "geolocation: a lone coordinate beside its word or under its key":
+    (): CorpusEntry => {
+      const latitude: string = `51.${drawnDigitsOf(5)}`;
+      const longitude: string = `-0.${drawnDigitsOf(5)}`;
+      const keyed: string = `40.${drawnDigitsOf(6)}`;
+      const named: string = `-73.${drawnDigitsOf(6)}`;
+
+      return {
+        positives: [
+          labelled(
+            "geolocation",
+            `2026-10-27T10:15:02Z INFO pin dropped at lat ${latitude} ok`,
+            latitude,
+          ),
+          labelled("geolocation", `{"lng": ${longitude}}`, longitude),
+          labelled("geolocation", keyed, keyed, "location.latitude"),
+          labelled("geolocation", named, named, "device.lon"),
+        ],
+        nearMisses: [
+          labelled(
+            "geolocation",
+            `2026-10-27T10:15:02Z INFO ratio 0.${drawnDigitsOf(5)} ok`,
+            "",
+          ),
+          labelled("geolocation", `lat 51.${random(10)} ok`, ""),
+          labelled("geolocation", `0.${drawnDigitsOf(5)}`, "", "metrics.ratio"),
+        ],
+      };
+    },
+  /*
+   * #11500: a number inside a list or a map, read as the JSON text the
+   * table stores it as - beside the key that names it, or under an
+   * attribute whose key does. The same numbers beside no such word, or
+   * under a key that names nothing, are none.
+   */
+  "phone-number and us-ssn: numbers inside a list or a map": (): CorpusEntry => {
+    const national: string = drawnUntaken(
+      "phone-number",
+      (): string => {
+        return `2${drawnDigitsOf(9)}`;
+      },
+      (drawn: string): string => {
+        return `[{"system":"order","value":${drawn}}]`;
+      },
+    );
+    const listed: string = drawnUntaken(
+      "phone-number",
+      (): string => {
+        return `3${drawnDigitsOf(9)}`;
+      },
+      (drawn: string): string => {
+        return `[${drawn}]`;
+      },
+    );
+    const ssn: string = drawnUntaken(
+      "us-ssn",
+      (): string => {
+        return drawnSsn().split("-").join("");
+      },
+      (drawn: string): string => {
+        return `[${drawn}]`;
+      },
+    );
+
+    return {
+      positives: [
+        labelled(
+          "phone-number",
+          `[{"system":"phone","value":${national}}]`,
+          national,
+        ),
+        labelled("phone-number", `[${listed}]`, listed, "user.phone"),
+        labelled("us-ssn", `[${ssn}]`, ssn, "customer.ssn"),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `[{"system":"order","value":${national}}]`,
+          "",
+        ),
+        labelled("phone-number", `[${listed}]`, "", "order.ids"),
+        labelled("us-ssn", `[${ssn}]`, "", "order.ids"),
+      ],
+    };
+  },
+  /*
    * #11385: a phone number whose groups are set apart by another dash -
    * the prolonged sound mark of a number typed in Japanese, a non-breaking
    * hyphen, an en dash, a figure dash - and what reads as no phone number
@@ -3976,5 +4281,480 @@ describe("values written the ways the detectors now read them too", () => {
   test("draws each case from a stream of its own, the same for the same seed", () => {
     expect(buildReadingCases(CORPUS_SEED)).toEqual(READING_CASES);
     expect(buildReadingCases(CORPUS_SEED + 1)).not.toEqual(READING_CASES);
+  });
+
+  /*
+   * #11502: a Postal Code or Coordinates rule hides exactly what Data
+   * Security finds of its type - beside the words that name it, under the
+   * key that names it, as a whole value of its shape there - and nothing
+   * its detectors do not find, near misses included. The rule as an engine
+   * runs it: compiled, and read under the field's key.
+   */
+  test("a Postal Code or Coordinates rule hides exactly what Data Security finds of its type, in every case of it", () => {
+    const rules: Readonly<Record<string, ScrubRegExp>> = {
+      "postal-code": compileBuiltInScrubPattern(LogScrubPatternType.PostalCode)!,
+      geolocation: compileBuiltInScrubPattern(LogScrubPatternType.Coordinates)!,
+    };
+    let texts: number = 0;
+
+    for (const entries of [CORPUS, READING_CASES]) {
+      for (const [name, entry] of Object.entries(entries)) {
+        for (const labelled of [...entry.positives, ...entry.nearMisses]) {
+          const rule: ScrubRegExp | undefined = rules[labelled.dataTypeId];
+
+          if (!rule) {
+            continue;
+          }
+
+          const ranges: Array<TextRange> = scrubRegExpUnderKey(
+            rule,
+            labelled.field,
+            labelled.text,
+          ).matchRanges(labelled.text);
+          const found: Array<TextMatch> = findAsRead(
+            labelled.text,
+            { detectors: getBuiltInDetectorsOf(labelled.dataTypeId) },
+            labelled.field,
+          );
+
+          texts++;
+
+          for (const match of found) {
+            expect([
+              name,
+              labelled.text.slice(match.start, match.end),
+              ranges.some(([start, end]: TextRange): boolean => {
+                return start <= match.start && match.end <= end;
+              }),
+            ]).toEqual([name, labelled.text.slice(match.start, match.end), true]);
+          }
+
+          for (const [start, end] of ranges) {
+            expect([
+              name,
+              labelled.text.slice(start, end),
+              found.some((match: TextMatch): boolean => {
+                return start <= match.start && match.end <= end;
+              }),
+            ]).toEqual([name, labelled.text.slice(start, end), true]);
+          }
+        }
+      }
+    }
+
+    expect(texts).toBeGreaterThan(12);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * THE GUARD (#11502): THE RULE SCRUB IT MAKES FOR A FINDING HIDES WHAT ITS
+ * COVERAGE SAYS IT HIDES - FOR EVERY TYPE, IN EVERY CASE OF THE CORPUS.
+ *
+ * Data Security says a finding is scrubbed when a rule covers it
+ * (TelemetryScrubCoverage). For every labelled value of the corpus and of
+ * the cases written the ways the detectors read them - at the corpus seed
+ * and at each other seed the cases are held to - the finding Data Security
+ * would make of it is put together as a scan writes it: its type, its
+ * place (a log's body, or the attribute its field is; a span's attribute),
+ * and whether it was found only with what is around it (TextMatch's
+ * fromContext, as FieldClassifier keeps it). Scrub It's rule for the
+ * finding is the planner's first candidate. Wherever coverage counts that
+ * rule for the finding, the rule, run as ingest runs it, must leave nothing
+ * of the type for Data Security to find - in the text, and in a list or a
+ * map held as an attribute's value, its numbers too (#11500). A type whose
+ * rule kept a value its coverage counted fails here, by name: the US ZIP
+ * code and the lone coordinate a Custom Regex rule of their shapes kept,
+ * the Bearer token its Authorization pattern left out.
+ * ---------------------------------------------------------------------------
+ */
+
+const GUARD_PROJECT_ID: string = "0192f1a0-0000-7000-8000-0000000d1502";
+
+// Where a labelled value sits as a scan reads it: a record's kind, its place, and the key it is under.
+interface GuardPlace {
+  signal: "log" | "trace";
+  kind: DataStoreKind;
+  location: string;
+  key: string | undefined;
+}
+
+// A value with no field: a log's body, and a span's attribute that names nothing.
+const UNNAMED_SPAN_KEY: string = "log.message";
+
+// A list or a map with no field: an attribute that names nothing.
+const UNNAMED_LIST_KEY: string = "payload";
+
+function placesOf(field: string | undefined): Array<GuardPlace> {
+  return [
+    {
+      signal: "log",
+      kind: DataStoreKind.TelemetryLogs,
+      location: field === undefined ? "body" : `attributes.${field}`,
+      key: field,
+    },
+    {
+      signal: "trace",
+      kind: DataStoreKind.TelemetryTraces,
+      location: `attributes.${field ?? UNNAMED_SPAN_KEY}`,
+      key: field ?? UNNAMED_SPAN_KEY,
+    },
+  ];
+}
+
+// Data Security's real finds of a type in a value, as a scan reads it under its key.
+function findsOfType(
+  dataTypeId: string,
+  text: string,
+  key: string | undefined,
+): Array<TextMatch> {
+  return findAsRead(text, {}, key).filter((match: TextMatch): boolean => {
+    return match.dataTypeId === dataTypeId && !match.isTestValue;
+  });
+}
+
+// Scrub It's rule for a finding at a place: the planner's first candidate, or none.
+function scrubItRuleOf(
+  dataTypeId: string,
+  place: GuardPlace,
+): ScrubRuleCandidate | null {
+  const target: ScrubTarget | null = getScrubTarget(place.kind, place.location);
+
+  if (!target || target.signal === "metric") {
+    return null;
+  }
+
+  return (
+    planScrubRuleCandidates({
+      finding: {
+        dataTypeId,
+        location: place.location,
+        target: target as ScrubTarget & { signal: "log" | "trace" },
+      },
+    })[0] || null
+  );
+}
+
+function coveringRuleOf(candidate: ScrubRuleCandidate): CoveringScrubRule {
+  const rule: CoveringScrubRule = {
+    id: "scrub-it",
+    name: "Scrub It",
+    signal: candidate.signal,
+    patternType: candidate.patternType,
+    customRegex: candidate.customRegex,
+    fieldsToScrub: candidate.fieldsToScrub,
+  };
+
+  if ((candidate.attributeKeys || []).length > 0) {
+    rule.attributeKeys = [...candidate.attributeKeys!];
+  }
+
+  return rule;
+}
+
+// What a rule leaves of a value at its place, run by the engine ingest runs it with.
+function leftAt(
+  candidate: ScrubRuleCandidate,
+  place: GuardPlace,
+  value: unknown,
+): unknown {
+  const compiled: CompiledScrubRule | null = compileScrubRule({
+    projectId: GUARD_PROJECT_ID,
+    patternType: candidate.patternType,
+    customRegex: candidate.customRegex,
+    scrubAction: candidate.scrubAction,
+    fieldsToScrub: candidate.fieldsToScrub,
+    attributeKeys: candidate.attributeKeys,
+  });
+
+  expect(compiled).not.toBeNull();
+
+  if (place.signal === "log") {
+    const row: JSONObject =
+      place.key === undefined
+        ? { body: value as string, attributes: {} }
+        : { body: "", attributes: { [place.key]: value } as JSONObject };
+    const scrubbed: JSONObject = LogScrubEngine.scrubLog(row, [compiled!], null, {
+      countValues: false,
+    });
+
+    return place.key === undefined
+      ? scrubbed["body"]
+      : (scrubbed["attributes"] as JSONObject)[place.key];
+  }
+
+  const scrubbed: JSONObject = TraceScrubEngine.scrubSpan(
+    {
+      name: "GET /",
+      attributes: { [place.key!]: value } as JSONObject,
+      events: [],
+      links: [],
+    },
+    [compiled!],
+    null,
+    { countValues: false },
+  );
+
+  return (scrubbed["attributes"] as JSONObject)[place.key!];
+}
+
+// What the table stores of a value: a text as it is, anything else as its JSON text.
+function storedTextOf(value: unknown): string {
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+interface GuardTally {
+  // Places where coverage counted Scrub It's rule, and the rule hid the type.
+  covered: number;
+  // Places where it did not count it, by what the finding said.
+  notCoveredByContext: number;
+  notCoveredOtherwise: number;
+  // Lists and maps read as attributes' values, their numbers too.
+  nested: number;
+}
+
+function guardCorpus(
+  cases: ReadonlyArray<[string, Record<string, CorpusEntry>]>,
+): { tally: GuardTally; kept: Array<string>; byType: Map<string, GuardTally> } {
+  const tally: GuardTally = {
+    covered: 0,
+    notCoveredByContext: 0,
+    notCoveredOtherwise: 0,
+    nested: 0,
+  };
+  const byType: Map<string, GuardTally> = new Map<string, GuardTally>();
+  const kept: Array<string> = [];
+
+  const count: (dataTypeId: string, kind: keyof GuardTally) => void = (
+    dataTypeId: string,
+    kind: keyof GuardTally,
+  ): void => {
+    let ofType: GuardTally | undefined = byType.get(dataTypeId);
+
+    if (!ofType) {
+      ofType = {
+        covered: 0,
+        notCoveredByContext: 0,
+        notCoveredOtherwise: 0,
+        nested: 0,
+      };
+      byType.set(dataTypeId, ofType);
+    }
+
+    ofType[kind]++;
+    tally[kind]++;
+  };
+
+  // One value at one place: kept fails the guard where coverage counts the rule.
+  const guard: (data: {
+    label: string;
+    dataTypeId: string;
+    place: GuardPlace;
+    value: unknown;
+    isNested: boolean;
+  }) => void = (data: {
+    label: string;
+    dataTypeId: string;
+    place: GuardPlace;
+    value: unknown;
+    isNested: boolean;
+  }): void => {
+    const stored: string = storedTextOf(data.value);
+    const finds: Array<TextMatch> = findsOfType(
+      data.dataTypeId,
+      stored,
+      data.place.key,
+    );
+
+    if (finds.length === 0) {
+      return;
+    }
+
+    const candidate: ScrubRuleCandidate | null = scrubItRuleOf(
+      data.dataTypeId,
+      data.place,
+    );
+
+    if (!candidate) {
+      count(data.dataTypeId, "notCoveredOtherwise");
+      return;
+    }
+
+    const isFoundByContext: boolean = finds.some(
+      (match: TextMatch): boolean => {
+        return match.fromContext === true;
+      },
+    );
+
+    if (
+      !isFindingScrubbed(
+        { rules: [coveringRuleOf(candidate)] },
+        {
+          kind: data.place.kind,
+          dataTypeId: data.dataTypeId,
+          location: data.place.location,
+          isFoundByContext,
+          isFoundByModel: false,
+        },
+      )
+    ) {
+      count(
+        data.dataTypeId,
+        isFoundByContext ? "notCoveredByContext" : "notCoveredOtherwise",
+      );
+      return;
+    }
+
+    count(data.dataTypeId, data.isNested ? "nested" : "covered");
+
+    const left: string = storedTextOf(
+      leftAt(candidate, data.place, data.value),
+    );
+    const remaining: Array<TextMatch> = findsOfType(
+      data.dataTypeId,
+      left,
+      data.place.key,
+    );
+
+    if (remaining.length > 0) {
+      kept.push(
+        `${data.dataTypeId} (${data.label}, ${data.place.signal} ${data.place.location}, ${candidate.patternType}${
+          isFoundByContext ? ", found by context" : ""
+        }): ${stored} left ${left}`,
+      );
+    }
+  };
+
+  for (const [seedLabel, corpus] of cases) {
+    for (const [name, entry] of Object.entries(corpus)) {
+      for (const positive of entry.positives) {
+        for (const place of placesOf(positive.field)) {
+          guard({
+            label: `${seedLabel} ${name}`,
+            dataTypeId: positive.dataTypeId,
+            place,
+            value: positive.text,
+            isNested: false,
+          });
+        }
+
+        // A list or a map written as JSON, held as an attribute's value as OTLP sends one (#11500).
+        const nested: unknown = ScrubNestedValuesUtil.readJsonListOrMap(
+          positive.text,
+        );
+
+        if (nested === null) {
+          continue;
+        }
+
+        const key: string = positive.field ?? UNNAMED_LIST_KEY;
+
+        for (const place of placesOf(key)) {
+          guard({
+            label: `${seedLabel} ${name}, as a list or a map`,
+            dataTypeId: positive.dataTypeId,
+            place,
+            value: nested,
+            isNested: true,
+          });
+        }
+      }
+    }
+  }
+
+  return { tally, kept, byType };
+}
+
+describe("the guard: Scrub It's rule hides what its coverage counts, for every type (#11502)", () => {
+  test("at the corpus seed: coverage is never claimed for a value the rule keeps", () => {
+    const { tally, kept, byType } = guardCorpus([
+      ["corpus", CORPUS],
+      ["readings", READING_CASES],
+    ]);
+
+    expect(kept).toEqual([]);
+    // Every kind of outcome is reached, so the guard reads what it means to.
+    expect(tally.covered).toBeGreaterThan(400);
+    expect(tally.nested).toBeGreaterThan(20);
+    expect(tally.notCoveredByContext).toBeGreaterThan(10);
+
+    // Every type found by value the corpus holds is read, its rule covering it somewhere.
+    for (const info of VALUE_TYPES) {
+      expect([info.id, byType.has(info.id)]).toEqual([info.id, true]);
+    }
+
+    /*
+     * A type whose finds by context a Custom Regex rule would keep: never
+     * counted for those - nine digits beside "ITIN", which the corpus writes
+     * (ScrubCoverageFoundByContext holds every such type to it).
+     */
+    expect((byType.get("us-itin")?.notCoveredByContext || 0) > 0).toBe(true);
+
+    // A ZIP code and a lone coordinate are covered by their built-in rules now, however found.
+    for (const dataTypeId of ["postal-code", "geolocation"]) {
+      expect([
+        dataTypeId,
+        byType.get(dataTypeId)?.notCoveredByContext || 0,
+        (byType.get(dataTypeId)?.covered || 0) > 4,
+      ]).toEqual([dataTypeId, 0, true]);
+    }
+  });
+
+  test.each(
+    OTHER_READING_SEEDS.map((seed: number): [number] => {
+      return [seed];
+    }),
+  )(
+    "at seed %i too: coverage is never claimed for a value the rule keeps",
+    (seed: number) => {
+      const { tally, kept } = guardCorpus([
+        ["corpus", buildCorpus(seed)],
+        ["readings", buildReadingCases(seed)],
+      ]);
+
+      expect({ seed, kept }).toEqual({ seed, kept: [] });
+      expect(tally.covered).toBeGreaterThan(400);
+    },
+  );
+
+  /*
+   * What the guard holds the rules to, shown on the very rules it would
+   * fail: a Custom Regex rule of a type's shapes keeps a value found by
+   * its words, so coverage counting it - as it did before #11502 - is a
+   * claim the guard refuses.
+   */
+  test("would fail a rule that keeps what its coverage counts: a Custom Regex rule of the postcodes' shapes and a ZIP code beside its word", () => {
+    const text: string = "2026-10-27T10:15:02Z INFO parcel shipped to zip 94107 ok";
+    const finds: Array<TextMatch> = findsOfType("postal-code", text, undefined);
+    const candidate: ScrubRuleCandidate = {
+      source: "TypePattern" as never,
+      signal: "log",
+      patternType: LogScrubPatternType.Custom,
+      customRegex:
+        "(?:(?<![A-Za-z0-9])[A-Z]{1,2}[0-9][A-Z0-9]?[ ][0-9][A-BD-HJLNP-UW-Z]{2}(?![A-Za-z0-9]))|(?:(?<![A-Za-z0-9])[ABCEGHJ-NPRSTVXY][0-9][ABCEGHJ-NPRSTV-Z][ ]?[0-9][ABCEGHJ-NPRSTV-Z][0-9](?![A-Za-z0-9]))",
+      scrubAction: "redact",
+      fieldsToScrub: "body",
+    };
+    const place: GuardPlace = placesOf(undefined)[0]!;
+    const left: string = storedTextOf(leftAt(candidate, place, text));
+
+    expect(finds.map((match: TextMatch): boolean | undefined => {
+      return match.fromContext;
+    })).toEqual([true]);
+    // The rule keeps it...
+    expect(left).toBe(text);
+    expect(findsOfType("postal-code", left, undefined)).toHaveLength(1);
+    // ...and coverage, told how it was found, no longer counts the rule.
+    expect(
+      isFindingScrubbed(
+        { rules: [coveringRuleOf(candidate)] },
+        {
+          kind: DataStoreKind.TelemetryLogs,
+          dataTypeId: "postal-code",
+          location: "body",
+          isFoundByContext: true,
+        },
+      ),
+    ).toBe(false);
   });
 });
