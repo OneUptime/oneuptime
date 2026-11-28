@@ -33,6 +33,12 @@ export enum ResponseLinkKind {
    * the page itself, to connect one (#11039).
    */
   OpenCloudConnection = "OpenCloudConnection",
+  /*
+   * Security Events → Connections, on the form of the connection a step's
+   * line means: the Google Workspace connection whose delegation lacks a
+   * scope - or the page itself, to connect a product (#11376).
+   */
+  OpenSecurityEventConnection = "OpenSecurityEventConnection",
 }
 
 // The most traces a link carries.
@@ -93,13 +99,20 @@ export interface ResponseCloudConnectionLink {
   connectionId?: string | undefined;
 }
 
+export interface ResponseSecurityEventConnectionLink {
+  kind: ResponseLinkKind.OpenSecurityEventConnection;
+  // The connection whose form opens on Security Events → Connections: none for the page itself.
+  connectionId?: string | undefined;
+}
+
 export type ResponseLink =
   | ResponseTracesLink
   | ResponseEventsLink
   | ResponseProviderLink
   | ResponseScrubRulesLink
   | ResponseBlocklistLink
-  | ResponseCloudConnectionLink;
+  | ResponseCloudConnectionLink
+  | ResponseSecurityEventConnectionLink;
 
 function readText(value: JSONValue | undefined): string {
   return typeof value === "string"
@@ -202,6 +215,18 @@ export function readResponseLink(value: unknown): ResponseLink | null {
             connectionId: connectionId.toLowerCase(),
           }
         : { kind: ResponseLinkKind.OpenCloudConnection };
+    }
+
+    // Security Events → Connections (#11376), the same way: an id, or the page itself.
+    case ResponseLinkKind.OpenSecurityEventConnection: {
+      const connectionId: string = readText(link["connectionId"]);
+
+      return RECORD_ID.test(connectionId)
+        ? {
+            kind: ResponseLinkKind.OpenSecurityEventConnection,
+            connectionId: connectionId.toLowerCase(),
+          }
+        : { kind: ResponseLinkKind.OpenSecurityEventConnection };
     }
 
     default:

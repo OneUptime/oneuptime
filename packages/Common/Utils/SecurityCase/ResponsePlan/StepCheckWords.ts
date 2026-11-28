@@ -656,6 +656,38 @@ export const CHECK_ACCOUNT_CHANGE_ROLE_GONE: string = translationKey(
 );
 
 /*
+ * An inline policy the attack wrote to a user or a role, read by its
+ * document (#11377): PutUserPolicy and PutRolePolicy rewrite a policy of
+ * the name they write, so these say its document, never its name alone -
+ * a person who put the old one back keeps the policy. {{object}} is the
+ * policy's name, {{account}} the user's or the role's. One deleted says
+ * so in the policy's own words above.
+ */
+export const CHECK_ACCOUNT_CHANGE_INLINE_POLICY_STILL: string = translationKey(
+  "The inline policy {{object}} of {{account}} in {{provider}} still has the document the attack wrote.",
+);
+export const CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CHANGED: string =
+  translationKey(
+    "The inline policy {{object}} of {{account}} in {{provider}} no longer has the document the attack wrote.",
+  );
+export const CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CONFIRM: string =
+  translationKey(
+    "Confirm the inline policy {{object}} of {{account}} in {{provider}} is gone, or no longer has the document the attack wrote.",
+  );
+export const CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_STILL: string =
+  translationKey(
+    "The inline policy {{object}} of the role {{account}} in {{provider}} still has the document the attack wrote.",
+  );
+export const CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CHANGED: string =
+  translationKey(
+    "The inline policy {{object}} of the role {{account}} in {{provider}} no longer has the document the attack wrote.",
+  );
+export const CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CONFIRM: string =
+  translationKey(
+    "Confirm the inline policy {{object}} of the role {{account}} in {{provider}} is gone, or no longer has the document the attack wrote.",
+  );
+
+/*
  * Whom a role trusts outside the AWS account it is in (#11038), as its
  * trust policy says now: the line under the role's, unmarked, naming what
  * a person checks. {{trusted}} is an account's 12 digits, {{cloudAccount}}
@@ -672,6 +704,41 @@ export const CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNTS: PluralTemplate = {
 // Its trust policy trusts "*": every AWS account.
 export const CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT: string = translationKey(
   "Anyone in AWS may assume the role {{account}}: its trust policy trusts every AWS account.",
+);
+
+/*
+ * Whom a role lets in through an identity provider (#11378), as its trust
+ * policy says now: a line of its own for each, under the role's. Its
+ * {{provider}} is as the policy names it - an OIDC provider's URL
+ * (token.actions.githubusercontent.com), a built-in one's
+ * (accounts.google.com), a SAML provider's name - {{claim}} the token's
+ * claim that says who (sub, aud, app_id), and {{value}} one value its
+ * conditions hold that claim to.
+ */
+export const CHECK_ACCOUNT_CHANGE_PROVIDER_HELD: string = translationKey(
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_PROVIDER_HELD_TO_SEVERAL: PluralTemplate = {
+  one: "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them.",
+  other:
+    "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them.",
+};
+/*
+ * A shared provider - every organization gets its tokens from it (GitHub
+ * Actions, Amazon Cognito, Google) - whose claim that tells organizations
+ * apart the policy does not hold: marked, as open to anyone.
+ */
+export const CHECK_ACCOUNT_CHANGE_PROVIDER_ANY_ORGANIZATION: string =
+  translationKey(
+    "Anyone with a token from {{provider}}, in any organization, may assume the role {{account}}: its trust policy does not limit the token's {{claim}}.",
+  );
+// A provider of the account's own whose sub, and app, the policy does not hold: marked, as open to anyone.
+export const CHECK_ACCOUNT_CHANGE_PROVIDER_ANYONE: string = translationKey(
+  "Anyone with a token from {{provider}} may assume the role {{account}}: its trust policy does not limit the token's {{claim}}.",
+);
+// A SAML provider: whom it signs in as the role.
+export const CHECK_ACCOUNT_CHANGE_PROVIDER_SAML: string = translationKey(
+  "The SAML provider {{provider}} may sign people in to AWS as the role {{account}}.",
 );
 
 // Why OneUptime cannot read the changes in a product back, said once for it.
@@ -712,10 +779,29 @@ export const CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION: string =
   translationKey("Edit Connection");
 export const CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS: string =
   translationKey("Open Cloud Connections");
-// Google Workspace: the connection may not read groups: its delegation lacks the group member scope (#10901).
+/*
+ * The same for Security Events → Connections (#11376): the Google
+ * Workspace connection's form, or the page, for one who may only see it.
+ */
+export const CHECK_ACCOUNT_CHANGES_OPEN_SECURITY_EVENT_CONNECTIONS: string =
+  translationKey("Open Security Event Connections");
+/*
+ * What a step checked before #11376 said of a Google Workspace delegation
+ * without the group member scope (#10901): kept, so a case closed since
+ * still reads it in its reader's language. No check writes it now.
+ */
 export const CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS: string = translationKey(
   "To read Google Workspace groups back, add the scope {{scope}} to the connection's domain-wide delegation, for an administrator who may read groups.",
 );
+/*
+ * Google Workspace: the connection may not read groups - its delegation
+ * lacks the group member scope (#10901) - said with where the connection
+ * is, and linked to its form there (#11376).
+ */
+export const CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE: string =
+  translationKey(
+    "To read Google Workspace groups back, add the scope {{scope}} to the domain-wide delegation of the Google Workspace connection under Security Events → Connections, for an administrator who may read groups.",
+  );
 export const CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH: string =
   translationKey(
     "{{provider}} says {{account}} still has something of the kind the attack gave, but not whether it is that one.",

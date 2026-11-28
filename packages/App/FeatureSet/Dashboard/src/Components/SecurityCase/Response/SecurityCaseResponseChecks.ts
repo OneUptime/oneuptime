@@ -1,3 +1,5 @@
+import { getCloudConnectRoute } from "../../Cloud/Connect/CloudConnectRoutes";
+import { getSecurityEventConnectionsRoute } from "../../SecurityEvents/SecurityEventConnectionsRoutes";
 import {
   getResponseLinkRoute,
   getResponseLinkUrl,
@@ -23,6 +25,7 @@ import { WrittenMoment, writeReaderMoment } from "Common/Utils/MomentPhrases";
 import {
   CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION,
   CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS,
+  CHECK_ACCOUNT_CHANGES_OPEN_SECURITY_EVENT_CONNECTIONS,
   STEP_CHECK_OPEN_BLOCKLIST,
   STEP_CHECK_OPEN_EVENTS,
   STEP_CHECK_OPEN_PROVIDER,
@@ -131,7 +134,24 @@ export const STEP_CHECK_FACT_MARK_STYLES: Record<
     icon: IconProp.InformationCircle,
     className: "text-indigo-600",
   },
+  // A way in open to anyone, under the change it says more of (#11378).
+  [StepCheckFactMark.Exposed]: {
+    icon: IconProp.ShieldExclamation,
+    className: "text-orange-600",
+  },
 };
+
+/*
+ * A line that says more of the one above it - whom a role lets in - and
+ * is marked (#11378): drawn under that line's words, its mark beside its
+ * own, so it reads as part of the change above, never as a change of its
+ * own.
+ */
+export function isMarkedFactUnderLine(
+  fact: Pick<SecurityCaseStepCheckSentence, "mark">,
+): boolean {
+  return fact.mark === StepCheckFactMark.Exposed;
+}
 
 // A step that looks done is a person's to confirm: it becomes their tick.
 export function canConfirmStep(step: ResponseStep): boolean {
@@ -206,32 +226,75 @@ export interface StepCheckLinkTarget {
 }
 
 /*
- * What the reader may do on Cloud > Connect (#11039): see the page - it
- * lists the connections, which the cloud connections' read permission
- * reads - and change a connection there, which only a project's owners and
- * admins may.
+ * What the reader may do on a page of connections a step's line links to
+ * (#11039, #11376): see the page - it lists the connections, which their
+ * read permission reads - and change a connection there.
  */
-export interface CloudConnectionsAccess {
+export interface ConnectionsAccess {
   mayRead: boolean;
   mayUpdate: boolean;
 }
 
-export const NO_CLOUD_CONNECTIONS_ACCESS: CloudConnectionsAccess = {
+// Cloud > Connect's (#11039).
+export type CloudConnectionsAccess = ConnectionsAccess;
+
+/*
+ * What the reader may do on each page a step's line links to: Cloud >
+ * Connect, where only a project's owners and admins change a connection,
+ * and Security Events > Connections, where a Security Admin may too.
+ */
+export interface StepCheckLinkAccess {
+  cloudConnections: ConnectionsAccess;
+  securityEventConnections: ConnectionsAccess;
+}
+
+export const NO_CONNECTIONS_ACCESS: ConnectionsAccess = {
   mayRead: false,
   mayUpdate: false,
 };
 
+export const NO_STEP_CHECK_LINK_ACCESS: StepCheckLinkAccess = {
+  cloudConnections: NO_CONNECTIONS_ACCESS,
+  securityEventConnections: NO_CONNECTIONS_ACCESS,
+};
+
+/*
+ * A link to a page of connections, worded by what the reader may do
+ * there: the connection's form, "Edit Connection", for one who may change
+ * it; the page itself, under the page's own words, for one who may only
+ * see it; nothing for one who may not see the page.
+ */
+function getConnectionLinkTarget(data: {
+  connectionId: string | undefined;
+  access: ConnectionsAccess;
+  route: (connectionId: string | undefined) => Route;
+  pageTitle: string;
+}): StepCheckLinkTarget | null {
+  if (!data.access.mayRead) {
+    return null;
+  }
+
+  const canEdit: boolean = Boolean(data.connectionId) && data.access.mayUpdate;
+
+  return {
+    route: data.route(canEdit ? data.connectionId : undefined),
+    title: canEdit ? CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION : data.pageTitle,
+    values: {},
+  };
+}
+
 /*
  * Where a link of the evidence - the step's, or a fact's own - opens, and
- * its words. Cloud > Connect (#11039) only for a reader who may see the
- * page: on the connection's form, "Edit Connection", for one who may
- * change it; the page itself, "Open Cloud Connections", for one who may
- * only see it. A reader who may not see it gets no link: the line names
- * the menu path, for someone who may.
+ * its words. Cloud > Connect (#11039) and Security Events > Connections
+ * (#11376) only for a reader who may see the page: on the connection's
+ * form, "Edit Connection", for one who may change it; the page itself,
+ * "Open Cloud Connections" or "Open Security Event Connections", for one
+ * who may only see it. A reader who may not see it gets no link: the line
+ * names the menu path, for someone who may.
  */
 export function getStepCheckLinkTarget(
   link: ResponseLink,
-  access: CloudConnectionsAccess = NO_CLOUD_CONNECTIONS_ACCESS,
+  access: StepCheckLinkAccess = NO_STEP_CHECK_LINK_ACCESS,
 ): StepCheckLinkTarget | null {
   switch (link.kind) {
     case ResponseLinkKind.OpenTraces:
@@ -271,26 +334,22 @@ export function getStepCheckLinkTarget(
         : null;
     }
 
-    case ResponseLinkKind.OpenCloudConnection: {
-      if (!access.mayRead) {
-        return null;
-      }
+    case ResponseLinkKind.OpenCloudConnection:
+      return getConnectionLinkTarget({
+        connectionId: link.connectionId,
+        access: access.cloudConnections,
+        route: getCloudConnectRoute,
+        pageTitle: CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS,
+      });
 
-      const canEdit: boolean = Boolean(link.connectionId) && access.mayUpdate;
-      const route: Route | null = getResponseLinkRoute(
-        canEdit ? link : { kind: ResponseLinkKind.OpenCloudConnection },
-      );
-
-      return route
-        ? {
-            route,
-            title: canEdit
-              ? CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION
-              : CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS,
-            values: {},
-          }
-        : null;
-    }
+    // The Google Workspace connection under Security Events > Connections (#11376).
+    case ResponseLinkKind.OpenSecurityEventConnection:
+      return getConnectionLinkTarget({
+        connectionId: link.connectionId,
+        access: access.securityEventConnections,
+        route: getSecurityEventConnectionsRoute,
+        pageTitle: CHECK_ACCOUNT_CHANGES_OPEN_SECURITY_EVENT_CONNECTIONS,
+      });
 
     default:
       return null;

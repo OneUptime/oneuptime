@@ -64,6 +64,14 @@ export interface AccountChangeAnswer {
    * AWS refused means its command was not run again since.
    */
   reader?: AccountChangeReader | undefined;
+  /*
+   * A change in a product the project reads through its Security Events
+   * connections - Okta, Microsoft Entra ID, Google Workspace (#11376): the
+   * connection whose answer `facts` is, the one a person edits to let
+   * OneUptime read it back (a Google Workspace delegation without the
+   * group member scope).
+   */
+  connectionId?: string | undefined;
 }
 
 export interface AccountChangeReader {
@@ -201,6 +209,8 @@ export default class AccountChangesState {
           })
         : [];
       let facts: AccountChangeFacts | null = null;
+      // The connection whose answer is kept (#11376).
+      let answeredBy: string = "";
       let error: string | undefined = undefined;
 
       for (const connection of ofProduct) {
@@ -230,6 +240,7 @@ export default class AccountChangesState {
             (!facts || STATE_WEIGHT[found.state] > STATE_WEIGHT[facts.state])
           ) {
             facts = found;
+            answeredBy = key;
           }
         } catch (readError) {
           error = errorMessage(readError);
@@ -240,6 +251,7 @@ export default class AccountChangesState {
         change,
         facts,
         ...(error ? { error } : {}),
+        ...(answeredBy ? { connectionId: answeredBy } : {}),
         hasConnection: ofProduct.length > 0,
       });
     }

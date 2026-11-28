@@ -112,9 +112,9 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  *     oneuptimeCloudArmorBlocklist custom role - security policies,
  *     their operations, the project's tier and its address groups - and
  *     the Compute Engine and Network Security APIs it calls;
- *   - Security case checks (#10900, #11038, AWS only): the ten reads a
- *     security case makes of an IAM user or role its CloudTrail events
- *     name, in a policy
+ *   - Security case checks (#10900, #11038, #11377, AWS only): the twelve
+ *     reads a security case makes of an IAM user or role its CloudTrail
+ *     events name, in a policy
  *     of their own - a group of their own for the access key's user - and
  *     nothing else.
  *
