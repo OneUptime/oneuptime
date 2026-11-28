@@ -9,6 +9,7 @@ import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
+import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -32,8 +33,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *     silently skipped a repeat incident on a monitor investigated within
  *     the half hour);
  *   - an incident affects a SET of monitors, so the dedupe key is "any of
- *     them" — a storm that opens several incidents is the case a configured
- *     cooldown exists for.
+ *     them", with the incident's title — a storm that opens the same incident
+ *     again and again is the case a configured cooldown exists for.
  *
  * Fail directions are asserted explicitly: an incident whose severity order is
  * unknown PASSES the severity gate (it only filters known-low severities), and
@@ -60,9 +61,11 @@ const SEVERITY_ID: ObjectID = new ObjectID(
 function fakeIncident(data: {
   monitorIds?: Array<ObjectID>;
   severityOrder?: number | undefined;
+  title?: string | undefined;
 }): Incident {
   return {
     id: INCIDENT_ID,
+    title: data.title ?? "Checkout API is down",
     monitors: (data.monitorIds || []).map((id: ObjectID) => {
       return { _id: id.toString() };
     }),
@@ -86,10 +89,25 @@ function mockProject(
   } as unknown as Project);
 }
 
-function mockRecentRunCount(count: number): jest.SpyInstance {
-  return jest
-    .spyOn(AIRunService, "countBy")
-    .mockResolvedValue(new PositiveNumber(count));
+/*
+ * The monitors' investigations in the window, each for an incident of its
+ * own, and how many of those incidents have this incident's title: all of
+ * them unless a test says otherwise - the same incident again. Answers the
+ * lookup of the runs; the title lookup is IncidentService.countBy.
+ */
+function mockRecentRunCount(
+  count: number,
+  sameTitleCount: number = count,
+): jest.SpyInstance {
+  jest
+    .spyOn(IncidentService, "countBy")
+    .mockResolvedValue(new PositiveNumber(sameTitleCount));
+
+  return jest.spyOn(AIRunService, "findBy").mockResolvedValue(
+    Array.from({ length: count }, () => {
+      return { triggeredByIncidentId: ObjectID.generate() } as AIRun;
+    }),
+  );
 }
 
 function gate(): Promise<IncidentGateDecision> {
@@ -329,16 +347,16 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
     mockProject({});
-    const countBy: jest.SpyInstance = mockRecentRunCount(1);
+    const runLookup: jest.SpyInstance = mockRecentRunCount(1);
 
     const decision: IncidentGateDecision = await gate();
 
     expect(decision.investigate).toBe(true);
     expect(decision.monitorId?.toString()).toBe(MONITOR_A.toString());
-    expect(countBy).not.toHaveBeenCalled();
+    expect(runLookup).not.toHaveBeenCalled();
   });
 
-  test("a monitor investigated inside a configured window skips the incident", async () => {
+  test("the same incident again on a monitor investigated inside a configured window is skipped", async () => {
     jest
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
@@ -364,6 +382,57 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
     mockRecentRunCount(0);
 
     expect((await gate()).investigate).toBe(true);
+    // Nothing was investigated, so there is no title to compare with.
+    expect(IncidentService.countBy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * One monitor can open many different incidents - an Incoming Request
+   * monitor that another alerting system posts to opens one per host and
+   * check. The cooldown holds back the same incident again, not the others.
+   */
+  test("an incident with another title on a monitor investigated inside a configured window is investigated", async () => {
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(
+      fakeIncident({
+        monitorIds: [MONITOR_A],
+        title: "Disk is almost full on db-2",
+      }),
+    );
+    mockProject({ dedupeWindowMinutes: COOLDOWN_MINUTES });
+    mockRecentRunCount(1, 0);
+
+    const decision: IncidentGateDecision = await gate();
+
+    expect(decision.investigate).toBe(true);
+    expect(decision.notStartedCode).toBeUndefined();
+    expect(IncidentService.countBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("the title is compared with the incidents the window's investigations were for, and no others", async () => {
+    const title: string = "Disk is almost full on db-2";
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A], title }));
+    mockProject({ dedupeWindowMinutes: COOLDOWN_MINUTES });
+    const runLookup: jest.SpyInstance = mockRecentRunCount(2);
+
+    expect((await gate()).notStartedCode).toBe("monitor_cooldown");
+
+    expect(runLookup).toHaveBeenCalledWith(
+      expect.objectContaining({ select: { triggeredByIncidentId: true } }),
+    );
+    const runs: Array<AIRun> = await runLookup.mock.results[0]!.value;
+    const query: Record<string, unknown> = (
+      (IncidentService.countBy as unknown as jest.SpyInstance).mock
+        .calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(query["title"]).toBe(title);
+    for (const run of runs) {
+      expect(JSON.stringify(query["_id"])).toContain(
+        run.triggeredByIncidentId!.toString(),
+      );
+    }
   });
 
   /*
@@ -376,12 +445,12 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A, MONITOR_B] }));
     mockProject({ dedupeWindowMinutes: COOLDOWN_MINUTES });
-    const countBy: jest.SpyInstance = mockRecentRunCount(0);
+    const runLookup: jest.SpyInstance = mockRecentRunCount(0);
 
     await gate();
 
     const query: Record<string, unknown> = (
-      countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+      runLookup.mock.calls[0]![0] as { query: Record<string, unknown> }
     ).query;
 
     expect(query["runType"]).toBe(AIRunType.Investigation);
@@ -404,12 +473,12 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
     mockProject({ dedupeWindowMinutes: COOLDOWN_MINUTES });
-    const countBy: jest.SpyInstance = mockRecentRunCount(0);
+    const runLookup: jest.SpyInstance = mockRecentRunCount(0);
 
     await gate();
 
     const query: Record<string, unknown> = (
-      countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+      runLookup.mock.calls[0]![0] as { query: Record<string, unknown> }
     ).query;
     expect(query["triggeredByIncidentId"]).toBe(incidentSubjectFilter);
     expect(query["triggeredByAlertId"]).toBe(alertSubjectFilter);
@@ -420,12 +489,12 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [] }));
     mockProject({ dedupeWindowMinutes: COOLDOWN_MINUTES });
-    const countBy: jest.SpyInstance = mockRecentRunCount(0);
+    const runLookup: jest.SpyInstance = mockRecentRunCount(0);
 
     const decision: IncidentGateDecision = await gate();
 
     expect(decision.investigate).toBe(true);
-    expect(countBy).not.toHaveBeenCalled();
+    expect(runLookup).not.toHaveBeenCalled();
     expect(decision.monitorId).toBeUndefined();
   });
 
@@ -434,10 +503,10 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
     mockProject({ dedupeWindowMinutes: 0 });
-    const countBy: jest.SpyInstance = mockRecentRunCount(5);
+    const runLookup: jest.SpyInstance = mockRecentRunCount(5);
 
     expect((await gate()).investigate).toBe(true);
-    expect(countBy).not.toHaveBeenCalled();
+    expect(runLookup).not.toHaveBeenCalled();
   });
 
   test("a negative window is clamped to disabled rather than inverting the query", async () => {
@@ -445,10 +514,10 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
     mockProject({ dedupeWindowMinutes: -30 });
-    const countBy: jest.SpyInstance = mockRecentRunCount(5);
+    const runLookup: jest.SpyInstance = mockRecentRunCount(5);
 
     expect((await gate()).investigate).toBe(true);
-    expect(countBy).not.toHaveBeenCalled();
+    expect(runLookup).not.toHaveBeenCalled();
   });
 
   test("an absurd window is clamped to a day", async () => {

@@ -8,6 +8,8 @@ import OneUptimeDate from "../../../../Types/Date";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIWorkloadLimits from "../../../../Types/AI/AIWorkloadLimits";
 import { Blue500 } from "../../../../Types/BrandColors";
+import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -997,6 +999,12 @@ export default class AIAlertInvestigationRunner {
      * Per-monitor cooldown: off unless the project sets one, clamped to at
      * most a day (see AIWorkloadLimits). Alerts without a monitor have no
      * dedupe key.
+     *
+     * The key is the monitor and the alert's title: what waits out the
+     * cooldown is the same alert again, not every alert the monitor opens.
+     * One monitor can open many different alerts - an Incoming Request
+     * monitor that another alerting system posts to opens one per host and
+     * check - and one investigation must not hold the others back.
      */
     const dedupeWindowMinutes: number = AIWorkloadLimits.getCooldownInMinutes(
       project?.alertInvestigationDedupeWindowMinutes,
@@ -1006,28 +1014,51 @@ export default class AIAlertInvestigationRunner {
       const windowStart: Date =
         OneUptimeDate.getSomeMinutesAgo(dedupeWindowMinutes);
 
-      const recentRunCount: number = (
-        await AIRunService.countBy({
-          query: {
-            projectId,
-            monitorId: alert.monitorId,
-            runType: AIRunType.Investigation,
-            triggeredByIncidentId: QueryHelper.isNull(),
-            triggeredByAlertId: QueryHelper.notNull(),
-            createdAt: QueryHelper.greaterThan(windowStart),
-          },
-          props: { isRoot: true },
-        })
-      ).toNumber();
-
-      if (recentRunCount > 0) {
-        return {
-          investigate: false,
-          notStartedCode: "monitor_cooldown",
-          notStartedDetails: { cooldownWindowMinutes: dedupeWindowMinutes },
-          reason: `monitor ${alert.monitorId.toString()} was already investigated within the last ${dedupeWindowMinutes} minutes`,
+      // The alerts this monitor's investigations in the window were for.
+      const recentRuns: Array<AIRun> = await AIRunService.findBy({
+        query: {
+          projectId,
           monitorId: alert.monitorId,
-        };
+          runType: AIRunType.Investigation,
+          triggeredByIncidentId: QueryHelper.isNull(),
+          triggeredByAlertId: QueryHelper.notNull(),
+          createdAt: QueryHelper.greaterThan(windowStart),
+        },
+        select: { triggeredByAlertId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      const investigatedAlertIds: Array<ObjectID> = recentRuns
+        .map((run: AIRun) => {
+          return run.triggeredByAlertId;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        });
+
+      if (investigatedAlertIds.length > 0) {
+        const sameTitleCount: number = (
+          await AlertService.countBy({
+            query: {
+              projectId,
+              _id: QueryHelper.any(investigatedAlertIds),
+              title: alert.title || "",
+            },
+            props: { isRoot: true },
+          })
+        ).toNumber();
+
+        if (sameTitleCount > 0) {
+          return {
+            investigate: false,
+            notStartedCode: "monitor_cooldown",
+            notStartedDetails: { cooldownWindowMinutes: dedupeWindowMinutes },
+            reason: `an alert with the same title on monitor ${alert.monitorId.toString()} was already investigated within the last ${dedupeWindowMinutes} minutes`,
+            monitorId: alert.monitorId,
+          };
+        }
       }
     }
 
