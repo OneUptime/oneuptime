@@ -1,5 +1,5 @@
 import { OnCallInputRequest } from "../../../Types/Call/CallRequest";
-import { toCallVoiceValue } from "../../../Types/Call/CallVoice";
+import { toSpokenCallVoiceValue } from "../../../Types/Call/CallVoice";
 import OneUptimeDate from "../../../Types/Date";
 import {
   CallKeypadPrompt,
@@ -43,9 +43,17 @@ import OnCallPageLinkToken from "./OnCallPageLinkToken";
  * (Utils/Call/CallKeypad), and the voice it speaks with, so every answer is
  * said in the call's voice (Types/Call/CallVoice). Each is read back only
  * as it may be: a prompt of words and a time to listen, a voice from
- * OneUptime's list. A call placed before this release carries neither: a
+ * OneUptime's lists. A call placed before this release carries neither: a
  * wrong key ends it as before, and its answers speak with the account's
  * default voice, as it did.
+ *
+ * A call in the person's language (#11066) carries its words in that
+ * language - its answers and its prompt are the call's own - and a voice of
+ * that language. What the keypad route words itself - "That key does
+ * nothing.", what escalating did - it words in the language of that voice
+ * (OnCallPageCallAnswers), so every answer is in the call's language and
+ * voice. No claim names a language: the voice says it, and a voice is only
+ * ever one of OneUptime's.
  *
  * A call placed before this release has the earlier action - the page's
  * link token beside a call token that names no notification - and keeps it
@@ -157,7 +165,7 @@ export default class OnCallKeypadToken {
       };
     }
 
-    const voice: string | undefined = toCallVoiceValue(data.voice);
+    const voice: string | undefined = toSpokenCallVoiceValue(data.voice);
 
     if (voice) {
       claims[VOICE_CLAIM] = voice;
@@ -217,7 +225,7 @@ export default class OnCallKeypadToken {
         answers: claims as unknown as OnCallInputRequest,
         isEarlierCall: true,
         prompt: readCallKeypadPrompt(claims[PROMPT_CLAIM]),
-        voice: toCallVoiceValue(claims[VOICE_CLAIM]),
+        voice: toSpokenCallVoiceValue(claims[VOICE_CLAIM]),
       };
     }
 
@@ -247,7 +255,7 @@ export default class OnCallKeypadToken {
       answers: claims as unknown as OnCallInputRequest,
       isEarlierCall: false,
       prompt: readCallKeypadPrompt(claims[PROMPT_CLAIM]),
-      voice: toCallVoiceValue(claims[VOICE_CLAIM]),
+      voice: toSpokenCallVoiceValue(claims[VOICE_CLAIM]),
     };
   }
 

@@ -11,6 +11,13 @@ import {
   getStorageUsage,
 } from "Common/Utils/Storage/StorageUsage";
 import {
+  DEFAULT_VMWARE_HEALTH_RULES,
+  KIBIBYTE,
+  MEBIBYTE,
+  VMwareHealthRules,
+  isPastVMwareHealthThreshold,
+} from "Common/Types/VMware/VMwareHealthRules";
+import {
   ResourceAttentionFact,
   ResourceAttentionItem,
   ResourceAttentionSeverity,
@@ -41,7 +48,7 @@ import { VMWARE_METRIC_STALE_MS } from "./VMwareHostData";
  *     an ESXi host vCenter cannot reach (not responding); a host, a cluster
  *     or a datastore beyond that with a critical (red) alarm in vCenter's
  *     own roll-up; a datastore more than 90% full; a VM whose memory the
- *     host swaps to disk.
+ *     host is swapping out to disk now.
  *   Warning - needs a look soon:
  *     a host whose CPU or memory is more than 90% busy; a host with a
  *     warning (yellow) alarm; a host vCenter reports no usage for, when
@@ -49,12 +56,27 @@ import { VMWARE_METRIC_STALE_MS } from "./VMwareHostData";
  *     with hosts that are not effective (in maintenance mode, disconnected
  *     or not responding) or without the memory to lose a host; a datastore
  *     more than 80% full; a VM the host takes memory back from (ballooning)
- *     or that waits for a free CPU (CPU ready over 10%); a VM with a
- *     critical alarm; a resource pool whose memory the host swaps.
+ *     or that waits for a free CPU (CPU ready over 10%); a VM reading
+ *     swapped memory back faster than 1 MiB/s, or holding more than 1 GiB
+ *     of it from earlier; a VM with a critical alarm; a resource pool whose
+ *     memory the host is swapping out.
  *
- * Every threshold is the one its alert template fires at
- * (Common/Types/Monitor/VMwareAlertTemplates), so a part on this list is
- * one its alert would page about.
+ * SWAPPED MEMORY IS NOT SWAPPING (#11157). vcenter.vm.memory.swapped is how
+ * much of a VM's memory sits in the host's swap file, and ESXi leaves a page
+ * there until the guest touches it: a VM keeps a few MiB "swapped" for weeks
+ * after the pressure that put them there has gone. Only the host swapping
+ * memory out now is real memory pressure, and critical. Ingest works out
+ * how fast the amount grew or shrank since the previous report
+ * (memorySwapOutBytesPerSecond, memorySwapInBytesPerSecond), as no
+ * collector sends a swap rate.
+ *
+ * Every threshold is one a project can change on VMware > Settings > Health
+ * Rules (Common/Types/VMware/VMwareHealthRules), or turn off; each function
+ * below takes the project's rules, these defaults where it is not handed
+ * them. Each default is the level its alert template fires at
+ * (Common/Types/Monitor/VMwareAlertTemplates), so a part on this list is one
+ * its alert would page about - except swapping, which the template reads as
+ * an amount.
  *
  * WHERE A HOST'S STATE COMES FROM. vCenter reports a host's CPU and memory
  * use only while the host is connected: for a host that crashed, lost power
@@ -83,20 +105,38 @@ import { VMWARE_METRIC_STALE_MS } from "./VMwareHostData";
  * read it.
  */
 
-export const VMWARE_DATASTORE_WARNING_PERCENT: number = 80;
-export const VMWARE_DATASTORE_CRITICAL_PERCENT: number = 90;
+// The defaults of the thresholds below (VMwareHealthRules).
+export const VMWARE_DATASTORE_WARNING_PERCENT: number =
+  DEFAULT_VMWARE_HEALTH_RULES.datastoreWarningPercent;
+export const VMWARE_DATASTORE_CRITICAL_PERCENT: number =
+  DEFAULT_VMWARE_HEALTH_RULES.datastoreCriticalPercent;
+
+/*
+ * A rule's level as a line a bar or a tile can draw: a rule turned off
+ * draws no line, never one at 0.
+ */
+export function getVMwareThresholdLine(threshold: number | null): number {
+  return threshold === null ? Number.POSITIVE_INFINITY : threshold;
+}
 
 /*
  * Where a datastore's bar turns amber and red, and the vCenter's total
- * across its datastores: the levels its alerts and Needs attention flag a
- * datastore at, and that mark the vCenter Degraded and Unhealthy. Past the
- * line, as its alerts and Needs attention flag it.
+ * across its datastores: the levels its rules flag a datastore at, and that
+ * mark the vCenter Degraded and Unhealthy. Past the line, as Needs attention
+ * flags it.
  */
-export const VMWARE_DATASTORE_USAGE_THRESHOLDS: StorageUsageThresholds = {
-  warningPercent: VMWARE_DATASTORE_WARNING_PERCENT,
-  criticalPercent: VMWARE_DATASTORE_CRITICAL_PERCENT,
-  isPastLineOnly: true,
-};
+export function getVMwareDatastoreUsageThresholds(
+  rules: VMwareHealthRules = DEFAULT_VMWARE_HEALTH_RULES,
+): StorageUsageThresholds {
+  return {
+    warningPercent: getVMwareThresholdLine(rules.datastoreWarningPercent),
+    criticalPercent: getVMwareThresholdLine(rules.datastoreCriticalPercent),
+    isPastLineOnly: true,
+  };
+}
+
+export const VMWARE_DATASTORE_USAGE_THRESHOLDS: StorageUsageThresholds =
+  getVMwareDatastoreUsageThresholds();
 
 /*
  * A VM's datastore space against what is provisioned for it has no line: a
@@ -131,14 +171,17 @@ export function getVMwareVmStorageUsage(data: {
 export function getVMwareVCenterStorageUsage(data: {
   datastoreUsedBytes: StorageReadingValue;
   datastoreCapacityBytes: StorageReadingValue;
+  rules?: VMwareHealthRules | undefined;
 }): StorageUsage | null {
   return getStorageUsage(
     { capacity: data.datastoreCapacityBytes, used: data.datastoreUsedBytes },
-    VMWARE_DATASTORE_USAGE_THRESHOLDS,
+    getVMwareDatastoreUsageThresholds(data.rules),
   );
 }
-export const VMWARE_HOST_SATURATION_PERCENT: number = 90;
-export const VMWARE_CPU_READY_WARNING_PERCENT: number = 10;
+export const VMWARE_HOST_SATURATION_PERCENT: number =
+  DEFAULT_VMWARE_HEALTH_RULES.hostCpuWarningPercent;
+export const VMWARE_CPU_READY_WARNING_PERCENT: number =
+  DEFAULT_VMWARE_HEALTH_RULES.vmCpuReadyWarningPercent;
 
 // A part whose newest reading is older than this is not judged.
 export const VMWARE_READINGS_STALE_MS: number = VMWARE_METRIC_STALE_MS;
@@ -207,6 +250,15 @@ const REASON_MEMORY_AT: string = translationKey("Memory at {{percent}}");
 const REASON_PERCENT_FULL: string = translationKey("{{percent}} full");
 const REASON_SWAPPED: string = translationKey(
   "{{amount}} of memory swapped by the host",
+);
+const REASON_SWAPPING_OUT: string = translationKey(
+  "Host swapping memory out at {{rate}}",
+);
+const REASON_SWAPPING_IN: string = translationKey(
+  "Reading swapped memory back at {{rate}}",
+);
+const REASON_SWAPPED_EARLIER: string = translationKey(
+  "{{amount}} swapped earlier, none swapping now",
 );
 const REASON_BALLOONED: string = translationKey(
   "{{amount}} of memory ballooned",
@@ -392,6 +444,54 @@ export function formatVMwareReasonBytes(bytes: number): string {
   return `${value.toFixed(value >= 100 ? 0 : 1)}\u00A0${units[index]}`;
 }
 
+// "3.1 MiB/s": a rate of memory moved, as a reason says it.
+export function formatVMwareReasonRate(bytesPerSecond: number): string {
+  return `${formatVMwareReasonBytes(bytesPerSecond)}/s`;
+}
+
+/*
+ * How a VM's or a resource pool's swapped memory moves now (#11157): out to
+ * the host's swap file, back in, neither, or not known yet - the rates need
+ * two reports to compare (VMwareResourceService.bulkUpdateLatestMetrics).
+ */
+export interface VMwareSwapActivity {
+  swappedBytes: number | null;
+  swapOutBytesPerSecond: number | null;
+  swapInBytesPerSecond: number | null;
+  // Whether anything is known to move: false while both rates are 0.
+  isKnownIdle: boolean;
+}
+
+export function getVMwareSwapActivity(
+  row: Pick<
+    VMwareResource,
+    | "memorySwappedBytes"
+    | "memorySwapOutBytesPerSecond"
+    | "memorySwapInBytesPerSecond"
+  >,
+): VMwareSwapActivity {
+  const swapOut: number | null = toVMwareNumber(
+    row.memorySwapOutBytesPerSecond,
+  );
+  const swapIn: number | null = toVMwareNumber(row.memorySwapInBytesPerSecond);
+  return {
+    swappedBytes: toVMwareNumber(row.memorySwappedBytes),
+    swapOutBytesPerSecond: swapOut,
+    swapInBytesPerSecond: swapIn,
+    isKnownIdle: swapOut === 0 && swapIn === 0,
+  };
+}
+
+// A rule's KiB/s threshold in bytes per second; off stays off.
+function kibPerSecond(threshold: number | null): number | null {
+  return threshold === null ? null : threshold * KIBIBYTE;
+}
+
+// A rule's MiB threshold in bytes; off stays off.
+function mebibytes(threshold: number | null): number | null {
+  return threshold === null ? null : threshold * MEBIBYTE;
+}
+
 function sameName(
   a: string | null | undefined,
   b: string | null | undefined,
@@ -541,7 +641,9 @@ export function assessVMwareHost(data: {
   host: VMwareResource;
   datacenter: VMwareResource | null;
   now: Date;
+  rules?: VMwareHealthRules | undefined;
 }): VMwareAssessment {
+  const rules: VMwareHealthRules = data.rules || DEFAULT_VMWARE_HEALTH_RULES;
   const state: VMwareHostState = getVMwareHostState(data);
 
   if (state === VMwareHostState.NotResponding) {
@@ -564,16 +666,16 @@ export function assessVMwareHost(data: {
   const cpu: number | null = toVMwareNumber(data.host.latestCpuPercent);
   const memory: number | null = toVMwareNumber(data.host.latestMemoryPercent);
 
-  if (cpu !== null && cpu > VMWARE_HOST_SATURATION_PERCENT) {
+  if (isPastVMwareHealthThreshold(cpu, rules.hostCpuWarningPercent)) {
     reasons.push({
       text: REASON_CPU_AT,
-      values: { percent: formatVMwareReasonPercent(cpu) },
+      values: { percent: formatVMwareReasonPercent(cpu!) },
     });
   }
-  if (memory !== null && memory > VMWARE_HOST_SATURATION_PERCENT) {
+  if (isPastVMwareHealthThreshold(memory, rules.hostMemoryWarningPercent)) {
     reasons.push({
       text: REASON_MEMORY_AT,
-      values: { percent: formatVMwareReasonPercent(memory) },
+      values: { percent: formatVMwareReasonPercent(memory!) },
     });
   }
 
@@ -633,14 +735,93 @@ export function isVMwareVirtualMachineDisconnected(data: {
   );
 }
 
+/*
+ * What a VM's swapped memory says (#11157), one finding at most, the most
+ * urgent first:
+ *
+ *   - the host swapping its memory out now, faster than the rule's rate:
+ *     real memory pressure, critical - the host has run out of ways to give
+ *     the guest memory, and the guest pays disk latency for RAM;
+ *   - the guest reading swapped memory back, faster than its rate: slow
+ *     while it lasts, a warning - touching a few old pages is not;
+ *   - memory left in the swap file, more than its amount: a warning, said
+ *     as left from earlier when nothing moves now. A few MiB ESXi kept
+ *     after the pressure went is no finding at all.
+ */
+export function assessVMwareSwappedMemory(data: {
+  activity: VMwareSwapActivity;
+  rules: VMwareHealthRules;
+}): VMwareAssessment {
+  const activity: VMwareSwapActivity = data.activity;
+  const rules: VMwareHealthRules = data.rules;
+
+  if (
+    isPastVMwareHealthThreshold(
+      activity.swapOutBytesPerSecond,
+      kibPerSecond(rules.vmSwapOutCriticalKibPerSecond),
+    )
+  ) {
+    return {
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [
+        {
+          text: REASON_SWAPPING_OUT,
+          values: {
+            rate: formatVMwareReasonRate(activity.swapOutBytesPerSecond!),
+          },
+        },
+      ],
+    };
+  }
+  if (
+    isPastVMwareHealthThreshold(
+      activity.swapInBytesPerSecond,
+      kibPerSecond(rules.vmSwapInWarningKibPerSecond),
+    )
+  ) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        {
+          text: REASON_SWAPPING_IN,
+          values: {
+            rate: formatVMwareReasonRate(activity.swapInBytesPerSecond!),
+          },
+        },
+      ],
+    };
+  }
+  if (
+    isPastVMwareHealthThreshold(
+      activity.swappedBytes,
+      mebibytes(rules.vmSwappedWarningMebibytes),
+    )
+  ) {
+    return {
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [
+        {
+          text: activity.isKnownIdle ? REASON_SWAPPED_EARLIER : REASON_SWAPPED,
+          values: {
+            amount: formatVMwareReasonBytes(activity.swappedBytes!),
+          },
+        },
+      ],
+    };
+  }
+  return { severity: null, reasons: [] };
+}
+
 export function assessVMwareVirtualMachine(data: {
   vm: VMwareResource;
   now: Date;
   // The hosts and datacenters the page has: a VM on a host vCenter lost is not judged.
   hosts?: Array<VMwareResource> | undefined;
   datacenters?: Array<VMwareResource> | undefined;
+  rules?: VMwareHealthRules | undefined;
 }): VMwareAssessment {
   const vm: VMwareResource = data.vm;
+  const rules: VMwareHealthRules = data.rules || DEFAULT_VMWARE_HEALTH_RULES;
   if (
     vm.isTemplate === true ||
     vm.isPoweredOn !== true ||
@@ -652,29 +833,33 @@ export function assessVMwareVirtualMachine(data: {
 
   const reasons: Array<ResourceAttentionText> = [];
   const severities: Array<ResourceAttentionSeverity> = [];
-  const swapped: number | null = toVMwareNumber(vm.memorySwappedBytes);
   const ballooned: number | null = toVMwareNumber(vm.memoryBalloonedBytes);
   const ready: number | null = toVMwareNumber(vm.cpuReadinessPercent);
 
-  if (swapped !== null && swapped > 0) {
-    // The guest pages through the hypervisor's disk: everything in it crawls.
-    reasons.push({
-      text: REASON_SWAPPED,
-      values: { amount: formatVMwareReasonBytes(swapped) },
-    });
-    severities.push(ResourceAttentionSeverity.Critical);
+  const swap: VMwareAssessment = assessVMwareSwappedMemory({
+    activity: getVMwareSwapActivity(vm),
+    rules,
+  });
+  if (swap.severity) {
+    reasons.push(...swap.reasons);
+    severities.push(swap.severity);
   }
-  if (ballooned !== null && ballooned > 0) {
+  if (
+    isPastVMwareHealthThreshold(
+      ballooned,
+      mebibytes(rules.vmBalloonedWarningMebibytes),
+    )
+  ) {
     reasons.push({
       text: REASON_BALLOONED,
-      values: { amount: formatVMwareReasonBytes(ballooned) },
+      values: { amount: formatVMwareReasonBytes(ballooned!) },
     });
     severities.push(ResourceAttentionSeverity.Warning);
   }
-  if (ready !== null && ready > VMWARE_CPU_READY_WARNING_PERCENT) {
+  if (isPastVMwareHealthThreshold(ready, rules.vmCpuReadyWarningPercent)) {
     reasons.push({
       text: REASON_CPU_READY,
-      values: { percent: formatVMwareReasonPercent(ready) },
+      values: { percent: formatVMwareReasonPercent(ready!) },
     });
     severities.push(ResourceAttentionSeverity.Warning);
   }
@@ -688,7 +873,9 @@ export function assessVMwareVirtualMachine(data: {
 export function assessVMwareDatastore(data: {
   datastore: VMwareResource;
   now: Date;
+  rules?: VMwareHealthRules | undefined;
 }): VMwareAssessment {
+  const rules: VMwareHealthRules = data.rules || DEFAULT_VMWARE_HEALTH_RULES;
   if (!hasFreshVMwareReadings(data.datastore, data.now)) {
     return { severity: null, reasons: [] };
   }
@@ -700,30 +887,45 @@ export function assessVMwareDatastore(data: {
     text: REASON_PERCENT_FULL,
     values: { percent: formatVMwareReasonPercent(percent) },
   };
-  if (percent > VMWARE_DATASTORE_CRITICAL_PERCENT) {
+  if (isPastVMwareHealthThreshold(percent, rules.datastoreCriticalPercent)) {
     return { severity: ResourceAttentionSeverity.Critical, reasons: [reason] };
   }
-  if (percent > VMWARE_DATASTORE_WARNING_PERCENT) {
+  if (isPastVMwareHealthThreshold(percent, rules.datastoreWarningPercent)) {
     return { severity: ResourceAttentionSeverity.Warning, reasons: [reason] };
   }
   return { severity: null, reasons: [] };
 }
 
+/*
+ * A resource pool's swapped memory is what its VMs hold in the host's swap
+ * file, each of which says it on its own row. The pool says only that the
+ * host is swapping its memory out now; memory left from earlier is no
+ * finding of the pool's (#11157).
+ */
 export function assessVMwareResourcePool(data: {
   pool: VMwareResource;
   now: Date;
+  rules?: VMwareHealthRules | undefined;
 }): VMwareAssessment {
+  const rules: VMwareHealthRules = data.rules || DEFAULT_VMWARE_HEALTH_RULES;
   if (!hasFreshVMwareReadings(data.pool, data.now)) {
     return { severity: null, reasons: [] };
   }
-  const swapped: number | null = toVMwareNumber(data.pool.memorySwappedBytes);
-  if (swapped !== null && swapped > 0) {
+  const swapOut: number | null = toVMwareNumber(
+    data.pool.memorySwapOutBytesPerSecond,
+  );
+  if (
+    isPastVMwareHealthThreshold(
+      swapOut,
+      kibPerSecond(rules.resourcePoolSwapOutWarningKibPerSecond),
+    )
+  ) {
     return {
       severity: ResourceAttentionSeverity.Warning,
       reasons: [
         {
-          text: REASON_SWAPPED,
-          values: { amount: formatVMwareReasonBytes(swapped) },
+          text: REASON_SWAPPING_OUT,
+          values: { rate: formatVMwareReasonRate(swapOut!) },
         },
       ],
     };
@@ -1150,6 +1352,7 @@ export function getVMwareHostStatus(data: {
   host: VMwareResource;
   datacenter: VMwareResource | null;
   now: Date;
+  rules?: VMwareHealthRules | undefined;
 }): ResourcePartStatus {
   const state: VMwareHostState = getVMwareHostState(data);
   switch (state) {
@@ -1201,6 +1404,7 @@ export function getVMwareVirtualMachineStatus(data: {
   // The hosts and datacenters the page has: what tells a disconnected VM.
   hosts?: Array<VMwareResource> | undefined;
   datacenters?: Array<VMwareResource> | undefined;
+  rules?: VMwareHealthRules | undefined;
 }): ResourcePartStatus {
   const vm: VMwareResource = data.vm;
   if (vm.isTemplate === true) {
@@ -1234,6 +1438,7 @@ export function getVMwareVirtualMachineStatus(data: {
 export function getVMwareDatastoreStatus(data: {
   datastore: VMwareResource;
   now: Date;
+  rules?: VMwareHealthRules | undefined;
 }): ResourcePartStatus {
   if (!toVMwareDate(data.datastore.metricsUpdatedAt)) {
     return noDataYetStatus();
@@ -1360,6 +1565,8 @@ export function getVMwareAttentionItems(data: {
   now: Date;
   routeFor: VMwareRouteFor;
   listRouteFor?: VMwareListRouteFor | undefined;
+  // The project's health rules (VMware > Settings > Health Rules).
+  rules?: VMwareHealthRules | undefined;
 }): Array<ResourceAttentionItem> {
   const items: Array<ResourceAttentionItem> = [];
   const known: Array<VMwareResource> = [
@@ -1412,6 +1619,7 @@ export function getVMwareAttentionItems(data: {
           host: row,
           datacenter: findVMwareDatacenter(datacenters, row.datacenterName),
           now: data.now,
+          rules: data.rules,
         });
         break;
       case VMwareResourceKind.VirtualMachine:
@@ -1420,10 +1628,15 @@ export function getVMwareAttentionItems(data: {
           now: data.now,
           hosts: hosts,
           datacenters: datacenters,
+          rules: data.rules,
         });
         break;
       case VMwareResourceKind.Datastore:
-        assessment = assessVMwareDatastore({ datastore: row, now: data.now });
+        assessment = assessVMwareDatastore({
+          datastore: row,
+          now: data.now,
+          rules: data.rules,
+        });
         break;
       case VMwareResourceKind.Cluster:
         assessment = assessVMwareCluster({
@@ -1434,7 +1647,11 @@ export function getVMwareAttentionItems(data: {
         });
         break;
       case VMwareResourceKind.ResourcePool:
-        assessment = assessVMwareResourcePool({ pool: row, now: data.now });
+        assessment = assessVMwareResourcePool({
+          pool: row,
+          now: data.now,
+          rules: data.rules,
+        });
         break;
       default:
         continue;
@@ -1504,6 +1721,7 @@ export function getVMwareHostProblemItems(data: {
   state: VMwareHostProblemState;
   now: Date;
   routeFor: VMwareRouteFor;
+  rules?: VMwareHealthRules | undefined;
 }): Array<ResourceAttentionItem> {
   const ofKind: (kind: VMwareResourceKind) => Array<VMwareResource> = (
     kind: VMwareResourceKind,
@@ -1540,6 +1758,7 @@ export function getVMwareHostProblemItems(data: {
       host: host,
       datacenter: datacenter,
       now: data.now,
+      rules: data.rules,
     });
     const externalId: string = host.externalId || "";
     const cluster: VMwareResource | undefined = host.clusterName

@@ -1027,7 +1027,11 @@ export default class CloudSavingsAction extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     required: false,
-    title: "Failed At",
+    /*
+     * Not "Failed At", which the Dashboard keeps out of its locales: a
+     * probe's failed phase was once drawn under it (#7422).
+     */
+    title: "Change Failed At",
     description: "When the change failed.",
   })
   @Column({

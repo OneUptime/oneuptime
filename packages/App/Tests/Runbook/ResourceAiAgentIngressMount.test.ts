@@ -130,6 +130,9 @@ describe("the resource AI agents' mount", () => {
     expect(routesOf(mount.handlers[0])).toEqual(
       [
         "/claim-next-job",
+        // A Database Agent's Data Observability work and results (#11251).
+        "/data-observability/result",
+        "/data-observability/work",
         "/disconnect",
         "/heartbeat",
         "/job/:jobId/heartbeat",

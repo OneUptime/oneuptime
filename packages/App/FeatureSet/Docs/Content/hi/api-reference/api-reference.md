@@ -423,6 +423,44 @@ Incident not found.
 
 यह पहले खाली बॉडी के साथ `200` लौटाता था। सूची (`get-list`) और गिनती अब भी `200` लौटाती हैं, उन रिकॉर्ड के साथ जिन्हें आप पढ़ सकते हैं, कोई न हो तो खाली। Terraform प्रोवाइडर रिफ़्रेश पर मिले `404` को जा चुका संसाधन मानता है और उसे स्टेट से हटा देता है, इसलिए अगला प्लान उसे फिर से बनाता है: जिस API कुंजी का वह इस्तेमाल करता है, उसे अपने संभाले हर संसाधन को पढ़ने की अनुमतियाँ और लेबल दें। MCP टूल `404` का जवाब ऐसी त्रुटि से देते हैं जो मिलते-जुलते सूची टूल की ओर इशारा करती है, और CLI कोड `3` के साथ बाहर निकलता है।
 
+### किसी रिकॉर्ड के Markdown में छवियाँ
+
+Markdown में चिपकाई गई छवि, जैसे किसी घटना के विवरण, Markdown कस्टम फ़ील्ड या नोट में स्क्रीनशॉट, एक निजी फ़ाइल है। उसका पता (`/file/image/access-token/...`) उसे सिर्फ़ प्रोजेक्ट में साइन इन किए हुए व्यक्ति के लिए खोलता है, इसलिए API कुंजी उसे उस रिकॉर्ड के ज़रिए पढ़ती है जो उसे दिखाता है:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+रिकॉर्ड कुंजी के रूप में पढ़ा जाता है, जैसे `get-item` उसे पढ़ता है: कुंजी को उसे पढ़ने की अनुमति चाहिए, और उसके लेबल। जवाब में वह हर छवि होती है जो रिकॉर्ड का Markdown दिखाता है, उसी क्रम में: उसका `name`, `mimeType`, `sizeInBytes`, `base64` में उसका डेटा, ईमेल में इनलाइन अटैचमेंट के लिए `contentId`, वे `urls` जिनसे Markdown उसे दिखाता है, और वे `fields` जिनमें वह है। `leftOut` में वे फ़ाइलें होती हैं जो Markdown दिखाता है पर दी नहीं जातीं, हर एक के साथ एक `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+सिर्फ़ रिकॉर्ड के अपने प्रोजेक्ट में अपलोड किए गए चित्र दिए जाते हैं, अधिकतम 20 और कुल 10 MB, और कभी कोई SVG नहीं। Markdown वाले हर रिकॉर्ड प्रकार का यही अनुरोध है, जैसे `/api/incident-public-note/<id>/markdown-files` या `/api/alert/<id>/markdown-files`। जो रिकॉर्ड मौजूद नहीं है, या जिसे कुंजी नहीं पढ़ सकती, वह `get-item` की तरह `404` लौटाता है, और `422` तब जब कुंजी उस तरह का रिकॉर्ड पढ़ ही नहीं सकती। वर्कफ़्लो यही छवियाँ [Markdown से फ़ाइलें प्राप्त करें](/docs/workflows/components#get-files-from-markdown) से पढ़ता है।
+
 ## पूरा एंडपॉइंट संदर्भ
 
 हर संसाधन, एंडपॉइंट और फ़ील्ड [OneUptime API संदर्भ](/reference) में सूचीबद्ध है। यह कई भाषाओं में उपलब्ध है: आपकी भाषा आपके ब्राउज़र से चुनी जाती है, और आप पेज के ऊपर के चयनकर्ता से किसी भी समय बदल सकते हैं।

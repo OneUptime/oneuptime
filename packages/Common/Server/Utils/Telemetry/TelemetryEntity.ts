@@ -1312,13 +1312,33 @@ export default class InventoryItem {
       "container.image.tag",
       "container.image.tags",
     ],
+    /*
+     * The virtualization and storage kinds keep their own name here too,
+     * beside the identity that holds it trimmed and lowercased: Inventory
+     * names each item by its own name (InventoryItemService's
+     * INVENTORY_DISPLAY_NAME_RULES, #11254) and reads it from here first, so
+     * "DC-NORTH-Cluster" reads as vCenter spells it and as the VMware pages
+     * show it, not as "dc-north-cluster".
+     */
+    [EntityType.ProxmoxCluster]: ["proxmox.cluster.name"],
+    [EntityType.ProxmoxNode]: ["proxmox.node.name"],
     [EntityType.ProxmoxGuest]: ["proxmox.guest.name", "proxmox.guest.type"],
+    [EntityType.OpenStackCloud]: ["openstack.cloud.name"],
+    [EntityType.OpenStackHypervisor]: ["openstack.hypervisor.name"],
+    /*
+     * The hypervisor an instance runs on is where it is, not what it is: a
+     * live migration moves it (see the openstack.instance resolver).
+     */
     [EntityType.OpenStackInstance]: [
       "openstack.instance.name",
       "openstack.instance.flavor",
+      "openstack.hypervisor.name",
     ],
-    [EntityType.CephCluster]: ["ceph.cluster.fsid"],
-    [EntityType.StorageArray]: ["storage.system"],
+    [EntityType.CephCluster]: ["ceph.cluster.name", "ceph.cluster.fsid"],
+    [EntityType.StorageArray]: ["storage.array.name", "storage.system"],
+    // The Xen Orchestra a pool is read from, as the XCP-ng agent stamps it.
+    [EntityType.XcpNgPool]: ["xcp_ng.pool.name", "xen_orchestra.name"],
+    [EntityType.DockerSwarmCluster]: ["docker.swarm.cluster.name"],
     /*
      * VMware: the cluster an ESXi host sits in and the host / name / pool a
      * VM currently has are exactly the things vSphere moves or renames
@@ -1326,7 +1346,9 @@ export default class InventoryItem {
      * they ride along as descriptive metadata and never enter the key — see
      * the vmware.host / vmware.vm resolvers.
      */
-    [EntityType.VMwareHost]: ["vcenter.cluster.name"],
+    [EntityType.VMwareVCenter]: ["vmware.vcenter.name"],
+    [EntityType.VMwareCluster]: ["vcenter.cluster.name"],
+    [EntityType.VMwareHost]: ["vcenter.host.name", "vcenter.cluster.name"],
     [EntityType.VMwareVirtualMachine]: [
       "vcenter.vm.name",
       "vcenter.vm_template.name",
@@ -1335,6 +1357,7 @@ export default class InventoryItem {
       "vcenter.datacenter.name",
       "vcenter.resource_pool.name",
     ],
+    [EntityType.VMwareDatastore]: ["vcenter.datastore.name"],
   };
 
   /*

@@ -210,6 +210,7 @@ export default class CloudCostView extends BaseModel {
       "How the view's groups are made: Rules (each group written by hand), TagValue (one group per value of the tag in Tag Key) or OwnerTeam (one group per team that owns cloud resources).",
     defaultValue: CloudCostViewGrouping.Rules,
     isDefaultValueColumn: true,
+    allowedValues: Object.values(CloudCostViewGrouping),
     example: "OwnerTeam",
   })
   @Column({

@@ -28,7 +28,21 @@ export const TRUSTED_PROXIES_DESCRIPTION: string = translationKey(
 );
 
 export const TRUSTED_PROXIES_FIELD_DESCRIPTION: string = translationKey(
-  "One IP address or range a line, such as 203.0.113.0/24. Private addresses are always trusted.",
+  "One IP address or range a line, such as 203.0.113.0/24, or 10.0.0.0/24 for an HTTP proxy inside your network.",
+);
+
+/*
+ * A listed range that holds where a load balancer of the project's that
+ * passes on what a client wrote connects from (#11388, #11389): OneUptime
+ * does not trust that part of it, listed or not. Said under the list.
+ */
+export const LISTED_PASS_ON_WARNING: string = translationKey(
+  "{{range}} holds addresses {{loadBalancer}} connects from. It passes on the X-Forwarded-For a client wrote, so OneUptime doesn't trust them, even listed.",
+);
+
+// The same of Google's front ends, which the old docs said to list.
+export const LISTED_GOOGLE_FRONT_ENDS_WARNING: string = translationKey(
+  "{{range}} holds Google's front ends, which your TCP or SSL proxy load balancer {{loadBalancer}} connects from. OneUptime doesn't trust them while it does; Your Load Balancers trusts them when it's safe to.",
 );
 
 // Why the list cannot be saved as typed (getTrustedProxyListProblem).
@@ -159,11 +173,74 @@ export const GOOGLE_FRONT_ENDS_UNREAD: string = translationKey(
   "Not trusted while not every load balancer is listed.",
 );
 
-// The ranges every project trusts.
-export const ALWAYS_TRUSTED_TITLE: string = translationKey("Private addresses");
+/*
+ * The second switch (#11389): whether private addresses are trusted unlisted
+ * (Project.securityTrustPrivateAddresses). Off for a new project.
+ */
+export const PRIVATE_ADDRESSES_TITLE: string =
+  translationKey("Private Addresses");
 
-export const ALWAYS_TRUSTED_DESCRIPTION: string = translationKey(
-  "Always. Nobody has them on the internet, so each is a load balancer or an ingress inside your network.",
+export const PRIVATE_ADDRESSES_ON: string = translationKey(
+  "Every private, loopback and link-local address is trusted as an HTTP proxy, such as an ingress inside your network.",
+);
+
+export const PRIVATE_ADDRESSES_OFF: string = translationKey(
+  "Off: a private address is trusted only if it's listed or one of your load balancers'. An attack through any other is blamed on it.",
+);
+
+// Under the switch while it is on: what it risks, and what to do.
+export const PRIVATE_ADDRESSES_WARNING: string = translationKey(
+  "Behind a TCP proxy at one, such as HAProxy in mode tcp, a client could choose who an attack is blamed on. List your proxies, then turn this off.",
+);
+
+// The fold's chip while private addresses are trusted.
+export const PRIVATE_ADDRESSES_CHIP: string =
+  translationKey("Private addresses");
+
+/*
+ * What is never trusted, even listed (#11389): where the project's load
+ * balancers that pass on what a client wrote connect from.
+ */
+export const PASS_ON_TITLE: string = translationKey(
+  "Not trusted, even if listed",
+);
+
+export const PASS_ON_DESCRIPTION: string = translationKey(
+  "Your load balancers that work at the TCP level connect from these, and pass on the X-Forwarded-For a client wrote.",
+);
+
+// Why one of them passes on what a client wrote (Utils/SecurityEvent/PassOnLoadBalancers.PassOnReason).
+export const PASS_ON_PROXY_ONLY_SUBNET: string = translationKey(
+  "Connects from its region's proxy-only subnet",
+);
+
+export const PASS_ON_GOOGLE_FRONT_ENDS: string = translationKey(
+  "Connects from Google's front ends",
+);
+
+export const PASS_ON_CLIENT_IP_NOT_PRESERVED: { one: string; other: string } = {
+  one: translationKey(
+    "Client IP preservation is off for target group {{targetGroups}}",
+  ),
+  other: translationKey(
+    "Client IP preservation is off for target groups {{targetGroups}}",
+  ),
+};
+
+export const PASS_ON_DUALSTACK: string = translationKey(
+  "Dualstack: an IPv6 client reaches IPv4 targets from its own address",
+);
+
+export const PASS_ON_CLIENT_IP_UNKNOWN: string = translationKey(
+  "OneUptime couldn't read whether its target groups keep the client's address",
+);
+
+export const PASS_ON_TCP_LISTENER: string = translationKey(
+  "Has a TCP or SSL listener",
+);
+
+export const PASS_ON_RANGES_UNREAD: string = translationKey(
+  "OneUptime couldn't read where it connects from",
 );
 
 // A connected edge, such as Cloudflare: its name is the line's title.
@@ -356,7 +433,10 @@ export const TRUSTED_PROXIES_TEST_IDS: Readonly<{
   ownLoadBalancersSwitch: string;
   ownLoadBalancers: string;
   googleFrontEnds: string;
-  alwaysTrusted: string;
+  privateAddressesSwitch: string;
+  privateAddressRanges: string;
+  passOn: string;
+  listedPassOnWarning: string;
   edges: string;
   neverTrusted: string;
   accessLogsSwitch: string;
@@ -370,7 +450,10 @@ export const TRUSTED_PROXIES_TEST_IDS: Readonly<{
   ownLoadBalancersSwitch: "security-trust-own-load-balancers",
   ownLoadBalancers: "security-own-load-balancers",
   googleFrontEnds: "security-google-front-ends",
-  alwaysTrusted: "security-always-trusted-proxies",
+  privateAddressesSwitch: "security-trust-private-addresses",
+  privateAddressRanges: "security-private-address-ranges",
+  passOn: "security-pass-on-load-balancers",
+  listedPassOnWarning: "security-listed-pass-on-warning",
   edges: "security-trusted-edges",
   neverTrusted: "security-never-trusted-proxies",
   accessLogsSwitch: "security-access-logs-forwarded-for",

@@ -58,13 +58,22 @@ const DASHBOARD_LOCALES: string = path.join(
   "packages/App/FeatureSet/Dashboard/src/Locales",
 );
 
+/*
+ * The Enterprise Edition's screens, where ee/ is checked out: the Common
+ * test job removes ee/ before it runs (core runs without ee/), and the
+ * Enterprise Edition's own jobs keep it.
+ */
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(
+  path.join(REPOSITORY, "ee", "Dashboard"),
+);
+
 // Where the Dashboard's sentences are written.
 const SOURCE_ROOTS: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Dashboard/src",
   "packages/Common/Types",
   "packages/Common/UI",
   "packages/Common/Utils",
-  "ee/Dashboard",
+  ...(ENTERPRISE_PRESENT ? ["ee/Dashboard"] : []),
 ];
 
 const SKIPPED_FOLDERS: ReadonlyArray<string> = [

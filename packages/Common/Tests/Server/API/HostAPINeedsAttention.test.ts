@@ -232,7 +232,7 @@ describe("HostAPI needs-attention", () => {
 
       expect(thrown).toBeInstanceOf(BadDataException);
       expect((thrown as BadDataException).message).toBe(
-        "Project ID is required",
+        "This request names no project. Send the project's ID in the tenantid header.",
       );
       expect(find).not.toHaveBeenCalled();
       expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();

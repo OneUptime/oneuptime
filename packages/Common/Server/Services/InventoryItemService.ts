@@ -18,6 +18,7 @@ import { JSONObject } from "../../Types/JSON";
 import EntitySource from "../../Types/Telemetry/EntitySource";
 import EntityType from "../../Types/Telemetry/EntityType";
 import { MANUAL_ENTITY_TYPES } from "../../Types/Telemetry/EntityTypeGroups";
+import { XcpNgTelemetryUtil } from "../../Types/XcpNg/XcpNgTelemetry";
 import {
   canonicalizeEntityValue,
   computeEntityKey,
@@ -38,6 +39,91 @@ import {
   REGISTRY_PROMOTED_TYPES,
   shouldWarnEntityBudgetOnce,
 } from "../Utils/Telemetry/EntityRegistry";
+
+/*
+ * WHAT EACH KIND OF DISCOVERED ITEM IS CALLED IN INVENTORY (#11254).
+ *
+ * An item is named by its own name, by kind: a virtual machine by
+ * vcenter.vm.name, an ESXi host by vcenter.host.name. `keys` are tried in
+ * order, each from the item's descriptive attributes first - the producer's
+ * spelling - and then from its identity, trimmed and lowercased. The last of
+ * them, or `unnamed`, is what an item nothing names is called: its id, which
+ * at least tells it apart from every other item of its kind.
+ *
+ * Before these rules every kind but Kubernetes pods and nodes was named by
+ * the generic rule (deriveFallbackDisplayName), the longest `*.name` key of
+ * its identity. That is a parent's name for any kind whose identity folds its
+ * parents in, and the only name there is when the item's own name is not
+ * identity: vcenter.datacenter.name is longer than vcenter.host.name,
+ * vcenter.cluster.name and vcenter.datastore.name, so every ESXi host,
+ * cluster and datastore was named after its datacenter, and a VM's identity
+ * holds only vmware.vcenter.name and its UUID, so hundreds of VMs were all
+ * named after their vCenter. Proxmox nodes and guests read as their cluster,
+ * OpenStack instances as their cloud, an XCP-ng pool as its UUID.
+ *
+ * Every kind ingest promotes needs a rule: InventoryDisplayNameRules (a
+ * Common test) fails for one without.
+ */
+export interface InventoryDisplayNameRule {
+  keys: ReadonlyArray<string>;
+  // What an item none of `keys` names is called, from its identity.
+  unnamed?: ((identity: Record<string, string>) => string) | undefined;
+}
+
+export const INVENTORY_DISPLAY_NAME_RULES: ReadonlyMap<
+  EntityType,
+  InventoryDisplayNameRule
+> = new Map<EntityType, InventoryDisplayNameRule>([
+  [EntityType.Service, { keys: ["service.name"] }],
+  [EntityType.Host, { keys: ["host.name"] }],
+  [EntityType.KubernetesCluster, { keys: ["k8s.cluster.name"] }],
+  [EntityType.KubernetesNamespace, { keys: ["k8s.namespace.name"] }],
+  // A node or pod is keyed by its uid only when no name is reported.
+  [EntityType.KubernetesNode, { keys: ["k8s.node.name", "k8s.node.uid"] }],
+  [EntityType.KubernetesPod, { keys: ["k8s.pod.name", "k8s.pod.uid"] }],
+  [EntityType.KubernetesDeployment, { keys: ["k8s.deployment.name"] }],
+  [EntityType.ProxmoxCluster, { keys: ["proxmox.cluster.name"] }],
+  [EntityType.ProxmoxNode, { keys: ["proxmox.node.name"] }],
+  // As Proxmox's own tree shows a guest with no name: by its VMID.
+  [
+    EntityType.ProxmoxGuest,
+    { keys: ["proxmox.guest.name", "proxmox.guest.vmid"] },
+  ],
+  [EntityType.OpenStackCloud, { keys: ["openstack.cloud.name"] }],
+  [EntityType.OpenStackHypervisor, { keys: ["openstack.hypervisor.name"] }],
+  [
+    EntityType.OpenStackInstance,
+    { keys: ["openstack.instance.name", "openstack.instance.id"] },
+  ],
+  [EntityType.CephCluster, { keys: ["ceph.cluster.name"] }],
+  [EntityType.StorageArray, { keys: ["storage.array.name"] }],
+  [
+    EntityType.XcpNgPool,
+    {
+      keys: ["xcp_ng.pool.name"],
+      // "Pool 3f2a9c1e", as the XCP-ng pages call a pool XAPI names nothing.
+      unnamed: (identity: Record<string, string>): string => {
+        const poolIdentifier: string = identity["xcp_ng.pool.id"] || "";
+        return poolIdentifier
+          ? XcpNgTelemetryUtil.getDefaultPoolName({
+              poolName: null,
+              poolIdentifier,
+            })
+          : "";
+      },
+    },
+  ],
+  [EntityType.DockerSwarmCluster, { keys: ["docker.swarm.cluster.name"] }],
+  [EntityType.VMwareVCenter, { keys: ["vmware.vcenter.name"] }],
+  [EntityType.VMwareCluster, { keys: ["vcenter.cluster.name"] }],
+  [EntityType.VMwareHost, { keys: ["vcenter.host.name"] }],
+  // A template is a VM; a VM vCenter reports no name for, its instance UUID.
+  [
+    EntityType.VMwareVirtualMachine,
+    { keys: ["vcenter.vm.name", "vcenter.vm_template.name", "vcenter.vm.id"] },
+  ],
+  [EntityType.VMwareDatastore, { keys: ["vcenter.datastore.name"] }],
+]);
 
 // A database node's port, as its calls named it (deriveDatabaseDisplayName).
 const PORT_REGEX: RegExp = /^\d{1,5}$/;
@@ -507,9 +593,9 @@ export class InventoryItemService extends DatabaseService<Model> {
   }
 
   /**
-   * Extra fields for the `lastSeenAt` bump on an existing row: a legacy
-   * generated Kubernetes fallback display name can converge to the resource
-   * name, descriptive attributes merge last-writer-wins per key, and labels
+   * Extra fields for the `lastSeenAt` bump on an existing row: a display name
+   * OneUptime generated converges to what the item's naming rule calls it
+   * now, descriptive attributes merge last-writer-wins per key, and labels
    * merge as a set union. Each is written ONLY when it actually changes, so a
    * stable resource keeps its bump a one-column update (no text/jsonb churn).
    */
@@ -528,47 +614,21 @@ export class InventoryItemService extends DatabaseService<Model> {
       labels?: Array<string>;
     } = {};
 
-    const preferredNameKey: string | undefined =
-      InventoryItemService.preferredDisplayNameAttributeByType[
-        entity.entityType
-      ];
-    /*
-     * Existing inventory display names may be user-edited. Only migrate a
-     * pod/node row when its current value is exactly the value the old generic
-     * algorithm generated. A sparse observation cannot erase a learned name,
-     * and an unrelated entity type never has its display name reconciled here.
-     */
-    const preferredName: string | undefined = preferredNameKey
-      ? entity.descriptiveAttributes?.[preferredNameKey] ||
-        entity.identifyingAttributes?.[preferredNameKey]
-      : undefined;
-    if (preferredName) {
-      const desiredDisplayName: string = preferredName.substring(
-        0,
-        ColumnLength.ShortText,
-      );
-      const legacyDisplayName: string =
-        InventoryItemService.deriveFallbackDisplayName(entity).substring(
-          0,
-          ColumnLength.ShortText,
-        );
-      const existingDisplayName: string = existing.displayName || "";
-
-      if (
-        existingDisplayName !== desiredDisplayName &&
-        (!existingDisplayName || existingDisplayName === legacyDisplayName)
-      ) {
-        update.displayName = desiredDisplayName;
-      }
+    const renamed: string | null = InventoryItemService.getGeneratedNameUpdate(
+      entity,
+      existing,
+    );
+    if (renamed !== null) {
+      update.displayName = renamed;
     }
 
     /*
      * A database dependency node named by the old rule - its bare namespace,
      * "orders" for every Postgres a project calls - is renamed to
-     * "<namespace> @ <server>" the next time it is seen. Same guard as above:
-     * only a name this service generated is replaced, never one a person
-     * typed, and a later sighting that cannot name the port does not undo a
-     * name that has it.
+     * "<namespace> @ <server>" the next time it is seen. Same guard as
+     * getGeneratedNameUpdate's: only a name this service generated is
+     * replaced, never one a person typed, and a later sighting that cannot
+     * name the port does not undo a name that has it.
      */
     if (entity.entityType === EntityType.Database) {
       const desiredDisplayName: string =
@@ -637,35 +697,13 @@ export class InventoryItemService extends DatabaseService<Model> {
     return Array.from(new Set<string>(labels)).sort();
   }
 
-  private static readonly preferredDisplayNameAttributeByType: Partial<
-    Record<EntityType, string>
-  > = {
-    [EntityType.KubernetesNode]: "k8s.node.name",
-    [EntityType.KubernetesPod]: "k8s.pod.name",
-  };
-
   /**
-   * Best-effort human-readable name for Inventory. Prefer the name belonging
-   * to this exact entity type, including a descriptive name paired with a
-   * stable UID identity (the normal Kubernetes pod/node shape). Falling back
-   * to the longest identifying `*.name` preserves the behaviour for types
-   * without a dedicated display-name rule.
+   * Human-readable name for Inventory: what the item's own kind calls it
+   * (INVENTORY_DISPLAY_NAME_RULES), a database by its namespace and server,
+   * a remote endpoint by the name its callers gave it. The generic rule
+   * (deriveFallbackDisplayName) is left only for a kind no rule covers.
    */
   public static deriveDisplayName(entity: ExtractedEntity): string {
-    const id: Record<string, string> = entity.identifyingAttributes || {};
-    const descriptive: Record<string, string> =
-      entity.descriptiveAttributes || {};
-    const preferredKey: string | undefined =
-      this.preferredDisplayNameAttributeByType[entity.entityType];
-
-    if (preferredKey) {
-      const preferredValue: string | undefined =
-        descriptive[preferredKey] || id[preferredKey];
-      if (preferredValue) {
-        return preferredValue;
-      }
-    }
-
     if (entity.entityType === EntityType.Database) {
       const databaseName: string = this.deriveDatabaseDisplayName(entity);
       if (databaseName) {
@@ -673,6 +711,12 @@ export class InventoryItemService extends DatabaseService<Model> {
       }
     }
 
+    const ruleName: string = this.deriveRuleDisplayName(entity);
+    if (ruleName) {
+      return ruleName;
+    }
+
+    const id: Record<string, string> = entity.identifyingAttributes || {};
     for (const key of this.dependencyDisplayNameOrderByType[
       entity.entityType
     ] || []) {
@@ -682,6 +726,124 @@ export class InventoryItemService extends DatabaseService<Model> {
     }
 
     return this.deriveFallbackDisplayName(entity);
+  }
+
+  /*
+   * What the item's kind calls it (INVENTORY_DISPLAY_NAME_RULES), or '' for
+   * a kind with no rule, or an item none of its rule's attributes name. Each
+   * attribute is read from the descriptive attributes first, where the
+   * producer's spelling is kept, then from the identity, which is trimmed
+   * and lowercased.
+   */
+  private static deriveRuleDisplayName(entity: ExtractedEntity): string {
+    const rule: InventoryDisplayNameRule | undefined =
+      INVENTORY_DISPLAY_NAME_RULES.get(entity.entityType);
+    if (!rule) {
+      return "";
+    }
+
+    const id: Record<string, string> = entity.identifyingAttributes || {};
+    const descriptive: Record<string, string> =
+      entity.descriptiveAttributes || {};
+
+    for (const key of rule.keys) {
+      const value: string = (
+        InventoryItemService.stringOrEmpty(descriptive[key]) ||
+        InventoryItemService.stringOrEmpty(id[key])
+      ).trim();
+      if (value) {
+        return value;
+      }
+    }
+
+    return rule.unnamed ? rule.unnamed(id) : "";
+  }
+
+  /*
+   * The name an existing row takes now that it is seen again, or null to
+   * keep the one it has.
+   *
+   * Only a name OneUptime generated is replaced, never one a person typed on
+   * the item's Settings page. A generated name is the one the generic rule
+   * gave every kind before its kind had a rule of its own (#11254: every VM
+   * named after its vCenter, every ESXi host, cluster and datastore after its
+   * datacenter), or the one its rule gave it from what the row held - so a VM
+   * renamed in vCenter is renamed here too, and a name read from the identity
+   * alone (lowercased, or the item's id) takes the producer's own spelling
+   * once that arrives.
+   *
+   * The new name is read from everything the row holds after this sighting:
+   * its descriptive attributes merge and never lose a key, so a sighting that
+   * does not name the item cannot undo a name learned before.
+   */
+  private static getGeneratedNameUpdate(
+    entity: ExtractedEntity,
+    existing: Model,
+  ): string | null {
+    if (!INVENTORY_DISPLAY_NAME_RULES.has(entity.entityType)) {
+      return null;
+    }
+
+    const bound: (name: string) => string = (name: string): string => {
+      return name.substring(0, ColumnLength.ShortText);
+    };
+    const held: Record<string, string> = InventoryItemService.stringAttributes(
+      existing.descriptiveAttributes,
+    );
+
+    const desired: string = bound(
+      InventoryItemService.deriveDisplayName({
+        ...entity,
+        descriptiveAttributes: {
+          ...held,
+          ...(entity.descriptiveAttributes || {}),
+        },
+      }),
+    );
+    const current: string = existing.displayName || "";
+
+    if (!desired || current === desired) {
+      return null;
+    }
+    if (!current) {
+      return desired;
+    }
+
+    const generated: Set<string> = new Set<string>(
+      [
+        InventoryItemService.deriveFallbackDisplayName(entity),
+        InventoryItemService.deriveDisplayName({
+          ...entity,
+          descriptiveAttributes: held,
+        }),
+        InventoryItemService.deriveDisplayName({
+          ...entity,
+          descriptiveAttributes: {},
+        }),
+      ].map(bound),
+    );
+
+    return generated.has(current) ? desired : null;
+  }
+
+  // The string values of a stored jsonb bag: what a naming rule can read.
+  private static stringAttributes(
+    attributes: JSONObject | undefined | null,
+  ): Record<string, string> {
+    const out: Record<string, string> = {};
+    if (!attributes || typeof attributes !== "object") {
+      return out;
+    }
+    for (const [key, value] of Object.entries(attributes)) {
+      if (typeof value === "string") {
+        out[key] = value;
+      }
+    }
+    return out;
+  }
+
+  private static stringOrEmpty(value: unknown): string {
+    return typeof value === "string" ? value : "";
   }
 
   /*
@@ -767,7 +929,14 @@ export class InventoryItemService extends DatabaseService<Model> {
     ],
   };
 
-  /** The generic display-name algorithm used before type-aware K8s names. */
+  /*
+   * The generic rule: the longest `*.name` key of the identity, else its
+   * last key, else the entity key. It names only a kind no rule covers (see
+   * INVENTORY_DISPLAY_NAME_RULES for why it cannot name the rest), and is
+   * kept as it was because it is also how getGeneratedNameUpdate recognises
+   * the names it gave before: they are replaced the next time the item is
+   * seen.
+   */
   private static deriveFallbackDisplayName(entity: ExtractedEntity): string {
     const id: Record<string, string> = entity.identifyingAttributes || {};
 

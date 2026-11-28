@@ -147,6 +147,7 @@ app:
 | `queueDepth` | 当前所有应用 Pod 上等待名额的探测器请求数。连续数分钟大于 0：增加应用 Pod。 |
 | `slotWaitP95Ms` | 在最忙的应用 Pod 上，请求等待名额的时长。 |
 | `refusalsPerMinute` | 收到服务器繁忙答复的探测器请求数。 |
+| `reconnectsAskedPerMinute` | 要求探测器的连接重新连接的答复数，使它的下一个请求可以发往另一个应用 Pod：应用 Pod 积压时每秒几次。连续数分钟大于 0：增加应用 Pod。 |
 | `dispatchLagP95Seconds` | 监视器在其间隔使其到期之后延迟了多久才分发出去。在没有请求等待时接近你最短的间隔：增加探测器副本。 |
 | `monitorsLateByAnIntervalPerMinute` | 延迟了整整一个间隔才分发的监视器：即被跳过的检查。 |
 | `monitorTestWaitP95Seconds` | Test Monitor 运行等待探测器的时长。 |

@@ -280,6 +280,18 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "A probe reports the cloud connection test it ran, as the probe the test names; sends nobody a message.",
   },
   {
+    file: "packages/App/FeatureSet/Telemetry/API/ProbeIngest/StorageArrayCollection.ts",
+    path: "/probe/storage-array/test",
+    rule: "check",
+    why: "A probe reports the storage array connection test it ran (#11242), as the probe the test names; sends nobody a message.",
+  },
+  {
+    file: "packages/App/FeatureSet/Telemetry/API/ProbeIngest/XcpNgCollection.ts",
+    path: "/probe/xcp-ng/test",
+    rule: "check",
+    why: "A probe reports the Xen Orchestra or pool connection test it ran (#11222), as the probe the test names; sends nobody a message.",
+  },
+  {
     file: "ee/Server/AuditLogExport/API/AuditLogExportAPI.ts",
     path: "/audit-log-export/test",
     rule: "check",

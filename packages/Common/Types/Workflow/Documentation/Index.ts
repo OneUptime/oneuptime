@@ -54,6 +54,7 @@ import {
 } from "./TriggerDocumentation";
 import {
   getExecuteWorkflowDocumentation,
+  getGetFilesFromMarkdownDocumentation,
   getIfElseDocumentation,
   getJavaScriptCheckDocumentation,
   getJavaScriptDocumentation,
@@ -98,6 +99,7 @@ export const BUILT_IN_COMPONENT_DOCUMENTATION: Record<
   [ComponentID.Switch]: getSwitchDocumentation,
   [ComponentID.WorkflowRun]: getExecuteWorkflowDocumentation,
   [ComponentID.Sleep]: getSleepDocumentation,
+  [ComponentID.GetFilesFromMarkdown]: getGetFilesFromMarkdownDocumentation,
   [ComponentID.AIGenerateText]: getAIGenerateTextDocumentation,
   [ComponentID.OpenStackProposeFix]: getOpenStackProposeFixDocumentation,
   [ComponentID.IncidentFromAnotherTool]:

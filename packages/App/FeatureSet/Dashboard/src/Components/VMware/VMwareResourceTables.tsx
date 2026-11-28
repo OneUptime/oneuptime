@@ -16,12 +16,13 @@ import {
   formatPercent,
 } from "../../Pages/VMware/Utils/VMwareResourceUtils";
 import {
-  VMWARE_USAGE_BAR_THRESHOLDS,
   VMwareListContext,
   getVMwareCpuReadyTone,
+  getVMwareUsageBarThresholds,
   toVMwareListResources,
 } from "./VMwareResourceColumns";
 import { isVMwareRootResourcePool } from "../../Pages/VMware/Utils/VMwarePartFacts";
+import { useVMwareListContextWithRules } from "../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import { getVMwareVmStorageUsage } from "../../Pages/VMware/Utils/VMwareHealth";
 
 const VM_STORAGE_NOT_REPORTED: string = translationKey("Not reported");
@@ -92,12 +93,15 @@ export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
   props: HostsTableProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const context: VMwareListContext = useVMwareListContextWithRules(
+    props.context,
+  );
   // A host in no cluster, in the reader's words (a cell draws its value as given).
   const standalone: string =
     translator.translateText("Standalone") || "Standalone";
   const resources: Array<InfrastructureResource> = toVMwareListResources(
     props.rows,
-    props.context,
+    context,
   );
 
   const columns: Array<ResourceColumn> = [];
@@ -146,10 +150,7 @@ export const VMwareHostsTable: FunctionComponent<HostsTableProps> = (
         cpu: VMWARE_METRIC_DESCRIPTIONS.hostListCpu,
         memory: VMWARE_METRIC_DESCRIPTIONS.hostListMemory,
       }}
-      metricThresholds={{
-        cpu: VMWARE_USAGE_BAR_THRESHOLDS,
-        memory: VMWARE_USAGE_BAR_THRESHOLDS,
-      }}
+      metricThresholds={getVMwareUsageBarThresholds(context.rules)}
       columns={columns}
       getViewRoute={(resource: InfrastructureResource): Route => {
         return (
@@ -178,9 +179,12 @@ export interface VirtualMachinesTableProps {
 export const VMwareVirtualMachinesTable: FunctionComponent<
   VirtualMachinesTableProps
 > = (props: VirtualMachinesTableProps): ReactElement => {
+  const context: VMwareListContext = useVMwareListContextWithRules(
+    props.context,
+  );
   const resources: Array<InfrastructureResource> = toVMwareListResources(
     props.rows,
-    props.context,
+    context,
   ).map(withVMwareVmStorage);
 
   const columns: Array<ResourceColumn> = [];
@@ -235,7 +239,9 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
           resource.additionalAttributes["cpuReadinessPercent"] || "";
         return raw ? formatPercent(Number(raw)) : EMPTY_VALUE_MARK;
       },
-      getTone: getVMwareCpuReadyTone,
+      getTone: (resource: InfrastructureResource) => {
+        return getVMwareCpuReadyTone(resource, context.rules);
+      },
     },
   );
 
@@ -271,10 +277,7 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
         cpu: VMWARE_METRIC_DESCRIPTIONS.vmListCpu,
         memory: VMWARE_METRIC_DESCRIPTIONS.vmListMemory,
       }}
-      metricThresholds={{
-        cpu: VMWARE_USAGE_BAR_THRESHOLDS,
-        memory: VMWARE_USAGE_BAR_THRESHOLDS,
-      }}
+      metricThresholds={getVMwareUsageBarThresholds(context.rules)}
       storageUsageColumns={VMWARE_VM_STORAGE_COLUMNS}
       columns={columns}
       getViewRoute={(resource: InfrastructureResource): Route => {

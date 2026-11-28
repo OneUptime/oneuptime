@@ -147,6 +147,7 @@ app:
 | `queueDepth` | いま枠を待っているプローブのリクエスト数 (全アプリ Pod)。数分間 0 を超えるなら、アプリ Pod を追加します。 |
 | `slotWaitP95Ms` | リクエストが枠を待った時間 (最も混んでいるアプリ Pod)。 |
 | `refusalsPerMinute` | ビジーと応答されたプローブのリクエスト数。 |
+| `reconnectsAskedPerMinute` | プローブの接続に再接続を求めた応答の数。次のリクエストが別のアプリ Pod に届くようにするためのもので、アプリ Pod が詰まっている間は毎秒数回です。数分間 0 を超えるなら、アプリ Pod を追加します。 |
 | `dispatchLagP95Seconds` | モニターが、間隔によって時刻を迎えた時点からどれだけ遅れて配られたか。待っているリクエストがないのに最短の間隔に近いなら、プローブのレプリカを追加します。 |
 | `monitorsLateByAnIntervalPerMinute` | 丸 1 間隔遅れて配られたモニター数。つまり飛ばされたチェックです。 |
 | `monitorTestWaitP95Seconds` | Test Monitor の実行がプローブを待った時間。 |

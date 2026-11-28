@@ -147,6 +147,7 @@ app:
 | `queueDepth` | 지금 모든 앱 파드에서 슬롯을 기다리는 프로브 요청 수. 몇 분 동안 0보다 크면 앱 파드를 추가하세요. |
 | `slotWaitP95Ms` | 가장 바쁜 앱 파드에서 요청이 슬롯을 기다린 시간. |
 | `refusalsPerMinute` | 바쁘다는 응답을 받은 프로브 요청 수. |
+| `reconnectsAskedPerMinute` | 다음 요청이 다른 앱 파드로 갈 수 있도록 프로브의 연결에 다시 연결하라고 요청한 응답 수. 앱 파드가 밀려 있는 동안 초당 몇 번입니다. 몇 분 동안 0보다 크면 앱 파드를 추가하세요. |
 | `dispatchLagP95Seconds` | 간격에 따라 때가 된 시점부터 모니터가 얼마나 늦게 나눠졌는지. 기다리는 요청이 없는데 가장 짧은 간격에 가깝다면 프로브 복제본을 추가하세요. |
 | `monitorsLateByAnIntervalPerMinute` | 꼬박 한 간격 늦게 나눠진 모니터 수, 즉 건너뛴 확인. |
 | `monitorTestWaitP95Seconds` | Test Monitor 실행이 프로브를 기다린 시간. |

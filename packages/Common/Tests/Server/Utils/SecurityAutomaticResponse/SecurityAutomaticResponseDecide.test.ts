@@ -20,9 +20,18 @@ import SecurityAutomaticResponse, {
   SecurityAutomaticResponseJobData,
   buildAutomaticResponseStep,
   describeAutomaticResponseLimit,
+  describeAutomaticResponseUnvouched,
   getFirstRequestAt,
   readSecurityAutomaticResponseJobData,
 } from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponse";
+import SecurityTrustedProxies from "../../../../Server/Utils/SecurityEvent/SecurityTrustedProxies";
+import NetworkAddressBlockUtil, {
+  NetworkAddressBlock,
+} from "../../../../Utils/NetworkTraffic/NetworkAddressBlock";
+import {
+  ClientAddressTrust,
+  TrustedProxies,
+} from "../../../../Utils/SecurityEvent/ClientAddressTrust";
 import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
 import ProductKey from "../../../../Types/Product/ProductKey";
 import { ServerProductOffReason } from "../../../../Types/Product/ServerProductOffReason";
@@ -51,7 +60,9 @@ import {
 } from "../../../../Types/SecurityBlocklist/SecurityBlock";
 import { SecurityProtectedAddressSource } from "../../../../Types/SecurityBlocklist/SecurityProtectedAddress";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
-import SecurityEventRequestOutcome from "../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import SecurityEventRequestOutcome, {
+  SECURITY_REQUEST_ATTRIBUTES,
+} from "../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import {
   SecurityPlaybookStep,
@@ -720,6 +731,232 @@ describe("never a protected or own address", () => {
     expect(await decide()).toBeNull();
     expect(created).toHaveLength(0);
     expect(startedRuns).toHaveLength(0);
+  });
+});
+
+/*
+ * #11389: NEVER AN ADDRESS A PROXY NOTHING VOUCHES FOR FORWARDED. A proxy
+ * trusted only because it is private may be a TCP proxy that passed on the
+ * X-Forwarded-For the client wrote, so the address the walk took from it
+ * may be the client's own words: whatever the project trusts, a policy
+ * leaves it for a person, naming the proxy. Read with the project's trusted
+ * proxies as they are now.
+ */
+describe("never an address a proxy nothing vouches for forwarded", () => {
+  let proxies: TrustedProxies;
+  let proxyReads: number;
+
+  // The detection's events, each through these proxies, as a scan marked them.
+  function forwardedThrough(...hops: Array<string>): SecurityDetection {
+    const made: SecurityDetection = makeDetection({});
+    const attributes: JSONObject = {
+      [SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust]:
+        ClientAddressTrust.TrustedProxy,
+      [SECURITY_REQUEST_ATTRIBUTES.forwardedBy]: hops.join(", "),
+    };
+
+    made.matchedEvents = {
+      events: [
+        {
+          time: FIRST_REQUEST.toISOString(),
+          principalIp: ADDRESS,
+          attributes,
+        },
+      ],
+      outcomes: { [SecurityEventRequestOutcome.Rejected]: 14 },
+    } as unknown as JSONObject;
+
+    return made;
+  }
+
+  function listing(...ranges: Array<string>): TrustedProxies {
+    return {
+      blocks: ranges.map((range: string): NetworkAddressBlock => {
+        return NetworkAddressBlockUtil.parse(range)!;
+      }),
+      trustsPrivateAddresses: true,
+    };
+  }
+
+  beforeEach(() => {
+    proxies = listing();
+    proxyReads = 0;
+    jest
+      .spyOn(SecurityTrustedProxies, "getForProject")
+      .mockImplementation(async (projectId: ObjectID) => {
+        expect(projectId.toString()).toBe(PROJECT_ID.toString());
+        proxyReads++;
+        return proxies;
+      });
+  });
+
+  test("an address an unlisted private proxy forwarded is left for a person, naming the proxy and what to do", async () => {
+    detection = forwardedThrough("10.0.1.57");
+
+    const decision: SecurityAutomaticResponseDecision | null = await decide();
+
+    expect(decision?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+    );
+    expect(decision?.detail).toBe(
+      "35.205.11.131 came through 10.0.1.57, a private address you haven't listed as a proxy. A TCP proxy there would pass on the X-Forwarded-For the client wrote, so 35.205.11.131 may be the client's own words. If 10.0.1.57 is your HTTP proxy, add it to Trusted Proxies, and automatic response can act on what it forwards.",
+    );
+    expect(startedRuns).toHaveLength(0);
+    expect(created[0]?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+    );
+    expect(timeline[0]).toContain("10.0.1.57");
+  });
+
+  test("once the proxy is listed under Trusted Proxies, the policy acts", async () => {
+    detection = forwardedThrough("10.0.1.57");
+    proxies = listing("10.0.1.0/24");
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.Challenged,
+    );
+    expect(startedRuns).toHaveLength(1);
+  });
+
+  test("the first proxy from the app out nothing vouches for is the one named, the rest listed or not", async () => {
+    detection = forwardedThrough("10.50.0.3", "10.0.1.57");
+    proxies = listing("10.0.1.0/24");
+
+    expect((await decide())?.detail).toContain(
+      "came through 10.50.0.3, a private address",
+    );
+  });
+
+  test("one that came through more proxies than an event keeps is left for a person, saying OneUptime cannot name them", async () => {
+    detection = forwardedThrough(
+      ...Array.from({ length: 10 }, (_value: unknown, index: number) => {
+        return `10.0.1.${index + 1}`;
+      }),
+    );
+    proxies = listing("10.0.0.0/8");
+
+    const decision: SecurityAutomaticResponseDecision | null = await decide();
+
+    expect(decision?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+    );
+    expect(decision?.detail).toBe(
+      "35.205.11.131 came through proxies OneUptime can't name, so it can't tell whether one passed on the X-Forwarded-For the client wrote. An address is blocked automatically only when every proxy it came through is listed under Trusted Proxies or is one of your load balancers.",
+    );
+  });
+
+  test("whether or not the project trusts private addresses: one that does not is told the same", async () => {
+    detection = forwardedThrough("10.0.1.57");
+    proxies = { blocks: [], trustsPrivateAddresses: false };
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+    );
+  });
+
+  test("where a load balancer that passes on connects from is never vouched for, even listed", async () => {
+    detection = forwardedThrough("10.0.1.57");
+    proxies = {
+      ...listing("10.0.0.0/8"),
+      untrustedBlocks: [NetworkAddressBlockUtil.parse("10.0.1.0/24")!],
+    };
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+    );
+  });
+
+  test("an address the connection itself verified needs no proxy read, and is acted on", async () => {
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.Challenged,
+    );
+    expect(proxyReads).toBe(0);
+  });
+
+  test("a detection that kept no events cannot say how its address was read: left for a person", async () => {
+    detection = makeDetection({});
+    detection.matchedEvents = {
+      events: [],
+      outcomes: { [SecurityEventRequestOutcome.Rejected]: 14 },
+    } as unknown as JSONObject;
+
+    const decision: SecurityAutomaticResponseDecision | null = await decide();
+
+    expect(decision?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+    );
+    expect(decision?.detail).toContain("proxies OneUptime can't name");
+    expect(startedRuns).toHaveLength(0);
+  });
+
+  test("the project's own address is said to be protected first: that guardrail comes before", async () => {
+    detection = forwardedThrough("10.0.1.57");
+    check = {
+      ...check,
+      protection: protection({
+        protection: {
+          source: SecurityProtectedAddressSource.Host,
+          protectedValue: ADDRESS,
+          name: "web-3",
+        },
+      }),
+    };
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.SparedProtected,
+    );
+  });
+
+  test("it comes before the signed-in check, which is then not made", async () => {
+    detection = forwardedThrough("10.0.1.57");
+    const signedInCheck: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      SecuritySignedInAddresses,
+      "check",
+    );
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+    );
+    expect(signedInCheck).not.toHaveBeenCalled();
+  });
+
+  test("a trial run records it spared, blocks nothing, and counts nothing toward the hour's limit", async () => {
+    policy = makePolicy({ mode: SecurityAutomaticResponseMode.TrialRun });
+    detection = forwardedThrough("10.0.1.57");
+
+    const decision: SecurityAutomaticResponseDecision | null = await decide();
+
+    expect(decision?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+    );
+    expect(created[0]?.isTrialRun).toBe(true);
+    expect(startedRuns).toHaveLength(0);
+  });
+
+  test("a project whose trusted proxies cannot be read vouches for none: left for a person", async () => {
+    detection = forwardedThrough("10.0.1.57");
+    jest
+      .spyOn(SecurityTrustedProxies, "getForProject")
+      .mockResolvedValue({ blocks: [], trustsPrivateAddresses: false });
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+    );
+  });
+
+  test("its words, for a proxy named and for none", () => {
+    expect(
+      describeAutomaticResponseUnvouched({
+        value: "203.0.113.70",
+        forwarding: { hop: "192.168.4.4" },
+      }),
+    ).toContain("If 192.168.4.4 is your HTTP proxy, add it to Trusted Proxies");
+    expect(
+      describeAutomaticResponseUnvouched({
+        value: "203.0.113.70",
+        forwarding: { hop: "" },
+      }),
+    ).toContain("203.0.113.70 came through proxies OneUptime can't name");
   });
 });
 

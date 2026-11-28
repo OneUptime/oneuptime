@@ -26,6 +26,7 @@ Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins ende
 | Daten zwischen zwei Bausteinen umzuformen                | [JSON](#json) oder [Benutzerdefinierter Code](#custom-code)       |
 | Vor dem nächsten Baustein zu warten                      | [Sleep](#sleep)                                                   |
 | Einen anderen Workflow zu starten                        | [Execute Workflow](#execute-workflow)                             |
+| Die Bilder, die das Markdown eines Datensatzes zeigt, an eine E-Mail anzuhängen | [Dateien aus Markdown abrufen](#get-files-from-markdown) |
 | Vorfälle, Monitore und andere Datensätze zu lesen oder zu ändern | [OneUptime-Datenkomponenten](#oneuptime-datenkomponenten) |
 | Vorfälle oder Warnungen zu den Problemen eines anderen Tools zu öffnen, zu bestätigen und zu lösen | [Vorfälle und Warnungen aus anderen Tools](#vorfälle-und-warnungen-aus-anderen-tools) |
 | Ein Zabbix-Problem zu bestätigen oder zu schließen | [Zabbix](#zabbix) |
@@ -391,6 +392,139 @@ Einen anderen Workflow desselben Projekts starten. Ihr Workflow läuft weiter, o
 **Ausgehend** löst aus, sobald der andere Workflow eingereiht ist. **Fehler** löst aus, wenn das nicht geht: Er wird nicht gefunden, ist ausgeschaltet oder archiviert, oder ihn zu starten würde eine Schleife bilden.
 
 Verwenden Sie ihn, um gemeinsame Logik zu teilen: Bauen Sie einen Workflow "im Vorfallkanal posten" einmal und starten Sie ihn aus jedem Workflow, der ihn braucht. Eine Kette von Workflows, die einander starten, kann nicht auf sich selbst zurückführen und ist höchstens 10 tief. Siehe [Konfiguration & Sicherheit](/docs/workflows/configuration#grenze-beim-aufrufen-anderer-workflows).
+
+## Get Files From Markdown
+
+Liest die Bilder, die das Markdown eines Datensatzes zeigt, etwa die Screenshots, die jemand in die Beschreibung eines Vorfalls, ein benutzerdefiniertes Markdown-Feld oder eine Notiz eingefügt hat, mit Namen, Typ und Daten jedes Bildes. Verwenden Sie ihn, um die Bilder an eine E-Mail anzuhängen, sodass sie dort erscheinen, wo das Markdown sie zeigt.
+
+| Einstellung | Was sie tut |
+| --- | --- |
+| **Eintragstyp** | Die Art des Datensatzes, dessen Markdown die Bilder zeigt: ein Vorfall, eine öffentliche oder interne Notiz eines Vorfalls, eine Warnung, eine geplante Wartung und mehr. |
+| **Datensatz-ID** | Der Datensatz, der gelesen wird, meist der, der den Workflow gestartet hat, etwa `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+
+| Ausgang | Wann |
+| --- | --- |
+| **Erfolg** | Der Datensatz wurde gelesen, ob er Bilder zeigt oder nicht. |
+| **Fehler** | Der Datensatz konnte nicht gelesen werden: Er existiert nicht, oder der Workflow darf ihn nicht lesen. **Fehler** sagt, warum. |
+
+Er gibt zurück:
+
+- **Dateien**: jedes Bild in der Reihenfolge, in der der Datensatz es zeigt, mit:
+  - `name`: dem Namen der Datei, wie sie hochgeladen wurde;
+  - `mimeType`: ihrem Typ, etwa `image/png` oder `image/jpeg`;
+  - `sizeInBytes`: ihrer Größe in Bytes;
+  - `base64`: den Daten des Bildes;
+  - `contentId`: einer ID für das Bild in einer HTML-E-Mail (`<img src="cid:...">`), für dasselbe Bild dieselbe, welcher Datensatz es auch zeigt;
+  - `urls`: jeder Adresse, unter der das Markdown es zeigt;
+  - `fields`: den Feldern, die es zeigen, etwa `description` oder dem Namen eines benutzerdefinierten Felds.
+- **Anzahl**: wie viele Bilder **Dateien** enthält.
+- **Ausgelassen**: die Dateien, die das Markdown zeigt, die aber nicht in **Dateien** sind, jeweils mit `name`, `urls`, `fields`, einem `reason` und einer `message`, die sagt, warum.
+
+**Dateien** enthält die Daten der Bilder, daher blendet das Protokoll des Laufs es aus und zeigt stattdessen **Anzahl** und **Ausgelassen**. Ein späterer Baustein, dem die Bilder übergeben werden, schreibt, was er bekommt, in seinen eigenen Eintrag im Protokoll.
+
+### Welche Bilder er herausgibt
+
+Der Baustein liest den Datensatz so, wie ein Find-One-Baustein es tut, als der Workflow: im eigenen Projekt des Workflows, nie einen privaten Vorfall, eine private Warnung oder Episode, und nur, was die Berechtigungen des Workflows zu lesen erlauben. Ein Datensatz, den er nicht lesen darf, nimmt **Fehler**, genau wie einer, der nicht existiert.
+
+Er gibt nur heraus:
+
+- Bilder, die die Markdown-Felder des Datensatzes zeigen, etwa die Beschreibung eines Vorfalls, die Ursache, die Postmortem- und Behebungsnotizen und seine benutzerdefinierten Markdown-Felder. Ein benutzerdefiniertes Textfeld ist kein Markdown, daher wird eine Adresse darin nicht gelesen;
+- Bilder, die in das eigene Projekt des Datensatzes hochgeladen wurden. Eine Adresse, die aus dem Datensatz eines anderen Projekts kopiert wurde, steht unter **Ausgelassen** als nicht gefunden;
+- Bilder: PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF, HEIC und ICO, jedes geprüft an dem, was die Datei enthält, wie an ihrem Typ. Ein SVG kann Skript enthalten und wird daher ausgelassen, ebenso eine Datei, die nur vorgibt, ein Bild zu sein;
+- bis zu 20 Bilder und insgesamt 10 MB. Was über eine Grenze hinausgeht, steht mit dem Grund unter **Ausgelassen**.
+
+Er kann keine Dateien auflisten und keine über ihre Adresse lesen: Er liest nur, was der Datensatz zeigt.
+
+### Beispiel: eingebettete Bilder in einer E-Mail über Microsoft Graph
+
+Dieser Workflow schickt jeden neuen Vorfall per E-Mail über Microsoft Graph, mit den Screenshots seiner Beschreibung an der Stelle, an der die Beschreibung sie zeigt.
+
+:::steps
+### Ein Token für Microsoft Graph holen
+
+Registrieren Sie eine Anwendung in Microsoft Entra ID, geben Sie ihr die Anwendungsberechtigung `Mail.Send` und erteilen Sie die Administratorzustimmung. Legen Sie dann eine [OAuth-2.0-Variable](/docs/workflows/variables#oauth-20-variablen-token-die-sich-selbst-erneuern) mit dem Namen `GRAPH_TOKEN` für Microsoft an, mit dem Gewährungstyp **Client Credentials** und dem Scope `https://graph.microsoft.com/.default`.
+
+### Bei einem neuen Vorfall beginnen
+
+Fügen Sie den Trigger **Bei Erstellung: Vorfall** hinzu und geben Sie seinen **Titel** und seine **Beschreibung** weiter.
+
+### Die Bilder des Vorfalls lesen
+
+Fügen Sie nach dem Trigger **Dateien aus Markdown abrufen** hinzu. Setzen Sie **Eintragstyp** auf **Vorfall** und **Datensatz-ID** auf `{{local.components.incident-on-create-1.returnValues.model._id}}`.
+
+### Die Nachricht bauen
+
+Fügen Sie an seinem Ausgang **Erfolg** **Eigenes JavaScript ausführen** hinzu, mit diesen **Argumente**:
+
+```json title="Arguments"
+{
+  "subject": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "files": {{local.components.get-files-from-markdown-1.returnValues.files}}
+}
+```
+
+Der Code richtet jede Adresse eines Bildes auf seinen Anhang (`cid:` und seine `contentId`) und hängt das Bild unter derselben ID eingebettet an:
+
+```javascript title="JavaScript Code"
+const escapeHtml = (text) =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// The description, a paragraph at a time.
+let html = escapeHtml(args.description || "")
+  .split(/\n{2,}/)
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("\n");
+
+const attachments = [];
+
+for (const file of args.files) {
+  for (const url of file.urls) {
+    html = html.split(url).join(`cid:${file.contentId}`);
+  }
+
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    contentId: file.contentId,
+    isInline: true,
+  });
+}
+
+// ![alt](cid:...) becomes an <img>, where the Markdown put the image.
+html = html.replace(/!\[([^\]]*)\]\((cid:[^)\s]+)\)/g, '<img src="$2" alt="$1">');
+
+return {
+  message: {
+    subject: args.subject,
+    body: { contentType: "HTML", content: html },
+    toRecipients: [{ emailAddress: { address: "oncall@example.com" } }],
+    attachments: attachments,
+  },
+  saveToSentItems: false,
+};
+```
+
+### Über Microsoft Graph senden
+
+Fügen Sie am Ausgang **Erfolg** des Codes **API-Aufruf POST (JSON)** hinzu:
+
+| Einstellung | Wert |
+| --- | --- |
+| **URL** | `https://graph.microsoft.com/v1.0/users/alerts@example.com/sendMail` |
+| **Anfrage-Header** | `Authorization`: `Bearer {{global.variables.GRAPH_TOKEN}}` |
+| **Anfragetext** | `{{local.components.javascript-1.returnValues.returnValue}}` |
+
+Microsoft Graph antwortet `202 Accepted`, und der Baustein nimmt **Erfolg**.
+:::
+
+Microsoft Graph nimmt in einer Nachricht, die ihm so geschickt wird, einen Anhang von bis zu 3 MB an. Ein größeres Bild braucht eine Upload-Sitzung oder einen Link anstelle des Bildes. Die Bilder eines Datensatzes lassen sich auch mit einem API-Schlüssel von außerhalb eines Workflows lesen: siehe [Bilder im Markdown eines Datensatzes](/docs/api-reference/api-reference#bilder-im-markdown-eines-datensatzes).
 
 ## Vorfälle und Warnungen aus anderen Tools
 

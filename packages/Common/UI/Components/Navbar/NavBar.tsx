@@ -11,6 +11,7 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
 import NavBarItem from "./NavBarItem";
+import NavBarOfItems from "./NavBarOfItems";
 import NavBarMenuModal from "./NavBarMenuModal";
 import NavBarMobileMenu from "./NavBarMobileMenu";
 import { isMoreMenuItemActive } from "./NavBarMenuCatalog";
@@ -469,30 +470,13 @@ const Navbar: FunctionComponent<ComponentProps> = (
 
   // Legacy support: if children are provided, render the old way
   if (props.children) {
-    const className: string =
-      props.className || "flex text-center lg:space-x-8 lg:py-2 bg-white ";
-
     return (
-      <nav
-        className={props.rightElement ? `flex justify-between` : ""}
-        aria-label={mainMenuName}
+      <NavBarOfItems
+        className={props.className}
+        rightElement={props.rightElement}
       >
-        <div data-testid="nav-children" className={className}>
-          {props.children}
-        </div>
-        {props.rightElement && (
-          <div className={className}>
-            <NavBarItem
-              title={props.rightElement.title}
-              isTitleTranslated={props.rightElement.isTitleTranslated}
-              icon={props.rightElement.icon}
-              route={props.rightElement.route}
-              activeRoute={props.rightElement.activeRoute}
-              exact={props.rightElement.exact ?? false}
-            />
-          </div>
-        )}
-      </nav>
+        {props.children}
+      </NavBarOfItems>
     );
   }
 

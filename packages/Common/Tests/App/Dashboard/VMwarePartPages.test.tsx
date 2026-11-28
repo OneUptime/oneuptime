@@ -20,6 +20,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * The page of a virtual machine, a datastore and a cluster inside a vCenter
@@ -391,6 +392,13 @@ beforeEach(() => {
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
+  /*
+   * A part's alerts card asks the server which of its recommended alerts a
+   * monitor covers (#11074): none does yet.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
 });
 
 afterEach(() => {
@@ -420,6 +428,9 @@ describe("a virtual machine's page", () => {
         latestMemoryPercent: 90.6,
         maxMemoryBytes: 64 * GIB,
         memorySwappedBytes: 1.5 * GIB,
+        // The host swaps it out now: what is critical (#11157).
+        memorySwapOutBytesPerSecond: 2 * 1024 * 1024,
+        memorySwapInBytesPerSecond: 0,
         cpuReadinessPercent: 6.2,
         latestDiskBytes: 410 * GIB,
         maxDiskBytes: 500 * GIB,
@@ -452,13 +463,13 @@ describe("a virtual machine's page", () => {
     expect(chips).toHaveTextContent("500 GiB provisioned");
     expect(chips).not.toHaveTextContent("Pool");
 
-    // Its own row reads "This VM", critical, with how much the host swaps.
+    // Its own row reads "This VM", critical, with how fast the host swaps it out.
     expect(attentionRows("vmware-vm-attention")).toEqual([
       {
         key: "VirtualMachine:vm/db-primary-uuid",
         severity: "critical",
         text: expect.stringContaining(
-          "1.5\u00A0GiB of memory swapped by the host",
+          "Host swapping memory out at 2.0\u00A0MiB/s",
         ),
       },
     ]);
@@ -481,6 +492,8 @@ describe("a virtual machine's page", () => {
         latestMemoryPercent: 90.6,
         maxMemoryBytes: 64 * GIB,
         memorySwappedBytes: 1.5 * GIB,
+        memorySwapOutBytesPerSecond: 2 * 1024 * 1024,
+        memorySwapInBytesPerSecond: 0,
       }),
     ];
     await openVm("db-primary");
@@ -500,7 +513,7 @@ describe("a virtual machine's page", () => {
     expect(
       within(row).getByTestId("vmware-vm-hero-status-dialog-name"),
     ).toHaveTextContent("This VM");
-    expect(row).toHaveTextContent(/1\.5\sGiB of memory swapped by the host/);
+    expect(row).toHaveTextContent(/Host swapping memory out at 2\.0\sMiB\/s/);
   });
 
   test("the VM alerts: all seven, the ones that mean trouble first, and one step to turn them on", async () => {
@@ -860,7 +873,10 @@ describe("a cluster's page", () => {
     ];
     // The VMs in it that may need a look, as one read per kind of trouble returns them.
     mockRowsByKind["VirtualMachine"] = [
-      vm("db-primary", { memorySwappedBytes: 1.5 * GIB }),
+      vm("db-primary", {
+        memorySwappedBytes: 1.5 * GIB,
+        memorySwapOutBytesPerSecond: 2 * 1024 * 1024,
+      }),
     ];
     await openCluster();
 
@@ -1002,6 +1018,7 @@ describe("a cluster's page", () => {
         return (
           request.query["kind"] === "VirtualMachine" &&
           request.query["memorySwappedBytes"] === undefined &&
+          request.query["memorySwapInBytesPerSecond"] === undefined &&
           request.query["memoryBalloonedBytes"] === undefined &&
           request.query["cpuReadinessPercent"] === undefined
         );

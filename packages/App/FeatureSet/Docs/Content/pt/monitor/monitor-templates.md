@@ -6,6 +6,7 @@ Um modelo de monitor é uma configuração de monitor salva (um tipo, critérios
 - [Criar um modelo](#criar-um-modelo): Quatro etapas, como em Criar monitor.
 - [Criar monitores a partir dele](#criar-monitores-a-partir-de-um-modelo): Um clique, ou vincule monitores que você já tem.
 - [Sincronizar alterações](#sincronizar-alterações-com-os-monitores-vinculados): O que cada botão de sincronização copia.
+- [Mover monitores para outro modelo](#mover-monitores-para-outro-modelo): Um modelo melhor, e cada monitor mantém o seu histórico.
 - [Manter valores próprios de cada monitor](#manter-valores-próprios-de-cada-monitor): Proteger um destino ou cabeçalhos de uma sincronização.
 :::
 
@@ -55,7 +56,7 @@ O modelo é adicionado à lista. Abra-o para ver a página dele, com um cartão 
 ## Criar monitores a partir de um modelo
 
 - **Monitor novo.** Clique em **Criar monitor** na linha do modelo na lista, ou em **Criar Monitor a partir de Modelo** na página dele. **Criar monitor** abre com o tipo e as configurações do modelo preenchidos; altere o que precisar e crie. O monitor novo fica vinculado ao modelo.
-- **Monitores que você já tem.** Em **Monitores Vinculados**, clique em **Vincular Monitores Existentes** e escolha-os. Eles mantêm as configurações até você sincronizar.
+- **Monitores que você já tem.** Em **Monitores Vinculados**, clique em **Vincular Monitores Existentes** e escolha-os. Com **Usar os critérios e o intervalo do modelo** ligado, eles recebem os critérios, o intervalo e a concordância de sondas do modelo ao serem vinculados; desligado, eles mantêm as configurações até você sincronizar. Um monitor vinculado a outro modelo passa para este.
 
 Os valores definidos em **Valores padrão de campos personalizados** são gravados em cada monitor criado a partir do modelo, inclusive nos monitores que as regras de importação automática e as políticas de alerta criam a partir dele.
 
@@ -70,9 +71,60 @@ Editar um modelo altera apenas o modelo. Para copiar uma alteração para os mon
 | **Sincronizar Rótulos com Monitores Vinculados** | Os rótulos, e nada mais | Todo o resto |
 | **Sincronizar campos personalizados com os monitores vinculados** | Os campos personalizados para os quais o modelo tem um padrão, substituindo o que cada monitor tinha | Os campos personalizados que o modelo deixa em branco, e todo o resto |
 
-Para sincronizar um único monitor, clique em **Sincronizar a partir do Modelo** na linha dele em **Monitores Vinculados**. Isso copia os critérios e as configurações da etapa (exceto os campos protegidos), o intervalo de monitoramento, a concordância mínima de sondas e os rótulos, e deixa como estão o nome, a descrição e os valores dos campos personalizados do monitor. **Desvincular do Modelo** desconecta um monitor; ele mantém as configurações.
+Para sincronizar um único monitor, clique em **Sincronizar a partir do Modelo** na linha dele em **Monitores Vinculados**. Isso copia os critérios e as configurações da etapa (exceto os campos protegidos), o intervalo de monitoramento, a concordância mínima de sondas e os rótulos, e deixa como estão o nome, a descrição e os valores dos campos personalizados do monitor. Para desconectar um monitor, veja [Desvincular monitores de um modelo](#desvincular-monitores-de-um-modelo).
 
 Depois de uma sincronização, um resumo informa quantos monitores foram atualizados. **Sincronizado parcialmente** significa que alguns monitores vinculados ainda têm a configuração anterior, geralmente porque as suas permissões não os cobrem.
+
+## Mover monitores para outro modelo
+
+Quando um modelo melhor substitui outro, mova os monitores dele para o novo em vez de excluí-los. Cada monitor mantém o nome, o histórico de status, os rótulos, os proprietários e os incidentes, e recebe os critérios do novo modelo.
+
+:::steps
+### Selecionar os monitores
+
+Abra o modelo ao qual eles estão vinculados agora. Em **Monitores Vinculados**, selecione os monitores, ou todos eles. Você também pode selecionar monitores na lista de monitores, filtrada por qualquer coluna.
+
+### Movê-los
+
+Em **Ações em massa**, clique em **Mover para Outro Modelo** (na lista de monitores, **Vincular a um Modelo**). Escolha o modelo.
+
+### Manter ligadas as configurações do modelo
+
+Deixe **Usar os critérios e o intervalo do modelo** ligado, para que cada monitor receba agora os critérios, as configurações da etapa, o intervalo e a concordância de sondas do modelo. Desligado, cada um mantém os seus até você sincronizar. Depois confirme.
+:::
+
+O que a movimentação faz:
+
+- Os critérios, o intervalo e a concordância de sondas dos monitores são substituídos pelos do modelo. Um incidente ou alerta aberto que os critérios antigos deles configuraram para se resolver sozinho é resolvido, e os novos critérios abrem um novo se o problema persistir. Cada monitor de dispositivo de rede continua observando o próprio dispositivo, e cada monitor de endereço ou URL continua verificando o endereço do próprio dispositivo.
+- Nomes, descrições, histórico de status, rótulos, proprietários, valores dos campos personalizados e vínculos com incidentes continuam como estão.
+- Um monitor que uma importação, uma regra de importação automática ou uma política de alertas de rede criou mantém o modelo a partir do qual foi criado. Essa regra nunca volta a criá-lo, e uma política de alertas o libera: ela não o exclui nem o substitui mais.
+- Um dispositivo tem um monitor de cada modelo. Quando um dispositivo já tem um monitor criado para ele a partir do novo modelo, o outro monitor dele fica de fora, e a alteração indica o que está atrapalhando: exclua um dos dois e mova de novo.
+- Um monitor de um tipo diferente do tipo do modelo fica de fora.
+
+A alteração é executada no servidor, até 10.000 monitores por vez, e mostra o progresso: o que foi movido, o que ficou de fora e por quê, e os incidentes e alertas abertos que ela resolveu. Fechar a caixa de diálogo não a interrompe, e a página do modelo mostra uma alteração que ainda está em andamento. **Parar** a interrompe antes do próximo monitor, e **Tentar novamente** tenta de novo os monitores que falharam ou não foram alcançados.
+
+> [!TIP]
+> Vai mover os dispositivos de uma regra de importação automática para um novo modelo? Mova os monitores primeiro e depois aponte a regra para o novo modelo. Na ordem inversa, a regra dá a cada dispositivo um segundo monitor, do novo modelo, ao lado do que ele já tem.
+
+## Desvincular monitores de um modelo
+
+Clique em **Desvincular do Modelo** na linha de um monitor em **Monitores Vinculados**, ou selecione monitores ali ou na lista de monitores e use **Desvincular do Modelo** em **Ações em massa**. Escolha o que os monitores mantêm:
+
+| Opção | O que os monitores fazem depois |
+| --- | --- |
+| **Manter as configurações deles** | Eles continuam verificando e alertando com os critérios que têm agora, como monitores independentes, e não recebem mais as atualizações do modelo. |
+| **Remover deles os critérios do modelo** | Eles continuam verificando, mas não abrem incidentes nem alertas e não definem nenhum status até você vinculá-los a um modelo novamente. Um incidente ou alerta aberto que os critérios deles configuraram para se resolver sozinho é resolvido. |
+
+Em ambos os casos eles mantêm os nomes, o histórico de status, os rótulos, os proprietários e os incidentes, e uma regra que os criou nunca volta a criá-los.
+
+## Excluir um modelo
+
+Um modelo a partir do qual uma política de alertas de rede ou uma regra de importação automática provisiona monitores não pode ser excluído: aponte primeiro a política ou a regra para outro modelo. Quando há monitores vinculados ao modelo, a exclusão pergunta o que acontece com eles:
+
+- **Manter as configurações deles** (o padrão): a exclusão os desvincula, e eles continuam verificando e alertando com os critérios que têm.
+- **Remover deles os critérios deste modelo**: cada um é desvinculado com os critérios removidos, como acima, e depois o modelo é excluído. Quando um monitor continua vinculado, como um que as suas permissões não cobrem, o modelo é mantido, e a caixa de diálogo diz quantos.
+
+Para mover os monitores para outro modelo em vez disso, use **Mover para Outro Modelo** antes de excluí-lo.
 
 ## Manter valores próprios de cada monitor
 
@@ -174,6 +226,14 @@ Um campo protegido não pôde ser associado a uma etapa de um dos monitores, ent
 
 :::details Os botões de sincronização estão esmaecidos
 Nenhum monitor está vinculado ao modelo ainda. Crie um monitor a partir dele, ou clique em **Vincular Monitores Existentes** em **Monitores Vinculados**.
+:::
+
+:::details Uma movimentação deixa um monitor de fora: "O dispositivo para o qual este monitor foi criado já tem um monitor vinculado a este modelo"
+O dispositivo tem um monitor criado para ele a partir do modelo para o qual você está movendo, geralmente porque uma regra de importação automática foi apontada para esse modelo antes da movimentação. Exclua o que você não precisa (o mais novo é o que tem menos histórico) e depois mova de novo.
+:::
+
+:::details Depois que uma regra de importação automática passou para um novo modelo, os dispositivos têm dois monitores
+A regra deu a cada dispositivo o monitor do novo modelo ao lado do que ele tinha. Exclua os monitores novos e depois mova os antigos para o novo modelo: eles mantêm o histórico, e a regra não cria nenhum de novo.
 :::
 
 :::details Salvar falha com "Unsupported do not sync field"
