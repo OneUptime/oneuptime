@@ -52,6 +52,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "MonitorStatus",
     "MonitorStatusTimeline",
     "MonitorTemplate",
+    "MonitorTemplateChange",
     "MonitorTest",
     "IncomingRequestSecret",
     AnalyticsTableName.MonitorLog,
@@ -546,6 +547,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "OpenStackResource",
   ],
   [ProductKey.VMware]: [
+    "VMwareHealthSetting",
     "VMwareResource",
     "VMwareVCenter",
     "VMwareVCenterConnectionTest",
