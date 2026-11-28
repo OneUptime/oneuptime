@@ -301,6 +301,16 @@ isVisibleOnStatusPage must be true or false.
 
 En uppdatering som skriver en posts värden som de redan är ändrar ingenting: den startar inte postens **On Update**-arbetsflöden, skickar inga liveuppdateringar och lägger inte till någon rad i granskningsloggen. `false` skrivet över `false` räknas som samma värde, och det gör även `"false"` skrivet över `false`, ett tal skrivet som sin text, en tid skriven som samma ögonblick i ett annat format, och etiketter skrivna som samma etiketter i valfri ordning. När en uppdatering ändrar några värden och skriver tillbaka andra som de är listar dess rad i granskningsloggen bara de värden som ändrades, och ett arbetsflödes **Fält att bevaka** hör bara dem.
 
+### Värden som skrivs som JSON
+
+Vissa fält innehåller ett JSON-värde med en egen form, till exempel `rotation` och `restrictionTimes` för ett lager i ett jourschema; API-referensen visar varje form bland sina datatyper. OneUptime läser bara nycklarna i den formen, så ett värde som utelämnar nyckeln som säger vad det betyder, stavar den nyckeln på ett annat sätt eller ger den ett värde som OneUptime inte känner till avvisas med en `400` som nämner nyckeln, i stället för att sparas som ett värde som inte gör något:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+En nyckel som byter namn läses fortfarande under sitt gamla namn: ett lagers begränsningstyp skrivs under `restrictionType`, eller under den äldre stavningen `restictionType`, och ett svar har båda.
+
 ### Var ett projekt köptes
 
 Ett projekts återförsäljare, återförsäljarplan och återförsäljarlicens (`resellerId`, `resellerPlanId`, `resellerLicenseId`, och relationerna `reseller` och `resellerPlan`) anges av OneUptime ensamt: när ett projekt skapas med en återförsäljares kampanjkod, och när återförsäljaren ändrar planen. Ett skapande eller en ändring av ett projekt som skickar ett av dem avvisas med en `400` som namnger fältet, vem som än skickar det:

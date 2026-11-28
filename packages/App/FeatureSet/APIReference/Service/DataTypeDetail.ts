@@ -969,14 +969,14 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "EventInterval (enum)",
         required: true,
         description:
-          "The unit of the interval. Possible values: Hour, Day, Week, Month, Year.",
+          'The unit of the interval. Possible values: Hour, Day, Week, Month, Year. An on-call schedule layer\'s rotation spelled any other way ("Weekly", "week") is refused with a 400.',
       },
       {
         name: "intervalCount",
         type: "PositiveNumber",
         required: true,
         description:
-          "How many units between each recurrence. For example, intervalCount=2 with intervalType=Day means every 2 days.",
+          "How many units between each recurrence: a whole number, 1 or more. For example, intervalCount=2 with intervalType=Day means every 2 days. Left out of a layer's rotation, it is 1; a layer's rotation with a count under another key (\"interval\") is refused.",
       },
     ],
     values: [],
@@ -995,7 +995,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
   "restriction-times": {
     title: "RestrictionTimes",
     description:
-      "Object describing on-call time restrictions (daily or weekly windows).",
+      "When an on-call schedule layer is on call (its active hours), or when an on-call rule waits for working hours: around the clock, a window every day, or windows of the week, read in the schedule's (or the rule's) time zone. A write that would leave a layer on call at no time without saying so is refused with a 400 that names the key: a restriction type that is missing, is not None, Daily or Weekly, or is named differently under restrictionType and restictionType; a Daily restriction without a window, or with times that are a time of day alone (\"09:00\"); a Weekly one without its list of windows; and a window that opens and closes at the same time.",
     isEnum: false,
     properties: [
       {
@@ -1003,21 +1003,21 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "RestrictionType (enum)",
         required: true,
         description:
-          "The type of restriction. Possible values: None, Daily, Weekly. 'None' means the policy is always active.",
+          'The type of restriction: None (on call around the clock), Daily or Weekly. It can also be written under restictionType, its older spelling without the second "r", which every OneUptime version reads; responses carry the type under both. An update that sends both with different values takes the one that differs from the layer\'s current type, as a client that read the layer and changed one of them meant.',
       },
       {
         name: "dayRestrictionTimes",
         type: "StartAndEndTime | null",
         required: false,
         description:
-          "For Daily restriction type. An object with startTime (HH:MM) and endTime (HH:MM) defining the active window each day.",
+          'For Daily: the window the layer is on call each day, { startTime, endTime }, each a DateTime such as { "_type": "DateTime", "value": "2026-01-05T17:00:00+01:00" }. Only the time of day counts, read in the schedule\'s time zone; an endTime earlier in the day than startTime ends the next morning (17:00 to 07:00).',
       },
       {
         name: "weeklyRestrictionTimes",
         type: "Array<WeeklyRestriction>",
         required: false,
         description:
-          "For Weekly restriction type. An array of objects each specifying a startDay, startTime, endDay, and endTime.",
+          "For Weekly: the windows of the week the layer is on call, each { startDay, startTime, endDay, endTime }, with startTime and endTime DateTimes dated on the weekdays they name. A window is continuous from its start to its end; an empty list restricts nothing.",
       },
     ],
     values: [],
@@ -1026,8 +1026,14 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         _type: "RestrictionTimes",
         value: {
           restrictionType: "Daily",
-          dayRestrictionTimes: { startTime: "09:00", endTime: "17:00" },
-          weeklyRestrictionTimes: null,
+          dayRestrictionTimes: {
+            startTime: {
+              _type: "DateTime",
+              value: "2026-01-05T17:00:00+01:00",
+            },
+            endTime: { _type: "DateTime", value: "2026-01-05T07:00:00+01:00" },
+          },
+          weeklyRestrictionTimes: [],
         },
       },
       null,

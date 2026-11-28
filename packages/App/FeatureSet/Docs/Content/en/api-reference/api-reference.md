@@ -301,6 +301,16 @@ isVisibleOnStatusPage must be true or false.
 
 An update that writes a record's values as they already are changes nothing: it does not start the record's **On Update** workflows, send live updates or add an audit log entry. `false` written over `false` counts as the same value, and so do `"false"` written over `false`, a number written as its text, a time written as the same instant in another format, and labels written as the same labels in any order. When an update changes some values and writes others back as they are, its audit log entry lists only the values that changed, and a workflow's **Fields to watch** hears only those.
 
+### Values written as JSON
+
+Some fields hold a JSON value with a shape of its own, such as an on-call schedule layer's `rotation` and `restrictionTimes`; the API reference lists each shape under its data types. OneUptime reads only the keys of that shape, so a value that leaves out the key that says what it means, spells that key another way, or gives it a value OneUptime does not know is refused with a `400` that names the key, rather than stored as a value that does nothing:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+A key that is renamed keeps being read under its old name: a layer's restriction type is written under `restrictionType`, or under its older spelling `restictionType`, and an answer carries both.
+
 ### Where a project was bought
 
 A project's reseller, reseller plan and reseller license (`resellerId`, `resellerPlanId`, `resellerLicenseId`, and the relations `reseller` and `resellerPlan`) are set by OneUptime alone: when a project is created with a reseller's promo code, and when the reseller changes the plan. A create or a change of a project that sends one of them is refused with a `400` that names the field, whoever sends it:

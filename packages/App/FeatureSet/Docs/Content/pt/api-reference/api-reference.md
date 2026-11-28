@@ -301,6 +301,16 @@ isVisibleOnStatusPage must be true or false.
 
 Uma atualização que grava os valores de um registro como eles já estão não muda nada: não inicia os workflows **On Update** do registro, não envia atualizações ao vivo nem adiciona uma entrada ao registro de auditoria. `false` gravado sobre `false` conta como o mesmo valor, assim como `"false"` gravado sobre `false`, um número escrito como texto, um horário escrito como o mesmo instante em outro formato e rótulos escritos como os mesmos rótulos em qualquer ordem. Quando uma atualização altera alguns valores e grava outros de volta como estão, a sua entrada no registro de auditoria lista só os valores que mudaram, e o **Campos a observar** de um workflow só ouve esses.
 
+### Valores escritos como JSON
+
+Alguns campos guardam um valor JSON com uma forma própria, como `rotation` e `restrictionTimes` de uma camada de um agendamento de plantão; a referência da API mostra cada forma entre os seus tipos de dados. O OneUptime lê apenas as chaves dessa forma, então um valor que omite a chave que diz o que ele significa, escreve essa chave de outra maneira ou dá a ela um valor que o OneUptime não conhece é recusado com um `400` que nomeia a chave, em vez de ser salvo como um valor que não faz nada:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+Uma chave que é renomeada continua sendo lida pelo nome antigo: o tipo de restrição de uma camada é escrito em `restrictionType`, ou na grafia antiga `restictionType`, e uma resposta traz as duas.
+
 ### Onde um projeto foi comprado
 
 O revendedor, o plano do revendedor e a licença do revendedor de um projeto (`resellerId`, `resellerPlanId`, `resellerLicenseId`, e as relações `reseller` e `resellerPlan`) são definidos só pelo OneUptime: quando um projeto é criado com o código promocional de um revendedor, e quando o revendedor muda o plano. Uma criação ou alteração de um projeto que envie um deles é recusada com um `400` que cita o campo, seja quem for que a envie:

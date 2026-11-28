@@ -69,7 +69,9 @@ flowchart TB
 | **Rotation beginnt am** | Datum und Uhrzeit, zu denen die Rotation der Ebene beginnt. |
 | **Rotieren alle** | Wie oft die Bereitschaft an die nächste Person der Ebene übergeht. |
 | **Erste Übergabezeit** | Die erste Übergabe an die nächste Person, zum Beginn oder danach. Spätere Übergaben folgen in jedem Rotationsintervall. |
-| **Einschränkungen** | Die Stunden, in denen die Ebene Bereitschaft hat: **Keine Einschränkungen**, **Bestimmte Tageszeiten** oder **Bestimmte Zeiten der Woche**, in der Zeitzone des Plans. Außerhalb davon übernehmen die unteren Ebenen. |
+| **Einschränkungen** | Die Stunden, in denen die Ebene Bereitschaft hat (**Aktive Stunden**): **Keine Einschränkungen**, **Bestimmte Tageszeiten** oder **Bestimmte Zeiten der Woche**, in der Zeitzone des Plans. Außerhalb davon übernehmen die unteren Ebenen. |
+
+Mit aktiven Stunden ist jedes Zeitfenster eine eigene Schicht. Von 17:00 bis 07:00 ist eine Schicht, die um 07:00 am nächsten Morgen endet: in der **Zeitachse der Bereitschaftspläne**, in den E-Mails, in der mobilen App und in Slack und Microsoft Teams gleichermaßen, in der Zeitzone des Plans und auch in den Nächten der Zeitumstellung. Der Dienst einer Person umfasst alle ihre Zeitfenster bis zur nächsten Übergabe, und sie erfährt es je einmal: "You are now on-call", wenn das erste Zeitfenster ihres Dienstes beginnt, mit dem Ende dieses Fensters und dem Ende ihres Dienstes, und "You are no longer on-call", wenn sein letztes Zeitfenster endet, nicht bei jedem Zeitfenster. Um vor jedem Zeitfenster erinnert zu werden, wählen Sie eine Zeit unter **Vor Schichten erinnern**, wie [Kalender-Feeds](/docs/on-call/calendar-feeds#erinnerungen-und-neuzuweisungs-hinweise) beschreibt. Hat zwischen zwei ihrer Zeitfenster jemand anderes Bereitschaft, durch eine Überschreibung oder eine untere Ebene, oder gibt eine Änderung der Ebenen das nächste Zeitfenster jemand anderem, ist das eine Übergabe und wird als solche gemeldet. Ihre Bereitschaftszeit wird weiterhin Zeitfenster für Zeitfenster erfasst, und die Kanäle und der Feed der Bereitschaftsrichtlinie nennen weiterhin jedes Mal, wer Bereitschaft hat.
 
 Um zu ändern, welche Ebene zuerst kommt, verwenden Sie die Pfeile auf der Karte einer Ebene: **Ebene nach oben verschieben (höhere Priorität)** oder **Ebene nach unten verschieben (niedrigere Priorität)**.
 
@@ -111,7 +113,10 @@ Bereitschaftspläne sind die Ressource `/api/on-call-duty-policy-schedule`; ihre
 
 - Wird ein Plan mit `firstLayerUsers` (einer Liste von Benutzer-IDs in der Reihenfolge, in der sie sich abwechseln) in seinen `miscDataProps` angelegt, erhält er seine erste Ebene wie im Dashboard: **Layer 1**, ab sofort in Bereitschaft, rund um die Uhr. `firstLayerRotation` gibt an, wie lange jede Schicht dauert, als Rotation wie `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; ohne sie eine Woche. Jeder Benutzer muss Mitglied des Projekts sein und der Aufrufer muss Ebenen anlegen dürfen, sonst wird der Plan nicht angelegt.
 - Ein Plan, der ohne sie angelegt wird, hat wie bisher keine Ebenen; die Plan-Ressource von Terraform sendet sie nicht.
-- Eine Ebene, die ohne `rotation` angelegt wird, übergibt wie bisher täglich.
+- Eine Ebene, die ohne `rotation` angelegt wird, übergibt jede Woche, und eine ohne `restrictionTimes` hat rund um die Uhr Bereitschaft, so wie eine neue Ebene im Dashboard beginnt.
+- Die `restrictionTimes` einer Ebene, ihre aktiven Stunden, nennen ihre Art unter `restrictionType`: `None` (rund um die Uhr Bereitschaft), `Daily` oder `Weekly`. `restictionType`, die ältere Schreibweise ohne das zweite "r", wird ebenfalls gelesen, und jede Antwort enthält die Art unter beiden, sodass ein Client oder eine Terraform-Konfiguration mit einer der beiden weiter funktioniert; gespeichert wird die Ebene mit `restrictionType`.
+- Ein Schreiben, das eine Ebene zu keiner Zeit in Bereitschaft ließe, wird mit einem `400` abgelehnt, der den Schlüssel nennt: eine Art, die fehlt, unbekannt ist oder unter den beiden Schreibweisen verschieden ist (eine Aktualisierung nimmt die, die von der aktuellen Art der Ebene abweicht); ein `Daily`-Fenster, dessen `startTime` und `endTime` keine Datums- und Uhrzeitangaben sind (`"09:00"` allein wird abgelehnt); eine `Weekly`-Einschränkung ohne `weeklyRestrictionTimes`; oder ein Fenster, das zur selben Zeit beginnt und endet. Eine `rotation`, deren `intervalType` nicht `Hour`, `Day`, `Week`, `Month` oder `Year` ist, wird ebenso abgelehnt.
+- Eine Ebene, die gespeichert wurde, bevor solche Schreibvorgänge abgelehnt wurden, und keine gelesene Art hatte, hatte nie Bereitschaft. Ein Upgrade von OneUptime liest jede solche Ebene nach den Stunden, die sie enthält, speichert sie so und ermittelt erneut, wer in ihrem Plan Bereitschaft hat, sodass ihre Personen von da an alarmiert und darüber benachrichtigt werden.
 - Eine Änderung an den Ebenen eines Plans und an den Personen darin, die über die API oder Terraform vorgenommen wird, wird als eine Änderung mitgeteilt: Wer Bereitschaft hat, wird ermittelt, sobald die Ebenen eine halbe Minute lang nicht geändert wurden, und wer in die Bereitschaft kommt, sie abgibt oder als Nächstes dran ist, erfährt es einmal, nicht einmal pro geschriebener Ebene oder Person. Alarme gehen an die Person, die die Ebenen in Bereitschaft setzen, sobald jede Änderung gespeichert ist.
 - Um auf einmal zu ändern, wer in den Ebenen eines Plans an der Reihe ist, wie es **Änderungen speichern** auf der Seite **Ebenen** tut, lesen Sie die Ebenen mit `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` und senden sie geändert an `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers` zurück. Sie nennen jede Ebene, die der Plan behält, die mit der höchsten Priorität zuerst, jede mit ihren Personen in der Reihenfolge ihrer Schichten: wer schon in einer Ebene ist, über `layerUserId`, wer hinzukommt, nur über `userId`. `deletedLayerIds` nennt die Ebenen, die gelöscht werden.
 - Eine Speicherung wird ganz oder gar nicht geschrieben, und wer Bereitschaft hat, wird einmal ermittelt, sofort. Eine, die gesendet wird, nachdem jemand anderes die Ebenen geändert hat, wird mit 409 abgelehnt, weil ihre `basedOnVersion` nicht mehr die der Ebenen ist: Lesen Sie die Ebenen erneut und nehmen Sie die Änderung an dem vor, was jetzt da ist. Die Terraform-Ressource `oneuptime_on_call_schedule_layers` speichert die Ebenen eines Plans auf diese Weise.
@@ -129,6 +134,28 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
     }
   }'
 ```
