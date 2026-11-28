@@ -152,10 +152,9 @@ export const ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
 
 /*
  * OneUptime's other agents, which may share this engine: the Host AI agent,
- * the Ceph, Proxmox, VMware, OpenStack, Storage Array and XCP-ng collectors
- * and their AI agents (named by their docker-compose.yml files), and the
- * database agent's collector and AI agent, which Compose names after the
- * install directory
+ * the Ceph, Proxmox, VMware, OpenStack, XCP-ng and Storage Array collectors and
+ * their AI agents (named by their docker-compose.yml files), and the database agent's
+ * collector and AI agent, which Compose names after the install directory
  * (<project>-oneuptime-database-agent-1), hence the globs - as it names the
  * Storage Array agent's Pure exporter sidecars (<project>-pure-fa-exporter-1).
  * OneUptime AI never changes them either.
@@ -185,6 +184,15 @@ export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   "oneuptime-openstack-worker-state-exporter",
   "oneuptime-openstack-ai-agent",
   /*
+   * agents/XcpNgAgent: the collector and the AI agent. A second Xen
+   * Orchestra's collector, or the AI agent of a second pool, is installed
+   * under a container name of its own, which keeps this one in it.
+   */
+  "oneuptime-xcp-ng-agent",
+  "*oneuptime-xcp-ng-agent*",
+  "oneuptime-xcp-ng-ai-agent",
+  "*oneuptime-xcp-ng-ai-agent*",
+  /*
    * agents/StorageArrayAgent: the collector (a second array's agent, in a
    * folder of its own, renames it), and Pure's exporters, one per install
    */
@@ -192,12 +200,6 @@ export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   "*oneuptime-storage-array-agent*",
   "*pure-fa-exporter*",
   "*pure-fb-exporter*",
-  /*
-   * agents/XcpNgAgent: the collector, one per Xen Orchestra (a second Xen
-   * Orchestra's agent, in a folder of its own, renames it)
-   */
-  "oneuptime-xcp-ng-agent",
-  "*oneuptime-xcp-ng-agent*",
   // agents/DatabaseAgent: Compose services, one install per database
   "*oneuptime-database-agent*",
   "*oneuptime-database-ai-agent*",

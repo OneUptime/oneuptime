@@ -60,7 +60,9 @@ Ud fra det, den læser, får hvert datalager en eksponering:
 | **Andre konti** | Konti uden for dem, du har forbundet, kan nå det. |
 | **Kan nås fra internettet** | Dets netværksendpoint accepterer forbindelser fra internettet. |
 | **Privat** | Kun dine egne konti og netværk når det. |
-| **Ukendt** | OneUptime kunne ikke læse nok af dets konfiguration til at afgøre det. |
+| **Ukendt** | OneUptime kontrollerede det, men kunne ikke afgøre det ud fra det, det kunne læse. |
+| **Ikke kontrolleret endnu** | OneUptime har endnu ikke kontrolleret, hvordan det kan nås. |
+| **Kan ikke kontrolleres** | OneUptime har ingen måde at kontrollere, hvordan denne type datalager kan nås. |
 
 Public slår delt, og delt slår nåbar: en offentlig bucket, der også er delt med en anden konto, er Public. Eksponering lægges til et problems [risikoscore](/docs/data-security/checks-and-issues#risikoscore).
 

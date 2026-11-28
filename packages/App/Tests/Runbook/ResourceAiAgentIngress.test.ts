@@ -13,6 +13,8 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
+import DataObservabilityAgentCollect from "Common/Server/Utils/DataObservability/DataObservabilityAgentCollect";
+import { DatabaseAgentWork } from "Common/Utils/DataObservability/DatabaseAgent/DatabaseAgentWork";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
@@ -165,6 +167,8 @@ const AUTHENTICATED_ROUTES: Array<string> = [
   "/job/:jobId/heartbeat",
   "/job/:jobId/result",
   "/disconnect",
+  "/data-observability/work",
+  "/data-observability/result",
 ];
 
 interface WireResponse {
@@ -360,7 +364,7 @@ afterEach(() => {
 });
 
 describe("the routes", () => {
-  test("six POST routes, and nothing else", () => {
+  test("eight POST routes, and nothing else", () => {
     expect(
       mockRoutes
         .map((route: MockRoute) => {
@@ -375,6 +379,8 @@ describe("the routes", () => {
         "POST /job/:jobId/heartbeat",
         "POST /job/:jobId/result",
         "POST /disconnect",
+        "POST /data-observability/work",
+        "POST /data-observability/result",
       ].sort(),
     );
   });
@@ -2033,6 +2039,90 @@ describe("POST /disconnect", () => {
     expect(markDisconnected).toHaveBeenCalledWith({
       resourceAiAgentId: AGENT_ID,
     });
+  });
+});
+
+describe("POST /data-observability/work", () => {
+  test("hands out the due databases of the authenticated agent's own server, as { stores }", async () => {
+    const agent: ResourceAiAgent = makeAgent();
+    authenticate.mockResolvedValue(agent);
+    const work: Array<DatabaseAgentWork> = [
+      {
+        dataStoreId: ObjectID.generate().toString(),
+        engine: "postgresql",
+        databaseName: "orders",
+        maxTables: 5000,
+        maxColumns: 200000,
+        exclusions: [],
+        checks: [],
+        freshnessReads: [],
+        waitWhenBusy: false,
+        readsViewLineage: true,
+      },
+    ];
+    const handOutWork: jest.SpyInstance = jest
+      .spyOn(DataObservabilityAgentCollect, "handOutWork")
+      .mockResolvedValue(work);
+
+    const wire: WireResponse = await call(
+      "/data-observability/work",
+      authenticated(),
+    );
+
+    expect(wire.statusCode).toBe(200);
+    expect(wire.body).toEqual({ stores: work });
+    expect(handOutWork).toHaveBeenCalledWith(agent);
+  });
+
+  test("a failing claim goes to the error handler", async () => {
+    jest
+      .spyOn(DataObservabilityAgentCollect, "handOutWork")
+      .mockRejectedValue(new Error("database is down"));
+
+    const wire: WireResponse = await call(
+      "/data-observability/work",
+      authenticated(),
+    );
+
+    expect(wire.thrownToNext).toBeInstanceOf(Error);
+    expect(wire.statusCode).toBeUndefined();
+  });
+});
+
+describe("POST /data-observability/result", () => {
+  test("hands what the agent read, with the authenticated agent, to the ingest, and answers what it says", async () => {
+    const agent: ResourceAiAgent = makeAgent();
+    authenticate.mockResolvedValue(agent);
+    const dataStoreId: string = ObjectID.generate().toString();
+    const acceptResult: jest.SpyInstance = jest
+      .spyOn(DataObservabilityAgentCollect, "acceptResult")
+      .mockResolvedValue({ accepted: true, tables: 3, schemaChanges: 0 });
+
+    const wire: WireResponse = await call(
+      "/data-observability/result",
+      authenticated({ body: { dataStoreId, error: null } }),
+    );
+
+    expect(wire.statusCode).toBe(200);
+    expect(wire.body).toEqual({ accepted: true, tables: 3, schemaChanges: 0 });
+    expect(acceptResult).toHaveBeenCalledWith(
+      agent,
+      expect.objectContaining({ dataStoreId }),
+    );
+  });
+
+  test("a result about a database the agent was not handed goes to the error handler", async () => {
+    jest
+      .spyOn(DataObservabilityAgentCollect, "acceptResult")
+      .mockRejectedValue(new BadDataException("Data store not found."));
+
+    const wire: WireResponse = await call(
+      "/data-observability/result",
+      authenticated({ body: { dataStoreId: ObjectID.generate().toString() } }),
+    );
+
+    expect(wire.thrownToNext).toBeInstanceOf(BadDataException);
+    expect(wire.statusCode).toBeUndefined();
   });
 });
 

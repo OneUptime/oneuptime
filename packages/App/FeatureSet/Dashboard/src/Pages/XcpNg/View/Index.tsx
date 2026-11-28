@@ -4,6 +4,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import XcpNgResource from "Common/Models/DatabaseModels/XcpNgResource";
 import XcpNgResourceKind from "Common/Types/XcpNg/XcpNgResourceKind";
+import XcpNgCollectionMethod from "Common/Types/XcpNg/XcpNgCollectionMethod";
+import AppLink from "../../../Components/AppLink/AppLink";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -43,6 +45,7 @@ import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/ResourceRecordDetailsCard";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import XcpNgPoolProbeNotice from "../../../Components/XcpNg/XcpNgPoolProbeNotice";
 import { getXcpNgPoolConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import { ResourceConnectionState } from "../../../Components/ResourceConnection/ResourceConnectionState";
 import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
@@ -77,10 +80,15 @@ import GoldenMetricTile, {
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import { XCP_NG_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/XcpNgMetricDescriptions";
 import { XCP_NG_PAGE_DESCRIPTIONS } from "../../../Components/XcpNg/XcpNgPageDescriptions";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import XcpNgBusiestCard, {
   XCP_NG_BUSIEST_SHOWN,
 } from "../../../Components/XcpNg/XcpNgBusiestCard";
 import XcpNgHostsCard from "../../../Components/XcpNg/XcpNgHostsCard";
+import XcpNgBackupsCard from "../../../Components/XcpNg/XcpNgBackupsCard";
+import XcpNgHighAvailabilityCard from "../../../Components/XcpNg/XcpNgHighAvailabilityCard";
 import XcpNgStorageRepositoriesCard from "../../../Components/XcpNg/XcpNgStorageRepositoriesCard";
 import { getXcpNgProblemPill } from "../../../Components/XcpNg/XcpNgProblemPills";
 import {
@@ -113,6 +121,7 @@ import {
   XCP_NG_METRIC_STALE_MS,
   toXcpNgNumber,
 } from "../Utils/XcpNgResourceUtils";
+import { isXcpNgBackupsRead } from "../Utils/XcpNgEventFacts";
 
 /*
  * AN XCP-NG POOL'S OVERVIEW: "what is this pool, and is it all right?"
@@ -205,6 +214,12 @@ const XcpNgPoolOverview: FunctionComponent<
           lastSeenAt: true,
           agentLastSeenAt: true,
           agentVersion: true,
+          // A pool a probe reads names its connection (#10996, #10999).
+          collectionMethod: true,
+          xcpNgConnectionId: true,
+          xcpNgConnection: {
+            name: true,
+          },
           hostCount: true,
           runningHostCount: true,
           disabledHostCount: true,
@@ -213,6 +228,16 @@ const XcpNgPoolOverview: FunctionComponent<
           storageRepositoryCount: true,
           storageCapacityBytes: true,
           storageUsedBytes: true,
+          // What a probe reads beyond the metrics (#10997).
+          isHaEnabled: true,
+          haHostFailuresToTolerate: true,
+          haPlanExistsFor: true,
+          isHaOvercommitted: true,
+          masterHostExternalId: true,
+          eventsReadAt: true,
+          backupsReadAt: true,
+          eventReadStatus: true,
+          backupJobs: true,
         },
       });
     };
@@ -347,6 +372,9 @@ const XcpNgPoolOverview: FunctionComponent<
         rows: inventory,
         routeFor: routes.getPartRoute,
         now: now,
+        // HA, backup jobs and what a probe could not read: the pool's own.
+        pool: pool,
+        translator: translator,
       })
     : [];
   const poolHealth: ResourceHealth = getXcpNgPoolHealth(attentionItems);
@@ -496,23 +524,49 @@ const XcpNgPoolOverview: FunctionComponent<
         setupGuideRoute={routes.documentationRoute}
       />
     );
-    const provenance: ReactElement | null =
-      xenOrchestraName && hasAgentVersion ? (
-        <TranslatedSentence
-          template="Read from Xen Orchestra {{xenOrchestra}} by the XCP-ng Agent {{version}}"
-          slots={{ xenOrchestra: xenOrchestraSlot, version: agentSlot }}
-        />
-      ) : xenOrchestraName ? (
-        <TranslatedSentence
-          template="Read from Xen Orchestra {{xenOrchestra}}"
-          slots={{ xenOrchestra: xenOrchestraSlot }}
-        />
-      ) : hasAgentVersion ? (
-        <TranslatedSentence
-          template="Read by the XCP-ng Agent {{version}}"
-          slots={{ version: agentSlot }}
-        />
-      ) : null;
+    const readByConnection: boolean =
+      pool.collectionMethod === XcpNgCollectionMethod.Probe &&
+      Boolean(pool.xcpNgConnectionId);
+    const connectionSlot: ReactElement = (
+      <AppLink
+        to={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.XCP_NG_CONNECTION_VIEW] as Route,
+          {
+            modelId: new ObjectID(
+              pool.xcpNgConnectionId ? pool.xcpNgConnectionId.toString() : "",
+            ),
+          },
+        )}
+        className="font-medium text-gray-700 hover:underline"
+      >
+        <bdi>
+          {pool.xcpNgConnection?.name ||
+            xenOrchestraName ||
+            tx("its connection")}
+        </bdi>
+      </AppLink>
+    );
+    const provenance: ReactElement | null = readByConnection ? (
+      <TranslatedSentence
+        template="Read by a probe through {{connection}}"
+        slots={{ connection: connectionSlot }}
+      />
+    ) : xenOrchestraName && hasAgentVersion ? (
+      <TranslatedSentence
+        template="Read from Xen Orchestra {{xenOrchestra}} by the XCP-ng Agent {{version}}"
+        slots={{ xenOrchestra: xenOrchestraSlot, version: agentSlot }}
+      />
+    ) : xenOrchestraName ? (
+      <TranslatedSentence
+        template="Read from Xen Orchestra {{xenOrchestra}}"
+        slots={{ xenOrchestra: xenOrchestraSlot }}
+      />
+    ) : hasAgentVersion ? (
+      <TranslatedSentence
+        template="Read by the XCP-ng Agent {{version}}"
+        slots={{ version: agentSlot }}
+      />
+    ) : null;
 
     /*
      * The count chips open their list: the Overview's one step to the
@@ -991,6 +1045,22 @@ const XcpNgPoolOverview: FunctionComponent<
     );
   };
 
+  const isBackupsRead: boolean = isXcpNgBackupsRead(pool);
+
+  const renderBackups: () => ReactElement = (): ReactElement => {
+    return (
+      <XcpNgBackupsCard
+        pool={pool}
+        rows={inventory}
+        vmsRoute={routes.vmsRoute}
+        // Where a Xen Orchestra is connected from a probe (#10996).
+        setupRoute={RouteMap[PageMap.XCP_NG_CONNECTIONS] as Route}
+        routeFor={routes.getPartRoute}
+        now={now}
+      />
+    );
+  };
+
   /*
    * A pool Xen Orchestra reports with nothing in it yet - in the minute
    * after it was added - says what comes, rather than a page of zeros. A
@@ -1007,17 +1077,24 @@ const XcpNgPoolOverview: FunctionComponent<
     <div data-testid="xcp-ng-overview">
       {renderHero()}
 
-      {/* How to connect it, while it is not connected. */}
-      <ResourceConnectionGuideCard
-        status={pool.otelCollectorStatus as string | undefined}
-        lastSeenAt={pool.lastSeenAt}
-        agentLastSeenAt={pool.agentLastSeenAt}
-        guide={getXcpNgPoolConnectionGuide(
-          pool.poolIdentifier || "",
-          getConfiguredOneUptimeUrl(),
-        )}
-        documentationRoute={routes.documentationRoute}
-      />
+      {/*
+       * How to connect it, while it is not connected: the agent's guide, or
+       * - for a pool a probe reads - its connection, whose page says why.
+       */}
+      {pool.collectionMethod === XcpNgCollectionMethod.Probe ? (
+        <XcpNgPoolProbeNotice pool={pool} isConnected={isConnected} />
+      ) : (
+        <ResourceConnectionGuideCard
+          status={pool.otelCollectorStatus as string | undefined}
+          lastSeenAt={pool.lastSeenAt}
+          agentLastSeenAt={pool.agentLastSeenAt}
+          guide={getXcpNgPoolConnectionGuide(
+            pool.poolIdentifier || "",
+            getConfiguredOneUptimeUrl(),
+          )}
+          documentationRoute={routes.documentationRoute}
+        />
+      )}
 
       {/*
        * What needs someone, most urgent first - while the pool is read: a
@@ -1072,6 +1149,20 @@ const XcpNgPoolOverview: FunctionComponent<
       {hasInventory ? (
         <>
           {renderTiles()}
+          {/*
+           * HA and backups a probe reads from Xen Orchestra (#10997), under
+           * the tiles: is the pool safe from a host failure, and was it
+           * backed up last night? A pool no probe reads backups for says
+           * how to see them at the foot of the page instead.
+           */}
+          <XcpNgHighAvailabilityCard
+            pool={pool}
+            rows={inventory}
+            getHostRoute={(externalId: string): Route => {
+              return routes.getPartRoute("Host", externalId);
+            }}
+          />
+          {isBackupsRead ? renderBackups() : <></>}
           {renderBusiest()}
           <XcpNgHostsCard
             rows={inventory}
@@ -1080,6 +1171,7 @@ const XcpNgPoolOverview: FunctionComponent<
             }}
             hostsRoute={routes.hostsRoute}
             now={now}
+            masterHostExternalId={pool.masterHostExternalId || undefined}
           />
           <XcpNgStorageRepositoriesCard
             rows={inventory}
@@ -1088,6 +1180,7 @@ const XcpNgPoolOverview: FunctionComponent<
             }}
             storageRoute={routes.storageRoute}
           />
+          {isBackupsRead ? <></> : renderBackups()}
         </>
       ) : (
         <></>
@@ -1158,6 +1251,16 @@ const XcpNgPoolOverview: FunctionComponent<
             },
           },
         ]}
+      />
+
+      {/*
+       * Last on the page: the XCP-ng AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.XcpNgPool)}
+        resourceId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
       />
     </div>
   );

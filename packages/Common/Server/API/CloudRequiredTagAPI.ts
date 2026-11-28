@@ -66,7 +66,7 @@ export default class CloudRequiredTagAPI extends BaseAPI<
 
     if (!props.tenantId) {
       throw new BadDataException(
-        "Project ID is required. Please pass the project ID in the 'tenantid' header.",
+        "This request names no project. Send the project's ID in the tenantid header.",
       );
     }
 

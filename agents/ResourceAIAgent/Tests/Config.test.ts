@@ -909,7 +909,7 @@ describe("a cloud account's identity and settings", () => {
   test("the resource type list names the clouds", () => {
     assert.match(
       parseConfig({}).problems[2]!,
-      /docker, podman, docker-swarm, proxmox, vmware, ceph, database, host, aws, azure, gcp, openstack\.$/,
+      /docker, podman, docker-swarm, proxmox, vmware, ceph, database, host, aws, azure, gcp, openstack, xcp-ng\.$/,
     );
   });
 });

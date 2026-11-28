@@ -1,6 +1,8 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
-import MonitorProbeService from "../../../../Server/Services/MonitorProbeService";
+import MonitorProbeService, {
+  ClaimedMonitorProbe,
+} from "../../../../Server/Services/MonitorProbeService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import logger from "../../../../Server/Utils/Logger";
 import MonitorProbeLastResults from "../../../../Server/Utils/Monitor/MonitorProbeLastResults";
@@ -411,40 +413,56 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
      * Every one moves nextPingAt.
      */
     test("the claim is not, and cannot be: it moves nextPingAt, which the claim's own index orders by", async () => {
-      // A schedule no claim of this process has handed a monitor out on.
-      const { id } = await insertMonitorProbe("*/13 * * * *");
-      let claimed: Array<ObjectID> = [];
-
-      const claim: () => Promise<void> = async (): Promise<void> => {
-        claimed = await MonitorProbeService.claimMonitorProbesForProbing({
-          probeId: PROBE_ID,
-          limit: 10,
-        });
-      };
-
-      expect(await writesOf("MonitorProbe", claim)).toEqual({
-        updates: 2,
-        hot: 0,
+      /*
+       * A claim this process made before, so the monitor's schedule is one
+       * it knows, as a server's is from its first claim of it on: the
+       * claim's statement alone writes the row's next run. The first claim
+       * of a schedule new to the process writes it again right after
+       * (MonitorProbeSchedules), a second update of its own.
+       */
+      await insertMonitorProbe();
+      await MonitorProbeService.claimMonitorProbesForProbing({
+        probeId: PROBE_ID,
+        limit: 10,
       });
+
+      const { id } = await insertMonitorProbe();
+      let claimed: Array<ClaimedMonitorProbe> = [];
+
       expect(
-        claimed.map((claimedId: ObjectID): string => {
-          return claimedId.toString();
+        await writesOf("MonitorProbe", async () => {
+          claimed = await MonitorProbeService.claimMonitorProbesForProbing({
+            probeId: PROBE_ID,
+            limit: 10,
+          });
+        }),
+      ).toEqual({ updates: 1, hot: 0 });
+      expect(
+        claimed.map((claimedMonitorProbe: ClaimedMonitorProbe): string => {
+          return claimedMonitorProbe.monitorProbeId.toString();
         }),
       ).toEqual([id.toString()]);
+    });
 
-      // Due again: the process knows its schedule now.
-      await database.query(
-        `UPDATE "${schema}"."MonitorProbe" SET "nextPingAt" = $1 WHERE "_id" = $2`,
-        [minutesFromNow(-1), id.toString()],
-      );
+    test("nor is the real next run a schedule new to the process is given right after the claim: a second update, which moves nextPingAt too", async () => {
+      /*
+       * A schedule no claim of this process has handed a monitor out on,
+       * whose next run is not the minute the claim's statement writes.
+       */
+      const { id } = await insertMonitorProbe("*/13 * * * *");
+      let claimed: Array<ClaimedMonitorProbe> = [];
 
-      expect(await writesOf("MonitorProbe", claim)).toEqual({
-        updates: 1,
-        hot: 0,
-      });
       expect(
-        claimed.map((claimedId: ObjectID): string => {
-          return claimedId.toString();
+        await writesOf("MonitorProbe", async () => {
+          claimed = await MonitorProbeService.claimMonitorProbesForProbing({
+            probeId: PROBE_ID,
+            limit: 10,
+          });
+        }),
+      ).toEqual({ updates: 2, hot: 0 });
+      expect(
+        claimed.map((claimedMonitorProbe: ClaimedMonitorProbe): string => {
+          return claimedMonitorProbe.monitorProbeId.toString();
         }),
       ).toEqual([id.toString()]);
     });

@@ -285,6 +285,7 @@ const RESOURCE_SERVICE_FILES: Record<AiResourceType, string> = {
   [AiResourceType.AzureSubscription]: "Server/Services/CloudAccountService.ts",
   [AiResourceType.GoogleCloudProject]: "Server/Services/CloudAccountService.ts",
   [AiResourceType.OpenStackCloud]: "Server/Services/OpenStackCloudService.ts",
+  [AiResourceType.XcpNgPool]: "Server/Services/XcpNgPoolService.ts",
 };
 
 describe("every service whose rows have Fixes hands them over", () => {

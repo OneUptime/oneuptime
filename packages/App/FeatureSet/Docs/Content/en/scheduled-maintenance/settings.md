@@ -23,7 +23,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The **
 
 The **Settings** section holds **Maintenance State**, covered on [Maintenance States](/docs/scheduled-maintenance/states), **Maintenance Templates**, covered on [Templates & Recurring Events](/docs/scheduled-maintenance/templates), then **Note Templates**, **Public Note Approval**, **Custom Fields**, **Measurements**, **Calendar Settings** and **Numbering**. **Calendar Settings** is covered on [Maintenance Calendar](/docs/scheduled-maintenance/calendar#external-calendars), the rest below.
 
-The **Workspace** section holds the Slack and Microsoft Teams rules that post events to channels. See [Slack](/docs/workspace-connections/slack#notification-rules) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notification-rules).
+The **Workspace** section holds the Slack and Microsoft Teams rules that post events to channels: each event as it is created, then its state changes, notes, owners added and taken off, and reminders, as each rule's **Updates** step chooses. See [Slack](/docs/workspace-connections/slack#notification-rules) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notification-rules).
 
 ## The rules a new event passes through
 

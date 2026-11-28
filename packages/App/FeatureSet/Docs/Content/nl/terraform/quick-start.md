@@ -158,7 +158,7 @@ output "monitor_id" {
 }
 ```
 
-De `monitor_steps` van de monitor zeggen wat hij controleert en wat elk resultaat betekent: na elke controle bepaalt het eerste criterium dat overeenkomt zijn status. [Monitorstappen](/docs/terraform/monitor-steps) legt elk onderdeel uit.
+De `monitor_steps` van de monitor zeggen wat hij controleert en wat elk resultaat betekent: na elke controle zet het eerste criterium dat overeenkomt en de status wijzigt, zijn status. [Monitorstappen](/docs/terraform/monitor-steps) legt elk onderdeel uit.
 
 ### Plannen en toepassen
 

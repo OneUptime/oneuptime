@@ -1,0 +1,70 @@
+[
+  {
+    "id": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",
+    "uuid": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",
+    "type": "VM",
+    "name_label": "web-01",
+    "power_state": "Running",
+    "$pool": "b7569d99-30f8-178a-7d94-801de3e29b5b"
+  },
+  {
+    "id": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+    "uuid": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+    "type": "VM",
+    "name_label": "db-01",
+    "power_state": "Running",
+    "$pool": "b7569d99-30f8-178a-7d94-801de3e29b5b"
+  },
+  {
+    "id": "7b8c9d0e-1f2a-4b3c-9d4e-5f6a7b8c9d0e",
+    "uuid": "7b8c9d0e-1f2a-4b3c-9d4e-5f6a7b8c9d0e",
+    "type": "VM",
+    "name_label": "app-02",
+    "power_state": "Halted",
+    "$pool": "b7569d99-30f8-178a-7d94-801de3e29b5b"
+  },
+  {
+    "id": "9d0e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a",
+    "uuid": "9d0e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a",
+    "type": "VM",
+    "name_label": "win-03",
+    "power_state": "Suspended",
+    "$pool": "b7569d99-30f8-178a-7d94-801de3e29b5b"
+  },
+  {
+    "id": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",
+    "uuid": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",
+    "type": "VM",
+    "name_label": "lab-vm-01",
+    "power_state": "Running",
+    "$pool": "2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1"
+  },
+  {
+    "id": "ad4b8c63-1f2e-4d3c-8b4a-596877665544",
+    "uuid": "ad4b8c63-1f2e-4d3c-8b4a-596877665544",
+    "type": "SR",
+    "name_label": "Local storage",
+    "$pool": "b7569d99-30f8-178a-7d94-801de3e29b5b"
+  },
+  {
+    "id": "1d2c3b4a-5e6f-4789-9abc-def012345678",
+    "uuid": "1d2c3b4a-5e6f-4789-9abc-def012345678",
+    "type": "SR",
+    "name_label": "NFS VM store",
+    "$pool": "b7569d99-30f8-178a-7d94-801de3e29b5b"
+  },
+  {
+    "id": "c0ffee00-1111-4222-8333-444455556666",
+    "uuid": "c0ffee00-1111-4222-8333-444455556666",
+    "type": "SR",
+    "name_label": "XCP-ng Tools",
+    "$pool": "b7569d99-30f8-178a-7d94-801de3e29b5b"
+  },
+  {
+    "id": "77aa88bb-99cc-4ddd-8eee-ff0011223344",
+    "uuid": "77aa88bb-99cc-4ddd-8eee-ff0011223344",
+    "type": "SR",
+    "name_label": "Local storage",
+    "$pool": "2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1"
+  }
+]

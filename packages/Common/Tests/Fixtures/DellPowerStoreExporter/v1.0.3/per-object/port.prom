@@ -1,0 +1,450 @@
+# HELP powerstore_eth_port_current_speed Supported Ethernet front-end port transmission speeds,units is Gps
+# TYPE powerstore_eth_port_current_speed gauge
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 25
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 25
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 1
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 25
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 25
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 1
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 25
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 25
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 1
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 25
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 25
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_eth_port_current_speed{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 1
+# HELP powerstore_eth_port_is_link_up Indicates whether the port's link is up:true is 1,false is 0
+# TYPE powerstore_eth_port_is_link_up gauge
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 1
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_eth_port_is_link_up{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 1
+# HELP powerstore_fc_port_current_speed Supported Ethernet front-end port transmission speeds,units is Gps
+# TYPE powerstore_fc_port_current_speed gauge
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 32
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 32
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 32
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 32
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 32
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 32
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 32
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_fc_port_current_speed{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_fc_port_is_link_up Indicates whether the port's link is up:true is 1,false is 0
+# TYPE powerstore_fc_port_is_link_up gauge
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 1
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 1
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 1
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 1
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 1
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 1
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 1
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_fc_port_is_link_up{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricEthPort_avg_bytes_rx_ps receive bytes in a second
+# TYPE powerstore_metricEthPort_avg_bytes_rx_ps gauge
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 1.2e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 1.215e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 1.26e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 1.275e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 1.29e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 1.335e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 1.35e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 1.365e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 1.41e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 1.425e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 1.44e+08
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_bytes_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 1.485e+08
+# HELP powerstore_metricEthPort_avg_bytes_tx_ps send bytes in a second
+# TYPE powerstore_metricEthPort_avg_bytes_tx_ps gauge
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 9.5e+07
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 9.61e+07
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 9.94e+07
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 1.005e+08
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 1.016e+08
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 1.049e+08
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 1.06e+08
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 1.071e+08
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 1.104e+08
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 1.115e+08
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 1.126e+08
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_bytes_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 1.159e+08
+# HELP powerstore_metricEthPort_avg_pkt_rx_crc_error_ps packet receive crc error in a second
+# TYPE powerstore_metricEthPort_avg_pkt_rx_crc_error_ps gauge
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_crc_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 0
+# HELP powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps packet receive no buffer error in a second
+# TYPE powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps gauge
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 0
+# HELP powerstore_metricEthPort_avg_pkt_rx_ps packet receive in a second
+# TYPE powerstore_metricEthPort_avg_pkt_rx_ps gauge
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 14000
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 14100
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 14400
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 14500
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 14600
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 14900
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 15000
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 15100
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 15400
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 15500
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 15600
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_rx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 15900
+# HELP powerstore_metricEthPort_avg_pkt_tx_error_ps packet send error in a second
+# TYPE powerstore_metricEthPort_avg_pkt_tx_error_ps gauge
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_tx_error_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 0
+# HELP powerstore_metricEthPort_avg_pkt_tx_ps packet get in a second
+# TYPE powerstore_metricEthPort_avg_pkt_tx_ps gauge
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 11800
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 11890
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 12160
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 12250
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 12340
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A1",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 12610
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort0"} 12700
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort1"} 12790
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeA-EmbeddedModule-ServicePort"} 13060
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort0"} 13150
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort1"} 13240
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort2"} 0
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-4PortCard-FEPort3"} 0
+powerstore_metricEthPort_avg_pkt_tx_ps{IP="fake-powerstore",appliance_id="A2",eth_port_id="BaseEnclosure-NodeB-EmbeddedModule-ServicePort"} 13510
+# HELP powerstore_metricFcPort_avg_dumped_frames_ps count of dumped frames in a second
+# TYPE powerstore_metricFcPort_avg_dumped_frames_ps gauge
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_dumped_frames_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_invalid_crc_count_ps count of invalid useless in a second
+# TYPE powerstore_metricFcPort_avg_invalid_crc_count_ps gauge
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0.4
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_invalid_crc_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_invalid_tx_word_count_ps count of invalid send word in a second
+# TYPE powerstore_metricFcPort_avg_invalid_tx_word_count_ps gauge
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0.2
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_invalid_tx_word_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_latency Average read and write latency in microseconds,unit is ms
+# TYPE powerstore_metricFcPort_avg_latency gauge
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 210
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 218
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 242
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 250
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 274
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 282
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 306
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_link_failure_count_ps count of link failure in a second
+# TYPE powerstore_metricFcPort_avg_link_failure_count_ps gauge
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_link_failure_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_loss_of_signal_count_ps count of loss of signal in a second
+# TYPE powerstore_metricFcPort_avg_loss_of_signal_count_ps gauge
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_loss_of_signal_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_loss_of_sync_count_ps count of loss of sync in a second
+# TYPE powerstore_metricFcPort_avg_loss_of_sync_count_ps gauge
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_loss_of_sync_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps count of prim seq prot err in a second
+# TYPE powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps gauge
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_read_latency Average read latency in microseconds,unit is ms
+# TYPE powerstore_metricFcPort_avg_read_latency gauge
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 180
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 187
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 208
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 215
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 236
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 243
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 264
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_read_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_total_bandwidth Total data transfer rate in bytes per second,unit is bps
+# TYPE powerstore_metricFcPort_avg_total_bandwidth gauge
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 1.376256e+08
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 1.4778368e+08
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 1.7825792e+08
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 1.88416e+08
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 2.1889024e+08
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 2.2904832e+08
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 2.5952256e+08
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_total_iops Total read and write operations per second,unit is iops
+# TYPE powerstore_metricFcPort_avg_total_iops gauge
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 4200
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 4510
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 5440
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 5750
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 6680
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 6990
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 7920
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_total_iops{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+# HELP powerstore_metricFcPort_avg_write_latency Average write latency in microseconds,unit is ms
+# TYPE powerstore_metricFcPort_avg_write_latency gauge
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 240
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 249
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 276
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 285
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A1",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort0"} 312
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort1"} 321
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeA-IoModule0-FEPort3"} 0
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort0"} 348
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort1"} 0
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort2"} 0
+powerstore_metricFcPort_avg_write_latency{IP="fake-powerstore",appliance_id="A2",fc_port_id="BaseEnclosure-NodeB-IoModule0-FEPort3"} 0

@@ -2364,9 +2364,11 @@ describe("MCP Server", () => {
      * (Cloud Cost View, Cloud Cost Group, Cloud Cost Line Item, #11006), so
      * finance and agents sort the spend as the Cost Groups pages do; and
      * the tags Cloud requires (Required Tag, #11012), set the way Cloud
-     * Budget is.
+     * Budget is; and Cloud's scheduled cost reports (Cloud Cost Report,
+     * #11229), so an agent sets up who gets what the clouds cost, weekly or
+     * monthly, as the Cost Reports page does.
      */
-    expect(records()).toHaveLength(59);
+    expect(records()).toHaveLength(60);
     expect(namesIn(0)).toEqual(records());
     /*
      * Every database model with MCP on gets these tools, the update tool

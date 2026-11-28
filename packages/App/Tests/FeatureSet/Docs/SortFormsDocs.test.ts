@@ -62,10 +62,12 @@ const MCP_SERVER: string = "ai/mcp-server";
 /*
  * The paragraph each page added, by its line: the same line in every
  * language. The MCP server page's moved 19 lines down when the Data
- * Security tools' section came above it (#10378), in every language alike.
+ * Security tools' section came above it (#10378), and 4 more when that
+ * section said what the record tools refuse (#11177), in every language
+ * alike.
  */
 const API_REFERENCE_SORT_LINE: number = 98;
-const MCP_SERVER_SORT_LINE: number = 401;
+const MCP_SERVER_SORT_LINE: number = 405;
 
 // The sorts and values the paragraphs quote, as inline code.
 const BY_DECLARED_NULLS_LAST: string =

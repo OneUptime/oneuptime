@@ -103,14 +103,14 @@ import ts from "typescript";
  *     its code (#10367) runs TelemetryLeakFixProposals.proposeForProject,
  *     which reads Enable AI and Work on new issues first and asks nothing,
  *     and writes nothing, with either off (TelemetryLeakFixProposals.test);
- *   - a person's own pull request, linked on an issue (#10831,
+ *   - a person's own pull request, linked to an issue (#10831,
  *     DataSecurityIssuePullRequestService), is followed to production as
- *     OneUptime AI's fixes are (DataSecurityLinkedFixes): its issue's store
- *     picks the check (DataSecurityFixTarget.checkOfStore, readLink), a
- *     leak's baseline is read (TelemetryLeakFixWatch.readBaseline), and the
- *     fix verifier's checks write their verdict (FixProductionVerifier,
- *     FixProductionVerdict) - reads and fixed words that ask no model, so a
- *     person's fix is followed with AI off too.
+ *     OneUptime AI's are (DataSecurityLinkedFixes): the check its issue's
+ *     store calls for (DataSecurityFixTarget.checkOfStore, readLink), the
+ *     leak's baseline (TelemetryLeakFixWatch.readBaseline), its deploy and
+ *     its verdict (FixProductionVerifier, FixProductionVerdict) - reads of
+ *     the store, telemetry and the pull request that ask no model, so a
+ *     person's own fix is followed with Enable AI off too.
  *
  * Everything else a person can start with AI is asked for on purpose, in
  * Data Security's API: the analysis of an issue (Explain with AI) and the
@@ -118,12 +118,11 @@ import ts from "typescript";
  * AIService.executeWithLogging refuses a project with AI off before a model
  * is asked (below); Fix with AI through the Code task's gate, whose answer
  * with AI off is what to fix, with nothing started
- * (DataSecurityCodeTask.test) - the route's work, which Ask AI's action
- * that stands in for the button calls too (#10378), is DataSecurityButtons
- * .fixIssueWithAi: DataSecurityCodeTask.requestFix asks CodeTaskGate
- * .getBlocker before it builds the task's request
- * (buildDataSecurityFixRequest), and its reads of the issue and its places
- * (DataSecurityAiReads) ask no model; a group's pull request, through the same
+ * (DataSecurityCodeTask.test) - its button's work lives in
+ * DataSecurityButtons (#10378), which the API's route and Ask AI's action
+ * both call: DataSecurityCodeTask.requestFix asks CodeTaskGate.getBlocker
+ * before it builds the task's request, and DataSecurityAiReads only reads
+ * the issue and its places for it; a group's pull request, through the same
  * gate (DataSecurityIssueGroupFix: DataSecurityCodeTask.requestGroupFix
  * asks CodeTaskGate.getBlocker before it builds the task's request,
  * DataSecurityIssueGroupPrompt, and the plan shows the gate's refusal -
@@ -177,6 +176,32 @@ interface AiReach {
 
 // The only places Data Security's code reaches OneUptime AI, and what each uses.
 const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
+  /*
+   * Fix with AI's button (#10362, #10378), as a person presses it on the
+   * issue's page or asks Ask AI for it: through the Code task's gate -
+   * DataSecurityCodeTask.requestFix asks CodeTaskGate.getBlocker before it
+   * builds the task's request, so with Enable AI off it answers what to
+   * fix and starts nothing; DataSecurityAiReads reads the issue and its
+   * places for the request, and asks no model.
+   */
+  "Common/Server/Utils/DataSecurity/DataSecurityButtons.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput",
+      uses: ["DataSecurityAiCodeRequest"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiReads",
+      uses: ["DataSecurityAiReads.readIssue", "DataSecurityAiReads.readPlaces"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask",
+      uses: ["DataSecurityFixCode", "DataSecurityCodeTask.requestFix"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt",
+      uses: ["buildDataSecurityFixRequest"],
+    },
+  ],
   "Common/Server/Utils/DataSecurity/DataSecurityFindingWriter.ts": [
     {
       module: "Common/Server/Services/AIService",
@@ -247,16 +272,9 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
       uses: ["AiEvidenceRequirement", "AiIssueRecord", "AiStoreRecord"],
     },
   ],
-  "Common/Server/Services/DataSecurityIssueService.ts": [
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
-      uses: ["DataSecurityAiProposals.onIssuesClosed"],
-    },
-  ],
   /*
-   * A person's own pull request, linked on an issue (#10831): the
-   * production check is picked from the issue's store, a read of its kind
-   * that asks no model.
+   * A person's own pull request, linked to an issue (#10831): the check its
+   * issue's store calls for, read from the store's kind - asks no model.
    */
   "Common/Server/Services/DataSecurityIssuePullRequestService.ts": [
     {
@@ -264,10 +282,29 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
       uses: ["DataSecurityFixTarget.checkOfStore"],
     },
   ],
+  "Common/Server/Services/DataSecurityIssueService.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
   /*
-   * ...and followed to production as OneUptime AI's fixes are (#10831):
-   * its issue and check, a leak's baseline, and the fix verifier's checks
-   * and verdict - reads and fixed words that ask no model.
+   * A person's own pull request followed to production (#10831), as
+   * OneUptime AI's are: its issue and check (DataSecurityFixTarget), the
+   * leak's baseline, its deploy, its verdict - reads of the store,
+   * telemetry and the code host that ask no model.
    */
   "Common/Server/Utils/DataSecurity/DataSecurityLinkedFixes.ts": [
     {
@@ -290,18 +327,6 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/CodeFix/TelemetryLeakFixWatch",
       uses: ["TelemetryLeakFixWatch.readBaseline"],
-    },
-  ],
-  "Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": [
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
-      uses: ["DataSecurityAiProposals.onIssuesClosed"],
-    },
-  ],
-  "Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": [
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
-      uses: ["DataSecurityAiProposals.onIssuesClosed"],
     },
   ],
   "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper.ts": [
@@ -430,31 +455,6 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
       uses: ["CloudAiTargets.getManagedAsCode"],
-    },
-  ],
-  /*
-   * Fix with AI on an issue, the route's work that Ask AI's action calls
-   * too (#10378): asked for through the Code task's gate
-   * (DataSecurityCodeTask.requestFix asks CodeTaskGate.getBlocker before it
-   * builds the task's request); the issue and its places are read for it,
-   * and ask no model.
-   */
-  "Common/Server/Utils/DataSecurity/DataSecurityButtons.ts": [
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput",
-      uses: ["DataSecurityAiCodeRequest"],
-    },
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiReads",
-      uses: ["DataSecurityAiReads.readIssue", "DataSecurityAiReads.readPlaces"],
-    },
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask",
-      uses: ["DataSecurityFixCode", "DataSecurityCodeTask.requestFix"],
-    },
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityIssuePrompt",
-      uses: ["buildDataSecurityFixRequest"],
     },
   ],
   /*

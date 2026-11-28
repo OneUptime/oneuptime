@@ -117,7 +117,7 @@ Completate la verifica come vi indica l'email.
 Se nel frattempo è arrivata un'altra email, la scheda non mostra più l'email di verifica. Aprite **Log di monitoraggio**, trovate l'email di verifica dal suo oggetto nella colonna **E-mail** e fate clic su **Visualizza riepilogo** su quella riga.
 
 > [!IMPORTANT]
-> **Anche i vostri criteri la vedono.** L'email di verifica viene valutata come qualsiasi altra email. Una formulazione come "if you received this in error" corrisponde al criterio predefinito `error` e segna il monitor offline. Per evitarlo, disattivate **Controlla questo monitor** nella scheda **Monitoraggio** della pagina **Impostazioni** del monitor mentre verificate (vi chiede conferma). Un monitor con il monitoraggio disattivato registra comunque l'email, e la scheda **Riepilogo del monitor** continua a mostrarla. Però non valuta nulla, quindi l'email non ha una riga in **Log di monitoraggio**: leggetela prima che arrivi un'altra email. Quando avete finito, premete **Attiva il monitoraggio** nel banner in cima alle pagine del monitor, oppure riattivate l'interruttore.
+> **Anche i vostri criteri la vedono.** L'email di verifica viene valutata come qualsiasi altra email. Una formulazione come "if you received this in error" corrisponde al criterio predefinito `error` e segna il monitor offline. Per evitarlo, disattivate **Controlla questo monitor** nella scheda **Monitoraggio** della pagina **Impostazioni** del monitor mentre verificate (vi chiede conferma). Un monitor con il monitoraggio disattivato registra comunque l'email, e la scheda **Riepilogo del monitor** continua a mostrarla. Però non valuta nulla: la riga dell'email in **Log di monitoraggio** dice che non è stata valutata, e **Visualizza riepilogo** su di essa mostra l'email intera. Quando avete finito, premete **Attiva il monitoraggio** nel banner in cima alle pagine del monitor, oppure riattivate l'interruttore.
 
 **La verifica appartiene all'indirizzo.** Se [reimpostate o personalizzate l'indirizzo](#reimpostare-o-personalizzare-lindirizzo-email), il servizio vede un nuovo destinatario, e dovete verificare di nuovo.
 
@@ -186,6 +186,8 @@ L'indirizzo del monitor stesso viene mascherato prima che un criterio legga l'em
 Tutti questi confronti non distinguono maiuscole e minuscole. Un filtro con un valore vuoto non corrisponde mai.
 
 ### Filtri temporali (Email ricevuta)
+
+La dashboard in inglese scrive queste condizioni "Recieved".
 
 | Condizione del filtro | Descrizione | Esempio |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -310,7 +312,9 @@ Fate clic su **Mostra altri dettagli** per vedere il resto:
 
 ### Email precedenti
 
-La scheda mostra solo l'email più recente. Ogni email valutata dal monitor viene anche scritta in **Log di monitoraggio**: la colonna **E-mail** ne mostra oggetto e mittente, e **Visualizza riepilogo** sulla sua riga mostra l'email intera come fa la scheda. Un monitor con il monitoraggio disattivato non valuta nulla, quindi le email che riceve non hanno righe. Se uno dei vostri criteri controlla **Email ricevuta**, il monitor scrive anche una riga a ogni controllo delle email mancanti. La colonna **E-mail** indica "Scheduled check" su quelle righe, e il loro **Visualizza riepilogo** mostra l'email più recente al momento del controllo, oppure "No email yet" se non ne era arrivata nessuna. I registri di monitoraggio vengono conservati per un giorno per impostazione predefinita. Su un server self-hosted, un amministratore può cambiarlo con **Conservazione dei log del monitor (giorni)** nelle impostazioni della Admin Dashboard.
+La scheda mostra solo l'email più recente. Ogni email valutata dal monitor viene anche scritta in **Log di monitoraggio**: la colonna **E-mail** ne mostra oggetto e mittente, e **Visualizza riepilogo** sulla sua riga mostra l'email intera come fa la scheda. Un monitor che non viene controllato — con il monitoraggio disattivato, o messo in pausa da un incidente o da un evento di manutenzione — non valuta nulla, quindi ogni email che riceve ha una riga che dice che non è stata valutata, e perché. Se uno dei vostri criteri controlla **Email ricevuta**, il monitor scrive anche una riga a ogni controllo delle email mancanti. La colonna **E-mail** indica "Scheduled check" su quelle righe, e il loro **Visualizza riepilogo** mostra l'email più recente al momento del controllo, oppure "No email yet" se non ne era arrivata nessuna.
+
+I log di monitoraggio vengono conservati per un giorno per impostazione predefinita. Su un server self-hosted, un amministratore può cambiarlo con **Conservazione dei log del monitor (giorni)** nelle impostazioni della Admin Dashboard.
 
 ## Configurazione self-hosted
 

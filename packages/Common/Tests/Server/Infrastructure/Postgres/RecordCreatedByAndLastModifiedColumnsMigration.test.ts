@@ -132,91 +132,70 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "SecurityCasePullRequest",
     migration: "1809187560604-AddSecurityCasePullRequest.ts",
   },
-  // Erasing one person from the user vault (#10908).
-  {
-    table: "SecurityUserErasureRequest",
-    migration: "1809187650908-AddSecurityUserErasureRequest.ts",
-  },
   {
     table: "DataSecurityIssuePullRequest",
     migration: "1809187660831-AddDataSecurityIssuePullRequest.ts",
   },
-  // Cost views, their groups and custom line items (#11006).
+  // A request to erase one person from Security Events' user vault (#10908).
   {
-    table: "CloudCostView",
-    migration: "1809187711006-AddCloudCostViewsGroupsAndLineItems.ts",
+    table: "SecurityUserErasureRequest",
+    migration: "1809187650908-AddSecurityUserErasureRequest.ts",
   },
+  // Cloud cost views, the groups they make and their line items (#11006).
+  ...["CloudCostView", "CloudCostGroup", "CloudCostLineItem"].map(
+    (table: string): { table: string; migration: string } => {
+      return {
+        table,
+        migration: "1809187711006-AddCloudCostViewsGroupsAndLineItems.ts",
+      };
+    },
+  ),
+  // Required cloud tags, their findings, daily coverage and settings (#11012).
+  ...[
+    "CloudRequiredTag",
+    "CloudTagFinding",
+    "CloudTagCoverageDay",
+    "CloudTagSetting",
+  ].map((table: string): { table: string; migration: string } => {
+    return { table, migration: "1809187711012-AddCloudRequiredTags.ts" };
+  }),
+  // XCP-ng pools, their resources, feed and label and owner rules (#10995).
+  ...[
+    "XcpNgPool",
+    "XcpNgResource",
+    "XcpNgPoolFeed",
+    "XcpNgPoolLabelRule",
+    "XcpNgPoolOwnerRule",
+    "XcpNgPoolOwnerTeam",
+    "XcpNgPoolOwnerUser",
+  ].map((table: string): { table: string; migration: string } => {
+    return { table, migration: "1809187720000-AddXcpNgPoolTables.ts" };
+  }),
+  // Acting on cloud savings, and off-hours schedules (#11010).
+  ...["CloudSavingsAction", "CloudOffHoursSchedule"].map(
+    (table: string): { table: string; migration: string } => {
+      return { table, migration: "1809187721010-AddCloudSavingsActions.ts" };
+    },
+  ),
+  // A project's cloud commitments and cost settings (#11007, #11011).
+  ...["CloudCommitment", "CloudCostSetting"].map(
+    (table: string): { table: string; migration: string } => {
+      return {
+        table,
+        migration: "1809187721011-AddCloudCostBasesAndCommitments.ts",
+      };
+    },
+  ),
+  // XCP-ng connections and their tests, read by a probe (#10996, #10999).
+  ...["XcpNgConnection", "XcpNgConnectionTest"].map(
+    (table: string): { table: string; migration: string } => {
+      return { table, migration: "1809187730000-AddXcpNgConnections.ts" };
+    },
+  ),
+  // Scheduled cloud cost reports (#11009).
   {
-    table: "CloudCostGroup",
-    migration: "1809187711006-AddCloudCostViewsGroupsAndLineItems.ts",
-  },
-  {
-    table: "CloudCostLineItem",
-    migration: "1809187711006-AddCloudCostViewsGroupsAndLineItems.ts",
-  },
-  // Required tags, what a new resource without one tells, and each day's count (#11012).
-  {
-    table: "CloudRequiredTag",
-    migration: "1809187711012-AddCloudRequiredTags.ts",
-  },
-  {
-    table: "CloudTagSetting",
-    migration: "1809187711012-AddCloudRequiredTags.ts",
-  },
-  {
-    table: "CloudTagFinding",
-    migration: "1809187711012-AddCloudRequiredTags.ts",
-  },
-  {
-    table: "CloudTagCoverageDay",
-    migration: "1809187711012-AddCloudRequiredTags.ts",
-  },
-  // XCP-ng pools, their resources, owners, rules and feed (#11093).
-  {
-    table: "XcpNgPool",
-    migration: "1809187720000-AddXcpNgPoolTables.ts",
-  },
-  {
-    table: "XcpNgResource",
-    migration: "1809187720000-AddXcpNgPoolTables.ts",
-  },
-  {
-    table: "XcpNgPoolOwnerTeam",
-    migration: "1809187720000-AddXcpNgPoolTables.ts",
-  },
-  {
-    table: "XcpNgPoolOwnerUser",
-    migration: "1809187720000-AddXcpNgPoolTables.ts",
-  },
-  {
-    table: "XcpNgPoolOwnerRule",
-    migration: "1809187720000-AddXcpNgPoolTables.ts",
-  },
-  {
-    table: "XcpNgPoolLabelRule",
-    migration: "1809187720000-AddXcpNgPoolTables.ts",
-  },
-  {
-    table: "XcpNgPoolFeed",
-    migration: "1809187720000-AddXcpNgPoolTables.ts",
-  },
-  // Off-hours schedules, and the changes OneUptime makes for savings (#11010).
-  {
-    table: "CloudOffHoursSchedule",
-    migration: "1809187721010-AddCloudSavingsActions.ts",
-  },
-  {
-    table: "CloudSavingsAction",
-    migration: "1809187721010-AddCloudSavingsActions.ts",
-  },
-  // A project's cost basis and commitment alerts (#11007), and its commitments (#11011).
-  {
-    table: "CloudCostSetting",
-    migration: "1809187721011-AddCloudCostBasesAndCommitments.ts",
-  },
-  {
-    table: "CloudCommitment",
-    migration: "1809187721011-AddCloudCostBasesAndCommitments.ts",
+    table: "CloudCostReport",
+    migration: "1809187761009-AddCloudCostReports.ts",
   },
 ];
 

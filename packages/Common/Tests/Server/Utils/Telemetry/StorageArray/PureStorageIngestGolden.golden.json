@@ -158,7 +158,7 @@
     "a FlashArray batch with no declaration": "purestorage.flasharray",
     "no Pure series, declared FlashArray": null,
     "no Pure series, declared FlashBlade": null,
-    "no Pure series, another platform declared": "netapp.ontap",
+    "no Pure series, another platform declared": "hitachi.vsp",
     "no Pure series, nothing declared": null
   },
   "cases": {

@@ -240,6 +240,7 @@ export default class UUIDColumnFilter {
       return new InBetween(
         this.getIdText(columnName, value.startValue),
         this.getIdText(columnName, value.endValue),
+        { includesEnd: value.includesEnd },
       );
     }
 

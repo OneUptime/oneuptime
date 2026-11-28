@@ -17,7 +17,6 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
-import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * The (i) tooltips on the storage array pages: the overview, the Storage
@@ -310,6 +309,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
 import {
   expectReadableDescriptionRecord,
@@ -842,6 +842,14 @@ async function renderPage(
 }
 
 beforeEach(() => {
+  /*
+   * Which of the array's alerts watch a part is the server's answer
+   * (POST /monitor/recommendation-coverage, #11074): this project has no
+   * monitors, so none does.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   jest.useFakeTimers();
   jest.setSystemTime(NOW);
   mockLastParam = "";
@@ -855,13 +863,6 @@ beforeEach(() => {
     mock.mockReset();
   }
   arrange();
-  /*
-   * A part's alerts card asks the server which of its recommended alerts a
-   * monitor covers (#11074): none does yet.
-   */
-  serveCoverageFrom(() => {
-    return [];
-  });
 });
 
 afterEach(() => {
@@ -1005,6 +1006,15 @@ const FLASHBLADE_HARDWARE_COLUMNS: ColumnPairs = [
   ["Last Seen", null],
 ];
 
+// A PowerScale node's fans and sensors: each reading in its own unit.
+const POWERSCALE_SENSORS_COLUMNS: ColumnPairs = [
+  ["Name", null],
+  ["Type", null],
+  ["Reading", "hardwareReadingColumn"],
+  ["Node", null],
+  ["Last Seen", null],
+];
+
 const DIRECTORIES_COLUMNS: ColumnPairs = [
   ["Name", null],
   ["Physical", "directorySpaceColumn"],
@@ -1135,6 +1145,7 @@ describe("STORAGE_ARRAY_METRIC_DESCRIPTIONS", () => {
       ...keysOf(CONTROLLERS_COLUMNS),
       ...keysOf(NETWORK_INTERFACES_COLUMNS),
       ...keysOf(FLASHBLADE_HARDWARE_COLUMNS),
+      ...keysOf(POWERSCALE_SENSORS_COLUMNS),
       ...keysOf(DIRECTORIES_COLUMNS),
       ...keysOf(FILE_SYSTEMS_COLUMNS),
       ...keysOf(BUCKETS_COLUMNS),
@@ -1720,6 +1731,31 @@ describe("Inventory tables: column headers", () => {
     expect(
       columnPairs(recordedTable("storage-array-flashblade-hardware-table")),
     ).toEqual(FLASHBLADE_HARDWARE_COLUMNS);
+  });
+
+  test("Hardware on a PowerScale: drives, sensors with their readings, and ports", async () => {
+    mockArray = arrayFixture({
+      name: "ps-prod",
+      storageSystem: StorageSystem.DellPowerScale,
+      osName: "OneFS",
+      osVersion: "9.5.0.0",
+    });
+    await renderPage(StorageArrayHardware);
+
+    expect(Array.from(recordedTables().keys())).toEqual([
+      "storage-array-powerscale-drives-table",
+      "storage-array-powerscale-sensors-table",
+      "storage-array-powerscale-ports-table",
+    ]);
+    expect(
+      columnPairs(recordedTable("storage-array-powerscale-drives-table")),
+    ).toEqual(DRIVES_COLUMNS);
+    expect(
+      columnPairs(recordedTable("storage-array-powerscale-sensors-table")),
+    ).toEqual(POWERSCALE_SENSORS_COLUMNS);
+    expect(
+      columnPairs(recordedTable("storage-array-powerscale-ports-table")),
+    ).toEqual(NETWORK_INTERFACES_COLUMNS);
   });
 
   test("Directories", async () => {

@@ -42,7 +42,11 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
-import { MONITOR_PAUSE_FLAGS_SELECT } from "../../../Utils/Monitor/MonitorPauseState";
+import {
+  MONITOR_PAUSE_FLAGS_SELECT,
+  MonitorPauseReason,
+} from "../../../Utils/Monitor/MonitorPauseState";
+import MonitorNotEvaluated from "./MonitorNotEvaluated";
 import MonitorProbe, {
   MonitorStepProbeResponse,
 } from "../../../Models/DatabaseModels/MonitorProbe";
@@ -113,6 +117,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import MonitorEvaluationSummary, {
   MonitorEvaluationEvent,
+  MonitorEvaluationWindow,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
@@ -149,6 +154,30 @@ interface ProbeAgreementResult {
   agreedCriteriaId: string | null;
   agreedRootCause: string | null;
   agreedProbeNames: Array<string>;
+  /*
+   * What the probes agree the monitor's status is (#11238): the criteria
+   * that sets it on their checks - the first match that changes the status
+   * - or none. Said only when it can differ from the agreement above: some
+   * probe's first match changes no status. Absent, every probe's check was
+   * decided by its first match, as on every monitor whose criteria all
+   * change the status, and the status follows the agreement above.
+   */
+  status?: ProbeStatusAgreement | undefined;
+}
+
+interface ProbeStatusAgreement {
+  hasAgreement: boolean;
+  agreementCount: number;
+  agreedCriteriaId: string | null;
+  agreedRootCause: string | null;
+  agreedProbeNames: Array<string>;
+}
+
+// The probes that judged a check one way, and what that way's root cause is.
+interface ProbeVerdictCount {
+  count: number;
+  rootCause: string | null;
+  probeNames: Array<string>;
 }
 
 /*
@@ -163,6 +192,49 @@ const LOCK_WAIT_WORTH_ORDERING_MS: number = 100;
  * log names, before "and N more" (keepStatusForSeriesBehindIt).
  */
 const SERIES_NAMED_WHEN_STATUS_KEPT: number = 3;
+
+// What a check did to the monitor's status (MonitorResourceUtil.setStatusOfCheck).
+export enum StatusOfCheck {
+  // A criteria that changes the status set it, or it was already that.
+  SetByCriteria = "SetByCriteria",
+  // No criteria that changes the status matched: back to the default status.
+  BackToDefault = "BackToDefault",
+  /*
+   * No criteria that changes the status matched, and the status is kept: a
+   * recovery criteria is waited for (GroupedMonitorRecovery).
+   */
+  Kept = "Kept",
+  /*
+   * Left as it is: already the default, a trap, a check that read nothing,
+   * planned work, a status that could not be written.
+   */
+  Unchanged = "Unchanged",
+}
+
+// Why a check moves the monitor back to its default status.
+export enum DefaultStatusBecause {
+  // No criteria matched at all.
+  NoCriteriaMet = "NoCriteriaMet",
+  /*
+   * Criteria matched, and none of them changes the status: an alert-only
+   * criteria decides no status (#11238).
+   */
+  NoStatusCriteriaMet = "NoStatusCriteriaMet",
+}
+
+/*
+ * The root cause a move back to the default status is written with, for
+ * View Cause on the status timeline: read back in the reader's language by
+ * StatusChangeNotes, which knows each one by these words.
+ */
+export const DEFAULT_STATUS_ROOT_CAUSES: Readonly<
+  Record<DefaultStatusBecause, string>
+> = {
+  [DefaultStatusBecause.NoCriteriaMet]:
+    "No monitoring criteria met. Change to default status. ",
+  [DefaultStatusBecause.NoStatusCriteriaMet]:
+    "No monitoring criteria that changes the status met. Change to default status.",
+};
 
 export interface MonitorResourceOptions {
   /*
@@ -202,6 +274,11 @@ export interface MonitorResourceOptions {
    * time counts them (#10317). Left out, it begins here.
    */
   evaluationStartedAtMs?: number | undefined;
+  /*
+   * The window of telemetry a telemetry check judged (issue #11248): its log
+   * entry says it, and so does the root cause of what it opens.
+   */
+  judgedWindow?: MonitorEvaluationWindow | undefined;
 }
 
 /*
@@ -486,6 +563,18 @@ export default class MonitorResourceUtil {
       criteriaResults: [],
       events: [],
     };
+
+    // The window a telemetry check judged (#11248), for its log entry.
+    if (options?.judgedWindow) {
+      evaluationSummary.judgedWindow = {
+        startsAt: new Date(options.judgedWindow.startsAt),
+        endsAt: new Date(options.judgedWindow.endsAt),
+        // Which end it held (#11334), when the check says.
+        ...(typeof options.judgedWindow.includesEnd === "boolean"
+          ? { includesEnd: options.judgedWindow.includesEnd }
+          : {}),
+      };
+    }
 
     response.evaluationSummary = evaluationSummary;
     dataToProcess.evaluationSummary = evaluationSummary;
@@ -828,6 +917,12 @@ export default class MonitorResourceUtil {
           `${dataToProcess.monitorId.toString()} Monitor is archived. Unarchive it to start monitoring again.`,
         );
 
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.Archived,
+        });
+
         throw new BadDataException(ExceptionMessages.MonitorArchived);
       }
 
@@ -836,12 +931,24 @@ export default class MonitorResourceUtil {
           `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
         );
 
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.Disabled,
+        });
+
         throw new BadDataException(ExceptionMessages.MonitorDisabled);
       }
       if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
         logger.debug(
           `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`,
         );
+
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.ManualIncident,
+        });
 
         throw new BadDataException(
           ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
@@ -852,6 +959,12 @@ export default class MonitorResourceUtil {
         logger.debug(
           `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.`,
         );
+
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.ScheduledMaintenance,
+        });
 
         throw new BadDataException(
           ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
@@ -1556,8 +1669,37 @@ export default class MonitorResourceUtil {
         seriesBehindStatus: seriesBehindStatus,
       });
 
+      /*
+       * The criteria that sets the status on this check (#11238), as the
+       * evaluator says it: its first match whenever that one changes the
+       * status.
+       */
+      response.statusCriteriaId =
+        MonitorResourceUtil.getStatusCriteriaIdOfCheck({
+          response: response,
+          criteriaInstancesById: criteriaInstanceMap,
+        });
+
+      if (
+        response.statusCriteriaId &&
+        response.statusCriteriaId === response.criteriaMetId &&
+        !response.statusRootCause
+      ) {
+        response.statusRootCause = response.rootCause;
+      }
+
       // What this result's own evaluation decided, before probes agree.
       const evaluatedCriteriaMetId: string | undefined = response.criteriaMetId;
+      const evaluatedStatusCriteriaId: string | undefined =
+        response.statusCriteriaId;
+
+      /*
+       * Whether the monitor's status follows this evaluation (#11238):
+       * always, but when the probes agree on what acts on the check - a
+       * criteria that changes no status - and not on what sets the status.
+       * The status is then kept, as it is when they agree on nothing.
+       */
+      let isStatusAgreed: boolean = true;
 
       // Judged; everything from here writes what was decided.
       await keepEvaluationLock();
@@ -1578,12 +1720,50 @@ export default class MonitorResourceUtil {
             monitorStep: monitorStep,
             currentCriteriaMetId: response.criteriaMetId || null,
             currentRootCause: response.rootCause || null,
+            currentStatusCriteriaId: response.statusCriteriaId || null,
+            currentStatusRootCause: response.statusRootCause || null,
             currentProbeId: (dataToProcess as ProbeMonitorResponse).probeId,
             monitorProbes: monitorProbesForMonitor || undefined,
             matchHistoryReads: matchHistoryReads,
             seriesBehindStatus: seriesBehindStatus,
             criteriaInEffect: criteriaInEffect,
           });
+
+        /*
+         * What they agree sets the status, when some probe's first match
+         * changes no status (#11238). Absent, every probe's check was
+         * decided by its first match, and the status follows what they
+         * agree on above, as it always did.
+         */
+        const statusAgreement: ProbeStatusAgreement | undefined =
+          probeAgreementResult.status;
+
+        /*
+         * What the monitor's status follows when probes agree on what acts
+         * (#11238): that criteria, when it changes the status, and no
+         * criteria when they agree none matched - as it always was. Only a
+         * criteria that changes no status leaves the status to what the
+         * probes agree sets it.
+         */
+        const isStatusOfAgreedCriteria: boolean =
+          !statusAgreement ||
+          !probeAgreementResult.agreedCriteriaId ||
+          MonitorResourceUtil.getStatusCriteriaIdOfCheck({
+            response: { criteriaMetId: probeAgreementResult.agreedCriteriaId },
+            criteriaInstancesById: criteriaInstanceMap,
+          }) === probeAgreementResult.agreedCriteriaId;
+
+        /*
+         * Probes that do not agree on what acts can still agree on the status,
+         * when what they disagree on is a criteria that changes no status
+         * (#11238): one probe sees a slow answer, another a fast one, and
+         * both see the site up. Nothing opens or resolves, as before, and the
+         * status follows them: it used to stay where an earlier check left
+         * it, for as long as they disagreed.
+         */
+        const isStatusAloneAgreed: boolean =
+          !probeAgreementResult.hasAgreement &&
+          Boolean(statusAgreement?.hasAgreement);
 
         // Add probe agreement event to evaluation summary
         const probeCounts: {
@@ -1605,20 +1785,85 @@ export default class MonitorResourceUtil {
                   "Probe agreement reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).",
                   probeCounts,
                 )
-              : translatableSentence(
-                  "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Skipping status change.",
-                  probeCounts,
-                ),
+              : isStatusAloneAgreed
+                ? translatableSentence(
+                    "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.",
+                    probeCounts,
+                  )
+                : translatableSentence(
+                    "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Skipping status change.",
+                    probeCounts,
+                  ),
           }),
           at: OneUptimeDate.getCurrentDate(),
         });
 
+        /*
+         * What they agree of the status, said when it is decided apart
+         * from what acts: the agreed criteria changes no status, or they
+         * agree on nothing else.
+         */
+        if (
+          statusAgreement &&
+          (isStatusAloneAgreed ||
+            (probeAgreementResult.hasAgreement && !isStatusOfAgreedCriteria))
+        ) {
+          const statusCounts: {
+            agreeing: string;
+            required: string;
+            active: string;
+          } = {
+            agreeing: String(statusAgreement.agreementCount),
+            required: String(probeAgreementResult.requiredCount),
+            active: String(probeAgreementResult.totalActiveProbes),
+          };
+
+          evaluationSummary.events.push({
+            type: "probe-agreement",
+            ...EvaluationEventText.from({
+              title: translatableSentence("Probe Agreement Check"),
+              message: statusAgreement.hasAgreement
+                ? translatableSentence(
+                    "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).",
+                    statusCounts,
+                  )
+                : translatableSentence(
+                    "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.",
+                    statusCounts,
+                  ),
+            }),
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        }
+
         if (!probeAgreementResult.hasAgreement) {
           logger.debug(
-            `${dataToProcess.monitorId.toString()} - Probe agreement not met. ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree. Skipping status change.`,
+            `${dataToProcess.monitorId.toString()} - Probe agreement not met. ${probeAgreementResult.agreementCount}/${probeAgreementResult.requiredCount} probes agree.${isStatusAloneAgreed ? " They agree on the status." : " Skipping status change."}`,
           );
 
-          // Release lock and return early - no status change
+          if (isStatusAloneAgreed && statusAgreement) {
+            MonitorResourceUtil.useAgreedStatus({
+              response: response,
+              statusAgreement: statusAgreement,
+            });
+
+            await MonitorResourceUtil.setStatusOfCheck({
+              monitor: monitor,
+              monitorStep: monitorStep,
+              dataToProcess: dataToProcess,
+              response: response,
+              evaluationSummary: evaluationSummary,
+              criteriaInstancesById: criteriaInstanceMap,
+              isSnmpTrapEvent: isSnmpTrapEvent,
+              telemetryQuery: undefined,
+              seriesActedOn: new Set<string>(),
+              isEveryBreachUnderMaintenance: false,
+              getMonitorStatusName: getMonitorStatusName,
+              keepEvaluationLock: keepEvaluationLock,
+            });
+          }
+
+          // Release lock and return early - nothing opens or resolves
           await releaseMutex();
 
           await persistLatestMonitorPayload();
@@ -1652,6 +1897,31 @@ export default class MonitorResourceUtil {
 **Probes in Agreement**: ${FeedMarkdown.join(probeAgreementResult.agreedProbeNames)}
 `.toString();
         }
+
+        /*
+         * And the agreed status: the agreed criteria's own, or what the
+         * probes agree sets it when that criteria changes none.
+         */
+        if (isStatusOfAgreedCriteria) {
+          // Its root cause already names the probes that agree.
+          MonitorResourceUtil.useAgreedStatus({
+            response: response,
+            statusAgreement: {
+              hasAgreement: true,
+              agreementCount: probeAgreementResult.agreementCount,
+              agreedCriteriaId: probeAgreementResult.agreedCriteriaId,
+              agreedRootCause: response.rootCause,
+              agreedProbeNames: [],
+            },
+          });
+        } else if (statusAgreement?.hasAgreement) {
+          MonitorResourceUtil.useAgreedStatus({
+            response: response,
+            statusAgreement: statusAgreement,
+          });
+        } else {
+          isStatusAgreed = false;
+        }
       }
 
       /*
@@ -1662,7 +1932,9 @@ export default class MonitorResourceUtil {
        * what was kept before.
        */
       let seriesBehindStatusAfter: Array<string> | undefined =
-        response.criteriaMetId === evaluatedCriteriaMetId
+        response.criteriaMetId === evaluatedCriteriaMetId &&
+        response.statusCriteriaId === evaluatedStatusCriteriaId &&
+        isStatusAgreed
           ? response.seriesBehindStatus
           : undefined;
 
@@ -1993,76 +2265,66 @@ export default class MonitorResourceUtil {
         await keepEvaluationLock();
 
         /*
-         * Planned work on one host of an OpenStack cloud keeps the monitor's status, so a status page
-         * stays as it is: see isEveryBreachUnderMaintenance.
+         * The check's status: from the first criteria that matched among
+         * those that change it, which is the matched criteria itself
+         * whenever that one changes the status - or, when none of them
+         * matched, wherever a check that matched nothing takes it (#11238).
+         * Kept when the probes agree on what acts but not on the status.
+         *
+         * Planned work on one host of an OpenStack cloud keeps the monitor's
+         * status, so a status page stays as it is: see
+         * isEveryBreachUnderMaintenance.
          */
-        const monitorStatusTimelineChange: MonitorStatusTimeline | null =
-          MonitorMaintenanceSuppression.isEveryBreachUnderMaintenance({
-            monitor: monitor,
-            isPerSeriesEvaluation: isPerSeriesEvaluation,
-            criteriaInstance: matchedCriteriaInstance,
-            breachingFingerprints: new Set<string>(
-              criteriaFanOut.flatMap((matched: MatchedCriteriaResult) => {
-                const criteria: MonitorCriteriaInstance | undefined =
-                  criteriaInstanceMap[matched.criteriaId];
+        if (isStatusAgreed) {
+          const statusCriteriaInstance: MonitorCriteriaInstance | undefined =
+            response.statusCriteriaId
+              ? criteriaInstanceMap[response.statusCriteriaId]
+              : undefined;
 
-                return criteria?.data?.createIncidents ||
-                  criteria?.data?.createAlerts
-                  ? matched.perSeriesMatches.map(
-                      (series: PerSeriesCriteriaMatch): string => {
-                        return series.fingerprint;
-                      },
-                    )
-                  : [];
-              }),
-            ),
-            suppressedFingerprints: suppressedSeriesFingerprints,
-          })
-            ? null
-            : await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
-                monitor: monitor,
-                rootCause: response.rootCause,
-                dataToProcess: dataToProcess,
-                monitorStep: monitorStep,
-                criteriaInstance: matchedCriteriaInstance,
-                props: {
-                  telemetryQuery: telemetryQuery,
-                },
-                seriesActedOn: allBreachingSeriesFingerprints,
-              });
+          const statusOfCheck: StatusOfCheck =
+            await MonitorResourceUtil.setStatusOfCheck({
+              monitor: monitor,
+              monitorStep: monitorStep,
+              dataToProcess: dataToProcess,
+              response: response,
+              evaluationSummary: evaluationSummary,
+              criteriaInstancesById: criteriaInstanceMap,
+              isSnmpTrapEvent: isSnmpTrapEvent,
+              telemetryQuery: telemetryQuery,
+              seriesActedOn: allBreachingSeriesFingerprints,
+              isEveryBreachUnderMaintenance:
+                MonitorMaintenanceSuppression.isEveryBreachUnderMaintenance({
+                  monitor: monitor,
+                  isPerSeriesEvaluation: isPerSeriesEvaluation,
+                  criteriaInstance: statusCriteriaInstance,
+                  breachingFingerprints: new Set<string>(
+                    criteriaFanOut.flatMap((matched: MatchedCriteriaResult) => {
+                      const criteria: MonitorCriteriaInstance | undefined =
+                        criteriaInstanceMap[matched.criteriaId];
 
-        if (monitorStatusTimelineChange) {
-          const changedStatusName: string | null = await getMonitorStatusName(
-            matchedCriteriaInstance.data?.monitorStatusId ||
-              monitorStatusTimelineChange.monitorStatusId,
-          );
-
-          /*
-           * The status is the project's own name for it, as written; the
-           * criteria, its name, or "Unnamed criteria" in the reader's words.
-           */
-          const metCriteria: EvaluationSentenceValue =
-            EvaluationEventText.criteriaName(
-              matchedCriteriaInstance.data?.name,
-            );
-
-          evaluationSummary.events.push({
-            type: "monitor-status-changed",
-            ...EvaluationEventText.from({
-              title: translatableSentence("Monitor status updated"),
-              message: changedStatusName
-                ? translatableSentence(
-                    'Monitor status changed to "{{status}}" because criteria "{{criteria}}" was met.',
-                    { status: changedStatusName, criteria: metCriteria },
-                  )
-                : translatableSentence(
-                    'Monitor status changed because criteria "{{criteria}}" was met.',
-                    { criteria: metCriteria },
+                      return criteria?.data?.createIncidents ||
+                        criteria?.data?.createAlerts
+                        ? matched.perSeriesMatches.map(
+                            (series: PerSeriesCriteriaMatch): string => {
+                              return series.fingerprint;
+                            },
+                          )
+                        : [];
+                    }),
                   ),
-            }),
-            relatedCriteriaId: matchedCriteriaInstance.data?.id,
-            at: OneUptimeDate.getCurrentDate(),
-          });
+                  suppressedFingerprints: suppressedSeriesFingerprints,
+                }),
+              getMonitorStatusName: getMonitorStatusName,
+              keepEvaluationLock: keepEvaluationLock,
+            });
+
+          // Back on its default status: nothing is behind it any more.
+          if (
+            statusOfCheck === StatusOfCheck.BackToDefault &&
+            seriesBehindStatusAfter !== undefined
+          ) {
+            seriesBehindStatusAfter = [];
+          }
         }
 
         /*
@@ -2556,162 +2818,17 @@ export default class MonitorResourceUtil {
           },
         });
 
-        // get last monitor status timeline.
-        const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
-          await MonitorStatusTimelineService.findOneBy({
-            query: {
-              monitorId: monitor.id!,
-              projectId: monitor.projectId!,
-            },
-            select: {
-              _id: true,
-              monitorStatusId: true,
-            },
-            sort: {
-              startsAt: SortOrder.Descending,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (
-          lastMonitorStatusTimeline &&
-          lastMonitorStatusTimeline.monitorStatusId &&
-          lastMonitorStatusTimeline.monitorStatusId.toString() ===
-            monitorSteps.data.defaultMonitorStatusId.toString()
-        ) {
-          /*
-           * status is same as last status. do not create new status timeline.
-           * do nothing! status is same as last status.
-           */
-        } else {
-          // if no criteria is met then update monitor to default state.
-          const monitorStatusTimeline: MonitorStatusTimeline =
-            new MonitorStatusTimeline();
-          monitorStatusTimeline.monitorId = monitor.id!;
-          monitorStatusTimeline.monitorStatusId =
-            monitorSteps.data.defaultMonitorStatusId!;
-          monitorStatusTimeline.projectId = monitor.projectId!;
-          monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
-          /*
-           * Cut as the monitor's logs are: everyone who reads the monitor
-           * reads it. And bounded (MonitorStoredCheck).
-           */
-          monitorStatusTimeline.statusChangeLog =
-            MonitorStoredCheck.toStoredCheck({
-              dataToProcess: dataToProcess,
-              keepResponseContent:
-                MonitorRecordEvidence.keepsResponseContent(monitor),
-              monitorStep: monitorStep,
-            });
-          monitorStatusTimeline.rootCause =
-            "No monitoring criteria met. Change to default status. ";
-
-          /*
-           * Tracks whether the monitor really is at its default status after the
-           * create call, so the summary event below records only what actually
-           * happened. On the lock-skip path the write was REFUSED - recording a
-           * "reverted" event there would put a false entry in the monitor log and
-           * mask the very lock failure the error log surfaces.
-           */
-          let revertedToDefaultStatus: boolean = true;
-
-          /*
-           * The stored default status can be a status that no longer exists, or
-           * one from another project: monitorSteps is a JSON blob with no
-           * foreign key behind it, and before issue #3039 was fixed the API
-           * accepted any uuid for it. Writing it raised the
-           * "violates foreign key constraint" error from the probe/telemetry
-           * worker and failed the whole ingest run for this monitor, losing the
-           * monitor log and payload persisted below. Skip the revert and log,
-           * the same way the criteria path in Utils/Monitor/MonitorStatusTimeline
-           * does. New writes are rejected up front by
-           * MonitorStepsProjectValidator.
-           */
-          const isDefaultStatusUsable: boolean =
-            await ProjectScopedReferenceValidator.isUsableInProject({
-              projectId: monitor.projectId!,
-              id: monitorSteps.data.defaultMonitorStatusId,
-              service: MonitorStatusService,
-            });
-
-          if (!isDefaultStatusUsable) {
-            logger.error(
-              `${dataToProcess.monitorId.toString()} - The default monitor status ${monitorSteps.data.defaultMonitorStatusId.toString()} does not exist in project ${monitor.projectId?.toString()}. Skipping revert to default status. Please pick a default monitor status that exists in this project.`,
-            );
-            revertedToDefaultStatus = false;
-          } else {
-            await keepEvaluationLock();
-
-            try {
-              await MonitorStatusTimelineService.create({
-                data: monitorStatusTimeline,
-                props: {
-                  isRoot: true,
-                },
-              });
-              logger.debug(
-                `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
-              );
-            } catch (err) {
-              /*
-               * Idempotent concurrency race (see MonitorStatusTimeline.ts): a
-               * concurrent result already moved the monitor to this default status,
-               * so onBeforeCreate's dedupe check throws this exact BadDataException.
-               * Treat as a no-op at debug level rather than failing the job. Match the
-               * exact message so unrelated BadDataExceptions still propagate.
-               */
-              if (
-                err instanceof BadDataException &&
-                err.message === MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE
-              ) {
-                logger.debug(
-                  `${dataToProcess.monitorId.toString()} - Monitor status already at default; skipping duplicate status timeline (concurrent race).`,
-                );
-              } else if (
-                err instanceof ServerException &&
-                err.message === MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE
-              ) {
-                /*
-                 * The per-monitor timeline mutex could not be acquired (fail-closed
-                 * create, see MonitorStatusTimelineService). Skipping is recoverable:
-                 * the next probe result re-evaluates the same criteria and recreates
-                 * the revert-to-default, while failing here would abort the whole
-                 * ingest run and lose the monitor log for this probe result.
-                 */
-                logger.error(
-                  `${dataToProcess.monitorId.toString()} - Could not acquire the monitor status timeline lock; skipping revert to default status. It will be retried on the next probe result.`,
-                );
-                revertedToDefaultStatus = false;
-              } else {
-                throw err;
-              }
-            }
-          }
-
-          if (revertedToDefaultStatus) {
-            const defaultStatusName: string | null = await getMonitorStatusName(
-              monitorSteps.data.defaultMonitorStatusId,
-            );
-
-            evaluationSummary.events.push({
-              type: "monitor-status-changed",
-              ...EvaluationEventText.from({
-                title: translatableSentence("Monitor status reverted"),
-                message: defaultStatusName
-                  ? translatableSentence(
-                      'Monitor status reverted to "{{status}}" because no monitoring criteria were met.',
-                      { status: defaultStatusName },
-                    )
-                  : translatableSentence(
-                      "Monitor status reverted to its default state because no monitoring criteria were met.",
-                    ),
-              }),
-              at: OneUptimeDate.getCurrentDate(),
-            });
-          }
-        }
+        // if no criteria is met then update monitor to default state.
+        await MonitorResourceUtil.moveToDefaultStatus({
+          monitor: monitor,
+          defaultMonitorStatusId: monitorSteps.data.defaultMonitorStatusId,
+          monitorStep: monitorStep,
+          dataToProcess: dataToProcess,
+          evaluationSummary: evaluationSummary,
+          because: DefaultStatusBecause.NoCriteriaMet,
+          getMonitorStatusName: getMonitorStatusName,
+          keepEvaluationLock: keepEvaluationLock,
+        });
       } else if (
         !response.criteriaMetId &&
         !isSnmpTrapEvent &&
@@ -2907,6 +3024,18 @@ export default class MonitorResourceUtil {
       },
     });
 
+    input.evaluationSummary.events.push(
+      MonitorResourceUtil.describeSeriesKeepingStatus(seriesKeepingStatus),
+    );
+  }
+
+  /*
+   * The evaluation log's word that a grouped monitor keeps its status, and
+   * for which series: the first few by name, then how many more.
+   */
+  public static describeSeriesKeepingStatus(
+    seriesKeepingStatus: Array<SeriesKeepingStatus>,
+  ): MonitorEvaluationEvent {
     const named: Array<string> = seriesKeepingStatus
       .slice(0, SERIES_NAMED_WHEN_STATUS_KEPT)
       .map((series: SeriesKeepingStatus): string => {
@@ -2932,7 +3061,7 @@ export default class MonitorResourceUtil {
           )
         : named.join("; ");
 
-    input.evaluationSummary.events.push({
+    return {
       type: "monitor-status-kept",
       ...EvaluationEventText.from({
         title: translatableSentence("Monitor status kept"),
@@ -2942,7 +3071,7 @@ export default class MonitorResourceUtil {
         ),
       }),
       at: OneUptimeDate.getCurrentDate(),
-    });
+    };
   }
 
   /*
@@ -3158,6 +3287,427 @@ export default class MonitorResourceUtil {
   }
 
   /*
+   * WHAT SETS A MONITOR'S STATUS ON A CHECK (#11238).
+   *
+   * The criteria that change the status decide it: the first of them that
+   * matched, in the order given (ProbeApiIngestResponse.statusCriteriaId) -
+   * the check's first match itself whenever that one changes the status, as
+   * on every monitor whose criteria all do.
+   *
+   * A criteria that changes no status - an alert-only criteria - decides
+   * none. When only such criteria matched, the status goes where a check
+   * that matched nothing takes it: to the monitor's default status, unless a
+   * recovery criteria is waited for (GroupedMonitorRecovery), the check is
+   * an SNMP trap (the polled checks own the status), or it read nothing at
+   * all (isSilentInfrastructureWindow). It used to stay where an earlier
+   * check had left it for as long as such a criteria kept matching: a switch
+   * the recommended network device alert pack watches went Offline for one
+   * missed poll, answered the next with a port above 80%, and stayed Offline
+   * - its status page red - while the port stayed busy.
+   *
+   * The status alone: what the check opens and resolves is its passes' own,
+   * and each incident and alert still opens and resolves with the criteria
+   * that raised it.
+   */
+  public static async setStatusOfCheck(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    dataToProcess: DataToProcess;
+    response: ProbeApiIngestResponse;
+    evaluationSummary: MonitorEvaluationSummary;
+    criteriaInstancesById: Dictionary<MonitorCriteriaInstance>;
+    isSnmpTrapEvent: boolean;
+    telemetryQuery: TelemetryQuery | undefined;
+    // The series the check acted on, which the status change's log keeps first.
+    seriesActedOn: ReadonlySet<string>;
+    // Planned work on one host of an OpenStack cloud keeps the status.
+    isEveryBreachUnderMaintenance: boolean;
+    getMonitorStatusName: (
+      statusId: ObjectID | undefined | null,
+    ) => Promise<string | null>;
+    keepEvaluationLock: () => Promise<void>;
+  }): Promise<StatusOfCheck> {
+    const statusCriteriaInstance: MonitorCriteriaInstance | undefined = input
+      .response.statusCriteriaId
+      ? input.criteriaInstancesById[input.response.statusCriteriaId]
+      : undefined;
+
+    if (statusCriteriaInstance) {
+      if (input.isEveryBreachUnderMaintenance) {
+        return StatusOfCheck.Unchanged;
+      }
+
+      const monitorStatusTimelineChange: MonitorStatusTimeline | null =
+        await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
+          monitor: input.monitor,
+          rootCause:
+            input.response.statusRootCause || input.response.rootCause || "",
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          criteriaInstance: statusCriteriaInstance,
+          props: {
+            telemetryQuery: input.telemetryQuery,
+          },
+          seriesActedOn: input.seriesActedOn,
+        });
+
+      if (monitorStatusTimelineChange) {
+        const changedStatusName: string | null =
+          await input.getMonitorStatusName(
+            statusCriteriaInstance.data?.monitorStatusId ||
+              monitorStatusTimelineChange.monitorStatusId,
+          );
+
+        /*
+         * The status is the project's own name for it, as written; the
+         * criteria, its name, or "Unnamed criteria" in the reader's words.
+         */
+        const metCriteria: EvaluationSentenceValue =
+          EvaluationEventText.criteriaName(statusCriteriaInstance.data?.name);
+
+        input.evaluationSummary.events.push({
+          type: "monitor-status-changed",
+          ...EvaluationEventText.from({
+            title: translatableSentence("Monitor status updated"),
+            message: changedStatusName
+              ? translatableSentence(
+                  'Monitor status changed to "{{status}}" because criteria "{{criteria}}" was met.',
+                  { status: changedStatusName, criteria: metCriteria },
+                )
+              : translatableSentence(
+                  'Monitor status changed because criteria "{{criteria}}" was met.',
+                  { criteria: metCriteria },
+                ),
+          }),
+          relatedCriteriaId: statusCriteriaInstance.data?.id,
+          at: OneUptimeDate.getCurrentDate(),
+        });
+      }
+
+      return StatusOfCheck.SetByCriteria;
+    }
+
+    /*
+     * No criteria that changes the status matched: whatever matched only
+     * alerts, the status goes where a check that matched nothing takes it.
+     */
+    const defaultMonitorStatusId: ObjectID | undefined =
+      input.monitor.monitorSteps?.data?.defaultMonitorStatusId;
+
+    // A trap is no check of the monitor's: the polled checks own the status.
+    if (input.isSnmpTrapEvent || !defaultMonitorStatusId) {
+      return StatusOfCheck.Unchanged;
+    }
+
+    if (
+      input.monitor.currentMonitorStatusId?.toString() ===
+      defaultMonitorStatusId.toString()
+    ) {
+      return StatusOfCheck.Unchanged;
+    }
+
+    /*
+     * A grouped monitor's series behind its status that met no recovery
+     * criteria yet keep it (GroupedMonitorRecovery), as on a check that
+     * matched nothing.
+     */
+    const seriesKeepingStatus: Array<SeriesKeepingStatus> =
+      input.response.seriesKeepingStatus || [];
+
+    if (seriesKeepingStatus.length > 0) {
+      input.evaluationSummary.events.push(
+        MonitorResourceUtil.describeSeriesKeepingStatus(seriesKeepingStatus),
+      );
+
+      return StatusOfCheck.Kept;
+    }
+
+    // Silence is not recovery (isSilentInfrastructureWindow).
+    if (
+      MonitorResourceUtil.isSilentInfrastructureWindow({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+      })
+    ) {
+      return StatusOfCheck.Unchanged;
+    }
+
+    /*
+     * A problem criteria set the status, and a recovery criteria brings it
+     * back (#10743): the margin between them holds.
+     */
+    const recoveryCriteriaIds: Array<string> =
+      input.response.statusKeptForRecoveryCriteriaIds || [];
+
+    if (recoveryCriteriaIds.length > 0) {
+      const names: Array<string> = recoveryCriteriaIds
+        .map((criteriaId: string): string => {
+          return input.criteriaInstancesById[criteriaId]?.data?.name || "";
+        })
+        .filter((name: string): boolean => {
+          return Boolean(name);
+        });
+
+      input.evaluationSummary.events.push({
+        type: "monitor-status-kept",
+        ...EvaluationEventText.from({
+          title: translatableSentence("Monitor status kept"),
+          message:
+            names.length > 0
+              ? translatableSentence(
+                  'The monitor keeps its status: no criteria that changes the status matched, and it comes back only when "{{criteria}}" is met.',
+                  { criteria: names.join('", "') },
+                )
+              : translatableSentence(
+                  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.",
+                ),
+        }),
+        at: OneUptimeDate.getCurrentDate(),
+      });
+
+      return StatusOfCheck.Kept;
+    }
+
+    logger.debug(
+      `${input.dataToProcess.monitorId.toString()} - No criteria that changes the status met. Change to default status.`,
+    );
+
+    const isBackToDefault: boolean =
+      await MonitorResourceUtil.moveToDefaultStatus({
+        monitor: input.monitor,
+        defaultMonitorStatusId: defaultMonitorStatusId,
+        monitorStep: input.monitorStep,
+        dataToProcess: input.dataToProcess,
+        evaluationSummary: input.evaluationSummary,
+        because: DefaultStatusBecause.NoStatusCriteriaMet,
+        getMonitorStatusName: input.getMonitorStatusName,
+        keepEvaluationLock: input.keepEvaluationLock,
+      });
+
+    return isBackToDefault
+      ? StatusOfCheck.BackToDefault
+      : StatusOfCheck.Unchanged;
+  }
+
+  /*
+   * The monitor back on its default status, with a row of its own on the
+   * status timeline: unless the last row is that status already, the status
+   * no longer exists in the project (a monitor saved before #3039), or the
+   * timeline's lock could not be had - the next check writes it then. Its
+   * owners are not told: a default status is no news. True when the monitor
+   * is on its default status after it.
+   */
+  public static async moveToDefaultStatus(input: {
+    monitor: Monitor;
+    defaultMonitorStatusId: ObjectID;
+    monitorStep: MonitorStep;
+    dataToProcess: DataToProcess;
+    evaluationSummary: MonitorEvaluationSummary;
+    because: DefaultStatusBecause;
+    getMonitorStatusName: (
+      statusId: ObjectID | undefined | null,
+    ) => Promise<string | null>;
+    keepEvaluationLock: () => Promise<void>;
+  }): Promise<boolean> {
+    const monitor: Monitor = input.monitor;
+    const dataToProcess: DataToProcess = input.dataToProcess;
+
+    // get last monitor status timeline.
+    const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
+      await MonitorStatusTimelineService.findOneBy({
+        query: {
+          monitorId: monitor.id!,
+          projectId: monitor.projectId!,
+        },
+        select: {
+          _id: true,
+          monitorStatusId: true,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (
+      lastMonitorStatusTimeline &&
+      lastMonitorStatusTimeline.monitorStatusId &&
+      lastMonitorStatusTimeline.monitorStatusId.toString() ===
+        input.defaultMonitorStatusId.toString()
+    ) {
+      /*
+       * status is same as last status. do not create new status timeline.
+       * do nothing! status is same as last status.
+       */
+      return true;
+    }
+
+    const monitorStatusTimeline: MonitorStatusTimeline =
+      new MonitorStatusTimeline();
+    monitorStatusTimeline.monitorId = monitor.id!;
+    monitorStatusTimeline.monitorStatusId = input.defaultMonitorStatusId;
+    monitorStatusTimeline.projectId = monitor.projectId!;
+    monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
+    /*
+     * Cut as the monitor's logs are: everyone who reads the monitor
+     * reads it. And bounded (MonitorStoredCheck).
+     */
+    monitorStatusTimeline.statusChangeLog = MonitorStoredCheck.toStoredCheck({
+      dataToProcess: dataToProcess,
+      keepResponseContent: MonitorRecordEvidence.keepsResponseContent(monitor),
+      monitorStep: input.monitorStep,
+    });
+    monitorStatusTimeline.rootCause = DEFAULT_STATUS_ROOT_CAUSES[input.because];
+
+    /*
+     * The stored default status can be a status that no longer exists, or
+     * one from another project: monitorSteps is a JSON blob with no
+     * foreign key behind it, and before issue #3039 was fixed the API
+     * accepted any uuid for it. Writing it raised the
+     * "violates foreign key constraint" error from the probe/telemetry
+     * worker and failed the whole ingest run for this monitor, losing the
+     * monitor log and payload persisted below. Skip the revert and log,
+     * the same way the criteria path in Utils/Monitor/MonitorStatusTimeline
+     * does. New writes are rejected up front by
+     * MonitorStepsProjectValidator.
+     */
+    const isDefaultStatusUsable: boolean =
+      await ProjectScopedReferenceValidator.isUsableInProject({
+        projectId: monitor.projectId!,
+        id: input.defaultMonitorStatusId,
+        service: MonitorStatusService,
+      });
+
+    if (!isDefaultStatusUsable) {
+      logger.error(
+        `${dataToProcess.monitorId.toString()} - The default monitor status ${input.defaultMonitorStatusId.toString()} does not exist in project ${monitor.projectId?.toString()}. Skipping revert to default status. Please pick a default monitor status that exists in this project.`,
+      );
+
+      /*
+       * The monitor is not at its default status: recording a "reverted"
+       * event would put a false entry in the monitor log.
+       */
+      return false;
+    }
+
+    await input.keepEvaluationLock();
+
+    try {
+      await MonitorStatusTimelineService.create({
+        data: monitorStatusTimeline,
+        props: {
+          isRoot: true,
+        },
+      });
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
+      );
+    } catch (err) {
+      /*
+       * Idempotent concurrency race (see MonitorStatusTimeline.ts): a
+       * concurrent result already moved the monitor to this default status,
+       * so onBeforeCreate's dedupe check throws this exact BadDataException.
+       * Treat as a no-op at debug level rather than failing the job. Match the
+       * exact message so unrelated BadDataExceptions still propagate.
+       */
+      if (
+        err instanceof BadDataException &&
+        err.message === MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE
+      ) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Monitor status already at default; skipping duplicate status timeline (concurrent race).`,
+        );
+      } else if (
+        err instanceof ServerException &&
+        err.message === MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE
+      ) {
+        /*
+         * The per-monitor timeline mutex could not be acquired (fail-closed
+         * create, see MonitorStatusTimelineService). Skipping is recoverable:
+         * the next probe result re-evaluates the same criteria and recreates
+         * the revert-to-default, while failing here would abort the whole
+         * ingest run and lose the monitor log for this probe result.
+         *
+         * The write was REFUSED: recording a "reverted" event would put a
+         * false entry in the monitor log and mask the very lock failure the
+         * error log surfaces.
+         */
+        logger.error(
+          `${dataToProcess.monitorId.toString()} - Could not acquire the monitor status timeline lock; skipping revert to default status. It will be retried on the next probe result.`,
+        );
+
+        return false;
+      } else {
+        throw err;
+      }
+    }
+
+    const defaultStatusName: string | null = await input.getMonitorStatusName(
+      input.defaultMonitorStatusId,
+    );
+
+    input.evaluationSummary.events.push({
+      type: "monitor-status-changed",
+      ...EvaluationEventText.from({
+        title: translatableSentence("Monitor status reverted"),
+        message:
+          input.because === DefaultStatusBecause.NoStatusCriteriaMet
+            ? defaultStatusName
+              ? translatableSentence(
+                  'Monitor status reverted to "{{status}}" because no criteria that changes the status was met.',
+                  { status: defaultStatusName },
+                )
+              : translatableSentence(
+                  "Monitor status reverted to its default state because no criteria that changes the status was met.",
+                )
+            : defaultStatusName
+              ? translatableSentence(
+                  'Monitor status reverted to "{{status}}" because no monitoring criteria were met.',
+                  { status: defaultStatusName },
+                )
+              : translatableSentence(
+                  "Monitor status reverted to its default state because no monitoring criteria were met.",
+                ),
+      }),
+      at: OneUptimeDate.getCurrentDate(),
+    });
+
+    return true;
+  }
+
+  /*
+   * The status the probes agree on, as the check's own (#11238): the
+   * criteria that sets it, with its root cause and the probes that agree,
+   * or none - and the status then goes where a check that matched nothing
+   * takes it.
+   */
+  private static useAgreedStatus(input: {
+    response: ProbeApiIngestResponse;
+    statusAgreement: ProbeStatusAgreement;
+  }): void {
+    input.response.statusCriteriaId =
+      input.statusAgreement.agreedCriteriaId || undefined;
+
+    if (!input.response.statusCriteriaId) {
+      input.response.statusRootCause = undefined;
+      return;
+    }
+
+    let rootCause: string | null = input.statusAgreement.agreedRootCause;
+
+    // Each probe's name is text, placed into the root cause's Markdown.
+    if (rootCause && input.statusAgreement.agreedProbeNames.length > 0) {
+      rootCause += mdText`
+**Probes in Agreement**: ${FeedMarkdown.join(input.statusAgreement.agreedProbeNames)}
+`.toString();
+    }
+
+    input.response.statusRootCause = rootCause;
+  }
+
+  /*
    * The series a grouped evaluation matched, under any criteria: what its
    * monitor log keeps first when it cannot keep every series
    * (MonitorStoredCheck.boundSeries). Empty for any other evaluation.
@@ -3198,6 +3748,37 @@ export default class MonitorResourceUtil {
    * written at most every so often (MonitorAPI.onBeforeSendRecords, issue
    * #8123). Never throws.
    */
+  /*
+   * A request, an email or an agent's report that reached a monitor that is
+   * not being checked, listed in its Logs as not evaluated and why, with its
+   * arrival kept (MonitorNotEvaluated, #11141), before it is refused: it
+   * used to be dropped without a trace. Not for a blocked project, which
+   * records nothing of what reaches it. Never throws.
+   */
+  public static async listNotEvaluated(data: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+    reason: MonitorPauseReason;
+  }): Promise<void> {
+    if (
+      !data.monitor.projectId ||
+      !MonitorNotEvaluated.isSentFromOutside(data.monitor.monitorType)
+    ) {
+      return;
+    }
+
+    try {
+      if (await ProjectService.isProjectBlocked(data.monitor.projectId)) {
+        return;
+      }
+    } catch (error) {
+      logger.error(error);
+      return;
+    }
+
+    await MonitorNotEvaluated.record(data);
+  }
+
   public static async keepIncomingRequestArrival(input: {
     monitorId: ObjectID;
     dataToProcess: IncomingMonitorRequest;
@@ -3563,6 +4144,14 @@ export default class MonitorResourceUtil {
     currentCriteriaMetId: string | null;
     currentRootCause: string | null;
     /*
+     * The criteria that sets the status on the current probe's check, and
+     * its root cause (ProbeApiIngestResponse.statusCriteriaId): null when
+     * none of the criteria that change the status matched. Left out, it is
+     * the current criteria, as a check decided by its first match has it.
+     */
+    currentStatusCriteriaId?: string | null | undefined;
+    currentStatusRootCause?: string | null | undefined;
+    /*
      * Probe that produced the result being handled right now. Its verdict is
      * already in currentCriteriaMetId / currentRootCause, so it is reused
      * rather than recomputed - see the loop below.
@@ -3598,6 +4187,35 @@ export default class MonitorResourceUtil {
   }): Promise<ProbeAgreementResult> {
     const { monitor, monitorStep, currentCriteriaMetId, currentRootCause } =
       input;
+
+    // What sets the status on the current probe's check (#11238).
+    const currentStatusCriteriaId: string | null =
+      input.currentStatusCriteriaId === undefined
+        ? currentCriteriaMetId
+        : input.currentStatusCriteriaId;
+
+    const currentStatusRootCause: string | null =
+      input.currentStatusCriteriaId === undefined
+        ? currentRootCause
+        : input.currentStatusRootCause || null;
+
+    // The step's criteria, by id: whether each probe's first match changes the status.
+    const criteriaInstancesById: Dictionary<MonitorCriteriaInstance> = {};
+
+    for (const criteriaInstance of monitorStep.data?.monitorCriteria?.data
+      ?.monitorCriteriaInstanceArray || []) {
+      if (criteriaInstance.data?.id) {
+        criteriaInstancesById[criteriaInstance.data.id.toString()] =
+          criteriaInstance;
+      }
+    }
+
+    /*
+     * Whether some probe's check was not decided by its first match: that
+     * one changes no status. Only then is the status agreed on apart.
+     */
+    let isStatusApart: boolean =
+      (currentStatusCriteriaId || null) !== (currentCriteriaMetId || null);
 
     /*
      * If minimumProbeAgreement is not set, all probes must agree
@@ -3640,6 +4258,17 @@ export default class MonitorResourceUtil {
         agreedCriteriaId: currentCriteriaMetId,
         agreedRootCause: currentRootCause,
         agreedProbeNames: [],
+        ...(isStatusApart
+          ? {
+              status: {
+                hasAgreement: true,
+                agreementCount: 0,
+                agreedCriteriaId: currentStatusCriteriaId,
+                agreedRootCause: currentStatusRootCause,
+                agreedProbeNames: [],
+              },
+            }
+          : {}),
       };
     }
 
@@ -3659,10 +4288,14 @@ export default class MonitorResourceUtil {
      * Key: criteriaId or "none" for no criteria met
      * Value: { count, rootCause, probeNames }
      */
-    const criteriaAgreements: Map<
-      string,
-      { count: number; rootCause: string | null; probeNames: Array<string> }
-    > = new Map();
+    const criteriaAgreements: Map<string, ProbeVerdictCount> = new Map();
+
+    /*
+     * And on the criteria that sets the status (#11238), keyed the same way:
+     * the same counts as above on every check whose first match changes the
+     * status.
+     */
+    const statusAgreements: Map<string, ProbeVerdictCount> = new Map();
 
     const stepId: string = monitorStep.id.toString();
 
@@ -3680,6 +4313,8 @@ export default class MonitorResourceUtil {
 
       let evaluatedCriteriaMetId: string | undefined = undefined;
       let evaluatedRootCause: string | null = null;
+      let evaluatedStatusCriteriaId: string | undefined = undefined;
+      let evaluatedStatusRootCause: string | null = null;
 
       const isCurrentProbe: boolean = Boolean(
         input.currentProbeId &&
@@ -3699,6 +4334,8 @@ export default class MonitorResourceUtil {
          */
         evaluatedCriteriaMetId = currentCriteriaMetId || undefined;
         evaluatedRootCause = currentRootCause;
+        evaluatedStatusCriteriaId = currentStatusCriteriaId || undefined;
+        evaluatedStatusRootCause = currentStatusRootCause;
       } else {
         // Evaluate this probe's response against criteria
         const tempResponse: ProbeApiIngestResponse = {
@@ -3729,36 +4366,150 @@ export default class MonitorResourceUtil {
 
         evaluatedCriteriaMetId = evaluatedResponse.criteriaMetId;
         evaluatedRootCause = evaluatedResponse.rootCause;
+        evaluatedStatusCriteriaId =
+          MonitorResourceUtil.getStatusCriteriaIdOfCheck({
+            response: evaluatedResponse,
+            criteriaInstancesById: criteriaInstancesById,
+          });
+        evaluatedStatusRootCause =
+          evaluatedResponse.statusRootCause ||
+          (evaluatedStatusCriteriaId &&
+          evaluatedStatusCriteriaId === evaluatedCriteriaMetId
+            ? evaluatedRootCause
+            : null);
       }
 
-      // Record the result
-      const criteriaKey: string = evaluatedCriteriaMetId || "none";
-      const existing:
-        | { count: number; rootCause: string | null; probeNames: Array<string> }
-        | undefined = criteriaAgreements.get(criteriaKey);
+      if (
+        (evaluatedStatusCriteriaId || null) !== (evaluatedCriteriaMetId || null)
+      ) {
+        isStatusApart = true;
+      }
 
       // Get probe name for this monitor probe
       const probeName: string = monitorProbe.probe?.name || "Unknown Probe";
 
-      if (existing) {
-        existing.count += 1;
-        existing.probeNames.push(probeName);
-      } else {
-        criteriaAgreements.set(criteriaKey, {
-          count: 1,
-          rootCause: evaluatedRootCause,
-          probeNames: [probeName],
-        });
-      }
+      // Record the result: what acts on the check, and what sets the status.
+      MonitorResourceUtil.countProbeVerdict({
+        counts: criteriaAgreements,
+        criteriaId: evaluatedCriteriaMetId,
+        rootCause: evaluatedRootCause,
+        probeName: probeName,
+      });
+
+      MonitorResourceUtil.countProbeVerdict({
+        counts: statusAgreements,
+        criteriaId: evaluatedStatusCriteriaId,
+        rootCause: evaluatedStatusRootCause,
+        probeName: probeName,
+      });
     }
 
     // Find the criteria with the most agreement
+    const winning: ProbeStatusAgreement = MonitorResourceUtil.pickProbeVerdict({
+      counts: criteriaAgreements,
+      requiredCount: effectiveThreshold,
+    });
+
+    const winningStatus: ProbeStatusAgreement =
+      MonitorResourceUtil.pickProbeVerdict({
+        counts: statusAgreements,
+        requiredCount: effectiveThreshold,
+      });
+
+    logger.debug(
+      `${monitor.id?.toString()} - Probe agreement check: ${winning.agreementCount}/${effectiveThreshold} probes agree on criteria "${winning.agreedCriteriaId || "none"}". Agreement ${winning.hasAgreement ? "reached" : "not reached"}.${isStatusApart ? ` On the status: ${winningStatus.agreementCount}/${effectiveThreshold}, ${winningStatus.hasAgreement ? "reached" : "not reached"}.` : ""}`,
+    );
+
+    return {
+      hasAgreement: winning.hasAgreement,
+      agreementCount: winning.agreementCount,
+      requiredCount: effectiveThreshold,
+      totalActiveProbes: activeProbes.length,
+      agreedCriteriaId: winning.agreedCriteriaId,
+      agreedRootCause: winning.agreedRootCause,
+      agreedProbeNames: winning.agreedProbeNames,
+      ...(isStatusApart ? { status: winningStatus } : {}),
+    };
+  }
+
+  /*
+   * The criteria that sets the status on a check (#11238), from its
+   * evaluation: what the evaluator says of it
+   * (ProbeApiIngestResponse.statusCriteriaId), or its first match whenever
+   * that one changes the status - the same, said of a check decided by its
+   * first match. Undefined: none of the criteria that change the status
+   * matched. A first match this monitor's criteria do not name sets the
+   * status, as any first match always did.
+   */
+  public static getStatusCriteriaIdOfCheck(input: {
+    response: Pick<
+      ProbeApiIngestResponse,
+      "criteriaMetId" | "statusCriteriaId"
+    >;
+    criteriaInstancesById: Dictionary<MonitorCriteriaInstance>;
+  }): string | undefined {
+    if (input.response.statusCriteriaId) {
+      return input.response.statusCriteriaId;
+    }
+
+    const criteriaMetId: string | undefined = input.response.criteriaMetId;
+
+    if (!criteriaMetId) {
+      return undefined;
+    }
+
+    const criteriaInstance: MonitorCriteriaInstance | undefined =
+      input.criteriaInstancesById[criteriaMetId];
+
+    if (
+      !criteriaInstance ||
+      MonitorCriteriaInstance.changesMonitorStatus(criteriaInstance.data)
+    ) {
+      return criteriaMetId;
+    }
+
+    return undefined;
+  }
+
+  // One probe's verdict, counted with the others' (checkProbeAgreement).
+  private static countProbeVerdict(input: {
+    counts: Map<string, ProbeVerdictCount>;
+    criteriaId: string | undefined;
+    rootCause: string | null;
+    probeName: string;
+  }): void {
+    const criteriaKey: string = input.criteriaId || "none";
+    const existing: ProbeVerdictCount | undefined =
+      input.counts.get(criteriaKey);
+
+    if (existing) {
+      existing.count += 1;
+      existing.probeNames.push(input.probeName);
+      return;
+    }
+
+    input.counts.set(criteriaKey, {
+      count: 1,
+      rootCause: input.rootCause,
+      probeNames: [input.probeName],
+    });
+  }
+
+  /*
+   * The verdict most probes reached, the first counted on a tie, and
+   * whether enough of them reached it. Nothing is agreed when they are too
+   * few.
+   */
+  private static pickProbeVerdict(input: {
+    counts: Map<string, ProbeVerdictCount>;
+    requiredCount: number;
+  }): ProbeStatusAgreement {
     let maxCount: number = 0;
     let winningCriteriaId: string | null = null;
     let winningRootCause: string | null = null;
     let winningProbeNames: Array<string> = [];
 
-    for (const [criteriaId, data] of criteriaAgreements) {
+    for (const [criteriaId, data] of input.counts) {
       if (data.count > maxCount) {
         maxCount = data.count;
         winningCriteriaId = criteriaId === "none" ? null : criteriaId;
@@ -3768,17 +4519,11 @@ export default class MonitorResourceUtil {
     }
 
     // Check if the winning criteria has reached the agreement threshold
-    const hasAgreement: boolean = maxCount >= effectiveThreshold;
-
-    logger.debug(
-      `${monitor.id?.toString()} - Probe agreement check: ${maxCount}/${effectiveThreshold} probes agree on criteria "${winningCriteriaId || "none"}". Agreement ${hasAgreement ? "reached" : "not reached"}.`,
-    );
+    const hasAgreement: boolean = maxCount >= input.requiredCount;
 
     return {
-      hasAgreement,
+      hasAgreement: hasAgreement,
       agreementCount: maxCount,
-      requiredCount: effectiveThreshold,
-      totalActiveProbes: activeProbes.length,
       agreedCriteriaId: hasAgreement ? winningCriteriaId : null,
       agreedRootCause: hasAgreement ? winningRootCause : null,
       agreedProbeNames: hasAgreement ? winningProbeNames : [],

@@ -47,8 +47,6 @@ import {
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
 } from "Common/Types/Rum/SessionReplay";
 import { DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE } from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
-import { Translator } from "Common/Types/Translator";
-import { getFilterChipOptionLabel } from "../../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import Permission from "Common/Types/Permission";
 import { JSONArray } from "Common/Types/JSON";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
@@ -85,6 +83,7 @@ const SOURCES: Record<string, string> = {
   listSearchQuery: `${DASHBOARD}/Components/SessionReplay/SessionReplaySearchQuery.ts`,
   listTable: `${DASHBOARD}/Components/SessionReplay/SessionReplayTable.tsx`,
   filterChip: `${DASHBOARD}/Components/ResourceOwners/FilterChipDropdown.tsx`,
+  filterChipTypes: `${DASHBOARD}/Components/ResourceOwners/FilterChipDropdownTypes.ts`,
   facetFilterBar: `${DASHBOARD}/Components/ResourceOwners/FacetFilterBar.tsx`,
   moreMenuItem: "packages/Common/UI/Components/MoreMenu/MoreMenuItem.tsx",
   tableHeaderControls:
@@ -1247,40 +1246,21 @@ describe("Session Replay: the session list's filters", () => {
     const table: string = source("listTable");
 
     /*
-     * The option list and the chosen value both show what
-     * getFilterChipOptionLabel calls the option: its own label, as the
-     * table writes it - never looked up - unless it is a saved pick whose
-     * record is gone or archived, which no option of this list is.
+     * The option list and the chosen value both show the option's own label,
+     * through getFilterChipOptionLabel (#11170): a record's name as written,
+     * never looked up - only a pick whose record is gone ("No longer
+     * available") or archived ("{{name}} (archived)") is put in words.
      */
-    expect(chip).toMatch(
-      /\{getFilterChipOptionLabel\(\s*option,\s*translator,?\s*\)\}/,
-    );
+    expect(chip).toContain("{getFilterChipOptionLabel(option, translator)}");
     expect(chip).toContain(
       "return getFilterChipOptionLabel(selectedOptions[0]!, translator);",
     );
     expect(chip).not.toMatch(/translate\w*\(\s*option\.label/);
-
-    const lookedUp: Array<string> = [];
-    const translator: Pick<Translator, "translateText" | "translateTemplate"> =
-      {
-        translateText: (text: string | undefined): string | undefined => {
-          lookedUp.push(String(text));
-          return `[${text}]`;
-        },
-        translateTemplate: (template: string): string => {
-          lookedUp.push(template);
-          return `[${template}]`;
-        },
-      };
-
-    for (const label of optionLabels(
-      "SESSION_REPLAY_SIGNAL_OPTIONS: Array<SessionReplaySignalOption> = [",
-    )) {
-      expect(
-        getFilterChipOptionLabel({ value: label, label: label }, translator),
-      ).toBe(label);
-    }
-    expect(lookedUp).toEqual([]);
+    const chipLabel: string = source("filterChipTypes");
+    expect(chipLabel).toMatch(
+      /export const getFilterChipOptionLabel[\s\S]*?\n {2}return option\.label;\n\};/,
+    );
+    expect(chipLabel).not.toMatch(/translate\w*\(\s*option\.label/);
     // The order is a ticked item per option in the Sort section of the ⋯.
     expect(table).toContain('<MoreMenuSection key="sort" title="Sort">');
     expect(table).toContain("{SESSION_REPLAY_SORT_OPTIONS.map(");

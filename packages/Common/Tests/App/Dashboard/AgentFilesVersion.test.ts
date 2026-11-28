@@ -121,14 +121,15 @@ const AGENT_FILES: Array<AgentFilesPin> = [
    * Its files first ship in 18.0.0 (17.3.0 has no XCP-ng agent), so a change
    * before that release is still the files 0.165.0 ships as: XO_NAME's
    * default quiet when XO_ADDRESS is unset (Tests/Ops/ComposeQuietStart),
-   * which a running agent reads the same.
+   * which a running agent reads the same, and the XCP-ng AI agent beside the
+   * collector (#10998).
    */
   {
     kind: AgentKind.XcpNgAgent,
     directory: "XcpNgAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
     version: "0.165.0",
-    digest: "12267f47894fd07eb839472dc1e6a16d55b15dba0a59436a3c03b941c91b89d4",
+    digest: "408bc99bdc5f93bc09e2a0c1ac3bea3b1811d501999dd1f862a40e503096b73c",
   },
 ];
 

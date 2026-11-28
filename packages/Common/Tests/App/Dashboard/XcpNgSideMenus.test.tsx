@@ -7,7 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, screen } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -206,17 +206,29 @@ describe("the XCP-ng product side menu", () => {
     ]);
   });
 
-  test("the XCP-ng section reaches every pool and the install guide", async () => {
+  test("the XCP-ng section reaches every pool, the connections a probe reads and the install guide", async () => {
     await renderMenu(<XcpNgSideMenu />);
 
     expect(linksIn("XCP-ng")).toEqual([
       { title: "All Pools", href: routeFor(PageMap.XCP_NG_POOLS) },
+      { title: "Connections", href: routeFor(PageMap.XCP_NG_CONNECTIONS) },
       {
         title: "Documentation",
         href: routeFor(PageMap.XCP_NG_DOCUMENTATION),
       },
     ]);
-    expect(iconCountIn("XCP-ng")).toBe(2);
+    expect(iconCountIn("XCP-ng")).toBe(3);
+  });
+
+  test("a connection's own page marks Connections", async () => {
+    goTo(
+      routeFor(PageMap.XCP_NG_CONNECTIONS) +
+        "/9e8d7c6b-2222-4a1b-9c0d-000000000001",
+    );
+
+    await renderMenu(<XcpNgSideMenu />);
+
+    expect(activeLinkTitles()).toEqual(["Connections"]);
   });
 
   test("the list's own page marks All Pools", async () => {
@@ -310,12 +322,12 @@ describe("the XCP-ng product side menu", () => {
     const productPages: Array<string> = [
       PageMap.XCP_NG_POOLS,
       ...Object.keys(XcpNgRoutePath).filter((key: string): boolean => {
-        // A pool's pages, and a rule's own view page, are not menu entries.
+        // A pool's pages, and a rule's or a connection's own page, are not menu entries.
         return !XcpNgRoutePath[key]!.includes(":id");
       }),
     ];
 
-    expect(productPages).toHaveLength(6);
+    expect(productPages).toHaveLength(7);
     for (const key of productPages) {
       expect(hrefs).toContain(routeFor(key));
     }
@@ -342,11 +354,12 @@ describe("one XCP-ng pool's side menu", () => {
     cleanup();
   });
 
-  test("has the Basic, Observability, Activity, Developer and Advanced sections, in order", async () => {
+  test("has the Basic, AI, Observability, Activity, Developer and Advanced sections, in order", async () => {
     await renderPoolMenu();
 
     expect(sectionTitlesInOrder()).toEqual([
       "Basic",
+      "AI",
       "Observability",
       "Activity",
       "Developer",
@@ -365,6 +378,22 @@ describe("one XCP-ng pool's side menu", () => {
       {
         title: "Topology",
         href: poolRoute(PageMap.XCP_NG_POOL_VIEW_TOPOLOGY),
+      },
+    ]);
+  });
+
+  test("AI holds what OneUptime AI learned and did on the pool, then the XCP-ng AI agent it works through", async () => {
+    await renderPoolMenu();
+
+    expect(linksIn("AI")).toEqual([
+      {
+        title: "Insights",
+        href: poolRoute(PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS),
+      },
+      { title: "Logs", href: poolRoute(PageMap.XCP_NG_POOL_VIEW_AI_LOGS) },
+      {
+        title: "AI agent",
+        href: poolRoute(PageMap.XCP_NG_POOL_VIEW_AI_AGENT),
       },
     ]);
   });
@@ -403,7 +432,6 @@ describe("one XCP-ng pool's side menu", () => {
     ]);
   });
 
-  // Its history right before Delete, as on every resource's menu (#6246).
   test("Advanced holds who owns it, its settings, its install guide, its history and Delete", async () => {
     await renderPoolMenu();
 
@@ -428,10 +456,12 @@ describe("one XCP-ng pool's side menu", () => {
     ]);
   });
 
-  test("the everyday sections start open; Developer and Advanced start folded", async () => {
+  test("the everyday sections start open; AI, Developer and Advanced start folded", async () => {
     await renderPoolMenu();
 
     expect(isExpanded("Basic")).toBe(true);
+    // As on every resource with an AI agent: it opens on its own pages.
+    expect(isExpanded("AI")).toBe(false);
     expect(isExpanded("Observability")).toBe(true);
     expect(isExpanded("Activity")).toBe(true);
     expect(isExpanded("Developer")).toBe(false);
@@ -519,9 +549,10 @@ describe("one XCP-ng pool's side menu", () => {
 
     // Terraform, Crossplane, API, CLI and AI Assistants.
     expect(developerHrefs).toHaveLength(5);
-    expect(viewPages).toHaveLength(18);
-    expect(hrefs).toHaveLength(18);
-    expect(new Set(hrefs).size).toBe(18);
+    // 18 of the pool's own pages, and its three AI pages.
+    expect(viewPages).toHaveLength(21);
+    expect(hrefs).toHaveLength(21);
+    expect(new Set(hrefs).size).toBe(21);
     for (const key of viewPages) {
       expect(hrefs).toContain(poolRoute(key));
     }
@@ -545,6 +576,7 @@ describe("one XCP-ng pool's side menu", () => {
     await renderPoolMenu();
 
     expect(iconCountIn("Basic")).toBe(5);
+    expect(iconCountIn("AI")).toBe(3);
     expect(iconCountIn("Observability")).toBe(4);
     expect(iconCountIn("Activity")).toBe(4);
     expect(iconCountIn("Advanced")).toBe(5);
@@ -555,6 +587,9 @@ describe("one XCP-ng pool's side menu", () => {
     [PageMap.XCP_NG_POOL_VIEW_VMS, "VMs", "Basic"],
     [PageMap.XCP_NG_POOL_VIEW_STORAGE, "Storage", "Basic"],
     [PageMap.XCP_NG_POOL_VIEW_TOPOLOGY, "Topology", "Basic"],
+    [PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS, "Insights", "AI"],
+    [PageMap.XCP_NG_POOL_VIEW_AI_LOGS, "Logs", "AI"],
+    [PageMap.XCP_NG_POOL_VIEW_AI_AGENT, "AI agent", "AI"],
     [PageMap.XCP_NG_POOL_VIEW_INSIGHTS, "Resource Usage", "Observability"],
     [PageMap.XCP_NG_POOL_VIEW_METRICS, "Metrics", "Observability"],
     [PageMap.XCP_NG_POOL_VIEW_LOGS, "Logs", "Observability"],
@@ -572,8 +607,11 @@ describe("one XCP-ng pool's side menu", () => {
       await renderPoolMenu();
 
       expect(isExpanded(section)).toBe(true);
+      // Within its section: AI and Observability each have a Logs.
       expect(
-        screen.getByRole("link", { name: new RegExp(`^${title}`) }),
+        within(sectionBody(section)).getByRole("link", {
+          name: new RegExp(`^${title}`),
+        }),
       ).toHaveClass("bg-indigo-50");
     },
   );

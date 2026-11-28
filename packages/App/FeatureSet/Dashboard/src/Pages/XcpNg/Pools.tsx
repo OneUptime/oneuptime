@@ -48,6 +48,8 @@ import {
   getXcpNgPoolConnection,
 } from "./Utils/XcpNgPoolConnection";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import Navigation from "Common/UI/Utils/Navigation";
+import { XCP_NG_CONNECT_QUERY_PARAM } from "../../Components/XcpNg/XcpNgConnectionView";
 import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
 import { getStorageUsage } from "Common/Utils/Storage/StorageUsage";
 
@@ -236,8 +238,26 @@ const XcpNgPools: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "XCP-ng Pools",
           description:
-            "XCP-ng pools being monitored in this project, read from the Xen Orchestra that manages them. Install the OneUptime XCP-ng Agent next to Xen Orchestra to connect its pools.",
+            "XCP-ng pools being monitored in this project. Install the OneUptime XCP-ng Agent next to Xen Orchestra, or have a probe read Xen Orchestra or the pool itself, with nothing to install.",
           buttons: [
+            /*
+             * The probe's way in (#10996, #10999): Connect on the
+             * Connections page, opened from here.
+             */
+            {
+              title: "Connect Without an Agent",
+              icon: IconProp.Link,
+              buttonStyle: ButtonStyleType.OUTLINE,
+              onClick: () => {
+                Navigation.navigate(
+                  new Route(
+                    `${RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.XCP_NG_CONNECTIONS] as Route,
+                    ).toString()}?${XCP_NG_CONNECT_QUERY_PARAM}=1`,
+                  ),
+                );
+              },
+            },
             {
               title: XCP_NG_POOL_ONBOARDING.addTitle,
               icon: IconProp.Add,

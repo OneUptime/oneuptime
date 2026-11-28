@@ -103,7 +103,7 @@ export default class CronTab {
 
     if (typeof crontab !== "string" || !Number.isFinite(afterInMs)) {
       throw new BadDataException(
-        `Cannot work out the run of "${crontab}" after ${String(after)}. Pass a cron schedule and a valid date.`,
+        `The next run of "${crontab}" after ${String(after)} cannot be worked out: the schedule must be a cron expression, and the time a valid date.`,
       );
     }
 
@@ -132,7 +132,7 @@ export default class CronTab {
         .getTime();
     } catch {
       throw new BadDataException(
-        `Invalid cron expression: ${crontab}. Write a schedule cron can read, such as "*/5 * * * *" for every five minutes.`,
+        `The schedule "${crontab}" is not a cron expression OneUptime can read. Check it, then save it again.`,
       );
     }
 

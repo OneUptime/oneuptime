@@ -17,7 +17,6 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
-import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * Issue #4105 on the storage array pages. Every time-series chart on them
@@ -294,6 +293,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import TimeRange from "../../../Types/Time/TimeRange";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -473,6 +473,14 @@ function sectionMetricView(section: InsightsSection): string {
 }
 
 beforeEach(() => {
+  /*
+   * Which of the array's alerts watch a part is the server's answer
+   * (POST /monitor/recommendation-coverage, #11074): this project has no
+   * monitors, so none does.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
   mockLastParam = "";
@@ -488,13 +496,6 @@ beforeEach(() => {
     mock.mockReset();
   }
   arrange();
-  /*
-   * A part's alerts card asks the server which of its recommended alerts a
-   * monitor covers (#11074): none does yet.
-   */
-  serveCoverageFrom(() => {
-    return [];
-  });
 });
 
 afterEach(() => {

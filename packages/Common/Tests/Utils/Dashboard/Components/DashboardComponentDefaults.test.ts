@@ -48,6 +48,7 @@ import DashboardXcpNgHostListComponentUtil from "../../../../Utils/Dashboard/Com
 import DashboardXcpNgVmListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardXcpNgVmListComponent";
 import DashboardProductAnalyticsFunnelComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProductAnalyticsFunnelComponent";
 import DashboardProductAnalyticsRetentionComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProductAnalyticsRetentionComponent";
+import DashboardCloudCostComponentUtil from "../../../../Utils/Dashboard/Components/DashboardCloudCostComponent";
 import DashboardSecurityEventsFlowComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSecurityEventsFlowComponent";
 import DashboardSecurityEventsListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSecurityEventsListComponent";
 import DashboardSloComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSloComponent";
@@ -112,6 +113,7 @@ const TYPE_TO_UTIL: Record<DashboardComponentType, ComponentUtil> = {
     DashboardProductAnalyticsFunnelComponentUtil,
   [DashboardComponentType.ProductAnalyticsRetention]:
     DashboardProductAnalyticsRetentionComponentUtil,
+  [DashboardComponentType.CloudCost]: DashboardCloudCostComponentUtil,
   [DashboardComponentType.TraceList]: DashboardTraceListComponentUtil,
   [DashboardComponentType.TraceChart]: DashboardTraceChartComponentUtil,
   [DashboardComponentType.TraceTable]: DashboardTraceTableComponentUtil,

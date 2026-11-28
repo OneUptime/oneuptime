@@ -289,4 +289,12 @@ export const XCP_NG_INVENTORY_SELECT: Record<string, boolean> = {
   tags: true,
   metricsUpdatedAt: true,
   lastSeenAt: true,
+  // What a probe reads from Xen Orchestra (#10997).
+  lastBackupAt: true,
+  lastBackupStatus: true,
+  lastSuccessfulBackupAt: true,
+  lastBackupJobName: true,
+  lastBackupError: true,
+  backupIntervalSeconds: true,
+  missingPatchCount: true,
 };

@@ -1,3 +1,4 @@
+import CloudAccount from "../../../../../Models/DatabaseModels/CloudAccount";
 import CloudConnection from "../../../../../Models/DatabaseModels/CloudConnection";
 import { CloudProvider } from "../../../../../Types/Cloud/CloudPlatform";
 import {
@@ -10,7 +11,9 @@ import {
   AccountChange,
   AccountChangeProvider,
 } from "../../../../../Utils/SecurityCase/AttackAccountChanges";
+import CloudAccountService from "../../../../Services/CloudAccountService";
 import CloudConnectionService from "../../../../Services/CloudConnectionService";
+import QueryHelper from "../../../../Types/Database/QueryHelper";
 import AwsCloudConnector from "../../../CloudConnection/Aws/AwsCloudConnector";
 import {
   AwsIamCallOptions,
@@ -33,23 +36,29 @@ import { AccountChangeAnswer } from "./AccountChangesState";
  * THE AWS IAM CHANGES AN ATTACK MADE, READ BACK THROUGH THE PROJECT'S AWS
  * CLOUD CONNECTIONS (#10900).
  *
- * An IAM user is one account's: a change is read only through a connection
- * that signs in to the account the change was made in - never another,
- * where a user of the same name being missing would read as the change
- * undone. In order:
+ * An IAM user or role is one account's: a change is read only through a
+ * connection that signs in to the account the change was made in - never
+ * another, where a user of the same name being missing would read as the
+ * change undone. In order:
  *
  *   1. the connection whose Cloud audit logs read the change's event;
  *   2. a connection whose role is in that account;
- *   3. a connection that reads an organization, through the role its
+ *   3. the connection the project's Cloud Accounts say found that account
+ *      (CloudAccount.cloudConnectionId, #11039): an organization's, which
+ *      reads each member account, or an access key's own;
+ *   4. a connection that reads an organization, through the role its
  *      StackSet put in that account - one it cannot sign in to does not
  *      reach the account;
- *   4. a connection with an access key of that account, as STS's
+ *   5. a connection with an access key of that account, as STS's
  *      GetCallerIdentity says.
  *
  * A connection whose Security case checks are off is never asked anything
- * of IAM: a connection known to reach the account (1, 2) makes the change
+ * of IAM: a connection known to reach the account (1-3) makes the change
  * "not granted", which its step says how to grant, and a person confirms
- * it. With no connection that reaches the account, the step says so.
+ * it. With no connection that reaches the account, the step says so. Each
+ * answer names the connection that reaches the account, when one does, and
+ * whether its Security case checks are on: the one the step's line links
+ * to, to edit (#11039).
  */
 
 export interface AwsAccountChangesOptions extends AwsIamCallOptions {
@@ -94,10 +103,62 @@ interface AwsReader {
 // The most AWS connections of a project read for a case.
 export const AWS_ACCOUNT_CHANGE_CONNECTIONS_MAX: number = 20;
 
+/*
+ * The most of the project's cloud accounts looked up for a case's changes:
+ * each change names one (ACCOUNT_CHANGES_MAX), and two connections may
+ * have found it.
+ */
+const CLOUD_ACCOUNTS_MAX: number = 50;
+
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message
     ? error.message
     : String(error || "unknown error");
+}
+
+/*
+ * Which connections found each AWS account the changes name, as the
+ * project's Cloud Accounts keep it: an account id's connections. A lookup
+ * that fails leaves the other ways to reach an account.
+ */
+async function findAccountReaders(data: {
+  projectId: ObjectID;
+  accountIds: Array<string>;
+}): Promise<Map<string, Set<string>>> {
+  const found: Map<string, Set<string>> = new Map();
+
+  if (data.accountIds.length === 0) {
+    return found;
+  }
+
+  try {
+    const accounts: Array<CloudAccount> = await CloudAccountService.findBy({
+      query: {
+        projectId: data.projectId,
+        provider: CloudProvider.AWS,
+        accountId: QueryHelper.any(data.accountIds),
+      },
+      select: { _id: true, accountId: true, cloudConnectionId: true },
+      skip: 0,
+      limit: CLOUD_ACCOUNTS_MAX,
+      props: { isRoot: true },
+    });
+
+    for (const account of accounts) {
+      if (!account.accountId || !account.cloudConnectionId) {
+        continue;
+      }
+
+      const readers: Set<string> = found.get(account.accountId) || new Set();
+
+      readers.add(account.cloudConnectionId.toString());
+      found.set(account.accountId, readers);
+    }
+  } catch {
+    // The other ways to reach each account still hold.
+  }
+
+  return found;
 }
 
 // The project's AWS cloud connections that are on, as these reads take them.
@@ -196,6 +257,20 @@ export default class AwsAccountChanges {
 
     const options: AwsAccountChangesOptions = data.options || {};
     const readers: Array<AwsReader> = await findReaders(data.projectId);
+    const accountReaders: Map<string, Set<string>> = readers.length > 0
+      ? await findAccountReaders({
+          projectId: data.projectId,
+          accountIds: Array.from(
+            new Set(
+              changes
+                .map((change: AccountChange): string => {
+                  return change.cloudAccountId;
+                })
+                .filter(Boolean),
+            ),
+          ),
+        })
+      : new Map();
     const openSession: NonNullable<AwsAccountChangesOptions["openSession"]> =
       options.openSession || openAwsIamSession;
     const readChange: NonNullable<AwsAccountChangesOptions["readChange"]> =
@@ -288,6 +363,8 @@ export default class AwsAccountChanges {
         await AwsAccountChanges.readOne({
           change,
           readers,
+          accountReaders:
+            accountReaders.get(change.cloudAccountId) || new Set<string>(),
           readChange,
           sessionOf,
           keyAccountOf,
@@ -301,6 +378,8 @@ export default class AwsAccountChanges {
   private static async readOne(data: {
     change: AccountChange;
     readers: Array<AwsReader>;
+    // The connections the project's Cloud Accounts say found the change's account.
+    accountReaders: Set<string>;
     readChange: NonNullable<AwsAccountChangesOptions["readChange"]>;
     sessionOf: (
       reader: AwsReader,
@@ -331,21 +410,46 @@ export default class AwsAccountChanges {
 
     /*
      * The connections known to reach the account without asking AWS: the
-     * event's first, then a role in it.
+     * event's first, then a role in it, then the one the project's Cloud
+     * Accounts say found it - an organization's member account, an access
+     * key's own.
      */
     const isEvents: (reader: AwsReader) => boolean = (
       reader: AwsReader,
     ): boolean => {
       return reader.id.toString() === change.cloudConnectionId;
     };
+    const isRoleIn: (reader: AwsReader) => boolean = (
+      reader: AwsReader,
+    ): boolean => {
+      return !isEvents(reader) && reader.roleAccountId === accountId;
+    };
+    const found: Array<AwsReader> = readers.filter(
+      (reader: AwsReader): boolean => {
+        return (
+          !isEvents(reader) &&
+          !isRoleIn(reader) &&
+          data.accountReaders.has(reader.id.toString())
+        );
+      },
+    );
     const known: Array<AwsReader> = [
       ...readers.filter(isEvents),
-      ...readers.filter((reader: AwsReader): boolean => {
-        return !isEvents(reader) && reader.roleAccountId === accountId;
-      }),
+      ...readers.filter(isRoleIn),
+      ...found,
     ];
     const knownIds: Set<string> = new Set(
       known.map((reader: AwsReader): string => {
+        return reader.id.toString();
+      }),
+    );
+    /*
+     * An organization the Cloud Accounts know of signs in to the member
+     * account through its StackSet's role: one it no longer can (an account
+     * that left) does not reach it, as for any organization.
+     */
+    const foundIds: Set<string> = new Set(
+      found.map((reader: AwsReader): string => {
         return reader.id.toString();
       }),
     );
@@ -360,7 +464,10 @@ export default class AwsAccountChanges {
         );
       },
     );
-    let reached: boolean = known.length > 0;
+    // Known to reach the account, but asked nothing of IAM: their Security case checks are off.
+    const off: Array<AwsReader> = known.filter((reader: AwsReader): boolean => {
+      return !reader.isChecking;
+    });
     let error: string | undefined = undefined;
 
     for (const reader of [...known, ...others]) {
@@ -369,7 +476,8 @@ export default class AwsAccountChanges {
       }
 
       try {
-        const isKnown: boolean = knownIds.has(reader.id.toString());
+        const id: string = reader.id.toString();
+        const isKnown: boolean = knownIds.has(id);
 
         // An access key reads its own account only.
         if (
@@ -383,22 +491,20 @@ export default class AwsAccountChanges {
         const session: AwsIamSession | null = await data.sessionOf(
           reader,
           accountId,
-          !isKnown && reader.isOrganization,
+          (!isKnown || foundIds.has(id)) && reader.isOrganization,
         );
 
         if (!session) {
           continue;
         }
 
-        reached = true;
-
         return {
           change,
           facts: await data.readChange({ session, change }),
           hasConnection: true,
+          reader: { connectionId: id, isChecking: true },
         };
       } catch (readError) {
-        reached = true;
         error = errorMessage(readError);
       }
     }
@@ -407,8 +513,8 @@ export default class AwsAccountChanges {
       return { change, facts: null, error, hasConnection: true };
     }
 
-    // Reached, but by connections that may not read IAM: the step says how to grant it.
-    if (reached) {
+    // Reached, but by connections that may not read IAM: the step says how to grant it, on the first.
+    if (off.length > 0) {
       return {
         change,
         facts: {
@@ -417,6 +523,7 @@ export default class AwsAccountChanges {
           reason: AccountChangeUnknownReason.NotGranted,
         },
         hasConnection: true,
+        reader: { connectionId: off[0]!.id.toString(), isChecking: false },
       };
     }
 

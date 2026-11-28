@@ -364,6 +364,24 @@ function dotenvVariables(): Array<string> {
     });
 }
 
+/*
+ * The variables only the XCP-ng AI agent reads (its service in
+ * docker-compose.yml, under the xcp-ng-ai-agent profile), each with a
+ * default: a quick start that runs the collector alone sets none of them.
+ */
+const AI_AGENT_VARIABLES: ReadonlyArray<string> = [
+  "XCP_NG_POOL_ID",
+  "ONEUPTIME_AI_AGENT_RESOURCE_NAME",
+  "ONEUPTIME_AI_XO_READ_TOKEN",
+  "ONEUPTIME_AI_XO_WRITE_TOKEN",
+  "ONEUPTIME_AI_INVESTIGATION",
+  "ONEUPTIME_AI_FIXES",
+  "ONEUPTIME_AI_ALLOW_WRITES",
+  "ONEUPTIME_AI_WRITE_TARGETS",
+  "ONEUPTIME_AI_PROTECTED_TARGETS",
+  "LOG_LEVEL",
+];
+
 /* The variables docker-compose.yml reads from the .env next to it. */
 function composeVariables(): Array<string> {
   return Array.from(
@@ -724,7 +742,7 @@ describe("XCP-ng docs", (): void => {
       expect(readPage(MONITOR_PAGE)).toContain(`](/docs/${TELEMETRY_PAGE})`);
     });
 
-    it("carry no Proxmox, storage array or AI agent concepts", (): void => {
+    it("carry no Proxmox or storage array concepts, and the AI agent only where it is documented", (): void => {
       for (const page of OWNED_PAGES) {
         const markdown: string = readPage(page);
 
@@ -733,8 +751,8 @@ describe("XCP-ng docs", (): void => {
           "PVE_",
           "proxmox.cluster.name",
           "storage.array.name",
-          "ONEUPTIME_AI_",
-          "AI agent",
+          // The agent page documents the XCP-ng AI agent (#10998); the monitor page does not.
+          ...(page === TELEMETRY_PAGE ? [] : ["ONEUPTIME_AI_", "AI agent"]),
           "insecure_skip_verify",
           "INSECURE_SKIP_VERIFY",
         ]) {
@@ -797,10 +815,17 @@ describe("XCP-ng docs", (): void => {
       ).toEqual([
         `XCP-ng Agent -> /docs/${TELEMETRY_PAGE}`,
         `XCP-ng Monitor -> /docs/${MONITOR_PAGE}`,
+        // Reading the same pools from a probe (#10996, #10999).
+        "XCP-ng Without an Agent -> /docs/telemetry/xcp-ng-agentless",
       ]);
     });
 
-    it("resolves only to its own page from either URL (the nav matches pages by substring)", (): void => {
+    /*
+     * The docs route finds a page's nav link by its whole URL (Docs/Index.ts,
+     * isCurrentPage), so telemetry/xcp-ng-agentless beside telemetry/xcp-ng
+     * is its own page, as vmware-agentless is beside vmware.
+     */
+    it("resolves only to its own page from either URL", (): void => {
       for (const page of OWNED_PAGES) {
         const matching: Array<string> = DocsNav.flatMap(
           (group: NavGroup): Array<NavLink> => {
@@ -808,7 +833,7 @@ describe("XCP-ng docs", (): void => {
           },
         )
           .filter((link: NavLink): boolean => {
-            return link.url.toLowerCase().includes(page);
+            return link.url.toLowerCase() === `/docs/${page}`;
           })
           .map((link: NavLink): string => {
             return link.url;
@@ -1264,7 +1289,12 @@ describe("XCP-ng docs", (): void => {
         })
         .sort();
 
-      expect(written).toEqual(composeVariables());
+      // The collector's: the AI agent's, all optional, are in its own section.
+      expect(written).toEqual(
+        composeVariables().filter((name: string): boolean => {
+          return !AI_AGENT_VARIABLES.includes(name);
+        }),
+      );
       expect(env).toContain("XO_OPENMETRICS_SECRET='");
       expect(quickStart).toContain(
         getXcpNgAgentDownloadCommand(DOCS_ONEUPTIME_URL),

@@ -110,24 +110,27 @@ const EVENT_TYPE_LABELS: Map<string, string> = new Map<string, string>([
   ["AiProposalExpired", "AI Proposal Expired"],
   ["AiResponse", "AI Response"],
   ["LifecycleEvent", "Lifecycle Event"],
+  // What XAPI and Xen Orchestra say of an XCP-ng pool (#10997).
+  ["XcpNgPoolMessage", "XCP-ng Pool Message"],
+  ["XcpNgPoolHaChanged", "XCP-ng Pool High Availability Changed"],
 ]);
 
 /*
  * Runs that camel-case splitting would get wrong, matched before any other
  * word: "VMware" would split into "V Mware", "OpenStack" into "Open Stack",
- * "XcpNg" into "Xcp Ng" (the product is XCP-ng), "OnCall" should read
- * "On-Call", and the SLO feed's "ServiceLevelObjective" prefix is written
- * "SLO" everywhere else in the dashboard. "OnCallDuty" is the stored name
- * of on-call policies and schedules: the product calls them "On-Call" since
- * "On-Call Duty" was retired (#6817), so "OnCallDutyScheduleAdded" reads
- * "On-Call Schedule Added". It comes before "OnCall", which would otherwise
- * match first.
+ * "OnCall" should read "On-Call", and the SLO feed's
+ * "ServiceLevelObjective" prefix is written "SLO" everywhere else in the
+ * dashboard. "OnCallDuty" is the stored name of on-call policies and
+ * schedules: the product calls them "On-Call" since "On-Call Duty" was
+ * retired (#6817), so "OnCallDutyScheduleAdded" reads "On-Call Schedule
+ * Added". It comes before "OnCall", which would otherwise match first.
  */
 const EVENT_TYPE_WORDS: Array<{ word: string; label: string }> = [
   { word: "ServiceLevelObjective", label: "SLO" },
   { word: "VMware", label: "VMware" },
   { word: "VCenter", label: "vCenter" },
   { word: "OpenStack", label: "OpenStack" },
+  // "XcpNgPoolCreated" read "Xcp Ng Pool Created".
   { word: "XcpNg", label: "XCP-ng" },
   { word: "OnCallDuty", label: "On-Call" },
   { word: "OnCall", label: "On-Call" },

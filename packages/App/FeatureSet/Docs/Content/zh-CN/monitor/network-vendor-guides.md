@@ -170,7 +170,7 @@ cnMaestro 可以把它的告警（例如接入点离线）发送到 HTTPS Webhoo
 
 之后，设备的 **接口** 页面会为每个 Fibre Channel 端口标出类型（例如 E-Port 或 F-Port），并像 `switchshow` 那样说明停机端口停机的原因：No light、No module、Disabled。它的 **Fibre Channel 端口** 卡片按秒绘制每个端口的错误、丢弃的帧和信用计数器。
 
-端口的 CRC 错误、无效传输字、链路故障以及同步和信号丢失就是它的错误：**SNMP 接口错误（每秒）** 据此报警，推荐的警报包含 **Fibre Channel port errors**，在十秒超过一个错误时触发。丢弃的帧和信用等待不是错误；要按其中之一报警，请使用 **SNMP Fibre Channel 计数器（每秒）**。
+端口的 CRC 错误、无效传输字、链路故障以及同步和信号丢失就是它的错误：**SNMP 接口错误（每秒）** 据此发出警报，推荐的警报包含 **Fibre Channel port errors**，在十秒超过一个错误时触发。丢弃的帧和信用等待不是错误；要针对其中之一发出警报，请使用 **SNMP Fibre Channel 计数器（每秒）**。
 
 ### Virtual Fabrics
 

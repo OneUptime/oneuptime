@@ -33,6 +33,35 @@ const STATUS_WORDS: Record<string, string> = {
   empty: translationKey("Empty"),
   unused: translationKey("Unused"),
   disabled: translationKey("Disabled"),
+  // NetApp ONTAP's words for its parts' states.
+  offline: translationKey("Offline"),
+  restricted: translationKey("Restricted"),
+  inconsistent: translationKey("Inconsistent"),
+  mixed: translationKey("Mixed"),
+  running: translationKey("Running"),
+  stopped: translationKey("Stopped"),
+  starting: translationKey("Starting"),
+  stopping: translationKey("Stopping"),
+  // An Ethernet port's link, never a machine that is down (MeaningKeys).
+  up: translationKey("Up (port link)"),
+  down: translationKey("Down (port link)"),
+  broken: translationKey("Broken"),
+  spare: translationKey("Spare"),
+  // A disk no node owns yet, never a case nobody has taken (MeaningKeys).
+  unassigned: translationKey("Unassigned (disk not owned by a node)"),
+  normal: translationKey("Normal"),
+  error: translationKey("Error"),
+  "critical-low": translationKey("Critical Low"),
+  "critical-high": translationKey("Critical High"),
+  "warning-low": translationKey("Warning Low"),
+  "warning-high": translationKey("Warning High"),
+  offlined_by_system: translationKey("Offlined by System"),
+  link_not_connected: translationKey("Link Not Connected"),
+  snapmirrored: translationKey("Snapmirrored"),
+  "broken-off": translationKey("Broken Off"),
+  uninitialized: translationKey("Uninitialized"),
+  idle: translationKey("Idle"),
+  transferring: translationKey("Transferring"),
 };
 
 /*

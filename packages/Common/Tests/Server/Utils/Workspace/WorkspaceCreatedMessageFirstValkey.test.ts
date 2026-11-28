@@ -300,7 +300,15 @@ afterEach(async () => {
   untune();
 
   if (lineKeys.length > 0) {
-    await inspector.del(...lineKeys);
+    // Each line, its messages' claims (#11235), and its place in the index of lines to look after.
+    const claims: Array<string> = [];
+
+    for (const lineKey of lineKeys) {
+      claims.push(...(await inspector.keys(`${lineKey}:claim:*`)));
+    }
+
+    await inspector.del(...lineKeys, ...claims);
+    await inspector.zrem(`${LINE_KEY_PREFIX}lines-to-look-after`, ...lineKeys);
   }
 });
 

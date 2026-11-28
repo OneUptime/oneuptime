@@ -423,6 +423,12 @@ Accanto è disponibile l'intero payload, quindi funzionano sia un titolo di inci
 
 Per una configurazione completa di Alertmanager, consultate [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Per Grafana, consultate [Grafana](/docs/integrations/grafana).
 
+### Mantenerlo controllato durante gli incidenti
+
+Un incidente che qualcuno dichiara su questo monitor — da uno dei suoi avvisi, per esempio, con **Dichiara incidente** — ne mette in pausa i controlli finché l'incidente non viene risolto, quindi le richieste che arrivano nel frattempo non vengono valutate: non aprono né risolvono avvisi. Ciascuna viene comunque elencata nei **Log di monitoraggio** del monitor, così come è arrivata, con il motivo per cui non è stata valutata.
+
+Per un monitor a cui altri sistemi inviano i loro avvisi, un incidente su un avviso non dovrebbe impedirgli di leggere il successivo. Aprite le **Impostazioni** del monitor e, sotto **Durante gli incidenti**, attivate **Continua il monitoraggio durante gli incidenti**: gli incidenti dichiarati su di esso lo lasciano allora controllato, compresi quelli già aperti. Per mantenerlo controllato per un solo incidente, togliete la spunta a **Metti in pausa il monitoraggio** quando lo dichiarate. Vedete [Monitoraggio mentre un incidente è aperto](/docs/incidents/declaring-incidents#monitoraggio-mentre-un-incidente-è-aperto).
+
 ## Pubblicare su Slack senza chiamare nessuno
 
 Un ambiente di staging, o un prodotto i cui problemi possono aspettare, può voler pubblicare una richiesta in un canale di chat senza chiamare nessuno. Lo fa un avviso che non nomina alcuna policy di reperibilità: viene pubblicato su Slack, Microsoft Teams o Mattermost tramite le regole dell'area di lavoro del progetto, e non avvia alcuna escalation.
@@ -506,11 +512,16 @@ Event Grid convalida un endpoint che gli restituisce un codice, o il cui proprie
 3. **Usate POST con `Content-Type: application/json`**: tutto ciò che legge dentro il corpo dipende da questo.
 4. **Non mescolate i due compiti su un monitor**: un monitor che riceve avvisi guidati dagli eventi non ha una cadenza regolare, quindi un criterio "Non ricevuto in minuti" su di esso oscillerebbe. Usate un monitor separato per l'interruttore a uomo morto.
 5. **Monitorate il monitor**: assicuratevi che il servizio che invia le richieste gestisca bene gli errori, così le richieste fallite non passano inosservate.
+6. **Mantenete controllato un ricevitore di eventi durante gli incidenti**: su un monitor che riceve avvisi da un altro sistema, attivate **Continua il monitoraggio durante gli incidenti** nelle sue **Impostazioni**, così un incidente dichiarato su di esso non lo mette in pausa. Vedete [Mantenerlo controllato durante gli incidenti](#mantenerlo-controllato-durante-gli-incidenti).
 
 ## Risoluzione dei problemi
 
 :::details Il mittente riceve un 200, ma sul monitor non compare nulla
 Il `200` viene inviato prima che la richiesta sia convalidata, quindi non dimostra che sia stata accettata. Controllate che la chiave segreta nell'URL corrisponda all'**Heartbeat URL** del monitor, e che il monitor non sia disattivato. Poi guardate la cronologia del monitor per vedere se le richieste arrivano.
+:::
+
+:::details Le richieste arrivano, ma il monitor non apre avvisi mentre un incidente è aperto
+Un incidente dichiarato a mano sul monitor ne mette in pausa i controlli, quindi le sue richieste vengono elencate nei suoi **Log di monitoraggio** come **Non valutato: il monitoraggio è in pausa a causa di un incidente**, e il banner sulle sue pagine lo dice. Attivate **Continua il monitoraggio durante gli incidenti** nelle sue **Impostazioni**: i suoi controlli ripartono subito, e le richieste successive vengono valutate. Le richieste elencate mentre era in pausa non vengono valutate dopo. Vedete [Mantenerlo controllato durante gli incidenti](#mantenerlo-controllato-durante-gli-incidenti).
 :::
 
 :::details Il mio mittente riceve un 401

@@ -351,6 +351,8 @@ export const STORAGE_ARRAY_HEALTHY_COMPONENT_STATUSES: ReadonlyArray<string> = [
   "enabled",
   "online",
   "replicating",
+  // A network port that is up (a PowerScale node's).
+  "up",
 ];
 
 export const HARDWARE_STATUS_COLORS: {

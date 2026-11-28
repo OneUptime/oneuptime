@@ -455,6 +455,19 @@ describe("getFeedEventTypeLabel", () => {
       VMwareVCenterFeedEventType.VMwareVCenterRestored,
       "VMware vCenter Restored",
     ],
+    // "XCP-ng" keeps its product spelling, never "Xcp Ng".
+    [XcpNgPoolFeedEventType.XcpNgPoolCreated, "XCP-ng Pool Created"],
+    [XcpNgPoolFeedEventType.XcpNgPoolBackupFailed, "XCP-ng Pool Backup Failed"],
+    [
+      XcpNgPoolFeedEventType.XcpNgPoolMasterChanged,
+      "XCP-ng Pool Master Changed",
+    ],
+    // What XAPI said, and HA by its name.
+    [XcpNgPoolFeedEventType.XcpNgPoolMessage, "XCP-ng Pool Message"],
+    [
+      XcpNgPoolFeedEventType.XcpNgPoolHaChanged,
+      "XCP-ng Pool High Availability Changed",
+    ],
     // "OpenStack" keeps its product spelling, never "Open Stack".
     [
       OpenStackCloudFeedEventType.OpenStackCloudCreated,
@@ -464,9 +477,6 @@ describe("getFeedEventTypeLabel", () => {
       OpenStackCloudFeedEventType.OpenStackCloudRestored,
       "OpenStack Cloud Restored",
     ],
-    // "XCP-ng" keeps its product spelling, never "Xcp Ng".
-    [XcpNgPoolFeedEventType.XcpNgPoolCreated, "XCP-ng Pool Created"],
-    [XcpNgPoolFeedEventType.XcpNgPoolRestored, "XCP-ng Pool Restored"],
     // The SLO feed's long prefix is "SLO" everywhere else in the dashboard.
     [
       ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveCreated,

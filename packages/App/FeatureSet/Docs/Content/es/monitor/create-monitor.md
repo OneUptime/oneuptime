@@ -63,7 +63,7 @@ Haga clic en **Siguiente**. Nada en este paso se marca como pendiente hasta que 
 
 ### Cómo se evalúan los criterios
 
-El resultado de cada comprobación pasa por los criterios de arriba abajo, y el primero que coincide decide qué ocurre. Ese criterio puede cambiar el estado del monitor, declarar un incidente, crear una alerta o cualquier combinación de las tres cosas. Cuando ninguno coincide, el monitor muestra su **Estado de monitor predeterminado**, que se configura en **Más campos** debajo de los criterios (**Operativo** salvo que elija otro).
+El resultado de cada comprobación pasa por los criterios de arriba abajo, y el primero que coincide decide qué ocurre. Ese criterio puede cambiar el estado del monitor, declarar un incidente, crear una alerta o cualquier combinación de las tres cosas. Uno que no cambia ningún estado no decide ninguno: lo fija el primer criterio de debajo que coincide y cambia el estado. Cuando ninguno coincide, el monitor muestra su **Estado de monitor predeterminado**, que se configura en **Más campos** debajo de los criterios (**Operativo** salvo que elija otro).
 
 ```mermaid title="De una comprobación a un estado, un incidente o una alerta"
 flowchart TB

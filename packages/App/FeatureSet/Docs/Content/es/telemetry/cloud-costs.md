@@ -1,6 +1,6 @@
 # Costos y ahorros en la nube
 
-Una cuenta en la nube conectada también dice cuánto cuesta y cómo podría costar menos. OneUptime lee los costos de cada día de la propia facturación de tu nube y las recomendaciones del propio recomendador de tu nube, los muestra en **Nube → Gasto → Costos** y **Nube → Gasto → Ahorros**, lista tus Savings Plans, reservas y descuentos por compromiso de uso en **Nube → Gasto → Compromisos**, y alerta antes de que un mes cueste más que su presupuesto en **Nube → Gasto → Presupuestos**. Si lo permites, también aplica los ahorros que aprueba un propietario, detiene los recursos no productivos fuera del horario laboral y comprueba cada cambio con la factura.
+Una cuenta en la nube conectada también dice cuánto cuesta y cómo podría costar menos. OneUptime lee los costos de cada día de la propia facturación de tu nube y las recomendaciones del propio recomendador de tu nube, los muestra en **Nube → Gasto → Costos** y **Nube → Gasto → Ahorros**, lista tus Savings Plans, reservas y descuentos por compromiso de uso en **Nube → Gasto → Compromisos**, te avisa en **Nube → Gasto → Presupuestos** antes de que un mes, un trimestre o un año cueste más que su presupuesto, y prevé los próximos meses en **Nube → Gasto → Previsión**. Si lo permites, también aplica los ahorros que aprueba un propietario, detiene los recursos no productivos fuera del horario laboral y comprueba cada cambio con la factura.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer y Cost Optimization Hub, cada uno activado una vez.
@@ -11,7 +11,8 @@ Una cuenta en la nube conectada también dice cuánto cuesta y cómo podría cos
 - [Aplicar ahorros](#aplicar-ahorros): Aplica un ahorro con la aprobación de su propietario, y deshazlo.
 - [Programaciones fuera de horario](#programaciones-fuera-de-horario): Detén los recursos no productivos por la noche y los fines de semana.
 - [Reglas de IA para ahorros](#reglas-de-ia-para-ahorros): Propuestas para los propietarios, o cambios dentro de un límite.
-- [Presupuestos](#presupuestos): Una alerta cuando el gasto de un mes supera una parte de su presupuesto.
+- [Presupuestos](#presupuestos): El presupuesto de un mes, un trimestre o un año para cualquier cuenta, grupo de costos o servicio.
+- [Previsiones](#previsiones): Lo que los próximos 12 meses van camino de costar, y con qué certeza.
 - [Etiquetas obligatorias](#etiquetas-obligatorias): Qué parte de tu gasto lleva las etiquetas que exiges, y los recursos nuevos que no las llevan.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Facturación de tu nube,<br/>leída dos veces al día"] --> costs["Costos"]
     rec["Recomendador de tu nube,<br/>leído una vez al día"] --> savings["Ahorros"]
     costs --> budgets["Presupuestos que alertan"]
+    costs --> forecast["Previsiones"]
+    forecast --> budgets
     costs --> overview["Vista general de Nube"]
     savings --> overview
 ```
@@ -222,30 +225,41 @@ Cuando termina el horario laboral, una programación detiene, a través de la co
 Una programación nunca detiene la producción, ni un recurso cuyo entorno nada indica. Se sabe que un recurso no es de producción cuando:
 
 - una de sus etiquetas lo dice, con una clave como `environment`, `env`, `stage`, `tier` o `deployment.environment`, y una palabra como `dev`, `test`, `qa`, `staging` o `sandbox`;
-- su cuenta está marcada como **No productivo** en **Entorno** de los **Ajustes** de la cuenta;
-- o una de sus etiquetas de OneUptime lo dice, por ejemplo `Staging` o `env: dev`.
+- o su cuenta está marcada como **No productivo** en **Entorno** de los **Ajustes** de la cuenta.
 
-Gana la producción: una etiqueta que dice `prod`, `production` o `live`, o una cuenta marcada como **Producción**, mantiene un recurso en marcha diga lo que diga lo demás. Para ello nunca se lee el nombre de un recurso. Desactiva una programación y ya no detiene nada, y vuelve a iniciar lo que detuvo cuando empieza su horario laboral; elimínala y lo que detuvo se inicia al momento.
+Una etiqueta de OneUptime nunca hace que un recurso sea no productivo para una programación. Renombrar una etiqueta de OneUptime cambia de una vez cada recurso que la lleva, así que una etiqueta como `Staging` o `env: dev` solo se lee donde una persona aprueba el cambio, como con **Aplicar**. Gana la producción: una etiqueta que dice `prod`, `production` o `live`, una cuenta marcada como **Producción**, o una etiqueta de OneUptime como `Production` o `env: prod` mantiene un recurso en marcha diga lo que diga lo demás. Para ello nunca se lee el nombre de un recurso. Cada detención vuelve a leer el recurso justo antes de hacerse. Desactiva una programación y ya no detiene nada, y vuelve a iniciar lo que detuvo cuando empieza su horario laboral; elimínala y lo que detuvo se inicia al momento.
 
 ## Reglas de IA para ahorros
 
 Con **Habilitar IA** activado, OneUptime AI propone a los propietarios del recurso cada ahorro que puede aplicar después de cada lectura de los ahorros de la cuenta, y ellos lo aprueban o lo descartan en **Esperando aprobación**. En **Nube → Ajustes → Reglas de IA para ahorros**, una regla dice qué hace OneUptime AI con los ahorros que coinciden con ella, según el tipo de cambio, el entorno del recurso y su nube: **Desactivado**, **Proponer al propietario** o **Actuar sin preguntar**, hasta un límite mensual. Sin reglas, cada ahorro se propone y ninguno se aplica; con reglas, solo lo que coincide con una regla, y entre las reglas que coinciden gana la más prudente.
 
-Una regla solo actúa sin preguntar sobre un recurso que se sabe que no es de producción, solo con un cambio que se puede deshacer, solo hasta el límite más pequeño de las reglas que coinciden, y como mucho 10 veces por hora en un proyecto: todo lo demás se propone. Un cambio hecho sin preguntar queda en las cronologías con la regla que lo hizo, y sus propietarios pueden deshacerlo. Un ahorro descartado o deshecho no se vuelve a proponer durante 30 días.
+Una regla solo actúa sin preguntar sobre un recurso que se sabe que no es de producción tal como lo lee una programación, por sus etiquetas o su cuenta y nunca solo por sus etiquetas de OneUptime, solo con un cambio que se puede deshacer, solo hasta el límite más pequeño de las reglas que coinciden, y como mucho 10 veces por hora en un proyecto: todo lo demás se propone. El recurso se vuelve a leer justo antes de hacer el cambio, y uno que para entonces ya no se sabe que no es de producción se propone en su lugar. Un cambio hecho sin preguntar queda en las cronologías con la regla que lo hizo, y sus propietarios pueden deshacerlo. Un ahorro descartado o deshecho no se vuelve a proponer durante 30 días.
 
 ## Presupuestos
 
 :::steps
 ### Crear un presupuesto
 
-En **Nube → Gasto → Presupuestos**, crea un presupuesto: su **Importe mensual**, la **Cuenta** a la que se aplica, o ninguna para todas las cuentas, y la **Base de costo** que cuenta, o ninguna para la del proyecto.
+En **Nube → Gasto → Presupuestos**, crea un presupuesto y elige a qué **Se aplica a**: todas las cuentas, una **Cuenta**, un **Grupo de costos** según sus reglas reparten el gasto, o los servicios, regiones y etiquetas que nombra un **Filtro**, escrito como las reglas de un grupo de costos. Deja vacía su **Base de costo** para contar la del proyecto.
+
+### Indica cuánto puede costar
+
+Su **Periodo** es un mes, un trimestre o un año, y su **Importe** es lo que puede costar un periodo. Los trimestres y los años empiezan en el **Primer mes del año**: desde abril, un año va de abril a marzo. El **Plan presupuestario** de un año puede repartir su importe por igual entre sus meses, o dar a cada mes el suyo en un **Plan mensual**. Así cada mes se ajusta a su propia parte, y un mes tranquilo nunca recibe alertas por el gasto de un mes con mucha actividad.
 
 ### Elegir cuándo alerta
 
-**Alertar en** recibe las partes del presupuesto en las que alertar, en porcentaje: 80 y 100 para empezar. **Alertar si va camino de superarse** también alerta, una vez al mes, cuando el ritmo de la última semana llevaría el mes por encima del presupuesto. **Alertar en días inusuales** también alerta el día después de un día que costó mucho más de lo habitual: consulta [Días inusuales](#días-inusuales). **Gravedad de la alerta** y **Políticas de guardia** dicen lo graves que son las alertas y a quién se avisa.
+**Alertar en** toma las partes del presupuesto en las que actuar, en porcentaje: 80 y 100 para empezar. **Alertar si va camino de superarse** también alerta, una vez por periodo, cuando el periodo va camino de costar más que el presupuesto. **Alertar en días inusuales** también alerta el día después de un día que costó mucho más de lo habitual: consulta [Días inusuales](#días-inusuales). **Gravedad de la alerta** indica la gravedad de sus alertas.
+
+### Elige a quién se informa
+
+Las personas y equipos de **Notificar** reciben aviso por correo electrónico y chat cuando el gasto supera una parte por debajo del 100%, sin alerta, así que no se avisa a nadie de guardia por un gasto dentro del presupuesto. **Informar al equipo del grupo de costos** informa también al equipo al que pertenece el grupo de costos. Desde el 100% se crea una alerta, son sus propietarios, y se avisa a las **Políticas de guardia**. Un presupuesto sin nadie a quien informar crea una alerta en cada parte.
 :::
 
-Un presupuesto se comprueba tras cada lectura de los costos y cada hora. Cuando el gasto del mes supera un umbral, se genera una alerta por él, la más alta si una lectura supera varios a la vez, y un nuevo mes resuelve las alertas del mes pasado. Un presupuesto solo cuenta las cuentas que se facturan en su moneda, sobre su base: un presupuesto amortizado no se dispara por un compromiso pagado por adelantado, que uno facturado cuenta el día de su compra.
+Un presupuesto se comprueba tras cada lectura de los costos y cada hora. Cuando el gasto del periodo supera una parte, se informa a las personas que notificar, o desde el 100% se crea una alerta, una vez para la más alta cuando una lectura supera varias a la vez, y un periodo nuevo resuelve las alertas del anterior. Un año dividido por meses se comprueba mes a mes, frente a la parte de ese mes. Un presupuesto solo cuenta las cuentas facturadas en su moneda, en su base: un presupuesto amortizado no se dispara por un compromiso comprado por adelantado, que un presupuesto facturado cuenta el día en que se compró.
+
+Un periodo va camino de superar el presupuesto cuando lo que ha costado hasta ahora, el resto de este mes al ritmo de la última semana completa y los meses siguientes de un trimestre o un año según la [previsión](#previsiones) suman más que el presupuesto.
+
+La fila de cada presupuesto dice lo que cuenta, su periodo y el periodo hasta ahora: en un año dividido por meses, este mes frente a su parte, con el año al lado. Su página muestra el periodo mes a mes frente a la parte de cada mes, este mes día a día, lo que más costó y quién se entera. La página de un presupuesto anual puede guardar su previsión como su plan.
 
 Los agentes de IA pueden crear y cambiar presupuestos a través del [servidor MCP](/docs/ai/mcp-server), y los scripts con el comando `oneuptime cloud-budget` de la CLI: consulta [Operaciones de recursos](/docs/cli/resource-operations).
 
@@ -253,7 +267,41 @@ Los agentes de IA pueden crear y cambiar presupuestos a través del [servidor MC
 
 Tras cada lectura, cada uno de los últimos 14 días completos de una cuenta se compara con los 14 días anteriores. Un día es inusual cuando un servicio costó el doble de su día habitual o más, o la cuenta entera una vez y media su día habitual o más. En ambos casos debe ser al menos 10 más de lo habitual, en la moneda de la cuenta, y al menos el 5 % del día habitual de la cuenta, para que unos centavos nunca cuenten como un pico. Lo habitual de un día es la mediana de los 14 días anteriores, así que un pico aislado apenas lo mueve, y una cuenta solo se juzga cuando tiene una semana de costos.
 
-**Nube → Gasto → Costos** marca los días inusuales en el gasto diario, sobre sus barras, y los muestra debajo. Sobre todas las cuentas, cada marca abre los **Costos** de su cuenta. Un presupuesto que incluye la cuenta genera una alerta por cada cuenta y día, al día siguiente, que nombra cada servicio que se disparó. Un pico que dura varios días se avisa el día en que empezó, y un día de hace más de una semana no se avisa. Un presupuesto creado antes de que existieran estas alertas no las genera hasta que lo edites y las actives.
+**Nube → Gasto → Costos** marca los días inusuales en el gasto diario, sobre sus barras, y los enumera debajo. Sobre todas las cuentas, cada marca abre los **Costos** de su cuenta. Un presupuesto mensual para todas las cuentas o una crea una alerta por cada cuenta y día, al día siguiente, nombrando cada servicio que subió. Cualquier otro presupuesto compara lo que cuenta con su propio día habitual de la misma manera. Un pico que dura varios días se informa el día en que empezó, y un día de hace más de una semana no se informa. Un presupuesto creado antes de estas alertas no las crea hasta que lo editas y las activas.
+
+## Previsiones
+
+**Nube → Gasto → Previsión** dice lo que el gasto va camino de costar en cada uno de los próximos 12 meses, para todo, una cuenta, un grupo de costos o un servicio, en la base de costo que elijas. Dice cómo se hace cada previsión, a partir de los meses completos de costos que guarda OneUptime, un año o algo más:
+
+- **Este mes** es lo que ha costado hasta ahora, con cada día que queda a la media de los últimos siete días completos, como lo proyecta un presupuesto.
+- **Con menos de 3 meses completos**, cada mes siguiente prolonga ese ritmo, sin rango probable: se ha leído demasiado poco para distinguir una tendencia de un pico aislado.
+- **Desde 3 meses completos**, una tendencia pasa por el día medio de cada mes: la mediana de las pendientes entre cada dos meses, así que un mes raro apenas la mueve.
+- **Desde 12 meses completos**, cada mes del calendario guarda además cuánto estuvo por encima o por debajo de la tendencia el año pasado, así que un pico de diciembre también se prevé para el diciembre siguiente.
+
+Cada mes siguiente tiene un rango probable, donde debería caer 8 de cada 10 veces, según cuánto se alejaron los meses pasados de su tendencia, y nunca más estrecho que un 5% a cada lado. Se ensancha cuanto más lejos está un mes y cuantos menos meses tiene la previsión detrás. Desde 12 meses completos, cada rango es aún más ancho, porque un año muestra cada mes del calendario una sola vez. Una previsión no es una promesa: un servicio nuevo, una migración o un cambio de precio mueven los próximos meses de formas que ningún mes pasado muestra.
+
+**Simulación** hace crecer o decrecer cada mes siguiente desde el mes que elijas, en la parte que escribas, como un 20% desde enero. **Guardar como plan presupuestario** convierte los próximos doce meses en el plan de un presupuesto anual, en uno nuevo o en uno que ya tengas, con cada mes ajustado a su parte prevista.
+
+## Presupuestos y previsiones en la API
+
+Los presupuestos son un recurso de la API (`cloud-budget`), con comandos de CLI y herramientas MCP como todo recurso. El `scope` de un presupuesto es `allAccounts`, `account` (con `cloudAccountId`), `costGroup` (con `cloudCostGroupId`) o `filter` (con `filterRules`, escrito como las reglas de un grupo de costos). Su `period` es `month`, `quarter` o `year`, desde `fiscalYearStartMonth`, de 1 a 12. El `planSplit` de un año es `none`, `equal` o `byMonth`, con sus doce meses en `monthlyPlan`, en el orden del año fiscal.
+
+Para leer el periodo de un presupuesto mes a mes, los días de este mes y lo que más costó, como hace su página:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+Para prever un alcance, de 1 a 24 meses vista, con una simulación opcional:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+El `forecast` de la respuesta tiene su `method` (`pace`, `trend` o `trendAndSeason`), los meses de los que se hizo y cada mes con su `amount` y, en los siguientes, su `low` y su `high`. Envía `basis` como `billed`, `amortized` o `net` para prever en esa base; sin él, la previsión está en la del proyecto, y el `basis` de la respuesta dice cuál. El gasto de un presupuesto está en su propia base.
 
 ## Adónde va el dinero
 
@@ -313,14 +361,84 @@ OneUptime sugiere un valor solo cuando la etiqueta lo permite:
 
 El comando aplica la etiqueta en un paso, desde el propio shell de tu nube: `aws resourcegroupstaggingapi tag-resources` en AWS, `az tag update --operation Merge` en Azure, y `gcloud ... add-labels` o `--update-labels` para las máquinas virtuales y los discos de Compute Engine, los buckets de Cloud Storage y las instancias de Cloud SQL en Google Cloud.
 
+## Informes y exportaciones
+
+### Informes de costos
+
+**Nube → Gasto → Informes** envía según una programación lo que cuestan las nubes, por correo y a canales de Slack o Microsoft Teams, para que quienes necesitan las cifras las reciban sin abrir OneUptime. Un informe tiene:
+
+- **Cubre**: todas las cuentas, una cuenta, un grupo de costos o una vista de costos con todos sus grupos.
+- **Periodo**: la semana pasada (de lunes a domingo), el mes pasado o el mes en curso. Cada uno se compara con el período anterior: la semana anterior, el mes anterior o el mes pasado hasta el mismo día.
+- **Base de costo**: facturado, amortizado o neto. Vacío, es la del proyecto, con la que se abre Costos. El informe siempre dice en qué base está.
+- **Programación**: cada semana o cada mes, un día y a una hora en una zona horaria, con las mismas reglas que los resúmenes de Slack y Microsoft Teams. Un informe semanal nuevo sale el próximo lunes a las 09:00 en tu zona horaria, uno mensual el día 1, y los informes siguientes mantienen ese día y esa hora todo el año.
+
+El correo dice lo que costó el período frente al período anterior, los presupuestos a los que cuenta (cada mes en curso, en la base propia del presupuesto), los servicios que más subieron y más bajaron, los grupos de una vista de costos y lo que ningún grupo asume, los días inusuales, los mayores ahorros pendientes y cuánto del gasto cubren los compromisos. Sus cifras van adjuntas en CSV. **Abrir Costos** abre **Costos** exactamente en los días, la base y la vista del informe, para que las cifras del informe y las de la página sean las mismas. Las cuentas facturadas en otra moneda quedan fuera de las cifras, y el informe las nombra.
+
+Un canal de Slack o Microsoft Teams recibe un mensaje breve: el total y su cambio, el presupuesto, las primeras líneas de las listas del informe y **Abrir Costos**.
+
+### Quién recibe un informe
+
+- Las personas y los equipos del proyecto lo reciben por correo, según sus ajustes de notificaciones, donde cada persona puede desactivar los informes de costos de nube. Cada persona recibe las cifras que puede leer: alguien cuyo acceso está limitado por etiquetas recibe solo sus cuentas, y alguien que ya no puede leer los costos de nube del proyecto queda fuera.
+- Las **Direcciones de correo** fuera del proyecto, como la de tu contable, y los canales de Slack y Microsoft Teams requieren el permiso Administrador de la nube, o Administrador del proyecto o Propietario del proyecto, porque OneUptime no puede saber quién los lee. Reciben el informe tal como puede leerlo la persona que los añadió, y dejan de recibirlo si esa persona pierde el permiso. Una clave de API no puede definirlos.
+- Quien puede crear los demás registros de Nube, desde Miembro de la nube, puede crear, cambiar y eliminar informes. Un Visor de la nube puede leerlos.
+
+Un informe llega como máximo a 200 personas, 25 direcciones y 10 canales de cada tipo. **Último envío** dice cuándo salió por última vez, y a quién dejó fuera y por qué.
+
+### Una sección para cada equipo
+
+Un informe de una vista de costos puede enviar a cada grupo su propia sección con **Enviar a cada equipo de grupo su sección**. Los miembros del equipo de cada grupo, indicado en el grupo, reciben el gasto de su grupo frente al período anterior, los servicios que más subieron y bajaron en él y sus días inusuales. Un grupo compartido no tiene sección propia: sus costos están en los grupos entre los que se reparte. Las personas, equipos y direcciones del propio informe reciben todos los grupos. Quien está en los equipos de dos grupos recibe ambas secciones. Un informe mensual de una vista de costos así es el showback del mes.
+
+### Vista previa y Enviarme una copia
+
+**Vista previa** muestra lo que dice un informe ahora, tal como puedes leerlo y como lo presenta el correo, y a quién dejó fuera su último envío y por qué. **Enviarme una copia** te lo envía por correo ahora.
+
+### Descargar CSV
+
+**Descargar CSV** guarda lo que muestra una tarjeta: **Adónde va el dinero** en **Costos**, en cualquier desglose y frente al período anterior, el gasto de cada día, las recomendaciones de **Ahorros** y la página de un grupo de costos. El nombre del archivo dice lo que contiene, por qué se desglosa, la vista y la cuenta, la base de costo y los días, por ejemplo `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Las cifras son números simples, y un texto que una hoja de cálculo leería como una fórmula empieza con un apóstrofo.
+
+### FOCUS
+
+**Exportar FOCUS** en **Costos** descarga cada costo del período como un archivo FOCUS 1.2, la FinOps Open Cost and Usage Specification en su versión 1.2, que leen las herramientas financieras. Un archivo contiene como máximo 93 días, y cada moneda en la que se facturan las cuentas, cada fila en la suya.
+
+El archivo tiene cada columna que FOCUS 1.2 hace obligatoria, y las condicionales para las que OneUptime tiene los datos: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` y `Tags`. Tiene una fila por cada costo que OneUptime guarda: un día, una cuenta, un servicio, una región y, donde la nube lo nombra, un recurso.
+
+- `BilledCost` es lo que facturó la nube, y `EffectiveCost` lo que costó con los compromisos repartidos sobre lo que cubren.
+- Lo que la nube descontó, sus créditos, reembolsos y descuentos, es una fila propia, con una `ChargeCategory` de `Credit`. El `EffectiveCost` del archivo, sumado, es el costo neto.
+- `ChargeCategory` es `Tax` para los costos que AWS factura bajo su servicio Tax, y `Usage` para el resto.
+- `BillingAccountId` es la cuenta de la que la conexión lee la factura: la cuenta de administración de una organización de AWS, una cuenta de facturación de Google Cloud o la suscripción de Azure, ya que la cuenta de facturación de Azure no se lee. `SubAccountId` es la cuenta de AWS, la suscripción de Azure o el proyecto de Google Cloud.
+- Las fechas son días UTC enteros, sin incluir el final del período del cargo ni el del período de facturación. El período de facturación es el mes natural.
+
+Lo que FOCUS 1.2 pide y OneUptime no lee queda vacío o se iguala como la especificación lo permite. `PricingQuantity` y `PricingUnit` quedan vacíos, porque los costos se leen por día, servicio, región y recurso, no por tipo de uso. `ListCost` y `ContractedCost` son iguales a `BilledCost`, como pide FOCUS cuando no se conocen los precios unitarios. Una compra, como el pago por adelantado de una reserva, es el uso del servicio para el que se compró. No hay columnas de SKU, descuentos por compromiso, reservas de capacidad ni facturas. FOCUS 1.3 y 1.4 añaden columnas de las que prescinde un lector de 1.2.
+
+### Desde la API y la CLI
+
+La API responde con un desglose, no solo con las filas de los costos, para que un sistema financiero pueda traer la refacturación del mes:
+
+- `POST /api/cloud-cost/breakdown` con `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` con una `tagKey`, o `group` con un `cloudCostViewId`), un `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) o una `startDate` y una `endDate`, y de forma opcional `cloudAccountIds`, `currency`, `basis` y `compareWithPrevious`. Responde con el total del período y cada parte, con el período anterior al lado, o con `"format": "csv"` el CSV que da **Descargar CSV**.
+- `POST /api/cloud-cost/export` con un `period`, o una `startDate` y una `endDate`, responde con el archivo FOCUS.
+
+Ambas leen como la clave puede leer los costos. Desde la [CLI](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### En un panel
+
+El widget **Costo de nube** pone un total, un desglose o una tendencia del gasto junto a los servicios que lo generan. Consulta [Widgets del panel](/docs/dashboards/widgets#costos-de-nube).
+
 ## Qué ves en OneUptime
 
 - **La vista general de Nube.** **Nube → Vista general** muestra el gasto del mes frente al del mes pasado hasta el mismo día, los servicios que más cuestan y las mayores formas de gastar menos, junto a lo que necesita atención.
 - **El gasto de cada día.** **Nube → Gasto → Costos** dibuja cada uno de los últimos 30 días con los días que costaron mucho más de lo habitual marcados, muestra esos días y desglosa un periodo por servicio, región, cuenta, recurso, entorno de plataformas de aplicaciones, aplicación o etiqueta, facturado, amortizado o neto. Las cuentas cuyos costos no se leen aparecen debajo, cada una con el motivo.
 - **Cada compromiso.** **Nube → Gasto → Compromisos** lista cada uno con cuándo termina y cuánto de él se usa, los que terminan pronto con qué renovar, y qué comprar.
+- **Informes.** **Nube → Gasto → Informes** lista cada informe programado con lo que cubre, cuándo sale la próxima vez y cómo fue su último envío.
 - **Los costos de una cuenta.** Los **Costos** de una cuenta muestran lo mismo solo para la cuenta, con sus compromisos y sus formas de gastar menos.
 - **Etiquetas obligatorias.** **Nube → Gasto → Etiquetas** muestra qué parte del gasto y de los recursos lleva tus etiquetas obligatorias, y las **Etiquetas** de una cuenta muestran lo mismo solo para esa cuenta.
 - **El costo de un recurso.** La página de un recurso muestra lo que costó este mes y en los últimos 30 días cuando su nube lo factura por su nombre, con sus formas de gastar menos y su ajuste de tamaño.
+- **Cada presupuesto.** **Nube → Gasto → Presupuestos** enumera cada presupuesto con lo que cuenta, su periodo y el periodo hasta ahora, y cada uno abre su página.
+- **Los próximos meses.** **Nube → Gasto → Previsión** dibuja los meses de los que se hizo una previsión, este mes según su rumbo y los próximos 12, con cómo se hizo.
 - **Lo que se ahorró.** **Nube → Gasto → Ahorros** empieza por lo que ahorraron este mes los cambios realizados, según la factura, los cambios que esperan aprobación y los realizados, y las horas durante las que las programaciones detuvieron recursos.
 
 ## Solución de problemas
@@ -362,7 +480,19 @@ OneUptime solo hace cambios de un paso: un compromiso, o una recomendación que 
 :::
 
 :::details Una programación deja un recurso en marcha
-**Ver recursos** dice por qué: es de producción, nada indica que no sea de producción, o la conexión de su cuenta no permite acciones de ahorro. Etiquétalo, por ejemplo `environment` = `dev`, o marca su cuenta como **No productivo**.
+**Ver recursos** dice por qué: es de producción, nada indica que no sea de producción, solo sus etiquetas de OneUptime lo indican, o la conexión de su cuenta no permite acciones de ahorro. Etiquétalo en tu nube, por ejemplo `environment` = `dev`, o marca su cuenta como **No productivo**.
+:::
+
+:::details Una regla propone un cambio que antes hacía sin preguntar
+Su tarjeta dice por qué. Una regla solo hace un cambio sin preguntar sobre un recurso que sus etiquetas o su cuenta dicen que no es de producción: uno que solo sus etiquetas de OneUptime llaman no productivo se propone a sus propietarios en su lugar. Etiquétalo en tu nube, por ejemplo `environment` = `dev`, o marca su cuenta como **No productivo**.
+:::
+
+:::details Una previsión no tiene rango probable
+Se hizo con menos de 3 meses completos de costos, así que cada mes siguiente prolonga el ritmo de la última semana completa y no se da ningún rango. El rango llega en cuanto se lee el tercer mes completo. La primera lectura de una conexión se remonta al inicio del mes anterior al pasado.
+:::
+
+:::details Se informó a alguien de un presupuesto pero no llegó ninguna alerta
+Por debajo del 100%, un presupuesto que nombra personas o equipos a notificar les informa y no crea ninguna alerta, así que no se avisa a nadie. Desde el 100% crea una alerta, y se avisa a sus políticas de guardia. Un presupuesto sin nadie a quien informar crea una alerta en cada parte.
 :::
 
 :::details Este mes es más bajo que en la consola de tu nube

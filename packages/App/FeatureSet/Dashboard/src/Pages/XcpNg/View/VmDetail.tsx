@@ -43,6 +43,10 @@ import {
   fetchXcpNgVirtualDisks,
 } from "../../../Components/XcpNg/XcpNgInventoryReads";
 import { getXcpNgPartAttention } from "../Utils/XcpNgPartAttention";
+import {
+  XcpNgBackupContext,
+  getXcpNgBackupContext,
+} from "../Utils/XcpNgHealth";
 
 /*
  * An XCP-ng VM inside its pool: the hero says which VM it is, the host it
@@ -134,6 +138,8 @@ const XcpNgPoolVmDetail: FunctionComponent<
         select: {
           name: true,
           poolIdentifier: true,
+          // When its backups were first read: a VM's overdue clock (#10997).
+          eventReadStatus: true,
         },
       });
       setPool(item);
@@ -169,12 +175,14 @@ const XcpNgPoolVmDetail: FunctionComponent<
   const now: Date = OneUptimeDate.getCurrentDate();
   const vmName: string = getXcpNgDisplayName(row, externalId);
   // Read once: the Overview's card lists it, the hero's state opens it.
+  const backups: XcpNgBackupContext = getXcpNgBackupContext(pool);
   const attention: ResourcePartAttention = getXcpNgPartAttention({
     kind: "VM",
     externalId: externalId,
     row: row,
     routeFor: routes.getPartRoute,
     now: now,
+    backups: backups,
   });
   const charts: XcpNgPartCharts = getXcpNgVmCharts({
     poolIdentifier: poolIdentifier,

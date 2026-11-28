@@ -6,6 +6,7 @@ What Xen Orchestra serves, and what the XCP-ng Agent sends OneUptime for it.
 | --- | --- |
 | `XenOrchestraScrape1.txt`, `XenOrchestraScrape2.txt` | `GET /openmetrics/metrics` as Xen Orchestra's OpenMetrics plugin answers it for the recorded lab (two pools, two minutes), from `Tests/Ops/Fixtures/XcpNg/XenOrchestraScrape.js` at `nowSeconds` 1795000000 and 1795000060. |
 | `AgentOtlpScrape1.json`, `AgentOtlpScrape2.json` | What the agent's collector sends OneUptime for those two scrapes: one OTLP `ExportMetricsServiceRequest` each, in OTLP/JSON as the collector's file exporter writes it, holding one resource per pool. |
+| `XenOrchestraRest/` | The same lab as Xen Orchestra's REST API (`/rest/v0`) answers it, for what a probe reads beyond the metrics (#10997): see [The REST API's lab](#the-rest-apis-lab). |
 
 ## How the agent's files are made
 
@@ -66,3 +67,29 @@ Everything else is as the collector sent it.
   loses the unnamed pool, shows the one marker the agent sends: that pool's
   resource once more, holding a single `xcp_pool_connected` datapoint with
   `flags: 1` and no value.
+
+## The REST API's lab
+
+`XenOrchestraRest/` holds what Xen Orchestra's REST API answers for the lab
+above - the same two pools, hosts, VMs and storage repositories, by the same
+UUIDs and names - with what #10997 reads beyond the metrics:
+
+| File | What it is |
+| --- | --- |
+| `pools.json`, `hosts.json`, `objects.json` | `/rest/v0/pools`, `/hosts` and the VMs and storage repositories, with every field the probe asks for (HA, the master, power states). |
+| `messages.json` | XAPI's messages on the lab's objects, as `/rest/v0/messages` keeps them; the stand-in serves the alarms among them (`ALARM`, `BOND_STATUS_CHANGED`, `MULTIPATH_PERIODIC_ALERT`) from `/rest/v0/alarms`, parsed as Xen Orchestra parses them. |
+| `backup-jobs.json`, `schedules.json` | `/rest/v0/backup-jobs` and `/rest/v0/schedules`: a nightly delta and a weekly full VM backup, a pool metadata backup, and a monthly job whose only schedule is disabled, each schedule with its cron and time zone. |
+| `backup-logs.json` | `/rest/v0/backup-logs`: runs with each VM's task tree as Xen Orchestra's backup log keeps it - successes, a run in which VMs failed with their errors and one was skipped (`unhealthy VDI chain`), an interrupted run, and a metadata backup whose remote refused it. |
+| `missing-patches.json` | `/rest/v0/hosts/<id>/missing_patches` for three of the lab's hosts, by host UUID. |
+
+No Xen Orchestra was at hand to record these from. They are written to the
+shapes Xen Orchestra's own source serves (`@xen-orchestra/rest-api` and
+`xo-server`, master on 26 November 2026), and
+`Probe/Tests/Utils/XcpNg/FakeXenOrchestraRest.ts` serves them as that
+source does: `fields=` picks keys, `filter=` is complex-matcher, the token is
+the `authenticationToken` cookie, a list the token may not read is answered
+empty, and missing patches answer 403 where the licence does not cover them.
+`XenOrchestraEventsReader.test.ts` reads the lab through the probe's own
+reader, end to end into the server's processing. When a real Xen
+Orchestra is at hand, record its answers over these files and run the
+suites again.

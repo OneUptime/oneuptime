@@ -1003,7 +1003,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
    * connection cannot post: each channel then says so, as WorkspaceUtil
    * says it, and Graph is not asked.
    */
-  private async getMicrosoftTeamsTeamOfSummary(
+  public async getMicrosoftTeamsTeamOfSummary(
     summary: WorkspaceNotificationSummary,
   ): Promise<MicrosoftTeamsTeamOfSummary> {
     const teamName: string = (summary.teamName || "").trim();

@@ -21,6 +21,8 @@
  *   ?lang=      de or fa reads the German or Persian locale file (Persian
  *               lays the page out right to left)
  *   ?theme=     dark adds html.dark (server.js)
+ *   ?aiAgent=   none (default) | connected | writes | broken-token |
+ *               unreachable: the pool's XCP-ng AI agent (AiAgent.js)
  *
  * Every read is recorded on window.__xcpNgPagesFixture: listRequests,
  * countRequests, itemRequests, aggregateRequests, apiRequests and unhandled
@@ -39,7 +41,6 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
-import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import PoolLayout from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Layout";
 import PoolOverview from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Index";
@@ -52,6 +53,10 @@ import PoolStorageDetail from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg
 import PoolTopology from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Topology";
 import PoolRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Recommendations";
 import PoolDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Documentation";
+import PoolAiAgent from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/AI/Agent";
+import PoolAiInsights from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/AI/Insights";
+import PoolAiLogs from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/AI/Logs";
+import { getAiAccessStatus, getAiInsights, getAiLogs } from "./AiAgent";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -63,6 +68,10 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  MonitorRecommendationCoverageMatcher,
+  readCoverageQuestions,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationCoverageQuestions";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import API from "Common/UI/Utils/API/API";
@@ -331,7 +340,19 @@ function matches(record, query) {
 }
 
 const store = {
-  XcpNgPool: [estate.pool],
+  // With the AI access columns every pool's row has (#10998), at their defaults.
+  XcpNgPool: [
+    {
+      isAiInvestigationEnabled: true,
+      aiRemediationMode: "Disabled",
+      aiCommandAllowlist: [],
+      ...estate.pool,
+    },
+  ],
+  // The commands the AI agent ran (AI > Logs): none yet.
+  RunnerJob: [],
+  // The project, which AI > Insights reads for its AI settings.
+  Project: [{ _id: PROJECT_ID, name: "Acme Virtualization" }],
   XcpNgResource: estate.inventory,
   IncidentState: incidentStates,
   AlertState: alertStates,
@@ -805,6 +826,82 @@ async function handleApi(method, options) {
     body: serialize(body),
   });
 
+  /*
+   * Which recommended alerts already have a monitor, as the server decides
+   * it (MonitorAPI's recommendation-coverage, over the shared matcher): the
+   * side menu's Recommendations badge, the alert cards and Recommendations.
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith("/monitor/recommendation-coverage")
+  ) {
+    const questions = readCoverageQuestions(body);
+    const covered = {};
+
+    for (const type of new Set(
+      questions.map((question) => {
+        return question.monitorType;
+      }),
+    )) {
+      const matcher = new MonitorRecommendationCoverageMatcher(
+        questions.filter((question) => {
+          return question.monitorType === type;
+        }),
+      );
+
+      for (const monitor of monitors) {
+        if (monitor.monitorType === type) {
+          matcher.addMonitor(
+            monitor._id,
+            monitor.monitorSteps.data.monitorStepsInstanceArray,
+          );
+        }
+      }
+
+      for (const [key, monitorId] of matcher.getAnswer()) {
+        covered[key] = monitorId;
+      }
+    }
+
+    return ok({ covered });
+  }
+
+  // How OneUptime AI reaches the pool: the Overview's card and the AI pages.
+  if (method === "POST") {
+    if (parsed.pathname.endsWith("/resource-ai-access/status")) {
+      return ok(
+        getAiAccessStatus({
+          aiAgent: params.get("aiAgent"),
+          poolId: body.resourceId,
+          poolName: estate.pool.name,
+          poolIdentifier: POOL_UUID,
+          now: new Date(LOADED_AT).toISOString(),
+        }),
+      );
+    }
+    if (parsed.pathname.endsWith("/resource-ai-access/logs")) {
+      return ok(getAiLogs());
+    }
+    if (parsed.pathname.endsWith("/resource-ai-access/insights")) {
+      return ok(getAiInsights());
+    }
+    // The LLM providers AI > Insights offers Ask AI with: the global one.
+    if (parsed.pathname.endsWith("/ai-chat/providers")) {
+      return ok({
+        isAIEnabledForProject: true,
+        defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
+        providers: [
+          {
+            id: "9d9d9d9d-0000-4000-8000-000000000001",
+            name: "OneUptime AI",
+            isGlobal: true,
+            isDefault: false,
+          },
+        ],
+      });
+    }
+  }
+
   // A part's Metrics tab: the metric catalog it reads.
   if (
     method === "POST" &&
@@ -820,20 +917,6 @@ async function handleApi(method, options) {
         "sr_name",
       ],
     });
-  }
-
-  /*
-   * Which recommended alerts the pool has already, from its monitors: the
-   * alert cards and the Recommendations badge ask the server.
-   */
-  const coverage = answerRecommendationCoverage({
-    method,
-    url,
-    body,
-    monitors: store.Monitor,
-  });
-  if (coverage) {
-    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });
@@ -927,6 +1010,9 @@ const PAGES = [
   [PageMap.XCP_NG_POOL_VIEW_TOPOLOGY, PoolTopology],
   [PageMap.XCP_NG_POOL_VIEW_RECOMMENDATIONS, PoolRecommendations],
   [PageMap.XCP_NG_POOL_VIEW_DOCUMENTATION, PoolDocumentation],
+  [PageMap.XCP_NG_POOL_VIEW_AI_AGENT, PoolAiAgent],
+  [PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS, PoolAiInsights],
+  [PageMap.XCP_NG_POOL_VIEW_AI_LOGS, PoolAiLogs],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),

@@ -1783,7 +1783,39 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
     ]);
     expect(engine).toContain("HIDING_RULE_TYPES.has(rule.ruleType");
     expect(page).toContain(
-      "A Drop, Remove Attribute or Redact Attribute rule, which hides data, also matches its regular expression in a value read as Data Security reads it: with its percent-escapes read, and with every script's digits read as ASCII digits. The other rules match the value as it is written.",
+      "A Drop, Remove Attribute or Redact Attribute rule, which hides data, also matches its regular expression in a value read as Data Security reads it: with its percent-escapes read, as a form writes a URL's query string, with a plus sign for each space, with every script's digits read as ASCII digits, and with a number's fullwidth signs and separators read as ASCII ones. The other rules match the value as it is written.",
+    );
+    // The readings those rules try a value in, the query string's and the fullwidth forms' among them (#11199, #11115).
+    const readings: string = between(
+      engine,
+      "const PATTERN_READINGS: ReadingNeeds = {",
+      "};",
+    );
+
+    expect(readings).toContain("readsPercentEncoded: true");
+    expect(readings).toContain("readsPlusAsSpace: true");
+    expect(readings).toContain("readsDigitsOfEveryScript: true");
+    expect(readings).toContain("readsFullwidthForms: true");
+  });
+
+  // #11112: the rule Data Security makes for a phone or a Social Security number matches its Pattern Type too.
+  it("names the types whose Data Security rule matches a Pattern Type, as the code maps them", () => {
+    const coverage: string = readPackageFile(
+      "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage.ts",
+    );
+
+    for (const mapping of [
+      '["ip-address", LogScrubPatternType.IPAddress]',
+      '["email-address", LogScrubPatternType.Email]',
+      '["credit-card-number", LogScrubPatternType.CreditCard]',
+      '["phone-number", LogScrubPatternType.PhoneNumber]',
+      '["us-ssn", LogScrubPatternType.SSN]',
+    ]) {
+      expect(coverage).toContain(mapping);
+    }
+
+    expect(page).toContain(
+      "The **Redact Attribute** rule [Data Security](/docs/data-security/telemetry) makes for an IP address, an email address, a card number, a phone number or a Social Security number in an attribute uses it.",
     );
   });
 
@@ -3215,7 +3247,8 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
 
   /*
    * The list's filter for those pairs (#11026): beside Assigned to me, only
-   * while the project has a split exception left to merge, with how many;
+   * while the project has a split exception left to merge, with how many of
+   * them the list holds in its status, time range and filters (#11116);
    * each pair once, by the one the rule split off; the chart and the
    * sidebar's counts narrowed with it; kept by saved views and links.
    */
@@ -3233,7 +3266,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     const troubleshooting: string = section(page, "## Troubleshooting");
 
     expect(troubleshooting).toContain(
-      "**Unmerge** undoes it.\n\nTo list only those pairs, turn on **Split by a scrub rule** beside **Assigned to me**: it lists each pair once, by the exception the rule split off, and the chart and the sidebar's counts then cover only those exceptions. It appears while the project has a pair left to merge, with how many, and saved views and links keep it.\n\n",
+      "**Unmerge** undoes it.\n\nTo list only those pairs, turn on **Split by a scrub rule** beside **Assigned to me**: it lists each pair once, by the exception the rule split off, and the chart and the sidebar's counts then cover only those exceptions. It appears while the project has a pair left to merge, with how many of them the list holds in its status, time range and filters, and saved views and links keep it.\n\n",
     );
 
     // Its words, right after Assigned to me, with how many.
@@ -3244,7 +3277,13 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(viewer).toContain("translator.formatNumber(splitExceptionCount)");
     // While the project has one: counted once, merged ones left out.
     expect(viewer).toContain(
-      "offersSplitFilter && (splitByScrubRule || (splitExceptionCount || 0) > 0);",
+      "offersSplitFilter && (splitByScrubRule || projectHasSplitExceptions === true);",
+    );
+    expect(viewer).toContain("setProjectHasSplitExceptions(count > 0);");
+    // How many of them the list holds: its own query, with the filter on.
+    expect(viewer).toContain("void countSplitExceptionsInList(query).then(");
+    expect(splitPairs).toContain(
+      'const query: Query<TelemetryException> = { ...listQuery }; (query as Record<string, unknown>)["splitFromTelemetryExceptionId"] = new NotNull();',
     );
     expect(splitPairs).toContain(
       'const query: Query<TelemetryException> = {}; const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId(); if (projectId) { query.projectId = projectId; } (query as Record<string, unknown>)["splitFromTelemetryExceptionId"] = new NotNull();',
@@ -3294,10 +3333,35 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "Common/Server/Utils/Telemetry/TelemetryExceptionSplitHeal.ts",
     );
     const flat: string = exceptionUtil.replace(/\s+/g, " ");
+    const sweep: string = readPackageFile(
+      "App/FeatureSet/Workers/DataMigrations/MergeBackExceptionsSplitByFailedLookups.ts",
+    ).replace(/\s+/g, " ");
+    const migrations: string = readPackageFile(
+      "App/FeatureSet/Workers/DataMigrations/Index.ts",
+    );
+    const workers: string = readPackageFile("App/FeatureSet/Workers/Index.ts");
 
     expect(troubleshooting).toContain(
-      "When OneUptime can't read which exception an occurrence belongs to, it tries again and counts the occurrence once it can: it never makes a second exception for an error it already has. An exception an earlier version of OneUptime made twice that way, the second one alerting as a new exception, is merged back into the first by its next occurrence: the older one is kept, nothing alerts, and **Unmerge** undoes it.\n:::",
+      "When OneUptime can't read which exception an occurrence belongs to, it tries again and counts the occurrence once it can: it never makes a second exception for an error it already has. An exception an earlier version of OneUptime made twice that way, the second one alerting as a new exception, is merged back into the first by its next occurrence, or after an upgrade when its error never happens again: the older one is kept, nothing alerts, and **Unmerge** undoes it. A pair OneUptime can't prove is one error, such as one whose text a scrub rule changed, stays two: merge them from **Similar exceptions**.\n:::",
     );
+
+    /*
+     * After an upgrade when its error never happens again (#11113): a data
+     * migration, and a job that goes on with it, through the same heal.
+     */
+    expect(migrations).toContain(
+      "new MergeBackExceptionsSplitByFailedLookups(),",
+    );
+    expect(workers).toContain(
+      'import "./Jobs/TelemetryException/MergeBackExceptionsSplitByFailedLookups";',
+    );
+    expect(sweep).toContain("return TelemetryExceptionSplitHeal.heal(pair);");
+    expect(sweep).toContain("ExceptionUtil.splitByFailedLookupOf({");
+    // Proven by its own stored text: its fingerprint is that text's v1.
+    expect(sweep).toContain("ExceptionUtil.getFingerprint({");
+    expect(sweep).toContain("}) !== data.fingerprint");
+    // One it cannot prove stays two: its occurrences leading elsewhere too.
+    expect(sweep).toContain("return OccurrenceVerdict.Disagree;");
 
     // Tried again, then held: the occurrence's exception unknown, nothing made.
     expect(flat).toContain(

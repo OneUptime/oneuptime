@@ -98,7 +98,7 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
   "packages/Common/Server/Services/OnCallTestPageService.ts":
     "on-call test pages sent per project and hour",
   "packages/Common/Server/Utils/Workspace/WorkspaceCreatedMessageLine.ts":
-    "the tickets a new record's workspace messages take in the line that waits for its Created message, per record (#11198); never who sent them",
+    "the tickets of a new record's line, where its workspace messages wait for its Created message, per record (#11198): a place in a queue, never who sent anything",
 };
 
 /*

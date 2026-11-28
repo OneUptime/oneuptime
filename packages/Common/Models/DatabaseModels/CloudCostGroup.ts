@@ -203,7 +203,7 @@ export default class CloudCostGroup extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Cost View ID",
-    description: "ID of the view the group is one of.",
+    description: "The view the group is one of.",
   })
   @Column({
     type: ColumnType.ObjectID,

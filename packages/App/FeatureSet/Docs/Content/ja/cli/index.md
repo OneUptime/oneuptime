@@ -107,6 +107,7 @@ oneuptime resources
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 一種類のレコードを扱います | [リソース操作](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | リソースのフィールドと、それを設定するフラグを一覧表示します | [リソース操作](/docs/cli/resource-operations#リソースのフィールドを見る) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | インシデント、アラート、定期メンテナンスに対してダッシュボードのボタンと同じことをします | [リソース操作](/docs/cli/resource-operations#確認解決メモの追加) |
+| `oneuptime <resource> breakdown`, `export` | 期間のクラウドの支出を分けて示すか、FOCUS 1.2 ファイルとしてエクスポートします（`cloud-cost` 用） | [レポートとエクスポート](/docs/telemetry/cloud-costs#レポートとエクスポート) |
 | `oneuptime resources` | レコードの種類をそのコマンドとともに一覧表示します | [コマンド リファレンス](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | CLI のバージョンを表示します | [コマンド リファレンス](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | コマンドのヘルプを表示します | [ヘルプを表示する](#ヘルプを表示する) |

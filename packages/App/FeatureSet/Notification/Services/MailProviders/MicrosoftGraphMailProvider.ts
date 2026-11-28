@@ -1,5 +1,6 @@
 import SMTPOAuthService from "../SMTPOAuthService";
 import HttpMailApi from "./HttpMailApi";
+import FileAttachments from "./FileAttachments";
 import InlineImageAttachments from "./InlineImageAttachments";
 import InlineImageRefusal, {
   InlineImageRefusalFlag,
@@ -378,10 +379,13 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
          * enough (EmailInlineImages) for this whole request to stay under
          * Graph's 4 MB limit on sendMail.
          */
-        ...(inlineImages.length > 0
+        // And the files it carries, as attachments (FileAttachments).
+        ...(inlineImages.length > 0 || FileAttachments.of(mail).length > 0
           ? {
-              attachments:
-                InlineImageAttachments.forMicrosoftGraph(inlineImages),
+              attachments: [
+                ...InlineImageAttachments.forMicrosoftGraph(inlineImages),
+                ...FileAttachments.forMicrosoftGraph(FileAttachments.of(mail)),
+              ],
             }
           : {}),
       },

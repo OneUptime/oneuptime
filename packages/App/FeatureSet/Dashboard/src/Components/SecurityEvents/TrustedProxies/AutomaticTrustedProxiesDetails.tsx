@@ -3,6 +3,10 @@ import {
   ALWAYS_TRUSTED_DESCRIPTION,
   ALWAYS_TRUSTED_TITLE,
   EDGE_TRUSTED_DESCRIPTION,
+  GOOGLE_FRONT_ENDS_FOR,
+  GOOGLE_FRONT_ENDS_TITLE,
+  GOOGLE_FRONT_ENDS_UNREAD,
+  GOOGLE_FRONT_ENDS_WITHHELD,
   NEVER_TRUSTED_DESCRIPTION,
   NEVER_TRUSTED_TITLE,
   OWN_LOAD_BALANCERS_MORE,
@@ -15,9 +19,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import {
   ALWAYS_TRUSTED_PROXY_RANGES,
   AutomaticTrustedEdge,
+  AutomaticTrustedGoogleFrontEndLoadBalancer,
+  AutomaticTrustedGoogleFrontEnds,
   AutomaticTrustedLoadBalancer,
   AutomaticTrustedProxies,
 } from "Common/Types/SecurityEvent/AutomaticTrustedProxies";
+import { formatList } from "Common/Types/Translator";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
@@ -41,7 +48,9 @@ import React, {
  *   - the project's own load balancers, right under the switch they turn
  *     on and off: each address, then the load balancer's name, its kind as
  *     its cloud names the product, and the cloud account it is in - said
- *     not to be trusted while the switch is off;
+ *     not to be trusted while the switch is off - and on the last line
+ *     Google's front ends, with the Google Cloud Application Load Balancers
+ *     that bring them, or what keeps them untrusted (#11047);
  *   - the private addresses every project trusts, always, with their ranges;
  *   - each edge the project connected (Cloudflare), with how many ranges it
  *     publishes;
@@ -129,13 +138,62 @@ const AutomaticTrustedProxiesDetails: FunctionComponent<ComponentProps> = (
       );
     }
 
-    if (proxies.loadBalancers.length === 0) {
+    const googleFrontEnds: AutomaticTrustedGoogleFrontEnds | null =
+      proxies.googleFrontEnds;
+
+    if (proxies.loadBalancers.length === 0 && !googleFrontEnds) {
       return (
         <p className="text-sm text-gray-600">
           {translator.translateText(OWN_LOAD_BALANCERS_NONE)}
         </p>
       );
     }
+
+    // Load balancers by their names, as the reader's language lists names.
+    const namesOf: (
+      loadBalancers: Array<AutomaticTrustedGoogleFrontEndLoadBalancer>,
+    ) => string = (
+      loadBalancers: Array<AutomaticTrustedGoogleFrontEndLoadBalancer>,
+    ): string => {
+      return formatList(
+        loadBalancers
+          .map((loadBalancer: AutomaticTrustedGoogleFrontEndLoadBalancer) => {
+            return loadBalancer.name;
+          })
+          .filter(Boolean),
+        translator,
+      );
+    };
+
+    /*
+     * Why Google's front ends are trusted, or are not: the load balancers
+     * that bring them; a TCP or SSL proxy that keeps them untrusted; a read
+     * that may have left one out.
+     */
+    const googleFrontEndsWhy: string = ((): string => {
+      if (!googleFrontEnds) {
+        return "";
+      }
+
+      if (googleFrontEnds.withheldBy.length > 0) {
+        return translator.translatePlural(
+          GOOGLE_FRONT_ENDS_WITHHELD,
+          googleFrontEnds.withheldBy.length,
+          { loadBalancers: namesOf(googleFrontEnds.withheldBy) },
+        );
+      }
+
+      if (googleFrontEnds.isWithheldForIncompleteRead) {
+        return (
+          translator.translateText(GOOGLE_FRONT_ENDS_UNREAD) ||
+          GOOGLE_FRONT_ENDS_UNREAD
+        );
+      }
+
+      return translator.translateTemplate(GOOGLE_FRONT_ENDS_FOR, {
+        loadBalancers: namesOf(googleFrontEnds.broughtBy),
+      });
+    })();
 
     return (
       <div className="space-y-2">
@@ -178,6 +236,27 @@ const AutomaticTrustedProxiesDetails: FunctionComponent<ComponentProps> = (
                 </li>
               );
             },
+          )}
+          {googleFrontEnds ? (
+            <li
+              className="flex flex-col gap-0.5 py-2 sm:flex-row sm:items-baseline sm:gap-4"
+              data-testid={TRUSTED_PROXIES_TEST_IDS.googleFrontEnds}
+              data-trusted={googleFrontEnds.isTrusted ? "true" : "false"}
+            >
+              <span className="shrink-0 break-all font-mono text-sm text-gray-900 sm:w-56">
+                {googleFrontEnds.ranges.join(", ")}
+              </span>
+              <span className="text-sm text-gray-600">
+                <span className="text-gray-900">
+                  {translator.translateText(GOOGLE_FRONT_ENDS_TITLE) ||
+                    GOOGLE_FRONT_ENDS_TITLE}
+                </span>
+                <InlineSeparator />
+                {googleFrontEndsWhy}
+              </span>
+            </li>
+          ) : (
+            <></>
           )}
         </ul>
         {!props.isOn ? (

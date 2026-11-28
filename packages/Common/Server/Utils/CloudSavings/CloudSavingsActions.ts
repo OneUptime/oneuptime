@@ -11,7 +11,8 @@ import { CloudSavingKind } from "../../../Types/Cloud/CloudCost";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   CloudResourceEnvironmentReading,
-  getCloudResourceEnvironment,
+  CloudResourceEnvironmentReadings,
+  getCloudResourceEnvironmentReadings,
 } from "../../../Types/Cloud/CloudResourceEnvironment";
 import {
   CLOUD_COMMITMENT_PURCHASE_URLS,
@@ -129,7 +130,13 @@ export interface CloudSavingContext {
   connection: CloudConnection | null;
   resource: CloudResource | null;
   planResult: CloudSavingsActionPlanResult;
+  // Every sign, labels' names included: what the dialog shows and a person approves.
   environment: CloudResourceEnvironmentReading;
+  /*
+   * What a change made without asking reads: a label may say production,
+   * never non-production (#11347).
+   */
+  unattendedEnvironment: CloudResourceEnvironmentReading;
   access: CloudSavingsActionsAccess;
   connectionState: CloudSavingsConnectionState;
 }
@@ -243,8 +250,8 @@ export default class CloudSavingsActions {
       recommendedConfiguration: recommendation.recommendedConfiguration,
       accountId: account.accountId,
     });
-    const environment: CloudResourceEnvironmentReading =
-      getCloudResourceEnvironment({
+    const readings: CloudResourceEnvironmentReadings =
+      getCloudResourceEnvironmentReadings({
         tags: resource?.cloudTags,
         accountEnvironment: account.environment,
         labelNames: (resource?.labels || []).map(
@@ -265,7 +272,8 @@ export default class CloudSavingsActions {
       connection,
       resource,
       planResult,
-      environment,
+      environment: readings.reading,
+      unattendedEnvironment: readings.unattended,
       access,
       connectionState: CloudSavingsActions.getConnectionState({
         connectionId: account.cloudConnectionId,

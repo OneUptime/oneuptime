@@ -1,3 +1,4 @@
+import FileAttachments from "./FileAttachments";
 import InlineImageAttachments from "./InlineImageAttachments";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 import EmailPlainText from "Common/Server/Utils/Mail/EmailPlainText";
@@ -52,8 +53,15 @@ export default class MimeMessage {
       subject: MimeMessage.withoutLineBreaks(data.mail.subject || ""),
       text: EmailPlainText.fromHtml(html),
       html: html,
-      ...(data.inlineImages.length > 0
-        ? { attachments: InlineImageAttachments.forSmtp(data.inlineImages) }
+      // Its inline images, then the files it carries (FileAttachments).
+      ...(data.inlineImages.length > 0 ||
+      FileAttachments.of(data.mail).length > 0
+        ? {
+            attachments: [
+              ...InlineImageAttachments.forSmtp(data.inlineImages),
+              ...FileAttachments.forSmtp(FileAttachments.of(data.mail)),
+            ],
+          }
         : {}),
     });
 

@@ -3,6 +3,7 @@ import {
   CLOUD_RESOURCE_ENVIRONMENT_LABELS,
   CloudEnvironmentSource,
   CloudResourceEnvironment,
+  isNonProductionOnlyByLabels,
 } from "Common/Types/Cloud/CloudResourceEnvironment";
 import {
   CLOUD_SAVINGS_ACTION_SENTENCES,
@@ -64,6 +65,13 @@ import CloudSavingsApi from "./CloudSavingsApi";
 export const APPLY_SAVES: string = translationKey("Saves {{amount}} a month");
 export const APPLY_PRODUCTION: string = translationKey(
   "This resource is production: an owner approves every change to it, and no AI rule makes one.",
+);
+/*
+ * Only a label calls it non-production (#11347): you may still apply, but
+ * nothing that acts with nobody asked reads a label so.
+ */
+export const APPLY_ONLY_LABELS: string = translationKey(
+  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.",
 );
 export const APPLY_ENVIRONMENT_FROM: Readonly<
   Record<CloudEnvironmentSource, string>
@@ -472,6 +480,20 @@ export const CloudSavingsOfferBody: FunctionComponent<OfferBodyProps> = (
       {offer.environment === CloudResourceEnvironment.Production ? (
         <p className="text-sm text-gray-700">
           {translator.translateText(APPLY_PRODUCTION)}
+        </p>
+      ) : (
+        <></>
+      )}
+
+      {isNonProductionOnlyByLabels({
+        environment: offer.environment,
+        source: offer.environmentSource,
+      }) ? (
+        <p
+          className="text-sm text-gray-700"
+          data-testid="cloud-savings-apply-only-labels"
+        >
+          {translator.translateText(APPLY_ONLY_LABELS)}
         </p>
       ) : (
         <></>

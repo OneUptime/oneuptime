@@ -113,6 +113,22 @@ import {
   CLOUD_SAVINGS_INTERVAL_MS,
 } from "Common/Types/Cloud/CloudCost";
 import {
+  CLOUD_BUDGET_ALERT_FROM_PERCENT,
+  CloudBudgetPeriod,
+  CloudBudgetPlanSplit,
+  CloudBudgetScope,
+  isCloudBudgetNoticeOnly,
+} from "Common/Types/Cloud/CloudBudget";
+import {
+  CLOUD_COST_FORECAST_CONFIDENCE_PERCENT,
+  CLOUD_COST_FORECAST_MAX_MONTHS_AHEAD,
+  CLOUD_COST_FORECAST_MIN_MONTHS_FOR_SEASON,
+  CLOUD_COST_FORECAST_MIN_MONTHS_FOR_TREND,
+  CLOUD_COST_FORECAST_MIN_SPREAD,
+  CLOUD_COST_FORECAST_MONTHS_AHEAD,
+  CloudCostForecastMethod,
+} from "Common/Types/Cloud/CloudCostForecast";
+import {
   CLOUD_COMMITMENT_KINDS,
   CLOUD_COMMITMENT_WINDOW_DAYS,
   CloudCommitmentKind,
@@ -233,7 +249,13 @@ const SOURCES: Record<string, string> = {
   aiAgentSetup: `${DASHBOARD}/Components/Cloud/CloudAiAgentSetup.ts`,
   aiChangeWords: `${DASHBOARD}/Components/Cloud/CloudAiChangeWords.ts`,
   costWords: `${DASHBOARD}/Components/Cloud/CloudCostWords.ts`,
-  budgets: `${DASHBOARD}/Pages/Cloud/Budgets.tsx`,
+  // The budget form (#11008), and the words its fields are titled with.
+  budgets: `${DASHBOARD}/Components/Cloud/Budgets/CloudBudgetForm.tsx`,
+  budgetWords: `${DASHBOARD}/Components/Cloud/Budgets/CloudBudgetWords.ts`,
+  budgetScopeTarget: `${DASHBOARD}/Components/Cloud/Budgets/CloudBudgetScopeTarget.tsx`,
+  budgetNotices: `${SERVER}/Utils/CloudCost/CloudBudgetNotices.ts`,
+  budgetApi: `${SERVER}/API/CloudBudgetAPI.ts`,
+  forecastPage: `${DASHBOARD}/Pages/Cloud/Forecast.tsx`,
   costWindow: "packages/Common/Types/Cloud/CloudCost.ts",
   budgetJob:
     "packages/App/FeatureSet/Workers/Jobs/Cloud/EvaluateCloudBudgets.ts",
@@ -1498,11 +1520,16 @@ describe("Cloud Costs and Savings", () => {
 
   it("names the budget form's fields as the page draws them, its default thresholds, and when budgets are checked", () => {
     const budgets: string = source("budgets");
+    // A title wrapped onto lines of its own reads as one line here.
+    const words: string =
+      `${source("budgetWords")}\n${source("budgetScopeTarget")}`
+        .replace(/\(\s+/g, "(")
+        .replace(/,\s*\)/g, ")");
     const section: string = costsSection("Budgets");
 
+    // The titles the form writes as they are.
     for (const title of [
-      "Monthly Amount",
-      "Account",
+      "Cost Basis",
       "Alert At",
       "Alert When On Course To Pass",
       "Alert On Unusual Days",
@@ -1510,6 +1537,24 @@ describe("Cloud Costs and Savings", () => {
       "On-Call Policies",
     ]) {
       expect(budgets).toContain(`title: "${title}",`);
+      expect(section).toContain(`**${title}**`);
+    }
+
+    // The titles it holds as words the reader's language says (#11008).
+    for (const title of [
+      "Applies To",
+      "Account",
+      "Cost Group",
+      "Filter",
+      "Period",
+      "Amount",
+      "First Month of the Year",
+      "Budget Plan",
+      "Monthly Plan",
+      "Notify",
+      "Notify the Cost Group's Team",
+    ]) {
+      expect(words).toContain(`translationKey("${title}")`);
       expect(section).toContain(`**${title}**`);
     }
 
@@ -1889,6 +1934,97 @@ describe("Cloud Costs and Savings", () => {
     );
   });
 
+  it("says who a budget tells below 100% and who it pages from 100%, as its notices and alerts do", () => {
+    const section: string = costsSection("Budgets").replace(/\s+/g, " ");
+
+    expect(section).toContain(
+      "The people and teams to **Notify** are told by email and chat as the spend passes a share below 100%, with no alert, so nobody is paged for spend within the budget.",
+    );
+    expect(section).toContain(
+      "From 100%, an alert is raised, they own it, and the **On-Call Policies** are paged. A budget with nobody to tell raises an alert at every share.",
+    );
+    // A share below 100% is told, with no alert, when there is someone to tell.
+    expect(CLOUD_BUDGET_ALERT_FROM_PERCENT).toBe(100);
+    expect(
+      isCloudBudgetNoticeOnly({ threshold: 80, hasPeopleToNotify: true }),
+    ).toBe(true);
+    expect(
+      isCloudBudgetNoticeOnly({ threshold: 100, hasPeopleToNotify: true }),
+    ).toBe(false);
+    expect(
+      isCloudBudgetNoticeOnly({ threshold: 80, hasPeopleToNotify: false }),
+    ).toBe(false);
+    // A split year is held a month at a time.
+    expect(section).toContain(
+      "A year split by month is checked a month at a time, against that month's share.",
+    );
+  });
+
+  it("says how a forecast is made as CloudCostForecast makes it, and how sure it is", () => {
+    const forecasts: string = costsSection("Forecasts").replace(/\s+/g, " ");
+
+    expect(CLOUD_COST_FORECAST_MONTHS_AHEAD).toBe(12);
+    expect(forecasts).toContain(
+      "**Cloud → Spend → Forecast** says what the spend is on course to cost in each of the next 12 months, for everything, an account, a cost group or a service",
+    );
+    expect(CLOUD_COST_PACE_DAYS).toBe(7);
+    expect(forecasts).toContain(
+      "**This month** is what it cost so far, with each day still to come at the average of the last seven full days, as a budget projects it.",
+    );
+    expect(CLOUD_COST_FORECAST_MIN_MONTHS_FOR_TREND).toBe(3);
+    expect(forecasts).toContain(
+      "**With fewer than 3 full months**, each month ahead is that pace carried forward, with no likely range",
+    );
+    expect(forecasts).toContain("**From 3 full months**, a trend runs through");
+    expect(CLOUD_COST_FORECAST_MIN_MONTHS_FOR_SEASON).toBe(12);
+    expect(forecasts).toContain("**From 12 full months**, each calendar month");
+    expect(CLOUD_COST_FORECAST_CONFIDENCE_PERCENT).toBe(80);
+    expect(forecasts).toContain("where it should land 8 times in 10");
+    expect(CLOUD_COST_FORECAST_MIN_SPREAD).toBe(0.05);
+    expect(forecasts).toContain("never narrower than 5% either side");
+    expect(forecasts).toContain(
+      "A forecast is no promise: a new service, a migration or a price change moves the months ahead in ways no past month shows.",
+    );
+    expect(forecasts).toContain("**What If**");
+    expect(forecasts).toContain("**Save as Budget Plan**");
+    // The page applies the what-if as it is typed, and saves the plan.
+    expect(source("forecastPage")).toContain("applyCloudCostGrowth(");
+    expect(source("forecastPage")).toContain("<CloudForecastSavePlan");
+    expect(source("budgetWords")).toContain('translationKey("What If")');
+    expect(source("budgetWords")).toMatch(
+      /translationKey\(\s*"Save as Budget Plan",?\s*\)/,
+    );
+    expect(source("sideMenu")).toContain('title: "Forecast"');
+    expect(anchorsOf("en", CLOUD_COSTS).has("forecasts")).toBe(true);
+  });
+
+  it("names the API's budget fields and reads as the API takes them", () => {
+    const api: string = costsSection("Budgets and forecasts in the API");
+
+    for (const scope of Object.values(CloudBudgetScope)) {
+      expect(api).toContain(`\`${scope}\``);
+    }
+
+    for (const period of Object.values(CloudBudgetPeriod)) {
+      expect(api).toContain(`\`${period}\``);
+    }
+
+    for (const split of Object.values(CloudBudgetPlanSplit)) {
+      expect(api).toContain(`\`${split}\``);
+    }
+
+    for (const method of Object.values(CloudCostForecastMethod)) {
+      expect(api).toContain(`\`${method}\``);
+    }
+
+    expect(CLOUD_COST_FORECAST_MAX_MONTHS_AHEAD).toBe(24);
+    expect(api).toContain("for 1 to 24 months ahead");
+    expect(source("budgetApi")).toContain("`${path}/forecast`");
+    expect(source("budgetApi")).toContain("`${path}/:budgetId/spend`");
+    expect(api).toContain("/api/cloud-budget/forecast");
+    expect(api).toContain("/api/cloud-budget/<budget ID>/spend");
+  });
+
   it("names the MCP server and the CLI's command an AI agent or a script manages budgets with", () => {
     const budgets: string = costsSection("Budgets");
 
@@ -1911,7 +2047,7 @@ describe("Cloud Costs and Savings", () => {
       expect(COSTS_PAGE).toContain(`**Cloud → ${page}**`);
     }
 
-    for (const page of ["Costs", "Savings", "Budgets"]) {
+    for (const page of ["Costs", "Savings", "Budgets", "Forecast"]) {
       expect(sideMenu).toContain(`title: "${page}"`);
       expect(COSTS_PAGE).toContain(`**Cloud → Spend → ${page}**`);
       expect(PAGE).toContain(`**Cloud → Spend → ${page}**`);

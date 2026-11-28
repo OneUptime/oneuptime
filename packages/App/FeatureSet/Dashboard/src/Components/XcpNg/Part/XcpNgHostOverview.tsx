@@ -46,6 +46,8 @@ import {
   toXcpNgNumber,
 } from "../../../Pages/XcpNg/Utils/XcpNgResourceUtils";
 import { XcpNgPartRoutes } from "./XcpNgPartRoutes";
+import XcpNgMissingPatchesCard from "../XcpNgMissingPatchesCard";
+import { getXcpNgMissingPatchCount } from "../../../Pages/XcpNg/Utils/XcpNgEventFacts";
 
 /*
  * An XCP-ng host's Overview: what on it needs attention (the host, the VMs
@@ -70,6 +72,8 @@ export interface ComponentProps {
   onShowVms: () => void;
   now: Date;
   refreshToken?: number | undefined;
+  // Whether this host runs the pool's XAPI, as a probe read it (#10997).
+  isPoolMaster?: boolean | undefined;
 }
 
 const XcpNgHostOverview: FunctionComponent<ComponentProps> = (
@@ -222,6 +226,32 @@ const XcpNgHostOverview: FunctionComponent<ComponentProps> = (
       key: "tags",
       label: "Tags",
       value: tags.join(", "),
+    });
+  }
+  if (props.isPoolMaster) {
+    detailRows.push({
+      key: "role",
+      label: "Role",
+      value: tx("Pool master"),
+      description: XCP_NG_METRIC_DESCRIPTIONS.poolMaster,
+    });
+  }
+  const missingPatchCount: number | null = getXcpNgMissingPatchCount(row);
+  if (missingPatchCount !== null) {
+    detailRows.push({
+      key: "patches",
+      label: "Patches",
+      value:
+        missingPatchCount === 0
+          ? tx("Up to date")
+          : translator.translatePlural(
+              {
+                one: "{{count}} patch missing",
+                other: "{{count}} patches missing",
+              },
+              missingPatchCount,
+            ),
+      description: XCP_NG_METRIC_DESCRIPTIONS.hostMissingPatches,
     });
   }
   detailRows.push({
@@ -392,6 +422,8 @@ const XcpNgHostOverview: FunctionComponent<ComponentProps> = (
         getMonitorRoute={props.routes.getMonitorRoute}
         refreshToken={props.refreshToken}
       />
+
+      <XcpNgMissingPatchesCard row={row} />
 
       <ResourcePartDetailsCard
         testId="xcp-ng-host-details"

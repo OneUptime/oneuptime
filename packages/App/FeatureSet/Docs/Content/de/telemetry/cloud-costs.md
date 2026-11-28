@@ -1,6 +1,6 @@
 # Cloud-Kosten und Einsparungen
 
-Ein verbundenes Cloud-Konto sagt auch, was es kostet und wie es weniger kosten könnte. OneUptime liest die Kosten jedes Tages aus der eigenen Abrechnung Ihrer Cloud und die Empfehlungen des eigenen Empfehlungsdienstes Ihrer Cloud, zeigt sie unter **Cloud → Ausgaben → Kosten** und **Cloud → Ausgaben → Einsparungen**, listet Ihre Savings Plans, Reservierungen und Rabatte für zugesicherte Nutzung unter **Cloud → Ausgaben → Zusagen** auf und warnt, bevor ein Monat mehr kostet als sein Budget unter **Cloud → Ausgaben → Budgets**. Wenn Sie es zulassen, setzt es außerdem die Einsparungen um, die ein Eigentümer genehmigt, stoppt Nicht-Produktions-Ressourcen außerhalb der Arbeitszeit und prüft jede Änderung anhand der Rechnung.
+Ein verbundenes Cloud-Konto sagt auch, was es kostet und wie es weniger kosten könnte. OneUptime liest die Kosten jedes Tages aus der eigenen Abrechnung Ihrer Cloud und die Empfehlungen des eigenen Empfehlungsdienstes Ihrer Cloud, zeigt sie unter **Cloud → Ausgaben → Kosten** und **Cloud → Ausgaben → Einsparungen**, listet Ihre Savings Plans, Reservierungen und Rabatte für zugesicherte Nutzung unter **Cloud → Ausgaben → Zusagen** auf, sagt Ihnen unter **Cloud → Ausgaben → Budgets** Bescheid, bevor ein Monat, ein Quartal oder ein Jahr mehr kostet als sein Budget, und prognostiziert unter **Cloud → Ausgaben → Prognose** die kommenden Monate. Wenn Sie es zulassen, setzt es außerdem die Einsparungen um, die ein Eigentümer genehmigt, stoppt Nicht-Produktions-Ressourcen außerhalb der Arbeitszeit und prüft jede Änderung anhand der Rechnung.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer und Cost Optimization Hub, jeweils einmal eingeschaltet.
@@ -11,7 +11,8 @@ Ein verbundenes Cloud-Konto sagt auch, was es kostet und wie es weniger kosten k
 - [Einsparungen umsetzen](#einsparungen-umsetzen): Eine Einsparung mit der Genehmigung ihres Eigentümers anwenden, und sie rückgängig machen.
 - [Abschaltzeitpläne](#abschaltzeitpläne): Nicht-Produktions-Ressourcen nachts und am Wochenende stoppen.
 - [KI-Regeln für Einsparungen](#ki-regeln-für-einsparungen): Vorschläge für Eigentümer, oder Änderungen bis zu einem Limit.
-- [Budgets](#budgets): Eine Warnung, sobald die Ausgaben eines Monats einen Anteil seines Budgets überschreiten.
+- [Budgets](#budgets): Das Budget eines Monats, eines Quartals oder eines Jahres für ein beliebiges Konto, eine Kostengruppe oder einen Dienst.
+- [Prognosen](#prognosen): Was die nächsten 12 Monate voraussichtlich kosten, und wie sicher das ist.
 - [Erforderliche Tags](#erforderliche-tags): Wie viel Ihrer Ausgaben die vorgeschriebenen Tags trägt, und neue Ressourcen ohne sie.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Abrechnung Ihrer Cloud,<br/>zweimal täglich gelesen"] --> costs["Kosten"]
     rec["Empfehlungen Ihrer Cloud,<br/>einmal täglich gelesen"] --> savings["Einsparungen"]
     costs --> budgets["Budgets, die warnen"]
+    costs --> forecast["Prognosen"]
+    forecast --> budgets
     costs --> overview["Übersicht von Cloud"]
     savings --> overview
 ```
@@ -222,30 +225,41 @@ Wenn die Arbeitszeit endet, stoppt ein Zeitplan jede laufende Ressource, die sei
 Ein Zeitplan stoppt nie Produktion und nie eine Ressource, deren Umgebung nichts angibt. Eine Ressource ist bekanntermaßen keine Produktion, wenn:
 
 - eines ihrer Tags das sagt, unter einem Schlüssel wie `environment`, `env`, `stage`, `tier` oder `deployment.environment`, mit einem Wort wie `dev`, `test`, `qa`, `staging` oder `sandbox`;
-- ihr Konto unter **Umgebung** in den **Einstellungen** des Kontos als **Nicht-Produktion** markiert ist;
-- oder eine ihrer Beschriftungen das sagt, etwa `Staging` oder `env: dev`.
+- oder ihr Konto unter **Umgebung** in den **Einstellungen** des Kontos als **Nicht-Produktion** markiert ist.
 
-Produktion gewinnt: Ein Tag, das `prod`, `production` oder `live` sagt, oder ein als **Produktion** markiertes Konto lässt eine Ressource weiterlaufen, egal was sonst etwas sagt. Der Name einer Ressource wird dafür nie gelesen. Schalten Sie einen Zeitplan aus, stoppt er nichts mehr und startet das, was er gestoppt hat, wenn seine Arbeitszeit beginnt; löschen Sie ihn, wird das, was er gestoppt hat, sofort gestartet.
+Eine OneUptime-Beschriftung macht eine Ressource für einen Zeitplan nie zur Nicht-Produktion. Eine umbenannte Beschriftung ändert jede Ressource, die sie trägt, auf einmal, daher wird eine Beschriftung wie `Staging` oder `env: dev` nur dort gelesen, wo eine Person die Änderung genehmigt, wie bei **Anwenden**. Produktion gewinnt: Ein Tag, das `prod`, `production` oder `live` sagt, ein als **Produktion** markiertes Konto oder eine Beschriftung wie `Production` oder `env: prod` lässt eine Ressource weiterlaufen, egal was sonst etwas sagt. Der Name einer Ressource wird dafür nie gelesen. Jeder Stopp liest die Ressource unmittelbar vorher erneut. Schalten Sie einen Zeitplan aus, stoppt er nichts mehr und startet das, was er gestoppt hat, wenn seine Arbeitszeit beginnt; löschen Sie ihn, wird das, was er gestoppt hat, sofort gestartet.
 
 ## KI-Regeln für Einsparungen
 
 Mit eingeschaltetem **KI aktivieren** schlägt OneUptime AI nach jedem Lesen der Einsparungen des Kontos jede Einsparung, die es umsetzen kann, den Eigentümern der Ressource vor, und sie genehmigen oder verwerfen sie unter **Wartet auf Genehmigung**. Unter **Cloud → Einstellungen → KI-Regeln für Einsparungen** sagt eine Regel, was OneUptime AI mit den Einsparungen tut, auf die sie passt, nach Art der Änderung, Umgebung der Ressource und ihrer Cloud: **Aus**, **Dem Eigentümer vorschlagen** oder **Ohne Rückfrage handeln**, bis zu einem monatlichen Limit. Ohne Regel wird jede Einsparung vorgeschlagen und keine umgesetzt; mit Regeln nur, worauf eine Regel passt, und zwischen passenden Regeln gewinnt die vorsichtigere.
 
-Eine Regel handelt ohne Rückfrage nur bei einer Ressource, die bekanntermaßen keine Produktion ist, nur bei einer Änderung, die sich rückgängig machen lässt, nur bis zum kleinsten Limit der passenden Regeln und höchstens 10 Mal pro Stunde in einem Projekt: Alles andere wird vorgeschlagen. Eine ohne Rückfrage vorgenommene Änderung steht in den Zeitleisten mit der Regel, die sie vorgenommen hat, und ihre Eigentümer können sie rückgängig machen. Eine verworfene oder rückgängig gemachte Einsparung wird 30 Tage lang nicht erneut vorgeschlagen.
+Eine Regel handelt ohne Rückfrage nur bei einer Ressource, die bekanntermaßen keine Produktion ist, so wie ein Zeitplan es liest, also nach ihren Tags oder ihrem Konto und nie allein nach ihren Beschriftungen, nur bei einer Änderung, die sich rückgängig machen lässt, nur bis zum kleinsten Limit der passenden Regeln und höchstens 10 Mal pro Stunde in einem Projekt: Alles andere wird vorgeschlagen. Die Ressource wird unmittelbar vor der Änderung erneut gelesen, und eine, die bis dahin nicht mehr bekanntermaßen keine Produktion ist, wird stattdessen vorgeschlagen. Eine ohne Rückfrage vorgenommene Änderung steht in den Zeitleisten mit der Regel, die sie vorgenommen hat, und ihre Eigentümer können sie rückgängig machen. Eine verworfene oder rückgängig gemachte Einsparung wird 30 Tage lang nicht erneut vorgeschlagen.
 
 ## Budgets
 
 :::steps
 ### Ein Budget erstellen
 
-Erstellen Sie unter **Cloud → Ausgaben → Budgets** ein Budget: seinen **Monatlicher Betrag**, das **Konto**, für das es gilt, oder keins für alle Konten, und die **Kostenbasis**, die es zählt, oder keine für die des Projekts.
+Erstellen Sie unter **Cloud → Ausgaben → Budgets** ein Budget und wählen Sie, wofür es **Gilt für**: jedes Konto, ein **Konto**, eine **Kostengruppe**, so wie ihre Regeln die Ausgaben aufteilen, oder die Dienste, Regionen und Tags, die ein **Filter** nennt, geschrieben wie die Regeln einer Kostengruppe. Lassen Sie seine **Kostenbasis** leer, um die des Projekts zu zählen.
+
+### Festlegen, was es kosten darf
+
+Sein **Zeitraum** ist ein Monat, ein Quartal oder ein Jahr, und sein **Betrag** ist, was ein Zeitraum kosten darf. Quartale und Jahre beginnen im **Erster Monat des Jahres**: ab April läuft ein Jahr von April bis März. Der **Budgetplan** eines Jahres kann seinen Betrag gleichmäßig auf seine Monate verteilen oder jedem Monat in einem **Monatsplan** seinen eigenen geben. Jeder Monat wird dann an seinem eigenen Anteil gemessen, sodass ein ruhiger Monat nie wegen der Ausgaben eines geschäftigen Monats gewarnt wird.
 
 ### Wählen, wann es warnt
 
-**Warnen bei** nimmt die Anteile des Budgets in Prozent, bei denen gewarnt wird: anfangs 80 und 100. **Warnen, wenn eine Überschreitung absehbar ist** warnt außerdem einmal im Monat, wenn das Tempo der letzten Woche den Monat über das Budget brächte. **Bei ungewöhnlichen Tagen warnen** warnt außerdem am Tag nach einem Tag, der weit mehr gekostet hat als üblich: siehe [Ungewöhnliche Tage](#ungewöhnliche-tage). **Warnungsschweregrad** und **Bereitschaftsrichtlinien** legen fest, wie schwer die Warnungen sind und wer alarmiert wird.
+**Warnen bei** nimmt die Anteile des Budgets in Prozent, bei denen gehandelt wird: anfangs 80 und 100. **Warnen, wenn eine Überschreitung absehbar ist** warnt außerdem einmal pro Zeitraum, wenn der Zeitraum voraussichtlich mehr kostet als das Budget. **Bei ungewöhnlichen Tagen warnen** warnt außerdem am Tag nach einem Tag, der weit mehr gekostet hat als üblich: siehe [Ungewöhnliche Tage](#ungewöhnliche-tage). **Warnungsschweregrad** sagt, wie schwer seine Warnungen sind.
+
+### Wählen, wer informiert wird
+
+Die Personen und Teams unter **Benachrichtigen** werden per E-Mail und Chat informiert, sobald die Ausgaben einen Anteil unter 100 % überschreiten, ohne Warnung, sodass für Ausgaben innerhalb des Budgets niemand alarmiert wird. **Team der Kostengruppe informieren** informiert zusätzlich das Team, zu dem die Kostengruppe gehört. Ab 100 % wird eine Warnung ausgelöst, sie sind ihre Eigentümer, und die **Bereitschaftsrichtlinien** werden alarmiert. Ein Budget ohne Personen, die es informieren kann, löst bei jedem Anteil eine Warnung aus.
 :::
 
-Ein Budget wird nach jedem Lesevorgang der Kosten und jede Stunde geprüft. Sobald die Ausgaben des Monats einen Schwellenwert überschreiten, wird dafür eine Warnung ausgelöst, die höchste, wenn ein Lesevorgang mehrere auf einmal überschreitet, und ein neuer Monat löst die Warnungen des letzten auf. Ein Budget zählt nur die Konten, die in seiner Währung abgerechnet werden, auf seiner Basis: Ein amortisiertes Budget wird nicht von einer im Voraus gekauften Zusage ausgelöst, die ein abgerechnetes am Tag des Kaufs zählt.
+Ein Budget wird nach jedem Lesevorgang der Kosten und jede Stunde geprüft. Sobald die Ausgaben des Zeitraums einen Anteil überschreiten, werden die zu benachrichtigenden Personen informiert, oder ab 100 % wird eine Warnung ausgelöst, einmal für den höchsten, wenn ein Lesevorgang mehrere auf einmal überschreitet, und ein neuer Zeitraum löst die Warnungen des letzten Zeitraums auf. Ein nach Monaten aufgeteiltes Jahr wird Monat für Monat geprüft, am Anteil dieses Monats. Ein Budget zählt nur die Konten, die in seiner Währung abgerechnet werden, auf seiner Basis: Ein amortisiertes Budget wird nicht durch eine im Voraus gekaufte Zusage ausgelöst, die ein abgerechnetes Budget am Tag ihres Kaufs zählt.
+
+Ein Zeitraum überschreitet das Budget voraussichtlich, wenn das, was er bisher gekostet hat, der Rest dieses Monats im Tempo der letzten vollen Woche und die späteren Monate eines Quartals oder Jahres laut [Prognose](#prognosen) zusammen mehr ergeben als das Budget.
+
+Die Zeile jedes Budgets zeigt, was es zählt, seinen Zeitraum und den Zeitraum bisher: bei einem nach Monaten aufgeteilten Jahr diesen Monat gegenüber seinem Anteil, mit dem Jahr daneben. Seine Seite zeigt den Zeitraum Monat für Monat gegenüber dem Anteil jedes Monats, diesen Monat Tag für Tag, was am meisten gekostet hat, und wer informiert wird. Die Seite eines Jahresbudgets kann seine Prognose als seinen Plan speichern.
 
 KI-Agenten können Budgets über den [MCP-Server](/docs/ai/mcp-server) anlegen und ändern, Skripte mit dem Befehl `oneuptime cloud-budget` der CLI: siehe [Ressourcenoperationen](/docs/cli/resource-operations).
 
@@ -253,7 +267,41 @@ KI-Agenten können Budgets über den [MCP-Server](/docs/ai/mcp-server) anlegen u
 
 Nach jedem Lesevorgang wird jeder der letzten 14 vollen Tage eines Kontos an den 14 Tagen davor gemessen. Ein Tag ist ungewöhnlich, wenn ein Dienst das Doppelte seines üblichen Tages oder mehr gekostet hat oder das ganze Konto das Anderthalbfache seines üblichen Tages oder mehr. In beiden Fällen muss es mindestens 10 mehr als üblich sein, in der Währung des Kontos, und mindestens 5 % des üblichen Tages des Kontos, damit ein paar Cent nie als Ausreißer gelten. Der übliche Wert eines Tages ist der Median der 14 Tage davor, sodass ein einzelner Ausreißer ihn kaum bewegt, und ein Konto wird erst beurteilt, wenn es eine Woche an Kosten hat.
 
-**Cloud → Ausgaben → Kosten** markiert die ungewöhnlichen Tage in den täglichen Ausgaben, über ihren Balken, und listet sie darunter auf. Über alle Konten öffnet jede Markierung die Seite **Kosten** ihres Kontos. Ein Budget, das das Konto einbezieht, löst für jedes Konto und jeden Tag eine Warnung aus, am Tag danach, und nennt jeden Dienst, der zu hoch lag. Ein Ausreißer, der tagelang anhält, wird am Tag seines Beginns gemeldet, und ein Tag, der älter als eine Woche ist, wird nicht gemeldet. Ein Budget, das vor diesen Warnungen erstellt wurde, löst sie erst aus, wenn Sie es bearbeiten und sie einschalten.
+**Cloud → Ausgaben → Kosten** markiert die ungewöhnlichen Tage in den täglichen Ausgaben, über ihren Balken, und listet sie darunter auf. Über alle Konten öffnet jede Markierung die **Kosten** ihres Kontos. Ein monatliches Budget für jedes Konto oder ein Konto löst für jedes Konto und jeden Tag eine Warnung aus, am Tag danach, und nennt jeden Dienst, der hoch lag. Jedes andere Budget misst das, was es zählt, auf dieselbe Weise an seinem eigenen üblichen Tag. Ein Anstieg, der tagelang anhält, wird an dem Tag gemeldet, an dem er begann, und ein Tag, der älter als eine Woche ist, wird nicht gemeldet. Ein Budget, das vor diesen Warnungen erstellt wurde, löst sie erst aus, wenn Sie es bearbeiten und sie einschalten.
+
+## Prognosen
+
+**Cloud → Ausgaben → Prognose** sagt, was die Ausgaben in jedem der nächsten 12 Monate voraussichtlich kosten, für alles, ein Konto, eine Kostengruppe oder einen Dienst, auf der Kostenbasis, die Sie wählen. Sie sagt, wie jede Prognose erstellt wird, aus den vollen Monaten an Kosten, die OneUptime aufbewahrt, ein Jahr oder etwas mehr:
+
+- **Dieser Monat** ist, was er bisher gekostet hat, mit jedem noch kommenden Tag im Durchschnitt der letzten sieben vollen Tage, so wie ein Budget ihn hochrechnet.
+- **Mit weniger als 3 vollen Monaten** wird dieses Tempo für jeden kommenden Monat fortgeschrieben, ohne wahrscheinlichen Bereich: Es wurde zu wenig gelesen, um einen Trend von einem Ausreißer zu unterscheiden.
+- **Ab 3 vollen Monaten** verläuft ein Trend durch den durchschnittlichen Tag jedes Monats: der Median der Steigungen zwischen je zwei Monaten, sodass ein auffälliger Monat ihn kaum bewegt.
+- **Ab 12 vollen Monaten** behält jeder Kalendermonat außerdem, wie weit er im letzten Jahr über oder unter dem Trend lag, sodass eine Dezemberspitze auch für den nächsten Dezember prognostiziert wird.
+
+Jeder kommende Monat hat einen wahrscheinlichen Bereich, in dem er 8 von 10 Mal landen sollte, abgeleitet daraus, wie weit die vergangenen Monate von ihrem Trend abwichen, und nie schmaler als 5 % in jede Richtung. Er wird breiter, je weiter ein Monat in der Zukunft liegt und je weniger Monate der Prognose zugrunde liegen. Ab 12 vollen Monaten ist jeder Bereich noch breiter, weil ein Jahr jeden Kalendermonat nur einmal zeigt. Eine Prognose ist kein Versprechen: Ein neuer Dienst, eine Migration oder eine Preisänderung bewegt die kommenden Monate auf eine Weise, die kein vergangener Monat zeigt.
+
+**Was wäre, wenn** lässt jeden kommenden Monat ab dem gewählten Monat um den eingegebenen Anteil wachsen oder schrumpfen, etwa 20 % ab Januar. **Als Budgetplan speichern** macht die nächsten zwölf Monate zum Plan eines Jahresbudgets, in einem neuen Budget oder einem bestehenden, jeder Monat an seinen prognostizierten Anteil gebunden.
+
+## Budgets und Prognosen in der API
+
+Budgets sind eine API-Ressource (`cloud-budget`), mit CLI-Befehlen und MCP-Werkzeugen wie jede Ressource. Der `scope` eines Budgets ist `allAccounts`, `account` (mit `cloudAccountId`), `costGroup` (mit `cloudCostGroupId`) oder `filter` (mit `filterRules`, geschrieben wie die Regeln einer Kostengruppe). Sein `period` ist `month`, `quarter` oder `year`, ab `fiscalYearStartMonth`, 1 bis 12. Der `planSplit` eines Jahres ist `none`, `equal` oder `byMonth`, mit seinen zwölf Monaten in `monthlyPlan`, in der Reihenfolge des Geschäftsjahres.
+
+So lesen Sie den Zeitraum eines Budgets Monat für Monat, die Tage dieses Monats und was am meisten gekostet hat, wie seine Seite es tut:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+So prognostizieren Sie einen Umfang für 1 bis 24 Monate im Voraus, mit einem optionalen Was-wäre-wenn:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+Der `forecast` der Antwort enthält seine `method` (`pace`, `trend` oder `trendAndSeason`), die Monate, aus denen er erstellt wurde, und jeden Monat mit seinem `amount` und, für die kommenden, seinem `low` und `high`. Senden Sie `basis` als `billed`, `amortized` oder `net`, um auf dieser Basis zu prognostizieren; ohne sie wird auf der des Projekts prognostiziert, und `basis` in der Antwort sagt, welche. Die Ausgaben eines Budgets stehen auf seiner eigenen Basis.
 
 ## Wohin das Geld fließt
 
@@ -313,14 +361,84 @@ OneUptime schlägt einen Wert nur vor, wenn das Tag ihn erlaubt:
 
 Der Befehl setzt das Tag in einem Schritt, aus der eigenen Shell Ihrer Cloud: `aws resourcegroupstaggingapi tag-resources` auf AWS, `az tag update --operation Merge` auf Azure und `gcloud ... add-labels` oder `--update-labels` für Compute-Engine-VMs und -Disks, Cloud-Storage-Buckets und Cloud-SQL-Instanzen auf Google Cloud.
 
+## Berichte und Exporte
+
+### Kostenberichte
+
+**Cloud → Ausgaben → Berichte** sendet nach Zeitplan, was die Clouds kosten, per E-Mail und in Slack- oder Microsoft Teams-Kanäle, sodass die Menschen, die die Zahlen brauchen, sie bekommen, ohne OneUptime zu öffnen. Ein Bericht hat:
+
+- **Deckt ab**: alle Konten, ein Konto, eine Kostengruppe oder eine Kostenansicht mit all ihren Gruppen.
+- **Zeitraum**: letzte Woche (Montag bis Sonntag), letzter Monat oder der Monat bis heute. Jeder wird mit dem Zeitraum davor verglichen: der Woche davor, dem Monat davor oder dem letzten Monat bis zum selben Tag.
+- **Kostenbasis**: abgerechnet, amortisiert oder netto. Leer ist es die des Projekts, mit der Kosten öffnet. Der Bericht sagt immer, auf welcher Basis er steht.
+- **Zeitplan**: jede Woche oder jeden Monat, an einem Tag und zu einer Uhrzeit in einer Zeitzone, nach denselben Regeln wie die Zusammenfassungen in Slack und Microsoft Teams. Ein neuer wöchentlicher Bericht geht nächsten Montag um 09:00 in Ihrer Zeitzone hinaus, ein monatlicher am 1., und spätere Berichte behalten diesen Tag und diese Uhrzeit das ganze Jahr.
+
+Die E-Mail sagt, was der Zeitraum gegenüber dem Zeitraum davor gekostet hat, die Budgets, auf die er angerechnet wird (jeder Monat bis heute, auf der eigenen Basis des Budgets), die Dienste, die am stärksten gestiegen und gesunken sind, die Gruppen einer Kostenansicht und was keine Gruppe übernimmt, die ungewöhnlichen Tage, die größten ausstehenden Einsparungen und wie viel der Ausgaben Zusagen abdecken. Ihre Zahlen sind als CSV angehängt. **Kosten öffnen** öffnet **Kosten** auf genau den Tagen, der Basis und der Ansicht des Berichts, sodass die Zahlen des Berichts und die der Seite dieselben sind. Konten, die in einer anderen Währung abgerechnet werden, fehlen in den Zahlen, und der Bericht nennt sie.
+
+Ein Slack- oder Microsoft Teams-Kanal bekommt eine kurze Nachricht: die Summe und ihre Veränderung, das Budget, die ersten Zeilen der Listen des Berichts und **Kosten öffnen**.
+
+### Wer einen Bericht bekommt
+
+- Personen und Teams des Projekts bekommen ihn per E-Mail über ihre Benachrichtigungseinstellungen, in denen jede Person Cloud-Kostenberichte ausschalten kann. Jede Person bekommt die Zahlen, die sie lesen darf: Wer nur über Labels Zugriff hat, bekommt nur seine Konten, und wer die Cloud-Kosten des Projekts nicht mehr lesen darf, wird ausgelassen.
+- **E-Mail-Adressen** außerhalb des Projekts, etwa die Ihrer Buchhaltung, sowie Slack- und Microsoft Teams-Kanäle erfordern die Berechtigung Cloud-Administrator, Projektadministrator oder Projektinhaber, weil OneUptime nicht wissen kann, wer sie liest. Sie bekommen den Bericht so, wie die Person, die sie hinzugefügt hat, ihn lesen darf, und bekommen ihn nicht mehr, wenn diese Person die Berechtigung verliert. Ein API-Schlüssel kann sie nicht festlegen.
+- Wer die anderen Cloud-Datensätze anlegen darf, ab Cloud-Mitglied, kann Berichte anlegen, ändern und löschen. Ein Cloud-Betrachter kann sie lesen.
+
+Ein Bericht geht an höchstens 200 Personen, 25 Adressen und 10 Kanäle jeder Art. **Letzter Versand** sagt, wann er zuletzt hinausging, und wen er ausgelassen hat und warum.
+
+### Ein Abschnitt für jedes Team
+
+Ein Bericht über eine Kostenansicht kann mit **Jedem Gruppenteam seinen Abschnitt senden** jeder Gruppe ihren eigenen Abschnitt senden. Die Mitglieder des Teams jeder Gruppe, das an der Gruppe angegeben ist, bekommen die Ausgaben ihrer Gruppe gegenüber dem Zeitraum davor, die Dienste darin, die am stärksten gestiegen und gesunken sind, und ihre ungewöhnlichen Tage. Eine geteilte Gruppe hat keinen eigenen Abschnitt: Ihre Kosten stecken in den Gruppen, auf die sie aufgeteilt wird. Die eigenen Personen, Teams und Adressen des Berichts bekommen alle Gruppen. Wer in den Teams zweier Gruppen ist, bekommt beide Abschnitte. Ein monatlicher Bericht über eine Kostenansicht auf diese Weise ist das Showback des Monats.
+
+### Vorschau und Mir eine Kopie senden
+
+**Vorschau** zeigt, was ein Bericht jetzt sagt, so wie Sie ihn lesen dürfen und wie die E-Mail ihn darstellt, und wen sein letzter Versand ausgelassen hat und warum. **Mir eine Kopie senden** schickt ihn Ihnen jetzt per E-Mail.
+
+### CSV herunterladen
+
+**CSV herunterladen** speichert, was eine Karte zeigt: **Wohin das Geld fließt** auf **Kosten**, in jeder Aufschlüsselung und gegenüber dem Zeitraum davor, die Ausgaben jedes Tages, die Empfehlungen unter **Einsparungen** und die Seite einer Kostengruppe. Der Dateiname sagt, was sie enthält, wonach sie aufgeschlüsselt ist, die Ansicht und das Konto, die Kostenbasis und die Tage, etwa `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Zahlen sind einfache Zahlen, und ein Text, den eine Tabellenkalkulation als Formel lesen würde, beginnt mit einem Apostroph.
+
+### FOCUS
+
+**FOCUS exportieren** auf **Kosten** lädt alle Kosten des Zeitraums als FOCUS-1.2-Datei herunter, die FinOps Open Cost and Usage Specification in Version 1.2, die Finanzwerkzeuge lesen. Eine Datei enthält höchstens 93 Tage und jede Währung, in der die Konten abgerechnet werden, jede Zeile in ihrer eigenen.
+
+Die Datei hat jede Spalte, die FOCUS 1.2 verpflichtend macht, und die bedingten, für die OneUptime die Daten hat: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` und `Tags`. Sie hat eine Zeile für jede Kostenposition, die OneUptime führt: ein Tag, ein Konto, ein Dienst, eine Region und, wo die Cloud sie nennt, eine Ressource.
+
+- `BilledCost` ist, was die Cloud abgerechnet hat, und `EffectiveCost`, was es gekostet hat, wenn Zusagen auf das verteilt werden, was sie abdecken.
+- Was die Cloud abgezogen hat, ihre Gutschriften, Erstattungen und Rabatte, ist eine eigene Zeile mit der `ChargeCategory` `Credit`. Die `EffectiveCost` der Datei ergibt zusammengezählt die Nettokosten.
+- `ChargeCategory` ist `Tax` für die Kosten, die AWS unter seinem Tax-Dienst abrechnet, und `Usage` für den Rest.
+- `BillingAccountId` ist das Konto, aus dem die Verbindung die Rechnung liest: das Verwaltungskonto einer AWS-Organisation, ein Google Cloud-Rechnungskonto oder das Azure-Abonnement, da das Azure-Rechnungskonto nicht gelesen wird. `SubAccountId` ist das AWS-Konto, das Azure-Abonnement oder das Google Cloud-Projekt.
+- Datumsangaben sind ganze UTC-Tage, wobei das Ende des Abrechnungszeitraums und des Rechnungszeitraums nicht eingeschlossen ist. Der Rechnungszeitraum ist der Kalendermonat.
+
+Was FOCUS 1.2 verlangt, OneUptime aber nicht liest, bleibt leer oder wird so gesetzt, wie die Spezifikation es erlaubt. `PricingQuantity` und `PricingUnit` sind leer, weil die Kosten nach Tag, Dienst, Region und Ressource gelesen werden, nicht nach Nutzungsart. `ListCost` und `ContractedCost` entsprechen `BilledCost`, wie FOCUS es verlangt, wenn Stückpreise nicht bekannt sind. Ein Kauf, etwa die Vorauszahlung einer Reservierung, ist die Nutzung des Dienstes, für den er gekauft wurde. Es gibt keine Spalten für SKUs, Commitment-Rabatte, Kapazitätsreservierungen oder Rechnungen. FOCUS 1.3 und 1.4 fügen Spalten hinzu, ohne die ein Leser von 1.2 auskommt.
+
+### Über die API und die CLI
+
+Die API beantwortet eine Aufschlüsselung, nicht nur die Zeilen der Kosten, sodass ein Finanzsystem die Leistungsverrechnung des Monats abrufen kann:
+
+- `POST /api/cloud-cost/breakdown` mit `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` mit einem `tagKey` oder `group` mit einer `cloudCostViewId`), einer `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) oder einem `startDate` und einem `endDate`, und optional `cloudAccountIds`, `currency`, `basis` und `compareWithPrevious`. Die Antwort ist die Summe des Zeitraums und jeder Anteil, mit dem Zeitraum davor daneben, oder mit `"format": "csv"` die CSV, die **CSV herunterladen** liefert.
+- `POST /api/cloud-cost/export` mit einer `period` oder einem `startDate` und einem `endDate` beantwortet die FOCUS-Datei.
+
+Beide lesen so, wie der Schlüssel die Kosten lesen darf. Über die [CLI](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### Auf einem Dashboard
+
+Das Widget **Cloud-Kosten** stellt eine Summe, eine Aufschlüsselung oder einen Trend der Ausgaben neben die Dienste, die sie verursachen. Siehe [Dashboard-Widgets](/docs/dashboards/widgets#kosten-der-cloud).
+
 ## Was Sie in OneUptime sehen
 
 - **Die Übersicht von Cloud.** **Cloud → Übersicht** zeigt die Ausgaben des Monats im Vergleich zu denen des letzten Monats am selben Tag, die teuersten Dienste und die größten Wege, weniger auszugeben, neben dem, was Aufmerksamkeit braucht.
 - **Die Ausgaben jedes Tages.** **Cloud → Ausgaben → Kosten** zeichnet jeden der letzten 30 Tage und markiert die Tage, die weit mehr gekostet haben als üblich, listet diese Tage auf und schlüsselt einen Zeitraum nach Dienst, Region, Konto, Ressource, Umgebung der App-Plattformen, App oder Tag auf, abgerechnet, amortisiert oder netto. Die Konten, deren Kosten nicht gelesen werden, sind darunter aufgeführt, jeweils mit dem Grund.
 - **Jede Zusage.** **Cloud → Ausgaben → Zusagen** listet jede mit ihrem Ende und wie viel davon genutzt wird auf, die bald endenden mit dem, was zu verlängern ist, und was zu kaufen ist.
+- **Berichte.** **Cloud → Ausgaben → Berichte** listet jeden geplanten Bericht mit dem, was er abdeckt, wann er als Nächstes hinausgeht und wie sein letzter Versand verlief.
 - **Die Kosten eines Kontos.** Die Seite **Kosten** eines Kontos zeigt dasselbe nur für das Konto, mit seinen Zusagen und seinen Wegen, weniger auszugeben.
 - **Erforderliche Tags.** **Cloud → Ausgaben → Tags** zeigt, wie viel der Ausgaben und der Ressourcen Ihre erforderlichen Tags tragen, und die **Tags** eines Kontos zeigen dasselbe für das Konto allein.
 - **Die Kosten einer Ressource.** Die Seite einer Ressource zeigt, was sie in diesem Monat und in den letzten 30 Tagen gekostet hat, wenn ihre Cloud sie namentlich abrechnet, mit ihren Wegen, weniger auszugeben, und ihrer Größenanpassung.
+- **Jedes Budget.** **Cloud → Ausgaben → Budgets** listet jedes Budget mit dem, was es zählt, seinem Zeitraum und dem Zeitraum bisher, und jedes öffnet seine Seite.
+- **Die kommenden Monate.** **Cloud → Ausgaben → Prognose** zeigt die Monate, aus denen eine Prognose erstellt wurde, diesen Monat hochgerechnet und die nächsten 12, mit der Art, wie sie erstellt wurde.
 - **Was eingespart wurde.** **Cloud → Ausgaben → Einsparungen** zeigt zuerst, was die vorgenommenen Änderungen diesen Monat laut Rechnung eingespart haben, die Änderungen, die auf Genehmigung warten, und die vorgenommenen, sowie die Stunden, die Zeitpläne Ressourcen gestoppt haben.
 
 ## Fehlerbehebung
@@ -362,7 +480,19 @@ OneUptime nimmt nur Änderungen in einem Schritt vor: Eine Zusage oder eine Empf
 :::
 
 :::details Ein Zeitplan lässt eine Ressource weiterlaufen
-**Ressourcen anzeigen** sagt, warum: Sie ist Produktion, nichts sagt, dass sie keine Produktion ist, oder die Verbindung ihres Kontos erlaubt keine Einsparungsaktionen. Taggen Sie sie, zum Beispiel `environment` = `dev`, oder markieren Sie ihr Konto als **Nicht-Produktion**.
+**Ressourcen anzeigen** sagt, warum: Sie ist Produktion, nichts sagt, dass sie keine Produktion ist, nur ihre Beschriftungen sagen das, oder die Verbindung ihres Kontos erlaubt keine Einsparungsaktionen. Taggen Sie sie in Ihrer Cloud, zum Beispiel `environment` = `dev`, oder markieren Sie ihr Konto als **Nicht-Produktion**.
+:::
+
+:::details Eine Regel schlägt eine Änderung vor, die sie früher ohne Rückfrage vorgenommen hat
+Ihre Karte sagt, warum. Eine Regel nimmt eine Änderung nur bei einer Ressource ohne Rückfrage vor, die laut ihren Tags oder ihrem Konto keine Produktion ist: Eine, die nur ihre Beschriftungen als Nicht-Produktion bezeichnen, wird stattdessen ihren Eigentümern vorgeschlagen. Taggen Sie sie in Ihrer Cloud, zum Beispiel `environment` = `dev`, oder markieren Sie ihr Konto als **Nicht-Produktion**.
+:::
+
+:::details Eine Prognose hat keinen wahrscheinlichen Bereich
+Sie wurde aus weniger als 3 vollen Monaten an Kosten erstellt, daher wird für jeden kommenden Monat das Tempo der letzten vollen Woche fortgeschrieben, und es wird kein Bereich angegeben. Der Bereich kommt, sobald der dritte volle Monat gelesen ist. Der erste Lesevorgang einer Verbindung reicht bis zum Anfang des vorletzten Monats zurück.
+:::
+
+:::details Jemand wurde über ein Budget informiert, aber es kam keine Warnung
+Unter 100 % informiert ein Budget, das zu benachrichtigende Personen oder Teams nennt, diese und löst keine Warnung aus, sodass niemand alarmiert wird. Ab 100 % löst es eine Warnung aus, und seine Bereitschaftsrichtlinien werden alarmiert. Ein Budget ohne Personen, die es informieren kann, löst bei jedem Anteil eine Warnung aus.
 :::
 
 :::details Dieser Monat ist niedriger als in der Konsole Ihrer Cloud

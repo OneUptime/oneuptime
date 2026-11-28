@@ -548,6 +548,41 @@ describe("ProfileAggregationService.getProfileTypeActivity", () => {
       excluded.toString(),
     ]);
   });
+
+  /*
+   * #11334: a Profiles check narrows its types over its own window, which
+   * holds its start and not its end; every other reader holds both ends.
+   */
+  test("reads a check's window up to its end, not included, and any other window through its end", async () => {
+    const statements: Array<Statement> = [];
+
+    jest
+      .spyOn(ProfileDatabaseService, "executeQuery")
+      .mockImplementation((async (statement: Statement): Promise<Results> => {
+        statements.push(statement);
+        return resultOf([]);
+      }) as never);
+
+    for (const includesEnd of [false, true, undefined]) {
+      await ProfileAggregationService.getProfileTypeActivity({
+        projectId: ObjectID.generate(),
+        startTime: new Date("2026-10-20T10:00:00.000Z"),
+        endTime: new Date("2026-10-20T11:00:00.000Z"),
+        includesEnd: includesEnd,
+      });
+    }
+
+    const [checkWindow, bothEnds, unsaid] = statements.map(
+      (statement: Statement): string => {
+        return statement.query.split(/\s+/).join(" ");
+      },
+    );
+
+    expect(checkWindow).toMatch(/AND startTime < \{p\d+:DateTime\}/);
+    expect(checkWindow).not.toMatch(/AND startTime <= /);
+    expect(bothEnds).toMatch(/AND startTime <= \{p\d+:DateTime\}/);
+    expect(unsaid).toMatch(/AND startTime <= \{p\d+:DateTime\}/);
+  });
 });
 
 describe("ProfileAggregationService.resolveQueryProfileTypes", () => {

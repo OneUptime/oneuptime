@@ -1,0 +1,55 @@
+name: oneuptime-powerscale-simulator
+
+# A four-node Dell PowerScale cluster, `ps-prod`, for the Storage Array
+# Agent's PowerScale config (agents/StorageArrayAgent/
+# otel-collector-config.powerscale.yaml): snmpsim replays each node's
+# ISILON-MIB walk (../data/powerscale-node-<n>, written by make-walks.py)
+# over SNMP v2c, community `public`.
+#
+# Node 3 is offline: nothing answers at 172.30.97.13, and the cluster's
+# own objects list it as offline. Node 2 needs attention, with a drive
+# being smartfailed, and node 4 has an empty drive bay.
+#
+#   docker compose up -d --build
+#
+# then point an agent at it (see ../README.md, "A PowerScale cluster").
+services:
+  powerscale-node-1:
+    build:
+      context: ..
+    image: oneuptime-snmp-simulator:local
+    restart: unless-stopped
+    volumes:
+      - ../data/powerscale-node-1:/data:ro
+    networks:
+      powerscale:
+        ipv4_address: 172.30.97.11
+
+  powerscale-node-2:
+    build:
+      context: ..
+    image: oneuptime-snmp-simulator:local
+    restart: unless-stopped
+    volumes:
+      - ../data/powerscale-node-2:/data:ro
+    networks:
+      powerscale:
+        ipv4_address: 172.30.97.12
+
+  powerscale-node-4:
+    build:
+      context: ..
+    image: oneuptime-snmp-simulator:local
+    restart: unless-stopped
+    volumes:
+      - ../data/powerscale-node-4:/data:ro
+    networks:
+      powerscale:
+        ipv4_address: 172.30.97.14
+
+networks:
+  powerscale:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.97.0/24

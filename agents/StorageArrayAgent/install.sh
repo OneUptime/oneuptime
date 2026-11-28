@@ -123,6 +123,17 @@ reject_dollar() {
     esac
 }
 
+# The same for a value that may hold a $ (an SNMP community: OneFS's default is
+# I$ilonpublic): only $$ and ${, which the collector would rewrite, are refused.
+reject_collector_expansion() {
+    case "$2" in
+        *\$\$* | *\$\{*)
+            echo "Error: $1 must not contain \$\$ or \${ (the collector would rewrite them)."
+            exit 1
+            ;;
+    esac
+}
+
 # ----------------------------------------------------------------------------
 # The platforms this agent reads: one line each, one collector config each
 # ----------------------------------------------------------------------------
@@ -134,20 +145,36 @@ reject_dollar() {
 #   2  the platform it stamps as storage.system
 #   3  the compose profile that starts the exporter it scrapes (- for none)
 #   4  the .env variable holding the array's management address
-#   5  the .env variable holding the read-only user's API token
-#   6  whether the collector itself talks TLS to the array (yes / no): only
-#      then is the certificate question asked
+#   5  the .env variable holding the read-only user's API token, or the
+#      password of the user field 10 names
+#   6  whether the agent itself talks TLS to the array (yes / no): the
+#      collector, or an exporter that logs in to the array itself (NetApp
+#      Harvest). Only then is the certificate question asked
 #   7  what the array is called in a sentence
 #   8  the menu's line for it
 #   9  how the agent reads it, for the last message
+#  10  for an exporter that logs in to the array itself with a user and a
+#      password: the .env variable holding the user's name (- for an API
+#      token, which the collector sends). The collector never reads that
+#      password, so it may hold a $.
+#  11  the files it runs with besides its collector config, shipped next to
+#      this script (- for none)
+#  12  the optional .env settings it reads, which a re-run keeps (- for none)
+#  13  optional: a setup step of the platform's own (a function below), run
+#      before the address and token are asked for; it asks in its own words
+#      and for settings of its own, and the generic questions then ask only
+#      for what it left empty (- for none)
 #
 # The Dashboard's setup guide offers the same platforms (each platform's
 # StorageArrayPlatform.agentConfigs); StorageArrayAgentPlatforms.test.ts
 # holds the two lists in step.
 PLATFORMS="
-otel-collector-config.yaml|purestorage.flasharray|-|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|yes|FlashArray|Pure Storage FlashArray serving OpenMetrics itself (Purity//FA 6.7 and later)|directly (native OpenMetrics)
-otel-collector-config.flasharray-exporter.yaml|purestorage.flasharray|flasharray-exporter|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|no|FlashArray|Pure Storage FlashArray on an older Purity//FA (through Pure's exporter)|through Pure's exporter (pure-fa-exporter)
-otel-collector-config.flashblade.yaml|purestorage.flashblade|flashblade|PURE_FB_ENDPOINT|PURE_FB_API_TOKEN|no|FlashBlade|Pure Storage FlashBlade (through Pure's exporter)|through Pure's exporter (pure-fb-exporter)
+otel-collector-config.yaml|purestorage.flasharray|-|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|yes|FlashArray|Pure Storage FlashArray serving OpenMetrics itself (Purity//FA 6.7 and later)|directly (native OpenMetrics)|-|-|-|-
+otel-collector-config.flasharray-exporter.yaml|purestorage.flasharray|flasharray-exporter|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|no|FlashArray|Pure Storage FlashArray on an older Purity//FA (through Pure's exporter)|through Pure's exporter (pure-fa-exporter)|-|-|-|-
+otel-collector-config.flashblade.yaml|purestorage.flashblade|flashblade|PURE_FB_ENDPOINT|PURE_FB_API_TOKEN|no|FlashBlade|Pure Storage FlashBlade (through Pure's exporter)|through Pure's exporter (pure-fb-exporter)|-|-|-|-
+otel-collector-config.powerstore.yaml|dell.powerstore|powerstore|POWERSTORE_ENDPOINT|POWERSTORE_PASSWORD|no|PowerStore|Dell PowerStore (through Dell's exporter, with its alerts by syslog)|through Dell's exporter (powerstore-exporter). Its alerts arrive once the PowerStore's remote logging points at this machine, port 5514 (see README.md)|POWERSTORE_USERNAME|powerstore-exporter.Dockerfile powerstore-syslog.yaml|POWERSTORE_BULK_METRICS POWERSTORE_API_VERSION POWERSTORE_REQUEST_LIMIT POWERSTORE_SYSLOG_PORT|-
+otel-collector-config.netapp-ontap.yaml|netapp.ontap|netapp-ontap|NETAPP_ONTAP_ENDPOINT|NETAPP_ONTAP_PASSWORD|yes|ONTAP cluster|NetApp ONTAP 9.12.1 or later, or Amazon FSx for NetApp ONTAP (through NetApp Harvest)|through NetApp Harvest (netapp-harvest)|NETAPP_ONTAP_USERNAME|netapp-harvest.yml netapp-harvest-rest.yaml netapp-harvest-keyperf.yaml netapp-harvest-restperf.yaml|-|-
+otel-collector-config.powerscale.yaml|dell.powerscale|-|POWERSCALE_ENDPOINT|POWERSCALE_SNMP_COMMUNITY|no|PowerScale cluster|Dell PowerScale (Isilon), polled over SNMP|over SNMP (ISILON-MIB)|-|-|-|setup_powerscale
 "
 
 # The table's lines, without the blank ones.
@@ -160,12 +187,197 @@ platform_field() {
     printf '%s' "$1" | cut -d '|' -f "$2"
 }
 
-# Every collector config, every address and token variable, and every
-# exporter's profile, each once, in the table's order.
+# ----------------------------------------------------------------------------
+# Setup steps of a platform's own (the table's tenth field)
+# ----------------------------------------------------------------------------
+# A step may fill the address and token variables itself, set
+# TOKEN_REQUIRED=no when the platform reads no token (TOKEN_MAY_HOLD_DOLLAR=yes
+# when its token may hold a $, which it checks itself), list the variables of
+# its own it writes to .env in PLATFORM_EXTRA_VARIABLES, and say how it reads
+# the array in PLATFORM_SUMMARY. It reuses its own settings from .env.
+TOKEN_REQUIRED="yes"
+TOKEN_MAY_HOLD_DOLLAR="no"
+PLATFORM_EXTRA_VARIABLES=""
+PLATFORM_SUMMARY=""
+
+# A variable of a setup step's own, from .env when the shell does not set it.
+reuse_from_env_file() {
+    local name
+    for name; do
+        if [ -z "${!name}" ] && [ -f "$ENV_FILE" ]; then
+            printf -v "$name" '%s' "$(dotenv_get "$name" "$ENV_FILE")"
+        fi
+    done
+}
+
+# Dell PowerScale (otel-collector-config.powerscale.yaml): ISILON-MIB's node
+# objects - a node's health, drives, sensors, ports and protocol performance
+# - describe only the node that answers, so the agent polls every node with a
+# receiver of its own, slots snmp/node-1 to snmp/node-252 of the config.
+# POWERSCALE_NODES lists the nodes' addresses; the first answers for the
+# cluster too (POWERSCALE_ENDPOINT), unless that is set. SNMP v2c with a
+# read-only community, or v3 with a user (POWERSCALE_SNMP_VERSION=v3).
+POWERSCALE_MAX_NODES=252
+setup_powerscale() {
+    local node address count list receivers nodes
+    reuse_from_env_file POWERSCALE_NODES POWERSCALE_SNMP_VERSION \
+        POWERSCALE_SNMP_USER POWERSCALE_SNMP_SECURITY_LEVEL \
+        POWERSCALE_SNMP_AUTH_PROTOCOL POWERSCALE_SNMP_AUTH_PASSWORD \
+        POWERSCALE_SNMP_PRIVACY_PROTOCOL POWERSCALE_SNMP_PRIVACY_PASSWORD
+
+    if [ -z "$POWERSCALE_NODES" ]; then
+        echo "The agent polls each node of the cluster over SNMP: a node answers for its own"
+        echo "drives, sensors and ports. Use each node's own address, not the SmartConnect name."
+        while [ -z "$POWERSCALE_NODES" ]; do
+            if [ -n "$POWERSCALE_ENDPOINT" ]; then
+                read -rp "Every node's address, separated by commas [$POWERSCALE_ENDPOINT]: " POWERSCALE_NODES
+                POWERSCALE_NODES="${POWERSCALE_NODES:-$POWERSCALE_ENDPOINT}"
+            else
+                read -rp "Every node's address, separated by commas (e.g. 10.20.0.11,10.20.0.12): " POWERSCALE_NODES
+            fi
+        done
+    fi
+    reject_dollar POWERSCALE_NODES "$POWERSCALE_NODES"
+
+    # One receiver slot per node, each address once, IPv6 in brackets.
+    count=0
+    list=""
+    receivers="snmp/cluster, snmp/quotas"
+    IFS=',' read -ra nodes <<< "$POWERSCALE_NODES"
+    for node in "${nodes[@]}"; do
+        address="$(normalize_endpoint "$node")"
+        address="${address#[}"
+        address="${address%]}"
+        if [ -z "$address" ]; then
+            continue
+        fi
+        case "$address" in
+            *:*:*) ;;
+            *:*)
+                echo "Error: \"$address\" in POWERSCALE_NODES names a port: OneFS answers SNMP on"
+                echo "port 161 only, so give each node's address alone."
+                exit 1
+                ;;
+        esac
+        case ",$list," in
+            *",$address,"*) continue ;;
+        esac
+        count=$((count + 1))
+        if [ "$count" -gt "$POWERSCALE_MAX_NODES" ]; then
+            echo "Error: POWERSCALE_NODES lists more than $POWERSCALE_MAX_NODES nodes, OneFS's largest cluster."
+            exit 1
+        fi
+        case "$address" in
+            *:*) printf -v "POWERSCALE_NODE_$count" '[%s]' "$address" ;;
+            *) printf -v "POWERSCALE_NODE_$count" '%s' "$address" ;;
+        esac
+        list="${list:+$list,}$address"
+        receivers="$receivers, snmp/node-$count"
+        PLATFORM_EXTRA_VARIABLES="$PLATFORM_EXTRA_VARIABLES POWERSCALE_NODE_$count"
+    done
+    if [ "$count" -eq 0 ]; then
+        echo "Error: POWERSCALE_NODES names no node address."
+        exit 1
+    fi
+    POWERSCALE_NODES="$list"
+    POWERSCALE_SNMP_RECEIVERS="[$receivers]"
+    # The cluster's own objects are read through the first node.
+    if [ -z "$POWERSCALE_ENDPOINT" ]; then
+        POWERSCALE_ENDPOINT="$POWERSCALE_NODE_1"
+    else
+        POWERSCALE_ENDPOINT="$(normalize_endpoint "$POWERSCALE_ENDPOINT")"
+        POWERSCALE_ENDPOINT="${POWERSCALE_ENDPOINT#[}"
+        POWERSCALE_ENDPOINT="${POWERSCALE_ENDPOINT%]}"
+        case "$POWERSCALE_ENDPOINT" in
+            *:*:*) POWERSCALE_ENDPOINT="[$POWERSCALE_ENDPOINT]" ;;
+        esac
+    fi
+
+    if [ -z "$POWERSCALE_SNMP_VERSION" ]; then
+        read -rp "SNMP version the cluster answers, 2c or 3 [2c]: " POWERSCALE_SNMP_VERSION
+    fi
+    case "$(printf '%s' "${POWERSCALE_SNMP_VERSION:-v2c}" | tr '[:upper:]' '[:lower:]')" in
+        v2c | 2c | 2) POWERSCALE_SNMP_VERSION="v2c" ;;
+        v3 | 3) POWERSCALE_SNMP_VERSION="v3" ;;
+        *)
+            echo "Error: POWERSCALE_SNMP_VERSION must be v2c or v3."
+            exit 1
+            ;;
+    esac
+    POWERSCALE_SNMP_SECURITY_LEVEL="$(printf '%s' "${POWERSCALE_SNMP_SECURITY_LEVEL:-auth_priv}" | tr '[:upper:]' '[:lower:]')"
+    case "$POWERSCALE_SNMP_SECURITY_LEVEL" in
+        auth_priv | auth_no_priv | no_auth_no_priv) ;;
+        *)
+            echo "Error: POWERSCALE_SNMP_SECURITY_LEVEL must be auth_priv, auth_no_priv or no_auth_no_priv."
+            exit 1
+            ;;
+    esac
+    POWERSCALE_SNMP_AUTH_PROTOCOL="$(printf '%s' "${POWERSCALE_SNMP_AUTH_PROTOCOL:-SHA}" | tr '[:lower:]' '[:upper:]')"
+    case "$POWERSCALE_SNMP_AUTH_PROTOCOL" in
+        MD5 | SHA | SHA224 | SHA256 | SHA384 | SHA512) ;;
+        *)
+            echo "Error: POWERSCALE_SNMP_AUTH_PROTOCOL must be MD5, SHA, SHA224, SHA256, SHA384 or SHA512."
+            exit 1
+            ;;
+    esac
+    POWERSCALE_SNMP_PRIVACY_PROTOCOL="$(printf '%s' "${POWERSCALE_SNMP_PRIVACY_PROTOCOL:-AES}" | tr '[:lower:]' '[:upper:]')"
+    case "$POWERSCALE_SNMP_PRIVACY_PROTOCOL" in
+        DES | AES | AES192 | AES256 | AES192C | AES256C) ;;
+        *)
+            echo "Error: POWERSCALE_SNMP_PRIVACY_PROTOCOL must be DES, AES, AES192, AES256, AES192C or AES256C."
+            exit 1
+            ;;
+    esac
+
+    if [ "$POWERSCALE_SNMP_VERSION" = "v3" ]; then
+        # SNMPv3 reads no community.
+        TOKEN_REQUIRED="no"
+        while [ -z "$POWERSCALE_SNMP_USER" ]; do
+            read -rp "SNMPv3 user the cluster answers (isi snmp settings view): " POWERSCALE_SNMP_USER
+        done
+        if [ "$POWERSCALE_SNMP_SECURITY_LEVEL" != "no_auth_no_priv" ]; then
+            while [ -z "$POWERSCALE_SNMP_AUTH_PASSWORD" ]; do
+                # -s: never echo a password to the terminal.
+                read -rsp "SNMPv3 authentication password ($POWERSCALE_SNMP_AUTH_PROTOCOL): " POWERSCALE_SNMP_AUTH_PASSWORD
+                echo ""
+            done
+        fi
+        if [ "$POWERSCALE_SNMP_SECURITY_LEVEL" = "auth_priv" ]; then
+            while [ -z "$POWERSCALE_SNMP_PRIVACY_PASSWORD" ]; do
+                read -rsp "SNMPv3 privacy password ($POWERSCALE_SNMP_PRIVACY_PROTOCOL): " POWERSCALE_SNMP_PRIVACY_PASSWORD
+                echo ""
+            done
+        fi
+    else
+        while [ -z "$POWERSCALE_SNMP_COMMUNITY" ]; do
+            read -rsp "Read-only SNMP community of the PowerScale cluster: " POWERSCALE_SNMP_COMMUNITY
+            echo ""
+        done
+    fi
+    reject_dollar POWERSCALE_SNMP_USER "$POWERSCALE_SNMP_USER"
+    TOKEN_MAY_HOLD_DOLLAR="yes"
+    reject_collector_expansion POWERSCALE_SNMP_COMMUNITY "$POWERSCALE_SNMP_COMMUNITY"
+    reject_collector_expansion POWERSCALE_SNMP_AUTH_PASSWORD "$POWERSCALE_SNMP_AUTH_PASSWORD"
+    reject_collector_expansion POWERSCALE_SNMP_PRIVACY_PASSWORD "$POWERSCALE_SNMP_PRIVACY_PASSWORD"
+
+    # Written to .env in this order, each a value, never an empty default.
+    PLATFORM_EXTRA_VARIABLES="POWERSCALE_SNMP_VERSION POWERSCALE_SNMP_USER POWERSCALE_SNMP_SECURITY_LEVEL POWERSCALE_SNMP_AUTH_PROTOCOL POWERSCALE_SNMP_AUTH_PASSWORD POWERSCALE_SNMP_PRIVACY_PROTOCOL POWERSCALE_SNMP_PRIVACY_PASSWORD POWERSCALE_NODES POWERSCALE_SNMP_RECEIVERS$PLATFORM_EXTRA_VARIABLES"
+    if [ "$count" -eq 1 ]; then
+        PLATFORM_SUMMARY="Polling 1 node over SNMP $POWERSCALE_SNMP_VERSION: $list."
+    else
+        PLATFORM_SUMMARY="Polling $count nodes over SNMP $POWERSCALE_SNMP_VERSION: $(printf '%s' "$list" | sed 's/,/, /g')."
+    fi
+}
+
+# Every collector config, every address, token, user and optional variable,
+# every other file and every exporter's profile, each once, in the table's
+# order.
 PLATFORM_CONFIGS="$(platform_lines | cut -d '|' -f 1 | awk '!seen[$0]++' | tr '\n' ' ')"
 PLATFORM_CONFIGS="${PLATFORM_CONFIGS% }"
-PLATFORM_VARIABLES="$(platform_lines | cut -d '|' -f 4,5 | tr '|' '\n' | awk '!seen[$0]++' | tr '\n' ' ')"
+PLATFORM_VARIABLES="$(platform_lines | cut -d '|' -f 4,5,10,12 | tr '|' '\n' | tr ' ' '\n' | grep -v '^-$' | grep -v '^$' | awk '!seen[$0]++' | tr '\n' ' ')"
 PLATFORM_VARIABLES="${PLATFORM_VARIABLES% }"
+PLATFORM_FILES="$(platform_lines | cut -d '|' -f 11 | tr ' ' '\n' | grep -v '^-$' | grep -v '^$' | awk '!seen[$0]++' | tr '\n' ' ')"
+PLATFORM_FILES="${PLATFORM_FILES% }"
 PLATFORM_PROFILES="$(platform_lines | cut -d '|' -f 3 | grep -v '^-$' | awk '!seen[$0]++' | tr '\n' ' ')"
 PLATFORM_PROFILES="${PLATFORM_PROFILES% }"
 
@@ -253,29 +465,61 @@ TOKEN_VARIABLE="$(platform_field "$PLATFORM_LINE" 5)"
 TLS_TO_ARRAY="$(platform_field "$PLATFORM_LINE" 6)"
 ARRAY_NOUN="$(platform_field "$PLATFORM_LINE" 7)"
 READ_HOW="$(platform_field "$PLATFORM_LINE" 9)"
+USER_VARIABLE="$(platform_field "$PLATFORM_LINE" 10)"
+if [ "$USER_VARIABLE" = "-" ]; then
+    USER_VARIABLE=""
+fi
+PLATFORM_SETUP="$(platform_field "$PLATFORM_LINE" 13)"
 
 while [ -z "$STORAGE_ARRAY_NAME" ]; do
     read -rp "Array name (shown in OneUptime, keep it stable, e.g. fa-prod-01): " STORAGE_ARRAY_NAME
 done
 reject_dollar STORAGE_ARRAY_NAME "$STORAGE_ARRAY_NAME"
 
-# The address and token go in the variables this platform's config reads.
+# The platform's own setup step, when the table names one.
+if [ -n "$PLATFORM_SETUP" ] && [ "$PLATFORM_SETUP" != "-" ]; then
+    if ! declare -F "$PLATFORM_SETUP" > /dev/null; then
+        echo "Error: this installer has no setup step $PLATFORM_SETUP."
+        exit 1
+    fi
+    "$PLATFORM_SETUP"
+fi
+
+# The address and token (or user and password) go in the variables this
+# platform's config reads.
 while [ -z "${!ENDPOINT_VARIABLE}" ]; do
     read -rp "$ARRAY_NOUN management address (host name or IP, no https://): " "$ENDPOINT_VARIABLE"
 done
 printf -v "$ENDPOINT_VARIABLE" '%s' "$(normalize_endpoint "${!ENDPOINT_VARIABLE}")"
 reject_dollar "$ENDPOINT_VARIABLE" "${!ENDPOINT_VARIABLE}"
-while [ -z "${!TOKEN_VARIABLE}" ]; do
-    # -s: never echo the token to the terminal.
-    read -rsp "API token of the $ARRAY_NOUN's read-only user: " "$TOKEN_VARIABLE"
-    echo ""
-done
-reject_dollar "$TOKEN_VARIABLE" "${!TOKEN_VARIABLE}"
+if [ -n "$USER_VARIABLE" ]; then
+    # The exporter logs in with a user and a password, which only it reads
+    # (from .env, through Compose): the collector never sees them, so they
+    # may hold a $.
+    while [ -z "${!USER_VARIABLE}" ]; do
+        read -rp "User name the agent logs in to the $ARRAY_NOUN with (see README.md for its role): " "$USER_VARIABLE"
+    done
+    while [ -z "${!TOKEN_VARIABLE}" ]; do
+        # -s: never echo the password to the terminal.
+        read -rsp "That user's password: " "$TOKEN_VARIABLE"
+        echo ""
+    done
+else
+    while [ "$TOKEN_REQUIRED" = "yes" ] && [ -z "${!TOKEN_VARIABLE}" ]; do
+        # -s: never echo the token to the terminal.
+        read -rsp "API token of the $ARRAY_NOUN's read-only user: " "$TOKEN_VARIABLE"
+        echo ""
+    done
+    # A platform's own step checks a token that may hold a $ itself.
+    if [ "$TOKEN_MAY_HOLD_DOLLAR" != "yes" ]; then
+        reject_dollar "$TOKEN_VARIABLE" "${!TOKEN_VARIABLE}"
+    fi
+fi
 
 # Only a config whose collector talks TLS to the array itself asks (an
 # exporter does not verify the array's certificate).
 if [ -z "$STORAGE_ARRAY_INSECURE_SKIP_VERIFY" ] && [ "$TLS_TO_ARRAY" = "yes" ]; then
-    echo "${ARRAY_NOUN}s ship a self-signed certificate, which the collector cannot verify."
+    echo "${ARRAY_NOUN}s ship a self-signed certificate, which the agent cannot verify."
     read -rp "Verify the array's certificate anyway (it is signed by a CA you trust)? [y/N]: " VERIFY_TLS
     if [[ "$VERIFY_TLS" =~ ^[Yy] ]]; then
         STORAGE_ARRAY_INSECURE_SKIP_VERIFY="false"
@@ -303,11 +547,11 @@ mkdir -p "$INSTALL_DIR"
 # bump changes every config). Without a record — an agent installed
 # before it was kept, or no sha256 tool — any file that differs from the new
 # download is kept, and said to differ rather than to be edited.
-# The compose file and every collector config of the PLATFORMS table. Every
-# OneUptime serves each of them for this script
-# (Common/Types/InstallScripts/InstallScripts.ts lists them, and
+# The compose file, every collector config of the PLATFORMS table and every
+# other file a platform runs with. Every OneUptime serves each of them for
+# this script (Common/Types/InstallScripts/InstallScripts.ts lists them, and
 # Tests/Ops/AgentInstallScriptsServed.test.js holds the two in step).
-AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS"
+AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS $PLATFORM_FILES"
 AGENT_FILES_RECORD="$INSTALL_DIR/.agent-files.sha256"
 EDITED_FILES=()
 DIFFERING_FILES=()
@@ -409,17 +653,21 @@ else
     rm -f "$AGENT_FILES_RECORD"
 fi
 
-# Every platform's address and token variable, quoted for Compose: the ones
-# this platform does not read stay empty, so switching platforms later is an
-# .env edit.
+# Every platform's address, token, user and password variable, quoted for
+# Compose: the ones this platform does not read stay empty, so switching
+# platforms later is an .env edit.
 platform_env_lines() {
     local name
     for name in $PLATFORM_VARIABLES; do
         printf '%s=%s\n' "$name" "$(compose_env_quote "${!name}")"
     done
+    # And the settings of the platform's own setup step, when it has one.
+    for name in $PLATFORM_EXTRA_VARIABLES; do
+        printf '%s=%s\n' "$name" "$(compose_env_quote "${!name}")"
+    done
 }
 
-# Create .env file. It holds the array's API token, so it is created
+# Create .env file. It holds the array's API token or password, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
 # value is quoted for Compose (see compose_env_quote); the platform, the
 # config, the profile and the boolean are validated shapes and stay bare.
@@ -473,6 +721,9 @@ echo ""
 echo "The array '$STORAGE_ARRAY_NAME' appears under Storage Arrays in OneUptime after"
 echo "the first scrape (about a minute)."
 echo "Reading the $ARRAY_NOUN at ${!ENDPOINT_VARIABLE} $READ_HOW."
+if [ -n "$PLATFORM_SUMMARY" ]; then
+    echo "$PLATFORM_SUMMARY"
+fi
 if [ "${#EDITED_FILES[@]}" -gt 0 ]; then
     echo ""
     echo "You had edited these files since install.sh installed them. They were replaced by"

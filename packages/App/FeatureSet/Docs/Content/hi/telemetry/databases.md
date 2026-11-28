@@ -454,8 +454,19 @@ Database Agent की `docker-compose.yml` **डेटाबेस AI एजे�
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | कंटेनर में माउंट किया गया PEM CA बंडल (`oneuptime-database-ai-agent` के कमेंट किए गए `volumes` देखें), जिससे `DATABASE_TLS_INSECURE=false` होने पर सर्वर के सर्टिफ़िकेट की जाँच होती है |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | कलेक्टर की पहचान | AI एजेंट को कलेक्टर वाले डेटाबेस के बजाय किसी दूसरे डेटाबेस के रूप में रजिस्टर करता है: OneUptime में उसकी id, या `<engine>\|<address>:<port>`। इसे खाली छोड़ें |
 | `LOG_LEVEL` | `info` | AI एजेंट का लॉग लेवल: `debug`, `info`, `warn` या `error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true` एजेंट को इस सर्वर के डेटाबेस डेटा ऑब्ज़र्वेबिलिटी के लिए पढ़ने देता है; कोई भी दूसरा मान इसे बंद रखता है |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | मॉनिटरिंग लॉगिन | वह लॉगिन जिससे डेटा ऑब्ज़र्वेबिलिटी कैटलॉग पढ़ता है। जैसा है वैसा लिखा जाता है: इसके `$` दोहरे नहीं किए जाते |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | उस लॉगिन का पासवर्ड; इसे सिंगल कोट में रखें |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false` कोई डेटा जांच नहीं चलाता: सिर्फ़ कैटलॉग |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | कैटलॉग लॉगिन | वह लॉगिन जिससे डेटा जांचें पंक्तियां पढ़ती हैं |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | उस लॉगिन का पासवर्ड; इसे सिंगल कोट में रखें |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true` कस्टम SQL और विफल पंक्तियाँ जांचें चलाता है |
 
 यह क्या चला सकता है, सुधार कैसे काम करते हैं और इसकी समस्याएँ कैसे सुलझाएँ: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#डेटाबेस-सर्वर)।
+
+### उसी एजेंट से डेटा ऑब्ज़र्वेबिलिटी
+
+यही एजेंट इस सर्वर के PostgreSQL, MySQL और MariaDB डेटाबेस [डेटा ऑब्ज़र्वेबिलिटी](/docs/data-observability/index) के लिए भी पढ़ सकता है: उनकी टेबल और कॉलम, फ़्रेशनेस और वॉल्यूम, स्कीमा परिवर्तन, और आपकी सेट की गई जांचें। यह केवल पढ़ने के मोड में, अपने ही एनवायरनमेंट के लॉगिन और ख़ुद बनाए स्टेटमेंट से पढ़ता है, और कोई पंक्ति या लॉगिन वापस नहीं भेजता। जब तक आप उसी `.env` में `ONEUPTIME_DATA_OBSERVABILITY=true` सेट नहीं करते, यह बंद रहता है। [डेटाबेस कनेक्ट करें](/docs/data-observability/connect#database-agent-के-ज़रिए) बताता है कि एजेंट कैसे चुनें और उसे कौन-से लॉगिन दें।
 
 ## Kubernetes
 

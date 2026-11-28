@@ -91,6 +91,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "One question, what this maintenance affects, asked per kind of resource: every field is an optional picker, and one of them only shows with a monitor picked.",
   },
+  {
+    file: `${DASHBOARD}/Pages/Incidents/View/Index.tsx`,
+    form: "CardModelDetail: Affected Resources",
+    reason:
+      "One question, what this incident affects, asked as Declare Incident asks it: two optional pickers, the monitors and everything else. The status the monitors change to and whether their checks pause (#11141) belong to the monitors, right under them, and show only once a monitor is picked, so an incident with none is two rows.",
+  },
   ...["#1", "#2", "#3", "#4"].map((form: string): ListedForm => {
     return {
       file: `${DASHBOARD}/Components/OpenStack/Checks/OpenStackCheckFormModals.tsx`,
@@ -155,6 +161,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     form: "BasicFormModal: Security Events > Update Threat Intel Feed Credentials",
     reason:
       "Never more than three fields at once: the authentication mode, then either the API token or the basic auth username and password - the two are alternatives.",
+  },
+  {
+    file: `${DASHBOARD}/Pages/DataObservability/View/Settings.tsx`,
+    form: "BasicFormModal: Data Observability > Change Connection",
+    reason:
+      "Never more than three fields at once: who connects, then only that way's fields - a connection string, or a probe and the variable on it that holds one, or a Database Agent and the database on its server. The three ways are alternatives, and Connect a Database asks the same question on its Connection step; a step here would put a Next between choosing a way and the one field it needs.",
   },
   {
     file: `${DASHBOARD}/Pages/SecurityEvents/WatchlistView.tsx`,
@@ -352,17 +364,6 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     form: "CardModelDetail: User Profile > Basic Info",
     reason:
       "The edit dialog of a person's own Basic Info card, one page: the email, the name, the time zone and the language the card lists - four short fields, two of them pickers. Someone who opens Edit User came to change one of them; as steps they would first have to find which, and the time zone and the language, read together on the card, would sit apart.",
-  },
-  /*
-   * #11012: a required tag's dialog, drawn on Cloud > Tags and on an
-   * account's Tags; its title names Require a Tag or Edit Required Tag, so
-   * it is counted by its place in the file.
-   */
-  {
-    file: `${DASHBOARD}/Components/Cloud/CloudRequiredTagsCard.tsx`,
-    form: "BasicFormModal #1",
-    reason:
-      "A required tag is three things to say - its key, the values it allows and the account it is for (empty: every account) - then one folded More fields header with the line that says what it is for. The account is asked only on Cloud > Tags: an account's own Tags page fixes it, and its dialog is three rows. As steps, that dialog would walk to a step holding only the folded description.",
   },
 ];
 
