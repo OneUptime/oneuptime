@@ -81,9 +81,13 @@ describe("MetricService.summarizeMonitorChecks", () => {
     const query: string = statements[0]!.query;
     const params: Record<string, unknown> = statements[0]!.query_params;
 
-    // The sort key, in order: projectId, name, primaryEntityId, time.
+    /*
+     * The sort key, in order (projectId, name, primaryEntityId, time), in
+     * PREWHERE: the attributes after it are read for the monitor's own rows
+     * alone, not for the other series' rows its granules hold.
+     */
     expect(query).toMatch(
-      /WHERE projectId = \{p\d+:String\} AND name = \{p\d+:String\} AND primaryEntityId = \{p\d+:String\} AND time >= \{p\d+:DateTime64\(9\)\} AND time <= \{p\d+:DateTime64\(9\)\} AND isNotNull\(value\)/,
+      /PREWHERE projectId = \{p\d+:String\} AND name = \{p\d+:String\} AND primaryEntityId = \{p\d+:String\} AND time >= \{p\d+:DateTime64\(9\)\} AND time <= \{p\d+:DateTime64\(9\)\} WHERE isNotNull\(value\)/,
     );
     expect(Object.values(params)).toEqual(
       expect.arrayContaining([
@@ -105,7 +109,7 @@ describe("MetricService.summarizeMonitorChecks", () => {
      */
     expect(query).toContain("toUInt8(assumeNotNull(value) !=");
     expect(query).not.toContain("toUInt8(value ");
-    expect(query).toContain("AND isNotNull(value)");
+    expect(query).toContain("WHERE isNotNull(value)");
     expect(query).toContain(
       "arraySum(arrayMap((a, b) -> a != b, arrayPopBack(states), arrayPopFront(states))) AS changeCount",
     );

@@ -256,8 +256,9 @@ describe("every window of a step reads that step's rows", () => {
           expect(query).toMatch(
             /AND attributes\[\{p\d+:String\}\] = \{p\d+:String\} AND attributes\[\{p\d+:String\}\] IN \{p\d+:Array\(String\)\}/,
           );
+          // The sort key in PREWHERE, the attributes after it.
           expect(query).toMatch(
-            /WHERE projectId = \{p\d+:String\} AND name = \{p\d+:String\} AND primaryEntityId = \{p\d+:String\}/,
+            /PREWHERE projectId = \{p\d+:String\} AND name = \{p\d+:String\} AND primaryEntityId = \{p\d+:String\}[^]* WHERE isNotNull\(value\) AND attributes\[/,
           );
         });
       },

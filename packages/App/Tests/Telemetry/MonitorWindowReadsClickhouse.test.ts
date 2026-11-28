@@ -52,7 +52,10 @@ import {
  *    of ClickHouse's analyzers;
  *  - newest first, so a window cut at its limit keeps its newest rows;
  *  - in one pass that reads no row id, a fraction of the bytes and fewer
- *    rows than the find read for the same window.
+ *    rows than the find read for the same window;
+ *  - and a counted window and a previous check, read in place, read the map
+ *    for the monitor's own rows alone: under two thirds of the bytes of the
+ *    same statement with the sort key in its WHERE, as it was.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -783,6 +786,77 @@ integration(
       expect(read.readBytes * 2).toBeLessThan(find.readBytes);
     });
 
+    /*
+     * A counted window and a previous check read the same rows in place
+     * (summarizeMonitorChecks, readPreviousMonitorChecks), the sort key in
+     * PREWHERE too: the statement with the key moved back into the WHERE, as it
+     * was, reads the step's map for every row of the granules.
+     */
+    type CheckRead = "summarizeMonitorChecks" | "readPreviousMonitorChecks";
+
+    function read(name: CheckRead): Promise<unknown> {
+      const common: {
+        projectId: ObjectID;
+        monitorId: ObjectID;
+        metricName: string;
+        windowStart: Date;
+        attributes: Record<string, Array<string>>;
+        groupByAttributeKeys: Array<string>;
+      } = {
+        projectId: PROJECT_ID,
+        monitorId: ONE_STEP_MONITOR,
+        metricName: MonitorMetricType.ResponseTime,
+        windowStart: WINDOW_START,
+        attributes: { [MONITOR_STEP_ID_ATTRIBUTE]: [ONE_STEP, ""] },
+        groupByAttributeKeys: ["probeId"],
+      };
+
+      if (name === "summarizeMonitorChecks") {
+        return MetricService.summarizeMonitorChecks({
+          ...common,
+          windowEnd: END,
+          condition: { comparison: "gt", threshold: 150 },
+        });
+      }
+
+      return MetricService.readPreviousMonitorChecks({
+        ...common,
+        before: END,
+      });
+    }
+
+    test.each([
+      "summarizeMonitorChecks",
+      "readPreviousMonitorChecks",
+    ] as Array<CheckRead>)(
+      "%s reads the map for the monitor's own rows alone",
+      async (name: CheckRead) => {
+        const statement: Statement = await statementOf((): Promise<unknown> => {
+          return read(name);
+        });
+
+        expect(statement.query).toContain(" PREWHERE projectId = ");
+
+        const inWhere: {
+          query: string;
+          query_params: Record<string, unknown>;
+        } = {
+          query: statement.query
+            .replace(" WHERE isNotNull(value)", " AND isNotNull(value)")
+            .replace(" PREWHERE projectId = ", " WHERE projectId = "),
+          query_params: statement.query_params,
+        };
+
+        expect(inWhere.query).not.toContain("PREWHERE");
+
+        const prewhere: ReadCost = await costOf(statement);
+        const where: ReadCost = await costOf(inWhere);
+
+        // The same granules, the map read for this monitor's rows alone.
+        expect(prewhere.readRows).toBe(where.readRows);
+        expect(prewhere.readBytes * 1.5).toBeLessThan(where.readBytes);
+      },
+    );
   },
 );
 
