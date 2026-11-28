@@ -191,7 +191,7 @@ Cada um destes widgets lista os recursos que um agente ou um coletor informa ao 
 
 | Grupo | Widgets | Alimentado por |
 | --- | --- | --- |
-| **Hosts** | **Hosts**, com o status de conexão, o sistema operacional, a CPU e a memória | Qualquer coletor OpenTelemetry que envie `host.name` |
+| **Hosts** | **Hosts**, com o status de conexão, o sistema operacional, a CPU e a memória | O coletor em cada host: veja [O que conta como host](/docs/telemetry/hosts#o-que-conta-como-host) |
 | **Kubernetes** | **Pods**, **Nós**, **Namespaces**, **Implantações**, **StatefulSets**, **DaemonSets**, **Tarefas**, **CronJobs** | O [Agente Kubernetes](/docs/monitor/kubernetes-agent) |
 | **Docker** | **Hosts**, **Contêineres**, **Imagens**, **Redes**, **Volumes** | O agente Docker |
 | **Docker Swarm** | **Nós**, **Serviços** | O agente Docker Swarm |

@@ -61,6 +61,10 @@ Set the **Attribute Key**, such as `service.name`, `host.name` or `k8s.namespace
 
 This is the most common source, because it needs no list of its own: the values are the ones you already send.
 
+A Telemetry Attribute variable can also have a **Resource Type**: **Kubernetes clusters**, **Hosts**, **Docker Swarm clusters**, **Proxmox clusters**, **OpenStack clouds**, **VMware vCenters**, **XCP-ng pools**, **Ceph clusters** or **Storage arrays**. With one, every widget shows only that type's data, even before a value is picked: **All** reads **All hosts**, **All clusters** and so on, and shows all of them, and picking values narrows it to those. The picker offers only that type's names, so a variable of **Hosts** offers your hosts, never a Docker host or a pod. While nothing of the type reports to OneUptime yet, the dashboard says so above its widgets, with a button to set one up, such as **Set Up Kubernetes**.
+
+The infrastructure templates give their variable its type, and dashboards made from them before types existed were given theirs on upgrade. To read the whole project again, set the variable's **Resource Type** to **Any resource type**.
+
 ### Project Labels
 
 Choose existing project labels to offer as a dashboard dropdown. For example, create a variable named `UNIT`, set its source to **Project Labels**, and choose the labels `0660` and `0661`.
@@ -83,7 +87,7 @@ A Query variable from an older dashboard is kept, and shows a text box in the to
 
 With **Allow multi-select** ticked, viewers pick one or more values, and the widgets show any of them. An empty selection means **All**, and a multi-select variable always starts on **All**, so its **Default** is greyed out.
 
-A single-select variable starts on its **Default**, or on **All** when it has none. **All** removes the variable's filter, so the widgets show everything.
+A single-select variable starts on its **Default**, or on **All** when it has none. **All** removes the variable's filter, so the widgets show everything. On a variable with a **Resource Type**, they show everything of that type.
 
 Use multi-select to compare "checkout and payments together" without leaving the dashboard. Avoid it where the numbers do not add up across values, such as an average of averages.
 

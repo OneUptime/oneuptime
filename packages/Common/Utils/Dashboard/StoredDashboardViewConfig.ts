@@ -8,6 +8,7 @@ import DashboardVariable, {
   DashboardVariableType,
 } from "../../Types/Dashboard/DashboardVariable";
 import DefaultDashboardSize from "../../Types/Dashboard/DashboardSize";
+import { isDashboardResourceScope } from "../../Types/Dashboard/DashboardResourceScope";
 import { JSONObject, JSONValue, ObjectType } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
@@ -857,6 +858,14 @@ export default class StoredDashboardViewConfig {
       variable.isMultiSelect = isMultiSelect === "true";
     } else {
       delete variable.isMultiSelect;
+    }
+
+    /*
+     * The kind of resource it picks among, when it is one this build knows:
+     * a name it does not know scopes nothing, rather than reaching a query.
+     */
+    if (!isDashboardResourceScope(entry["resourceScope"])) {
+      delete variable.resourceScope;
     }
 
     return variable;

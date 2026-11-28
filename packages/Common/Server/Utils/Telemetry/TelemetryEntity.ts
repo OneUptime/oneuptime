@@ -16,6 +16,12 @@ import { ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE } from "../../../Types/DeviceMan
 import { ANDROID_AGENT_PERMISSIONS_ATTRIBUTE } from "../../../Types/Host/AndroidAgentPermissions";
 import crypto from "crypto";
 import { writeOwnValue } from "../../../Utils/LookupTable";
+import {
+  KUBERNETES_IDENTITY_ATTRIBUTE_KEYS,
+  NotAHostReason,
+  getNotAHostReasonOfAttributes,
+} from "../../../Utils/Telemetry/HostResource";
+import { getRumClientKindOfResource } from "../../../Types/Rum/RumClientKind";
 
 /*
  * `keyForContainer` moved to the isomorphic EntityKey module (the Databases
@@ -155,6 +161,20 @@ export interface ExtractedEntity {
    * stop there.
    */
   membershipOnly?: boolean;
+  /**
+   * When true this entity contributes its key to `entityKeys` on signals and
+   * links to the registry row of that key when one exists - something else
+   * registered it - but never mints or refreshes a row itself.
+   *
+   * For a resource that NAMES an entity without proving it exists. An
+   * application's `host.name` is where it runs: on a machine whose own
+   * collector registered its Host, its telemetry belongs to that Host and its
+   * service runs on it (the Host's Logs and Topology show it); in a pod, the
+   * same attribute is the pod's name, and no Host of that name is ever
+   * registered. The same for a container's and a container engine's
+   * `host.name` (Utils/Telemetry/HostResource, issue #11257).
+   */
+  linkOnly?: boolean;
 }
 
 /**
@@ -173,6 +193,16 @@ export interface RetiredEntityIdentity {
  * `entities`; ingest also forwards `retiredEntities` to the asynchronous
  * registry reconciler so a live observation can repair a legacy row.
  */
+/*
+ * What one heuristic resolver reads off a resource: an entity's type and
+ * identity, and whether the resource only names it (ExtractedEntity.linkOnly).
+ */
+interface ResolvedEntityIdentity {
+  entityType: EntityType;
+  id: Dictionary<string>;
+  linkOnly?: boolean | undefined;
+}
+
 export interface EntityExtractionResult {
   entities: Array<ExtractedEntity>;
   retiredEntities?: Array<RetiredEntityIdentity> | undefined;
@@ -234,12 +264,16 @@ export default class InventoryItem {
    * Extract entities and any exact legacy identities proven obsolete by this
    * same resource.
    *
-   * A pre-fix heuristic registered `host.name` from an application SDK inside
-   * Kubernetes as a Host as well as registering the pod/node/cluster. The
-   * current resolver suppresses that Host. When heuristic mode is selected and
-   * the resource contains both a non-empty `host.name` and a supported
-   * Kubernetes identity, return the old Host key as a retirement candidate so
-   * the registry can remove that exact discovered row immediately.
+   * A pre-fix heuristic registered `host.name` as a Host from any resource
+   * that named one: an application SDK inside Kubernetes (as well as the
+   * pod/node/cluster), a Docker or Podman agent (as well as its mirrored
+   * Docker / Podman host), a container, an application's SDK anywhere - one
+   * Host per pod. The current resolver registers a Host only from a host's
+   * own telemetry (Utils/Telemetry/HostResource). When heuristic mode is
+   * selected and the resource names a host it does not describe, return that
+   * Host key as a retirement candidate so the registry can remove that exact
+   * discovered row immediately - unless a real Host of that name is
+   * registered (EntityRegistry checks).
    *
    * Non-empty `entity_refs` are an authority boundary even when none of their
    * entries is usable and extraction falls back to heuristics. We never infer a
@@ -289,9 +323,7 @@ export default class InventoryItem {
     }
 
     const retiredHost: RetiredEntityIdentity | null =
-      !hasAuthoritativeEntityRefs
-        ? this.retiredLegacyKubernetesHostIdentity(data)
-        : null;
+      !hasAuthoritativeEntityRefs ? this.retiredLegacyHostIdentity(data) : null;
 
     return {
       entities: out,
@@ -299,12 +331,12 @@ export default class InventoryItem {
     };
   }
 
-  private static retiredLegacyKubernetesHostIdentity(data: {
+  private static retiredLegacyHostIdentity(data: {
     projectId: string;
     attributes: EntityAttributes;
   }): RetiredEntityIdentity | null {
     const hostName: string | null = this.str(data.attributes, "host.name");
-    if (!hostName || !this.hasKubernetesIdentity(data.attributes)) {
+    if (!hostName || !this.namesAHostItDoesNotDescribe(data.attributes)) {
       return null;
     }
 
@@ -337,10 +369,7 @@ export default class InventoryItem {
       : [];
 
     for (const resolve of this.resolvers) {
-      const identity: {
-        entityType: EntityType;
-        id: Dictionary<string>;
-      } | null = resolve(data.attributes);
+      const identity: ResolvedEntityIdentity | null = resolve(data.attributes);
 
       if (!identity || suppressed.includes(identity.entityType)) {
         continue;
@@ -367,6 +396,7 @@ export default class InventoryItem {
         ...(Object.keys(descriptiveAttributes).length > 0
           ? { descriptiveAttributes }
           : {}),
+        ...(identity.linkOnly ? { linkOnly: true } : {}),
       });
     }
 
@@ -588,21 +618,15 @@ export default class InventoryItem {
    * cluster/namespace identity so e.g. the "default" namespace in two
    * clusters does not collide.
    */
+  /*
+   * Shared with the ingest's Host gate (Utils/Telemetry/HostResource), so a
+   * resource is a Kubernetes object's in both or in neither.
+   */
   private static readonly kubernetesIdentityAttributeKeys: ReadonlyArray<string> =
-    [
-      "k8s.cluster.name",
-      "k8s.namespace.name",
-      "k8s.node.name",
-      "k8s.node.uid",
-      "k8s.pod.name",
-      "k8s.pod.uid",
-      "k8s.deployment.name",
-    ];
+    KUBERNETES_IDENTITY_ATTRIBUTE_KEYS;
 
   private static readonly resolvers: Array<
-    (
-      attrs: EntityAttributes,
-    ) => { entityType: EntityType; id: Dictionary<string> } | null
+    (attrs: EntityAttributes) => ResolvedEntityIdentity | null
   > = [
     // service — service.name (+ service.namespace if present).
     (attrs: EntityAttributes) => {
@@ -651,13 +675,31 @@ export default class InventoryItem {
      * autoDiscoverHost's phantom-host gate by refusing the heuristic Host
      * whenever a Kubernetes identity is present. Explicit OTLP entity_refs
      * remain authoritative because they bypass these heuristic resolvers.
+     *
+     * Only a host's own telemetry registers its Host, as autoDiscoverHost
+     * registers one (Utils/Telemetry/HostResource, issue #11257). A Docker
+     * or Podman agent's, a container's or an application's resource names
+     * the host it runs on without describing it - a Docker host is in
+     * Inventory as its mirrored Docker host, and an app's `host.name` in a
+     * pod is the pod's name - so its Host is link-only: a membership key on
+     * the signal, linked to the Host a host's own collector registered under
+     * that name, never one of its own. A RUM client's resource is the
+     * exception: its `host.name` names the device it runs on, and each
+     * device a fleet names appears in Inventory as a host (the Android setup
+     * guide's Name each device).
      */
     (attrs: EntityAttributes) => {
       const hostName: string | null = InventoryItem.str(attrs, "host.name");
       if (!hostName || InventoryItem.hasKubernetesIdentity(attrs)) {
         return null;
       }
-      return { entityType: EntityType.Host, id: { "host.name": hostName } };
+      return {
+        entityType: EntityType.Host,
+        id: { "host.name": hostName },
+        ...(InventoryItem.namesAHostItDoesNotDescribe(attrs)
+          ? { linkOnly: true }
+          : {}),
+      };
     },
 
     // k8s.cluster — k8s.cluster.name only (see k8sClusterIdentity).
@@ -1569,6 +1611,55 @@ export default class InventoryItem {
     });
   }
 
+  /**
+   * Whether a resource names a host in `host.name` that it is not the
+   * telemetry of - Kubernetes, a container engine, a container or an
+   * application (Utils/Telemetry/HostResource) - so it registers no Host of
+   * its own. A RUM client's resource is not one: its `host.name` names the
+   * device the app runs on, which a fleet names so that each device is a
+   * host in Inventory.
+   */
+  public static namesAHostItDoesNotDescribe(attrs: EntityAttributes): boolean {
+    const reason: NotAHostReason | null = getNotAHostReasonOfAttributes(attrs);
+
+    if (!reason) {
+      return false;
+    }
+
+    if (
+      reason === NotAHostReason.Application &&
+      this.isRumClientResource(attrs)
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /*
+   * A browser's or a mobile app's own resource, read as ingest reads it
+   * (getRumClientKindOfResource, shared with OtelIngestBaseService).
+   */
+  private static isRumClientResource(attrs: EntityAttributes): boolean {
+    return (
+      getRumClientKindOfResource({
+        read: (key: string): string | null => {
+          return this.str(attrs, key);
+        },
+        readList: (key: string): Array<string> => {
+          return this.strList(attrs, key);
+        },
+        hasHostIdentity: (): boolean => {
+          return Boolean(
+            this.str(attrs, "host.name") ||
+              this.str(attrs, "k8s.node.name") ||
+              this.str(attrs, "host.id"),
+          );
+        },
+      }) !== null
+    );
+  }
+
   /*
    * k8s cluster identity — k8s.cluster.name only, for the same reason host
    * identity is host.name-only (see the host resolver above): the typed
@@ -1673,6 +1764,30 @@ export default class InventoryItem {
       return String(value);
     }
     return null;
+  }
+
+  /**
+   * Read a list attribute's non-blank values as trimmed strings (a scalar
+   * reads as a list of one).
+   */
+  private static strList(attrs: EntityAttributes, key: string): Array<string> {
+    const value: EntityAttributeValue | Array<EntityAttributeValue> = attrs
+      ? attrs[key]
+      : undefined;
+    const values: Array<EntityAttributeValue> = Array.isArray(value)
+      ? value
+      : [value];
+    const out: Array<string> = [];
+
+    for (const item of values) {
+      if (typeof item === "string" && item.trim().length > 0) {
+        out.push(item.trim());
+      } else if (typeof item === "number" || typeof item === "boolean") {
+        out.push(String(item));
+      }
+    }
+
+    return out;
   }
 
   private static canonObject(id: Dictionary<string>): Dictionary<string> {

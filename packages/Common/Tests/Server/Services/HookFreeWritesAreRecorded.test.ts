@@ -164,6 +164,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "(module) SecurityCase": Why.Migration,
     },
+  // The Hosts Dashboard's charts by host, grouped by the key hosts carry (#11258).
+  "packages/App/FeatureSet/Workers/DataMigrations/GroupHostsDashboardChartsByHost.ts":
+    {
+      "GroupHostsDashboardChartsByHost.migrate Dashboard": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/DataMigrations/MoveGoogleSecOpsConnectionsToSecurityEventConnections.ts":
     {
       "MoveGoogleSecOpsConnectionsToSecurityEventConnections.moveConnection SecurityEventConnection":
@@ -204,6 +209,12 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/App/FeatureSet/Workers/DataMigrations/MoveWeeklyWindowsOntoTheirDays.ts":
     {
       "(module) OnCallDutyPolicyScheduleLayer": Why.Migration,
+    },
+  // The template dashboards' variables given their kind of resource (#11258).
+  "packages/App/FeatureSet/Workers/DataMigrations/ScopeTemplateDashboardVariablesToTheirResources.ts":
+    {
+      "ScopeTemplateDashboardVariablesToTheirResources.migrate Dashboard":
+        Why.Migration,
     },
   "packages/App/FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers.ts":
     {
@@ -721,6 +732,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/Database/ListOrderMaintainer.ts": {
     "ListOrderMaintainer.writeChanges *": Why.Derived,
+  },
+  /*
+   * The Hosts earlier releases registered from a Docker host's, a pod's or an
+   * app's telemetry, archived on upgrade, each feed saying why (#11257).
+   */
+  "packages/Common/Server/Utils/Host/NonHostTelemetryHostRepair.ts": {
+    "NonHostTelemetryHostRepair.repairOne Host": Why.Migration,
   },
   "packages/Common/Server/Utils/HostCollector/HostCollectorAgent.ts": {
     "HostCollectorAgent.respondToMessage Host": Why.Reported,

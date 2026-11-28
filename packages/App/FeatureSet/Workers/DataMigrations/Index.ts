@@ -166,6 +166,9 @@ import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirP
 import MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType from "./MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType";
 import RepairScheduleLayerRestrictionTypes from "./RepairScheduleLayerRestrictionTypes";
 import MoveWeeklyWindowsOntoTheirDays from "./MoveWeeklyWindowsOntoTheirDays";
+import ArchiveHostsRegisteredFromNonHostTelemetry from "./ArchiveHostsRegisteredFromNonHostTelemetry";
+import ScopeTemplateDashboardVariablesToTheirResources from "./ScopeTemplateDashboardVariablesToTheirResources";
+import GroupHostsDashboardChartsByHost from "./GroupHostsDashboardChartsByHost";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1770,6 +1773,29 @@ const DataMigrations: Array<DataMigrationBase> = [
    * paged and idempotent; before the two slots kept last.
    */
   new MoveWeeklyWindowsOntoTheirDays(),
+  /*
+   * The Hosts an earlier release registered from a Docker or Podman host's,
+   * Kubernetes' or an application's telemetry are archived, each saying why
+   * in its feed, and the container runtime is cleared off the Hosts kept
+   * (#11257). Postgres only, idempotent; no ordering requirement of its
+   * own; before the two slots kept last.
+   */
+  new ArchiveHostsRegisteredFromNonHostTelemetry(),
+  /*
+   * A dashboard made from an infrastructure template has its template
+   * variable name the kind of resource it picks among, as the template now
+   * ships it, so "All" reads that kind and not the whole project (#11258).
+   * Postgres only, idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
+   */
+  new ScopeTemplateDashboardVariablesToTheirResources(),
+  /*
+   * The Hosts Dashboard's six charts by host, on a dashboard made before
+   * they grouped by resource.host.name, which every host's row carries:
+   * each drew every host as one line (#11258). Postgres only, idempotent;
+   * no ordering requirement of its own; before the two slots kept last.
+   */
+  new GroupHostsDashboardChartsByHost(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

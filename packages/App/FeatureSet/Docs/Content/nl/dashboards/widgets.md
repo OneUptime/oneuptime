@@ -191,7 +191,7 @@ Elk van deze widgets toont de resources die een agent of een collector aan OneUp
 
 | Groep | Widgets | Gevuld door |
 | --- | --- | --- |
-| **Hosts** | **Hosts**, met hun verbindingsstatus, OS, CPU en geheugen | Elke OpenTelemetry-collector die `host.name` verstuurt |
+| **Hosts** | **Hosts**, met hun verbindingsstatus, OS, CPU en geheugen | De collector op elke host: zie [Wat als host telt](/docs/telemetry/hosts#wat-als-host-telt) |
 | **Kubernetes** | **Pods**, **Knooppunten**, **Naamruimten**, **Implementaties**, **StatefulSets**, **DaemonSets**, **Taken**, **CronJobs** | De [Kubernetes-agent](/docs/monitor/kubernetes-agent) |
 | **Docker** | **Hosts**, **Containers**, **Images**, **Netwerken**, **Volumes** | De Docker-agent |
 | **Docker Swarm** | **Knooppunten**, **Services** | De Docker Swarm-agent |

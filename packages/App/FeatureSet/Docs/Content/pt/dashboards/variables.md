@@ -61,6 +61,10 @@ Defina a **Chave do atributo**, como `service.name`, `host.name` ou `k8s.namespa
 
 É a origem mais comum, porque não precisa de uma lista própria: os valores são os que você já envia.
 
+Uma variável Telemetry Attribute também pode ter um **Tipo de recurso**: **Clusters Kubernetes**, **Hosts**, **clusters do Docker Swarm**, **clusters Proxmox**, **nuvens OpenStack**, **vCenters do VMware**, **pools do XCP-ng**, **clusters Ceph** ou **Arrays de armazenamento**. Com um tipo, cada widget mostra só os dados desse tipo, mesmo antes de um valor ser escolhido: **Todos** passa a ser **Todos os hosts**, **Todos os clusters** e assim por diante, e mostra todos eles, e escolher valores restringe aos escolhidos. O seletor oferece só os nomes desse tipo, então uma variável de **Hosts** oferece os seus hosts, nunca um host Docker ou um pod. Enquanto nada desse tipo envia dados ao OneUptime, o painel avisa acima dos widgets, com um botão para configurar um, como **Configurar o Kubernetes**.
+
+Os modelos de infraestrutura dão o tipo à variável deles, e os painéis criados a partir deles antes de os tipos existirem receberam o seu na atualização. Para ler o projeto inteiro de novo, defina o **Tipo de recurso** da variável como **Qualquer tipo de recurso**.
+
 ### Project Labels
 
 Escolha rótulos de projeto existentes para oferecer como uma lista suspensa do painel. Por exemplo, crie uma variável chamada `UNIT`, defina a origem dela como **Rótulos do projeto** e escolha os rótulos `0660` e `0661`.
@@ -83,7 +87,7 @@ Uma variável Query de um painel mais antigo é mantida e mostra uma caixa de te
 
 Com **Permitir seleção múltipla** marcado, as pessoas escolhem um ou mais valores, e os widgets mostram qualquer um deles. Uma seleção vazia significa **Todos**, e uma variável de seleção múltipla sempre começa em **Todos**, por isso o valor **Padrão** dela fica desativado.
 
-Uma variável de seleção única começa no seu valor **Padrão**, ou em **Todos** quando não tem um. **Todos** remove o filtro da variável, então os widgets mostram tudo.
+Uma variável de seleção única começa no seu valor **Padrão**, ou em **Todos** quando não tem um. **Todos** remove o filtro da variável, então os widgets mostram tudo. Em uma variável com um **Tipo de recurso**, eles mostram tudo desse tipo.
 
 Use a seleção múltipla para comparar "checkout e payments juntos" sem sair do painel. Evite-a quando os números não se somam entre os valores, como numa média de médias.
 

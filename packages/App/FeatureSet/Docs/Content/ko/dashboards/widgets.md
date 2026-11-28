@@ -191,7 +191,7 @@ SLO 위젯은 [공개 대시보드](/docs/dashboards/sharing)에서 작동합니
 
 | 그룹 | 위젯 | 데이터를 보내는 곳 |
 | --- | --- | --- |
-| **호스트** | 연결 상태, OS, CPU, 메모리가 있는 **호스트** | `host.name`을 보내는 모든 OpenTelemetry 수집기 |
+| **호스트** | 연결 상태, OS, CPU, 메모리가 있는 **호스트** | 각 호스트의 수집기: [호스트에 해당하는 것](/docs/telemetry/hosts#호스트에-해당하는-것)을 참고하세요 |
 | **Kubernetes** | **파드**, **노드**, **네임스페이스**, **배포**, **StatefulSets**, **DaemonSets**, **작업**, **CronJobs** | [Kubernetes 에이전트](/docs/monitor/kubernetes-agent) |
 | **Docker** | **호스트**, **컨테이너**, **이미지**, **네트워크**, **볼륨** | Docker 에이전트 |
 | **Docker Swarm** | **노드**, **서비스** | Docker Swarm 에이전트 |
