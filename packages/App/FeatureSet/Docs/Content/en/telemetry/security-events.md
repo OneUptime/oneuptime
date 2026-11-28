@@ -129,6 +129,7 @@ Open **Products → Security Events → Events**. The events show within a few s
 | `ocsf` | OCSF event JSON (`class_uid`, `severity_id` and so on) | None |
 | `udm` | Google SecOps (Chronicle) UDM events (`metadata.event_type` and so on) | `chronicle`, `google-secops` |
 | `google-secops-alert` | Google SecOps detections and alerts: SOAR webhooks and the detections stream | `secops-alert`, `detection` |
+| `crowdsec` | CrowdSec's alerts, as its `http` notification plugin sends them (see [CrowdSec](/docs/integrations/crowdsec)) | `crowdsec-alert` |
 | `generic` | Any other JSON, read by common field names | None |
 
 Name the format with `?format=`, with the `x-oneuptime-security-event-format` header, or with a top-level `"format"` field. Leave it out, and each event's format is worked out on its own, so one webhook can mix detections with raw events.
@@ -266,10 +267,12 @@ It is kept as an Informational event, `oneuptime-probe-traffic`, naming the prob
 | Microsoft Entra ID | Sign-ins, directory changes and risk detections, failed background and app sign-ins if you choose, and the Microsoft 365 audit log's mail forwarding, sharing and phishing verdicts | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Sign-ins, Google's own findings, admin changes and app grants, and Drive sharing | [Google Workspace](/docs/integrations/google-workspace) |
 | Cloudflare | What its firewall blocked, challenged and logged at the edge, as HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
+| CrowdSec | The alerts its notification plugin sends, as Detection Findings, and bans of the addresses you block | [CrowdSec](/docs/integrations/crowdsec) |
 
 - The product's own alerts at or above **Open Cases From** (**High and above** unless you choose another level, or **Never**) open [cases](/docs/telemetry/security-cases), grouped by the user, host or address they are about.
 - A connection reads records by the time the product created them, not by the time of the activity they describe. A SIEM rule that runs hourly creates detections long after the events it matched, and they are still imported.
 - The first poll looks back 24 hours, so a new connection shows recent records at once.
+- A CrowdSec connection is never polled: CrowdSec sends each alert as it raises it, through the notification the connection's **Send alerts** gives.
 - **Test connection**, in the connection's row, checks access to the product and that OneUptime's own workers are running, and imports nothing. **Run now** polls straight away.
 
 ## What an event holds

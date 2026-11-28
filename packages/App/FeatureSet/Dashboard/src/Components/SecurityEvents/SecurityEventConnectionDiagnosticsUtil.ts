@@ -21,6 +21,7 @@ import {
 import {
   ConnectorAlertingOnlyControl,
   SecurityEventConnectorDefinition,
+  areSecurityEventConnectorAlertsPushed,
   getSecurityEventConnectorTitle,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import { DOCS_URL } from "Common/UI/Config";
@@ -323,6 +324,21 @@ export const CONNECTOR_HEALTH_NO_RECORDS: string = translationKey(
 );
 
 /*
+ * A connection whose alerts are sent to OneUptime (alertsArePushed,
+ * CrowdSec's notification plugin, #11158) is never polled: its Health
+ * says whether alerts arrive, not how polls go. Its alerts come when the
+ * product raises them - hours or days apart on a quiet host - so a
+ * connection that has received one reads as receiving, however long ago.
+ * Turned off, it keeps its alerts as events and opens no case from them.
+ */
+export const CONNECTOR_HEALTH_WAITING_FOR_ALERTS: string =
+  translationKey("Waiting for alerts");
+export const CONNECTOR_HEALTH_RECEIVING_ALERTS: string =
+  translationKey("Receiving alerts");
+export const CONNECTOR_HEALTH_CASES_PAUSED: string =
+  translationKey("Cases paused");
+
+/*
  * "Last poll succeeded" is only earned once an event has actually landed.
  * The customer complaint behind this page was a connection whose polls
  * all succeeded while nothing was ever imported; a green "succeeded" pill
@@ -348,6 +364,16 @@ export function connectorHealth(
   connection: SecurityEventConnection,
   now: number = Date.now(),
 ): string {
+  if (areSecurityEventConnectorAlertsPushed(connection.provider)) {
+    if (!connection.isEnabled) {
+      return CONNECTOR_HEALTH_CASES_PAUSED;
+    }
+
+    return connection.lastEventIngestedAt
+      ? CONNECTOR_HEALTH_RECEIVING_ALERTS
+      : CONNECTOR_HEALTH_WAITING_FOR_ALERTS;
+  }
+
   if (!connection.isEnabled) {
     return CONNECTOR_HEALTH_PAUSED;
   }
@@ -401,6 +427,7 @@ export function connectorHealthTone(health: string): ConnectorHealthTone {
   if (
     health === CONNECTOR_HEALTH_SUCCEEDED ||
     health === CONNECTOR_HEALTH_NO_RECORDS ||
+    health === CONNECTOR_HEALTH_RECEIVING_ALERTS ||
     health === "No detections returned"
   ) {
     return "good";
@@ -473,6 +500,18 @@ export function connectorHealthTooltip(health: string): string {
       );
     case CONNECTOR_HEALTH_UNAVAILABLE:
       return translationKey("A poll ran but recorded no result details.");
+    case CONNECTOR_HEALTH_WAITING_FOR_ALERTS:
+      return translationKey(
+        "No alert has arrived through this connection yet. Send alerts says how to send them, and how to send a test alert.",
+      );
+    case CONNECTOR_HEALTH_RECEIVING_ALERTS:
+      return translationKey(
+        "Alerts arrive as the product raises them. Last Event Imported says when the latest one did.",
+      );
+    case CONNECTOR_HEALTH_CASES_PAUSED:
+      return translationKey(
+        "The connection is disabled: the alerts it receives are kept as events, and open no cases.",
+      );
     default:
       return translationKey(
         "The last poll returned no records in its window. Use Test connection to see what the source has available to import.",
@@ -662,6 +701,33 @@ export function connectionEventsRoute(
           ],
         ])
       : {}),
+  });
+}
+
+/*
+ * The alerts a connection whose alerts are sent to OneUptime has received
+ * lately: Security Events over the last 7 days, filtered on the
+ * connection, as a run's View events filters a poll's.
+ */
+export const CONNECTION_ALERTS_LOOK_BACK_IN_DAYS: number = 7;
+
+export function connectionAlertsRoute(
+  connectionId: string,
+  now: Date = OneUptimeDate.getCurrentDate(),
+): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SECURITY_EVENTS] as Route,
+  ).addQueryParams({
+    ...getSecurityEventsTimeRangeLinkParams(
+      OneUptimeDate.addRemoveDays(now, -CONNECTION_ALERTS_LOOK_BACK_IN_DAYS),
+      now,
+    ),
+    ...buildSecurityEventFacetLinkParams([
+      [
+        `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SECURITY_CONNECTION_ID_ATTRIBUTE}`,
+        connectionId,
+      ],
+    ]),
   });
 }
 

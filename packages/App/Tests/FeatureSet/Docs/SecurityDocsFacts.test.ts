@@ -2383,7 +2383,7 @@ describe("the Threat Intelligence page", () => {
     expect(page_).toContain('{ title: "On Match", id: "on-match" }, ]}');
     expect(TAXII_SIGN_IN_FIELD_TITLE).toBe("Sign-in");
     expect(page).toContain(
-      "Click **Create Threat Intel Feed** and pick its **Source**: **List of indicators**, **TAXII collection** or **Google SecOps**. The next step asks for that source alone: a list's **List URL**, a collection's **TAXII Server** and **Sign-in**, or the **Google SecOps Connection**. **On Match** comes last.",
+      "Click **Create Threat Intel Feed** and pick its **Source**: **List of indicators**, **TAXII collection** or **Google SecOps**. The next step asks for that source alone: a list's **List URL** and **Sign-in**, a collection's **TAXII Server** and **Sign-in**, or the **Google SecOps Connection**. **On Match** comes last.",
     );
 
     // The sources, in the form's order and words.
@@ -2416,7 +2416,7 @@ describe("the Threat Intelligence page", () => {
       }),
     ).toEqual(["No sign-in", "Bearer token", "Username and password"]);
     expect(rowNamed(rows, "**Sign-in**")[1]).toBe(
-      "How OneUptime signs in: **No sign-in** for a public collection, **Bearer token** for a token the server's operator gave you, or **Username and password** for HTTP basic auth.",
+      "How OneUptime signs in: **No sign-in** for a public list or collection, **Bearer token** for a token a collection's operator gave you, or **Username and password** for HTTP basic auth.",
     );
   });
 
@@ -2502,9 +2502,9 @@ describe("the Threat Intelligence page", () => {
       expect(feed.getColumnAccessControlFor(secret)?.read).toEqual([]);
     }
 
-    // The dialog asks the feed's Sign-in again, in the same words.
+    // The dialog asks the feed's Sign-in again, in the same words: a list's without a token (#11158).
     expect(form).toContain(
-      "radioButtonOptions: getTaxiiSignInChoices({ anonymousDescription: TAXII_SIGN_IN_CLEAR_DESCRIPTION, }),",
+      "radioButtonOptions: isListFeed(currentlyEditingItem) ? getListSignInChoices({ anonymousDescription: LIST_SIGN_IN_CLEAR_DESCRIPTION, }) : getTaxiiSignInChoices({ anonymousDescription: TAXII_SIGN_IN_CLEAR_DESCRIPTION, }),",
     );
 
     expect(form).toContain('title: "Update Credentials",');
@@ -2518,7 +2518,7 @@ describe("the Threat Intelligence page", () => {
       '} else if (mode === "anonymous") { update = { apiToken: null, basicAuthUsername: null, basicAuthPassword: null, };',
     );
     expect(page).toContain(
-      "A TAXII feed's tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **Bearer token**, **Username and password** or **No sign-in**, which clears what is stored: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.",
+      "A feed's tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **Bearer token**, **Username and password** or **No sign-in**, which clears what is stored: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round. A list offers no token.",
     );
   });
 

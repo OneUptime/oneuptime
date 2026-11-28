@@ -129,6 +129,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `ocsf` | OCSF 事件 JSON（`class_uid`、`severity_id` 等） | 无 |
 | `udm` | Google SecOps（Chronicle）UDM 事件（`metadata.event_type` 等） | `chronicle`、`google-secops` |
 | `google-secops-alert` | Google SecOps 检测和警报：SOAR Webhook 和检测流 | `secops-alert`、`detection` |
+| `crowdsec` | CrowdSec 的警报，即其 `http` 通知插件发送的内容（参见 [CrowdSec](/docs/integrations/crowdsec)） | `crowdsec-alert` |
 | `generic` | 任何其他 JSON，按常见字段名读取 | 无 |
 
 可以用 `?format=`、`x-oneuptime-security-event-format` 标头，或顶层的 `"format"` 字段指定格式。不指定时，每个事件的格式会单独判断，所以一个 Webhook 可以混合发送检测和原始事件。
@@ -266,10 +267,12 @@ Key Vault、存储账户和 Azure SQL 数据库各自保留一份自己的审计
 | Microsoft Entra ID | 登录、目录更改和风险检测，可选的失败的后台和应用登录，以及 Microsoft 365 审计日志中的邮件转发、共享和钓鱼判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 登录、Google 自身的检测、管理员更改和应用授权，以及云端硬盘中的共享 | [Google Workspace](/docs/integrations/google-workspace) |
 | Cloudflare | 其防火墙在边缘拦截、质询和记录的请求，作为 HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
+| CrowdSec | 其通知插件发送的警报，作为 Detection Finding，以及对你封禁的地址的封禁 | [CrowdSec](/docs/integrations/crowdsec) |
 
 - 产品自身的警报，只要级别达到或高于 **打开案例的起始严重程度**（默认为 **高及以上**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
 - 连接按产品创建记录的时间读取记录，而不是按记录所描述活动的时间。每小时运行一次的 SIEM 规则会在它匹配的事件之后很久才创建检测，这些检测仍然会被导入。
 - 第一次轮询会回溯 24 小时，所以新连接会立刻显示最近的记录。
+- CrowdSec 连接永远不会被轮询：CrowdSec 每产生一条警报，就通过连接所在行中 **发送警报** 给出的通知立即发送。
 - 连接所在行中的 **测试连接** 会检查对产品的访问以及 OneUptime 自身的工作进程是否在运行，不会导入任何内容。**立即运行** 会立即轮询。
 
 ## 事件包含什么

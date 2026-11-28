@@ -8,7 +8,12 @@ import {
   ConnectorFieldChoice,
   ConnectorFieldChoicesReport,
 } from "../../Types/SecurityEvent/Connectors/ConnectorFieldChoices";
-import { getSecurityEventConnectorTitle } from "../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import {
+  PUSHED_ALERTS_NOTHING_TO_POLL,
+  areSecurityEventConnectorAlertsPushed,
+  getSecurityEventConnectorTitle,
+} from "../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import { SecurityEventConnectionRunOptions } from "../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import SecurityEventConnectionService, {
   Service as SecurityEventConnectionServiceType,
@@ -98,7 +103,7 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
           const connection: SecurityEventConnection | null =
             await this.service.findOneBy({
               query: { _id: connectionId, projectId },
-              select: { _id: true, projectId: true },
+              select: { _id: true, projectId: true, provider: true },
               props,
             });
           CommonAPI.assertResourceBelongsToProject({
@@ -106,13 +111,22 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
             projectId,
           });
 
+          const options: SecurityEventConnectionRunOptions =
+            SecurityEventConnectionRunExecutor.validateOptions(req.body);
+
+          // A product that sends its alerts (CrowdSec, #11158) has nothing to poll.
+          if (
+            options.type !== "test" &&
+            areSecurityEventConnectorAlertsPushed(connection?.provider)
+          ) {
+            throw new BadDataException(PUSHED_ALERTS_NOTHING_TO_POLL);
+          }
+
           const runId: ObjectID =
             await SecurityEventConnectionRunExecutor.enqueue({
               projectId,
               connectionId: new ObjectID(connectionId),
-              options: SecurityEventConnectionRunExecutor.validateOptions(
-                req.body,
-              ),
+              options,
               requestedByUserId: props.userId,
             });
 

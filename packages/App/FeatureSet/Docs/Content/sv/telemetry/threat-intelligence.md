@@ -23,7 +23,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- För en lista: en `https`-adress som laddar ned en textfil med en indikator per rad.
+- För en lista: en `https`-adress som laddar ned en textfil med en indikator per rad, fritt eller med användarnamn och lösenord.
 - För ett TAXII-flöde: en TAXII 2.1-server som publicerar STIX 2.1-objekt av typen `indicator`, och ID:t för samlingen som ska hämtas. Ett TAXII-flöde loggar in anonymt, med en bearer-token eller med HTTP Basic-autentisering.
 - För ett Google SecOps-flöde: en [Google SecOps-anslutning](/docs/integrations/google-secops#konfigurera-den-hanterade-anslutningen) vars tjänstkonto får söka bland indikatorträffar: rollen `roles/chronicle.viewer` får det.
 - Servrar som kräver ett TLS-klientcertifikat (mutual TLS), till exempel CISA AIS, stöds inte. MITRE:s offentliga ATT&CK-server publicerar tekniker och grupper i stället för indikatorer, så ett flöde som pekar på den förblir tomt.
@@ -50,7 +50,7 @@ En listas ruta länkar till dess villkor: Feodo Tracker är fri för all använd
 
 ### Skapa flödet
 
-Klicka på **Skapa Flöde med hotinformation** och välj dess **Källa**: **Lista med indikatorer**, **TAXII-samling** eller **Google SecOps**. Nästa steg frågar bara efter den källan: en listas **List-URL**, en samlings **TAXII-server** och **Inloggning**, eller **Google SecOps-anslutning**. **Vid träff** kommer sist. Fälten finns i tabellen nedan.
+Klicka på **Skapa Flöde med hotinformation** och välj dess **Källa**: **Lista med indikatorer**, **TAXII-samling** eller **Google SecOps**. Nästa steg frågar bara efter den källan: en listas **List-URL** och **Inloggning**, en samlings **TAXII-server** och **Inloggning**, eller **Google SecOps-anslutning**. **Vid träff** kommer sist. Fälten finns i tabellen nedan.
 
 ### Kontrollera den första hämtningen
 
@@ -67,7 +67,7 @@ Inom en minut eller två visar flödets rad **Senast hämtad**, och **Sammanfatt
 | **Samlings-id** | Samlingen som publicerar indikatorerna. |
 | **Hämtningsintervall (minuter)** | Hur ofta källan läses: 1 till 1440 minuter, 60 som standard. En lista läses högst var 15:e minut. |
 | **Lägsta konfidens** | För en TAXII-samling eller Google SecOps: indikatorer med lägre confidence hoppas över, 0 till 100, och 0 behåller allt. Indikatorer utan confidence släpps alltid igenom. |
-| **Inloggning** | Hur OneUptime loggar in: **Ingen inloggning** för en offentlig samling, **Bearer-token** för en token från serverns operatör eller **Användarnamn och lösenord** för HTTP Basic-autentisering. |
+| **Inloggning** | Hur OneUptime loggar in: **Ingen inloggning** för en offentlig lista eller samling, **Bearer-token** för en token från en samlings operatör eller **Användarnamn och lösenord** för HTTP Basic-autentisering. |
 | **API-token**, **Användarnamn för Basic Auth** och **Lösenord för Basic Auth** | Efterfrågas bara för den valda inloggningen. |
 | **Öppna ett ärende vid matchning** | På som standard: varje händelse som nämner en indikator öppnar ett [ärende](/docs/telemetry/security-cases) om den, eller läggs till i det öppna ärende som redan handlar om den. |
 | **Larm och incidenter** | **Skapa ett larm** som standard: varje indikator som träffar öppnar ett larm. |
@@ -76,7 +76,7 @@ Inom en minut eller två visar flödets rad **Senast hämtad**, och **Sammanfatt
 | **Incidentallvar** | Som **Larmallvar**, för incidenter. |
 | **Skriv Detection Finding vid matchning** | På som standard: varje träff skriver ett fynd i händelseflödet. |
 
-Ett TAXII-flödes tokens och lösenord krypteras och visas aldrig igen efter att du har sparat dem. För att ändra dem väljer du **Uppdatera inloggningsuppgifter** i flödets rad och sedan **Bearer-token**, **Användarnamn och lösenord** eller **Ingen inloggning**, som rensar det sparade: ditt val ersätter flödets inloggning, så att spara en token rensar ett sparat lösenord, och tvärtom.
+Ett flödes tokens och lösenord krypteras och visas aldrig igen efter att du har sparat dem. För att ändra dem väljer du **Uppdatera inloggningsuppgifter** i flödets rad och sedan **Bearer-token**, **Användarnamn och lösenord** eller **Ingen inloggning**, som rensar det sparade: ditt val ersätter flödets inloggning, så att spara en token rensar ett sparat lösenord, och tvärtom. En lista erbjuder ingen token.
 
 ### Så hämtas ett flöde
 
@@ -92,6 +92,7 @@ Ett inaktiverat flöde varken hämtas eller matchas. Indikatorerna som det redan
 - Ett värde förblir en aktiv indikator i 2 dagar efter hämtningen som senast läste det, och ett värde som listan tar bort slutar träffa vid nästa hämtning. En lista som inte har ändrats skrivs om en gång per dag.
 - En lista rymmer högst 50 000 indikatorer. **Sammanfattning av senaste hämtning** berättar hur många som lästes, hur många rader som hoppades över och hur många som lämnades utanför.
 - Adressen måste använda `https` och följer samma utgående regler som en anslutning: i OneUptime Cloud avvisas en privat adress.
+- En lista bakom en inloggning hämtas med **Användarnamn och lösenord**, som HTTP Basic-autentisering, aldrig i adressen. Det är så CrowdSec Console levererar blocklistorna du prenumererar på: se [Läs CrowdSecs blocklistor](/docs/integrations/crowdsec#läs-crowdsecs-blocklistor).
 
 ### Så läses Google SecOps
 

@@ -77,6 +77,12 @@ export enum SecurityProtectedAddressSource {
    */
   GoogleFrontEnd = "GoogleFrontEnd",
   /*
+   * An address or a range on the project's Trusted Proxies (#11158,
+   * #11365): the project trusts it as one of its own proxies, and a block
+   * of one cuts off everyone it forwards, at every destination.
+   */
+  TrustedProxy = "TrustedProxy",
+  /*
    * What protects a domain, a URL or a file (#10346), the project's own
    * list aside (ProtectedEntity), and a cloud resource's DNS name or DNS
    * zone (CloudResource):
@@ -157,6 +163,9 @@ export const SECURITY_PROTECTED_ADDRESS_SENTENCES: Readonly<
   ),
   [SecurityProtectedAddressSource.GoogleFrontEnd]: translationKey(
     "{{address}} is where Google Cloud's front ends and health checks reach the backends of your load balancer {{name}} from: blocking it would cut off its visitors and fail its health checks.",
+  ),
+  [SecurityProtectedAddressSource.TrustedProxy]: translationKey(
+    "{{address}} is on your Trusted Proxies: OneUptime trusts it as one of your own proxies, and blocking it would cut off everyone it forwards.",
   ),
   [SecurityProtectedAddressSource.OneUptime]: translationKey(
     "{{address}} is OneUptime's own address: blocking it would cut your machines and agents off from OneUptime.",

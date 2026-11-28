@@ -12,6 +12,7 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   SecurityEventConnectorDefinition,
+  areSecurityEventConnectorAlertsPushed,
   getSecurityEventConnectorDefinition,
   getSecurityEventConnectorTitle,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
@@ -39,6 +40,7 @@ import {
 import SecurityEventConnectionDiagnostics from "./SecurityEventConnectionDiagnostics";
 import {
   SECURITY_EVENT_CONNECTION_TEST_ROUTE,
+  connectionAlertsRoute,
   connectorHealth,
   connectorHealthPillColor,
   connectorHealthTooltip,
@@ -67,6 +69,9 @@ import {
 } from "Common/Types/SecurityBlocklist/CloudflareBlocking";
 import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
 import CloudflareBlockingModal from "./CloudflareBlocking/CloudflareBlockingModal";
+import CrowdSecSendAlertsModal from "./CrowdSec/CrowdSecSendAlertsModal";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import Navigation from "Common/UI/Utils/Navigation";
 import {
   BLOCKING_ATTENTION_DETAIL,
   BLOCKING_ON_DETAIL,
@@ -86,6 +91,23 @@ import {
  */
 export const CONNECTION_ROW_MARK_SIZE: ProviderLogoSize = 32;
 
+/*
+ * A poll's value (its interval, when it last ran) for a connection that is
+ * never polled: the quiet dash, saying why under the pointer.
+ */
+const NotPolledValue: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <TableEmptyValue
+      screenReaderText="Not polled"
+      title={translator.translateText(
+        "This connection's alerts are sent to OneUptime, so it is never polled.",
+      )}
+    />
+  );
+};
+
 interface FormModalState {
   connection: SecurityEventConnection | null;
   credentialsOnly: boolean;
@@ -94,12 +116,13 @@ interface FormModalState {
 }
 
 const documentationMarkdown: string = `
-A connection brings in what one security product finds, such as a SIEM, an EDR or XDR platform, a cloud security service or an identity provider, as security events you can search, correlate and alert on. It polls the product on the interval you set.
+A connection brings in what one security product finds, such as a SIEM, an EDR or XDR platform, a cloud security service or an identity provider, as security events you can search, correlate and alert on. It polls the product on the interval you set, or, for a product that sends its alerts itself such as CrowdSec, receives them as they are raised.
 
 ## How a Connection Works
 
 - Each poll imports the product's new records as OCSF security events attributed to it. Records are read by the time the **source created them**, so a detection about yesterday that the source created this morning is still picked up.
 - The first poll looks back 24 hours. Bring in older records with a historical import from **Diagnostics**.
+- A CrowdSec connection is never polled: its **Send alerts** gives the notification that sends CrowdSec's alerts to it, and says when the first one arrives.
 - Each provider's setup guide lists the roles, scopes and console locations for every value the form asks for.
 
 ## Testing and Health
@@ -235,6 +258,9 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
     string | null
   >(null);
   const [refreshCounter, setRefreshCounter] = useState<number>(0);
+  // The connection whose Send alerts is open: one whose product sends its alerts (#11158).
+  const [sendAlertsItem, setSendAlertsItem] =
+    useState<SecurityEventConnection | null>(null);
   // The Cloudflare connection whose Block Addresses dialog is open, and whether on turning it off.
   const [blockingItem, setBlockingItem] = useState<{
     id: ObjectID;
@@ -352,7 +378,7 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
            * and Add connection lists every product.
            */
           description:
-            "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.",
+            "Bring in alerts and events from your SIEM, EDR / XDR, cloud security, identity and network security tools, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub, Microsoft Entra ID and CrowdSec.",
           buttons: [
             {
               title: "Add connection",
@@ -416,9 +442,50 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             },
           },
           {
+            title: "Send alerts",
+            icon: IconProp.PaperAirplane,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            // A product that sends its alerts: how to point it here (#11158).
+            isVisible: (item: SecurityEventConnection): boolean => {
+              return areSecurityEventConnectorAlertsPushed(item.provider);
+            },
+            tooltip:
+              "The notification that sends this product's alerts here, and a test alert.",
+            onClick: (
+              item: SecurityEventConnection,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              setSendAlertsItem(item);
+              onCompleteAction();
+            },
+          },
+          {
+            title: "View alerts",
+            icon: IconProp.List,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            isVisible: (item: SecurityEventConnection): boolean => {
+              return areSecurityEventConnectorAlertsPushed(item.provider);
+            },
+            tooltip: "The alerts this connection received in the last 7 days.",
+            onClick: (
+              item: SecurityEventConnection,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              onCompleteAction();
+
+              if (item.id) {
+                Navigation.navigate(connectionAlertsRoute(item.id.toString()));
+              }
+            },
+          },
+          {
             title: "Run now",
             icon: IconProp.Play,
             buttonStyleType: ButtonStyleType.OUTLINE,
+            // Never polled: a product that sends its alerts has no poll to run.
+            isVisible: (item: SecurityEventConnection): boolean => {
+              return !areSecurityEventConnectorAlertsPushed(item.provider);
+            },
             disabled: !updateGate.isAllowed,
             tooltip: updateGate.isAllowed
               ? "Import the next poll window now."
@@ -436,6 +503,10 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Diagnostics",
             icon: IconProp.WrenchScrewdriver,
             buttonStyleType: ButtonStyleType.OUTLINE,
+            // Its polls, previews and imports: none of a connection that is sent its alerts.
+            isVisible: (item: SecurityEventConnection): boolean => {
+              return !areSecurityEventConnectorAlertsPushed(item.provider);
+            },
             onClick: (
               item: SecurityEventConnection,
               onCompleteAction: VoidFunction,
@@ -632,6 +703,13 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Interval (Minutes)",
             type: FieldType.Number,
             isHiddenByDefault: true,
+            getElement: (item: SecurityEventConnection): ReactElement => {
+              if (areSecurityEventConnectorAlertsPushed(item.provider)) {
+                return <NotPolledValue />;
+              }
+
+              return <span>{item.pollIntervalInMinutes}</span>;
+            },
           },
           /*
            * When it last polled, last polled well and last brought an event
@@ -659,6 +737,10 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             foldInto: "lastEventIngestedAt",
             showTitleWhenFolded: true,
             getElement: (item: SecurityEventConnection): ReactElement => {
+              if (areSecurityEventConnectorAlertsPushed(item.provider)) {
+                return <NotPolledValue />;
+              }
+
               return <RelativeTimeCell date={item.lastPolledAt} />;
             },
           },
@@ -671,6 +753,10 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             noValueMessage: "Never",
             isHiddenByDefault: true,
             getElement: (item: SecurityEventConnection): ReactElement => {
+              if (areSecurityEventConnectorAlertsPushed(item.provider)) {
+                return <NotPolledValue />;
+              }
+
               return <RelativeTimeCell date={item.lastSuccessfulPollAt} />;
             },
           },
@@ -697,9 +783,17 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
           onClose={(): void => {
             setFormModal(null);
           }}
-          onSaved={(): void => {
+          onSaved={(created?: SecurityEventConnection | undefined): void => {
             setFormModal(null);
             refresh();
+
+            // What comes next for a CrowdSec connection: pointing CrowdSec at it.
+            if (
+              created &&
+              areSecurityEventConnectorAlertsPushed(created.provider)
+            ) {
+              setSendAlertsItem(created);
+            }
           }}
         />
       )}
@@ -741,6 +835,17 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             setDiagnosticsItem(null);
           }}
           onUpdated={refresh}
+        />
+      )}
+
+      {sendAlertsItem && (
+        <CrowdSecSendAlertsModal
+          key={sendAlertsItem.id?.toString()}
+          connection={sendAlertsItem}
+          onClose={(): void => {
+            setSendAlertsItem(null);
+            refresh();
+          }}
         />
       )}
 

@@ -16,6 +16,8 @@ import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceServi
 import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
 import ProbeService from "../../../../Server/Services/ProbeService";
 import SecurityProtectedEntityService from "../../../../Server/Services/SecurityProtectedEntityService";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import Project from "../../../../Models/DatabaseModels/Project";
 import logger from "../../../../Server/Utils/Logger";
 import DnsResolutionCache from "../../../../Server/Utils/Monitor/DnsResolutionCache";
 import SecurityEdgeRanges, {
@@ -31,6 +33,7 @@ import SecurityProtectedAddresses, {
   PROTECTED_ADDRESS_ROWS_PER_SOURCE,
   SecurityProtectedAddressGroup,
   SecurityProtectionCheck,
+  SecurityProtectionSnapshot,
   getProtectedAddressPrefilter,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityProtectedAddresses";
 import {
@@ -179,6 +182,8 @@ interface Records {
   devices?: Array<NetworkDevice>;
   endpoints?: Array<NetworkEndpoint>;
   edges?: Array<SecurityEdge>;
+  // The project's Trusted Proxies, as the column holds them (#11158).
+  trustedProxies?: string;
 }
 
 // The spied reads of each source.
@@ -192,6 +197,7 @@ interface Reads {
   devices: Spy;
   endpoints: Spy;
   edges: Spy;
+  project: Spy;
 }
 
 // A findBy that answers as the database would: the rows its query finds, at most its limit.
@@ -302,6 +308,18 @@ function install(records: Records = {}): Reads {
       SecurityEdgeRanges,
       "findConnectedEdges",
     ).mockResolvedValue((records.edges || []) as never),
+    project: getJestSpyOn(ProjectService, "findOneById").mockImplementation(
+      async (): Promise<Project> => {
+        const project: Project = new Project();
+        project._id = PROJECT_ID.toString();
+
+        if (records.trustedProxies !== undefined) {
+          project.securityTrustedProxies = records.trustedProxies;
+        }
+
+        return project;
+      },
+    ),
   };
 }
 
@@ -1778,6 +1796,8 @@ describe("SecurityProtectedAddresses.listAutomaticProtections", () => {
       SecurityProtectedAddressSource.Edge,
       // #11388: in every project, read from nothing.
       SecurityProtectedAddressSource.GoogleFrontEnd,
+      // What the project trusts as its own proxies (#11158).
+      SecurityProtectedAddressSource.TrustedProxy,
     ]);
 
     for (const group of groups) {
@@ -2239,5 +2259,119 @@ describe("SecurityProtectedAddresses.asSeenBy", () => {
     ]) {
       expect(seen(protection, reader([]))).toEqual(protection);
     }
+  });
+});
+
+/*
+ * WHAT THE PROJECT TRUSTS AS ITS OWN PROXIES (#11158): its Trusted
+ * Proxies. A block of one would cut off everyone it forwards - at
+ * Cloudflare, a WAF, CrowdSec - so it is refused wherever it is asked for,
+ * and said so in the project's own words. (Google's front ends, which the
+ * scans trust too, are protected in every project, #11388.)
+ */
+describe("SecurityProtectedAddresses, what the project trusts as its own proxies (#11158)", () => {
+  test("an address on Trusted Proxies, a range holding one, an address inside a listed range", async () => {
+    install({ trustedProxies: "203.0.113.10\n198.51.100.0/24" });
+
+    await expect(find("203.0.113.10")).resolves.toEqual({
+      protection: {
+        source: SecurityProtectedAddressSource.TrustedProxy,
+        protectedValue: "203.0.113.10",
+      },
+      unreadSources: [],
+    });
+    expect((await find("203.0.113.0/24")).protection?.protectedValue).toBe(
+      "203.0.113.10",
+    );
+    expect((await find("198.51.100.77")).protection).toEqual({
+      source: SecurityProtectedAddressSource.TrustedProxy,
+      protectedValue: "198.51.100.0/24",
+    });
+    // Beside them, nothing.
+    await expect(find("203.0.113.11")).resolves.toEqual({
+      protection: null,
+      unreadSources: [],
+    });
+  });
+
+  test("says so in the project's own words", async () => {
+    install({ trustedProxies: "203.0.113.10" });
+
+    const protection: SecurityAddressProtection = (await find("203.0.113.10"))
+      .protection!;
+
+    expect(
+      describeSecurityAddressProtection({ value: "203.0.113.10", protection }),
+    ).toBe(
+      "203.0.113.10 is on your Trusted Proxies: OneUptime trusts it as one of your own proxies, and blocking it would cut off everyone it forwards.",
+    );
+  });
+
+  test("a range too broad to be a proxy is read as the scans read it: no proxy, and nothing it holds protected", async () => {
+    install({ trustedProxies: "16.0.0.0/4" });
+
+    await expect(find("17.1.2.3")).resolves.toEqual({
+      protection: null,
+      unreadSources: [],
+    });
+  });
+
+  test("read as OneUptime, after every other source", async () => {
+    const reads: Reads = install({ trustedProxies: "203.0.113.10" });
+
+    await find("198.51.100.1");
+
+    for (const input of inputsOf(reads.project)) {
+      expect(input.props).toEqual(ROOT);
+    }
+
+    // A host on the address answers first: what the project trusts is read after.
+    const host_: Host = host({ name: "web-3", addresses: "203.0.113.10" });
+    install({ trustedProxies: "203.0.113.10", hosts: [host_] });
+    expect((await find("203.0.113.10")).protection?.source).toBe(
+      SecurityProtectedAddressSource.Host,
+    );
+  });
+
+  test("listed on Protected Entities, a group of their own", async () => {
+    install({
+      trustedProxies: "203.0.113.10\n198.51.100.0/24",
+    });
+
+    const groups: Array<SecurityProtectedAddressGroup> = await list(ROOT);
+
+    expect(
+      groupOf(
+        groups,
+        SecurityProtectedAddressSource.TrustedProxy,
+      )?.protections.map((protection: SecurityAddressProtection): string => {
+        return protection.protectedValue;
+      }),
+    ).toEqual(["203.0.113.10", "198.51.100.0/24"]);
+  });
+
+  test("and held to every block a feed serves", async () => {
+    install({
+      trustedProxies: "203.0.113.10",
+    });
+
+    const snapshot: SecurityProtectionSnapshot =
+      await SecurityProtectedAddresses.readAllProtections({
+        projectId: PROJECT_ID,
+        limitPerSource: 100,
+      });
+
+    expect(
+      snapshot.protections
+        .filter((protection: SecurityAddressProtection): boolean => {
+          return (
+            protection.source === SecurityProtectedAddressSource.TrustedProxy
+          );
+        })
+        .map((protection: SecurityAddressProtection): string => {
+          return protection.protectedValue;
+        }),
+    ).toEqual(["203.0.113.10"]);
+    expect(snapshot.unreadSources).toEqual([]);
   });
 });

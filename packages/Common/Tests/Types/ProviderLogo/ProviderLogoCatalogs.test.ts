@@ -289,6 +289,7 @@ describe("Security Events", () => {
         [SecurityEventConnectorProvider.GoogleWorkspace]:
           ProviderLogo.GoogleWorkspace,
         [SecurityEventConnectorProvider.Cloudflare]: ProviderLogo.Cloudflare,
+        [SecurityEventConnectorProvider.CrowdSec]: ProviderLogo.CrowdSec,
         [SecurityEventConnectorProvider.GoogleSecOps]:
           ProviderLogo.GoogleSecurityOperations,
       },
