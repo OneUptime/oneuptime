@@ -370,7 +370,7 @@ describe("each log's Status column", () => {
   });
 
   test("a tap opens what it means, as a tooltip, and the press goes no further", () => {
-    const onRowClick: jest.Mock = jest.fn();
+    const onRowClick: ReturnType<typeof jest.fn> = jest.fn();
     const { column } = statusOf(NotificationLogKind.SMS);
 
     render(
