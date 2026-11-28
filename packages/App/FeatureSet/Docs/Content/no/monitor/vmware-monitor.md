@@ -123,7 +123,7 @@ Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriter
 | VM CPU Ready Contention | Virtuell maskin | Advarsel | `vcenter.vm.cpu.readiness`, Avg per VM | Over 10 %: VM-en var klar til å kjøre, men verten hadde ingen fysisk kjerne til den. Usynlig fra innsiden av gjesten | Ved 9 % eller mindre |
 | VM Memory Saturation | Virtuell maskin | Advarsel | `vcenter.vm.memory.utilization`, Avg per VM | Over 90 % av minnet: gjesten er i ferd med å begynne å pagere | Ved 81 % eller mindre |
 | VM Memory Ballooning | Virtuell maskin | Advarsel | `vcenter.vm.memory.ballooned`, Max per VM | Over 0: verten mangler minne og tar det tilbake fra denne gjesten | Ved 0 |
-| VM Memory Swapping | Virtuell maskin | Kritisk | `vcenter.vm.memory.swapped`, Max per VM | Over 0: verten swapper VM-ens minne, siste utvei etter ballooning og komprimering | Ved 0 |
+| VM Memory Swapping | Virtuell maskin | Kritisk | `vcenter.vm.memory.swapped`, Max per VM | Over 0: noe av VM-ens minne ligger i vertens swapfil, swappet ut nå eller igjen fra tidligere minnepress, for ESXi beholder det til VM-en bruker det. Oversikten for vCenter-et skiller de to: se [Swappet minne betyr ikke at det swappes](/docs/telemetry/vmware#swappet-minne-betyr-ikke-at-det-swappes) | Ved 0 |
 | VM Disk Latency High | Virtuell maskin | Advarsel | `vcenter.vm.disk.latency.max`, Max per VM | Over 50 ms: applikasjoner i gjesten får tidsavbrudd på I/O | Ved 45 ms eller mindre |
 | VM Disk Usage High | Virtuell maskin | Advarsel | `vcenter.vm.disk.utilization`, Avg per VM | Over 90 % av den tildelte lagringen er brukt: en thin-provisjonert VM er i ferd med å kreve hele størrelsen sin | Ved 81 % eller mindre |
 | Datastore Capacity Warning | Datalager | Advarsel | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Over 80 %: et tidlig varsel, siden thin-disker og snapshots raskt bruker resten | Ved 72 % eller mindre |
@@ -214,7 +214,7 @@ Målingene nedenfor er katalogen monitorskjemaet tilbyr. Enhetene er receiverens
 | `vcenter.vm.disk.utilization`              | `%`           | Prosentandel (0–100) av VM-ens tildelte lagring som er brukt på datastoren — en thin-provisjonert VM nær 100 % er i ferd med å kreve hele størrelsen sin                      |
 | `vcenter.vm.memory.ballooned`              | `MiBy`        | Gjesteminne som balloon-driveren (VMware Tools) har tatt tilbake fra VM-en. Over 0 betyr at ESXi-verten mangler minne                                                        |
 | `vcenter.vm.memory.granted`                | `MiBy`        | Maskinminne verten har tildelt VM-en. _Av som standard_ — slå på `vcenter.vm.memory.granted`                                                                                  |
-| `vcenter.vm.memory.swapped`                | `MiBy`        | Minne VM-en får fra vertens swapfil — siste utvei etter ballooning og komprimering; enhver verdi over 0 betyr at VM-en betaler disklatens for RAM                             |
+| `vcenter.vm.memory.swapped`                | `MiBy`        | Minne VM-en får fra vertens swapfil — siste utvei etter ballooning og komprimering. ESXi beholder en swappet side til VM-en bruker den, så en verdi over 0 kan være igjen fra tidligere minnepress |
 | `vcenter.vm.memory.swapped_ssd`            | `KiBy`        | VM-ens minne swappet til vertens flash-swapbuffer — mindre smertefullt enn swapfilen, men fortsatt minnepress                                                                 |
 | `vcenter.vm.memory.usage`                  | `MiBy`        | Minne som VM-ens gjest aktivt bruker. Sendes for både påslåtte og avslåtte VM-er (0 når den er av)                                                                            |
 | `vcenter.vm.memory.utilization`            | `%`           | VM-ens minneutnyttelse i prosent (0–100) av det konfigurerte minnet                                                                                                            |
@@ -241,7 +241,7 @@ Målingene nedenfor er katalogen monitorskjemaet tilbyr. Enhetene er receiverens
 | `vcenter.resource_pool.memory.ballooned` | `MiBy`     | Minne som balloon-driveren har tatt tilbake på tvers av alle VM-er i poolen                                                                                              |
 | `vcenter.resource_pool.memory.granted`   | `MiBy`     | Vertsminne tildelt poolens VM-er, delt opp etter `type` (`private` / `shared` — delte sider dedupliseres av transparent page sharing)                                     |
 | `vcenter.resource_pool.memory.shares`    | `{shares}` | Minneandeler konfigurert på poolen                                                                                                                                       |
-| `vcenter.resource_pool.memory.swapped`   | `MiBy`     | Minne som poolens VM-er får fra ESXi-vertenes swapplass — enhver verdi over 0 betyr at minst én VM i poolen blir swappet av verten                                      |
+| `vcenter.resource_pool.memory.swapped`   | `MiBy`     | Minne som poolens VM-er får fra ESXi-vertenes swapplass — en verdi over 0 betyr at minst én VM i poolen har minne i vertens swap, nå eller fra tidligere |
 | `vcenter.resource_pool.memory.usage`     | `MiBy`     | Minne brukt av poolen, delt opp etter `type` (`guest` / `host` / `overhead`) på nyere collector-bygg; eldre bygg sender én serie uten type. Filtrer `type = guest`        |
 
 ### vSAN
@@ -288,7 +288,7 @@ Noen kriterier å starte med:
 - **En datastore er i ferd med å bli full:** `vcenter.datastore.disk.utilization`, Gjennomsnitt, gruppert etter `resource.vcenter.datastore.name`, **Større enn** `80`.
 - **En klynge mistet en vert:** `vcenter.cluster.host.count` filtrert til `effective = false`, Maksimum, gruppert etter `resource.vcenter.cluster.name`, **Større enn** `0`.
 - **Færre VM-er kjører enn forventet:** `vcenter.cluster.vm.count` filtrert til `power_state = on` og `resource.vcenter.cluster.name = Production`, Sum, **Mindre enn** antallet du forventer.
-- **En VM blir swappet av verten:** `vcenter.vm.memory.swapped`, Maksimum, gruppert etter `resource.vcenter.vm.name`, **Større enn** `0`.
+- **En VM har mye minne i vertens swap:** `vcenter.vm.memory.swapped`, Maksimum, gruppert etter `resource.vcenter.vm.name`, **Større enn** `1024`. Noen få MiB kan bli liggende der lenge etter at minnepresset er borte, så en terskel over 0 hindrer at minne som er igjen fra tidligere, utløser kriteriet.
 
 ### Standardkriterier
 

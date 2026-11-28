@@ -1,4 +1,6 @@
-import CallService from "../../FeatureSet/Notification/Services/CallService";
+import CallService, {
+  SpokenCallTwiml,
+} from "../../FeatureSet/Notification/Services/CallService";
 import SmsService from "../../FeatureSet/Notification/Services/SmsService";
 import TelegramService from "../../FeatureSet/Notification/Services/TelegramService";
 import WhatsAppService from "../../FeatureSet/Notification/Services/WhatsAppService";
@@ -235,10 +237,24 @@ beforeEach(() => {
       calls: { create: createCall },
     };
   });
-  // The call's script is Twilio's business (and twilio is a mock here).
+  /*
+   * The call's script is Twilio's business (and twilio is a mock here):
+   * the call is placed with the TwiML of the words it speaks, in English.
+   */
   jest
-    .spyOn(CallService, "generateTwimlForCall")
-    .mockReturnValue("<Response><Say>Incident</Say></Response>");
+    .spyOn(CallService, "generateSpokenTwimlForCall")
+    .mockImplementation(
+      (callRequest: { data: CallRequest["data"] }): SpokenCallTwiml => {
+        return {
+          twiml: "<Response><Say>Incident</Say></Response>",
+          spoken: {
+            data: callRequest.data,
+            voice: undefined,
+            language: "en",
+          },
+        };
+      },
+    );
 
   (getTwilioConfig as unknown as jest.Mock).mockResolvedValue(
     TWILIO_CONFIG as never,

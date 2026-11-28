@@ -309,7 +309,13 @@ Nogle felter indeholder en JSON-værdi med sin egen form, såsom et vagtplanlags
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-En nøgle, der omdøbes, læses fortsat under sit gamle navn: et lags begrænsningstype skrives under `restrictionType` eller under den ældre stavemåde `restictionType`, og et svar angiver begge.
+En nøgle, der omdøbes, læses fortsat under sit gamle navn: et lags begrænsningstype skrives under `restrictionType` eller under den ældre stavemåde `restictionType`, og et svar angiver begge. Den ældre stavemåde er forældet i svar: de angiver den indtil den første hovedversion, der udgives den 1. juni 2027 eller senere. Skrivninger læser den altid.
+
+En værdi bliver også taget på ordet. Et lags ugentlige tidsrum har vagt de dage, det nævner, så dets `startTime` og `endTime` skal falde på dets `startDay` og `endDay` i vagtplanens tidszone. Et tidsrum, der er dateret på andre dage, afvises med en `400`, der nævner tidsrummet og giver et tidspunkt på den nævnte dag, der kan sendes i stedet:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Hvor et projekt blev købt
 
@@ -422,6 +428,44 @@ Incident not found.
 ```
 
 Tidligere svarede den `200` med en tom body. En liste (`get-list`) og en optælling svarer stadig `200` med de poster, du må læse, ingen når der ikke er nogen. Terraform-provideren læser en `404` ved opdatering som en ressource, der er væk, og fjerner den fra state, så næste plan opretter den igen: giv den API-nøgle, den bruger, tilladelserne og etiketterne til at læse hver ressource, den styrer. MCP-værktøjerne svarer på en `404` med en fejl, der peger på det tilsvarende listeværktøj, og CLI'en afslutter med koden `3`.
+
+### Billeder i en posts Markdown
+
+Et billede, der er indsat i Markdown, som et skærmbillede i en hændelses beskrivelse, et brugerdefineret Markdown-felt eller en note, er en privat fil. Dets adresse (`/file/image/access-token/...`) åbner det kun for en person, der er logget ind i projektet, så en API-nøgle læser det i stedet gennem den post, der viser det:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Posten læses som nøglen, sådan som `get-item` læser den: Nøglen skal have tilladelse til at læse den og dens etiketter. Svaret indeholder hvert billede, postens Markdown viser, i den rækkefølge det viser dem: dets `name`, `mimeType`, `sizeInBytes`, dets data i `base64`, et `contentId` til en indlejret vedhæftning i en e-mail, de `urls`, Markdown viser det med, og de `fields`, det står i. Under `leftOut` står de filer, Markdown viser, som ikke udleveres, hver med en `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+Kun billeder, der er uploadet til postens eget projekt, udleveres, op til 20 og 10 MB i alt, og aldrig en SVG. Hver slags post med Markdown har den samme anmodning, som `/api/incident-public-note/<id>/markdown-files` eller `/api/alert/<id>/markdown-files`. En post, der ikke findes, eller som nøglen ikke må læse, svarer `404`, som `get-item` gør, og `422`, når nøglen slet ikke må læse den slags post. En arbejdsgang læser de samme billeder med [Hent filer fra Markdown](/docs/workflows/components#get-files-from-markdown).
 
 ## Den fulde endpoint-reference
 

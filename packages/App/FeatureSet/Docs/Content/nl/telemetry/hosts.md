@@ -79,6 +79,16 @@ Elke OneUptime serveert zijn eigen installatieprogramma's, zodat een zelf gehost
 De laatste stap van het dialoogvenster meldt wanneer de host verbinding maakt, met een link ernaartoe. In de lijst staat hij als **Wordt gestart** tot zijn eerste metrics binnenkomen, meestal binnen een minuut, en daarna met zijn gezondheid, **Gezond** als er niets aandacht nodig heeft, en zijn collector **Actief**. De pagina **Topologie** van de host tekent op één kaart wat erop draait, wat hem aanroept en wat hij aanroept: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen).
 :::
 
+## Wat als host telt
+
+De lijst **Hosts** toont de machines die hun eigen telemetrie versturen vanuit een collector op de machine. Andere telemetrie noemt ook een machine in `host.name`, maar voegt nooit een host toe:
+
+- de telemetrie van een Docker- of Podman-host, die `container.runtime` bevat: die staat onder **Docker** of **Podman**;
+- de telemetrie van een Kubernetes-cluster, -node of -pod, die `k8s.cluster.name`, `k8s.node.name` of `k8s.pod.name` bevat: die staat onder **Kubernetes**;
+- de eigen telemetrie van een container, die `container.id` bevat, en die van een applicatie, die `telemetry.sdk.name` bevat: die staat onder de service van de applicatie.
+
+Eerdere releases voegden sommige van deze machines toe als hosts: Docker- en Podman-hosts, Kubernetes-nodes en -pods, en een host voor elke pod van een app die rechtstreeks naar OneUptime exporteert, met elke uitrol één meer. De upgrade heeft ze gearchiveerd, elk met een vermelding in zijn feed die zegt waarom. Elke host die je zelf hebt toegevoegd, elke host waarvan OneUptime de collector beheert en elke host die de eigen metingen van een host stuurde, bleef behouden. De gearchiveerde staan onder **Geavanceerd → Gearchiveerd** in de lijst **Hosts**, waar **Uit het archief halen** er een terugbrengt.
+
 ## Zien welke hosts aandacht vragen
 
 De lijst **Hosts** begint met **Vraagt aandacht**: elke host die kapot is of aandacht nodig heeft, het dringendste eerst, elk met de reden en één stap naar zijn pagina. Een host die niet meer rapporteert, zegt wanneer hij dat het laatst deed. Vraagt niets aandacht, dan is er geen kaart.

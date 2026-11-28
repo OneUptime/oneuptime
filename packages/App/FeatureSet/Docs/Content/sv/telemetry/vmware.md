@@ -185,7 +185,7 @@ Everything is ready. Begin running and processing data.
 
 ### Hitta vCenter i OneUptime
 
-Inget skickas förrän den första fullständiga genomgången av inventariet är klar, så ge det ett insamlingsintervall (2 minuter som standard). Öppna sedan **Produkter → Infrastruktur → VMware → Alla vCenter**: vCenter finns där, med sina datacenter, kluster, ESXi-värdar, virtuella maskiner, datalager och resurspooler. Dess sida **Topologi** ritar alla på en karta och markerar det som kräver uppmärksamhet: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
+Inget skickas förrän den första fullständiga genomgången av inventariet är klar, så ge det ett insamlingsintervall (2 minuter som standard). Öppna sedan **Produkter → Infrastruktur → VMware → Alla vCenter**: vCenter finns där, med sina datacenter, kluster, ESXi-värdar, virtuella maskiner, datalager och resurspooler. Dess sida **Topologi** ritar alla på en karta och markerar det som kräver uppmärksamhet: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta). I **Inventarie** är varje VM, ESXi-värd, kluster och datalager ett objekt med det namn som vCenter ger det, och under namnet står var det finns: för en VM dess värd och kluster, för en värd dess kluster och datacenter.
 :::
 
 ## Miljövariabler
@@ -246,7 +246,7 @@ Mottagaren skickar inget mätvärde för en VM:s strömtillstånd. Den skickar `
 
 Sidan **Översikt** besvarar först "är det här vCenter friskt". Dess sidhuvud visar om data kommer fram och hur det står till med vCenter: **Felfri**, **Försämrad** medan något behöver en titt, **Ej felfri** medan något behöver någon nu, eller **Hälsa okänd** medan vCenter är frånkopplat, eftersom dess senaste rapport då inte längre är sanningen. Dess chips räknar datacentren, klustren, de ESXi-värdar som vCenter når av alla, de påslagna VM:arna av alla, mallarna och datalagren, och alla utom datacentren öppnar sin lista.
 
-Därefter kommer **Kräver uppmärksamhet**: allt som behöver någon, det mest brådskande först, var och en med orsaken och ett steg från sin sida. En ESXi-värd som vCenter inte når, ett datalager som är mer än 90 % fullt och en VM vars minne värden swappar till disk är kritiska. En värd som är mer än 90 % upptagen, ett datalager som är mer än 80 % fullt, en VM som väntar på en ledig CPU eller vars minne värden tar tillbaka, ett kluster med värdar som inte är effektiva eller utan minnet för att förlora en av dem, och de larm som vCenter räknar i varje datacenter behöver en titt. Varje tröskel är den som dess [larmmall](/docs/monitor/vmware-monitor#färdiga-larmmallar) utlöses vid. När inget kräver uppmärksamhet visas inget kort.
+Därefter kommer **Kräver uppmärksamhet**: allt som behöver någon, det mest brådskande först, var och en med orsaken och ett steg från sin sida. En ESXi-värd som vCenter inte når, ett datalager som är mer än 90 % fullt och en VM vars minne värden swappar ut just nu är kritiska. En värd som är mer än 90 % upptagen, ett datalager som är mer än 80 % fullt, en VM som väntar på en ledig CPU, vars minne värden tar tillbaka, eller som läser tillbaka swappat minne eller behåller mer än 1 GiB av det, ett kluster med värdar som inte är effektiva eller utan minnet för att förlora en av dem, och de larm som vCenter räknar i varje datacenter behöver en titt. Varje tröskel är en som ditt projekt kan ändra eller stänga av: se [Hälsoregler](#hälsoregler). När inget kräver uppmärksamhet visas inget kort.
 
 Under det finns de effektiva värdarna, värdarnas CPU och minne viktade efter kapacitet, det fullaste datalagret och den sämsta CPU ready-tiden för en VM, med sina diagram; **ESXi-värdar**, varje värds status och belastning ett steg från dess sida; och de största förbrukarna.
 
@@ -263,6 +263,37 @@ vCenter rapporterar en värds CPU- och minnesanvändning bara medan värden är 
 | **Avstängd eller i standby** | Den rapporterar ingen användning, och dess datacenter har avstängda värdar och andra i standby. |
 | **Ingen användning rapporterad** | Den rapporterar ingen användning, och det dess datacenter räknar säger inte varför. Den behöver en titt. |
 | **Ingen rapportering** | vCenter har inte rapporterat den på mer än 15 minuter. |
+
+### Swappat minne betyder inte att något swappas
+
+`vcenter.vm.memory.swapped` är hur mycket av en VM:s minne som ligger i dess värds swapfil. ESXi låter en swappad sida ligga kvar där tills VM:en använder den igen, så en VM kan ha några MiB swappade i veckor efter att minnestrycket som lade dem där har gått över. Minne som finns kvar sedan tidigare är inget problem i sig: att värden swappar ut minne just nu är det.
+
+Varken agentens `vcenter`-mottagare eller en sond skickar en swaphastighet, så OneUptime räknar ut den från hur en VM:s swappade minne ändras mellan två rapporter. En VM:s sida visar under **Swappning nu** åt vilket håll det rör sig. Med standardreglerna:
+
+| En VM:s swappade minne | Vad Kräver uppmärksamhet säger |
+| --- | --- |
+| Växer: värden swappar ut det just nu | Kritisk |
+| Krymper snabbare än 1 MiB/s: VM:en läser tillbaka swappat minne | Behöver en titt |
+| Står still, mer än 1 GiB | Behöver en titt, som swappat tidigare |
+| Står still, 1 GiB eller mindre | Inget |
+
+En hastighet kräver två rapporter med mindre än 15 minuters mellanrum, så en VM:s första rapport, eller en efter ett uppehåll, säger bara hur mycket som är swappat. En resurspool behöver en titt bara medan dess minne swappas ut.
+
+### Hälsoregler
+
+Varje tröskel ovan är en regel som ditt projekt kan ändra: Öppna **Produkter → Infrastruktur → VMware** och sedan **Inställningar → Hälsoregler**. Reglerna gäller för varje vCenter i projektet: **Kräver uppmärksamhet**, varje objekts sida, listornas Status-kolumn och staplar, och Topologi. De rutor i Översikt som tar genomsnittet över värdar eller VM:ar har egna trösklar. Lämna en tröskel tom för att stänga av dess regel. Det som saknar tröskel visas alltid: en värd som vCenter inte når, ett kluster utan minnet för att förlora en värd, och de larm som vCenter räknar.
+
+| Kort | Regel | Standard |
+| --- | --- | --- |
+| **Belastade ESXi-värdar** | CPU, minne | En varning över 90 % för var och en |
+| **Fulla datalager** | Använt utrymme | En varning över 80 %, kritisk över 90 % |
+| **Swappning i VM:ar** | Swappar ut nu | Kritisk över 0 KiB/s: all utswappning |
+| **Swappning i VM:ar** | Läser tillbaka swappat minne | En varning över 1024 KiB/s |
+| **Swappning i VM:ar** | Swappat tidigare, ingen swappning nu | En varning över 1024 MiB |
+| **Ballooning och CPU Ready för VM:ar** | Minne som tagits tillbaka med ballooning, CPU ready | En varning över 0 MiB (all ballooning), över 10 % |
+| **Swappning i resurspooler** | Swappar ut nu | En varning över 0 KiB/s: all utswappning |
+
+Standardvärdena är de trösklar som [larmmallarna](/docs/monitor/vmware-monitor#färdiga-larmmallar) utlöses vid, utom för swappning: mallen VM Memory Swapping utlöses av allt swappat minne. Att ändra en regel ändrar vad sidorna markerar, inte dina monitorer, som behåller sina egna kriterier.
 
 ### ESXi-värdar
 
@@ -285,7 +316,7 @@ De sex värdlarmen (en värd som inte svarar, CPU- och minnesmättnad, hög disk
 
 Avstängda virtuella maskiner och mallar listas också. vCenter rapporterar CPU-räknare bara för påslagna VM:ar, så deras CPU-kolumner visar N/A i stället för en missvisande nolla.
 
-En VM:s sida säger vad den gör (**Körs**, **Avstängd**, **Mall**, eller **Frånkopplad** medan vCenter inte når dess värd) och var den körs, med dess värd och kluster ett steg bort. Dess **Översikt** har **Kräver uppmärksamhet** för VM:en, dess CPU, CPU ready, minne och disk, de incidenter och larm som är öppna på den, vilka av de sju VM-larmen som är påslagna, och dess detaljer. **Mätvärden** har dess diagram.
+En VM:s sida säger vad den gör (**Körs**, **Avstängd**, **Mall**, eller **Frånkopplad** medan vCenter inte når dess värd) och var den körs, med dess värd och kluster ett steg bort. Dess **Översikt** har **Kräver uppmärksamhet** för VM:en, dess CPU, CPU ready, minne och disk, de incidenter och larm som är öppna på den, vilka av de sju VM-larmen som är påslagna, och dess detaljer, med hur mycket av dess minne som är swappat och om värden flyttar det just nu (**Swappning nu**). **Mätvärden** har dess diagram.
 
 ### Datalager
 

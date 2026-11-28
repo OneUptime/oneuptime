@@ -191,7 +191,7 @@ Each of these lists the resources that an agent or a collector reports to OneUpt
 
 | Group | Widgets | Filled in by |
 | --- | --- | --- |
-| **Hosts** | **Hosts**, with their connection status, OS, CPU and memory | Any OpenTelemetry collector that sends `host.name` |
+| **Hosts** | **Hosts**, with their connection status, OS, CPU and memory | The collector on each host: see [What counts as a host](/docs/telemetry/hosts#what-counts-as-a-host) |
 | **Kubernetes** | **Pods**, **Nodes**, **Namespaces**, **Deployments**, **StatefulSets**, **DaemonSets**, **Jobs**, **CronJobs** | The [Kubernetes Agent](/docs/monitor/kubernetes-agent) |
 | **Docker** | **Hosts**, **Containers**, **Images**, **Networks**, **Volumes** | The Docker Agent |
 | **Docker Swarm** | **Nodes**, **Services** | The Docker Swarm Agent |

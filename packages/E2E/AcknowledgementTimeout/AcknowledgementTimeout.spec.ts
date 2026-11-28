@@ -28,6 +28,10 @@ import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
  * it fits a 390px phone, in German too, and reads in dark mode. The
  * fixture records every save, so the tests check what was sent as well as
  * what was drawn.
+ *
+ * The fold also holds the Incident Role card (#11088), the role the policy
+ * gives the people it pages: folded, it names both, the timeout first, and
+ * each card opens its own dialog with its own Edit.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000d1";
@@ -54,6 +58,8 @@ const GERMAN: Record<string, string> = JSON.parse(
 
 const MORE_SETTINGS_TEST_ID: string = "on-call-policy-more-settings";
 const CARD_TITLE: string = "Acknowledgement Timeout";
+// The card the fold holds after the timeout's.
+const ROLE_CARD_TITLE: string = "Incident Role";
 const CARD_DESCRIPTION: string =
   "What happens when someone acknowledges but nobody resolves.";
 const DIALOG_TITLE: string = "Edit Acknowledgement Timeout";
@@ -143,6 +149,18 @@ function foldedItems(page: Page): Locator {
   return moreSettings(page).getByTestId("folded-section-item");
 }
 
+// What the folded header says of the timeout, beside the Incident Role.
+function timeoutItem(page: Page): Locator {
+  return moreSettings(page).locator(
+    '[data-testid="folded-section-item"][data-item-key="acknowledgement-timeout"]',
+  );
+}
+
+// The timeout's own card in the fold: its Edit is not the Incident Role's.
+function timeoutCard(page: Page): Locator {
+  return moreSettings(page).locator("#acknowledgement-timeout");
+}
+
 function dialog(page: Page): Locator {
   return page.getByRole("dialog");
 }
@@ -179,7 +197,7 @@ async function openFold(page: Page): Promise<void> {
 }
 
 async function openDialog(page: Page): Promise<void> {
-  await moreSettings(page).getByRole("button", { name: "Edit" }).click();
+  await timeoutCard(page).getByRole("button", { name: "Edit" }).click();
   await expect(dialog(page)).toBeVisible();
   await expect(dialog(page).getByText(DIALOG_TITLE)).toBeVisible();
 }
@@ -200,9 +218,8 @@ test("keeps the setting folded under More settings, below the cards everyone use
 
   await expect(foldHeader(page)).toHaveAttribute("aria-expanded", "false");
   await expect(foldHeader(page)).toContainText("More settings");
-  // Folded, it names the card it holds - and nothing set, so no value.
-  await expect(foldedItems(page)).toHaveCount(1);
-  await expect(foldedItems(page)).toHaveText(CARD_TITLE);
+  // Folded, it names its cards, the timeout first - nothing set, so no value.
+  await expect(foldedItems(page)).toHaveText([CARD_TITLE, ROLE_CARD_TITLE]);
   await expect(
     moreSettings(page).getByText(CARD_DESCRIPTION, { exact: true }),
   ).toBeHidden();
@@ -335,9 +352,9 @@ test("pages again in one dialog: Page again, 30 minutes to start with, sent as t
   // Folded again, More settings says what it is set to.
   await foldHeader(page).click();
   await expect(foldHeader(page)).toHaveAttribute("aria-expanded", "false");
-  await expect(foldedItems(page)).toHaveCount(1);
-  await expect(foldedItems(page)).toContainText(CARD_TITLE);
-  await expect(foldedItems(page)).toContainText("30 min");
+  await expect(foldedItems(page)).toHaveCount(2);
+  await expect(timeoutItem(page)).toContainText(CARD_TITLE);
+  await expect(timeoutItem(page)).toContainText("30 min");
   await expect(summaryLine(page)).toBeVisible();
 });
 
@@ -388,8 +405,8 @@ test("turns it off again: Don't page again sends an empty timeout", async ({
   await openPage(page, "?timeout=45");
 
   // Folded, the set card says what it is set to.
-  await expect(foldedItems(page)).toContainText(CARD_TITLE);
-  await expect(foldedItems(page)).toContainText("45 min");
+  await expect(timeoutItem(page)).toContainText(CARD_TITLE);
+  await expect(timeoutItem(page)).toContainText("45 min");
   // And the Escalation summary at the top says it in words.
   await expect(summaryLine(page)).toHaveText(summarySentence("45 min"));
 
@@ -416,7 +433,7 @@ test("turns it off again: Don't page again sends an empty timeout", async ({
   await expect(summaryLine(page)).toHaveCount(0);
 
   await foldHeader(page).click();
-  await expect(foldedItems(page)).toHaveText(CARD_TITLE);
+  await expect(timeoutItem(page)).toHaveText(CARD_TITLE);
 });
 
 test("a save the server refuses says why and keeps the dialog, and the next one goes through", async ({
@@ -458,7 +475,7 @@ test.describe("on a 390px phone", () => {
     page: Page;
   }) => {
     await openPage(page, "?timeout=30");
-    await expect(foldedItems(page)).toContainText("30 min");
+    await expect(timeoutItem(page)).toContainText("30 min");
     await expectNoSidewaysScroll(page);
     await screenshot(page, "folded-390");
 
@@ -484,7 +501,7 @@ test.describe("on a 390px phone", () => {
   }) => {
     await openPage(page, "?timeout=30&lang=de");
 
-    await expect(foldedItems(page)).toContainText(GERMAN[CARD_TITLE]!);
+    await expect(timeoutItem(page)).toContainText(GERMAN[CARD_TITLE]!);
     await openFold(page);
     await expect(
       moreSettings(page).getByText(GERMAN[ROW_TITLE]!, { exact: true }),
@@ -494,7 +511,7 @@ test.describe("on a 390px phone", () => {
     );
     await expectNoSidewaysScroll(page);
 
-    await moreSettings(page)
+    await timeoutCard(page)
       .getByRole("button", { name: GERMAN["Edit"]! })
       .click();
     await expect(dialog(page)).toBeVisible();

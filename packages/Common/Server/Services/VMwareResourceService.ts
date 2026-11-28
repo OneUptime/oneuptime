@@ -135,6 +135,49 @@ const UPSERT_BATCH_SIZE: number = 500;
 const STALE_DELETE_WARN_THRESHOLD: number = 100;
 
 /*
+ * WHETHER THE HOST IS SWAPPING NOW, OR ONLY HOLDS WHAT IT SWAPPED BEFORE
+ * (#11157).
+ *
+ * vcenter.vm.memory.swapped is how much of a VM's memory sits in the host's
+ * swap file, and ESXi leaves a swapped page there until the guest touches
+ * it - so a VM keeps a few MiB "swapped" for weeks after the memory pressure
+ * that put them there has gone. Whether the host is swapping now is a rate,
+ * and neither collector sends one: the vcenter receiver has no swap-in or
+ * swap-out metric, and the probe sends what the receiver sends. So ingest
+ * works the rates out from the amount itself: how far it grew (the host
+ * swapped memory out) or shrank (the guest read it back in) since the row's
+ * previous report, per second, for a VM and a resource pool alike.
+ *
+ * Two reports further apart than this say nothing about now (the Overview
+ * stops judging a part whose newest reading is older), so the rates are
+ * NULL then, as they are on a row's first report.
+ */
+export const VMWARE_SWAP_RATE_MAX_GAP_SECONDS: number = 15 * 60;
+
+/*
+ * The SET expression of one swap rate in bulkUpdateLatestMetrics. Every
+ * column of a SET reads the row as it was before the UPDATE, so `p` is the
+ * previous report and `v` this one. `moved` is the bytes moved that way.
+ *
+ *   - this report carries no swapped amount: the rate it had stays, as
+ *     every other column's last-known value does (COALESCE);
+ *   - the same report again (one observedAt): the rate it had stays;
+ *   - nothing to compare with - a first report, or one past the gap: NULL;
+ *   - otherwise: what moved, per second between the two reports.
+ */
+function swapRateSql(data: { column: string; moved: string }): string {
+  return `CASE
+          WHEN v."swap" IS NULL THEN p."${data.column}"
+          WHEN v."observedAt" = p."metricsUpdatedAt" THEN p."${data.column}"
+          WHEN p."memorySwappedBytes" IS NULL
+            OR p."metricsUpdatedAt" IS NULL
+            OR v."observedAt" - p."metricsUpdatedAt" > make_interval(secs => ${VMWARE_SWAP_RATE_MAX_GAP_SECONDS})
+            THEN NULL
+          ELSE (${data.moved})::numeric / EXTRACT(EPOCH FROM (v."observedAt" - p."metricsUpdatedAt"))::numeric
+        END`;
+}
+
+/*
  * Column order used by bulkUpsert() and its generated parameter tuples.
  * Keep this and the INSERT column list in perfect sync.
  */
@@ -384,6 +427,10 @@ export class Service extends DatabaseService<Model> {
    * vcenter.vm.cpu.* points, so its CPU columns keep the last powered-on
    * reading rather than reading 0, and a host without
    * vcenter.host.memory.capacity enabled keeps maxMemoryBytes NULL.
+   *
+   * The swap rates are worked out here, from the swapped amount this
+   * report carries and the one the row held (see swapRateSql), since no
+   * collector sends them.
    */
   @CaptureSpan()
   public async bulkUpdateLatestMetrics(data: {
@@ -510,6 +557,14 @@ export class Service extends DatabaseService<Model> {
           "cpuReadinessPercent" = COALESCE(v."cpuReady", p."cpuReadinessPercent"),
           "memoryBalloonedBytes" = COALESCE(v."balloon", p."memoryBalloonedBytes"),
           "memorySwappedBytes" = COALESCE(v."swap", p."memorySwappedBytes"),
+          "memorySwapOutBytesPerSecond" = ${swapRateSql({
+            column: "memorySwapOutBytesPerSecond",
+            moved: `GREATEST(v."swap" - p."memorySwappedBytes", 0)`,
+          })},
+          "memorySwapInBytesPerSecond" = ${swapRateSql({
+            column: "memorySwapInBytesPerSecond",
+            moved: `GREATEST(p."memorySwappedBytes" - v."swap", 0)`,
+          })},
           "hostCount" = COALESCE(v."hostCnt", p."hostCount"),
           "effectiveHostCount" = COALESCE(v."effHostCnt", p."effectiveHostCount"),
           "poweredOnHostCount" = COALESCE(v."onHostCnt", p."poweredOnHostCount"),

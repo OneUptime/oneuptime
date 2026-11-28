@@ -132,6 +132,14 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
    */
   "MonitorNetworkDevice",
   /*
+   * A change of many monitors' template, and how far it got (#11260,
+   * #11266). Nobody reads this table through the API: its access lists are
+   * empty, the server writes every row as root, and the change's own route
+   * (MonitorTemplateChangeAPI) reads it and decides who may see and act on
+   * which change, as NetworkDeviceDiscoveryImport's does.
+   */
+  "MonitorTemplateChange",
+  /*
    * Runbook variables hold the secrets runbook steps sign in with (runbook
    * secrets became variables). A Runbook Admin reads them, to name them in
    * the steps it writes; Runbook Members and Viewers do not.

@@ -59,6 +59,13 @@ The pages:
   (Edit, a wrapped description, a title over two lines, a pill, buttons that
   go under the title, no description, no actions).
 
+Every list of a kind a project can require unique names for - Monitors, the
+gallery's monitors, Data Observability's Reconciliations - asks which of its
+records share a name after each read of its rows (`GET
+/shared-names/<Table>`, #11021). The fixture answers as the server does
+(`SuiteHelpers/SharedNameAnswers.js`), from the rows the list reads: none,
+since every record here has its own name.
+
 The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
 
 - the header row is one quiet line ("Incident Number" no longer breaks);

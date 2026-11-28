@@ -1,4 +1,5 @@
 import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
+import { readCurrentProjectVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -43,6 +44,8 @@ export const VMWARE_TOPOLOGY_SELECT: Record<string, boolean> = {
   cpuReadinessPercent: true,
   memoryBalloonedBytes: true,
   memorySwappedBytes: true,
+  memorySwapOutBytesPerSecond: true,
+  memorySwapInBytesPerSecond: true,
   hostCount: true,
   effectiveHostCount: true,
   poweredOnHostCount: true,
@@ -104,6 +107,7 @@ export async function loadVMwareTopology(
           issues: issues?.records || [],
           now: new Date(),
           totalRows: rows.count,
+          rules: await readCurrentProjectVMwareHealthRules(),
         }),
       },
     ],

@@ -13,6 +13,10 @@ Two lists stand for the two kinds of list:
 | Monitors     | `MONITORS` `/dashboard/:projectId/monitors`         | `Pages/Monitor/Layout` and `Pages/Monitor/Monitors`            | a page of its own (Create Monitor) |
 | Status Pages | `STATUS_PAGES` `/dashboard/:projectId/status-pages` | `Pages/StatusPages/Layout` and `Pages/StatusPages/StatusPages` | the table's own create form        |
 
+With a monitor, the Monitors list asks which monitors share a name after each read of its rows
+(`GET /shared-names/Monitor`, #11021), answered as the server finds them
+(`SuiteHelpers/SharedNameAnswers.js`): none, with one monitor at most.
+
 And the page the issue was raised on, Data Observability's Overview (`DATA_OBSERVABILITY_OVERVIEW`,
 `/dashboard/:projectId/data-observability/overview`, `Pages/DataObservability/Layout` and `Overview`):
 no database connected yet, and one database the project's traces know of, which the page suggests

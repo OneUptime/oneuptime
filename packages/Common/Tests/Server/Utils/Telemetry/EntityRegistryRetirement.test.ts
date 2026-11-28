@@ -114,6 +114,8 @@ describe("retireEntityRegistryIdentitiesBestEffort", () => {
       query: {
         projectId: PROJECT_A,
         hostIdentifier: expect.anything(),
+        // An archived Host no longer vouches for the row (#11257).
+        isArchived: false,
       },
       select: { _id: true },
       props: { isRoot: true },

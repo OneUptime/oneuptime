@@ -309,7 +309,13 @@ Sommige velden bevatten een JSON-waarde met een eigen vorm, zoals `rotation` en 
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Een sleutel die een andere naam krijgt, wordt ook onder zijn oude naam gelezen: het beperkingstype van een laag wordt geschreven onder `restrictionType` of onder de oudere spelling `restictionType`, en een antwoord bevat beide.
+Een sleutel die een andere naam krijgt, wordt ook onder zijn oude naam gelezen: het beperkingstype van een laag wordt geschreven onder `restrictionType` of onder de oudere spelling `restictionType`, en een antwoord bevat beide. De oudere spelling is verouderd in antwoorden: ze bevatten die tot de eerste hoofdversie die op of na 1 juni 2027 uitkomt. Schrijfacties lezen die altijd.
+
+Een waarde wordt ook aan haar woord gehouden. Het wekelijkse venster van een laag heeft dienst op de dagen die het noemt, dus zijn `startTime` en `endTime` moeten in de tijdzone van het schema op zijn `startDay` en `endDay` vallen. Een venster dat op andere dagen is gedateerd, wordt geweigerd met een `400` die het venster noemt en een tijd op de genoemde dag geeft om in plaats daarvan te sturen:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Waar een project is gekocht
 
@@ -422,6 +428,44 @@ Incident not found.
 ```
 
 Vroeger antwoordde het `200` met een lege body. Een lijst (`get-list`) en een telling antwoorden nog steeds `200` met de records die je mag lezen, geen als er geen zijn. De Terraform-provider leest een `404` bij het verversen als een resource die weg is en haalt die uit de state, zodat het volgende plan haar opnieuw aanmaakt: geef de API-sleutel die hij gebruikt de machtigingen, en de labels, om elke resource te lezen die hij beheert. De MCP-tools beantwoorden een `404` met een fout die naar de bijbehorende lijsttool verwijst, en de CLI stopt met code `3`.
+
+### Afbeeldingen in de Markdown van een record
+
+Een afbeelding die in Markdown is geplakt, zoals een schermafbeelding in de beschrijving van een incident, een aangepast Markdown-veld of een notitie, is een privébestand. Het adres ervan (`/file/image/access-token/...`) opent het alleen voor iemand die in het project is aangemeld, dus een API-sleutel leest het in plaats daarvan via het record dat het toont:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Het record wordt gelezen als de sleutel, zoals `get-item` het leest: de sleutel heeft de machtiging nodig om het te lezen, en zijn labels. Het antwoord bevat elke afbeelding die de Markdown van het record toont, in de volgorde waarin het ze toont: haar `name`, `mimeType`, `sizeInBytes`, de gegevens in `base64`, een `contentId` voor een ingesloten e-mailbijlage, de `urls` waarmee de Markdown haar toont en de `fields` waarin ze staat. Onder `leftOut` staan de bestanden die de Markdown toont maar die niet worden afgegeven, elk met een `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+Alleen afbeeldingen die in het eigen project van het record zijn geüpload worden afgegeven, tot 20 en 10 MB in totaal, en nooit een SVG. Elk soort record met Markdown heeft dezelfde aanvraag, zoals `/api/incident-public-note/<id>/markdown-files` of `/api/alert/<id>/markdown-files`. Een record dat niet bestaat, of dat de sleutel niet mag lezen, antwoordt `404` zoals `get-item` doet, en `422` wanneer de sleutel dat soort record helemaal niet mag lezen. Een workflow leest dezelfde afbeeldingen met [Bestanden uit Markdown ophalen](/docs/workflows/components#get-files-from-markdown).
 
 ## De volledige endpointreferentie
 

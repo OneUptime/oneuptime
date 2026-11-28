@@ -43,6 +43,8 @@ Mallarna, efter den kategori som väljaren listar dem under:
 
 **Rekommenderade** innehåller Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard och Metrics Dashboard. En mall är en utgångspunkt, inte en koppling: när instrumentpanelen är skapad ändrar du den som du vill. Mallen uppdaterar den inte senare.
 
+Varje infrastrukturmall visar bara sin egen sorts resurs, genom sin variabels [Resurstyp](/docs/dashboards/variables#telemetry-attribute): en Docker Swarm Dashboard i ett projekt utan swarm förblir tom, och säger det, i stället för att visa behållarna och loggarna från allt annat.
+
 ## Redigera och spara
 
 En instrumentpanel öppnas i visningsläge, för läsning. För att ändra den öppnar du **⋯**-menyn i dess verktygsfält och väljer **Redigera instrumentpanel**. Verktygsfältet visar **Redigerar** bredvid namnet och byter ut tidsintervallet och de andra kontrollerna mot **Lägg till widget**, **Variabler**, **Avbryt** och **Spara ändringar**, med en rad under dem för instrumentpanelens **Standardtidsintervall** och **Standard för automatisk uppdatering**.

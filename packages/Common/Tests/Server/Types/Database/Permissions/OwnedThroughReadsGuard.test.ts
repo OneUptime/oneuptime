@@ -124,11 +124,13 @@ describe("what a record takes its owners from is read through OwnedScopePermissi
   test("the rule's own readers ask getOwnedThrough", () => {
     for (const [file, asks] of [
       /*
-       * Among them whether the scope narrows a create (narrowsRecords) and
-       * the owned records and parents beside a grant limited to labels
-       * (getOwnedRecordsCondition, getOwnedParentsCondition).
+       * Among them whether the scope narrows a create (narrowsRecords), the
+       * owned records and parents beside a grant limited to labels
+       * (getOwnedRecordsCondition, getOwnedParentsCondition), and the
+       * tables a kind's owners decide, for the Dashboard's locks
+       * (getTablesOwnedThrough, #11436).
        */
-      ["Types/Database/Permissions/OwnedScopePermission.ts", 8],
+      ["Types/Database/Permissions/OwnedScopePermission.ts", 9],
       ["Types/Database/Permissions/BasePermission.ts", 1],
       /*
        * The create of a record under its owning parent, the update that

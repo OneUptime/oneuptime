@@ -725,12 +725,35 @@ describe("a virtual machine", () => {
     ).toBe(false);
   });
 
-  test("a VM the host swaps to disk is critical, with how much", () => {
+  /*
+   * #11157: what the host swaps out NOW is critical; memory left in its swap
+   * file from earlier is not swapping (VMwareHealthRules.test.ts holds every
+   * swap rule at each threshold).
+   */
+  test("a VM whose memory the host is swapping out now is critical, with how fast", () => {
+    const assessment: VMwareAssessment = assessVMwareVirtualMachine({
+      vm: vm("db-primary", {
+        memorySwappedBytes: 1.5 * GIB,
+        memorySwapOutBytesPerSecond: 3 * 1024 * 1024,
+        memorySwapInBytesPerSecond: 0,
+      }),
+      now: NOW,
+    });
+    expect(assessment.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(assessment.reasons).toEqual([
+      {
+        text: "Host swapping memory out at {{rate}}",
+        values: { rate: "3.0\u00A0MiB/s" },
+      },
+    ]);
+  });
+
+  test("swapped memory with no swap rate known yet needs a look, never someone now", () => {
     const assessment: VMwareAssessment = assessVMwareVirtualMachine({
       vm: vm("db-primary", { memorySwappedBytes: 1.5 * GIB }),
       now: NOW,
     });
-    expect(assessment.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(assessment.severity).toBe(ResourceAttentionSeverity.Warning);
     expect(assessment.reasons).toEqual([
       {
         text: "{{amount}} of memory swapped by the host",
@@ -776,6 +799,8 @@ describe("a virtual machine", () => {
     const assessment: VMwareAssessment = assessVMwareVirtualMachine({
       vm: vm("db-primary", {
         memorySwappedBytes: GIB,
+        memorySwapOutBytesPerSecond: 512 * 1024,
+        memorySwapInBytesPerSecond: 0,
         memoryBalloonedBytes: GIB,
         cpuReadinessPercent: 20,
       }),
@@ -783,7 +808,7 @@ describe("a virtual machine", () => {
     });
     expect(assessment.severity).toBe(ResourceAttentionSeverity.Critical);
     expect(reasonTexts(assessment)).toEqual([
-      "{{amount}} of memory swapped by the host",
+      "Host swapping memory out at {{rate}}",
       "{{amount}} of memory ballooned",
       "CPU ready {{percent}}",
     ]);
@@ -828,10 +853,20 @@ describe("a virtual machine", () => {
       label: "Running",
       tone: "warning",
     });
-    expect(status({ memorySwappedBytes: 1 })).toEqual({
+    expect(
+      status({ memorySwappedBytes: GIB, memorySwapOutBytesPerSecond: 1 }),
+    ).toEqual({
       label: "Running",
       tone: "danger",
     });
+    // A few MiB left from earlier, nothing swapping: a VM that is fine (#11157).
+    expect(
+      status({
+        memorySwappedBytes: 4 * 1024 * 1024,
+        memorySwapOutBytesPerSecond: 0,
+        memorySwapInBytesPerSecond: 0,
+      }),
+    ).toEqual({ label: "Running", tone: "positive" });
   });
 });
 
@@ -918,21 +953,34 @@ describe("a datastore", () => {
 });
 
 describe("a resource pool", () => {
-  test("whose memory the host swaps needs a look", () => {
+  test("whose memory the host is swapping out needs a look; what is left from earlier does not", () => {
     expect(
       assessVMwareResourcePool({
-        pool: pool("Web", { memorySwappedBytes: 8 * 1024 * 1024 }),
+        pool: pool("Web", {
+          memorySwappedBytes: 8 * 1024 * 1024,
+          memorySwapOutBytesPerSecond: 64 * 1024,
+        }),
         now: NOW,
       }),
     ).toEqual({
       severity: ResourceAttentionSeverity.Warning,
       reasons: [
         {
-          text: "{{amount}} of memory swapped by the host",
-          values: { amount: "8.0\u00A0MiB" },
+          text: "Host swapping memory out at {{rate}}",
+          values: { rate: "64.0\u00A0KiB/s" },
         },
       ],
     });
+    expect(
+      assessVMwareResourcePool({
+        pool: pool("Web", {
+          memorySwappedBytes: 8 * 1024 * 1024,
+          memorySwapOutBytesPerSecond: 0,
+          memorySwapInBytesPerSecond: 0,
+        }),
+        now: NOW,
+      }).severity,
+    ).toBeNull();
     expect(
       assessVMwareResourcePool({ pool: pool("Web"), now: NOW }).severity,
     ).toBeNull();
@@ -1478,9 +1526,12 @@ describe("Needs attention for a whole vCenter", () => {
     silentHost("esx03"),
     datastore("ds-prod-01", { latestDiskPercent: 93 }),
     datastore("ds-prod-02", { latestDiskPercent: 84 }),
-    vm("db-primary", { memorySwappedBytes: 1.5 * GIB }),
+    vm("db-primary", {
+      memorySwappedBytes: 1.5 * GIB,
+      memorySwapOutBytesPerSecond: 1024 * 1024,
+    }),
     vm("app-03", { memoryBalloonedBytes: GIB }),
-    pool("Batch", { memorySwappedBytes: GIB }),
+    pool("Batch", { memorySwappedBytes: GIB, memorySwapOutBytesPerSecond: 1 }),
   ];
 
   test("critical first, then what needs a look, each in the order of the vCenter's kinds", () => {

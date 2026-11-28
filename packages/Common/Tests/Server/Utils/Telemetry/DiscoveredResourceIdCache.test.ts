@@ -731,6 +731,8 @@ describe("DiscoveredResourceIdCache", () => {
         DockerSwarmCluster: "docker-swarm-cluster-id",
         CephCluster: "ceph-cluster-id",
         StorageArray: "storage-array-id",
+        // XCP-ng pools (#10995): a new kind, with nothing cached before it.
+        XcpNgPool: "xcp-ng-pool-id",
         ServerlessFunction: "serverless-function-id",
         CloudResource: "cloud-resource-id",
         CloudMonitoredResource: "cloud-monitored-resource-id",

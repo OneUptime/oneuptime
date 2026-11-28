@@ -79,6 +79,16 @@ Hver OneUptime leverer sine egne installationsprogrammer, så en selvhostet OneU
 Dialogens sidste trin viser, når værten forbinder, med et link til den. På listen vises den som **Starter**, indtil dens første metrikker ankommer, normalt inden for et minut, og derefter med sin tilstand, **Sund**, når intet på den bør ses på, og sin collector **Kører**. Værtens side **Topologi** tegner på ét kort, hvad der kører på den, hvad der kalder den, og hvad den kalder: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
 :::
 
+## Hvad der tæller som en vært
+
+Listen **Værter** viser de maskiner, der sender deres egen telemetri fra en collector på maskinen. Anden telemetri nævner også en maskine i `host.name`, men tilføjer aldrig en vært:
+
+- telemetri fra en Docker- eller Podman-vært, som har `container.runtime`: Den hører under **Docker** eller **Podman**;
+- telemetri fra en Kubernetes-klynge, -node eller -pod, som har `k8s.cluster.name`, `k8s.node.name` eller `k8s.pod.name`: Den hører under **Kubernetes**;
+- en containers egen telemetri, som har `container.id`, og en applikations, som har `telemetry.sdk.name`: Den hører under applikationens tjeneste.
+
+Tidligere udgivelser tilføjede nogle af disse maskiner som værter: Docker- og Podman-værter, Kubernetes-noder og -pods og en vært for hver pod i en app, der eksporterer direkte til OneUptime, med én mere for hver udrulning. Opgraderingen arkiverede dem, hver med en post i dens feed, der siger hvorfor. Den beholdt alle værter, du selv har tilføjet, alle værter, hvis collector OneUptime administrerer, og alle værter, der har sendt en værts egne målinger. De arkiverede ligger under **Avanceret → Arkiveret** på listen **Værter**, hvor **Fjern fra arkivet** henter en tilbage.
+
 ## Se, hvilke værter der kræver opmærksomhed
 
 Listen **Værter** begynder med **Kræver opmærksomhed**: hver vært, der er i stykker eller bør ses på, den mest akutte først, hver med årsagen og ét trin til dens side. En vært, der er holdt op med at rapportere, siger, hvornår den sidst gjorde det. Kræver intet opmærksomhed, er der intet kort.

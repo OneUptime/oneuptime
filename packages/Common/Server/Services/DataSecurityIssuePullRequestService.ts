@@ -253,9 +253,18 @@ export class Service extends ProjectReferencesService<Model> {
 
     // What OneUptime read of it, written by OneUptime.
     createBy.data.projectId = projectId;
-    createBy.data.dataSecurityIssueId = issueId;
+    /*
+     * The issue checked above and the repository found from the address,
+     * under their ID columns and no other name of them: TypeORM stores a
+     * relation sent beside an ID column in its place (RelationIdUtil.stamp).
+     */
+    RelationIdUtil.stamp(data, ISSUE_KEYS, issueId);
     createBy.data.pullRequestUrl = URL.fromString(link.url);
-    createBy.data.codeRepositoryId = repository.id;
+    RelationIdUtil.stamp(
+      data,
+      ["codeRepositoryId", "codeRepository"],
+      repository.id,
+    );
     createBy.data.pullRequestNumber = link.number;
     createBy.data.repoOrganizationName =
       repository.organizationName || link.owner;

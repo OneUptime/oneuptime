@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Nullable columns with no default: added without rewriting a row, and
  * empty on every change made before them, as a person's change is.
  */
-export class AddMonitorTemplateChangePolicyAndRule1809187801500
+export class AddMonitorTemplateChangePolicyAndRule1809187821500
   implements MigrationInterface
 {
-  public name: string = "AddMonitorTemplateChangePolicyAndRule1809187801500";
+  public name: string = "AddMonitorTemplateChangePolicyAndRule1809187821500";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

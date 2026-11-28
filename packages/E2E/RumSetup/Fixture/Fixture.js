@@ -86,6 +86,7 @@ import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import UserUtil from "Common/UI/Utils/User";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000006379";
@@ -607,6 +608,21 @@ API.post = async (options) => {
       { attributes: [], facets: {}, values: [] },
       {},
     );
+  }
+
+  /*
+   * Which of the application's recommended monitors the project has, for
+   * the side menu's Recommendations count (#11074): none, as the project has
+   * no monitors.
+   */
+  const coverage = answerRecommendationCoverage({
+    method: "POST",
+    url,
+    body: options.data,
+    monitors: [],
+  });
+  if (coverage) {
+    return coverage;
   }
 
   unexpected(`API.post ${url}`);

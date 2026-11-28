@@ -147,6 +147,7 @@ app:
 | `queueDepth` | Les requêtes de sondes qui attendent une place en ce moment, sur tous les pods de l'application. Au-dessus de 0 pendant plusieurs minutes : ajoutez des pods de l'application. |
 | `slotWaitP95Ms` | Combien de temps les requêtes ont attendu une place, sur le pod de l'application le plus chargé. |
 | `refusalsPerMinute` | Les requêtes de sondes auxquelles le serveur a répondu qu'il était occupé. |
+| `reconnectsAskedPerMinute` | Les réponses qui ont demandé à la connexion d'une sonde de se reconnecter, pour que sa requête suivante puisse aller vers un autre pod de l'application : quelques-unes par seconde tant qu'un pod de l'application est débordé. Au-dessus de 0 pendant plusieurs minutes : ajoutez des pods de l'application. |
 | `dispatchLagP95Seconds` | Le retard avec lequel les moniteurs ont été distribués, après le moment où leur intervalle les rendait à vérifier. Proche de votre intervalle le plus court alors qu'aucune requête n'attend : ajoutez des réplicas de sonde. |
 | `monitorsLateByAnIntervalPerMinute` | Les moniteurs distribués avec un intervalle entier de retard : des vérifications manquées. |
 | `monitorTestWaitP95Seconds` | Combien de temps les exécutions de Test Monitor ont attendu une sonde. |

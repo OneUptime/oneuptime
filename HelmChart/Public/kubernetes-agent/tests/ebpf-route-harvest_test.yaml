@@ -75,14 +75,20 @@ tests:
       ebpf.routes.harvestTimeout: 0s
     asserts:
       - failedTemplate:
-          errorPattern: "harvestTimeout: Does not match pattern"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/routes/harvestTimeout': '0s' does not match pattern '^$|^([1-9][0-9]*|[1-9][0-9]*\\.[0-9]+|0\\.[0-9]*[1-9][0-9]*)(ns|us|ms|s|m|h)$'
 
   - it: rejects a harvest timeout without a unit
     set:
       ebpf.routes.harvestTimeout: "10"
     asserts:
       - failedTemplate:
-          errorPattern: "harvestTimeout: Does not match pattern"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/routes/harvestTimeout': '10' does not match pattern '^$|^([1-9][0-9]*|[1-9][0-9]*\\.[0-9]+|0\\.[0-9]*[1-9][0-9]*)(ns|us|ms|s|m|h)$'
 
   # On the command line, `--set ebpf.routes.disabledHarvesters={}` is [""].
   - it: harvests every language for the command line's empty list
@@ -98,4 +104,7 @@ tests:
       ebpf.routes.disabledHarvesters: ["deno"]
     asserts:
       - failedTemplate:
-          errorPattern: 'ebpf.routes.disabledHarvesters.0 must be one of the following: "", "dotnet", "go", "java", "nodejs", "php", "python", "ruby"'
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/routes/disabledHarvesters/0': value must be one of '', 'dotnet', 'go', 'java', 'nodejs', 'php', 'python', 'ruby'

@@ -1749,7 +1749,7 @@ describe("when a criteria's incidents and alerts open and close", () => {
      * (#10819) are read under that rule.
      */
     expect(MONITOR_PROBE_SERVICE).toContain(
-      '            AND ${Service.getProbeableSql("$4")}\n          ORDER BY mp."nextPingAt" ASC\n          LIMIT $3\n          FOR NO KEY UPDATE OF mp SKIP LOCKED',
+      '            AND ${Service.getProbeableSql("$4")}\n          ORDER BY mp."nextPingAt" ASC, mp."lastPingAt" ASC\n          LIMIT $3\n          FOR NO KEY UPDATE OF mp SKIP LOCKED',
     );
     expect(MONITOR_PROBE_SERVICE).toContain(
       '`m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false`,',

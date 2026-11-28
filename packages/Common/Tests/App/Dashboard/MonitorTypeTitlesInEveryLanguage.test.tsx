@@ -72,6 +72,8 @@ const NAMES_KEPT_EVERYWHERE: ReadonlyArray<string> = [
   "Ping",
   "Proxmox",
   "VMware",
+  // The XCP-ng monitor type (#11093), named as the product writes itself.
+  "XCP-ng",
 ];
 
 /*

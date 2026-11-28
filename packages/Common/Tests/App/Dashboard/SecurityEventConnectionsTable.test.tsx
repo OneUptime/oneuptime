@@ -1860,48 +1860,81 @@ describe("SecurityEventConnectionsTable", () => {
   /*
    * stale-report-after-failed-rerun: Diagnostics kept the previous
    * checklist when a later Test connection request failed.
+   *
+   * Three ways a re-run fails. The test route refuses in its own words, as
+   * a 400 (SecurityEventConnectionAPI's BadDataException), and the server
+   * fails in its own words, as a 500: the dialog says them. A 502 is never
+   * the API's - the route answers none - but a gateway's page for a server
+   * it could not reach, so the dialog says the server did not answer
+   * (API.getFriendlyMessage, #8413). This test used to answer the re-run
+   * with a 502 carrying a sentence, and expected the sentence (#11505).
    */
-  test("Diagnostics Test connection clears the previous checklist when a re-run fails", async (): Promise<void> => {
-    renderTable([connection()]);
+  test.each([
+    {
+      answer: "a refusal in the API's own words",
+      status: 400,
+      body: { message: "The connection no longer exists." },
+      says: "The connection no longer exists.",
+    },
+    {
+      answer: "the server's own failure",
+      status: 500,
+      body: { message: "The API could not reach Okta." },
+      says: "The API could not reach Okta.",
+    },
+    {
+      answer: "a gateway's 502",
+      status: 502,
+      body: {},
+      says: "The OneUptime server did not answer.",
+    },
+  ])(
+    "Diagnostics Test connection clears the previous checklist when a re-run fails: $answer",
+    async (failure: {
+      answer: string;
+      status: number;
+      body: JSONObject;
+      says: string;
+    }): Promise<void> => {
+      renderTable([connection()]);
 
-    clickRowMenuItem(row(), "Diagnostics");
-    const dialog: HTMLElement = await screen.findByRole("dialog", {
-      name: "Connection diagnostics: Acme Okta",
-    });
-    const checks: HTMLElement = within(dialog).getByRole("region", {
-      name: "On-demand checks",
-    });
+      clickRowMenuItem(row(), "Diagnostics");
+      const dialog: HTMLElement = await screen.findByRole("dialog", {
+        name: "Connection diagnostics: Acme Okta",
+      });
+      const checks: HTMLElement = within(dialog).getByRole("region", {
+        name: "On-demand checks",
+      });
 
-    fireEvent.click(
-      within(checks).getByRole("button", { name: "Test connection" }),
-    );
-    expect(
-      await within(checks).findByText("Passed with warnings"),
-    ).toBeVisible();
-
-    jest
-      .mocked(API.post)
-      .mockResolvedValue(
-        new HTTPErrorResponse(
-          502,
-          { message: "The API could not reach Okta." },
-          {},
-        ),
+      fireEvent.click(
+        within(checks).getByRole("button", { name: "Test connection" }),
       );
-    fireEvent.click(
-      within(checks).getByRole("button", { name: "Test connection" }),
-    );
+      expect(
+        await within(checks).findByText("Passed with warnings"),
+      ).toBeVisible();
 
-    expect(
-      await within(checks).findByText("The API could not reach Okta."),
-    ).toBeVisible();
-    expect(
-      within(checks).queryByText("Passed with warnings"),
-    ).not.toBeInTheDocument();
-    expect(
-      within(checks).queryByRole("region", { name: "Connection test report" }),
-    ).not.toBeInTheDocument();
-  });
+      jest
+        .mocked(API.post)
+        .mockResolvedValue(
+          new HTTPErrorResponse(failure.status, failure.body, {}),
+        );
+      fireEvent.click(
+        within(checks).getByRole("button", { name: "Test connection" }),
+      );
+
+      await waitFor(() => {
+        expect(checks.textContent).toContain(failure.says);
+      });
+      expect(
+        within(checks).queryByText("Passed with warnings"),
+      ).not.toBeInTheDocument();
+      expect(
+        within(checks).queryByRole("region", {
+          name: "Connection test report",
+        }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   test("Edit and Update credentials open the form modal in the matching mode", async (): Promise<void> => {
     renderTable([connection()]);

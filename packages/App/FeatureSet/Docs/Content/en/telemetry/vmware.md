@@ -185,7 +185,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find the vCenter in OneUptime
 
-Nothing is sent until the first full inventory walk completes, so give it one collection interval (2 minutes by default). Then open **Products → Infrastructure → VMware → All vCenters**: the vCenter is there, with its datacenters, clusters, ESXi hosts, virtual machines, datastores and resource pools. Its **Topology** page draws them all as one map, with what needs attention marked: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
+Nothing is sent until the first full inventory walk completes, so give it one collection interval (2 minutes by default). Then open **Products → Infrastructure → VMware → All vCenters**: the vCenter is there, with its datacenters, clusters, ESXi hosts, virtual machines, datastores and resource pools. Its **Topology** page draws them all as one map, with what needs attention marked: see [Topology](/docs/telemetry/topology#open-a-resources-own-map). In **Inventory**, each VM, ESXi host, cluster and datastore is an item named as vCenter names it, with where it sits under the name: a VM's host and cluster, a host's cluster and datacenter.
 :::
 
 ## Environment variables
@@ -246,7 +246,7 @@ The receiver sends no power-state metric for a VM. It sends `vcenter.vm.cpu.*` *
 
 The **Overview** answers "is this vCenter healthy" first. Its header says whether data is arriving and how the vCenter is: **Healthy**, **Degraded** while something needs a look, **Unhealthy** while something needs someone now, or **Health Unknown** while the vCenter is disconnected, since its last report is no longer the truth. Its chips count the datacenters, the clusters, the ESXi hosts vCenter can reach out of all of them, the VMs powered on out of all of them, the templates and the datastores, and all but the datacenters open their list.
 
-**Needs attention** comes next: everything that needs someone, the most urgent first, each with why and one step to its page. An ESXi host vCenter cannot reach, a datastore more than 90% full and a VM whose memory its host swaps to disk are critical. A host more than 90% busy, a datastore more than 80% full, a VM that waits for a free CPU or whose memory the host takes back, a cluster with hosts that are not effective or without the memory to lose one, and the alarms vCenter counts in each datacenter need a look. Each threshold is the one its [alert template](/docs/monitor/vmware-monitor#pre-built-alert-templates) fires at. When nothing needs attention, there is no card.
+**Needs attention** comes next: everything that needs someone, the most urgent first, each with why and one step to its page. An ESXi host vCenter cannot reach, a datastore more than 90% full and a VM whose memory its host is swapping out now are critical. A host more than 90% busy, a datastore more than 80% full, a VM that waits for a free CPU, whose memory the host takes back, or that reads swapped memory back or keeps more than 1 GiB of it, a cluster with hosts that are not effective or without the memory to lose one, and the alarms vCenter counts in each datacenter need a look. Every level is one your project can change or turn off: see [Health rules](#health-rules). When nothing needs attention, there is no card.
 
 Under it are the effective hosts, host CPU and memory weighted by capacity, the fullest datastore and the worst VM CPU ready time, with their charts; **ESXi Hosts**, each host's status and load one step from its page; and the top consumers.
 
@@ -263,6 +263,37 @@ vCenter reports a host's CPU and memory use only while the host is connected and
 | **Powered off or in standby** | It reports no use, and its datacenter has hosts powered off and others in standby. |
 | **No usage reported** | It reports no use, and its datacenter's counts cannot say why. It needs a look. |
 | **Not reporting** | vCenter has not reported it for more than 15 minutes. |
+
+### Swapped memory is not swapping
+
+`vcenter.vm.memory.swapped` is how much of a VM's memory sits in its host's swap file. ESXi leaves a swapped page there until the VM touches it again, so a VM can keep a few MiB swapped for weeks after the memory pressure that put them there has gone. Memory left from earlier is not a problem by itself: the host swapping memory out now is.
+
+Neither the agent's `vcenter` receiver nor a probe sends a swap rate, so OneUptime works it out from how a VM's swapped memory changes between two reports. A VM's page says which way it moves, under **Swapping Now**. With the default rules:
+
+| A VM's swapped memory | Needs attention says |
+| --- | --- |
+| Grows: the host is swapping it out now | Critical |
+| Shrinks faster than 1 MiB/s: the VM reads swapped memory back | Needs a look |
+| Stays the same, more than 1 GiB of it | Needs a look, as swapped earlier |
+| Stays the same, 1 GiB or less | Nothing |
+
+A rate needs two reports less than 15 minutes apart, so a VM's first report, or one after a gap, says only how much is swapped. A resource pool needs a look only while its memory is swapped out.
+
+### Health rules
+
+Every level above is a rule your project can change: open **Products → Infrastructure → VMware**, then **Settings → Health Rules**. The rules apply to every vCenter of the project: **Needs attention**, each part's page, the lists' Status column and bars, and the Topology. The Overview's tiles that average across hosts or VMs keep levels of their own. Leave a threshold empty to turn its rule off. What has no threshold is always shown: a host vCenter cannot reach, a cluster without the memory to lose a host, and the alarms vCenter counts.
+
+| Card | Rule | Default |
+| --- | --- | --- |
+| **Busy ESXi Hosts** | CPU, memory | A warning above 90% each |
+| **Full Datastores** | Space used | A warning above 80%, critical above 90% |
+| **VM Swapping** | Swapping out now | Critical above 0 KiB/s: any |
+| **VM Swapping** | Reading swapped memory back | A warning above 1024 KiB/s |
+| **VM Swapping** | Swapped earlier, none swapping now | A warning above 1024 MiB |
+| **VM Ballooning and CPU Ready** | Ballooned memory, CPU ready | A warning above 0 MiB (any), above 10% |
+| **Resource Pool Swapping** | Swapping out now | A warning above 0 KiB/s: any |
+
+The defaults are the levels the [alert templates](/docs/monitor/vmware-monitor#pre-built-alert-templates) fire at, except swapping: the VM Memory Swapping template fires on any swapped memory. Changing a rule changes what the pages mark, not your monitors, which keep their own criteria.
 
 ### ESXi hosts
 
@@ -285,7 +316,7 @@ The six host alerts (a host not responding, CPU and memory saturation, high disk
 
 Powered-off virtual machines and templates are listed too. vCenter reports CPU counters only for powered-on VMs, so their CPU columns read N/A rather than a misleading zero.
 
-A VM's page says what it is doing (**Running**, **Powered off**, **Template**, or **Disconnected** while vCenter cannot reach its host) and where it runs, its host and cluster one step away. Its **Overview** has **Needs attention** for the VM, its CPU, CPU ready, memory and disk, the incidents and alerts open on it, which of the seven VM alerts are on, and its details. **Metrics** has its charts.
+A VM's page says what it is doing (**Running**, **Powered off**, **Template**, or **Disconnected** while vCenter cannot reach its host) and where it runs, its host and cluster one step away. Its **Overview** has **Needs attention** for the VM, its CPU, CPU ready, memory and disk, the incidents and alerts open on it, which of the seven VM alerts are on, and its details, with how much of its memory is swapped and whether the host is moving it now (**Swapping Now**). **Metrics** has its charts.
 
 ### Datastores
 

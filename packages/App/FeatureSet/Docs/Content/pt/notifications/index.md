@@ -107,7 +107,8 @@ Seus acionamentos são escritos no seu idioma: o que você escolhe no menu de id
 | --- | --- |
 | E-mail, SMS, notificações push e Telegram | Seu idioma |
 | Suas próprias mensagens no Slack, Microsoft Teams e Mattermost | Seu idioma |
-| Ligações telefônicas e WhatsApp | Inglês |
+| Ligações telefônicas | Seu idioma, quando a conta do Twilio que liga fala com uma das vozes do OneUptime; caso contrário, inglês. Veja [O que uma chamada diz](/docs/notifications/on-call-rules#o-que-uma-chamada-diz) |
+| WhatsApp | Inglês |
 
 O que muda são as palavras do OneUptime: assuntos, títulos, botões e frases, e os nomes com que todo projeto novo começa, como Identificado e Incidente crítico. O que a sua equipe escreveu fica como foi escrito: títulos, descrições, causas raiz e os nomes de projetos, equipes e estados que o seu projeto nomeou. Um SMS em um idioma com escrita própria, como russo, japonês ou persa, ocupa mais partes do que um em inglês.
 
@@ -122,7 +123,7 @@ Você é proprietário do registro, diretamente ou por meio de uma equipe, ou o 
 :::
 
 :::details Meus acionamentos estão em inglês, mas o painel não
-O painel segue o seu navegador até você escolher um idioma. Escolha-o no menu de idiomas no rodapé de qualquer página, ou em **Idioma** em **Perfil do usuário**. Ligações telefônicas e mensagens do WhatsApp ficam em inglês.
+O painel segue o seu navegador até você escolher um idioma. Escolha-o no menu de idiomas no rodapé de qualquer página, ou em **Idioma** em **Perfil do usuário**. Mensagens do WhatsApp ficam em inglês, assim como ligações telefônicas por uma conta do Twilio que mantém a voz padrão.
 :::
 
 :::details Adicionei um número de telefone, mas ele não está nas minhas regras

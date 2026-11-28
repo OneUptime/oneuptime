@@ -117,6 +117,7 @@ import TelemetryException from "../../../Models/DatabaseModels/TelemetryExceptio
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import TelemetryEntityNameResolver from "../../../UI/Utils/Telemetry/TelemetryEntityNames";
 
@@ -207,6 +208,11 @@ beforeEach(() => {
   analyticsGetListMock.mockReset();
   analyticsGetListMock.mockResolvedValue({ data: [], count: 0 } as never);
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  /*
+   * A member who reads the project's services reads their archive switch
+   * too (its read permissions are the table's): the resolver asks for it.
+   */
+  jest.spyOn(PermissionGate, "canReadColumn").mockReturnValue(true);
 });
 
 afterEach(() => {

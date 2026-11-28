@@ -59,8 +59,6 @@ describe("the fullwidth forms read", () => {
       "/",
       " ",
       " ",
-      "Ａ",
-      "ｚ",
       "０",
       "９",
       "：",
@@ -130,6 +128,24 @@ describe("foldFullwidthForms", () => {
     expect(foldFullwidthForms("＋1")).toBe("+1");
     expect(foldFullwidthForms("1－")).toBe("1-");
     expect(foldFullwidthForms("＋")).toBe("+");
+  });
+
+  /*
+   * #11385: a fullwidth Latin letter is a letter, so a number glued to a
+   * word typed in fullwidth is a longer token, as in ASCII - a pattern's
+   * look-arounds see it - and no letter is a form: none reads as a sign
+   * or a separator.
+   */
+  test("reads a fullwidth Latin letter as its letter, so a number glued to a word is no number (#11385)", () => {
+    expect(foldFullwidthForms("Ａ")).toBe("A");
+    expect(foldFullwidthForms("ｚ")).toBe("z");
+    expect(isFullwidthForm("Ａ".charCodeAt(0))).toBe(false);
+    expect(foldFullwidthForms("ｐｈｏｎｅ＝ｅ＋７７７６")).toBe(
+      "phone＝e+７７７６",
+    );
+    expect(readFullwidthForms("ｅ＋７７７６９８３２６２８８５８")).toBe(
+      "e+７７７６９８３２６２８８５８",
+    );
   });
 });
 

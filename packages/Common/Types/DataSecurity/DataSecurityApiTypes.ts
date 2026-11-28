@@ -102,6 +102,7 @@ export const DATA_SECURITY_API_ROUTES: {
   draftExposureAssessment: (securityCaseId: string) => string;
   editExposureAssessment: (securityCaseId: string) => string;
   exposurePeoplePlaces: (securityCaseId: string) => string;
+  exposureDataHeldFor: (securityCaseId: string) => string;
   readExposureLogs: (securityCaseId: string) => string;
 } = {
   overview: "/data-security/overview",
@@ -300,6 +301,10 @@ export const DATA_SECURITY_API_ROUTES: {
   },
   exposurePeoplePlaces: (securityCaseId: string): string => {
     return `/security-case/${securityCaseId}/exposure-assessment/people`;
+  },
+  // Whether the organization holds the exposed data for another (#11427).
+  exposureDataHeldFor: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment/held-for`;
   },
   // Who read the store in the window, from its access logs (#10951).
   readExposureLogs: (securityCaseId: string): string => {

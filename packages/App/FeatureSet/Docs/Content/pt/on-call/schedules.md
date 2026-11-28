@@ -40,7 +40,7 @@ Todo o resto fica em **Mais campos**, recolhido até você abrir:
 | Campo | O que faz |
 | --- | --- |
 | **Cada turno dura** | **1 dia**, **1 semana**, **2 semanas** ou **1 mês**, e **1 semana** se você não mudar. É perguntado assim que alguém se reveza. Cada pessoa fica de plantão por esse tempo, e depois a próxima assume, no horário do dia em que o agendamento foi criado. |
-| **Fuso horário** | O fuso horário em que os horários de passagem e os horários de plantão são guardados. Começa com o seu. Cada fuso horário segue as regras atuais da sua região: America/Vancouver (Colúmbia Britânica) fica em UTC-7 o ano todo a partir de 2026. |
+| **Fuso horário** | O fuso horário em que os horários de passagem e os horários de plantão são guardados. Começa com o seu. Alterá-lo depois mantém cada horário como está escrito: uma passagem às 09:00 continua às 09:00, e uma janela na segunda-feira continua na segunda-feira. Cada fuso horário segue as regras atuais da sua região: America/Vancouver (Colúmbia Britânica) fica em UTC-7 o ano todo a partir de 2026. |
 | **Descrição** | Notas sobre o agendamento. |
 | **Rótulos** | Rótulos para encontrar e agrupar o agendamento. |
 
@@ -70,6 +70,8 @@ flowchart TB
 | **Alternar a cada** | Com que frequência o plantão passa para a próxima pessoa da camada. |
 | **Horário da primeira passagem** | A primeira passagem para a próxima pessoa, no início ou depois. As passagens seguintes acompanham cada intervalo de rotação. |
 | **Restrições** | Os horários em que a camada fica de plantão (**Horário ativo**): **Sem Restrições**, **Horários específicos do dia** ou **Horários específicos da semana**, no fuso horário do agendamento. Fora deles, as camadas inferiores assumem. |
+
+Uma janela de **Horários específicos da semana** vai do dia e horário em **De:** até o dia e horário em **Até:**, e os dias que ela mostra são os dias em que fica de plantão. Uma janela cujos horários caem em dias diferentes daqueles com que foi salva, como uma escrita pela API com os horários datados em outros dias, ou uma salva antes de o fuso horário do seu agendamento mudar, é marcada com **Horário ativo a verificar** na sua camada e diz abaixo com quais dias foi salva. Ela continua de plantão nos dias mostrados, e **Salvar camada** a mantém ali: escolha os dias que você quer antes de salvar.
 
 Com horário ativo, cada janela é um turno próprio. Das 17:00 às 07:00 é um turno, que termina às 07:00 da manhã seguinte: na **Linha do tempo de plantões**, nos e-mails, no aplicativo móvel e no Slack e no Microsoft Teams da mesma forma, no fuso horário do agendamento e também nas noites em que o relógio muda. A vez de uma pessoa são todas as suas janelas até a próxima passagem de turno, e ela é avisada uma vez em cada sentido: "You are now on-call" quando a primeira janela da sua vez começa, com quando essa janela termina e quando a sua vez termina, e "You are no longer on-call" quando a última janela termina, não a cada janela. Para ser lembrado antes de cada janela, escolha um horário em **Lembrar-me antes dos turnos**, como descreve [Feeds de calendário](/docs/on-call/calendar-feeds#lembretes-e-avisos-de-reatribuição). Quando outra pessoa fica de plantão entre duas das suas janelas, por uma substituição ou uma camada inferior, ou uma mudança nas camadas dá a próxima janela a outra pessoa, isso é uma passagem de turno e é avisado como tal. O tempo de plantão continua sendo registrado janela a janela, e os canais e o feed da política de plantão continuam dizendo a cada vez quem está de plantão.
 
@@ -114,7 +116,10 @@ Os agendamentos de plantão são o recurso `/api/on-call-duty-policy-schedule`; 
 - Criar um agendamento com `firstLayerUsers` (uma lista de IDs de usuário, na ordem em que se revezam) nos `miscDataProps` dá a ele a primeira camada, como faz o painel: **Layer 1**, de plantão a partir de agora, 24 horas por dia. `firstLayerRotation` diz quanto dura cada turno, como uma rotação do tipo `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; sem ela, uma semana. Todo usuário precisa ser membro do projeto e quem chama precisa poder criar camadas, senão o agendamento não é criado.
 - Um agendamento criado sem eles não tem camadas, como antes; o recurso de agendamento do Terraform não os envia.
 - Uma camada criada sem `rotation` passa o turno toda semana, e uma sem `restrictionTimes` fica de plantão 24 horas por dia, como começa uma camada nova no painel.
-- Os `restrictionTimes` de uma camada, o seu horário ativo, indicam o tipo em `restrictionType`: `None` (de plantão 24 horas por dia), `Daily` ou `Weekly`. `restictionType`, a grafia antiga sem o segundo "r", também é lido, e toda resposta traz o tipo nas duas, de modo que um cliente ou uma configuração do Terraform escritos com qualquer uma continuam funcionando; a camada é salva com `restrictionType`.
+- Os `restrictionTimes` de uma camada, o seu horário ativo, indicam o tipo em `restrictionType`: `None` (de plantão 24 horas por dia), `Daily` ou `Weekly`. `restictionType`, a grafia antiga sem o segundo "r", também é lido, e toda resposta traz o tipo nas duas, de modo que um cliente ou uma configuração do Terraform escritos com qualquer uma continuam funcionando; a camada é salva com `restrictionType`. `restictionType` nas respostas está obsoleto: as respostas o trazem até a primeira versão principal lançada em 1º de junho de 2027 ou depois, e as escritas sempre o lerão. Escreva `restrictionType`.
+- Uma janela `Weekly`, `{"startDay", "startTime", "endDay", "endTime"}`, fica de plantão nos dias que nomeia: seus `startTime` e `endTime` devem cair em seus `startDay` e `endDay` no fuso horário do agendamento. Uma janela cujo horário cai em outro dia é recusada com um `400` que nomeia a janela, o dia em que o horário cai e um horário no dia nomeado para enviar no lugar. Um dia omitido é o dia em que o horário cai. Uma janela enviada de volta exatamente como a camada a guarda não é julgada de novo, então um cliente que lê uma camada e a escreve de volta não é recusado por isso. Em um agendamento sem fuso horário, cujos horários são lidos no do servidor, um horário só é recusado quando não cai no seu dia em nenhum fuso horário.
+- Ao atualizar o OneUptime, cada janela guardada cujos horários caem em dias diferentes dos que nomeia, e em nenhum fuso horário nesses dias, é movida para os dias que nomeia, no mesmo horário do dia, e quem está de plantão é calculado de novo. Uma janela cujos horários caem nos seus dias em outro fuso horário, como pode acontecer com uma definida em outro fuso ou salva antes de o fuso horário do seu agendamento mudar, é deixada como está, acionando como antes, e marcada com **Horário ativo a verificar**.
+- Alterar o `timezone` de um agendamento de um fuso para outro leva os `startsAt`, `handOffTime` e `restrictionTimes` das suas camadas para o relógio do novo fuso: cada um marca ali a mesma data, o mesmo dia e o mesmo horário do dia de antes. Dar a um agendamento seu primeiro fuso horário, ou retirá-lo, mantém os instantes como estão.
 - Uma escrita que deixaria uma camada de plantão em momento nenhum é recusada com um `400` que nomeia a chave: um tipo ausente, desconhecido ou diferente nas duas grafias (uma atualização fica com o que difere do tipo atual da camada); uma janela `Daily` cujos `startTime` e `endTime` não são datas e horas (`"09:00"` sozinho é recusado); uma restrição `Weekly` sem `weeklyRestrictionTimes`; ou uma janela que abre e fecha no mesmo horário. Uma `rotation` cujo `intervalType` não é `Hour`, `Day`, `Week`, `Month` ou `Year` é recusada da mesma forma.
 - Uma camada salva antes de essas escritas serem recusadas, sem um tipo que fosse lido, nunca estava de plantão. Ao atualizar o OneUptime, cada uma dessas camadas é lida pelas horas que contém, salva assim, e quem está de plantão no seu agendamento é calculado de novo, para que as suas pessoas sejam acionadas a partir de então e avisadas disso.
 - Uma mudança nas camadas de um agendamento e nas pessoas nelas, feita com a API ou o Terraform, é avisada como uma única mudança: quem está de plantão é calculado quando as camadas ficam meio minuto sem mudanças, e quem entra ou sai do plantão, ou é o próximo, é avisado uma vez, e não uma vez por camada ou pessoa gravada. Os acionamentos vão para quem as camadas colocam de plantão assim que cada mudança é salva.
@@ -155,6 +160,25 @@ curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
           "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
           "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
         }
+      }}
+    }
+  }'
+```
+
+```bash
+curl -X PUT https://oneuptime.com/api/on-call-duty-schedule-layer/<layer-id> \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Weekly",
+        "weeklyRestrictionTimes": [{
+          "startDay": "Monday",
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T09:00:00+01:00"},
+          "endDay": "Friday",
+          "endTime": {"_type": "DateTime", "value": "2026-01-09T17:00:00+01:00"}
+        }]
       }}
     }
   }'

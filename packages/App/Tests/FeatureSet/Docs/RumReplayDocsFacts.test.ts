@@ -98,6 +98,7 @@ const SOURCES: Record<string, string> = {
   rumApplicationService:
     "packages/Common/Server/Services/RumApplicationService.ts",
   rumApplicationStatus: "packages/Common/Types/Rum/RumApplicationStatus.ts",
+  rumClientKind: "packages/Common/Types/Rum/RumClientKind.ts",
   otelIngestBase:
     "packages/App/FeatureSet/Telemetry/Services/OtelIngestBaseService.ts",
   otelIngest: "packages/App/FeatureSet/Telemetry/API/OTelIngest.ts",
@@ -1627,7 +1628,13 @@ describe("RUM Troubleshooting: the refusals, as OneUptime sends them", () => {
   });
 
   it("files the telemetry by the attributes the classifier reads", () => {
-    const ingest: string = source("otelIngestBase");
+    /*
+     * The ingest, and the RUM client classifier it reads a resource with
+     * (getRumClientKindOfResource), shared with Inventory since #11257.
+     */
+    const ingest: string = `${source("otelIngestBase")}\n${source(
+      "rumClientKind",
+    )}`;
     const rows: Array<Array<string>> = tableStartingWith(
       section(RUM_TROUBLESHOOTING, "## Check where the telemetry lands"),
       "Kind",

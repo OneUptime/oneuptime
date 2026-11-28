@@ -68,7 +68,11 @@ tests:
         enabled: true
         queryWaitTimeoutSeconds: -1
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/pgbouncer/queryWaitTimeoutSeconds': minimum: got -1, want 0
 
   # The ini is a pod input: changing the wait must roll the pooler.
   - it: rolls the pooler when the wait changes

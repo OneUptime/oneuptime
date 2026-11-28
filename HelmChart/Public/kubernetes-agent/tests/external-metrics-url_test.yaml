@@ -26,10 +26,9 @@
 # three words that differ.
 #
 # The "refuses" assertions match the error with `errorMessage`, whole, every
-# time. helm-unittest 0.5.1, the version the harness pins, does not enforce
-# `failedTemplate.errorPattern`: a pattern that cannot match still passes, so
-# it would only say "the render failed", not why. Matching the whole message
-# also pins that it names the setting and never repeats the URL.
+# time, as every refusal in the charts' suites does
+# (Tests/Ops/HelmUnittestAssertions.test.js says why). Matching the whole
+# message also pins that it names the setting and never repeats the URL.
 suite: external metrics scrapes follow the whole endpoint URL
 release:
   name: oneuptime-agent

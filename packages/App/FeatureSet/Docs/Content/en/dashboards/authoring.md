@@ -43,6 +43,8 @@ The templates, by the category the picker lists them under:
 
 **Recommended** holds Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard and Metrics Dashboard. A template is a starting point, not a link: once the dashboard is created, change it as you like. Nothing updates it from the template later.
 
+Each infrastructure template shows only its own kind of resource, through its variable's [Resource Type](/docs/dashboards/variables#telemetry-attribute): a Docker Swarm Dashboard in a project with no swarm stays empty, and says so, rather than showing the containers and logs of everything else.
+
 ## Edit and save
 
 A dashboard opens in view mode, for reading. To change it, open the **⋯** menu in its toolbar and pick **Edit Dashboard**. The toolbar shows **Editing** next to the name, and swaps the time range and its other controls for **Add Widget**, **Variables**, **Cancel** and **Save Changes**, with a row below them for the dashboard's **Default time range** and **Default auto-refresh**.

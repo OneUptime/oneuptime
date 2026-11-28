@@ -1738,12 +1738,17 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
     });
   });
 
-  test("vmware.host: cluster descriptive when present, key unchanged", () => {
+  /*
+   * The virtualization and storage kinds also keep their own name as the
+   * producer spelled it: the identity holds it lowercased, and Inventory
+   * names each item by its own name (#11254), as vCenter spells it.
+   */
+  test("vmware.host: its own name and its cluster are descriptive, key unchanged", () => {
     const bare: ExtractedEntity | undefined = entityOfType(
       {
         "vmware.vcenter.name": "vcsa-prod",
         "vcenter.datacenter.name": "DC1",
-        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.host.name": "ESXi-01.example.com",
       },
       EntityType.VMwareHost,
     );
@@ -1752,57 +1757,66 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
         "vmware.vcenter.name": "vcsa-prod",
         "vcenter.datacenter.name": "DC1",
         "vcenter.cluster.name": "Prod",
-        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.host.name": "ESXi-01.example.com",
       },
       EntityType.VMwareHost,
     );
     expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.identifyingAttributes["vcenter.host.name"]).toBe(
+      "esxi-01.example.com",
+    );
     expect(decorated!.descriptiveAttributes).toEqual({
+      "vcenter.host.name": "ESXi-01.example.com",
       "vcenter.cluster.name": "Prod",
     });
-    expect(bare!.descriptiveAttributes).toBeUndefined();
+    expect(bare!.descriptiveAttributes).toEqual({
+      "vcenter.host.name": "ESXi-01.example.com",
+    });
   });
 
-  test("vmware.vcenter / cluster / datastore emit no descriptive attributes", () => {
+  test("vmware.vcenter / cluster / datastore keep only their own name as descriptive", () => {
     const attrs: EntityAttributes = {
-      "vmware.vcenter.name": "vcsa-prod",
+      "vmware.vcenter.name": "VCSA-Prod",
       "vcenter.datacenter.name": "DC1",
       "vcenter.cluster.name": "Prod",
       "vcenter.datastore.name": "vsanDatastore",
     };
-    for (const type of [
-      EntityType.VMwareVCenter,
-      EntityType.VMwareCluster,
-      EntityType.VMwareDatastore,
-    ]) {
-      expect(entityOfType(attrs, type)!.descriptiveAttributes).toBeUndefined();
-    }
+    expect(
+      entityOfType(attrs, EntityType.VMwareVCenter)!.descriptiveAttributes,
+    ).toEqual({ "vmware.vcenter.name": "VCSA-Prod" });
+    expect(
+      entityOfType(attrs, EntityType.VMwareCluster)!.descriptiveAttributes,
+    ).toEqual({ "vcenter.cluster.name": "Prod" });
+    expect(
+      entityOfType(attrs, EntityType.VMwareDatastore)!.descriptiveAttributes,
+    ).toEqual({ "vcenter.datastore.name": "vsanDatastore" });
   });
 
-  test("ceph.cluster: fsid descriptive when present, key unchanged", () => {
+  test("ceph.cluster: its own name and fsid descriptive when present, key unchanged", () => {
     const bare: ExtractedEntity | undefined = entityOfType(
-      { "ceph.cluster.name": "ceph-prod" },
+      { "ceph.cluster.name": "Ceph-Prod" },
       EntityType.CephCluster,
     );
     const decorated: ExtractedEntity | undefined = entityOfType(
-      { "ceph.cluster.name": "ceph-prod", "ceph.cluster.fsid": "f-1" },
+      { "ceph.cluster.name": "Ceph-Prod", "ceph.cluster.fsid": "f-1" },
       EntityType.CephCluster,
     );
 
     expect(decorated!.entityKey).toBe(bare!.entityKey);
     expect(decorated!.descriptiveAttributes).toEqual({
+      "ceph.cluster.name": "Ceph-Prod",
       "ceph.cluster.fsid": "f-1",
     });
   });
 
-  test("storage.array: the platform is descriptive when present, key unchanged", () => {
+  test("storage.array: its own name and the platform are descriptive, key unchanged", () => {
     const bare: ExtractedEntity | undefined = entityOfType(
-      { "storage.array.name": "pure-prod-01" },
+      { "storage.array.name": "Pure-Prod-01" },
       EntityType.StorageArray,
     );
     const decorated: ExtractedEntity | undefined = entityOfType(
       {
-        "storage.array.name": "pure-prod-01",
+        "storage.array.name": "Pure-Prod-01",
         "storage.system": "purestorage.flasharray",
       },
       EntityType.StorageArray,
@@ -1810,9 +1824,59 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
 
     expect(decorated!.entityKey).toBe(bare!.entityKey);
     expect(decorated!.descriptiveAttributes).toEqual({
+      "storage.array.name": "Pure-Prod-01",
       "storage.system": "purestorage.flasharray",
     });
+    expect(bare!.descriptiveAttributes).toEqual({
+      "storage.array.name": "Pure-Prod-01",
+    });
+  });
+
+  test("xcp_ng.pool: its name and its Xen Orchestra are descriptive, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      { "xcp_ng.pool.id": "3f2a9c1e-0b4d-4e6f-8a1b-2c3d4e5f6a7b" },
+      EntityType.XcpNgPool,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "xcp_ng.pool.id": "3f2a9c1e-0b4d-4e6f-8a1b-2c3d4e5f6a7b",
+        "xcp_ng.pool.name": "Lab Pool",
+        "xen_orchestra.name": "xo-prod",
+      },
+      EntityType.XcpNgPool,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "xcp_ng.pool.name": "Lab Pool",
+      "xen_orchestra.name": "xo-prod",
+    });
     expect(bare!.descriptiveAttributes).toBeUndefined();
+  });
+
+  test("openstack.instance: the hypervisor it runs on is descriptive, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      {
+        "openstack.cloud.name": "acme-cloud",
+        "openstack.instance.id": "8f14e45f-ceea-467a-9575-c8a6d2a1b3c4",
+      },
+      EntityType.OpenStackInstance,
+    );
+    const migrated: ExtractedEntity | undefined = entityOfType(
+      {
+        "openstack.cloud.name": "acme-cloud",
+        "openstack.instance.id": "8f14e45f-ceea-467a-9575-c8a6d2a1b3c4",
+        "openstack.instance.name": "api-gateway-2",
+        "openstack.hypervisor.name": "compute-07",
+      },
+      EntityType.OpenStackInstance,
+    );
+
+    expect(migrated!.entityKey).toBe(bare!.entityKey);
+    expect(migrated!.descriptiveAttributes).toEqual({
+      "openstack.instance.name": "api-gateway-2",
+      "openstack.hypervisor.name": "compute-07",
+    });
   });
 
   test("the full membership key set is byte-identical with and without descriptive attrs / labels", () => {
