@@ -3,7 +3,7 @@
 Planen Sie CPU, Arbeitsspeicher und Festplatte für ein selbst gehostetes OneUptime auf Kubernetes mit dem [Helm-Chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Dimensionieren Sie die drei Datenspeicher – **ClickHouse**, **PostgreSQL** und **Valkey** – und die Anwendung getrennt, beginnen Sie mit einer der Stufen unten und passen Sie an, sobald Sie echte Zahlen haben.
 
 > [!IMPORTANT]
-> Die Standardwerte des Charts sind keine Produktionsdimensionierung. Die Dienste, die es standardmäßig ausführt, setzen **keine CPU- oder Speicher-Requests oder -Limits**, und PostgreSQL und ClickHouse erhalten kleine Volumes von **25 Gi**, damit sich das Chart auf jedem Cluster installieren lässt. Für alles, was über einen Test hinausgeht, legen Sie Ressourcen und Speicher selbst fest, mit den Zahlen auf dieser Seite.
+> Die Standardwerte des Charts sind keine Produktionsdimensionierung. Bis auf Valkey setzen die Dienste, die es standardmäßig ausführt, **keine CPU- oder Speicher-Requests oder -Limits**, und PostgreSQL und ClickHouse erhalten kleine Volumes von **25 Gi**, damit sich das Chart auf jedem Cluster installieren lässt. Für alles, was über einen Test hinausgeht, legen Sie Ressourcen und Speicher selbst fest, mit den Zahlen auf dieser Seite.
 
 Sie nutzen stattdessen die Docker-Compose-Installation auf einem einzelnen Server? Deren Dimensionierung ist einfacher: Siehe die [Anforderungen](/docs/installation/docker-compose#anforderungen) (empfohlen sind 16 GB Arbeitsspeicher, 8 Kerne und 400 GB Festplatte).
 
@@ -88,7 +88,7 @@ Bei vielen Replikaten von App, Worker und Sonde können die Datenbankverbindunge
 
 ## Valkey – Cache, Warteschlangen und Sitzungen
 
-Die Cache-Schicht führt [Valkey](https://valkey.io) aus, den BSD-lizenzierten Fork von Redis 7.2, als Cache, Arbeitswarteschlange und Sitzungsspeicher. Jeder Server mit Redis-Protokoll kann es ersetzen, und die Dimensionierung unten gilt in beiden Fällen. Es ist **speichergebunden**, und die Persistenz ist **standardmäßig aus**: Es ist keine maßgebliche Datenquelle und lässt sich neu aufbauen. Dimensionieren Sie es nach Warteschlangentiefe und gleichzeitigen Sitzungen; 2–8 GB Arbeitsspeicher reichen für die meisten Installationen. Seine Verdrängungsrichtlinie ist `noeviction`, also beobachten Sie seinen Arbeitsspeicher, wenn sich Warteschlangen unter anhaltender Last stauen.
+Die Cache-Schicht führt [Valkey](https://valkey.io) aus, den BSD-lizenzierten Fork von Redis 7.2, als Cache, Arbeitswarteschlange und Sitzungsspeicher. Jeder Server mit Redis-Protokoll kann es ersetzen, und die Dimensionierung unten gilt in beiden Fällen. Es ist **speichergebunden**, und die Persistenz ist **standardmäßig aus**: Es ist keine maßgebliche Datenquelle und lässt sich neu aufbauen. Dimensionieren Sie es nach Warteschlangentiefe und gleichzeitigen Sitzungen; 2–8 GB Arbeitsspeicher reichen für die meisten Installationen. Das Chart gibt ihm ein Speicher-Limit von 4 Gi und begrenzt seine Daten auf 75 % davon, 3 GiB (`valkey.maxmemory`), ab denen es Schreibvorgänge ablehnt. Seine Verdrängungsrichtlinie ist `noeviction`, also beobachten Sie seinen Arbeitsspeicher, wenn sich Warteschlangen unter anhaltender Last stauen.
 
 ## Rechenleistung der Anwendung
 

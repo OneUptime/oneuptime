@@ -3,7 +3,7 @@
 Planlæg CPU, hukommelse og disk til en selvhostet OneUptime på Kubernetes med [Helm-chartet](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Dimensionér de tre datalagre – **ClickHouse**, **PostgreSQL** og **Valkey** – og applikationen hver for sig, start fra et af niveauerne nedenfor, og justér, når du har rigtige tal.
 
 > [!IMPORTANT]
-> Chartets standardværdier er ikke en produktionsdimensionering. De tjenester, det kører som standard, sætter **ingen CPU- eller hukommelses-requests eller -grænser**, og PostgreSQL og ClickHouse får små volumener på **25 Gi**, så chartet kan installeres på ethvert cluster. Til alt ud over en prøve sætter du selv ressourcer og lager med tallene på denne side.
+> Chartets standardværdier er ikke en produktionsdimensionering. Bortset fra Valkey sætter de tjenester, det kører som standard, **ingen CPU- eller hukommelses-requests eller -grænser**, og PostgreSQL og ClickHouse får små volumener på **25 Gi**, så chartet kan installeres på ethvert cluster. Til alt ud over en prøve sætter du selv ressourcer og lager med tallene på denne side.
 
 Kører du i stedet Docker Compose-installationen på en enkelt server? Den er enklere at dimensionere: Se [kravene](/docs/installation/docker-compose#krav) (16 GB hukommelse, 8 kerner og 400 GB disk anbefales).
 
@@ -88,7 +88,7 @@ Med mange replikaer af app, workers og sonder kan databaseforbindelserne slippe 
 
 ## Valkey – cache, køer og sessioner
 
-Cachelaget kører [Valkey](https://valkey.io), det BSD-licenserede fork af Redis 7.2, som cache, arbejdskø og sessionslager. Enhver server med Redis-protokollen kan træde i stedet, og dimensioneringen nedenfor gælder begge veje. Det er **hukommelsesbundet**, og persistens er **slået fra som standard**: Det er ikke en autoritativ datakilde og kan genopbygges. Dimensionér det efter kødybde og samtidige sessioner; 2–8 GB hukommelse dækker de fleste installationer. Dets eviction-politik er `noeviction`, så hold øje med hukommelsen, hvis køer hober sig op under vedvarende belastning.
+Cachelaget kører [Valkey](https://valkey.io), det BSD-licenserede fork af Redis 7.2, som cache, arbejdskø og sessionslager. Enhver server med Redis-protokollen kan træde i stedet, og dimensioneringen nedenfor gælder begge veje. Det er **hukommelsesbundet**, og persistens er **slået fra som standard**: Det er ikke en autoritativ datakilde og kan genopbygges. Dimensionér det efter kødybde og samtidige sessioner; 2–8 GB hukommelse dækker de fleste installationer. Chartet giver det en hukommelsesgrænse på 4 Gi og begrænser dets data til 75 % af den, 3 GiB (`valkey.maxmemory`), hvor det afviser skrivninger. Dets eviction-politik er `noeviction`, så hold øje med hukommelsen, hvis køer hober sig op under vedvarende belastning.
 
 ## Applikationens regnekraft
 

@@ -153,6 +153,7 @@ const SOURCES: Record<string, string> = {
   postgresDataSource: `${COMMON_SERVER}/Infrastructure/Postgres/DataSourceOptions.ts`,
   chartValues: `${CHART}/values.yaml`,
   chartHelpers: `${CHART}/templates/_helpers.tpl`,
+  chartValkeyConfig: `${CHART}/templates/valkey-configmap.yaml`,
   chartApp: `${CHART}/templates/app.yaml`,
   chartProbe: `${CHART}/templates/probe.yaml`,
   chartManifest: `${CHART}/Chart.yaml`,
@@ -2232,7 +2233,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
   const page: string = english(SIZING);
   const values: Record<string, unknown> = yamlOf("chartValues");
 
-  it("the services the chart runs by default set no resources, and PostgreSQL and ClickHouse get 25 Gi", () => {
+  it("the services the chart runs by default set no resources but Valkey, and PostgreSQL and ClickHouse get 25 Gi", () => {
     const runByDefault: Array<[string, string]> = [
       ["app", "app.resources"],
       ["nginx", "nginx.resources"],
@@ -2240,7 +2241,6 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
       ["probes.one", "probes.one.resources"],
       ["postgresql", "postgresql.primary.resources"],
       ["clickhouse", "clickhouse.resources"],
-      ["valkey", "valkey.master.resources"],
     ];
 
     for (const [service, resources] of runByDefault) {
@@ -2251,10 +2251,19 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
       }).toEqual({ service, enabled: true, noResources: true });
     }
 
+    /*
+     * Valkey ships its resources since #11421: a limit its maxmemory is
+     * derived from, and no CPU limit (the Valkey test below holds the cap).
+     */
+    expect(valueAt(values, "valkey.enabled")).toBe(true);
+    expect(isEmptySetting(valueAt(values, "valkey.master.resources"))).toBe(
+      false,
+    );
+
     expect(valueAt(values, "postgresql.primary.persistence.size")).toBe("25Gi");
     expect(valueAt(values, "clickhouse.persistence.size")).toBe("25Gi");
     expect(page).toContain(
-      "The services it runs by default set **no CPU or memory requests or limits**, and PostgreSQL and ClickHouse get small **25 Gi** volumes",
+      "Except for Valkey, the services it runs by default set **no CPU or memory requests or limits**, and PostgreSQL and ClickHouse get small **25 Gi** volumes",
     );
   });
 
@@ -2351,13 +2360,50 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
     );
   });
 
-  it("Valkey keeps nothing on disk by default, and never evicts", () => {
-    expect(valueAt(values, "valkey.master.persistence.enabled")).toBe(false);
-    expect(valueAt(values, "valkey.commonConfiguration")).toMatch(
-      /^maxmemory-policy noeviction$/m,
+  it("Valkey keeps nothing on disk by default, never evicts, and refuses writes at its cap", () => {
+    /*
+     * The chart writes these valkey.conf lines itself, from the values
+     * (#11421); valkey.commonConfiguration only adds lines after them.
+     */
+    const valkeyConf: string = readSource("chartValkeyConfig");
+    const persistence: string = valkeyConf.slice(
+      valkeyConf.indexOf("{{- if (($valkey.master).persistence).enabled }}"),
+      valkeyConf.indexOf("{{- with $valkey.commonConfiguration }}"),
     );
+
+    // Off by default: no append-only file, and no RDB snapshot either way.
+    const [withoutPersistence, afterPersistence] = (
+      persistence.split("{{- else }}")[1] || ""
+    ).split("{{- end }}");
+
+    expect(valueAt(values, "valkey.master.persistence.enabled")).toBe(false);
+    expect(withoutPersistence).toMatch(/^\s*appendonly no$/m);
+    expect(afterPersistence).toMatch(/^\s*save ""$/m);
+    expect(valkeyConf).toMatch(/^\s*maxmemory-policy noeviction$/m);
     expect(page).toContain("persistence is **off by default**");
     expect(page).toContain("Its eviction policy is `noeviction`");
+
+    /*
+     * The cap: valkey.maxmemory, or by default 75% of the memory limit (60%
+     * with persistence on) - 3 GiB of the 4Gi the chart ships.
+     */
+    expect(valueAt(values, "valkey.master.resources.limits.memory")).toBe(
+      "4Gi",
+    );
+    expect(valueAt(values, "valkey.master.resources.limits.cpu")).toBe(
+      undefined,
+    );
+    expect(valueAt(values, "valkey.maxmemory")).toBe("");
+    expect(valueAt(values, "valkey.maxmemoryPercentOfMemoryLimit")).toBe(null);
+    expect(readSource("chartHelpers")).toContain(
+      "{{- $percent = ternary 60 75 (not (not ((($valkey).master).persistence).enabled)) -}}",
+    );
+    expect(valkeyConf).toContain(
+      '{{- with (include "oneuptime.valkey.maxmemory" .) }}\n    maxmemory {{ . }}',
+    );
+    expect(page).toContain(
+      "The chart gives it a 4 Gi memory limit and caps its data at 75% of that, 3 GiB (`valkey.maxmemory`), where it refuses writes.",
+    );
   });
 
   it("the chart bundles KEDA, and each service that scales on its queue has its own switch", () => {

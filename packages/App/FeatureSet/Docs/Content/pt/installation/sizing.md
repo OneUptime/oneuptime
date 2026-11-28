@@ -3,7 +3,7 @@
 Planeje CPU, memória e disco para um OneUptime auto-hospedado no Kubernetes com o [chart do Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Dimensione separadamente os três armazenamentos de dados – **ClickHouse**, **PostgreSQL** e **Valkey** – e a aplicação, comece por uma das camadas abaixo e ajuste quando tiver números reais.
 
 > [!IMPORTANT]
-> Os padrões do chart não são um dimensionamento de produção. Os serviços que ele executa por padrão não definem **nenhuma solicitação nem limite de CPU ou memória**, e o PostgreSQL e o ClickHouse recebem volumes pequenos de **25 Gi**, para que o chart se instale em qualquer cluster. Para qualquer coisa além de um teste, defina você mesmo os recursos e o armazenamento, com os números desta página.
+> Os padrões do chart não são um dimensionamento de produção. Exceto o Valkey, os serviços que ele executa por padrão não definem **nenhuma solicitação nem limite de CPU ou memória**, e o PostgreSQL e o ClickHouse recebem volumes pequenos de **25 Gi**, para que o chart se instale em qualquer cluster. Para qualquer coisa além de um teste, defina você mesmo os recursos e o armazenamento, com os números desta página.
 
 Usa em vez disso a instalação com Docker Compose em um único servidor? O dimensionamento dela é mais simples: veja os [requisitos](/docs/installation/docker-compose#requisitos) (recomendados 16 GB de memória, 8 núcleos e 400 GB de disco).
 
@@ -88,7 +88,7 @@ Com muitas réplicas de app, workers e sondas, as conexões com o banco podem ac
 
 ## Valkey – cache, filas e sessões
 
-A camada de cache executa o [Valkey](https://valkey.io), o fork do Redis 7.2 com licença BSD, como cache, fila de trabalho e armazenamento de sessões. Qualquer servidor compatível com o protocolo Redis pode substituí-lo, e o dimensionamento abaixo vale nos dois casos. Ele é **limitado pela memória**, e a persistência fica **desativada por padrão**: não é uma fonte da verdade e pode ser reconstruído. Dimensione-o pela profundidade das filas e pelas sessões simultâneas; 2–8 GB de memória atendem a maioria das instalações. A política de remoção dele é `noeviction`, então acompanhe a memória se as filas se acumularem sob carga contínua.
+A camada de cache executa o [Valkey](https://valkey.io), o fork do Redis 7.2 com licença BSD, como cache, fila de trabalho e armazenamento de sessões. Qualquer servidor compatível com o protocolo Redis pode substituí-lo, e o dimensionamento abaixo vale nos dois casos. Ele é **limitado pela memória**, e a persistência fica **desativada por padrão**: não é uma fonte da verdade e pode ser reconstruído. Dimensione-o pela profundidade das filas e pelas sessões simultâneas; 2–8 GB de memória atendem a maioria das instalações. O chart dá a ele um limite de memória de 4 Gi e limita seus dados a 75% disso, 3 GiB (`valkey.maxmemory`), onde ele recusa gravações. A política de remoção dele é `noeviction`, então acompanhe a memória se as filas se acumularem sob carga contínua.
 
 ## Processamento da aplicação
 

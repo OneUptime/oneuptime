@@ -3,7 +3,7 @@
 Plan de CPU, het geheugen en de schijf voor een zelf gehoste OneUptime op Kubernetes met de [Helm-chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Dimensioneer de drie gegevensopslagen – **ClickHouse**, **PostgreSQL** en **Valkey** – en de applicatie apart, begin bij een van de niveaus hieronder en stel bij zodra u echte cijfers hebt.
 
 > [!IMPORTANT]
-> De standaardwaarden van de chart zijn geen productiedimensionering. De diensten die hij standaard draait, stellen **geen CPU- of geheugenrequests of -limieten** in, en PostgreSQL en ClickHouse krijgen kleine volumes van **25 Gi**, zodat de chart op elk cluster te installeren is. Stel voor alles wat verder gaat dan een proef zelf resources en opslag in, met de cijfers op deze pagina.
+> De standaardwaarden van de chart zijn geen productiedimensionering. Op Valkey na stellen de diensten die hij standaard draait **geen CPU- of geheugenrequests of -limieten** in, en PostgreSQL en ClickHouse krijgen kleine volumes van **25 Gi**, zodat de chart op elk cluster te installeren is. Stel voor alles wat verder gaat dan een proef zelf resources en opslag in, met de cijfers op deze pagina.
 
 Gebruikt u in plaats daarvan de Docker Compose-installatie op één server? Die is eenvoudiger te dimensioneren: zie de [vereisten](/docs/installation/docker-compose#vereisten) (aanbevolen: 16 GB geheugen, 8 cores en 400 GB schijf).
 
@@ -88,7 +88,7 @@ Met veel replica's van app, workers en sondes kunnen de databaseverbindingen opr
 
 ## Valkey – cache, wachtrijen en sessies
 
-De cachelaag draait [Valkey](https://valkey.io), de BSD-gelicentieerde fork van Redis 7.2, als cache, werkwachtrij en sessieopslag. Elke server met het Redis-protocol kan het vervangen, en de dimensionering hieronder geldt in beide gevallen. Het is **geheugengebonden**, en persistentie staat **standaard uit**: het is geen bron van waarheid en kan opnieuw worden opgebouwd. Dimensioneer het op wachtrijdiepte en gelijktijdige sessies; 2–8 GB geheugen volstaat voor de meeste installaties. Het evictiebeleid is `noeviction`, dus houd het geheugen in de gaten als wachtrijen onder aanhoudende belasting vollopen.
+De cachelaag draait [Valkey](https://valkey.io), de BSD-gelicentieerde fork van Redis 7.2, als cache, werkwachtrij en sessieopslag. Elke server met het Redis-protocol kan het vervangen, en de dimensionering hieronder geldt in beide gevallen. Het is **geheugengebonden**, en persistentie staat **standaard uit**: het is geen bron van waarheid en kan opnieuw worden opgebouwd. Dimensioneer het op wachtrijdiepte en gelijktijdige sessies; 2–8 GB geheugen volstaat voor de meeste installaties. De chart geeft het een geheugenlimiet van 4 Gi en begrenst de gegevens op 75% daarvan, 3 GiB (`valkey.maxmemory`), waarna het schrijfacties weigert. Het evictiebeleid is `noeviction`, dus houd het geheugen in de gaten als wachtrijen onder aanhoudende belasting vollopen.
 
 ## Rekenkracht van de applicatie
 

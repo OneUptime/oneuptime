@@ -3,7 +3,7 @@
 Plan the CPU, memory and disk for a self-hosted OneUptime on Kubernetes with the [Helm chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Size the three datastores — **ClickHouse**, **PostgreSQL** and **Valkey** — and the application separately, start from one of the tiers below, and adjust once you have real numbers.
 
 > [!IMPORTANT]
-> The chart's defaults are not production sizing. The services it runs by default set **no CPU or memory requests or limits**, and PostgreSQL and ClickHouse get small **25 Gi** volumes, so that the chart installs on any cluster. For anything beyond a trial, set resources and storage yourself, using the numbers on this page.
+> The chart's defaults are not production sizing. Except for Valkey, the services it runs by default set **no CPU or memory requests or limits**, and PostgreSQL and ClickHouse get small **25 Gi** volumes, so that the chart installs on any cluster. For anything beyond a trial, set resources and storage yourself, using the numbers on this page.
 
 Running the single-server Docker Compose install instead? Its sizing is simpler: see the [requirements](/docs/installation/docker-compose#requirements) (16 GB of memory, 8 cores and 400 GB of disk recommended).
 
@@ -88,7 +88,7 @@ With many app, worker and probe replicas, database connections can run out befor
 
 ## Valkey — cache, queues, and sessions
 
-The cache tier runs [Valkey](https://valkey.io), the BSD-licensed fork of Redis 7.2, as a cache, a work queue and a session store. Any Redis-protocol server can stand in for it, and the sizing below applies either way. It is **memory-bound**, and persistence is **off by default**: it is not a source of truth and can be rebuilt. Size it by queue depth and concurrent sessions; 2–8 GB of memory covers most deployments. Its eviction policy is `noeviction`, so watch its memory if queues back up under sustained load.
+The cache tier runs [Valkey](https://valkey.io), the BSD-licensed fork of Redis 7.2, as a cache, a work queue and a session store. Any Redis-protocol server can stand in for it, and the sizing below applies either way. It is **memory-bound**, and persistence is **off by default**: it is not a source of truth and can be rebuilt. Size it by queue depth and concurrent sessions; 2–8 GB of memory covers most deployments. The chart gives it a 4 Gi memory limit and caps its data at 75% of that, 3 GiB (`valkey.maxmemory`), where it refuses writes. Its eviction policy is `noeviction`, so watch its memory if queues back up under sustained load.
 
 ## Application compute
 

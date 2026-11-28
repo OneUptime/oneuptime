@@ -3,7 +3,7 @@
 为使用 [Helm Chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime) 在 Kubernetes 上自托管的 OneUptime 规划 CPU、内存和磁盘。分别为三个数据存储（**ClickHouse**、**PostgreSQL** 和 **Valkey**）以及应用确定规模，从下面的某个档位开始，拿到真实数据后再调整。
 
 > [!IMPORTANT]
-> Chart 的默认值不是生产规模。它默认运行的服务 **没有设置任何 CPU 或内存的请求与限制**，PostgreSQL 和 ClickHouse 只有 **25 Gi** 的小卷，这样 Chart 才能安装到任何集群上。只要不是试用，就请按照本页的数字自行设置资源和存储。
+> Chart 的默认值不是生产规模。除 Valkey 外，它默认运行的服务 **没有设置任何 CPU 或内存的请求与限制**，PostgreSQL 和 ClickHouse 只有 **25 Gi** 的小卷，这样 Chart 才能安装到任何集群上。只要不是试用，就请按照本页的数字自行设置资源和存储。
 
 如果您改用单台服务器上的 Docker Compose 安装，确定规模会更简单：请参阅[要求](/docs/installation/docker-compose#要求)（推荐 16 GB 内存、8 核和 400 GB 磁盘）。
 
@@ -88,7 +88,7 @@ PostgreSQL 存储的是您的配置和运行状态，而不是遥测数据，因
 
 ## Valkey：缓存、队列与会话
 
-缓存层运行 [Valkey](https://valkey.io)（Redis 7.2 的 BSD 许可分支），用作缓存、工作队列和会话存储。任何支持 Redis 协议的服务器都可以替代它，下面的规模建议同样适用。它 **受内存限制**，持久化 **默认关闭**：它不是权威数据源，可以重建。请按队列深度和并发会话数确定规模；大多数部署有 2–8 GB 内存就够了。它的驱逐策略是 `noeviction`，因此在持续负载下队列积压时要留意它的内存。
+缓存层运行 [Valkey](https://valkey.io)（Redis 7.2 的 BSD 许可分支），用作缓存、工作队列和会话存储。任何支持 Redis 协议的服务器都可以替代它，下面的规模建议同样适用。它 **受内存限制**，持久化 **默认关闭**：它不是权威数据源，可以重建。请按队列深度和并发会话数确定规模；大多数部署有 2–8 GB 内存就够了。Chart 为它设置 4 Gi 的内存限制，并把它的数据上限定为其中的 75%，即 3 GiB（`valkey.maxmemory`），达到上限后它会拒绝写入。它的驱逐策略是 `noeviction`，因此在持续负载下队列积压时要留意它的内存。
 
 ## 应用的计算资源
 

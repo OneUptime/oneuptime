@@ -3,7 +3,7 @@
 Planlegg CPU, minne og disk for en selvdriftet OneUptime på Kubernetes med [Helm-chartet](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Dimensjoner de tre datalagrene – **ClickHouse**, **PostgreSQL** og **Valkey** – og applikasjonen hver for seg, start fra et av nivåene nedenfor, og juster når du har ekte tall.
 
 > [!IMPORTANT]
-> Chartets standardverdier er ikke en produksjonsdimensjonering. Tjenestene det kjører som standard, setter **ingen CPU- eller minne-requests eller -grenser**, og PostgreSQL og ClickHouse får små volumer på **25 Gi**, slik at chartet kan installeres på alle clustere. For alt utover en prøve setter du selv ressurser og lagring, med tallene på denne siden.
+> Chartets standardverdier er ikke en produksjonsdimensjonering. Bortsett fra Valkey setter tjenestene det kjører som standard, **ingen CPU- eller minne-requests eller -grenser**, og PostgreSQL og ClickHouse får små volumer på **25 Gi**, slik at chartet kan installeres på alle clustere. For alt utover en prøve setter du selv ressurser og lagring, med tallene på denne siden.
 
 Bruker du heller Docker Compose-installasjonen på én server? Den er enklere å dimensjonere: Se [kravene](/docs/installation/docker-compose#krav) (16 GB minne, 8 kjerner og 400 GB disk anbefales).
 
@@ -88,7 +88,7 @@ Med mange replikaer av app, workere og sonder kan databasetilkoblingene ta slutt
 
 ## Valkey – cache, køer og økter
 
-Cachelaget kjører [Valkey](https://valkey.io), den BSD-lisensierte forken av Redis 7.2, som cache, arbeidskø og øktlager. Enhver server med Redis-protokollen kan erstatte det, og dimensjoneringen nedenfor gjelder uansett. Det er **minnebundet**, og persistens er **av som standard**: Det er ikke en autoritativ datakilde og kan bygges opp på nytt. Dimensjoner det etter kødybde og samtidige økter; 2–8 GB minne dekker de fleste installasjoner. Eviction-policyen er `noeviction`, så følg med på minnet hvis køer hoper seg opp under vedvarende last.
+Cachelaget kjører [Valkey](https://valkey.io), den BSD-lisensierte forken av Redis 7.2, som cache, arbeidskø og øktlager. Enhver server med Redis-protokollen kan erstatte det, og dimensjoneringen nedenfor gjelder uansett. Det er **minnebundet**, og persistens er **av som standard**: Det er ikke en autoritativ datakilde og kan bygges opp på nytt. Dimensjoner det etter kødybde og samtidige økter; 2–8 GB minne dekker de fleste installasjoner. Chartet gir det en minnegrense på 4 Gi og begrenser dataene til 75 % av den, 3 GiB (`valkey.maxmemory`), der det avviser skrivinger. Eviction-policyen er `noeviction`, så følg med på minnet hvis køer hoper seg opp under vedvarende last.
 
 ## Applikasjonens regnekraft
 
