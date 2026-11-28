@@ -14,10 +14,11 @@ import MimeType from "./MimeType";
  *
  *     ![screenshot.png](https://oneuptime.example/file/image/access-token/<token>)
  *
- * That address opens the image only for a person signed in to the project
- * (FileViewerAccess): a browser drawing the page. A workflow has no session,
- * and the address does not take an API key, so neither could read the image
- * to put it in an email.
+ * That address opens the image only for a person signed in to the project -
+ * its uploader, or someone who may read a record that shows it
+ * (FileViewerAccess, #11478): a browser drawing the page. A workflow has no
+ * session, and the address does not take an API key, so neither could read
+ * the image to put it in an email.
  *
  * Opening the address to API keys and workflows would let any of them read
  * any private image of its project whose address it learnt, whatever records
