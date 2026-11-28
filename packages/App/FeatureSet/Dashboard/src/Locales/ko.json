@@ -67833,5 +67833,16 @@
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
   "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "OneUptime이 해결했습니다: 이 클라우드 예산 경고가 발생한 분기가 끝났습니다.",
-  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "OneUptime이 해결했습니다: 이 클라우드 예산 경고가 발생한 연도가 끝났습니다."
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "OneUptime이 해결했습니다: 이 클라우드 예산 경고가 발생한 연도가 끝났습니다.",
+  "Each image, in the order the record shows it: its name, MIME type, size, data in base64, content ID, the addresses the Markdown shows it by, and the fields it is in. Hidden in the run's log.": "Each image, in the order the record shows it: its name, MIME type, size, data in base64, content ID, the addresses the Markdown shows it by, and the fields it is in. Hidden in the run's log.",
+  "Get Files From Markdown": "Get Files From Markdown",
+  "How many images Files holds.": "How many images Files holds.",
+  "Pick a record type": "Pick a record type",
+  "Read the images a record's Markdown shows, such as the screenshots in an incident's description, with their names, types and data, ready to attach to an email.": "Read the images a record's Markdown shows, such as the screenshots in an incident's description, with their names, types and data, ready to attach to an email.",
+  "Taken when the record could not be read: it does not exist, or the workflow may not read it.": "Taken when the record could not be read: it does not exist, or the workflow may not read it.",
+  "Taken when the record was read, whether or not it shows any images.": "Taken when the record was read, whether or not it shows any images.",
+  "The files the Markdown shows that are not in Files, each with the reason: not an image, too large, or not found in this project.": "The files the Markdown shows that are not in Files, each with the reason: not an image, too large, or not found in this project.",
+  "The kind of record whose Markdown shows the images: an incident, a note, an alert, and more.": "The kind of record whose Markdown shows the images: an incident, a note, an alert, and more.",
+  "The record to read. Usually the ID of the record that started this workflow, or one an earlier step found.": "The record to read. Usually the ID of the record that started this workflow, or one an earlier step found.",
+  "Why the record could not be read.": "Why the record could not be read."
 }
