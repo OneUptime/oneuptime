@@ -56,6 +56,7 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import { PRODUCT_ANALYTICS_DERIVED_METRICS } from "../../Types/Rum/ProductAnalyticsEvents";
 import { KUBERNETES_COST_METRICS } from "../../Types/Kubernetes/KubernetesCostMetrics";
+import { VMWARE_SWAP_RATE_METRICS } from "../../Types/VMware/VMwareSwapRates";
 import { SESSION_REPLAY_SIGNAL_SESSIONS_METRIC } from "../../Types/Rum/SessionReplaySignalMetric";
 import TelemetryIngestionBudgetMetricTypeUtil from "../../Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import TelemetryUsageMetricTypeUtil from "../../Utils/Telemetry/TelemetryUsageMetricType";
@@ -170,6 +171,13 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
  * The cost engine's own metrics the agent's collector scrapes
  * (node_total_hourly_cost and the rest) are ordinary metrics.
  *
+ * And the VMware swap rates (oneuptime.vmware.*, issue #11468): the VMware
+ * ingest writes them from the reports a vCenter already sent - vSphere's
+ * own counters where a probe read them, else worked out from the swapped
+ * amount - and only it can write them (isVMwareSwapRateMetricName). The
+ * probe's vcenter.vm.memory.swap_out.rate and the rest are what it sent, and
+ * are billed like any other metric.
+ *
  * And the count of sessions that hit each of an application's own signals
  * (oneuptime.rum.session.replay.signal.sessions, issue #6518): the replay
  * ingest counts it from recordings the project already sent, under the
@@ -186,6 +194,7 @@ export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> = [
   ...TelemetryUsageMetricTypeUtil.getAll(),
   ...PRODUCT_ANALYTICS_DERIVED_METRICS,
   ...KUBERNETES_COST_METRICS,
+  ...VMWARE_SWAP_RATE_METRICS,
   SESSION_REPLAY_SIGNAL_SESSIONS_METRIC,
 ];
 

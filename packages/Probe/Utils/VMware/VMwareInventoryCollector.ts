@@ -16,6 +16,7 @@ import {
   VMwareInventorySnapshot,
   VMwareResourcePool,
   VMwareResourcePoolQuickStats,
+  VMwareSwapRates,
   VMwareVirtualMachine,
   VMwareVsanMetric,
   VMwareVsanResults,
@@ -29,6 +30,11 @@ import {
   readRefValue,
   readString,
 } from "./VMwareInventory";
+import {
+  VSPHERE_SWAP_IN_RATE_COUNTER,
+  VSPHERE_SWAP_OUT_RATE_COUNTER,
+  toVSphereBytesPerSecond,
+} from "Common/Types/VMware/VMwareSwapRates";
 
 /*
  * Reads one vCenter's inventory and performance data the way the VMware
@@ -50,6 +56,15 @@ import {
  *     instead of failing every performance query;
  *   - a part that fails (vSAN not licensed, one datacenter's datastores)
  *     becomes a warning on the collection, never the end of it.
+ *
+ * And one thing the receiver does not read at all (#11468): how fast vSphere
+ * swaps each host's and powered-on VM's memory out and back in
+ * (mem.swapoutRate, mem.swapinRate). The receiver has no swap rate metric, so
+ * the agent's vCenters have their rates worked out from the swapped amount
+ * at ingest, which misses memory swapped out and read back between two
+ * reports. A probe asks vSphere, in a pass of its own: enough 20-second
+ * samples to cover the time since the previous collection, averaged, so a
+ * burst between two collections is not missed either.
  */
 
 export const COLLECTION_PAGE_SIZE: number = 500;
@@ -97,6 +112,44 @@ export const VM_PERF_COUNTERS: ReadonlyArray<string> = [
   "virtualDisk.read.average",
   "virtualDisk.write.average",
 ];
+
+/*
+ * The swap rate counters (#11468), asked of hosts and powered-on VMs apart
+ * from the counters above, because they are averaged over several samples
+ * where those take the newest one. vSphere defines both at statistics level
+ * 1, in kiloBytesPerSecond, for VMs and hosts (not for resource pools).
+ */
+export const SWAP_RATE_PERF_COUNTERS: ReadonlyArray<string> = [
+  VSPHERE_SWAP_OUT_RATE_COUNTER,
+  VSPHERE_SWAP_IN_RATE_COUNTER,
+];
+
+// One real-time sample covers this many seconds.
+export const REALTIME_SAMPLE_SECONDS: number = 20;
+
+/*
+ * At most this many samples are averaged: five minutes. A longer collection
+ * interval still reads swapping as it is now, and vCenter answers no more
+ * than it needs to.
+ */
+export const MAX_SWAP_RATE_SAMPLES: number = 15;
+
+// The samples that cover a collection interval: two minutes is six.
+export function getSwapRateSampleCount(
+  collectionIntervalInMinutes: number | null | undefined,
+): number {
+  const minutes: number =
+    typeof collectionIntervalInMinutes === "number" &&
+    Number.isFinite(collectionIntervalInMinutes) &&
+    collectionIntervalInMinutes > 0
+      ? collectionIntervalInMinutes
+      : 2;
+
+  return Math.min(
+    MAX_SWAP_RATE_SAMPLES,
+    Math.max(1, Math.ceil((minutes * 60) / REALTIME_SAMPLE_SECONDS)),
+  );
+}
 
 export const DATASTORE_PATHS: Array<string> = [
   "name",
@@ -183,7 +236,94 @@ export const VSAN_QUERY_LABELS: Record<string, Array<string>> = {
 export interface VMwareInventoryCollectorOptions {
   // Ask vSAN's performance service (skipped where vCenter has none).
   collectVsan: boolean;
+  /*
+   * How many 20-second samples of the swap rate counters to average:
+   * getSwapRateSampleCount of the vCenter's collection interval. Six (two
+   * minutes) when not said.
+   */
+  swapRateSampleCount?: number | undefined;
   now?: () => Date;
+}
+
+/*
+ * Each swap rate counter's samples for one host or VM, averaged and read in
+ * bytes per second by the unit vCenter declares for it. A sample vSphere
+ * marks as missing (-1) is no sample. Null when the entity carried neither
+ * counter, or no sample of either.
+ */
+export function readSwapRates(data: {
+  perf: PerfEntityMetric;
+  counterNames: Map<number, string>;
+  counterUnits: Map<number, string | null>;
+}): VMwareSwapRates | null {
+  const averageOf: (counterName: string) => number | null = (
+    counterName: string,
+  ): number | null => {
+    let total: number = 0;
+    let count: number = 0;
+
+    for (const series of data.perf.series) {
+      if (data.counterNames.get(series.counterId) !== counterName) {
+        continue;
+      }
+      // The whole host or VM; a mem counter has no other instance.
+      if (series.instance !== "" && series.instance !== "*") {
+        continue;
+      }
+
+      const unit: string | null =
+        data.counterUnits.get(series.counterId) ?? null;
+
+      for (const value of series.values) {
+        if (!Number.isFinite(value) || value < 0) {
+          continue;
+        }
+        const bytesPerSecond: number | null = toVSphereBytesPerSecond(
+          value,
+          unit,
+        );
+        if (bytesPerSecond === null) {
+          continue;
+        }
+        total += bytesPerSecond;
+        count++;
+      }
+    }
+
+    return count > 0 ? total / count : null;
+  };
+
+  const swapOutBytesPerSecond: number | null = averageOf(
+    VSPHERE_SWAP_OUT_RATE_COUNTER,
+  );
+  const swapInBytesPerSecond: number | null = averageOf(
+    VSPHERE_SWAP_IN_RATE_COUNTER,
+  );
+
+  if (swapOutBytesPerSecond === null && swapInBytesPerSecond === null) {
+    return null;
+  }
+
+  let sampledAt: Date | null = null;
+  for (const sample of data.perf.sampleInfo) {
+    const time: Date = new Date(sample.timestamp);
+    if (
+      !Number.isNaN(time.getTime()) &&
+      (sampledAt === null || time.getTime() > sampledAt.getTime())
+    ) {
+      sampledAt = time;
+    }
+  }
+
+  if (sampledAt === null) {
+    return null;
+  }
+
+  return {
+    swapOutBytesPerSecond,
+    swapInBytesPerSecond,
+    sampledAt,
+  };
 }
 
 // How many objects one performance query names (the receiver's batching).
@@ -383,10 +523,12 @@ export default class VMwareInventoryCollector {
 
     const counters: Array<PerfCounterInfo> = await this.readPerfCounters();
     const counterNames: Map<number, string> = new Map();
+    const counterUnits: Map<number, string | null> = new Map();
     const countersByName: Map<string, number> = new Map();
 
     for (const counter of counters) {
       counterNames.set(counter.key, counter.name);
+      counterUnits.set(counter.key, counter.unit);
       countersByName.set(counter.name, counter.key);
     }
 
@@ -403,6 +545,8 @@ export default class VMwareInventoryCollector {
         vms: new Map(),
         hostPerf: new Map(),
         vmPerf: new Map(),
+        hostSwapRates: new Map(),
+        vmSwapRates: new Map(),
         vsan: emptyVsanResults(),
       };
 
@@ -414,6 +558,8 @@ export default class VMwareInventoryCollector {
         vAppParentFolders: vAppParentFolders,
         vAppParentVApps: vAppParentVApps,
         countersByName: countersByName,
+        counterNames: counterNames,
+        counterUnits: counterUnits,
       });
 
       datacenters.push(datacenter);
@@ -485,6 +631,8 @@ export default class VMwareInventoryCollector {
     vAppParentFolders: Map<string, string | null>;
     vAppParentVApps: Map<string, string | null>;
     countersByName: Map<string, number>;
+    counterNames: Map<number, string>;
+    counterUnits: Map<number, string | null>;
   }): Promise<void> {
     const datacenter: VMwareDatacenter = data.datacenter;
 
@@ -575,6 +723,18 @@ export default class VMwareInventoryCollector {
       ),
       counterNames: HOST_PERF_COUNTERS,
       countersByName: data.countersByName,
+      kind: "hosts",
+    });
+
+    datacenter.hostSwapRates = await this.querySwapRates({
+      entities: Array.from(datacenter.hosts.values()).map(
+        (host: VMwareHost): MoRef => {
+          return host.ref;
+        },
+      ),
+      countersByName: data.countersByName,
+      counterNames: data.counterNames,
+      counterUnits: data.counterUnits,
       kind: "hosts",
     });
 
@@ -705,16 +865,26 @@ export default class VMwareInventoryCollector {
      * Real-time samples exist only for powered-on VMs; asking for the others
      * (and for templates) only loads vCenter to answer nothing.
      */
+    const poweredOnVms: Array<MoRef> = Array.from(datacenter.vms.values())
+      .filter((vm: VMwareVirtualMachine): boolean => {
+        return !vm.isTemplate && vm.powerState === "poweredOn";
+      })
+      .map((vm: VMwareVirtualMachine): MoRef => {
+        return vm.ref;
+      });
+
     datacenter.vmPerf = await this.queryRealtimePerf({
-      entities: Array.from(datacenter.vms.values())
-        .filter((vm: VMwareVirtualMachine): boolean => {
-          return !vm.isTemplate && vm.powerState === "poweredOn";
-        })
-        .map((vm: VMwareVirtualMachine): MoRef => {
-          return vm.ref;
-        }),
+      entities: poweredOnVms,
       counterNames: VM_PERF_COUNTERS,
       countersByName: data.countersByName,
+      kind: "virtual machines",
+    });
+
+    datacenter.vmSwapRates = await this.querySwapRates({
+      entities: poweredOnVms,
+      countersByName: data.countersByName,
+      counterNames: data.counterNames,
+      counterUnits: data.counterUnits,
       kind: "virtual machines",
     });
 
@@ -767,19 +937,62 @@ export default class VMwareInventoryCollector {
   }
 
   /*
-   * Real-time samples (20-second interval, the newest one) of the counters
-   * this vCenter defines, for the entities, in batches. A batch that fails
-   * because one of its objects went away is asked again without it; any
-   * other failure falls back to one query per object - the receiver's
-   * recovery, so one bad object never loses everyone's samples.
+   * The swap rates of the hosts or VMs (#11468), from their own pass of the
+   * swap rate counters: the samples since the previous collection
+   * (swapRateSampleCount), each entity's averaged by readSwapRates. An
+   * entity vSphere returned no sample for is left out.
+   */
+  private async querySwapRates(data: {
+    entities: Array<MoRef>;
+    countersByName: Map<string, number>;
+    counterNames: Map<number, string>;
+    counterUnits: Map<number, string | null>;
+    kind: string;
+  }): Promise<Map<string, VMwareSwapRates>> {
+    const rates: Map<string, VMwareSwapRates> = new Map();
+
+    const samples: Map<string, PerfEntityMetric> = await this.queryRealtimePerf(
+      {
+        entities: data.entities,
+        counterNames: SWAP_RATE_PERF_COUNTERS,
+        countersByName: data.countersByName,
+        kind: data.kind,
+        maxSample:
+          this.options.swapRateSampleCount ?? getSwapRateSampleCount(null),
+      },
+    );
+
+    for (const [ref, perf] of samples) {
+      const read: VMwareSwapRates | null = readSwapRates({
+        perf: perf,
+        counterNames: data.counterNames,
+        counterUnits: data.counterUnits,
+      });
+      if (read) {
+        rates.set(ref, read);
+      }
+    }
+
+    return rates;
+  }
+
+  /*
+   * Real-time samples (20-second interval, the newest one unless maxSample
+   * asks for more) of the counters this vCenter defines, for the entities,
+   * in batches. A batch that fails because one of its objects went away is
+   * asked again without it; any other failure falls back to one query per
+   * object - the receiver's recovery, so one bad object never loses
+   * everyone's samples.
    */
   private async queryRealtimePerf(data: {
     entities: Array<MoRef>;
     counterNames: ReadonlyArray<string>;
     countersByName: Map<string, number>;
     kind: string;
+    maxSample?: number | undefined;
   }): Promise<Map<string, PerfEntityMetric>> {
     const results: Map<string, PerfEntityMetric> = new Map();
+    const maxSample: number = Math.max(1, Math.floor(data.maxSample ?? 1));
 
     if (data.entities.length === 0 || data.countersByName.size === 0) {
       return results;
@@ -821,7 +1034,7 @@ export default class VMwareInventoryCollector {
                 entity: entity,
                 counterIds: counterIds,
                 intervalId: REALTIME_INTERVAL_ID,
-                maxSample: 1,
+                maxSample: maxSample,
               };
             }),
           );
@@ -858,7 +1071,7 @@ export default class VMwareInventoryCollector {
                     entity: entity,
                     counterIds: counterIds,
                     intervalId: REALTIME_INTERVAL_ID,
-                    maxSample: 1,
+                    maxSample: maxSample,
                   },
                 ]);
 

@@ -1,14 +1,13 @@
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import {
-  VCENTER_METRICS,
-  VCenterMetricDefinition,
-} from "./VCenterMetricDefinitions";
+import { VCenterMetricDefinition } from "./VCenterMetricDefinitions";
+import { getVCenterMetricDefinition } from "./OneUptimeVCenterMetricDefinitions";
 import {
   VMwareComputeResource,
   VMwareDatacenter,
   VMwareHost,
   VMwareInventorySnapshot,
   VMwareResourcePool,
+  VMwareSwapRates,
   VMwareVirtualMachine,
   VMwareVsanMetric,
 } from "./VMwareInventory";
@@ -30,6 +29,12 @@ import { PerfEntityMetric, PerfSeries } from "./VSphereSoapClient";
  * a property vSphere did not return) or divide by zero, this leaves the
  * datapoint out instead - except the few the snapshot scan's powered-on
  * inference relies on, which are emitted as the receiver emits them.
+ *
+ * One addition, on purpose (#11468): how fast vSphere swaps each host's and
+ * powered-on VM's memory out and back in (vcenter.host.memory.swap_out.rate
+ * and the rest, OneUptimeVCenterMetricDefinitions). The receiver cannot read
+ * them, so only a probe-collected vCenter has them; ingest works the rates
+ * out from the swapped amount for the agent's.
  */
 
 export const VMWARE_PROBE_SCOPE_NAME: string = "oneuptime-probe-vmware";
@@ -116,7 +121,7 @@ class ResourceMetricsBuilder {
     attributes: Array<[string, AttributeValue]> = [],
   ): void {
     const definition: VCenterMetricDefinition | undefined =
-      VCENTER_METRICS[name];
+      getVCenterMetricDefinition(name);
 
     if (
       !definition ||
@@ -692,6 +697,12 @@ export default class VMwareOtlpBuilder {
       this.recordPerf(builder, perf, "host");
     }
 
+    this.recordSwapRates(
+      builder,
+      datacenter.hostSwapRates.get(host.ref.value),
+      "host",
+    );
+
     if (host.vsanNodeUuid) {
       const vsan: Array<VMwareVsanMetric> | undefined =
         datacenter.vsan.hostsByUuid.get(host.vsanNodeUuid);
@@ -856,6 +867,12 @@ export default class VMwareOtlpBuilder {
         this.recordPerf(builder, perf, "vm");
       }
 
+      this.recordSwapRates(
+        builder,
+        datacenter.vmSwapRates.get(vm.ref.value),
+        "vm",
+      );
+
       if (vm.instanceUuid) {
         const vsan: Array<VMwareVsanMetric> | undefined =
           datacenter.vsan.vmsByUuid.get(vm.instanceUuid);
@@ -983,6 +1000,36 @@ export default class VMwareOtlpBuilder {
     builder.record("vcenter.datacenter.memory.limit", stats.memoryLimit, now);
 
     this.emit(builder, [["vcenter.datacenter.name", datacenter.name]]);
+  }
+
+  /*
+   * How fast vSphere swapped the host's or VM's memory since the previous
+   * collection (#11468): one point per direction, in bytes per second, at the
+   * newest sample's time. OneUptime's addition: the receiver has no such
+   * metric (OneUptimeVCenterMetricDefinitions).
+   */
+  private recordSwapRates(
+    builder: ResourceMetricsBuilder,
+    rates: VMwareSwapRates | undefined,
+    kind: "host" | "vm",
+  ): void {
+    if (!rates) {
+      return;
+    }
+
+    const time: string = toUnixNano(rates.sampledAt);
+    const prefix: string = kind === "host" ? "vcenter.host" : "vcenter.vm";
+
+    builder.record(
+      `${prefix}.memory.swap_out.rate`,
+      rates.swapOutBytesPerSecond,
+      time,
+    );
+    builder.record(
+      `${prefix}.memory.swap_in.rate`,
+      rates.swapInBytesPerSecond,
+      time,
+    );
   }
 
   /*

@@ -2,6 +2,7 @@ import ColumnLength from "../../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import { VMwareResourceKind } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
+import { VMwareSwapRateCounterMetric } from "../../../Types/VMware/VMwareSwapRates";
 import logger from "../Logger";
 import crypto from "crypto";
 
@@ -68,6 +69,12 @@ export const VMWARE_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "vcenter.host.memory.usage",
   "vcenter.host.memory.capacity",
   "vcenter.host.memory.utilization",
+  /*
+   * vSphere's own swap rates (#11468): only a probe sends them, the receiver
+   * has none (Common/Types/VMware/VMwareSwapRates).
+   */
+  VMwareSwapRateCounterMetric.HostSwapOut,
+  VMwareSwapRateCounterMetric.HostSwapIn,
   // Virtual machine (and VM template: vcenter.vm.disk.usage only)
   "vcenter.vm.cpu.utilization",
   "vcenter.vm.cpu.usage",
@@ -76,6 +83,8 @@ export const VMWARE_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "vcenter.vm.memory.utilization",
   "vcenter.vm.memory.ballooned",
   "vcenter.vm.memory.swapped",
+  VMwareSwapRateCounterMetric.VirtualMachineSwapOut,
+  VMwareSwapRateCounterMetric.VirtualMachineSwapIn,
   "vcenter.vm.disk.usage",
   "vcenter.vm.disk.utilization",
   // Datastore
@@ -181,6 +190,14 @@ export interface VMwareResourceBufferEntry extends VMwareResourceIdentity {
   cpuReadinessPercent: number | null;
   memoryBalloonedBytes: number | null;
   memorySwappedBytes: number | null;
+  /*
+   * vSphere's own swap rates, as a probe reads them (#11468), in bytes per
+   * second; null when the report carries none - every report of the VMware
+   * agent, whose receiver has no swap rate. Ingest then works them out from
+   * memorySwappedBytes (VMwareResourceService.bulkUpdateLatestMetrics).
+   */
+  memorySwapOutBytesPerSecond: number | null;
+  memorySwapInBytesPerSecond: number | null;
   // Summed counts (Cluster / Datacenter rows).
   hostCount: VMwareSummedCount | null;
   effectiveHostCount: VMwareSummedCount | null;
@@ -255,6 +272,9 @@ export interface VMwareResourceLatestMetricSnapshot {
   cpuReadinessPercent: number | null;
   memoryBalloonedBytes: number | null;
   memorySwappedBytes: number | null;
+  // vSphere's own swap rates where the report carries them (#11468).
+  memorySwapOutBytesPerSecond: number | null;
+  memorySwapInBytesPerSecond: number | null;
   hostCount: number | null;
   effectiveHostCount: number | null;
   poweredOnHostCount: number | null;
@@ -678,6 +698,8 @@ function emptyPatch(
     cpuReadinessPercent: null,
     memoryBalloonedBytes: null,
     memorySwappedBytes: null,
+    memorySwapOutBytesPerSecond: null,
+    memorySwapInBytesPerSecond: null,
     hostCount: null,
     effectiveHostCount: null,
     poweredOnHostCount: null,
@@ -706,6 +728,11 @@ function mebibytesToBytes(value: number): number {
 
 function wholeCount(value: number): number {
   return Math.max(0, Math.trunc(value));
+}
+
+// A rate is never below 0; a negative one is vSphere's "no sample".
+function nonNegative(value: number): number | null {
+  return value >= 0 ? value : null;
 }
 
 /*
@@ -842,6 +869,14 @@ export function bufferVMwareSnapshotMetric(data: {
       patch.latestMemoryPercent = rawValue;
       break;
     }
+    case VMwareSwapRateCounterMetric.HostSwapOut: {
+      patch.memorySwapOutBytesPerSecond = nonNegative(rawValue);
+      break;
+    }
+    case VMwareSwapRateCounterMetric.HostSwapIn: {
+      patch.memorySwapInBytesPerSecond = nonNegative(rawValue);
+      break;
+    }
 
     // ---- Virtual machine ------------------------------------------
     case "vcenter.vm.cpu.utilization": {
@@ -876,6 +911,16 @@ export function bufferVMwareSnapshotMetric(data: {
     }
     case "vcenter.vm.memory.swapped": {
       patch.memorySwappedBytes = mebibytesToBytes(rawValue);
+      patch.sawNonCpuMetric = true;
+      break;
+    }
+    case VMwareSwapRateCounterMetric.VirtualMachineSwapOut: {
+      patch.memorySwapOutBytesPerSecond = nonNegative(rawValue);
+      patch.sawNonCpuMetric = true;
+      break;
+    }
+    case VMwareSwapRateCounterMetric.VirtualMachineSwapIn: {
+      patch.memorySwapInBytesPerSecond = nonNegative(rawValue);
       patch.sawNonCpuMetric = true;
       break;
     }
@@ -1147,6 +1192,8 @@ export function foldVMwareResourceSnapshot(data: {
     | "cpuReadinessPercent"
     | "memoryBalloonedBytes"
     | "memorySwappedBytes"
+    | "memorySwapOutBytesPerSecond"
+    | "memorySwapInBytesPerSecond"
   > = [
     "latestCpuPercent",
     "latestCpuMhz",
@@ -1162,6 +1209,8 @@ export function foldVMwareResourceSnapshot(data: {
     "cpuReadinessPercent",
     "memoryBalloonedBytes",
     "memorySwappedBytes",
+    "memorySwapOutBytesPerSecond",
+    "memorySwapInBytesPerSecond",
   ];
   for (const field of metricFields) {
     if (patch[field] !== null && newer) {
@@ -1322,6 +1371,8 @@ export function deriveVMwareResourceLatestMetric(
     cpuReadinessPercent: entry.cpuReadinessPercent,
     memoryBalloonedBytes: entry.memoryBalloonedBytes,
     memorySwappedBytes: entry.memorySwappedBytes,
+    memorySwapOutBytesPerSecond: entry.memorySwapOutBytesPerSecond,
+    memorySwapInBytesPerSecond: entry.memorySwapInBytesPerSecond,
     hostCount: countValue(entry.hostCount),
     effectiveHostCount: countValue(entry.effectiveHostCount),
     poweredOnHostCount: countValue(entry.poweredOnHostCount),

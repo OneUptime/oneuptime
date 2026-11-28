@@ -875,12 +875,16 @@ export default class VMwareResource extends BaseModel {
   public memorySwappedBytes?: number = undefined;
 
   /*
-   * Whether the host is swapping now (#11157). Neither collector sends a
-   * swap rate - the vcenter receiver has none, and the probe sends what it
-   * sends - so ingest works both out from Memory Swapped Bytes: how much it
-   * grew (swapped out) or shrank (read back in) since the row's previous
-   * report, per second. NULL until two reports can be compared: the first,
-   * and one more than VMWARE_SWAP_RATE_MAX_GAP_SECONDS after the one before.
+   * Whether the host is swapping now (#11157, #11468). A probe reads
+   * vSphere's own rates (mem.swapoutRate, mem.swapinRate) for a VM and an
+   * ESXi host, and a report that carries them is stored as it is. The
+   * VMware agent's vcenter receiver has no swap rate, and vSphere has none
+   * for a resource pool, so otherwise ingest works both out from Memory
+   * Swapped Bytes: how much it grew (swapped out) or shrank (read back in)
+   * since the row's previous report, per second. Worked out, they are NULL
+   * until two reports can be compared: the first, and one more than
+   * VMWARE_SWAP_RATE_MAX_GAP_SECONDS after the one before. Memory Swap Rate
+   * Source says which a row holds.
    */
   @ColumnAccessControl({
     create: [],
@@ -893,7 +897,7 @@ export default class VMwareResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Memory Swap Out Bytes Per Second",
     description:
-      "How fast the host swapped this VM's or resource pool's memory out to disk between its last two reports: the growth of its swapped memory, per second. 0 while nothing is swapped out.",
+      "How fast the host swaps this VM's, ESXi host's or resource pool's memory out to disk, per second: vSphere's mem.swapoutRate where a probe reads it, else the growth of its swapped memory between its last two reports. 0 while nothing is swapped out.",
   })
   @Column({
     nullable: true,
@@ -930,7 +934,7 @@ export default class VMwareResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Memory Swap In Bytes Per Second",
     description:
-      "How fast the guest read this VM's or resource pool's swapped memory back from the host's swap file between its last two reports, per second. 0 while nothing is read back.",
+      "How fast swapped memory of this VM, ESXi host or resource pool is read back from the swap file, per second: vSphere's mem.swapinRate where a probe reads it, else the shrinking of its swapped memory between its last two reports. 0 while nothing is read back.",
   })
   @Column({
     nullable: true,
@@ -955,6 +959,33 @@ export default class VMwareResource extends BaseModel {
     },
   })
   public memorySwapInBytesPerSecond?: number = undefined;
+
+  /*
+   * Where the swap rates above came from (#11468): "vSphere", its own
+   * counters, which a probe reads; or "Derived", worked out from the
+   * swapped amount between two reports, which misses memory swapped out and
+   * read back between them. NULL while neither rate is known.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Memory Swap Rate Source",
+    description:
+      "Where the swap rates came from: vSphere (its own mem.swapoutRate and mem.swapinRate counters, which a probe reads) or Derived (worked out from the change in swapped memory between two reports, which misses memory swapped out and read back between them).",
+    example: "Derived",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public memorySwapRateSource?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

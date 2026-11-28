@@ -96,6 +96,7 @@ import {
 import StorageSystemUtil from "../../StorageArray/StorageSystemUtil";
 import {
   VMwareAlertTemplate,
+  VMwareAlertTemplateArgs,
   getAllVMwareAlertTemplates,
 } from "../VMwareAlertTemplates";
 import {
@@ -631,21 +632,48 @@ function getAllPossibleOpenStackRecommendations(): Array<MonitorRecommendation> 
 
 function getVMwareRecommendations(): Array<MonitorRecommendation> {
   return getAllVMwareAlertTemplates().map((template: VMwareAlertTemplate) => {
-    return normalize({
-      resourceType: MonitorRecommendationResourceType.VMware,
-      monitorType: MonitorType.VMware,
-      template: template,
-      getMonitorStep: (args: MonitorRecommendationArgs) => {
-        return template.getMonitorStep({
-          vcenterIdentifier: args.resourceIdentifier,
-          onlineMonitorStatusId: args.onlineMonitorStatusId,
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-          defaultAlertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
-        });
-      },
-    });
+    const toTemplateArgs: (
+      args: MonitorRecommendationArgs,
+    ) => VMwareAlertTemplateArgs = (
+      args: MonitorRecommendationArgs,
+    ): VMwareAlertTemplateArgs => {
+      return {
+        vcenterIdentifier: args.resourceIdentifier,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      };
+    };
+
+    const getEquivalentMonitorSteps:
+      | ((args: VMwareAlertTemplateArgs) => Array<MonitorStep>)
+      | undefined = template.getEquivalentMonitorSteps;
+
+    return {
+      ...normalize({
+        resourceType: MonitorRecommendationResourceType.VMware,
+        monitorType: MonitorType.VMware,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep(toTemplateArgs(args));
+        },
+      }),
+      /*
+       * A monitor made from the version before swapping was read as a rate
+       * (#11468) is still this recommendation: its page offers the update.
+       */
+      ...(getEquivalentMonitorSteps
+        ? {
+            getEquivalentMonitorSteps: (
+              args: MonitorRecommendationArgs,
+            ): Array<MonitorStep> => {
+              return getEquivalentMonitorSteps(toTemplateArgs(args));
+            },
+          }
+        : {}),
+    };
   });
 }
 

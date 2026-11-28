@@ -17,6 +17,7 @@ import {
   VMwareHealthRules,
   isPastVMwareHealthThreshold,
 } from "Common/Types/VMware/VMwareHealthRules";
+import { VMwareSwapRateSource } from "Common/Types/VMware/VMwareSwapRates";
 import {
   ResourceAttentionFact,
   ResourceAttentionItem,
@@ -65,10 +66,12 @@ import { VMWARE_METRIC_STALE_MS } from "./VMwareHostData";
  * much of a VM's memory sits in the host's swap file, and ESXi leaves a page
  * there until the guest touches it: a VM keeps a few MiB "swapped" for weeks
  * after the pressure that put them there has gone. Only the host swapping
- * memory out now is real memory pressure, and critical. Ingest works out
- * how fast the amount grew or shrank since the previous report
- * (memorySwapOutBytesPerSecond, memorySwapInBytesPerSecond), as no
- * collector sends a swap rate.
+ * memory out now is real memory pressure, and critical. The rates
+ * (memorySwapOutBytesPerSecond, memorySwapInBytesPerSecond) are vSphere's
+ * own where a probe collects the vCenter, and otherwise worked out at ingest
+ * from how fast the amount grew or shrank since the previous report - the
+ * VMware agent's receiver has no swap rate (#11468). The row says which
+ * (memorySwapRateSource), and a VM's page says it too.
  *
  * Every threshold is one a project can change on VMware > Settings > Health
  * Rules (Common/Types/VMware/VMwareHealthRules), or turn off; each function
@@ -451,8 +454,10 @@ export function formatVMwareReasonRate(bytesPerSecond: number): string {
 
 /*
  * How a VM's or a resource pool's swapped memory moves now (#11157): out to
- * the host's swap file, back in, neither, or not known yet - the rates need
- * two reports to compare (VMwareResourceService.bulkUpdateLatestMetrics).
+ * the host's swap file, back in, neither, or not known yet - worked out, the
+ * rates need two reports to compare
+ * (VMwareResourceService.bulkUpdateLatestMetrics) - and where the rates came
+ * from (#11468): vSphere's own counters, or worked out between two reports.
  */
 export interface VMwareSwapActivity {
   swappedBytes: number | null;
@@ -460,6 +465,17 @@ export interface VMwareSwapActivity {
   swapInBytesPerSecond: number | null;
   // Whether anything is known to move: false while both rates are 0.
   isKnownIdle: boolean;
+  // Null while no rate is known, or for a row from before #11468.
+  source: VMwareSwapRateSource | null;
+}
+
+export function getVMwareSwapRateSource(
+  value: unknown,
+): VMwareSwapRateSource | null {
+  return value === VMwareSwapRateSource.VSphere ||
+    value === VMwareSwapRateSource.Derived
+    ? (value as VMwareSwapRateSource)
+    : null;
 }
 
 export function getVMwareSwapActivity(
@@ -468,6 +484,7 @@ export function getVMwareSwapActivity(
     | "memorySwappedBytes"
     | "memorySwapOutBytesPerSecond"
     | "memorySwapInBytesPerSecond"
+    | "memorySwapRateSource"
   >,
 ): VMwareSwapActivity {
   const swapOut: number | null = toVMwareNumber(
@@ -479,6 +496,10 @@ export function getVMwareSwapActivity(
     swapOutBytesPerSecond: swapOut,
     swapInBytesPerSecond: swapIn,
     isKnownIdle: swapOut === 0 && swapIn === 0,
+    source:
+      swapOut === null && swapIn === null
+        ? null
+        : getVMwareSwapRateSource(row.memorySwapRateSource),
   };
 }
 

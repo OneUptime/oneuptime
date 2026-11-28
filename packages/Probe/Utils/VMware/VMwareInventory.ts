@@ -119,6 +119,19 @@ export interface VMwareVsanResults {
   vmsByUuid: Map<string, Array<VMwareVsanMetric>>;
 }
 
+/*
+ * How fast vSphere swapped an ESXi host's or a VM's memory (#11468): the
+ * average of its mem.swapoutRate and mem.swapinRate real-time samples since
+ * the previous collection, in bytes per second, and when the newest of them
+ * was taken. A rate is null where vCenter has no such counter, declares a
+ * unit it cannot be read in, or returned no sample of it.
+ */
+export interface VMwareSwapRates {
+  swapOutBytesPerSecond: number | null;
+  swapInBytesPerSecond: number | null;
+  sampledAt: Date;
+}
+
 export interface VMwareDatacenter {
   ref: MoRef;
   name: string;
@@ -129,6 +142,9 @@ export interface VMwareDatacenter {
   vms: Map<string, VMwareVirtualMachine>;
   hostPerf: Map<string, PerfEntityMetric>;
   vmPerf: Map<string, PerfEntityMetric>;
+  // By managed object id; only the hosts and VMs vSphere returned samples for.
+  hostSwapRates: Map<string, VMwareSwapRates>;
+  vmSwapRates: Map<string, VMwareSwapRates>;
   vsan: VMwareVsanResults;
 }
 

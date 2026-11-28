@@ -29,6 +29,10 @@ import {
   KUBERNETES_COST_METRIC_NAME_PREFIX,
   isKubernetesCostMetricName,
 } from "../../Types/Kubernetes/KubernetesCostMetrics";
+import {
+  VMWARE_SWAP_RATE_METRIC_NAME_PREFIX,
+  isVMwareSwapRateMetricName,
+} from "../../Types/VMware/VMwareSwapRates";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -73,6 +77,13 @@ export class Service extends DatabaseService<Model> {
     if (typeof name === "string" && isKubernetesCostMetricName(name)) {
       throw new BadDataException(
         `Metric names that start with "${KUBERNETES_COST_METRIC_NAME_PREFIX}" are reserved for OneUptime's Kubernetes cost metrics. Choose another output metric name.`,
+      );
+    }
+
+    // And the VMware swap rates the VMware ingest writes (#11468).
+    if (typeof name === "string" && isVMwareSwapRateMetricName(name)) {
+      throw new BadDataException(
+        `Metric names that start with "${VMWARE_SWAP_RATE_METRIC_NAME_PREFIX}" are reserved for OneUptime's VMware swap rate metrics. Choose another output metric name.`,
       );
     }
 

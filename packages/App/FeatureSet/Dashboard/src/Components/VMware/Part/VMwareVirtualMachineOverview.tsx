@@ -7,7 +7,8 @@ import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommen
 import ObjectID from "Common/Types/ObjectID";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { VMwareSwapRateSource } from "Common/Types/VMware/VMwareSwapRates";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
@@ -92,6 +93,38 @@ export function getSwappingNowText(
     return (
       translator.translateText("None: what is swapped is from earlier") ||
       "None: what is swapped is from earlier"
+    );
+  }
+  return null;
+}
+
+export const SWAP_RATE_MEASURED_BY_VSPHERE: string = translationKey(
+  "Measured by vSphere",
+);
+export const SWAP_RATE_WORKED_OUT: string = translationKey(
+  "Worked out from the last two reports",
+);
+
+/*
+ * Where Swapping Now's rates came from (#11468), under it: vSphere's own
+ * counters, which a probe reads, or worked out from the swapped amount of
+ * the last two reports, which is all the VMware agent can send - and which
+ * misses memory swapped out and read back in between them. Nothing for a
+ * row that does not say.
+ */
+export function getSwapRateSourceText(
+  source: VMwareSwapRateSource | null,
+  translator: Translator,
+): string | null {
+  if (source === VMwareSwapRateSource.VSphere) {
+    return (
+      translator.translateText(SWAP_RATE_MEASURED_BY_VSPHERE) ||
+      SWAP_RATE_MEASURED_BY_VSPHERE
+    );
+  }
+  if (source === VMwareSwapRateSource.Derived) {
+    return (
+      translator.translateText(SWAP_RATE_WORKED_OUT) || SWAP_RATE_WORKED_OUT
     );
   }
   return null;
@@ -287,10 +320,26 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
     translator,
   );
   if (swappingNow) {
+    const sourceText: string | null = getSwapRateSourceText(
+      swapActivity?.source || null,
+      translator,
+    );
     detailRows.push({
       key: "swapping",
       label: "Swapping Now",
-      value: swappingNow,
+      value: sourceText ? (
+        <span className="flex flex-col">
+          <span>{swappingNow}</span>
+          <span
+            className="text-xs text-gray-500"
+            data-testid="vmware-vm-swap-rate-source"
+          >
+            {sourceText}
+          </span>
+        </span>
+      ) : (
+        swappingNow
+      ),
       description: VMWARE_METRIC_DESCRIPTIONS.vmMemorySwapping,
     });
   }

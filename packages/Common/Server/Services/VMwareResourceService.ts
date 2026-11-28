@@ -4,6 +4,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
+import { VMwareResourceKind } from "../../Types/Monitor/MonitorStepVMwareMonitor";
+import { VMwareSwapRateSource } from "../../Types/VMware/VMwareSwapRates";
 import {
   truncateLongText,
   truncateShortText,
@@ -95,6 +97,13 @@ export interface VMwareResourceLatestMetric {
   cpuReadinessPercent: number | null;
   memoryBalloonedBytes: number | null;
   memorySwappedBytes: number | null;
+  /*
+   * vSphere's own swap rates, where the report carries them (a probe's,
+   * #11468), in bytes per second. Null otherwise: the rates are then worked
+   * out from memorySwappedBytes (swapRateSql).
+   */
+  memorySwapOutBytesPerSecond: number | null;
+  memorySwapInBytesPerSecond: number | null;
   hostCount: number | null;
   effectiveHostCount: number | null;
   poweredOnHostCount: number | null;
@@ -109,6 +118,21 @@ export interface VMwareResourceLatestMetric {
   warningHostCount: number | null;
   criticalVmCount: number | null;
   criticalClusterCount: number | null;
+  observedAt: Date;
+}
+
+/*
+ * The swap rates a VM's or a resource pool's row holds once a report was
+ * written (#11468): vSphere's where the report carried them, else worked
+ * out from the swapped amount, and which. Ingest writes them as OneUptime's
+ * own metrics (Common/Types/VMware/VMwareSwapRates), at the report's time.
+ */
+export interface VMwareResourceSwapRateReading {
+  kind: string;
+  externalId: string;
+  swapOutBytesPerSecond: number | null;
+  swapInBytesPerSecond: number | null;
+  source: VMwareSwapRateSource;
   observedAt: Date;
 }
 
@@ -136,46 +160,81 @@ const STALE_DELETE_WARN_THRESHOLD: number = 100;
 
 /*
  * WHETHER THE HOST IS SWAPPING NOW, OR ONLY HOLDS WHAT IT SWAPPED BEFORE
- * (#11157).
+ * (#11157, #11468).
  *
  * vcenter.vm.memory.swapped is how much of a VM's memory sits in the host's
  * swap file, and ESXi leaves a swapped page there until the guest touches
  * it - so a VM keeps a few MiB "swapped" for weeks after the memory pressure
- * that put them there has gone. Whether the host is swapping now is a rate,
- * and neither collector sends one: the vcenter receiver has no swap-in or
- * swap-out metric, and the probe sends what the receiver sends. So ingest
- * works the rates out from the amount itself: how far it grew (the host
- * swapped memory out) or shrank (the guest read it back in) since the row's
- * previous report, per second, for a VM and a resource pool alike.
+ * that put them there has gone. Whether the host is swapping now is a rate.
+ *
+ * A probe reads vSphere's own rates (mem.swapoutRate, mem.swapinRate) and
+ * sends them (Common/Types/VMware/VMwareSwapRates); a report that carries
+ * them is stored as it is. The VMware agent's vcenter receiver has no swap
+ * rate, and vSphere has none for a resource pool, so otherwise ingest works
+ * the rates out from the amount itself: how far it grew (the host swapped
+ * memory out) or shrank (the guest read it back in) since the row's previous
+ * report, per second. That misses memory swapped out and read back between
+ * two reports, and shows the net only; the row says which it holds
+ * (memorySwapRateSource).
  *
  * Two reports further apart than this say nothing about now (the Overview
- * stops judging a part whose newest reading is older), so the rates are
- * NULL then, as they are on a row's first report.
+ * stops judging a part whose newest reading is older), so the worked-out
+ * rates are NULL then, as they are on a row's first report.
  */
 export const VMWARE_SWAP_RATE_MAX_GAP_SECONDS: number = 15 * 60;
+
+// The report carries vSphere's own rates, in either direction.
+const REPORT_CARRIES_SWAP_RATES: string = `(v."swapOutRate" IS NOT NULL OR v."swapInRate" IS NOT NULL)`;
+
+// Nothing to work a rate out against: a first report, or one past the gap.
+const NOTHING_TO_COMPARE: string = `(p."memorySwappedBytes" IS NULL
+            OR p."metricsUpdatedAt" IS NULL
+            OR v."observedAt" - p."metricsUpdatedAt" > make_interval(secs => ${VMWARE_SWAP_RATE_MAX_GAP_SECONDS}))`;
 
 /*
  * The SET expression of one swap rate in bulkUpdateLatestMetrics. Every
  * column of a SET reads the row as it was before the UPDATE, so `p` is the
- * previous report and `v` this one. `moved` is the bytes moved that way.
+ * previous report and `v` this one. `measured` is the report's own rate,
+ * `moved` the bytes moved that way.
  *
+ *   - the report carries vSphere's rates: this direction's, as it is (NULL
+ *     where vCenter sent the other direction only);
  *   - this report carries no swapped amount: the rate it had stays, as
  *     every other column's last-known value does (COALESCE);
  *   - the same report again (one observedAt): the rate it had stays;
  *   - nothing to compare with - a first report, or one past the gap: NULL;
  *   - otherwise: what moved, per second between the two reports.
  */
-function swapRateSql(data: { column: string; moved: string }): string {
+function swapRateSql(data: {
+  column: string;
+  measured: string;
+  moved: string;
+}): string {
   return `CASE
+          WHEN ${REPORT_CARRIES_SWAP_RATES} THEN v."${data.measured}"
           WHEN v."swap" IS NULL THEN p."${data.column}"
           WHEN v."observedAt" = p."metricsUpdatedAt" THEN p."${data.column}"
-          WHEN p."memorySwappedBytes" IS NULL
-            OR p."metricsUpdatedAt" IS NULL
-            OR v."observedAt" - p."metricsUpdatedAt" > make_interval(secs => ${VMWARE_SWAP_RATE_MAX_GAP_SECONDS})
-            THEN NULL
+          WHEN ${NOTHING_TO_COMPARE} THEN NULL
           ELSE (${data.moved})::numeric / EXTRACT(EPOCH FROM (v."observedAt" - p."metricsUpdatedAt"))::numeric
         END`;
 }
+
+// Where the rates swapRateSql leaves on the row came from, branch by branch.
+function swapRateSourceSql(): string {
+  return `CASE
+          WHEN ${REPORT_CARRIES_SWAP_RATES} THEN '${VMwareSwapRateSource.VSphere}'
+          WHEN v."swap" IS NULL THEN p."memorySwapRateSource"
+          WHEN v."observedAt" = p."metricsUpdatedAt" THEN p."memorySwapRateSource"
+          WHEN ${NOTHING_TO_COMPARE} THEN NULL
+          ELSE '${VMwareSwapRateSource.Derived}'
+        END`;
+}
+
+// The kinds whose swap rates OneUptime writes as its own metrics.
+const SWAP_RATE_METRIC_KINDS: ReadonlyArray<string> = [
+  VMwareResourceKind.VirtualMachine,
+  VMwareResourceKind.ResourcePool,
+];
 
 /*
  * Column order used by bulkUpsert() and its generated parameter tuples.
@@ -269,6 +328,101 @@ function dedupeByConflictKey<T extends { kind: string; externalId: string }>(
 
 function numericOrNull(value: number | null | undefined): number | null {
   return value !== null && value !== undefined ? value : null;
+}
+
+// A rate: a finite number from 0, or nothing.
+function nonNegativeOrNull(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : null;
+}
+
+function readRate(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const parsed: number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/*
+ * The swap rates the UPDATE left on the VM and resource pool rows it wrote
+ * (its RETURNING rows), for the parts this report said something about their
+ * swapping: a swapped amount, or vSphere's rates. A part whose report said
+ * nothing of it kept its rates from before, which are no reading of now.
+ */
+export function readSwapRateReadings(data: {
+  written: unknown;
+  reported: Array<VMwareResourceLatestMetric>;
+}): Array<VMwareResourceSwapRateReading> {
+  /*
+   * An UPDATE ... RETURNING through TypeORM answers [rows, affected] on
+   * Postgres; a bare array of rows is read too.
+   */
+  const rows: Array<Record<string, unknown>> = !Array.isArray(data.written)
+    ? []
+    : Array.isArray(data.written[0])
+      ? (data.written[0] as Array<Record<string, unknown>>)
+      : (data.written as Array<unknown>).filter(
+          (row: unknown): row is Record<string, unknown> => {
+            return Boolean(row) && typeof row === "object";
+          },
+        );
+
+  const reportedByKey: Map<string, VMwareResourceLatestMetric> = new Map();
+  for (const metric of data.reported) {
+    reportedByKey.set(`${metric.kind}|${metric.externalId}`, metric);
+  }
+
+  const readings: Array<VMwareResourceSwapRateReading> = [];
+
+  for (const row of rows) {
+    const kind: string = String(row["kind"] ?? "");
+    const externalId: string = String(row["externalId"] ?? "");
+
+    if (!SWAP_RATE_METRIC_KINDS.includes(kind)) {
+      continue;
+    }
+
+    const reported: VMwareResourceLatestMetric | undefined =
+      reportedByKey.get(`${kind}|${externalId}`);
+
+    if (
+      !reported ||
+      (reported.memorySwappedBytes === null &&
+        reported.memorySwapOutBytesPerSecond === null &&
+        reported.memorySwapInBytesPerSecond === null)
+    ) {
+      continue;
+    }
+
+    const source: unknown = row["memorySwapRateSource"];
+    const swapOutBytesPerSecond: number | null = readRate(
+      row["memorySwapOutBytesPerSecond"],
+    );
+    const swapInBytesPerSecond: number | null = readRate(
+      row["memorySwapInBytesPerSecond"],
+    );
+
+    if (
+      (source !== VMwareSwapRateSource.VSphere &&
+        source !== VMwareSwapRateSource.Derived) ||
+      (swapOutBytesPerSecond === null && swapInBytesPerSecond === null)
+    ) {
+      continue;
+    }
+
+    readings.push({
+      kind,
+      externalId,
+      swapOutBytesPerSecond,
+      swapInBytesPerSecond,
+      source: source as VMwareSwapRateSource,
+      observedAt: reported.observedAt,
+    });
+  }
+
+  return readings;
 }
 
 /**
@@ -428,18 +582,27 @@ export class Service extends DatabaseService<Model> {
    * reading rather than reading 0, and a host without
    * vcenter.host.memory.capacity enabled keeps maxMemoryBytes NULL.
    *
-   * The swap rates are worked out here, from the swapped amount this
-   * report carries and the one the row held (see swapRateSql), since no
-   * collector sends them.
+   * The swap rates are vSphere's where the report carries them (a probe's),
+   * and are otherwise worked out here, from the swapped amount this report
+   * carries and the one the row held (see swapRateSql), since the agent's
+   * receiver sends none.
+   *
+   * Returns the swap rates each VM's and resource pool's row now holds, for
+   * the parts whose report carried a swapped amount or vSphere's rates and
+   * whose rates are known: what ingest writes as OneUptime's swap rate
+   * metrics. A row a newer report already holds is not written, and not
+   * returned.
    */
   @CaptureSpan()
   public async bulkUpdateLatestMetrics(data: {
     projectId: ObjectID;
     vmwareVCenterId: ObjectID;
     metrics: Array<VMwareResourceLatestMetric>;
-  }): Promise<void> {
+  }): Promise<Array<VMwareResourceSwapRateReading>> {
+    const readings: Array<VMwareResourceSwapRateReading> = [];
+
     if (data.metrics.length === 0) {
-      return;
+      return readings;
     }
 
     /*
@@ -496,6 +659,7 @@ export class Service extends DatabaseService<Model> {
             `$${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::numeric, ` + // mem, maxMem, memEff, memPct
             `$${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::numeric, ` + // disk, maxDisk, diskPct
             `$${paramIndex++}::numeric, $${paramIndex++}::bigint, $${paramIndex++}::bigint, ` + // cpuReady, balloon, swap
+            `$${paramIndex++}::numeric, $${paramIndex++}::numeric, ` + // swapOutRate, swapInRate
             `$${paramIndex++}::integer, $${paramIndex++}::integer, $${paramIndex++}::integer, ` + // hostCnt, effHostCnt, onHostCnt
             `$${paramIndex++}::integer, $${paramIndex++}::integer, $${paramIndex++}::integer, ` + // vmCnt, onVmCnt, tmplCnt
             `$${paramIndex++}::integer, $${paramIndex++}::integer, ` + // dsCnt, clCnt
@@ -522,6 +686,8 @@ export class Service extends DatabaseService<Model> {
           numericOrNull(m.cpuReadinessPercent),
           bigintOrNull(m.memoryBalloonedBytes),
           bigintOrNull(m.memorySwappedBytes),
+          nonNegativeOrNull(m.memorySwapOutBytesPerSecond),
+          nonNegativeOrNull(m.memorySwapInBytesPerSecond),
           integerOrNull(m.hostCount),
           integerOrNull(m.effectiveHostCount),
           integerOrNull(m.poweredOnHostCount),
@@ -559,12 +725,15 @@ export class Service extends DatabaseService<Model> {
           "memorySwappedBytes" = COALESCE(v."swap", p."memorySwappedBytes"),
           "memorySwapOutBytesPerSecond" = ${swapRateSql({
             column: "memorySwapOutBytesPerSecond",
+            measured: "swapOutRate",
             moved: `GREATEST(v."swap" - p."memorySwappedBytes", 0)`,
           })},
           "memorySwapInBytesPerSecond" = ${swapRateSql({
             column: "memorySwapInBytesPerSecond",
+            measured: "swapInRate",
             moved: `GREATEST(p."memorySwappedBytes" - v."swap", 0)`,
           })},
+          "memorySwapRateSource" = ${swapRateSourceSql()},
           "hostCount" = COALESCE(v."hostCnt", p."hostCount"),
           "effectiveHostCount" = COALESCE(v."effHostCnt", p."effectiveHostCount"),
           "poweredOnHostCount" = COALESCE(v."onHostCnt", p."poweredOnHostCount"),
@@ -588,6 +757,7 @@ export class Service extends DatabaseService<Model> {
             "mem", "maxMem", "memEff", "memPct",
             "disk", "maxDisk", "diskPct",
             "cpuReady", "balloon", "swap",
+            "swapOutRate", "swapInRate",
             "hostCnt", "effHostCnt", "onHostCnt",
             "vmCnt", "onVmCnt", "tmplCnt", "dsCnt", "clCnt",
             "notRespHostCnt", "standbyHostCnt", "critHostCnt", "warnHostCnt",
@@ -600,10 +770,26 @@ export class Service extends DatabaseService<Model> {
           AND p."kind" = v."kind"
           AND p."externalId" = v."externalId"
           AND (p."metricsUpdatedAt" IS NULL OR v."observedAt" >= p."metricsUpdatedAt")
+        RETURNING
+          p."kind", p."externalId",
+          p."memorySwapOutBytesPerSecond", p."memorySwapInBytesPerSecond",
+          p."memorySwapRateSource"
       `;
 
-      await this.getRepository().manager.query(sql, params);
+      const written: unknown = await this.getRepository().manager.query(
+        sql,
+        params,
+      );
+
+      readings.push(
+        ...readSwapRateReadings({
+          written: written,
+          reported: chunk,
+        }),
+      );
     }
+
+    return readings;
   }
 
   /**

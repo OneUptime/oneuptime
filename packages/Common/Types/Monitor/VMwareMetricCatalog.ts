@@ -1,6 +1,10 @@
 import { VMwareResourceScope } from "./MonitorStepVMwareMonitor";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import { translationKey } from "../Translator";
+import {
+  VMwareSwapRateCounterMetric,
+  VMwareSwapRateMetric,
+} from "../VMware/VMwareSwapRates";
 
 export type VMwareMetricCategory =
   | "Datacenter"
@@ -375,6 +379,30 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
     unit: "%",
   },
   {
+    id: "vcenter-host-memory-swap-out-rate",
+    friendlyName: translationKey("Host Swap Out Rate"),
+    description: translationKey(
+      "How fast the ESXi host swaps memory out to its swap files, in bytes per second, from vSphere's own mem.swapoutRate counter averaged since the previous collection. Only a probe-collected vCenter has it: the VMware Agent's collector cannot read it.",
+    ),
+    metricName: VMwareSwapRateCounterMetric.HostSwapOut,
+    category: "Host",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: VMwareResourceScope.Host,
+    unit: "By/s",
+  },
+  {
+    id: "vcenter-host-memory-swap-in-rate",
+    friendlyName: translationKey("Host Swap In Rate"),
+    description: translationKey(
+      "How fast the ESXi host reads swapped memory back from its swap files, in bytes per second, from vSphere's own mem.swapinRate counter averaged since the previous collection. Only a probe-collected vCenter has it: the VMware Agent's collector cannot read it.",
+    ),
+    metricName: VMwareSwapRateCounterMetric.HostSwapIn,
+    category: "Host",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: VMwareResourceScope.Host,
+    unit: "By/s",
+  },
+  {
     id: "vcenter-host-network-packet-drop-rate",
     friendlyName: translationKey("Host Network Packet Drop Rate"),
     description: translationKey(
@@ -572,7 +600,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
     id: "vcenter-vm-memory-swapped",
     friendlyName: translationKey("VM Swapped Memory"),
     description: translationKey(
-      "Memory granted to the virtual machine from the ESXi host's swap file, in MiB. Host-level swapping is the last resort after ballooning and compression; any value above 0 means the VM is paying disk latency for RAM.",
+      "How much of the virtual machine's memory sits in the ESXi host's swap file, in MiB. ESXi keeps a swapped page there until the guest touches it, so a few MiB can stay for weeks after the memory pressure is gone: an amount is not swapping now. VM Swap Out Rate says whether the host is swapping now.",
     ),
     metricName: "vcenter.vm.memory.swapped",
     category: "Virtual Machine",
@@ -591,6 +619,30 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: VMwareResourceScope.VirtualMachine,
     unit: "KiBy",
+  },
+  {
+    id: "oneuptime-vmware-vm-memory-swap-out-rate",
+    friendlyName: translationKey("VM Swap Out Rate"),
+    description: translationKey(
+      "How fast the ESXi host swaps the virtual machine's memory out to disk, in bytes per second: whether the host is swapping now. vSphere's own mem.swapoutRate where a probe collects the vCenter; for a vCenter the VMware Agent collects, worked out from the growth of the VM's swapped memory between two reports, which can miss memory swapped out and read back in between. The `source` datapoint attribute says which (vsphere | derived).",
+    ),
+    metricName: VMwareSwapRateMetric.VirtualMachineSwapOut,
+    category: "Virtual Machine",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: VMwareResourceScope.VirtualMachine,
+    unit: "By/s",
+  },
+  {
+    id: "oneuptime-vmware-vm-memory-swap-in-rate",
+    friendlyName: translationKey("VM Swap In Rate"),
+    description: translationKey(
+      "How fast the virtual machine reads its swapped memory back from the host's swap file, in bytes per second. vSphere's own mem.swapinRate where a probe collects the vCenter; for a vCenter the VMware Agent collects, worked out from the shrinking of the VM's swapped memory between two reports. The `source` datapoint attribute says which (vsphere | derived).",
+    ),
+    metricName: VMwareSwapRateMetric.VirtualMachineSwapIn,
+    category: "Virtual Machine",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: VMwareResourceScope.VirtualMachine,
+    unit: "By/s",
   },
   {
     id: "vcenter-vm-memory-usage",
@@ -780,13 +832,37 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
     id: "vcenter-resource-pool-memory-swapped",
     friendlyName: translationKey("Resource Pool Swapped Memory"),
     description: translationKey(
-      "Memory granted to the VMs in the resource pool from the ESXi hosts' swap space, in MiB. Any value above 0 means at least one VM in the pool is being host-swapped.",
+      "How much memory of the VMs in the resource pool sits in the ESXi hosts' swap files, in MiB. ESXi keeps a swapped page there until the guest touches it, so an amount left from earlier pressure is not swapping now. Resource Pool Swap Out Rate says whether the hosts are swapping now.",
     ),
     metricName: "vcenter.resource_pool.memory.swapped",
     category: "Resource Pool",
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: VMwareResourceScope.ResourcePool,
     unit: "MiBy",
+  },
+  {
+    id: "oneuptime-vmware-resource-pool-memory-swap-out-rate",
+    friendlyName: translationKey("Resource Pool Swap Out Rate"),
+    description: translationKey(
+      "How fast the ESXi hosts swap the memory of the resource pool's VMs out to disk, in bytes per second: whether they are swapping now. Worked out from the growth of the pool's swapped memory between two reports - vSphere has no swap rate counter for a resource pool.",
+    ),
+    metricName: VMwareSwapRateMetric.ResourcePoolSwapOut,
+    category: "Resource Pool",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: VMwareResourceScope.ResourcePool,
+    unit: "By/s",
+  },
+  {
+    id: "oneuptime-vmware-resource-pool-memory-swap-in-rate",
+    friendlyName: translationKey("Resource Pool Swap In Rate"),
+    description: translationKey(
+      "How fast the resource pool's VMs read swapped memory back, in bytes per second, worked out from the shrinking of the pool's swapped memory between two reports.",
+    ),
+    metricName: VMwareSwapRateMetric.ResourcePoolSwapIn,
+    category: "Resource Pool",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: VMwareResourceScope.ResourcePool,
+    unit: "By/s",
   },
   {
     id: "vcenter-resource-pool-memory-usage",

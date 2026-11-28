@@ -14,6 +14,11 @@ import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepVMwareMonitor from "./MonitorStepVMwareMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { VMwareSwapRateMetric } from "../VMware/VMwareSwapRates";
+import {
+  VMWARE_LEGACY_SWAP_QUERIES,
+  VMwareLegacySwapQuery,
+} from "./VMwareLegacySwapMonitors";
 
 export type VMwareAlertTemplateCategory =
   | "Availability"
@@ -49,6 +54,15 @@ export interface VMwareAlertTemplate {
   category: VMwareAlertTemplateCategory;
   severity: VMwareAlertTemplateSeverity;
   getMonitorStep: (args: VMwareAlertTemplateArgs) => MonitorStep;
+  /*
+   * The steps a monitor made from an earlier version of the template has,
+   * and is still the template: the Recommendations count it as set up and
+   * never offer a second one (MonitorRecommendation.getEquivalentMonitorSteps).
+   * Its page offers the update (VMwareLegacySwapMonitors).
+   */
+  getEquivalentMonitorSteps?:
+    | ((args: VMwareAlertTemplateArgs) => Array<MonitorStep>)
+    | undefined;
 }
 
 /*
@@ -745,32 +759,133 @@ const vmMemoryBallooningTemplate: VMwareAlertTemplate = buildThresholdTemplate({
     "Triggers when a virtual machine reports non-zero ballooned memory for every minute of the monitoring window.",
 });
 
-const vmMemorySwappingTemplate: VMwareAlertTemplate = buildThresholdTemplate({
+/*
+ * SWAPPING NOW, NOT SWAPPED MEMORY LEFT FROM EARLIER (#11468).
+ *
+ * The template read vcenter.vm.memory.swapped > 0: how much of a VM's
+ * memory sits in the host's swap file. ESXi leaves a page there until the
+ * guest touches it, so a VM shows a few MiB "swapped" for weeks after the
+ * pressure that put them there has gone, and a monitor made from it paged
+ * on that for good. It now reads the rate the host swaps memory out at,
+ * OneUptime's oneuptime.vmware.vm.memory.swap_out.rate: vSphere's own
+ * mem.swapoutRate where a probe collects the vCenter, else worked out from
+ * the growth of the swapped amount between two reports, which is all the
+ * VMware agent can send (Common/Types/VMware/VMwareSwapRates). A lot of
+ * memory left in the swap file is a warning of its own (VM Swapped Memory
+ * High). Monitors made from the old version are not changed: their page
+ * offers the update (VMwareLegacySwapMonitors).
+ *
+ * The rate is written only while a VM's rate is known, so a VM that
+ * powers off, or whose reports stop, recovers: a gone series reads as 0.
+ */
+/*
+ * The version before #11468, kept only to know the monitors made from it:
+ * any swapped memory, above 0. Never offered.
+ */
+function legacySwapQuery(templateId: string): VMwareLegacySwapQuery {
+  return VMWARE_LEGACY_SWAP_QUERIES.find((query: VMwareLegacySwapQuery) => {
+    return query.templateId === templateId;
+  })!;
+}
+
+const legacyVmMemorySwappingQuery: VMwareLegacySwapQuery = legacySwapQuery(
+  "vmware-vm-memory-swapping",
+);
+
+const legacyVmMemorySwappingTemplate: VMwareAlertTemplate =
+  buildThresholdTemplate({
+    id: "vmware-vm-memory-swapping",
+    name: "VM Memory Swapping",
+    summary: "The host swaps a VM's memory to disk.",
+    description:
+      "Alert when a virtual machine's memory is being swapped to disk by the ESXi host for 5 minutes (vcenter.vm.memory.swapped > 0, one incident per VM).",
+    category: "Virtual Machine",
+    severity: "Critical",
+    metricName: legacyVmMemorySwappingQuery.swappedMetricName,
+    metricAlias: legacyVmMemorySwappingQuery.swappedAlias,
+    aggregationType: MetricsAggregationType.Max,
+    rollingTime: RollingTime.Past5Minutes,
+    groupByAttributeKey: VMwareGroupByKey.VirtualMachine,
+    fireFilterType: FilterType.GreaterThan,
+    fireValue: 0,
+    recoverFilterType: FilterType.EqualTo,
+    incidentTitle: (args: VMwareAlertTemplateArgs): string => {
+      return `[VMware] CRITICAL: VM Memory Swapping - ${args.monitorName}`;
+    },
+    incidentDescription:
+      "The ESXi host has been swapping a virtual machine's memory to disk for the whole evaluation window.",
+    criteriaName: legacyVmMemorySwappingQuery.legacyCriteriaName,
+    criteriaDescription: legacyVmMemorySwappingQuery.legacyCriteriaDescription,
+  });
+
+const vmMemorySwappingTemplate: VMwareAlertTemplate = {
+  ...buildThresholdTemplate({
   id: "vmware-vm-memory-swapping",
   name: "VM Memory Swapping",
-  summary: "The host swaps a VM's memory to disk.",
+  summary: "The host swaps a VM's memory out to disk for 5 minutes.",
   description:
-    "Alert when a virtual machine's memory is being swapped to disk by the ESXi host for 5 minutes (vcenter.vm.memory.swapped > 0, one incident per VM). Host-level swapping is the last resort after ballooning and compression: the guest is paying disk latency for RAM and does not know it.",
+    "Alert when the ESXi host keeps swapping a virtual machine's memory out to disk for 5 minutes (oneuptime.vmware.vm.memory.swap_out.rate > 0, one incident per VM). Memory ESXi left in the swap file from earlier pressure is not swapping and does not fire it. The rate is vSphere's own mem.swapoutRate where a probe collects the vCenter; for a vCenter the VMware Agent collects it is worked out from the growth of swapped memory between two reports, which can miss memory swapped out and read back in between. Host-level swapping is the last resort after ballooning and compression: the guest is paying disk latency for RAM and does not know it.",
   category: "Virtual Machine",
   severity: "Critical",
-  metricName: "vcenter.vm.memory.swapped",
-  metricAlias: "vm_memory_swapped",
-  // Max — any collection in the minute showing host-swapped pages trips it.
+  metricName: VMwareSwapRateMetric.VirtualMachineSwapOut,
+  metricAlias: legacyVmMemorySwappingQuery.rateAlias,
+  // Max - any report in the minute of the host swapping memory out trips it.
   aggregationType: MetricsAggregationType.Max,
   rollingTime: RollingTime.Past5Minutes,
   groupByAttributeKey: VMwareGroupByKey.VirtualMachine,
   fireFilterType: FilterType.GreaterThan,
   fireValue: 0,
   recoverFilterType: FilterType.EqualTo,
+  recoverWhenAbsent: true,
   incidentTitle: (args: VMwareAlertTemplateArgs): string => {
     return `[VMware] CRITICAL: VM Memory Swapping - ${args.monitorName}`;
   },
   incidentDescription:
-    "The ESXi host has been swapping a virtual machine's memory to disk for the whole evaluation window. Host swapping only happens once ballooning and memory compression are exhausted — the host is severely overcommitted, and this VM's memory accesses are now hitting disk latency without the guest OS knowing. Performance inside the guest collapses. See the affected resource on this alert for the VM name, then relieve the host immediately: migrate VMs off it with vMotion, power off non-essential VMs, or add memory capacity. Consider a memory reservation for this VM if it is latency-sensitive.",
-  criteriaName: "VM Memory Swapping - Swapped > 0",
-  criteriaDescription:
-    "Triggers when a virtual machine reports non-zero host-swapped memory for every minute of the monitoring window.",
-});
+    "The ESXi host has been swapping a virtual machine's memory out to disk for the whole evaluation window. Host swapping only happens once ballooning and memory compression are exhausted — the host is severely overcommitted, and this VM's memory accesses are now hitting disk latency without the guest OS knowing. Performance inside the guest collapses. See the affected resource on this alert for the VM name, then relieve the host immediately: migrate VMs off it with vMotion, power off non-essential VMs, or add memory capacity. Consider a memory reservation for this VM if it is latency-sensitive.",
+  criteriaName: legacyVmMemorySwappingQuery.criteriaName,
+  criteriaDescription: legacyVmMemorySwappingQuery.criteriaDescription,
+  }),
+  getEquivalentMonitorSteps: (
+    args: VMwareAlertTemplateArgs,
+  ): Array<MonitorStep> => {
+    return [legacyVmMemorySwappingTemplate.getMonitorStep(args)];
+  },
+};
+
+/*
+ * A lot of a VM's memory left in the host's swap file (#11468): not
+ * swapping now, but a guest that reads that much back stalls while it does.
+ * The health rules' Swapped Earlier warning is at the same 1 GiB.
+ */
+const vmSwappedMemoryHighTemplate: VMwareAlertTemplate =
+  buildThresholdTemplate({
+    id: "vmware-vm-swapped-memory-high",
+    name: "VM Swapped Memory High",
+    summary:
+      "More than 1 GiB of a VM's memory sits in the host's swap file for 5 minutes.",
+    description:
+      "Alert when more than 1 GiB (1,024 MiB) of a virtual machine's memory sits in the ESXi host's swap file for 5 minutes (vcenter.vm.memory.swapped > 1024 MiB, one incident per VM). ESXi keeps a swapped page there until the guest touches it, so this is memory left from earlier pressure rather than swapping now (VM Memory Swapping says that); but a guest that reads that much back stalls while it does. A few MiB left in the swap file are normal and do not fire it.",
+    category: "Virtual Machine",
+    severity: "Warning",
+    metricName: "vcenter.vm.memory.swapped",
+    metricAlias: "vm_swapped_memory",
+    aggregationType: MetricsAggregationType.Max,
+    rollingTime: RollingTime.Past5Minutes,
+    groupByAttributeKey: VMwareGroupByKey.VirtualMachine,
+    // The receiver reports it in MiB; pinned so the threshold stays 1 GiB.
+    legendUnit: "MiBy",
+    fireFilterType: FilterType.GreaterThan,
+    fireValue: 1024,
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+    incidentTitle: (args: VMwareAlertTemplateArgs): string => {
+      return `[VMware] VM Swapped Memory High (>1 GiB) - ${args.monitorName}`;
+    },
+    incidentDescription:
+      "More than 1 GiB of a virtual machine's memory has sat in the ESXi host's swap file for the whole evaluation window. The host is not necessarily swapping now - ESXi keeps a swapped page until the guest touches it - but when the guest does read that memory back, it waits on disk for every page. See the affected resource on this alert for the VM name, then check whether the host is still under memory pressure (VM Memory Swapping, the host's memory utilization). Once it is not, the swapped memory comes back as the guest uses it; migrating the VM with vMotion or restarting it brings it all back at once.",
+    criteriaName: "VM Swapped Memory High - Swapped > 1 GiB",
+    criteriaDescription:
+      "Triggers when more than 1 GiB of a virtual machine's memory sits in the host's swap file in every minute of the monitoring window.",
+  });
 
 const vmDiskLatencyHighTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vm-disk-latency-high",
@@ -1154,18 +1269,27 @@ const vsanCongestionTemplate: VMwareAlertTemplate = buildThresholdTemplate({
 
 // --- Resource pool template ---
 
-const resourcePoolMemorySwappedTemplate: VMwareAlertTemplate =
+/*
+ * Swapping now, as VM Memory Swapping (#11468): the rate the hosts swap the
+ * pool's memory out at, which ingest always works out from the pool's
+ * swapped amount - vSphere has no swap rate counter for a resource pool.
+ * The template's id is the one it always had, so a dismissed
+ * recommendation stays dismissed.
+ */
+const legacyResourcePoolMemorySwappedQuery: VMwareLegacySwapQuery =
+  legacySwapQuery("vmware-resource-pool-memory-swapped");
+
+const legacyResourcePoolMemorySwappedTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-resource-pool-memory-swapped",
     name: "Resource Pool Memory Swapped",
     summary: "The host swaps memory of VMs in a resource pool to disk.",
     description:
-      "Alert when the VMs in a resource pool are being host-swapped for 5 minutes (vcenter.resource_pool.memory.swapped > 0, one incident per resource pool, identified by its inventory path). Swapping inside a pool usually means the pool's memory limit or its shares are too low for what it is running.",
+      "Alert when the VMs in a resource pool are being host-swapped for 5 minutes (vcenter.resource_pool.memory.swapped > 0, one incident per resource pool).",
     category: "Cluster",
     severity: "Warning",
-    metricName: "vcenter.resource_pool.memory.swapped",
-    metricAlias: "resource_pool_memory_swapped",
-    // Max — any collection in the minute showing host-swapped pages trips it.
+    metricName: legacyResourcePoolMemorySwappedQuery.swappedMetricName,
+    metricAlias: legacyResourcePoolMemorySwappedQuery.swappedAlias,
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past5Minutes,
     groupByAttributeKey: VMwareGroupByKey.ResourcePool,
@@ -1176,11 +1300,47 @@ const resourcePoolMemorySwappedTemplate: VMwareAlertTemplate =
       return `[VMware] Resource Pool Memory Swapped - ${args.monitorName}`;
     },
     incidentDescription:
-      "The virtual machines in a resource pool have been drawing memory from the ESXi hosts' swap space for the whole evaluation window. When only one pool swaps while the cluster as a whole has memory to spare, the pool's own memory LIMIT is the cause: the pool is being held to a ceiling smaller than its VMs need, and the hypervisor is swapping them to enforce it. See the affected resource on this alert for the resource pool's inventory path, then check the pool's memory limit, reservation and shares (Resource Pool → Configure → Settings), raise or remove the limit, or move VMs to a pool with headroom. If every pool is swapping, treat it as host memory saturation instead.",
-    criteriaName: "Resource Pool Memory Swapped - Swapped > 0",
+      "The virtual machines in a resource pool have been drawing memory from the ESXi hosts' swap space for the whole evaluation window.",
+    criteriaName: legacyResourcePoolMemorySwappedQuery.legacyCriteriaName,
     criteriaDescription:
-      "Triggers when a resource pool reports non-zero host-swapped memory for every minute of the monitoring window.",
+      legacyResourcePoolMemorySwappedQuery.legacyCriteriaDescription,
   });
+
+const resourcePoolMemorySwappingTemplate: VMwareAlertTemplate = {
+  ...buildThresholdTemplate({
+    id: "vmware-resource-pool-memory-swapped",
+    name: "Resource Pool Memory Swapping",
+    summary:
+      "The hosts swap memory of a resource pool's VMs out to disk for 5 minutes.",
+    description:
+      "Alert when the ESXi hosts keep swapping the memory of a resource pool's VMs out to disk for 5 minutes (oneuptime.vmware.resource_pool.memory.swap_out.rate > 0, one incident per resource pool, identified by its inventory path). The rate is worked out from the growth of the pool's swapped memory between two reports - vSphere has no swap rate counter for a resource pool - so memory left in the swap file from earlier does not fire it. Swapping inside a pool usually means the pool's memory limit or its shares are too low for what it is running.",
+    category: "Cluster",
+    severity: "Warning",
+    metricName: VMwareSwapRateMetric.ResourcePoolSwapOut,
+    metricAlias: legacyResourcePoolMemorySwappedQuery.rateAlias,
+    // Max - any report in the minute of the hosts swapping memory out trips it.
+    aggregationType: MetricsAggregationType.Max,
+    rollingTime: RollingTime.Past5Minutes,
+    groupByAttributeKey: VMwareGroupByKey.ResourcePool,
+    fireFilterType: FilterType.GreaterThan,
+    fireValue: 0,
+    recoverFilterType: FilterType.EqualTo,
+    recoverWhenAbsent: true,
+    incidentTitle: (args: VMwareAlertTemplateArgs): string => {
+      return `[VMware] Resource Pool Memory Swapping - ${args.monitorName}`;
+    },
+    incidentDescription:
+      "The ESXi hosts have been swapping the memory of a resource pool's VMs out to disk for the whole evaluation window. When only one pool swaps while the cluster as a whole has memory to spare, the pool's own memory LIMIT is the cause: the pool is being held to a ceiling smaller than its VMs need, and the hypervisor is swapping them to enforce it. See the affected resource on this alert for the resource pool's inventory path, then check the pool's memory limit, reservation and shares (Resource Pool → Configure → Settings), raise or remove the limit, or move VMs to a pool with headroom. If every pool is swapping, treat it as host memory saturation instead.",
+    criteriaName: legacyResourcePoolMemorySwappedQuery.criteriaName,
+    criteriaDescription:
+      legacyResourcePoolMemorySwappedQuery.criteriaDescription,
+  }),
+  getEquivalentMonitorSteps: (
+    args: VMwareAlertTemplateArgs,
+  ): Array<MonitorStep> => {
+    return [legacyResourcePoolMemorySwappedTemplate.getMonitorStep(args)];
+  },
+};
 
 export function getAllVMwareAlertTemplates(): Array<VMwareAlertTemplate> {
   return [
@@ -1196,6 +1356,7 @@ export function getAllVMwareAlertTemplates(): Array<VMwareAlertTemplate> {
     vmMemorySaturationTemplate,
     vmMemoryBallooningTemplate,
     vmMemorySwappingTemplate,
+    vmSwappedMemoryHighTemplate,
     vmDiskLatencyHighTemplate,
     vmDiskUsageHighTemplate,
     datastoreCapacityWarningTemplate,
@@ -1208,7 +1369,7 @@ export function getAllVMwareAlertTemplates(): Array<VMwareAlertTemplate> {
     datacenterClustersUnhealthyTemplate,
     vsanLatencyHighTemplate,
     vsanCongestionTemplate,
-    resourcePoolMemorySwappedTemplate,
+    resourcePoolMemorySwappingTemplate,
   ];
 }
 

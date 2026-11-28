@@ -46,6 +46,7 @@ export const VMWARE_TOPOLOGY_SELECT: Record<string, boolean> = {
   memorySwappedBytes: true,
   memorySwapOutBytesPerSecond: true,
   memorySwapInBytesPerSecond: true,
+  memorySwapRateSource: true,
   hostCount: true,
   effectiveHostCount: true,
   poweredOnHostCount: true,

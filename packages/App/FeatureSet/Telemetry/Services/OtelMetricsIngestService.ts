@@ -128,6 +128,7 @@ import OpenStackSummaryMode, {
 import VMwareResourceService, {
   ParsedVMwareResource,
   VMwareResourceLatestMetric,
+  VMwareResourceSwapRateReading,
 } from "Common/Server/Services/VMwareResourceService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import CephClusterService from "Common/Server/Services/CephClusterService";
@@ -229,6 +230,14 @@ import {
   deriveVMwareVCenterSnapshotExtras,
   toVMwareResourceAttributeMap,
 } from "Common/Server/Utils/Telemetry/VMwareSnapshotScan";
+import VMwareSwapRateMetrics, {
+  VMwareSwapRatePoint,
+  VMwareSwapRateRowContext,
+} from "Common/Server/Utils/Telemetry/VMwareSwapRateMetrics";
+import {
+  VMWARE_SWAP_RATE_METRIC_NAME_PREFIX,
+  isVMwareSwapRateMetricName,
+} from "Common/Types/VMware/VMwareSwapRates";
 import {
   IOT_SNAPSHOT_METRIC_NAMES,
   IoTDeviceBufferEntry,
@@ -1277,6 +1286,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         VMwareVCenterSnapshotBufferEntry
       > = new Map();
+      /*
+       * Each VM's and resource pool's resource block, by vCenter and part:
+       * the attributes and the resource its metrics are stored under, which
+       * the swap rates the VMware flush writes as OneUptime's own metrics
+       * carry too (#11468).
+       */
+      const vmwareSwapRateContexts: Map<
+        string,
+        Map<string, VMwareSwapRateRowContext>
+      > = new Map();
       const cephResourceMetricsBuffer: Map<
         string,
         Map<string, CephResourceBufferEntry>
@@ -1829,6 +1848,23 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           };
 
           /*
+           * A VM's or a resource pool's block: what its swap rates, written
+           * as OneUptime's own metrics after the flush, are stored under -
+           * the same attributes and resource as the block's own (#11468).
+           */
+          if (vmwareVCenterId && vmwareResourceAttributes) {
+            VMwareSwapRateMetrics.rememberRowContext({
+              contexts: vmwareSwapRateContexts,
+              vcenterIdStr: vmwareVCenterId.toString(),
+              vmwareResourceAttributes: vmwareResourceAttributes,
+              context: {
+                baseAttributes: resourceAttributes,
+                serviceMetadata: serviceMetadata,
+              },
+            });
+          }
+
+          /*
            * The calling application's side of `db.client.*` endpoint
            * canonicalization (namespace, cluster), built lazily on this
            * block's first such datapoint.
@@ -2054,6 +2090,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   if (isKubernetesCostMetricName(metricName)) {
                     logger.debug(
                       `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${KUBERNETES_COST_METRIC_NAME_PREFIX}" are reserved for OneUptime's Kubernetes cost metrics.`,
+                    );
+                    continue;
+                  }
+
+                  /*
+                   * And the VMware swap rates the VMware flush writes from
+                   * what a vCenter sent (#11468): they back the VM Memory
+                   * Swapping alert and are left out of billing by name, so
+                   * no sender may write one.
+                   */
+                  if (isVMwareSwapRateMetricName(metricName)) {
+                    logger.debug(
+                      `Dropped metric "${metricName}" for project ${projectId.toString()}: names starting with "${VMWARE_SWAP_RATE_METRIC_NAME_PREFIX}" are reserved for OneUptime's VMware swap rate metrics.`,
                     );
                     continue;
                   }
@@ -2589,6 +2638,17 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         if (
                           finalMetricName !== metricName &&
                           typeof finalMetricName === "string" &&
+                          isVMwareSwapRateMetricName(finalMetricName)
+                        ) {
+                          logger.debug(
+                            `Dropped a "${metricName}" datapoint for project ${projectId.toString()}: a metric pipeline rule renamed it to "${finalMetricName}", and names starting with "${VMWARE_SWAP_RATE_METRIC_NAME_PREFIX}" are reserved for OneUptime's VMware swap rate metrics.`,
+                          );
+                          continue;
+                        }
+
+                        if (
+                          finalMetricName !== metricName &&
+                          typeof finalMetricName === "string" &&
                           TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(
                             finalMetricName,
                           )
@@ -2810,6 +2870,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         projectId,
         resourceBuffer: vmwareResourceMetricsBuffer,
         vcenterBuffer: vmwareVCenterSnapshotBuffer,
+        swapRateContexts: vmwareSwapRateContexts,
       });
 
       await this.flushCephSnapshotBuffers({
@@ -5209,6 +5270,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     projectId: ObjectID;
     resourceBuffer: Map<string, Map<string, VMwareResourceBufferEntry>>;
     vcenterBuffer: Map<string, VMwareVCenterSnapshotBufferEntry>;
+    // Each VM's and resource pool's resource block (#11468).
+    swapRateContexts?:
+      | Map<string, Map<string, VMwareSwapRateRowContext>>
+      | undefined;
   }): Promise<void> {
     const vcenterIdStrs: Set<string> = new Set<string>([
       ...data.resourceBuffer.keys(),
@@ -5264,10 +5329,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               return deriveVMwareResourceLatestMetric(e);
             },
           );
-          await VMwareResourceService.bulkUpdateLatestMetrics({
+          const swapRates: Array<VMwareResourceSwapRateReading> =
+            await VMwareResourceService.bulkUpdateLatestMetrics({
+              projectId: data.projectId,
+              vmwareVCenterId: new ObjectID(liveIdStr),
+              metrics,
+            });
+
+          await this.writeVMwareSwapRateMetrics({
             projectId: data.projectId,
-            vmwareVCenterId: new ObjectID(liveIdStr),
-            metrics,
+            vcenterIdStr: vcenterIdStr,
+            readings: swapRates,
+            contexts: data.swapRateContexts?.get(vcenterIdStr),
           });
         } catch (err) {
           logger.warn(
@@ -5297,6 +5370,69 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         );
       }
     }
+  }
+
+  /*
+   * The swap rates the VMware flush just left on each VM's and resource
+   * pool's row, as OneUptime's own metrics (#11468): one point per part
+   * and direction at its report's time, under the part's own attributes and
+   * resource, so the VM Memory Swapping alert template reads the same rate
+   * the health view judges by, whichever collector the vCenter has. Past
+   * the pipeline rules, as the synthetic host heartbeat is: OneUptime's
+   * series, not what was sent. Best-effort, like the flush around it: the
+   * job's own rows have landed already, so a failure is logged, never
+   * retried by failing the job.
+   */
+  private static async writeVMwareSwapRateMetrics(data: {
+    projectId: ObjectID;
+    vcenterIdStr: string;
+    readings: Array<VMwareResourceSwapRateReading>;
+    contexts: Map<string, VMwareSwapRateRowContext> | undefined;
+  }): Promise<void> {
+    if (data.readings.length === 0 || !data.contexts) {
+      return;
+    }
+
+    try {
+      const rows: Array<JSONObject> = [];
+
+      for (const point of VMwareSwapRateMetrics.getPoints({
+        readings: data.readings,
+        contexts: data.contexts,
+      })) {
+        rows.push(this.buildVMwareSwapRateRow(data.projectId, point));
+      }
+
+      if (rows.length === 0) {
+        return;
+      }
+
+      const acks: Array<Promise<void>> = [];
+      await this.submitMetricsBuffer(rows, acks, true);
+      await Promise.all(acks);
+
+      await VMwareSwapRateMetrics.registerCatalog(data.projectId);
+    } catch (err) {
+      logger.warn(
+        `VMware swap rate metrics were not written for vCenter ${data.vcenterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  private static buildVMwareSwapRateRow(
+    projectId: ObjectID,
+    point: VMwareSwapRatePoint,
+  ): JSONObject {
+    return this.buildMetricRow({
+      datapoint: point.datapoint,
+      baseAttributes: point.context.baseAttributes,
+      projectId: projectId,
+      primaryEntityId: point.context.serviceMetadata.primaryEntityId!,
+      serviceName: point.context.serviceMetadata.serviceName,
+      metricName: point.metricName,
+      metricPointType: MetricPointType.Gauge,
+      serviceMetadata: point.context.serviceMetadata,
+    });
   }
 
   /*

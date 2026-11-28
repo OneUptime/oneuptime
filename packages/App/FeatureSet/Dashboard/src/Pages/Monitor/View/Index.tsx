@@ -1,6 +1,7 @@
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
 import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
+import VMwareLegacySwapMonitorNotice from "../../../Components/Monitor/VMwareLegacySwapMonitorNotice";
 import MonitorActivityCard from "../../../Components/Monitor/Overview/MonitorActivityCard";
 import MonitorConnectionCard from "../../../Components/Monitor/Overview/MonitorConnectionCard";
 import MonitorLinkedResourcesCard from "../../../Components/Monitor/Overview/MonitorLinkedResourcesCard";
@@ -364,6 +365,21 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         monitorId={modelId}
         refreshToggle={`${data.statusChangeCount}|${data.manualRefreshCount}`}
       />
+
+      {/*
+       * A VMware monitor made to fire on any swapped memory, as VM Memory
+       * Swapping did before it read the swap-out rate (#11468): what it
+       * fires on, and the update.
+       */}
+      {monitorType === MonitorType.VMware ? (
+        <VMwareLegacySwapMonitorNotice
+          monitorId={modelId}
+          refreshToggle={`${data.manualRefreshCount}|${detailsSaveCount}`}
+          onUpdated={onDetailsSaved}
+        />
+      ) : (
+        <></>
+      )}
 
       <div className="mb-5">
         <MonitorOverviewHero

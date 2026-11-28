@@ -3,7 +3,9 @@ import {
   VMwareCollectionError,
   classifyVMwareError,
 } from "./VMwareCollectionErrors";
-import VMwareInventoryCollector from "./VMwareInventoryCollector";
+import VMwareInventoryCollector, {
+  getSwapRateSampleCount,
+} from "./VMwareInventoryCollector";
 import { VMwareInventorySnapshot } from "./VMwareInventory";
 import VMwareOtlpBuilder, { VMwareOtlpBuildResult } from "./VMwareOtlpBuilder";
 import { createVSphereTransport } from "./VSphereHttp";
@@ -332,6 +334,10 @@ export default class VMwareCollector {
 
           return await new VMwareInventoryCollector(activeClient, {
             collectVsan: dependencies.collectVsan,
+            // vSphere's swap rates since the previous collection (#11468).
+            swapRateSampleCount: getSwapRateSampleCount(
+              job.collectionIntervalInMinutes,
+            ),
             now: dependencies.now,
           }).collect();
         })(),

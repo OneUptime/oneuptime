@@ -129,6 +129,8 @@ function snapshotOf(
     vms: new Map([["vm-1", vm()]]),
     hostPerf: new Map(),
     vmPerf: new Map(),
+    hostSwapRates: new Map(),
+    vmSwapRates: new Map(),
     vsan: emptyVsanResults(),
     ...data,
   };

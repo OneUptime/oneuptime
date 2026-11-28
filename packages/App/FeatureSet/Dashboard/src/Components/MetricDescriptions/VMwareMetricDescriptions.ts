@@ -240,7 +240,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "Memory of this VM that sits in the host's swap file, shown only when above zero. ESXi leaves it there until the VM touches it, so an amount left from earlier is not swapping now: Swapping Now says whether it is.",
   ),
   vmMemorySwapping: translationKey(
-    "Whether the host is moving this VM's memory out to its swap file or back in now, from how its swapped memory changed since the previous report. Swapping out now is memory pressure and marks the VM critical.",
+    "Whether the host is moving this VM's memory out to its swap file or back in now: vSphere's own rates where a probe collects the vCenter, else how its swapped memory changed since the previous report. Swapping out now marks the VM critical.",
   ),
   vmDisk: translationKey(
     "Datastore space this VM's files take up now, against the total provisioned for it (used space plus what its disks may still grow into), with the share used, from the latest report.",

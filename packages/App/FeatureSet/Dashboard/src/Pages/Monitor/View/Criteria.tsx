@@ -2,6 +2,7 @@ import MonitorStepsForm from "../../../Components/Form/Monitor/MonitorSteps";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import MonitorStepsViewer from "../../../Components/Monitor/MonitorSteps/MonitorSteps";
+import VMwareLegacySwapMonitorNotice from "../../../Components/Monitor/VMwareLegacySwapMonitorNotice";
 import MonitorWhoIsToldCard, {
   WhoIsToldPlace,
 } from "../../../Components/Monitor/Overview/MonitorWhoIsToldCard";
@@ -193,6 +194,26 @@ const MonitorCriteria: FunctionComponent<
 
     return (
       <Fragment>
+        {/*
+         * A VMware monitor made to fire on any swapped memory (#11468): what
+         * it fires on, and the update, which these criteria then show.
+         */}
+        {monitorType === MonitorType.VMware ? (
+          <VMwareLegacySwapMonitorNotice
+            monitorId={modelId}
+            refreshToggle={savedCount.toString()}
+            onUpdated={() => {
+              fetchItem().catch(() => {
+                // fetchItem says its own failures.
+              });
+              setSavedCount((count: number): number => {
+                return count + 1;
+              });
+            }}
+          />
+        ) : (
+          <></>
+        )}
         {getCriteriaCard()}
         {/*
          * Who the criteria tell, under them (#7055): the overview's card,
