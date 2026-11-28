@@ -4664,6 +4664,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
 
+      # #11254: what Inventory calls a vCenter's VMs, ESXi hosts, clusters
+      # and datastores. The vcenter receiver's recorded export goes through
+      # the real metrics ingest, entity registry and InventoryItemService
+      # into clones of the migrated InventoryItem, InventoryItemRelationship
+      # and VMwareResource tables: each item by its own name (not the
+      # vCenter's, not the datacenter's), rows the old rule named renamed on
+      # their next report, and a name a person typed kept.
+      - name: Test what Inventory calls a vCenter's objects, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_VMWARE_INVENTORY_TESTS: "true"
+          VMWARE_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          VMWARE_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          VMWARE_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/VMwareInventoryNamesPostgres.test.ts --forceExit
+
       # The episode auto-resolve aggregate query (EpisodeAutoResolve) on the
       # migrated AlertEpisodeMember / Alert / AlertState and incident tables'
       # structure: one query per page counts each episode's members and the
