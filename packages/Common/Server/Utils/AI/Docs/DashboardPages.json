@@ -8279,6 +8279,73 @@
     "kind": "page"
   },
   {
+    "title": "Health Rules",
+    "where": [
+      "VMware",
+      "Settings"
+    ],
+    "keywords": [
+      "vmware thresholds",
+      "health thresholds",
+      "swapped memory",
+      "memory swapping",
+      "cpu ready",
+      "ballooning"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Busy ESXi Hosts",
+    "where": [
+      "VMware",
+      "Settings",
+      "Health Rules"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "setting"
+  },
+  {
+    "title": "Full Datastores",
+    "where": [
+      "VMware",
+      "Settings",
+      "Health Rules"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "setting"
+  },
+  {
+    "title": "VM Swapping",
+    "where": [
+      "VMware",
+      "Settings",
+      "Health Rules"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "setting"
+  },
+  {
+    "title": "VM Ballooning and CPU Ready",
+    "where": [
+      "VMware",
+      "Settings",
+      "Health Rules"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "setting"
+  },
+  {
+    "title": "Resource Pool Swapping",
+    "where": [
+      "VMware",
+      "Settings",
+      "Health Rules"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "setting"
+  },
+  {
     "title": "Archived",
     "where": [
       "VMware",
