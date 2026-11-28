@@ -201,14 +201,14 @@ jobs:
           node-version: 26
           cache: 'npm'
 
-      # No Go cache, as in the Terraform Provider Generation workflow: setup-go
-      # keys it on a go.sum the repository does not have at its root, so it
-      # restored nothing and only warned.
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 'stable'
-          cache: false
+      # The Go every release build uses (.github/actions/setup-release-toolchain,
+      # #11464): the provider this suite tests is built as the release that
+      # waits for it builds the provider it publishes. No Go cache, as in the
+      # Terraform Provider Generation workflow: setup-go keys it on a go.sum
+      # the repository does not have at its root, so it restored nothing and
+      # only warned.
+      - name: Set up the release toolchain
+        uses: ./.github/actions/setup-release-toolchain
 
       # Both engines are installed because the suite runs end to end twice, once
       # each. The wrappers that hashicorp/setup-terraform and

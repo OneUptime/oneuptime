@@ -1571,23 +1571,13 @@ jobs:
           node-version: '26'
           cache: 'npm'
 
-      # No Go cache: setup-go keys it on a go.sum the repository does not have
-      # at its root, so it restored nothing (terraform-provider-generation.yml
-      # says more).
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 'stable'
-          cache: false
-
-      - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v6.1.0
-        with:
-          install-only: true
-          # Pin to the latest GoReleaser v2.x. Without this the action installs
-          # whatever is newest, so a future v3 (with renamed flags/config) could
-          # silently break this release job with no code change on our side.
-          version: '~> v2'
+      # Go and GoReleaser at the exact versions every release build uses
+      # (.github/actions/setup-release-toolchain/versions.env), so the
+      # provider built again from its tag weeks later is the same zips
+      # (#11464). `go-version: stable` and `~> v2` moved. The release's notes
+      # name them (publish-terraform-provider.sh).
+      - name: Set up the release toolchain
+        uses: ./.github/actions/setup-release-toolchain
 
       - name: Determine version
         id: version
@@ -2658,6 +2648,13 @@ jobs:
     permissions:
       contents: write
       pull-requests: read
+    # The release this run fills and publishes, by its id: its own draft, or
+    # the version's published release, which nothing changes (#11466).
+    # finalize-github-release attaches every file to it, and publishes it, by
+    # this id, never by the tag.
+    outputs:
+      release_id: ${{ steps.release.outputs.id }}
+      published: ${{ steps.published.outputs.published }}
     steps:
       - uses: actions/checkout@v4
       - run: echo "${{needs.generate-build-number.outputs.build_number}}"
@@ -2676,17 +2673,67 @@ jobs:
       # the header of Scripts/Release/GenerateReleaseNotes.js says how to write
       # them again once it is published. Tests/Ops/ReleaseNotes.test.js holds
       # all of this.
+      #
+      # The notes name the toolchain the infrastructure agent was built with,
+      # as this commit pins it (.github/actions/setup-release-toolchain, which
+      # infrastructure-agent-build installs and checks), so anyone can build
+      # it again from the tag the same way, and get the same bytes (#11464).
       - name: Write the release notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.read-version.outputs.major_minor }}
         run: |
+          TOOLCHAIN="$(node ./Scripts/Release/ReleaseToolchain.js describe --with-syft)" || TOOLCHAIN=""
           node ./Scripts/Release/GenerateReleaseNotes.js \
             --version "$VERSION" \
             --to "$GITHUB_SHA" \
+            --toolchain "$TOOLCHAIN" \
             --output "$RUNNER_TEMP/release-notes.md" \
             --fallback-on-error
           cat "$RUNNER_TEMP/release-notes.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # A release run repeated for a version GitHub has published already (the
+      # release pull request merged again after a failure elsewhere, or "Re-run
+      # all jobs" of a run that published) changes nothing on it (#11466). Its
+      # assets are what the apt and yum indexes, the Homebrew cask and the
+      # winget manifest recorded the SHA-256 of. ncipollo/release-action's
+      # allowUpdates would have found the published release by its tag and
+      # turned it back into a draft (draft: true), and finalize-github-release
+      # then uploaded this run's files over its assets. So: a published
+      # release is looked for first, by the tag (GitHub answers a tag with a
+      # published release only, never a draft), and when there is one the
+      # draft steps below do not run. updateOnlyUnreleased holds them to it
+      # too, should the version be published between this and them.
+      - name: Look for this version's published release
+        id: published
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.read-version.outputs.major_minor }}
+        run: |
+          set -uo pipefail
+          for delay in 0 5 15 30; do
+            sleep "$delay"
+            answer="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$VERSION" --jq '"\(.id) \(.draft)"' 2>&1)" && status=0 || status=$?
+            if [ "$status" = 0 ]; then
+              read -r id draft <<< "$answer"
+              if [ "$draft" = "false" ] && [[ "$id" =~ ^[0-9]+$ ]]; then
+                echo "published=true" >> "$GITHUB_OUTPUT"
+                echo "id=$id" >> "$GITHUB_OUTPUT"
+                echo "::warning title=$VERSION is published already::Release $id of $VERSION is published, and a published release is never changed: this run makes no draft, and attaches nothing to it. It only checks, in finalize-github-release, that the infrastructure agent it built is the one published."
+                exit 0
+              fi
+              break
+            fi
+            if grep -q "HTTP 404" <<< "$answer"; then
+              break
+            fi
+            echo "Looking for $VERSION's release failed: $answer"
+          done
+          if [ "$status" != 0 ] && ! grep -q "HTTP 404" <<< "$answer"; then
+            echo "::error::Could not tell whether $VERSION is published: $answer"
+            exit 1
+          fi
+          echo "published=false" >> "$GITHUB_OUTPUT"
 
       # ncipollo/release-action makes one REST call and has no retry of its own,
       # so a momentary GitHub API failure reds a release run that has already
@@ -2718,8 +2765,15 @@ jobs:
       # sends `commit` when it updates a draft as well as when it creates
       # one, so a draft an earlier run left behind is corrected too. GitHub
       # can refuse to create the tag there; see finalize-github-release.
+      #
+      # None of them runs for a version that is published already (above),
+      # and updateOnlyUnreleased makes each refuse, rather than update, a
+      # release that is not a draft: without it, allowUpdates turned a
+      # published release back into a draft. When the first is skipped its
+      # outcome is 'skipped', so the other two are as well.
       - name: Create draft release
         id: draft_release_1
+        if: steps.published.outputs.published != 'true'
         continue-on-error: true
         uses: ncipollo/release-action@v1
         with:
@@ -2728,6 +2782,7 @@ jobs:
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
+          updateOnlyUnreleased: true
           prerelease: false
           bodyFile: ${{ runner.temp }}/release-notes.md
 
@@ -2746,6 +2801,7 @@ jobs:
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
+          updateOnlyUnreleased: true
           prerelease: false
           bodyFile: ${{ runner.temp }}/release-notes.md
 
@@ -2754,6 +2810,7 @@ jobs:
         run: sleep 150
 
       - name: Create draft release (final attempt)
+        id: draft_release_3
         if: steps.draft_release_1.outcome == 'failure' && steps.draft_release_2.outcome == 'failure'
         uses: ncipollo/release-action@v1
         with:
@@ -2762,8 +2819,28 @@ jobs:
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
+          updateOnlyUnreleased: true
           prerelease: false
           bodyFile: ${{ runner.temp }}/release-notes.md
+
+      # The release finalize-github-release fills and publishes, by its id:
+      # the draft whichever attempt made, or the published release, which it
+      # only reads.
+      - name: The release this run fills, by its id
+        id: release
+        env:
+          VERSION: ${{ needs.read-version.outputs.major_minor }}
+          PUBLISHED_ID: ${{ steps.published.outputs.id }}
+          DRAFT_ID: ${{ steps.draft_release_1.outputs.id || steps.draft_release_2.outputs.id || steps.draft_release_3.outputs.id }}
+        run: |
+          set -euo pipefail
+          id="${PUBLISHED_ID:-$DRAFT_ID}"
+          if [[ ! "$id" =~ ^[0-9]+$ ]]; then
+            echo "::error::GitHub answered no id for the release of $VERSION (\"$id\"), so finalize-github-release could not name it."
+            exit 1
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "The release of $VERSION this run fills is release $id."
 
   # ─── What the GitHub release carries, built ahead of it ───────────────
   #
@@ -2925,30 +3002,19 @@ jobs:
       - name: Free disk space if the runner is short of it
         uses: ./.github/actions/free-disk-space
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-
-      - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v6.1.0
+      # Go, GoReleaser and syft at the exact versions every release build uses
+      # (.github/actions/setup-release-toolchain/versions.env): a second build
+      # of the same commit is then the same bytes, every archive, package,
+      # SBOM and the checksums file (#11466, #11464). It used to take the
+      # runner's own Go, the newest GoReleaser and the newest syft. syft
+      # writes the SBOMs (.goreleaser.yaml's sboms:, and build-msi.sh's).
+      # GoReleaser makes the .deb, .rpm, .apk and Arch packages itself, with
+      # the nfpm it is built with: the `go install nfpm@latest` this job had
+      # installed a program nothing ran.
+      - name: Set up the release toolchain
+        uses: ./.github/actions/setup-release-toolchain
         with:
-          install-only: true
-
-      - name: GoReleaser Version
-        run: goreleaser -v
-
-      # This tool is used to generate .rpm and .deb packages
-      - name: Install NFPM
-        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
-
-      # Required by the sboms: block in InfrastructureAgent/.goreleaser.yaml and
-      # by build-msi.sh. syft is not otherwise present in this job — it is
-      # installed only in generate-sboms — and GoReleaser fails the release if
-      # the SBOM command is missing.
-      - name: Install syft
-        uses: anchore/sbom-action/download-syft@v0
-
-      - name: Show GoReleaser version
-        run: goreleaser -v
+          syft: 'true'
 
       - name: Run GoReleaser
         run: cd agents/InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}} && goreleaser release --clean --snapshot
@@ -2956,15 +3022,19 @@ jobs:
       - name: Release MSI Images
         run: cd agents/InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}
 
-      # What the release gets: the files at the top of dist/, as the upload of
-      # dist/* always attached them - softprops/action-gh-release skips
-      # directories (GoReleaser's per-target build directories) and, like any
-      # glob, dotfiles.
+      # What the release gets: the agent's files at the top of dist/ - its
+      # archives, packages, MSIs, SBOMs and GoReleaser's checksums file - and
+      # nothing else there. Not GoReleaser's own working files, artifacts.json,
+      # metadata.json and config.yaml, which every release had carried under
+      # those names since the first: they say nothing to anyone installing
+      # the agent, and metadata.json holds the time of the build, so no
+      # second build of a release could be its bytes (#11466).
       - name: Collect the files the release attaches
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/release-infrastructure-agent"
-          find agents/InfrastructureAgent/dist -maxdepth 1 -type f ! -name '.*' \
+          find agents/InfrastructureAgent/dist -maxdepth 1 -type f \
+            \( -name 'oneuptime-infrastructure-agent*' -o -name 'oneuptime_*_checksums.txt' \) \
             -exec cp {} "$RUNNER_TEMP/release-infrastructure-agent/" \;
           ls -l "$RUNNER_TEMP/release-infrastructure-agent"
 
@@ -3288,17 +3358,34 @@ jobs:
     permissions:
       contents: write
     steps:
-      # Each artifact is downloaded into release-assets/ in the workspace (this
-      # job checks nothing out, so the directory is its own).
+      # Every file goes to the release draft-github-release made for this
+      # run, by its id (Scripts/Release/AttachReleaseAssets.js), never by the
+      # tag, and never over a published release's (#11466). These steps used
+      # softprops/action-gh-release, which looks a release up by its tag and
+      # finds a published release of it before a draft, and which replaced
+      # the assets of the same names on it. So a release run repeated for a
+      # published version would have uploaded its own build of the
+      # infrastructure agent over the published one, whose SHA-256s the apt
+      # and yum indexes, the Homebrew cask and the winget manifest recorded,
+      # as the Terraform provider's second runs did to it (#11016).
       #
-      # target_commitish, on every attach: softprops/action-gh-release's lookup
-      # by tag skips drafts, so it creates a draft of its own, then switches to
-      # the oldest draft for the tag - draft-github-release's, which it leaves
-      # untouched - and deletes its own. If that switch finds nothing (it reads
-      # the newest 200 releases, three times a second apart), it uploads to the
-      # draft it created and keeps it, and that draft targets the default branch
-      # unless this says otherwise. The publish below could then publish it,
-      # and names the run's commit as well.
+      # When the version is published already (draft-github-release says so),
+      # nothing is attached. The SBOMs, the reports and the apps stay the ones
+      # published (--when-published skip). The infrastructure agent's
+      # checksums file, and every file it lists, must be the ones this run
+      # built, byte for byte (--when-published verify-checksums): a second
+      # build of the same commit, with the pinned toolchain, is the same bytes.
+      # Otherwise the job fails, and the publish-infrastructure-agent-* jobs,
+      # which need it, do not publish this run's checksums for files the
+      # release does not hold.
+      #
+      # The checkout is for the scripts, and comes first: it would clear what
+      # the downloads put in the workspace. Each artifact is downloaded into
+      # release-assets/, which the repository does not have.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: Scripts/Release
+
       - name: Download the SBOMs
         uses: actions/download-artifact@v4
         with:
@@ -3306,15 +3393,11 @@ jobs:
           path: release-assets/sboms
 
       - name: Attach SBOMs to release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/sboms/*.cdx.json
-          fail_on_unmatched_files: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          tag_name: ${{needs.read-version.outputs.major_minor}}
-          target_commitish: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.draft-github-release.outputs.release_id }}
+          VERSION: ${{ needs.read-version.outputs.major_minor }}
+        run: node Scripts/Release/AttachReleaseAssets.js --repository "$GITHUB_REPOSITORY" --release-id "$RELEASE_ID" --tag "$VERSION" --when-published skip release-assets/sboms/*.cdx.json
 
       - name: Download the vulnerability reports
         if: needs.scan-sbom-vulnerabilities.result == 'success'
@@ -3325,15 +3408,11 @@ jobs:
 
       - name: Attach vulnerability reports to release
         if: needs.scan-sbom-vulnerabilities.result == 'success'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/vulnerabilities/*
-          fail_on_unmatched_files: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          tag_name: ${{needs.read-version.outputs.major_minor}}
-          target_commitish: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.draft-github-release.outputs.release_id }}
+          VERSION: ${{ needs.read-version.outputs.major_minor }}
+        run: node Scripts/Release/AttachReleaseAssets.js --repository "$GITHUB_REPOSITORY" --release-id "$RELEASE_ID" --tag "$VERSION" --when-published skip release-assets/vulnerabilities/*
 
       - name: Download the infrastructure agent
         uses: actions/download-artifact@v4
@@ -3342,15 +3421,11 @@ jobs:
           path: release-assets/infrastructure-agent
 
       - name: Attach the infrastructure agent to release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/infrastructure-agent/*
-          fail_on_unmatched_files: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          tag_name: ${{needs.read-version.outputs.major_minor}}
-          target_commitish: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.draft-github-release.outputs.release_id }}
+          VERSION: ${{ needs.read-version.outputs.major_minor }}
+        run: node Scripts/Release/AttachReleaseAssets.js --repository "$GITHUB_REPOSITORY" --release-id "$RELEASE_ID" --tag "$VERSION" --when-published verify-checksums release-assets/infrastructure-agent/*
 
       - name: Download the Android agent
         if: needs.android-agent-build.result == 'success'
@@ -3361,15 +3436,11 @@ jobs:
 
       - name: Attach the Android agent to release
         if: needs.android-agent-build.result == 'success'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/android-agent/*
-          fail_on_unmatched_files: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          tag_name: ${{needs.read-version.outputs.major_minor}}
-          target_commitish: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.draft-github-release.outputs.release_id }}
+          VERSION: ${{ needs.read-version.outputs.major_minor }}
+        run: node Scripts/Release/AttachReleaseAssets.js --repository "$GITHUB_REPOSITORY" --release-id "$RELEASE_ID" --tag "$VERSION" --when-published skip release-assets/android-agent/*
 
       - name: Download the APK
         if: needs.mobile-app-android-build.result == 'success'
@@ -3380,15 +3451,11 @@ jobs:
 
       - name: Upload APK to GitHub Release
         if: needs.mobile-app-android-build.result == 'success'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/android-app/oneuptime-on-call-android-app.apk
-          fail_on_unmatched_files: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          tag_name: ${{ needs.read-version.outputs.major_minor }}
-          target_commitish: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.draft-github-release.outputs.release_id }}
+          VERSION: ${{ needs.read-version.outputs.major_minor }}
+        run: node Scripts/Release/AttachReleaseAssets.js --repository "$GITHUB_REPOSITORY" --release-id "$RELEASE_ID" --tag "$VERSION" --when-published skip release-assets/android-app/oneuptime-on-call-android-app.apk
 
       - name: Download the IPA
         if: needs.mobile-app-ios-build.result == 'success'
@@ -3399,15 +3466,11 @@ jobs:
 
       - name: Upload IPA to GitHub Release
         if: needs.mobile-app-ios-build.result == 'success'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-assets/ios-app/oneuptime-on-call-ios-app.ipa
-          fail_on_unmatched_files: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          prerelease: false
-          tag_name: ${{ needs.read-version.outputs.major_minor }}
-          target_commitish: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.draft-github-release.outputs.release_id }}
+          VERSION: ${{ needs.read-version.outputs.major_minor }}
+        run: node Scripts/Release/AttachReleaseAssets.js --repository "$GITHUB_REPOSITORY" --release-id "$RELEASE_ID" --tag "$VERSION" --when-published skip release-assets/ios-app/oneuptime-on-call-ios-app.ipa
 
       - name: Publish release
         uses: actions/github-script@v7
@@ -3415,6 +3478,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const tag = '${{needs.read-version.outputs.major_minor}}';
+            // The release draft-github-release made for this run, by its id:
+            // never the tag's, which can be another release (#11466).
+            const releaseId = Number('${{ needs.draft-github-release.outputs.release_id }}');
 
             // This is the last gate in the release: everything is built,
             // pushed and tagged, and all that is left is flipping the draft to
@@ -3424,51 +3490,65 @@ jobs:
             // to the draft-creation job on 2026-08-17 — and the recovery was a
             // manual re-run of a 90-minute workflow.
             //
-            // Both calls are safe to repeat: listReleases is a read, and
+            // Both calls are safe to repeat: getRelease is a read, and
             // updateRelease sets the release to a fixed state rather than
-            // mutating it relative to what is already there, so publishing an
-            // already-published release is a no-op.
+            // mutating it relative to what is already there. A release that
+            // is published already (this run is a repeat of the one that
+            // published it) is left as it is.
             const delaysMs = [15000, 45000, 90000];
             const maxAttempts = delaysMs.length + 1;
 
             const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+            // A problem no retry mends.
+            const final = (message) => Object.assign(new Error(message), { final: true });
+
             const publish = async () => {
-              const releases = await github.paginate(github.rest.repos.listReleases, {
+              if (!Number.isInteger(releaseId) || releaseId <= 0) {
+                throw final(`draft-github-release named no release for ${tag}, so there is nothing to publish.`);
+              }
+
+              const { data: release } = await github.rest.repos.getRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                per_page: 100,
+                release_id: releaseId,
               });
 
-              const release = releases.find((item) => item.tag_name === tag);
+              if (release.tag_name !== tag) {
+                throw final(`Release ${releaseId} is ${release.tag_name}'s, not ${tag}'s: it is not published.`);
+              }
 
-              if (!release) {
-                throw new Error(`Release with tag ${tag} not found in repository ${context.repo.owner}/${context.repo.repo}`);
+              if (!release.draft) {
+                console.log(`${tag} is published already (release ${releaseId}): nothing to publish.`);
+                return;
               }
 
               // Publishing is when GitHub cuts the tag, from target_commitish.
               // draft-github-release's `commit` has set it already; naming it
-              // again here holds whichever draft this finds to the run's own
-              // commit, including one an upload step created and kept (see
-              // "Attach SBOMs to release"). context.sha is github.sha.
+              // again here holds the draft to the run's own commit.
+              // context.sha is github.sha.
               await github.rest.repos.updateRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                release_id: release.id,
+                release_id: releaseId,
                 draft: false,
                 prerelease: false,
                 make_latest: 'true',
                 target_commitish: context.sha,
               });
+              console.log(`Published release ${releaseId} for ${tag}`);
             };
 
             for (let attempt = 1; ; attempt++) {
               try {
                 await publish();
-                console.log(`Published release for ${tag}`);
                 break;
               } catch (error) {
                 const message = error.message ?? error;
+
+                if (error.final) {
+                  throw error;
+                }
 
                 // Not transient, so not retried. GITHUB_TOKEN may not create
                 // a ref at a commit whose .github/workflows differ from

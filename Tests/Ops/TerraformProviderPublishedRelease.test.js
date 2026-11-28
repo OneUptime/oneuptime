@@ -1883,7 +1883,7 @@ describe(REPUBLISH_WORKFLOW, () => {
     }
   });
 
-  test("builds as the release does: Go's memory limit, no Go cache, GoReleaser v2, the signing key checked first", () => {
+  test("builds as the release does: Go's memory limit, the release toolchain, the signing key checked first", () => {
     const limit = read("Scripts/TerraformProvider/Core/GoCommand.ts").match(
       /^export const GO_MEMORY_LIMIT: string = "([^"]+)";$/m,
     )[1];
@@ -1894,11 +1894,11 @@ describe(REPUBLISH_WORKFLOW, () => {
         return String(step.uses || "").startsWith(prefix);
       });
     };
-    expect(uses("actions/setup-go@").with).toMatchObject({ cache: false });
-    expect(uses("goreleaser/goreleaser-action@").with).toMatchObject({
-      "install-only": true,
-      version: "~> v2",
-    });
+    // The Go and GoReleaser every release build is pinned to (#11464), and
+    // none of its own: Tests/Ops/ReleaseToolchain.test.js holds the action.
+    expect(uses("./.github/actions/setup-release-toolchain")).toBeDefined();
+    expect(uses("actions/setup-go@")).toBeUndefined();
+    expect(uses("goreleaser/goreleaser-action@")).toBeUndefined();
     // The commit that the run is for, as every checkout here.
     expect(uses("actions/checkout@").with).toBeUndefined();
 
