@@ -127,6 +127,9 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     // The alert pack's criteria, named in English (NetworkDeviceAlertPack).
     "Device unreachable",
     "SNMP walk failing",
+    // The two that open an alert each on one poll, each its own check (#11349).
+    "Interface saturated",
+    "Interface errors",
     // The template and the policy the recommended policy creates, named in English.
     "Network device alert pack (recommended)",
     "Alert on every device",
