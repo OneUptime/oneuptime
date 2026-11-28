@@ -74,11 +74,20 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  // An empty field arrives as "": it is a rule turned off.
+  /*
+   * An empty field arrives as "": a threshold turned off. A wait is never
+   * off: an empty one, or one set to nothing, is 0 - the latest report.
+   */
   private static nullEmptyThresholds(
     data: Partial<Record<string, unknown>>,
   ): void {
     for (const key of VMWARE_HEALTH_RULE_KEYS) {
+      if (isVMwareHealthPeriodRuleKey(key as VMwareHealthRuleKey)) {
+        if (data[key] === "" || data[key] === null) {
+          data[key] = 0;
+        }
+        continue;
+      }
       if (data[key] === "") {
         data[key] = null;
       }

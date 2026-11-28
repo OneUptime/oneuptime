@@ -158,6 +158,7 @@ import RuleRunAPI from "./API/RuleRun";
 import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import NetworkSummaryAPI from "./API/NetworkSummary";
 import InventoryOverviewAPI from "./API/InventoryOverview";
+import InventoryPlacementOptionsAPI from "./API/InventoryPlacementOptions";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
 import MessageQueueTopologyAPI from "./API/MessageQueueTopology";
 import ReceivingGapsAPI from "./API/ReceivingGaps";
@@ -2684,6 +2685,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new InventoryOverviewAPI().getRouter(),
+    );
+
+    // What the Inventory list's Cluster, Host and Datacenter chips offer (#11470).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new InventoryPlacementOptionsAPI().getRouter(),
     );
 
     // Project SCIM

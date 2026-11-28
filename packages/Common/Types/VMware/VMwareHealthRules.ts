@@ -15,7 +15,7 @@
  * swapping memory out now is real memory pressure, and critical; the guest
  * reading swapped memory back is slow while it lasts, and a warning above a
  * rate that is more than touching a few old pages; memory merely left from
- * earlier is a warning only when there is a lot of it. The rates are worked
+ * earlier is a warning only when there is a lot of it. The rates are
  * vSphere's own where a probe collects the vCenter, and otherwise worked out
  * at ingest from how the amount moves between reports
  * (VMwareResourceService.bulkUpdateLatestMetrics, #11468).

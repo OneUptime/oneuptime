@@ -666,6 +666,9 @@ describe("VMware snapshot ingest — full vcenter receiver collection", () => {
       cpuReadinessPercent: null,
       memoryBalloonedBytes: null,
       memorySwappedBytes: null,
+      // The vcenter receiver sends no swap rate: ingest works them out.
+      memorySwapOutBytesPerSecond: null,
+      memorySwapInBytesPerSecond: null,
       hostCount: null,
       effectiveHostCount: null,
       poweredOnHostCount: null,

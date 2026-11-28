@@ -19,6 +19,21 @@ import {
   InventorySourceDescriptor,
   getInventorySourceDescriptor,
 } from "./InventorySource";
+// Types only: the facets stay free of the browser-bound API client, which the list hands in.
+import type {
+  InventoryPlacementChoice,
+  InventoryPlacementOptionsRequest,
+} from "./InventoryPlacementApi";
+import {
+  INVENTORY_PLACEMENT_LEVEL_COLUMNS,
+  INVENTORY_PLACEMENT_LEVELS,
+  InventoryPlacementLevel,
+} from "Common/Utils/Inventory/InventoryItemPlacement";
+import ObjectID from "Common/Types/ObjectID";
+import {
+  PluralTemplate,
+  translatePlural,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Inventory list's facet vocabulary.
@@ -47,6 +62,9 @@ export const INVENTORY_SECURITY_PATCH_FACET_KEY: string =
   "inventorySecurityPatch";
 export const INVENTORY_AGENT_PERMISSIONS_FACET_KEY: string =
   "inventoryAgentPermissions";
+export const INVENTORY_CLUSTER_FACET_KEY: string = "inventoryCluster";
+export const INVENTORY_HOST_FACET_KEY: string = "inventoryHost";
+export const INVENTORY_DATACENTER_FACET_KEY: string = "inventoryDatacenter";
 
 export const INVENTORY_FACET_QUERY_FIELDS: {
   type: "entityType";
@@ -55,6 +73,9 @@ export const INVENTORY_FACET_QUERY_FIELDS: {
   lastSeen: "lastSeenAt";
   securityPatch: "securityPatchStatus";
   agentPermissions: "agentPermissionsStatus";
+  cluster: "placementCluster";
+  host: "placementHost";
+  datacenter: "placementDatacenter";
 } = {
   type: "entityType",
   source: "source",
@@ -62,6 +83,9 @@ export const INVENTORY_FACET_QUERY_FIELDS: {
   lastSeen: "lastSeenAt",
   securityPatch: "securityPatchStatus",
   agentPermissions: "agentPermissionsStatus",
+  cluster: INVENTORY_PLACEMENT_LEVEL_COLUMNS.cluster,
+  host: INVENTORY_PLACEMENT_LEVEL_COLUMNS.host,
+  datacenter: INVENTORY_PLACEMENT_LEVEL_COLUMNS.datacenter,
 };
 
 const OPTION_OPERATORS: Array<FilterOperator> = ["is", "is_not"];
@@ -172,7 +196,138 @@ const buildMultiOptionQuery: (
   return defaultFacetQueryValue(values, operator, true);
 };
 
-export const INVENTORY_BASE_FACETS: Array<ResourceFacet> = [
+/*
+ * WHERE AN ITEM SITS (#11470): the Cluster, Host and Datacenter chips -
+ * every VM on esx-node-07, every host of cluster-alpha. Each offers the
+ * places of its level the list's items are in, with how many items are
+ * there, as the server counts them over the whole list (archived or not,
+ * as the list is), narrowed on the server by what is typed. Each filters
+ * on the item's placementCluster, placementHost or placementDatacenter,
+ * which the server works out from its attributes as the list shows them
+ * under its name (Common/Utils/Inventory/InventoryItemPlacement): a page,
+ * its count and a choice's count agree however many items there are. A
+ * place is a name, so a choice is what it reads.
+ */
+export interface InventoryPlacementFacetWords {
+  key: string;
+  label: string;
+  icon: IconProp;
+  searchPlaceholder: string;
+}
+
+export const INVENTORY_PLACEMENT_FACET_WORDS: Readonly<
+  Record<InventoryPlacementLevel, InventoryPlacementFacetWords>
+> = {
+  [InventoryPlacementLevel.Cluster]: {
+    key: INVENTORY_CLUSTER_FACET_KEY,
+    label: "Cluster",
+    icon: IconProp.RectangleStack,
+    searchPlaceholder: "Search clusters...",
+  },
+  [InventoryPlacementLevel.Host]: {
+    key: INVENTORY_HOST_FACET_KEY,
+    label: "Host",
+    icon: IconProp.Server,
+    searchPlaceholder: "Search hosts...",
+  },
+  [InventoryPlacementLevel.Datacenter]: {
+    key: INVENTORY_DATACENTER_FACET_KEY,
+    label: "Datacenter",
+    icon: IconProp.BuildingOffice,
+    searchPlaceholder: "Search datacenters...",
+  },
+};
+
+// Under each choice: how many of the list's items are there.
+export const INVENTORY_PLACEMENT_ITEM_COUNT: PluralTemplate = {
+  one: "{{count}} item",
+  other: "{{count}} items",
+};
+
+export type InventoryPlacementOptionsLoader = (
+  request: InventoryPlacementOptionsRequest,
+) => Promise<Array<InventoryPlacementChoice>>;
+
+export interface InventoryFacetsContext {
+  // The Archived list's place chips offer the archived items' places.
+  isArchived?: boolean | undefined;
+  /*
+   * Where the place chips' choices come from: the list hands in the
+   * server's (fetchInventoryPlacementOptions). Without one a chip offers
+   * none, and still filters by a choice a saved view or a link holds.
+   */
+  loadPlacementOptions?: InventoryPlacementOptionsLoader | undefined;
+}
+
+const NO_PLACEMENT_OPTIONS: InventoryPlacementOptionsLoader =
+  async (): Promise<Array<InventoryPlacementChoice>> => {
+    return [];
+  };
+
+export function toInventoryPlacementFacetOption(
+  choice: InventoryPlacementChoice,
+): FilterChipDropdownOption {
+  return {
+    value: choice.value,
+    label: choice.value,
+    sublabel: translatePlural(INVENTORY_PLACEMENT_ITEM_COUNT, choice.count),
+  };
+}
+
+export function getInventoryPlacementFacet(
+  level: InventoryPlacementLevel,
+  context: InventoryFacetsContext = {},
+): ResourceFacet {
+  const words: InventoryPlacementFacetWords =
+    INVENTORY_PLACEMENT_FACET_WORDS[level];
+  const load: InventoryPlacementOptionsLoader =
+    context.loadPlacementOptions || NO_PLACEMENT_OPTIONS;
+
+  return {
+    key: words.key,
+    queryField: INVENTORY_PLACEMENT_LEVEL_COLUMNS[level],
+    label: words.label,
+    icon: words.icon,
+    isMultiSelect: true,
+    searchPlaceholder: words.searchPlaceholder,
+    supportedOperators: OPTION_OPERATORS,
+    loadOptions: async (
+      _projectId: ObjectID,
+      searchTerm: string,
+    ): Promise<Array<FilterChipDropdownOption>> => {
+      return (
+        await load({
+          level: level,
+          search: searchTerm.trim(),
+          isArchived: Boolean(context.isArchived),
+        })
+      ).map(toInventoryPlacementFacetOption);
+    },
+    // A place's name is its value: a saved choice reads as it was chosen.
+    resolveOptions: async (
+      _projectId: ObjectID,
+      values: Array<string>,
+    ): Promise<Array<FilterChipDropdownOption>> => {
+      return values.map((value: string): FilterChipDropdownOption => {
+        return { value: value, label: value };
+      });
+    },
+    toQueryValue: buildMultiOptionQuery,
+  };
+}
+
+export function getInventoryPlacementFacets(
+  context: InventoryFacetsContext = {},
+): Array<ResourceFacet> {
+  return INVENTORY_PLACEMENT_LEVELS.map(
+    (level: InventoryPlacementLevel): ResourceFacet => {
+      return getInventoryPlacementFacet(level, context);
+    },
+  );
+}
+
+// What it is, where it came from and whether it is live, before where it sits.
+const INVENTORY_LEADING_FACETS: Array<ResourceFacet> = [
   {
     key: INVENTORY_TYPE_FACET_KEY,
     queryField: INVENTORY_FACET_QUERY_FIELDS.type,
@@ -206,6 +361,9 @@ export const INVENTORY_BASE_FACETS: Array<ResourceFacet> = [
     supportedOperators: OPTION_OPERATORS,
     toQueryValue: buildMultiOptionQuery,
   },
+];
+
+const INVENTORY_TRAILING_FACETS: Array<ResourceFacet> = [
   {
     key: INVENTORY_LAST_SEEN_FACET_KEY,
     queryField: INVENTORY_FACET_QUERY_FIELDS.lastSeen,
@@ -239,6 +397,20 @@ export const INVENTORY_BASE_FACETS: Array<ResourceFacet> = [
   },
 ];
 
+function getInventoryFacets(
+  context: InventoryFacetsContext,
+): Array<ResourceFacet> {
+  return [
+    ...INVENTORY_LEADING_FACETS,
+    ...getInventoryPlacementFacets(context),
+    ...INVENTORY_TRAILING_FACETS,
+  ];
+}
+
+export const INVENTORY_BASE_FACETS: Array<ResourceFacet> = getInventoryFacets(
+  {},
+);
+
 export interface InventoryFacetLockedQuery {
   entityType?: unknown;
   source?: unknown;
@@ -246,11 +418,15 @@ export interface InventoryFacetLockedQuery {
   inventoryStatus?: unknown;
   securityPatchStatus?: unknown;
   agentPermissionsStatus?: unknown;
+  placementCluster?: unknown;
+  placementHost?: unknown;
+  placementDatacenter?: unknown;
   [key: string]: unknown;
 }
 
 export type BuildInventoryFacetsFunction = (
   lockedQuery?: InventoryFacetLockedQuery | undefined,
+  context?: InventoryFacetsContext | undefined,
 ) => Array<ResourceFacet>;
 
 /**
@@ -260,8 +436,9 @@ export type BuildInventoryFacetsFunction = (
  */
 export const buildInventoryFacets: BuildInventoryFacetsFunction = (
   lockedQuery: InventoryFacetLockedQuery = {},
+  context: InventoryFacetsContext = {},
 ): Array<ResourceFacet> => {
-  return INVENTORY_BASE_FACETS.filter((facet: ResourceFacet): boolean => {
+  return getInventoryFacets(context).filter((facet: ResourceFacet): boolean => {
     const queryField: string = facet.queryField || facet.key;
 
     return !Object.prototype.hasOwnProperty.call(lockedQuery, queryField);

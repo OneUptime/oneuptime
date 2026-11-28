@@ -13,8 +13,17 @@ import {
   INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS,
   INVENTORY_ARCHIVED_TABLE_ID,
   INVENTORY_BASE_FACETS,
+  INVENTORY_CLUSTER_FACET_KEY,
+  INVENTORY_DATACENTER_FACET_KEY,
   INVENTORY_FACET_QUERY_FIELDS,
+  INVENTORY_HOST_FACET_KEY,
   INVENTORY_ITEMS_TABLE_ID,
+  INVENTORY_PLACEMENT_FACET_WORDS,
+  INVENTORY_PLACEMENT_ITEM_COUNT,
+  InventoryPlacementOptionsLoader,
+  getInventoryPlacementFacet,
+  getInventoryPlacementFacets,
+  toInventoryPlacementFacetOption,
   INVENTORY_LAST_SEEN_FACET_KEY,
   INVENTORY_SECURITY_PATCH_FACET_KEY,
   INVENTORY_SECURITY_PATCH_FACET_OPTIONS,
@@ -37,6 +46,16 @@ import {
   getInventorySourceDescriptor,
 } from "../../FeatureSet/Dashboard/src/Components/Inventory/InventorySource";
 import { ResourceFacet } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/ResourceFacet";
+import {
+  InventoryPlacementChoice,
+  InventoryPlacementOptionsRequest,
+} from "../../FeatureSet/Dashboard/src/Components/Inventory/InventoryPlacementApi";
+import {
+  INVENTORY_PLACEMENT_LEVELS,
+  InventoryPlacementLevel,
+} from "Common/Utils/Inventory/InventoryItemPlacement";
+import ObjectID from "Common/Types/ObjectID";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   DATE_FACET_OPERATORS,
   FilterChipDropdownOption,
@@ -80,6 +99,23 @@ describe("Inventory facet identity", () => {
     expect(INVENTORY_AGENT_PERMISSIONS_FACET_KEY).toBe(
       "inventoryAgentPermissions",
     );
+    expect(INVENTORY_CLUSTER_FACET_KEY).toBe("inventoryCluster");
+    expect(INVENTORY_HOST_FACET_KEY).toBe("inventoryHost");
+    expect(INVENTORY_DATACENTER_FACET_KEY).toBe("inventoryDatacenter");
+  });
+
+  test("the chips are in reading order: what it is, where from, whether live, where it sits, then the rest", () => {
+    expect(facetKeys(INVENTORY_BASE_FACETS)).toEqual([
+      INVENTORY_TYPE_FACET_KEY,
+      INVENTORY_SOURCE_FACET_KEY,
+      INVENTORY_STATUS_FACET_KEY,
+      INVENTORY_CLUSTER_FACET_KEY,
+      INVENTORY_HOST_FACET_KEY,
+      INVENTORY_DATACENTER_FACET_KEY,
+      INVENTORY_LAST_SEEN_FACET_KEY,
+      INVENTORY_SECURITY_PATCH_FACET_KEY,
+      INVENTORY_AGENT_PERMISSIONS_FACET_KEY,
+    ]);
   });
 
   test("keys and query fields are non-empty and distinct", () => {
@@ -117,6 +153,203 @@ describe("Inventory facet identity", () => {
     );
     expect(facet(INVENTORY_AGENT_PERMISSIONS_FACET_KEY).queryField).toBe(
       INVENTORY_FACET_QUERY_FIELDS.agentPermissions,
+    );
+    expect(facet(INVENTORY_CLUSTER_FACET_KEY).queryField).toBe(
+      "placementCluster",
+    );
+    expect(facet(INVENTORY_HOST_FACET_KEY).queryField).toBe("placementHost");
+    expect(facet(INVENTORY_DATACENTER_FACET_KEY).queryField).toBe(
+      "placementDatacenter",
+    );
+  });
+});
+
+describe("Cluster, Host and Datacenter facets (#11470)", () => {
+  const PROJECT_ID: ObjectID = ObjectID.generate();
+  const CHOICES: Array<InventoryPlacementChoice> = [
+    { value: "esx-node-07.acme.lan", count: 10250 },
+    { value: "esx-node-08.acme.lan", count: 1 },
+  ];
+
+  function recordingLoader(): {
+    load: InventoryPlacementOptionsLoader;
+    asked: Array<InventoryPlacementOptionsRequest>;
+  } {
+    const asked: Array<InventoryPlacementOptionsRequest> = [];
+    return {
+      asked,
+      load: async (
+        request: InventoryPlacementOptionsRequest,
+      ): Promise<Array<InventoryPlacementChoice>> => {
+        asked.push(request);
+        return CHOICES;
+      },
+    };
+  }
+
+  test("one chip per level, named for the place, with its own search words and icon", () => {
+    expect(
+      getInventoryPlacementFacets().map((item: ResourceFacet) => {
+        return {
+          key: item.key,
+          label: item.label,
+          icon: item.icon,
+          searchPlaceholder: item.searchPlaceholder,
+        };
+      }),
+    ).toEqual([
+      {
+        key: INVENTORY_CLUSTER_FACET_KEY,
+        label: "Cluster",
+        icon: IconProp.RectangleStack,
+        searchPlaceholder: "Search clusters...",
+      },
+      {
+        key: INVENTORY_HOST_FACET_KEY,
+        label: "Host",
+        icon: IconProp.Server,
+        searchPlaceholder: "Search hosts...",
+      },
+      {
+        key: INVENTORY_DATACENTER_FACET_KEY,
+        label: "Datacenter",
+        icon: IconProp.BuildingOffice,
+        searchPlaceholder: "Search datacenters...",
+      },
+    ]);
+    expect(Object.keys(INVENTORY_PLACEMENT_FACET_WORDS)).toEqual(
+      INVENTORY_PLACEMENT_LEVELS,
+    );
+  });
+
+  test("each is a multi-select of is and is not, its choices loaded from the server as typed", () => {
+    for (const item of getInventoryPlacementFacets()) {
+      expect(item.isMultiSelect).toBe(true);
+      expect(item.supportedOperators).toEqual(["is", "is_not"]);
+      expect(item.loadOptions).toBeDefined();
+      expect(item.resolveOptions).toBeDefined();
+      expect(item.options).toBeUndefined();
+      expect(item.fetchOptions).toBeUndefined();
+    }
+  });
+
+  test("is builds an Includes of the names chosen; is not keeps the items with no place", () => {
+    const host: ResourceFacet = facet(INVENTORY_HOST_FACET_KEY);
+    const included: unknown = host.toQueryValue!(
+      ["esx-node-07.acme.lan", "esx-node-08.acme.lan"],
+      "is",
+    );
+    expect(included).toBeInstanceOf(Includes);
+    expect((included as Includes).values).toEqual([
+      "esx-node-07.acme.lan",
+      "esx-node-08.acme.lan",
+    ]);
+    const excluded: unknown = host.toQueryValue!(
+      ["esx-node-07.acme.lan"],
+      "is_not",
+    );
+    expect(excluded).toBeInstanceOf(IncludesNoneOrNull);
+  });
+
+  test("asks the server for the level's places, with what was typed, trimmed", async () => {
+    const { load, asked } = recordingLoader();
+    const cluster: ResourceFacet = getInventoryPlacementFacet(
+      InventoryPlacementLevel.Cluster,
+      { loadPlacementOptions: load },
+    );
+    await cluster.loadOptions!(PROJECT_ID, "  alpha ");
+    expect(asked).toEqual([
+      {
+        level: InventoryPlacementLevel.Cluster,
+        search: "alpha",
+        isArchived: false,
+      },
+    ]);
+  });
+
+  test("the Archived list's chips ask for the archived items' places", async () => {
+    const { load, asked } = recordingLoader();
+    const facets: Array<ResourceFacet> = buildInventoryFacets(
+      {},
+      { isArchived: true, loadPlacementOptions: load },
+    );
+    const datacenter: ResourceFacet = facets.find((item: ResourceFacet) => {
+      return item.key === INVENTORY_DATACENTER_FACET_KEY;
+    })!;
+    await datacenter.loadOptions!(PROJECT_ID, "");
+    expect(asked).toEqual([
+      {
+        level: InventoryPlacementLevel.Datacenter,
+        search: "",
+        isArchived: true,
+      },
+    ]);
+  });
+
+  test("each choice reads its name, and under it how many items are there", async () => {
+    const { load } = recordingLoader();
+    const host: ResourceFacet = getInventoryPlacementFacet(
+      InventoryPlacementLevel.Host,
+      { loadPlacementOptions: load },
+    );
+    const options: Array<FilterChipDropdownOption> = await host.loadOptions!(
+      PROJECT_ID,
+      "",
+    );
+    expect(options.map((option: FilterChipDropdownOption) => {
+      return { value: option.value, label: option.label };
+    })).toEqual([
+      { value: "esx-node-07.acme.lan", label: "esx-node-07.acme.lan" },
+      { value: "esx-node-08.acme.lan", label: "esx-node-08.acme.lan" },
+    ]);
+    expect(options[0]!.sublabel).toMatch(/10,?250 items/);
+    expect(options[1]!.sublabel).toBe("1 item");
+    expect(INVENTORY_PLACEMENT_ITEM_COUNT).toEqual({
+      one: "{{count}} item",
+      other: "{{count}} items",
+    });
+    expect(
+      toInventoryPlacementFacetOption({ value: "cluster-a", count: 2 }),
+    ).toEqual({ value: "cluster-a", label: "cluster-a", sublabel: "2 items" });
+  });
+
+  test("a saved choice reads as it was chosen, with nothing asked of the server", async () => {
+    const { load, asked } = recordingLoader();
+    const cluster: ResourceFacet = getInventoryPlacementFacet(
+      InventoryPlacementLevel.Cluster,
+      { loadPlacementOptions: load },
+    );
+    expect(
+      await cluster.resolveOptions!(PROJECT_ID, ["cluster-alpha", "prod-eu"]),
+    ).toEqual([
+      { value: "cluster-alpha", label: "cluster-alpha" },
+      { value: "prod-eu", label: "prod-eu" },
+    ]);
+    expect(asked).toEqual([]);
+  });
+
+  test("without the list's loader a chip offers no choices, and asks nobody", async () => {
+    const host: ResourceFacet = getInventoryPlacementFacet(
+      InventoryPlacementLevel.Host,
+    );
+    expect(await host.loadOptions!(PROJECT_ID, "esx")).toEqual([]);
+    // The static list the saved-view keys are read from is the same chips.
+    expect(facet(INVENTORY_HOST_FACET_KEY).queryField).toBe(host.queryField);
+  });
+
+  test("a server that fails leaves the chip's failure to the chip", async () => {
+    const failing: ResourceFacet = getInventoryPlacementFacet(
+      InventoryPlacementLevel.Host,
+      {
+        loadPlacementOptions: async (): Promise<
+          Array<InventoryPlacementChoice>
+        > => {
+          throw new Error("offline");
+        },
+      },
+    );
+    await expect(failing.loadOptions!(PROJECT_ID, "")).rejects.toThrow(
+      "offline",
     );
   });
 });
@@ -471,6 +704,9 @@ describe("scoped list protection", () => {
     ["inventoryStatus", INVENTORY_STATUS_FACET_KEY],
     ["securityPatchStatus", INVENTORY_SECURITY_PATCH_FACET_KEY],
     ["agentPermissionsStatus", INVENTORY_AGENT_PERMISSIONS_FACET_KEY],
+    ["placementCluster", INVENTORY_CLUSTER_FACET_KEY],
+    ["placementHost", INVENTORY_HOST_FACET_KEY],
+    ["placementDatacenter", INVENTORY_DATACENTER_FACET_KEY],
   ])(
     "a page-owned %s constraint removes only the colliding facet",
     (queryField: string, removedFacetKey: string) => {
@@ -492,6 +728,9 @@ describe("scoped list protection", () => {
       inventoryStatus: InventoryLiveness.Stale,
       securityPatchStatus: AndroidSecurityPatchStatus.OutOfDate,
       agentPermissionsStatus: AndroidAgentPermissionsStatus.Missing,
+      placementCluster: "cluster-alpha",
+      placementHost: "esx-node-07.acme.lan",
+      placementDatacenter: "DC-NORTH",
     };
 
     expect(buildInventoryFacets(query)).toEqual([]);

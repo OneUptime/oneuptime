@@ -31,6 +31,20 @@ import {
   InventoryOverviewCounts,
   readInventoryOverviewGroups,
 } from "../Utils/Inventory/InventoryOverviewAggregation";
+import {
+  INVENTORY_PLACEMENT_OPTIONS_ORDER,
+  INVENTORY_PLACEMENT_OPTIONS_SELECT,
+  InventoryPlacementOption,
+  getInventoryPlacementOptionsGroupBy,
+  readInventoryPlacementOptions,
+} from "../Utils/Inventory/InventoryPlacementOptions";
+import {
+  INVENTORY_PLACEMENT_LEVEL_COLUMNS,
+  InventoryPlacementLevel,
+} from "../../Utils/Inventory/InventoryItemPlacement";
+import NotNull from "../../Types/BaseDatabase/NotNull";
+import Search from "../../Types/BaseDatabase/Search";
+import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { ExtractedEntity } from "../Utils/Telemetry/TelemetryEntity";
 import {
@@ -359,6 +373,45 @@ export class InventoryItemService extends DatabaseService<Model> {
     });
 
     return readInventoryOverviewGroups(rows);
+  }
+
+  /**
+   * The clusters, hosts or datacenters the project's items sit in, for the
+   * Inventory list's Cluster, Host and Datacenter chips (#11470): each with
+   * how many items are there, in name order, narrowed by what was typed.
+   * See InventoryPlacementOptions.
+   *
+   * Read as the caller may read the list: the same permission pipeline as
+   * the list's own read, so a chip never offers a place only items the
+   * caller cannot see are in.
+   */
+  @CaptureSpan()
+  public async getPlacementOptions(data: {
+    projectId: ObjectID;
+    level: InventoryPlacementLevel;
+    search: string;
+    isArchived: boolean;
+    limit: number;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<InventoryPlacementOption>> {
+    const query: Query<Model> = {
+      projectId: data.projectId,
+      isArchived: data.isArchived,
+    };
+    (query as Record<string, unknown>)[
+      INVENTORY_PLACEMENT_LEVEL_COLUMNS[data.level]
+    ] = data.search ? new Search(data.search) : new NotNull();
+
+    const rows: Array<AggregateRow> = await this.aggregateBy({
+      query: query,
+      groupBy: getInventoryPlacementOptionsGroupBy(data.level),
+      select: INVENTORY_PLACEMENT_OPTIONS_SELECT,
+      orderBy: INVENTORY_PLACEMENT_OPTIONS_ORDER,
+      limit: data.limit,
+      props: data.props,
+    });
+
+    return readInventoryPlacementOptions(rows);
   }
 
   /**

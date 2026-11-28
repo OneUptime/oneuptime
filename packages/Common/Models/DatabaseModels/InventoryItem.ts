@@ -31,6 +31,10 @@ import AndroidAgentPermissions, {
   AndroidAgentPermissionsStatus,
 } from "../../Types/Host/AndroidAgentPermissions";
 import {
+  InventoryPlacementLevel,
+  getInventoryPlacementSql,
+} from "../../Utils/Inventory/InventoryItemPlacement";
+import {
   Column,
   Entity,
   Index,
@@ -499,6 +503,66 @@ export default class InventoryItem extends DatabaseBaseModel {
     },
   })
   public agentPermissionsStatus?: AndroidAgentPermissionsStatus = undefined;
+
+  /*
+   * Where the item sits (#11470): the cluster, the host and the datacenter
+   * it is in, as the list says under its name - a VM's ESXi host and
+   * cluster, a pod's Kubernetes cluster (Utils/Inventory/
+   * InventoryItemPlacement). Computed at read time from its attributes, as
+   * the statuses above are, so the Cluster, Host and Datacenter filters, a
+   * count and a page agree however many items there are. Empty for an item
+   * whose kind sits nowhere at that level, or that reports no place there.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Cluster",
+    description:
+      "The cluster the item is in, read from its attributes: a VMware VM's or ESXi host's cluster, a Proxmox node's or guest's, or a Kubernetes namespace's, node's, pod's or deployment's.",
+  })
+  @VirtualColumn({
+    type: ColumnType.ShortText,
+    query: (alias: string): string => {
+      return getInventoryPlacementSql(alias, InventoryPlacementLevel.Cluster);
+    },
+  })
+  public placementCluster?: string = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Host",
+    description:
+      "The host the item runs on, read from its attributes: a VMware VM's ESXi host, or an OpenStack instance's hypervisor.",
+  })
+  @VirtualColumn({
+    type: ColumnType.ShortText,
+    query: (alias: string): string => {
+      return getInventoryPlacementSql(alias, InventoryPlacementLevel.Host);
+    },
+  })
+  public placementHost?: string = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Datacenter",
+    description:
+      "The vSphere datacenter the item is in, read from its attributes: a VMware VM's, ESXi host's, cluster's or datastore's.",
+  })
+  @VirtualColumn({
+    type: ColumnType.ShortText,
+    query: (alias: string): string => {
+      return getInventoryPlacementSql(
+        alias,
+        InventoryPlacementLevel.Datacenter,
+      );
+    },
+  })
+  public placementDatacenter?: string = undefined;
 
   /*
    * Archiving is the disposal route that actually works for this table.

@@ -10,6 +10,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -67,7 +68,10 @@ const createOnlyColumnAccess: {
   update: [],
 };
 
-// Written by the service from the part's row, never by the caller.
+/*
+ * Written by the service from the part's row, never by the caller: computed,
+ * so a value a caller sends is dropped and the service's is kept.
+ */
 const serverWrittenColumnAccess: {
   create: Array<Permission>;
   read: Array<Permission>;
@@ -222,6 +226,8 @@ export default class VMwareHealthRuleOverride extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     required: false,
+    computed: true,
+    serverOwned: ServerOwned.Always,
     canReadOnRelationQuery: true,
     title: "Resource Name",
     description:
@@ -239,6 +245,8 @@ export default class VMwareHealthRuleOverride extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     required: false,
+    computed: true,
+    serverOwned: ServerOwned.Always,
     canReadOnRelationQuery: true,
     title: "Datacenter Name",
     description: "The datacenter the overridden part is in.",
@@ -255,6 +263,8 @@ export default class VMwareHealthRuleOverride extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     required: false,
+    computed: true,
+    serverOwned: ServerOwned.Always,
     canReadOnRelationQuery: true,
     title: "Cluster Name",
     description:
@@ -272,6 +282,8 @@ export default class VMwareHealthRuleOverride extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     required: false,
+    computed: true,
+    serverOwned: ServerOwned.Always,
     canReadOnRelationQuery: true,
     title: "Host Name",
     description:

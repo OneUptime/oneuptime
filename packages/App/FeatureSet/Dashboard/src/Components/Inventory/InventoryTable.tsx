@@ -32,6 +32,7 @@ import {
   InventoryFacetLockedQuery,
   buildInventoryFacets,
 } from "./InventoryFacets";
+import { fetchInventoryPlacementOptions } from "./InventoryPlacementApi";
 import {
   getInventoryLiveness,
   formatMinutesAgo,
@@ -374,11 +375,19 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
     },
   );
 
+  /*
+   * The Cluster, Host and Datacenter chips offer the places of the items
+   * this list holds: the archived ones' on the Archived page (#11470).
+   */
   const builtInFacets: Array<ResourceFacet> = useMemo(() => {
     return buildInventoryFacets(
       (props.query || {}) as InventoryFacetLockedQuery,
+      {
+        isArchived: isArchivedView,
+        loadPlacementOptions: fetchInventoryPlacementOptions,
+      },
     );
-  }, [props.query]);
+  }, [props.query, isArchivedView]);
 
   const inventoryFacets: Array<ResourceFacet> = useMemo(() => {
     return [...builtInFacets, ...customFieldFacetsResult.facets];
