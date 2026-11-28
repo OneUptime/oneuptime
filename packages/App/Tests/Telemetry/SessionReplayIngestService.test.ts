@@ -6,6 +6,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+// The spy type of the jest imported above.
+import type { SpyInstance } from "jest-mock";
 import { readSessionReplayFrustrationSignalsConfig } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
@@ -278,13 +280,14 @@ jest.mock(
      * A session's tags go through the real engine (#11458): what the
      * project's rules leave of them is what the header row says.
      */
-    const actual: {
+    type ActualScrubService = {
       default: {
         scrubTags: (data: unknown) => Record<string, string>;
       };
-    } = jest.requireActual(
+    };
+    const actual: ActualScrubService = jest.requireActual(
       "../../FeatureSet/Telemetry/Services/SessionReplayScrubService",
-    );
+    ) as ActualScrubService;
 
     return {
       __esModule: true,
@@ -3552,7 +3555,7 @@ describe("SessionReplayIngestService.processFromQueue - engagement, tags, traits
     });
 
     test("each value a rule changes in a tag is counted under the application and the session's app version", async () => {
-      const add: jest.SpiedFunction<typeof ScrubRuleValueCounter.add> = jest
+      const add: SpyInstance<typeof ScrubRuleValueCounter.add> = jest
         .spyOn(ScrubRuleValueCounter, "add")
         .mockImplementation((): void => {});
       const rule: CompiledScrubRule = compiled({

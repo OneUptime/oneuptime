@@ -550,12 +550,23 @@ integration("a RUM session's tags, in a real ClickHouse (#11458)", () => {
       saved._id = ObjectID.generate().toString();
       saved.projectId = PROJECT_ID;
       saved.name = `Data Security: ${dataTypeId} in ${tag.key}`;
-      saved.patternType = candidate.patternType as LogScrubRule["patternType"];
-      saved.customRegex = candidate.customRegex;
-      saved.scrubAction = candidate.scrubAction as LogScrubRule["scrubAction"];
-      saved.fieldsToScrub =
-        candidate.fieldsToScrub as LogScrubRule["fieldsToScrub"];
-      saved.attributeKeys = candidate.attributeKeys;
+      saved.patternType = candidate.patternType as NonNullable<
+        LogScrubRule["patternType"]
+      >;
+      saved.scrubAction = candidate.scrubAction as NonNullable<
+        LogScrubRule["scrubAction"]
+      >;
+      saved.fieldsToScrub = candidate.fieldsToScrub as NonNullable<
+        LogScrubRule["fieldsToScrub"]
+      >;
+
+      if (candidate.customRegex) {
+        saved.customRegex = candidate.customRegex;
+      }
+
+      if (candidate.attributeKeys) {
+        saved.attributeKeys = candidate.attributeKeys;
+      }
 
       compiledRules.push(compileScrubRule(saved)!);
       covering.push({

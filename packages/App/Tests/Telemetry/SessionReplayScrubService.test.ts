@@ -1,5 +1,7 @@
 import { scrubRegExpFromBuiltIn } from "Common/Types/Telemetry/ScrubRule";
 import { describe, expect, jest, test } from "@jest/globals";
+// The spy type of the jest imported above.
+import type { SpyInstance } from "jest-mock";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import ScrubHashToken from "Common/Server/Utils/Telemetry/ScrubHashToken";
 import { compileScrubRule } from "Common/Server/Utils/Telemetry/ScrubEngine/CompiledScrubRule";
@@ -834,7 +836,7 @@ describe("SessionReplayScrubService.scrubTags (#11458)", () => {
   });
 
   test("each value a rule changes is counted under the application and the session's app version; with counting off, none is", () => {
-    const add: jest.SpiedFunction<typeof ScrubRuleValueCounter.add> = jest
+    const add: SpyInstance<typeof ScrubRuleValueCounter.add> = jest
       .spyOn(ScrubRuleValueCounter, "add")
       .mockImplementation((): void => {});
     const rule: CompiledScrubRule = emailMask();
