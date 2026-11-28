@@ -102,9 +102,9 @@ let capturedDropdowns: Array<CapturedDropdown> = [];
 
 // The template picker as a plain select: its options are what is checked.
 jest.mock("../../../UI/Components/Dropdown/Dropdown", () => {
-  const actual: Record<string, unknown> = jest.requireActual<
-    Record<string, unknown>
-  >("../../../UI/Components/Dropdown/Dropdown");
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Components/Dropdown/Dropdown",
+  ) as Record<string, unknown>;
 
   return {
     ...actual,
@@ -146,11 +146,9 @@ jest.mock("../../../UI/Components/Dropdown/Dropdown", () => {
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeApi",
   () => {
-    const actual: Record<string, unknown> = jest.requireActual<
-      Record<string, unknown>
-    >(
+    const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeApi",
-    );
+    ) as Record<string, unknown>;
 
     return {
       ...actual,

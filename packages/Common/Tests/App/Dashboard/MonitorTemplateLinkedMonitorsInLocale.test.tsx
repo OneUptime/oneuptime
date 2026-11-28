@@ -189,11 +189,9 @@ jest.mock("../../../UI/Components/ModelDelete/ModelDelete", () => {
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeDialog",
   () => {
-    const actual: Record<string, unknown> = jest.requireActual<
-      Record<string, unknown>
-    >(
+    const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeDialog",
-    );
+    ) as Record<string, unknown>;
 
     return {
       ...actual,
@@ -209,11 +207,9 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeApi",
   () => {
-    const actual: Record<string, unknown> = jest.requireActual<
-      Record<string, unknown>
-    >(
+    const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeApi",
-    );
+    ) as Record<string, unknown>;
 
     return {
       ...actual,
