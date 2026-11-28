@@ -1278,3 +1278,713 @@ describe("Dart's single-quoted strings interpolate", () => {
     ).toEqual(["user.email"]);
   });
 });
+
+/*
+ * A RECORDED SESSION'S IDENTITY (#11395): who a web or mobile app's front
+ * end tells its session recorder or product analytics SDK the session's
+ * user is - each SDK called as its own documentation calls it. An email,
+ * or another sensitive value, as the user or among the user's traits is a
+ * point, where a RUM application's sessions keep it; an opaque id - the
+ * user's id, a hash - is none, as the other rules read ids.
+ */
+describe("a recorded session's identity (#11395)", () => {
+  test("recorder.identify(customer.email, { plan }): the session is identified by an email address, at its line, with its fix", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/session.js", [
+      "function startSession(customer) {",
+      "  recorder.identify(customer.email, { plan: customer.plan });",
+      "}",
+    ]);
+
+    expect(point).toMatchObject({
+      kind: SensitiveDataLeakKind.Telemetry,
+      checkId: "sensitive-data-in-telemetry",
+      sink: SensitiveDataSink.Session,
+      path: "src/session.js",
+      line: 2,
+      subject: "customer.email",
+      where: "recorder.identify",
+      sensitivity: DataSensitivity.Confidential,
+      isBlocking: false,
+      location: "sessions.identifiedUserLabel",
+      text: "Identifies a recorded session by an email address: `customer.email`, in `recorder.identify`.",
+      fix: "Identify the session by an opaque id, such as the user's id, never by `customer.email`.",
+    });
+    // Which id the record has is the author's to say: no change is guessed.
+    expect(point.suggestion).toBeUndefined();
+  });
+
+  test("a trait: written to the session's user under its key, and the line can lose it", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/session.ts", [
+      "LogRocket.identify(user.id, { name: user.name, email: user.email });",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Session,
+      subject: "email",
+      where: "LogRocket.identify",
+      location: "sessions.identifiedUserTraits.email",
+      text: "Writes an email address to a recorded session's user: `email`, in `LogRocket.identify`.",
+      fix: "Leave `email` out of the session's user details, or send a hash of it when you need to tell users apart.",
+      suggestion: {
+        startLine: 1,
+        endLine: 1,
+        original: [
+          "LogRocket.identify(user.id, { name: user.name, email: user.email });",
+        ],
+        replacement: ["LogRocket.identify(user.id, { name: user.name });"],
+        isByAi: false,
+      },
+    });
+  });
+
+  // Each SDK's call that says who the user is, as its documentation writes it.
+  test.each([
+    [
+      "OneUptime's browser SDK",
+      ["OneUptimeReplay.identify(user.email, { plan: user.plan });"],
+      "user.email",
+      "OneUptimeReplay.identify",
+    ],
+    [
+      "OneUptime's browser SDK, on window",
+      ["window.OneUptimeReplay.identify(currentUser.email);"],
+      "currentUser.email",
+      "window.OneUptimeReplay.identify",
+    ],
+    [
+      "OneUptime's React Native SDK, through its hook",
+      [
+        "const replay = useOneUptimeReplay();",
+        "replay.identify(account.email);",
+      ],
+      "account.email",
+      "replay.identify",
+    ],
+    [
+      "OneUptime's command queue, on one line",
+      [
+        'window.OneUptimeReplayQueue.push(["identify", user.email, { plan: "pro" }]);',
+      ],
+      "user.email",
+      'window.OneUptimeReplayQueue.push(["identify"])',
+    ],
+    [
+      "OneUptime's command queue, as its docs write it, before the recorder loads",
+      [
+        "(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([",
+        '  "identify",',
+        "  user.email,",
+        '  { plan: "pro", tenant: "acme" },',
+        "]);",
+      ],
+      "user.email",
+      'window.OneUptimeReplayQueue.push(["identify"])',
+    ],
+    [
+      "OneUptime's command queue, among other commands",
+      [
+        "window.OneUptimeReplayQueue.push(",
+        '  ["grantConsent"],',
+        '  ["identify", user.email, { plan: "pro" }],',
+        '  ["setTags", { build: "1.4.2" }],',
+        ");",
+      ],
+      "user.email",
+      'window.OneUptimeReplayQueue.push(["identify"])',
+    ],
+    [
+      "LogRocket",
+      ["LogRocket.identify(user.email);"],
+      "user.email",
+      "LogRocket.identify",
+    ],
+    [
+      "FullStory's browser API v1",
+      ["FS.identify(user.email, { displayName: user.name });"],
+      "user.email",
+      "FS.identify",
+    ],
+    [
+      "FullStory's browser API v2",
+      [
+        'FS("setIdentity", { uid: user.email, properties: { displayName: user.name } });',
+      ],
+      "user.email",
+      'FS("setIdentity")',
+    ],
+    [
+      "FullStory's npm package",
+      ['FullStory("setIdentity", { uid: user.email });'],
+      "user.email",
+      'FullStory("setIdentity")',
+    ],
+    [
+      "PostHog",
+      ["posthog.identify(user.email, { plan: user.plan });"],
+      "user.email",
+      "posthog.identify",
+    ],
+    [
+      "PostHog, an alias of the user",
+      ["posthog.alias(user.email);"],
+      "user.email",
+      "posthog.alias",
+    ],
+    [
+      "PostHog, from React's hook",
+      ["const posthog = usePostHog();", "posthog?.identify(session.email);"],
+      "session.email",
+      "posthog.identify",
+    ],
+    [
+      "Datadog RUM, its user's id",
+      ["datadogRum.setUser({ id: user.email, name: user.name });"],
+      "user.email",
+      "datadogRum.setUser",
+    ],
+    [
+      "Datadog RUM from its CDN",
+      ["window.DD_RUM && window.DD_RUM.setUser({ id: user.email });"],
+      "user.email",
+      "window.DD_RUM.setUser",
+    ],
+    [
+      "OpenReplay",
+      ["tracker.setUserID(user.email); // after tracker.start()"],
+      "user.email",
+      "tracker.setUserID",
+    ],
+    [
+      "OpenReplay's snippet",
+      ["OpenReplay.setUserID(user.email);"],
+      "user.email",
+      "OpenReplay.setUserID",
+    ],
+    [
+      "Hotjar's snippet",
+      ['hj("identify", user.email, { plan: user.plan });'],
+      "user.email",
+      'hj("identify")',
+    ],
+    [
+      "Hotjar's npm package",
+      ["Hotjar.identify(user.email, { color: user.favoriteColor });"],
+      "user.email",
+      "Hotjar.identify",
+    ],
+    [
+      "Smartlook's snippet",
+      ['smartlook("identify", user.email, { plan: user.plan });'],
+      "user.email",
+      'smartlook("identify")',
+    ],
+    [
+      "Smartlook's API",
+      ["smartlook.identify(user.email);"],
+      "user.email",
+      "smartlook.identify",
+    ],
+    [
+      "Mixpanel",
+      ["mixpanel.identify(user.email);"],
+      "user.email",
+      "mixpanel.identify",
+    ],
+    [
+      "Amplitude",
+      ["amplitude.setUserId(user.email);"],
+      "user.email",
+      "amplitude.setUserId",
+    ],
+    ["Heap", ["heap.identify(user.email);"], "user.email", "heap.identify"],
+    [
+      "a template literal as the user",
+      ["posthog.identify(`${user.email}`);"],
+      "user.email",
+      "posthog.identify",
+    ],
+  ])(
+    "%s: who the session is",
+    (_what: string, lines: Array<string>, subject: string, where: string) => {
+      const point: SensitiveDataCandidate = onlyPoint(
+        "web/src/session.ts",
+        lines,
+      );
+
+      expect({
+        sink: point.sink,
+        checkId: point.checkId,
+        subject: point.subject,
+        where: point.where,
+        location: point.location,
+        text: point.text,
+      }).toEqual({
+        sink: SensitiveDataSink.Session,
+        checkId: "sensitive-data-in-telemetry",
+        subject,
+        where,
+        location: "sessions.identifiedUserLabel",
+        text: `Identifies a recorded session by an email address: \`${subject}\`, in \`${where}\`.`,
+      });
+    },
+  );
+
+  // Each SDK's call that hands the user's traits, as its documentation writes it.
+  test.each([
+    [
+      "OneUptime's traits",
+      ["OneUptimeReplay.identify(user.id, { email: user.email });"],
+      "email",
+      "OneUptimeReplay.identify",
+    ],
+    [
+      "OneUptime's command queue's traits",
+      [
+        'window.OneUptimeReplayQueue.push(["identify", user.id, { email: user.email }]);',
+      ],
+      "email",
+      'window.OneUptimeReplayQueue.push(["identify"])',
+    ],
+    [
+      "FullStory's browser API v1, its user vars",
+      ["FS.setUserVars({ email: user.email });"],
+      "email",
+      "FS.setUserVars",
+    ],
+    [
+      "FullStory's browser API v2, the identity's properties",
+      [
+        'FS("setIdentity", { uid: user.id, properties: { email: user.email } });',
+      ],
+      "email",
+      'FS("setIdentity")',
+    ],
+    [
+      "FullStory's browser API v2, the user's properties",
+      [
+        'FS("setProperties", { type: "user", properties: { email: user.email } });',
+      ],
+      "email",
+      'FS("setProperties")',
+    ],
+    [
+      "FullStory's npm package, the user's properties",
+      ['Fullstory("setProperties", { type: "user", properties: { email } });'],
+      "email",
+      'Fullstory("setProperties")',
+    ],
+    [
+      "PostHog's person properties, with the identity",
+      ["posthog.identify(user.id, { email: user.email });"],
+      "email",
+      "posthog.identify",
+    ],
+    [
+      "PostHog's person properties, on their own",
+      ["posthog.setPersonProperties({ email: user.email });"],
+      "email",
+      "posthog.setPersonProperties",
+    ],
+    [
+      "PostHog's people",
+      ["posthog.people.set({ email: user.email });"],
+      "email",
+      "posthog.people.set",
+    ],
+    [
+      "Datadog RUM's user",
+      ["datadogRum.setUser({ id: user.id, email: user.email });"],
+      "email",
+      "datadogRum.setUser",
+    ],
+    [
+      "Datadog RUM's user property",
+      ['datadogRum.setUserProperty("email", user.email);'],
+      "email",
+      "datadogRum.setUserProperty",
+    ],
+    [
+      "OpenReplay's metadata",
+      ['tracker.setMetadata("email", user.email);'],
+      "email",
+      "tracker.setMetadata",
+    ],
+    [
+      "Hotjar's attributes",
+      ['hj("identify", user.id, { email: user.email });'],
+      "email",
+      'hj("identify")',
+    ],
+    [
+      "Hotjar's npm package's attributes",
+      ["Hotjar.identify(user.id, { email: user.email });"],
+      "email",
+      "Hotjar.identify",
+    ],
+    [
+      "Smartlook's properties",
+      ['smartlook("identify", user.id, { email: user.email });'],
+      "email",
+      'smartlook("identify")',
+    ],
+    [
+      "Mixpanel's profile",
+      ["mixpanel.people.set({ email: user.email });"],
+      "email",
+      "mixpanel.people.set",
+    ],
+    [
+      "Mixpanel's profile, set once",
+      ["mixpanel.people.set_once({ email: user.email });"],
+      "email",
+      "mixpanel.people.set_once",
+    ],
+    [
+      "Heap's user properties",
+      ["heap.addUserProperties({ email });"],
+      "email",
+      "heap.addUserProperties",
+    ],
+  ])(
+    "%s: one of the user's traits",
+    (_what: string, lines: Array<string>, subject: string, where: string) => {
+      const point: SensitiveDataCandidate = onlyPoint(
+        "web/src/session.ts",
+        lines,
+      );
+
+      expect({
+        sink: point.sink,
+        subject: point.subject,
+        where: point.where,
+        location: point.location,
+        text: point.text,
+      }).toEqual({
+        sink: SensitiveDataSink.Session,
+        subject,
+        where,
+        location: `sessions.identifiedUserTraits.${subject}`,
+        text: `Writes an email address to a recorded session's user: \`${subject}\`, in \`${where}\`.`,
+      });
+    },
+  );
+
+  // An opaque id, or what holds no data: no point, as the other rules read ids.
+  test.each([
+    [
+      "the customer's id, as the eval's fix has it",
+      ["recorder.identify(customer.id, { plan: customer.plan });"],
+    ],
+    ["OneUptime's user id", ["OneUptimeReplay.identify(user.id);"]],
+    [
+      "OneUptime's reference, and a trait of no data",
+      ['OneUptimeReplay.identify(userRef, { plan: "pro" });'],
+    ],
+    [
+      "OneUptime's queue, with an id",
+      [
+        'window.OneUptimeReplayQueue.push(["identify", user.id, { plan: "pro" }]);',
+      ],
+    ],
+    [
+      "OneUptime's queue, as its docs write it",
+      [
+        "(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([",
+        '  "identify",',
+        '  "user-123",',
+        '  { plan: "pro", tenant: "acme" },',
+        "]);",
+      ],
+    ],
+    ["LogRocket's UUID", ["LogRocket.identify(user.uuid);"]],
+    [
+      "LogRocket's documented literals",
+      ['LogRocket.identify("123456", { name: "John Smith" });'],
+    ],
+    [
+      "FullStory v1's id and display name",
+      ["FS.identify(user.id, { displayName: user.displayName });"],
+    ],
+    ["FullStory v2's id", ['FS("setIdentity", { uid: user.id });']],
+    ["PostHog's distinct id", ["posthog.identify(distinctId);"]],
+    [
+      "PostHog's id and a plan",
+      ["posthog.identify(user.id, { plan: user.plan });"],
+    ],
+    ["a hash of the email", ["posthog.identify(hash(user.email));"]],
+    ["a SHA-256 of the email", ["posthog.identify(sha256(user.email));"]],
+    ["an email's hash, by its name", ["posthog.identify(user.emailHash);"]],
+    ["a hashed email, by its name", ["LogRocket.identify(hashedEmail);"]],
+    [
+      "a masked email among the traits",
+      ["posthog.identify(user.id, { email: maskEmail(user.email) });"],
+    ],
+    [
+      "Datadog RUM's id and plan",
+      ["datadogRum.setUser({ id: user.id, plan: user.plan });"],
+    ],
+    [
+      "a key that only names the field",
+      ["datadogRum.setUser({ id: user.id, email: user.emailId });"],
+    ],
+    ["OpenReplay's user id", ["tracker.setUserID(user.id);"]],
+    ["Hotjar's user id", ['hj("identify", user.id, { plan: user.plan });']],
+    ["Smartlook's user id", ['smartlook("identify", user.id);']],
+    ["Mixpanel's user id", ["mixpanel.identify(user.id);"]],
+    ["Amplitude's user id", ["amplitude.setUserId(user.id);"]],
+    ["Heap's user id", ["heap.identify(user.id);"]],
+    [
+      "Datadog RUM's plan property",
+      ['datadogRum.setUserProperty("plan", user.plan);'],
+    ],
+    ["OpenReplay's plan metadata", ['tracker.setMetadata("plan", user.plan);']],
+    [
+      "only asked about",
+      ["recorder.identify(user.email ? user.id : anonymousId);"],
+    ],
+  ])("%s: no point", (_what: string, lines: Array<string>) => {
+    expect(writesIn("web/src/session.ts", lines)).toEqual([]);
+  });
+
+  // Calls named like an identity's that tell no session who its user is.
+  test.each([
+    ["a function called on nothing: the app's own", ["identify(user.email);"]],
+    [
+      "a component's state named like an SDK's setter",
+      ["setUserId(user.email);"],
+    ],
+    ["a component's user, in state", ["setUser({ email: user.email });"]],
+    ["a class's own user", ["this.setUser({ email: user.email });"]],
+    ["an auth module's identify", ["auth.identify(user.email);"]],
+    ["a strategy's identify", ["passport.identify(user.email);"]],
+    [
+      "Microsoft Clarity, which hashes the id in the browser",
+      ['window.clarity("identify", user.email);'],
+    ],
+    [
+      "Segment, which carries traits on to other tools by design",
+      ["analytics.identify(user.id, { email: user.email });"],
+    ],
+    ["Hotjar's other commands", ['hj("event", user.email);']],
+    [
+      "FullStory's events",
+      [
+        'FS("trackEvent", { name: "checkout", properties: { email: user.email } });',
+      ],
+    ],
+    [
+      "OneUptime's queue's other commands",
+      [
+        'window.OneUptimeReplayQueue.push(["track", "checkout_failed", { plan: user.plan }]);',
+      ],
+    ],
+    ["another queue", ['events.push(["identify", user.email]);']],
+    ["Node's file system", ["fs.writeFile(path, user.email);"]],
+    ["a session recorder started", ["recorder.start({ email: user.email });"]],
+    ["a profile's people, of no SDK", ["people.set({ email: user.email });"]],
+  ])("%s: no point", (_what: string, lines: Array<string>) => {
+    expect(writesIn("web/src/session.ts", lines)).toEqual([]);
+  });
+
+  test("a whole record of a person as the session's user: every field of it is written", () => {
+    const point: SensitiveDataCandidate = onlyPoint("web/src/session.ts", [
+      "datadogRum.setUser(currentUser);",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Session,
+      subject: "currentUser",
+      isWholeObject: true,
+      location: "sessions.identifiedUserLabel",
+      text: "Identifies a recorded session by a whole record of a person: `currentUser`, in `datadogRum.setUser`. Every field of it is written, personal data too.",
+      fix: "Write only the fields you need, by name, and none that holds personal data.",
+    });
+  });
+
+  test("a secret as the session's user: its own check, and it can fail the check", () => {
+    const point: SensitiveDataCandidate = onlyPoint("web/src/session.ts", [
+      "posthog.identify(session.accessToken);",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Session,
+      checkId: "secrets-in-telemetry",
+      subject: "session.accessToken",
+      isBlocking: true,
+      fix: "Leave `session.accessToken` out: everyone who reads the telemetry could read the secret.",
+    });
+  });
+
+  test("Restricted personal data among the traits can fail the check", () => {
+    const point: SensitiveDataCandidate = onlyPoint("web/src/session.ts", [
+      "LogRocket.identify(patient.id, { ssn: patient.ssn });",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Session,
+      subject: "ssn",
+      sensitivity: DataSensitivity.Restricted,
+      isBlocking: true,
+      location: "sessions.identifiedUserTraits.ssn",
+    });
+  });
+
+  test("a call over several lines is read to its end", () => {
+    const point: SensitiveDataCandidate = onlyPoint("web/src/session.ts", [
+      "LogRocket.identify(user.id, {",
+      "  plan: user.plan,",
+      "  email: user.email,",
+      "});",
+    ]);
+
+    expect(point).toMatchObject({
+      line: 3,
+      subject: "email",
+      location: "sessions.identifiedUserTraits.email",
+    });
+  });
+
+  test("OneUptime's queue as its docs write it: the point is on the user's own line", () => {
+    const point: SensitiveDataCandidate = onlyPoint("web/src/session.ts", [
+      "(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([",
+      '  "identify",',
+      "  user.email,",
+      '  { plan: "pro" },',
+      "]);",
+    ]);
+
+    expect(point.line).toBe(3);
+  });
+
+  test("Python's server-side PostHog: its distinct id is who the user is", () => {
+    const point: SensitiveDataCandidate = onlyPoint("app/analytics.py", [
+      "posthog.identify(distinct_id=user.email)",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Session,
+      subject: "user.email",
+      location: "sessions.identifiedUserLabel",
+    });
+  });
+
+  test("a web app's component files are read: Vue, Svelte, JSX", () => {
+    for (const path of [
+      "web/src/App.vue",
+      "web/src/Session.svelte",
+      "web/src/Session.jsx",
+    ]) {
+      expect(subjectsIn(path, ["LogRocket.identify(user.email);"])).toEqual([
+        "user.email",
+      ]);
+    }
+  });
+
+  test("a line marked not sensitive, or under a comment that marks it", () => {
+    expect(
+      writesIn("web/src/session.ts", [
+        "recorder.identify(testUser.email); // oneuptime:not-sensitive",
+        "// oneuptime:not-sensitive",
+        "posthog.identify(demo.email);",
+      ]),
+    ).toEqual([]);
+  });
+
+  test("the same data as the user and as a trait on one line: two points, each where the session keeps it", () => {
+    expect(
+      subjectsIn("web/src/session.ts", [
+        "posthog.identify(user.email, { email: user.email });",
+      ]),
+    ).toEqual(["user.email", "email"]);
+  });
+});
+
+describe("what a call writes to: a recorded session's identity (#11395)", () => {
+  test.each([
+    ["recorder.identify", true],
+    ["sessionRecorder.identify", true],
+    ["OneUptimeReplay.identify", true],
+    ["window.OneUptimeReplay.identify", true],
+    ["replay.identify", true],
+    ["this._posthog.identify", true],
+    ["LogRocket.identify", true],
+    ["FS.identify", true],
+    ["FS.setUserVars", false],
+    ["posthog.identify", true],
+    ["posthog.alias", true],
+    ["posthog.setPersonProperties", false],
+    ["posthog.people.set", false],
+    ["mixpanel.people.set_once", false],
+    ["datadogRum.setUser", true],
+    ["window.DD_RUM.setUser", true],
+    ["datadogRum.setUserProperty", false],
+    ["tracker.setUserID", true],
+    ["OpenReplay.setUserID", true],
+    ["tracker.setMetadata", false],
+    ["Hotjar.identify", true],
+    ["smartlook.identify", true],
+    ["mixpanel.identify", true],
+    ["amplitude.setUserId", true],
+    ["heap.identify", true],
+    ["heap.addUserProperties", false],
+  ])(
+    "%s is a recorded session's: who its user is, %s",
+    (name: string, isIdentity: boolean) => {
+      expect(readSink({ name, isMacro: false, isConstructor: false })).toEqual({
+        sink: SensitiveDataSink.Session,
+        isErrorReport: false,
+        isIdentity,
+      });
+    },
+  );
+
+  test.each([
+    "identify",
+    "setUserId",
+    "setUserID",
+    "auth.identify",
+    "user.identify",
+    "people.set",
+    "posthog.capture",
+    "LogRocket.track",
+    "recorder.start",
+    "fs.readFile",
+    "analytics.identify",
+    "clarity.identify",
+  ])("%s gives no session its user", (name: string) => {
+    expect(getSink({ name, isMacro: false, isConstructor: false })).toBeNull();
+  });
+
+  test("an error tracker's user stays an error report's, and a tracer's a span's", () => {
+    expect(
+      readSink({
+        name: "Sentry.setUser",
+        isMacro: false,
+        isConstructor: false,
+      }),
+    ).toEqual({ sink: SensitiveDataSink.Exception, isErrorReport: true });
+    expect(
+      getSink({ name: "tracer.setUser", isMacro: false, isConstructor: false }),
+    ).toBe(SensitiveDataSink.Span);
+    expect(
+      subjectsIn("web/src/session.ts", [
+        "tracer.setUser({ email: user.email });",
+      ]),
+    ).toEqual(["email"]);
+    expect(
+      writesIn("web/src/session.ts", [
+        "tracer.setUser({ email: user.email });",
+      ])[0]!.sink,
+    ).toBe(SensitiveDataSink.Span);
+  });
+
+  test("a session's user made with new is no call that gives it one", () => {
+    expect(
+      getSink({
+        name: "LogRocket.identify",
+        isMacro: false,
+        isConstructor: true,
+      }),
+    ).toBeNull();
+  });
+});
