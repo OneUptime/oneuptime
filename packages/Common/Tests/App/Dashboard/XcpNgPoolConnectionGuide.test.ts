@@ -6,7 +6,10 @@ import {
   ResourceConnectionGuideStep,
   getXcpNgPoolConnectionGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuides";
-import { XCP_NG_AGENT_CONTAINER } from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationMarkdown";
+import {
+  XCP_NG_AGENT_CONTAINER,
+  XCP_NG_AGENT_CONTAINER_NAME_VARIABLE,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationMarkdown";
 
 /*
  * The card under an XCP-ng pool's hero, while the pool is not connected.
@@ -146,7 +149,15 @@ describe("connecting a pool for the first time", () => {
       "utf8",
     );
     expect(XCP_NG_AGENT_CONTAINER).toBe("oneuptime-xcp-ng-agent");
-    expect(compose).toContain(`container_name: ${XCP_NG_AGENT_CONTAINER}`);
+    /*
+     * Read from .env, with the card's name as the default (#11168): a
+     * second Xen Orchestra's agent on the machine is named after its folder
+     * by install.sh, a name that starts with the default, which
+     * `docker ps --filter name=` matches.
+     */
+    expect(compose).toContain(
+      `container_name: \${${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}:-${XCP_NG_AGENT_CONTAINER}}\n`,
+    );
   });
 });
 
