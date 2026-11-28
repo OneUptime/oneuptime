@@ -109,7 +109,9 @@ describe("AddVMwareHealthSettingsAndSwapRates1809187811157", () => {
       expect(statement).not.toMatch(/^UPDATE |^DELETE |^INSERT /i);
 
       if (statement.includes('"VMwareResource"')) {
-        expect(statement).toMatch(/^ALTER TABLE "VMwareResource" ADD "\w+" numeric$/);
+        expect(statement).toMatch(
+          /^ALTER TABLE "VMwareResource" ADD "\w+" numeric$/,
+        );
       }
     }
   });
@@ -132,8 +134,8 @@ describe("AddVMwareHealthSettingsAndSwapRates1809187811157", () => {
   test("the index and key up makes are the ones down drops", async () => {
     const up: string = (await statementsOf("up")).join("\n");
     const down: string = (await statementsOf("down")).join("\n");
-    const index: string = /"(IDX_\w+)"/.exec(up)![1]!;
-    const key: string = /"(FK_\w+)"/.exec(up)![1]!;
+    const index: string = up.match(/"(IDX_\w+)"/)![1]!;
+    const key: string = up.match(/"(FK_\w+)"/)![1]!;
 
     expect(down).toContain(`"${index}"`);
     expect(down).toContain(`"${key}"`);
