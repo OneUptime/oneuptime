@@ -68151,7 +68151,7 @@
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "已跳过创建事件，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也同样匹配。同一检查的两个级别只会打开一个事件，来自第一个级别。",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "已跳过为此序列（{{series}}）创建事件，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也与它匹配。处于同一检查两个级别的序列只会收到一个事件，来自第一个级别。",
   "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 将此监视器置于其状态，因此从此时起，正常运行时间、状态页和 SLO 重新计入此监视器的时间。",
-  "Active hours to check": "Active hours to check",
-  "Roster Turn Key": "Roster Turn Key",
-  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
+  "Active hours to check": "待检查的有效时段",
+  "Roster Turn Key": "值班轮次键",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "保存为 {{startDay}} 至 {{endDay}}，但实际在所显示的日期值班：在 {{timezone}} 中，其时间落在这些日期上。请选择您想要的日期，然后保存该层。"
 }

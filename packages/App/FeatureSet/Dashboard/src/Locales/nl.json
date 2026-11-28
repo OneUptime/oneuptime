@@ -68151,7 +68151,7 @@
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "Er is geen incident aangemaakt omdat \"{{criteria}}\", dat vóór dit criterium staat, hetzelfde controleert en ook overeenkwam. Twee niveaus van één controle openen één incident, van het eerste.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "Er is geen incident aangemaakt voor deze reeks ({{series}}) omdat \"{{criteria}}\", dat vóór dit criterium staat, hetzelfde controleert en er ook op overeenkwam. Een reeks in twee niveaus van één controle krijgt één incident, van het eerste.",
   "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} zet deze monitor in zijn status, dus uptime, statuspagina's en SLO's tellen de tijd van de monitor vanaf hier weer mee.",
-  "Active hours to check": "Active hours to check",
-  "Roster Turn Key": "Roster Turn Key",
-  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
+  "Active hours to check": "Actieve uren te controleren",
+  "Roster Turn Key": "Sleutel van de dienstbeurt",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Opgeslagen als {{startDay}} tot {{endDay}}, maar bereikbaar op de getoonde dagen, waarop de tijden in {{timezone}} vallen. Kies de dagen die u bedoelt en sla daarna de laag op."
 }

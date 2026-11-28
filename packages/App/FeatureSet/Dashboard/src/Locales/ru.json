@@ -68151,7 +68151,7 @@
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "Создание инцидента пропущено, так как «{{criteria}}», указанный перед этим критерием, проверяет то же самое и тоже совпал. Два уровня одной проверки открывают один инцидент — от первого.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "Создание инцидента для этого ряда ({{series}}) пропущено, так как «{{criteria}}», указанный перед этим критерием, проверяет то же самое и тоже с ним совпал. Ряд, попавший в два уровня одной проверки, получает один инцидент — от первого.",
   "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} задаёт этому монитору свой статус, поэтому с этого момента доступность, страницы статуса и SLO снова учитывают время монитора.",
-  "Active hours to check": "Active hours to check",
-  "Roster Turn Key": "Roster Turn Key",
-  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
+  "Active hours to check": "Активные часы на проверку",
+  "Roster Turn Key": "Ключ смены дежурства",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Сохранено как «{{startDay}} – {{endDay}}», но дежурство идёт в показанные дни: на них приходится это время в {{timezone}}. Выберите нужные дни, затем сохраните слой."
 }

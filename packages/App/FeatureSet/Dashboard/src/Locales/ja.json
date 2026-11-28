@@ -68151,7 +68151,7 @@
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "インシデントは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、これにも一致したためです。同じチェックの 2 つの段階では、最初の段階からインシデントが 1 件だけ作成されます。",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "この系列（{{series}}）のインシデントは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、この系列にも一致したためです。同じチェックの 2 つの段階に入った系列には、最初の段階からインシデントが 1 件だけ作成されます。",
   "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} がこのモニターをそのステータスにしているため、ここから、モニターの時間は再び稼働率、ステータスページ、SLO の計算に含まれます。",
-  "Active hours to check": "Active hours to check",
-  "Roster Turn Key": "Roster Turn Key",
-  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
+  "Active hours to check": "確認が必要なアクティブな時間帯",
+  "Roster Turn Key": "オンコール担当キー",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "{{startDay}} から {{endDay}} として保存されていますが、表示されている曜日にオンコールになります。{{timezone}} では、その時刻がこれらの曜日に当たるためです。意図した曜日を選んでから、レイヤーを保存してください。"
 }

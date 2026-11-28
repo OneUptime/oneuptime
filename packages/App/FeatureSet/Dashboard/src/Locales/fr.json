@@ -68151,7 +68151,7 @@
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "Création d'un incident ignorée car « {{criteria}} », placé avant ce critère, vérifie la même chose et correspond aussi. Deux paliers d'une même vérification ouvrent un seul incident, celui du premier.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "Création d'un incident ignorée pour cette série ({{series}}) car « {{criteria}} », placé avant ce critère, vérifie la même chose et y correspond aussi. Une série dans deux paliers d'une même vérification reçoit un seul incident, celui du premier.",
   "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} place ce moniteur dans son statut : la disponibilité, les pages de statut et les SLO comptent donc de nouveau le temps du moniteur à partir de ce moment.",
-  "Active hours to check": "Active hours to check",
-  "Roster Turn Key": "Roster Turn Key",
-  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
+  "Active hours to check": "Heures actives à vérifier",
+  "Roster Turn Key": "Clé du tour d'astreinte",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Enregistrée du {{startDay}} au {{endDay}}, mais d'astreinte les jours affichés, ceux où tombent ses heures dans le fuseau {{timezone}}. Choisissez les jours voulus, puis enregistrez la couche."
 }

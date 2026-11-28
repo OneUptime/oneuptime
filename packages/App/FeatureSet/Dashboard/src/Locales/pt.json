@@ -68151,7 +68151,7 @@
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "Criação de um incidente ignorada porque \"{{criteria}}\", listado antes deste critério, verifica a mesma coisa e também correspondeu. Dois níveis da mesma verificação abrem um único incidente, do primeiro.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "Criação de um incidente ignorada para esta série ({{series}}) porque \"{{criteria}}\", listado antes deste critério, verifica a mesma coisa e também correspondeu a ela. Uma série em dois níveis da mesma verificação recebe um único incidente, do primeiro.",
   "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} coloca este monitor no status dele, então o tempo de atividade, as páginas de status e os SLOs voltam a contar o tempo do monitor a partir daqui.",
-  "Active hours to check": "Active hours to check",
-  "Roster Turn Key": "Roster Turn Key",
-  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
+  "Active hours to check": "Horário ativo a verificar",
+  "Roster Turn Key": "Chave do turno de plantão",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Guardada de {{startDay}} a {{endDay}}, mas de plantão nos dias mostrados, em que caem os seus horários em {{timezone}}. Escolha os dias que pretende e depois salve a camada."
 }

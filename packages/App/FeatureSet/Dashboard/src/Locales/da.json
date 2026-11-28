@@ -68151,7 +68151,7 @@
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "Der blev ikke oprettet en hændelse, fordi \"{{criteria}}\", der står før dette kriterium, tjekker det samme og også ramte. To niveauer af samme tjek åbner én hændelse, fra det første.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "Der blev ikke oprettet en hændelse for denne serie ({{series}}), fordi \"{{criteria}}\", der står før dette kriterium, tjekker det samme og også ramte den. En serie i to niveauer af samme tjek får én hændelse, fra det første.",
   "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} sætter denne monitor i sin status, så oppetid, statussider og SLO'er tæller monitorens tid med igen herfra.",
-  "Active hours to check": "Active hours to check",
-  "Roster Turn Key": "Roster Turn Key",
-  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
+  "Active hours to check": "Aktive timer at tjekke",
+  "Roster Turn Key": "Nøgle til vagttørn",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Gemt som {{startDay}} til {{endDay}}, men på vagt de viste dage, som tiderne falder på i {{timezone}}. Vælg de dage, du mener, og gem så laget."
 }

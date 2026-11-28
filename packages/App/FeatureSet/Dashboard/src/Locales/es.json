@@ -68151,7 +68151,7 @@
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "Se omitió la creación de un incidente porque \"{{criteria}}\", que está antes de este criterio, comprueba lo mismo y también coincidió. Dos niveles de una misma comprobación abren un solo incidente, el del primero.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "Se omitió la creación de un incidente para esta serie ({{series}}) porque \"{{criteria}}\", que está antes de este criterio, comprueba lo mismo y también coincidió con ella. Una serie en dos niveles de una misma comprobación recibe un solo incidente, el del primero.",
   "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} pone este monitor en su estado, así que el tiempo de actividad, las páginas de estado y los SLO vuelven a contar el tiempo del monitor a partir de este momento.",
-  "Active hours to check": "Active hours to check",
-  "Roster Turn Key": "Roster Turn Key",
-  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
+  "Active hours to check": "Horas activas por revisar",
+  "Roster Turn Key": "Clave del turno de guardia",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Guardada de {{startDay}} a {{endDay}}, pero de guardia los días mostrados, en los que caen sus horas en {{timezone}}. Elija los días que quiere y luego guarde la capa."
 }

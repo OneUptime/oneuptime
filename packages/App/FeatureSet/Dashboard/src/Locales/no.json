@@ -68151,7 +68151,7 @@
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "Hoppet over oppretting av hendelse fordi «{{criteria}}», som står før dette kriteriet, sjekker det samme og også traff. To nivåer av samme sjekk åpner én hendelse, fra det første.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "Hoppet over oppretting av hendelse for denne serien ({{series}}) fordi «{{criteria}}», som står før dette kriteriet, sjekker det samme og også traff den. En serie i to nivåer av samme sjekk får én hendelse, fra det første.",
   "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} setter denne monitoren i sin status, så oppetid, statussider og SLO-er tar med monitorens tid igjen herfra.",
-  "Active hours to check": "Active hours to check",
-  "Roster Turn Key": "Roster Turn Key",
-  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer."
+  "Active hours to check": "Aktive timer å sjekke",
+  "Roster Turn Key": "Nøkkel for vaktrunde",
+  "Saved as {{startDay}} to {{endDay}}, but on call on the days shown, which its times fall on in {{timezone}}. Pick the days you mean, then save the layer.": "Lagret som {{startDay}} til {{endDay}}, men på vakt de viste dagene, som tidene faller på i {{timezone}}. Velg dagene du mener, og lagre deretter laget."
 }
