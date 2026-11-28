@@ -423,6 +423,44 @@ Incident not found.
 
 以前は、空の本文で `200` を返していました。一覧 (`get-list`) と件数は引き続き、読み取りを許可されたレコードで `200` を返し、なければ何も返しません。Terraform プロバイダーは、リフレッシュ時の `404` を存在しなくなったリソースとして扱い、state から削除するため、次の plan で再び作成されます。プロバイダーが使う API キーには、管理するすべてのリソースを読み取れる権限とラベルを与えてください。MCP ツールは `404` に対して、対応する一覧ツールを案内するエラーを返し、CLI はコード `3` で終了します。
 
+### レコードの Markdown にある画像
+
+Markdown に貼り付けた画像 (インシデントの説明、Markdown のカスタムフィールド、メモにあるスクリーンショットなど) は非公開のファイルです。そのアドレス (`/file/image/access-token/...`) で開けるのはプロジェクトにサインインしている人だけなので、API キーは画像を表示しているレコードを通して読み取ります。
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+レコードは `get-item` と同じように、キーとして読み取られます。キーには、そのレコードを読む権限とそのラベルが必要です。応答には、レコードの Markdown が表示する画像が表示順に入り、それぞれ `name`、`mimeType`、`sizeInBytes`、`base64` のデータ、メールのインライン添付用の `contentId`、Markdown が表示に使う `urls`、画像がある `fields` を持ちます。`leftOut` には、Markdown が表示しているのに渡されなかったファイルが、それぞれ `reason` 付きで入ります。
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+渡されるのは、レコード自身のプロジェクトにアップロードされた画像だけで、最大 20 枚、合計 10 MB までです。SVG は渡されません。Markdown を持つレコードの種類にはどれも同じリクエストがあり、`/api/incident-public-note/<id>/markdown-files` や `/api/alert/<id>/markdown-files` のようになります。存在しないレコードや、キーが読めないレコードには `get-item` と同じく `404` が返り、キーがその種類のレコードをまったく読めないときは `422` が返ります。ワークフローは同じ画像を [Markdown からファイルを取得](/docs/workflows/components#get-files-from-markdown) で読み取ります。
+
 ## エンドポイントのリファレンス全体
 
 すべてのリソース、エンドポイント、フィールドは [OneUptime API リファレンス](/reference) に載っています。複数の言語で利用でき、言語はブラウザーから選ばれます。ページ上部のセレクターでいつでも切り替えられます。

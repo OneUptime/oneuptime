@@ -65,6 +65,12 @@ export enum ComponentInputType {
    * severity each Huntress severity opens at (Components/Huntress).
    */
   IncidentSeveritySelect = "Incident Severity Select",
+  /*
+   * A kind of record whose Markdown can show pictures - Incident, Incident
+   * Public Note, Alert... - picked from a list, and stored as its table name:
+   * Get Files From Markdown's Record Type (Components/MarkdownFiles).
+   */
+  MarkdownRecordType = "Markdown Record Type",
 }
 
 /*

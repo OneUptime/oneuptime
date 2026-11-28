@@ -26,6 +26,7 @@ Vous aurez rarement besoin de l'ouvrir pendant la construction. Les paramètres 
 | Transformer des données entre deux blocs                      | [JSON](#json) ou [Custom Code](#custom-code)                      |
 | Attendre avant le bloc suivant                                | [Sleep](#sleep)                                                   |
 | Démarrer un autre flux de travail                                    | [Execute Workflow](#execute-workflow)                             |
+| Joindre à un e-mail les images que montre le Markdown d'un enregistrement | [Récupérer les fichiers du Markdown](#get-files-from-markdown) |
 | Lire ou modifier des incidents, des moniteurs et d'autres enregistrements | [Composants de données OneUptime](#composants-de-données-oneuptime) |
 | Ouvrir, prendre en compte et résoudre des incidents ou des alertes pour les problèmes d'un autre outil | [Incidents et alertes d'autres outils](#incidents-et-alertes-dautres-outils) |
 | Prendre en compte ou fermer un problème Zabbix | [Zabbix](#zabbix) |
@@ -391,6 +392,139 @@ Démarrez un autre flux de travail du même projet. Votre flux de travail contin
 **Out** se produit dès que l'autre flux de travail est mis en file. **Erreur** se produit quand il ne peut pas l'être : il est introuvable, il est désactivé ou archivé, ou le démarrer créerait une boucle.
 
 Utilisez-le pour partager une logique commune : construisez une fois un flux de travail « publier dans le canal de l'incident », et démarrez-le depuis chaque flux de travail qui en a besoin. Une chaîne de flux de travail qui se démarrent les uns les autres ne peut pas boucler sur elle-même et compte au plus 10 niveaux. Voir [Configuration et sécurité](/docs/workflows/configuration#limite-dappels-entre-flux-de-travail).
+
+## Get Files From Markdown
+
+Lit les images que montre le Markdown d'un enregistrement, comme les captures d'écran que quelqu'un a collées dans la description d'un incident, dans un champ personnalisé Markdown ou dans une note, avec le nom, le type et les données de chaque image. Servez-vous-en pour joindre les images à un e-mail, afin qu'elles s'affichent là où le Markdown les place.
+
+| Paramètre | Ce qu'il fait |
+| --- | --- |
+| **Type d'enregistrement** | Le type d'enregistrement dont le Markdown montre les images : un incident, une note publique ou interne d'un incident, une alerte, une maintenance planifiée, et d'autres. |
+| **ID de l'enregistrement** | L'enregistrement à lire, en général celui qui a lancé le flux de travail, comme `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+
+| Sortie | Quand |
+| --- | --- |
+| **Succès** | L'enregistrement a été lu, qu'il montre des images ou non. |
+| **Erreur** | L'enregistrement n'a pas pu être lu : il n'existe pas, ou le flux de travail n'a pas le droit de le lire. **Erreur** dit pourquoi. |
+
+Il renvoie :
+
+- **Fichiers** : chaque image, dans l'ordre où l'enregistrement la montre, avec :
+  - `name` : le nom du fichier, tel qu'il a été téléversé ;
+  - `mimeType` : son type, comme `image/png` ou `image/jpeg` ;
+  - `sizeInBytes` : sa taille en octets ;
+  - `base64` : les données de l'image ;
+  - `contentId` : un ID pour l'image dans un e-mail HTML (`<img src="cid:...">`), le même pour la même image quel que soit l'enregistrement qui la montre ;
+  - `urls` : chaque adresse par laquelle le Markdown la montre ;
+  - `fields` : les champs qui la montrent, comme `description` ou le nom d'un champ personnalisé.
+- **Comptage** : combien d'images contient **Fichiers**.
+- **Laissés de côté** : les fichiers que montre le Markdown et qui ne sont pas dans **Fichiers**, chacun avec son `name`, ses `urls`, ses `fields`, une `reason` et un `message` qui dit pourquoi.
+
+**Fichiers** contient les données des images : le journal de l'exécution le masque et montre **Comptage** et **Laissés de côté** à la place. Un bloc suivant à qui l'on passe les images écrit ce qu'il reçoit dans sa propre entrée du journal.
+
+### Quelles images il remet
+
+Le bloc lit l'enregistrement comme le fait un bloc Find One, en tant que flux de travail : dans le projet du flux de travail, jamais un incident, une alerte ou un épisode privé, et seulement ce que les autorisations du flux de travail lui permettent de lire. Un enregistrement qu'il n'a pas le droit de lire prend **Erreur**, comme un enregistrement qui n'existe pas.
+
+Il ne remet que :
+
+- les images que montrent les champs Markdown de l'enregistrement, comme la description d'un incident, la cause racine, le postmortem et les notes de remédiation, et ses champs personnalisés Markdown. Un champ personnalisé Texte n'est pas du Markdown : une adresse écrite dedans n'est pas lue ;
+- les images téléversées dans le projet de l'enregistrement. Une adresse copiée depuis l'enregistrement d'un autre projet figure sous **Laissés de côté** comme introuvable ;
+- des images : PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF, HEIC et ICO, chacune vérifiée d'après ce que contient le fichier autant que d'après son type. Un SVG peut contenir du script : il est laissé de côté, comme un fichier qui prétend seulement être une image ;
+- jusqu'à 20 images, et 10 Mo au total. Ce qui dépasse une limite figure sous **Laissés de côté**, avec la raison.
+
+Il ne peut pas lister les fichiers, ni en lire un par son adresse : il ne lit que ce que montre l'enregistrement.
+
+### Exemple : des images intégrées dans un e-mail envoyé avec Microsoft Graph
+
+Ce flux de travail envoie chaque nouvel incident par e-mail avec Microsoft Graph, avec les captures d'écran de sa description affichées là où la description les place.
+
+:::steps
+### Obtenir un jeton pour Microsoft Graph
+
+Inscrivez une application dans Microsoft Entra ID, donnez-lui l'autorisation d'application `Mail.Send` et accordez le consentement de l'administrateur. Créez ensuite une [variable OAuth 2.0](/docs/workflows/variables#variables-oauth-20-des-jetons-qui-se-renouvellent-seuls) nommée `GRAPH_TOKEN` pour Microsoft, avec le type d'octroi **Client Credentials** et l'étendue `https://graph.microsoft.com/.default`.
+
+### Partir d'un nouvel incident
+
+Ajoutez le déclencheur **À la création : Incident**, et faites suivre son **Titre** et sa **Description**.
+
+### Lire les images de l'incident
+
+Ajoutez **Récupérer les fichiers du Markdown** après le déclencheur. Réglez **Type d'enregistrement** sur **Incident**, et **ID de l'enregistrement** sur `{{local.components.incident-on-create-1.returnValues.model._id}}`.
+
+### Construire le message
+
+Ajoutez **Exécuter du JavaScript personnalisé** sur sa sortie **Succès**, avec ces **Arguments** :
+
+```json title="Arguments"
+{
+  "subject": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "files": {{local.components.get-files-from-markdown-1.returnValues.files}}
+}
+```
+
+Le code fait pointer chaque adresse d'une image vers sa pièce jointe (`cid:` et son `contentId`), et joint l'image intégrée sous le même ID :
+
+```javascript title="JavaScript Code"
+const escapeHtml = (text) =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// The description, a paragraph at a time.
+let html = escapeHtml(args.description || "")
+  .split(/\n{2,}/)
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("\n");
+
+const attachments = [];
+
+for (const file of args.files) {
+  for (const url of file.urls) {
+    html = html.split(url).join(`cid:${file.contentId}`);
+  }
+
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    contentId: file.contentId,
+    isInline: true,
+  });
+}
+
+// ![alt](cid:...) becomes an <img>, where the Markdown put the image.
+html = html.replace(/!\[([^\]]*)\]\((cid:[^)\s]+)\)/g, '<img src="$2" alt="$1">');
+
+return {
+  message: {
+    subject: args.subject,
+    body: { contentType: "HTML", content: html },
+    toRecipients: [{ emailAddress: { address: "oncall@example.com" } }],
+    attachments: attachments,
+  },
+  saveToSentItems: false,
+};
+```
+
+### L'envoyer avec Microsoft Graph
+
+Ajoutez **Appel d'API POST (JSON)** sur la sortie **Succès** du code :
+
+| Paramètre | Valeur |
+| --- | --- |
+| **URL** | `https://graph.microsoft.com/v1.0/users/alerts@example.com/sendMail` |
+| **En-têtes de la requête** | `Authorization` : `Bearer {{global.variables.GRAPH_TOKEN}}` |
+| **Corps de la requête** | `{{local.components.javascript-1.returnValues.returnValue}}` |
+
+Microsoft Graph répond `202 Accepted`, et le bloc prend **Succès**.
+:::
+
+Microsoft Graph accepte une pièce jointe de 3 Mo au plus dans un message qu'on lui envoie de cette façon. Une image plus grande demande une session de téléversement, ou un lien à la place de l'image. Les images d'un enregistrement se lisent aussi avec une clé d'API, en dehors d'un flux de travail : voir [Images dans le Markdown d'un enregistrement](/docs/api-reference/api-reference#images-dans-le-markdown-dun-enregistrement).
 
 ## Incidents et alertes d'autres outils
 

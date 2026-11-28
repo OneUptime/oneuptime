@@ -68265,5 +68265,17 @@
   "They keep checking, but raise no incidents or alerts and set no status until you link them to another template. Open incidents and alerts their criteria were set to resolve are resolved.": "वे जाँच करते रहते हैं, लेकिन जब तक आप उन्हें किसी दूसरे टेम्पलेट से लिंक नहीं करते, तब तक न कोई घटना या अलर्ट उठाते हैं और न कोई स्थिति सेट करते हैं। जिन खुली घटनाओं और अलर्ट को उनके मानदंडों ने अपने आप सुलझने के लिए सेट किया था, वे सुलझा दिए जाते हैं।",
   "Those that an import, an auto import rule or an alert policy made are never made again.": "जिन्हें किसी आयात, ऑटो आयात नियम या अलर्ट नीति ने बनाया था, उन्हें फिर कभी नहीं बनाया जाता।",
   "Those that an import, an auto import rule or an alert policy made are never made again._one": "अगर इसे किसी आयात, ऑटो आयात नियम या अलर्ट नीति ने बनाया था, तो इसे फिर कभी नहीं बनाया जाता।",
-  "Unlinked, and its criteria cleared.": "अनलिंक किया गया, और इसके मानदंड हटा दिए गए।"
+  "Unlinked, and its criteria cleared.": "अनलिंक किया गया, और इसके मानदंड हटा दिए गए।",
+  "Each image, in the order the record shows it: its name, MIME type, size, data in base64, content ID, the addresses the Markdown shows it by, and the fields it is in. Hidden in the run's log.": "हर छवि, उसी क्रम में जिसमें रिकॉर्ड उसे दिखाता है: उसका नाम, MIME प्रकार, आकार, base64 में डेटा, कंटेंट ID, वे पते जिनसे Markdown उसे दिखाता है, और वे फ़ील्ड जिनमें वह है। रन के लॉग में छिपा रहता है।",
+  "Get Files From Markdown": "Markdown से फ़ाइलें प्राप्त करें",
+  "How many images Files holds.": "“फ़ाइलें” में कितनी छवियाँ हैं।",
+  "Pick a record type": "रिकॉर्ड प्रकार चुनें",
+  "Read the images a record's Markdown shows, such as the screenshots in an incident's description, with their names, types and data, ready to attach to an email.": "किसी रिकॉर्ड के Markdown में दिखने वाली छवियाँ पढ़ता है, जैसे किसी घटना के विवरण के स्क्रीनशॉट, उनके नाम, प्रकार और डेटा के साथ, ताकि उन्हें ईमेल में जोड़ा जा सके।",
+  "Roster Turn Key": "Roster Turn Key",
+  "Taken when the record could not be read: it does not exist, or the workflow may not read it.": "तब लिया जाता है जब रिकॉर्ड नहीं पढ़ा जा सका: वह मौजूद नहीं है, या वर्कफ़्लो उसे नहीं पढ़ सकता।",
+  "Taken when the record was read, whether or not it shows any images.": "तब लिया जाता है जब रिकॉर्ड पढ़ लिया गया, चाहे वह कोई छवि दिखाए या नहीं।",
+  "The files the Markdown shows that are not in Files, each with the reason: not an image, too large, or not found in this project.": "वे फ़ाइलें जो Markdown दिखाता है पर “फ़ाइलें” में नहीं हैं, हर एक के साथ कारण: छवि नहीं है, बहुत बड़ी है, या इस प्रोजेक्ट में नहीं मिली।",
+  "The kind of record whose Markdown shows the images: an incident, a note, an alert, and more.": "वह रिकॉर्ड प्रकार जिसका Markdown छवियाँ दिखाता है: कोई घटना, कोई नोट, कोई अलर्ट, और भी।",
+  "The record to read. Usually the ID of the record that started this workflow, or one an earlier step found.": "पढ़ा जाने वाला रिकॉर्ड। आम तौर पर उस रिकॉर्ड की ID जिससे यह वर्कफ़्लो शुरू हुआ, या किसी पिछले चरण को मिले रिकॉर्ड की।",
+  "Why the record could not be read.": "रिकॉर्ड क्यों नहीं पढ़ा जा सका।"
 }

@@ -68265,5 +68265,17 @@
   "They keep checking, but raise no incidents or alerts and set no status until you link them to another template. Open incidents and alerts their criteria were set to resolve are resolved.": "チェックは続けますが、別のテンプレートにリンクするまで、インシデントやアラートを作成せず、ステータスも設定しません。条件で自動的に解決されるよう設定されていた未解決のインシデントとアラートは解決されます。",
   "Those that an import, an auto import rule or an alert policy made are never made again.": "インポート、自動インポートルール、またはアラートポリシーが作成したモニターは、再び作成されることはありません。",
   "Those that an import, an auto import rule or an alert policy made are never made again._one": "インポート、自動インポートルール、またはアラートポリシーが作成したモニターは、再び作成されることはありません。",
-  "Unlinked, and its criteria cleared.": "リンクを解除し、条件をクリアしました。"
+  "Unlinked, and its criteria cleared.": "リンクを解除し、条件をクリアしました。",
+  "Each image, in the order the record shows it: its name, MIME type, size, data in base64, content ID, the addresses the Markdown shows it by, and the fields it is in. Hidden in the run's log.": "画像ごとに、レコードが表示する順で、名前、MIME タイプ、サイズ、base64 のデータ、コンテンツ ID、Markdown が表示に使っているアドレス、画像がある項目を返します。実行ログには表示されません。",
+  "Get Files From Markdown": "Markdown からファイルを取得",
+  "How many images Files holds.": "「ファイル」に入っている画像の数です。",
+  "Pick a record type": "レコードタイプを選択",
+  "Read the images a record's Markdown shows, such as the screenshots in an incident's description, with their names, types and data, ready to attach to an email.": "レコードの Markdown が表示している画像 (インシデントの説明に貼られたスクリーンショットなど) を、名前、種類、データ付きで読み取ります。メールにそのまま添付できます。",
+  "Roster Turn Key": "Roster Turn Key",
+  "Taken when the record could not be read: it does not exist, or the workflow may not read it.": "レコードを読み取れなかったときに進みます。レコードが存在しないか、ワークフローに読み取りが許可されていません。",
+  "Taken when the record was read, whether or not it shows any images.": "レコードを読み取れたときに進みます。画像を表示しているかどうかは問いません。",
+  "The files the Markdown shows that are not in Files, each with the reason: not an image, too large, or not found in this project.": "Markdown が表示しているのに「ファイル」に入っていないファイルです。画像ではない、大きすぎる、このプロジェクトで見つからない、といった理由が付きます。",
+  "The kind of record whose Markdown shows the images: an incident, a note, an alert, and more.": "画像を表示している Markdown を持つレコードの種類です。インシデント、メモ、アラートなどがあります。",
+  "The record to read. Usually the ID of the record that started this workflow, or one an earlier step found.": "読み取るレコードです。通常は、このワークフローを開始したレコードの ID か、前のステップが見つけたレコードの ID です。",
+  "Why the record could not be read.": "レコードを読み取れなかった理由です。"
 }

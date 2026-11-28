@@ -68265,5 +68265,17 @@
   "They keep checking, but raise no incidents or alerts and set no status until you link them to another template. Open incidents and alerts their criteria were set to resolve are resolved.": "它们会继续检查，但在关联到其他模板之前，不会创建事件或警报，也不会设置状态。其标准设置为自动解决的未关闭的事件和警报会被解决。",
   "Those that an import, an auto import rule or an alert policy made are never made again.": "由导入、自动导入规则或警报策略创建的监视器不会再次被创建。",
   "Those that an import, an auto import rule or an alert policy made are never made again._one": "由导入、自动导入规则或警报策略创建的监视器不会再次被创建。",
-  "Unlinked, and its criteria cleared.": "已取消关联，并已清除其标准。"
+  "Unlinked, and its criteria cleared.": "已取消关联，并已清除其标准。",
+  "Each image, in the order the record shows it: its name, MIME type, size, data in base64, content ID, the addresses the Markdown shows it by, and the fields it is in. Hidden in the run's log.": "每张图片，按记录显示它的顺序：名称、MIME 类型、大小、base64 数据、内容 ID、Markdown 显示它时所用的地址，以及它所在的字段。在运行日志中隐藏。",
+  "Get Files From Markdown": "从 Markdown 获取文件",
+  "How many images Files holds.": "“文件”中有多少张图片。",
+  "Pick a record type": "选择记录类型",
+  "Read the images a record's Markdown shows, such as the screenshots in an incident's description, with their names, types and data, ready to attach to an email.": "读取记录的 Markdown 显示的图片（例如事件描述里的截图），带上名称、类型和数据，可直接作为邮件附件。",
+  "Roster Turn Key": "Roster Turn Key",
+  "Taken when the record could not be read: it does not exist, or the workflow may not read it.": "无法读取记录时走这条输出：记录不存在，或工作流无权读取它。",
+  "Taken when the record was read, whether or not it shows any images.": "读取到记录时走这条输出，无论它是否显示图片。",
+  "The files the Markdown shows that are not in Files, each with the reason: not an image, too large, or not found in this project.": "Markdown 显示但不在“文件”中的文件，每个都附有原因：不是图片、太大，或在此项目中找不到。",
+  "The kind of record whose Markdown shows the images: an incident, a note, an alert, and more.": "其 Markdown 显示这些图片的记录类型：事件、备注、警报等。",
+  "The record to read. Usually the ID of the record that started this workflow, or one an earlier step found.": "要读取的记录。通常是启动此工作流的记录的 ID，或前面某个步骤找到的记录的 ID。",
+  "Why the record could not be read.": "无法读取记录的原因。"
 }
