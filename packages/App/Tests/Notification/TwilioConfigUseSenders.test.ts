@@ -11,6 +11,8 @@ import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
+import TestSendAccess from "Common/Server/API/TestSendAccess";
+import UserLanguage from "Common/Server/Utils/Notification/UserLanguage";
 import BlockedProjectNotifications from "Common/Server/Utils/Notification/BlockedProjectNotifications";
 import NotificationService from "Common/Server/Services/NotificationService";
 import Response from "Common/Server/Utils/Response";
@@ -809,6 +811,67 @@ describe("Send Test SMS and Send Test Call", () => {
     expect(answered()).toEqual([
       { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: US_NUMBER },
     ]);
+  });
+
+  /*
+   * #11461: Send Test Call is said in the language of the member who sends
+   * it - read from their account - beside its English, by the config's own
+   * voice's kind in that language.
+   */
+  test("the test call is said in the language of the member who sends it, by the config's voice's kind", async () => {
+    const config: ProjectCallSMSConfig = storedConfig(TwilioConfigUse.CallsOnly);
+    const member: ObjectID = new ObjectID(
+      "4e000000-0000-4000-8000-000000011461",
+    );
+
+    config.twilioCallVoice = "Polly.Joanna-Neural";
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findOneById")
+      .mockResolvedValue(config as never);
+    (
+      TestSendAccess.assertMaySendTest as unknown as Mock<
+        (...args: Array<unknown>) => Promise<unknown>
+      >
+    ).mockResolvedValueOnce({
+      projectId: new ObjectID(CALLER_PROJECT_ID),
+      userId: member,
+    } as never);
+    const language: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockResolvedValue("ja");
+
+    expect(
+      await callRoute(handlerOf("/test", 1), {
+        callSMSConfigId: CONFIG_ID.toString(),
+        toPhone: SG_RECIPIENT,
+      }),
+    ).toBeUndefined();
+
+    expect(String(language.mock.calls[0]![0])).toBe(member.toString());
+
+    const twiml: string = String(
+      (createCall.mock.calls[0]![0] as JSONObject)["twiml"],
+    );
+
+    expect(twiml).toContain(
+      '<Say voice="Polly.Kazuha-Neural" language="ja-JP">One Uptime からのテスト通話です。</Say>',
+    );
+    expect(twiml).not.toContain("This is a test call");
+  });
+
+  test("the test call to a member who reads English, or through a config with no voice: the English call, as before", async () => {
+    storedAs(TwilioConfigUse.CallsOnly);
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("de");
+
+    await callRoute(handlerOf("/test", 1), {
+      callSMSConfigId: CONFIG_ID.toString(),
+      toPhone: SG_RECIPIENT,
+    });
+
+    // No voice chosen: the account's default voice, English only.
+    expect(String((createCall.mock.calls[0]![0] as JSONObject)["twiml"])).toContain(
+      "<Say>This is a test call from One Uptime.</Say>",
+    );
   });
 
   test("a config used for calls and SMS without a number is still refused for a missing number", async () => {

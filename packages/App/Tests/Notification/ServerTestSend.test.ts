@@ -94,9 +94,13 @@ jest.mock("Common/Server/Middleware/MasterAdminAuthorization", () => {
 });
 
 import ServerTestSendAPI, {
+  readSignedInUserLanguage,
   readTestEmail,
   readTestPhone,
 } from "../../FeatureSet/Notification/API/ServerTestSend";
+import UserLanguage from "Common/Server/Utils/Notification/UserLanguage";
+import JSONWebTokenData from "Common/Types/JsonWebTokenData";
+import { ExpressRequest } from "Common/Server/Utils/Express";
 import CallService from "../../FeatureSet/Notification/Services/CallService";
 import MailService from "../../FeatureSet/Notification/Services/MailService";
 import ServerTestSendService, {
@@ -636,6 +640,103 @@ describe("over HTTP", () => {
     expect(makeCall).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * #11461: Make test call is said in the language of the master admin who
+   * pressed it, beside its English, read from their account - English for
+   * no session, and for a read that fails: a test call is never refused
+   * for the language it would be said in.
+   */
+  test("a test call is said in the language of the admin who pressed it, beside its English", async () => {
+    config = TWILIO;
+    const admin: ObjectID = new ObjectID(
+      "a1a1a1a1-0000-4000-8000-000000011461",
+    );
+
+    jest.spyOn(UserMiddleware, "readRequestSession").mockResolvedValue({
+      kind: "user",
+      session: { userId: admin, isMasterAdmin: true } as JSONWebTokenData,
+    });
+    const language: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockResolvedValue("de");
+
+    const result: HttpResult = await post({
+      path: "/call",
+      body: { toPhone: "+14155550123" },
+      isMasterAdmin: true,
+    });
+
+    expect(result.status).toBe(200);
+    expect(String(language.mock.calls[0]![0])).toBe(admin.toString());
+
+    const [request] = makeCall.mock.calls[0] as [CallRequest];
+
+    expect(request.data).toEqual([{ sayMessage: SERVER_TEST_CALL_TEXT }]);
+    expect(request.inLanguage).toEqual({
+      language: "de",
+      data: [
+        {
+          sayMessage:
+            "Dies ist ein Testanruf von OneUptime. Anrufe von diesem Server funktionieren.",
+        },
+      ],
+    });
+  });
+
+  test("an admin who reads English: the English call alone, as before", async () => {
+    config = TWILIO;
+    jest.spyOn(UserMiddleware, "readRequestSession").mockResolvedValue({
+      kind: "user",
+      session: { userId: ObjectID.generate() } as JSONWebTokenData,
+    });
+    jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en");
+
+    await post({
+      path: "/call",
+      body: { toPhone: "+14155550123" },
+      isMasterAdmin: true,
+    });
+
+    const [request] = makeCall.mock.calls[0] as [CallRequest];
+
+    expect(request.inLanguage).toBeUndefined();
+  });
+
+  test("a session that cannot be read: the call goes out, in English", async () => {
+    config = TWILIO;
+    jest
+      .spyOn(UserMiddleware, "readRequestSession")
+      .mockRejectedValue(new Error("redis is gone"));
+
+    const result: HttpResult = await post({
+      path: "/call",
+      body: { toPhone: "+14155550123" },
+      isMasterAdmin: true,
+    });
+
+    expect(result.status).toBe(200);
+    expect(makeCall).toHaveBeenCalledTimes(1);
+    expect((makeCall.mock.calls[0] as [CallRequest])[0].inLanguage).toBeUndefined();
+  });
+
+  test("a number that is not one is refused before the admin's language is read", async () => {
+    config = TWILIO;
+    const session: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      UserMiddleware,
+      "readRequestSession",
+    );
+
+    const result: HttpResult = await post({
+      path: "/call",
+      body: { toPhone: "not a number" },
+      isMasterAdmin: true,
+    });
+
+    expect(result.status).toBe(400);
+    expect(session).not.toHaveBeenCalled();
+    expect(makeCall).not.toHaveBeenCalled();
+  });
+
   test("an address or number that is not one is refused (400), and nothing is sent", async () => {
     config = { ...SMTP, ...TWILIO };
 
@@ -1070,5 +1171,63 @@ describe("a test push", () => {
       expect(result.status).toBeGreaterThanOrEqual(400);
       expect(sendPush).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("the language of who is signed in (readSignedInUserLanguage)", () => {
+  const request: ExpressRequest = {} as ExpressRequest;
+
+  test("a user's: the language on their account", async () => {
+    const userId: ObjectID = ObjectID.generate();
+
+    jest.spyOn(UserMiddleware, "readRequestSession").mockResolvedValue({
+      kind: "user",
+      session: { userId: userId } as JSONWebTokenData,
+    });
+    const language: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockResolvedValue("ja");
+
+    expect(await readSignedInUserLanguage(request)).toBe("ja");
+    expect(String(language.mock.calls[0]![0])).toBe(userId.toString());
+  });
+
+  test.each([
+    ["no session", { kind: "none" }],
+    ["a session that does not verify", { kind: "invalid", error: new Error("x") }],
+    ["a blocked user's", { kind: "blocked", session: { userId: ObjectID.generate() } }],
+    ["a user's with no id", { kind: "user", session: {} }],
+  ])("%s: English, with nobody's language read", async (
+    _label: string,
+    session: unknown,
+  ) => {
+    jest
+      .spyOn(UserMiddleware, "readRequestSession")
+      .mockResolvedValue(session as RequestSession);
+    const language: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      UserLanguage,
+      "getLanguage",
+    );
+
+    expect(await readSignedInUserLanguage(request)).toBe("en");
+    expect(language).not.toHaveBeenCalled();
+  });
+
+  test("a session or a language that cannot be read: English, never an error", async () => {
+    jest
+      .spyOn(UserMiddleware, "readRequestSession")
+      .mockRejectedValue(new Error("redis is gone"));
+
+    expect(await readSignedInUserLanguage(request)).toBe("en");
+
+    jest.spyOn(UserMiddleware, "readRequestSession").mockResolvedValue({
+      kind: "user",
+      session: { userId: ObjectID.generate() } as JSONWebTokenData,
+    });
+    jest
+      .spyOn(UserLanguage, "getLanguage")
+      .mockRejectedValue(new Error("database is gone"));
+
+    expect(await readSignedInUserLanguage(request)).toBe("en");
   });
 });
