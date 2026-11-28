@@ -9,15 +9,19 @@ import {
   GENERAL_WORDS_NOT_THE_ROLES,
   KEPT_IN_ENGLISH,
   KeptEnglish,
+  LANGUAGES_WITH_ROLE_NAME_GRAMMAR,
   NOT_A_ROLE_IN_ENGLISH,
+  englishPageRoleCounts,
   englishRoleCounts,
   generalRoleWords,
   englishRoleNamesIn,
   isBuiltInRoleName,
   namesRoleAsDrawn,
+  productLevelTitles,
   proseText,
   roleText,
   rolesLeftInEnglish,
+  rolesNamedAsDrawn,
   runningText,
   timesRoleNamedAsDrawn,
   writtenPermissionTitle,
@@ -349,6 +353,363 @@ describe("the role checks", () => {
   });
 });
 
+/*
+ * A ROLE'S DRAWN NAME COUNTS ONLY AS A WORD OF ITS OWN, OR AN INFLECTION OF
+ * IT (#11396).
+ *
+ * The drawn-name pattern was each word's first letters and then any letters
+ * at all, so the Norwegian heading "### Les dekningen" ("Read the
+ * coverage") counted as the Viewer, Leser (#11366), and so did Lese,
+ * Lesinger and Leseoperasjoner. Each language's real inflections, from its
+ * docs and its Dashboard's messages, are read as the role here; the words
+ * that only start like a role's name, a longer role's name, and a
+ * paraphrase are not.
+ */
+const LOCALE_FILE: RegExp = /^[a-z]{2}(-[A-Z]{2})?\.json$/;
+
+const DASHBOARD_LOCALE_LANGUAGES: Array<string> = fs
+  .readdirSync(path.join(REPO_PACKAGES, "App/FeatureSet/Dashboard/src/Locales"))
+  .filter((name: string): boolean => {
+    return LOCALE_FILE.test(name);
+  })
+  .map((name: string): string => {
+    return name.replace(/\.json$/, "");
+  });
+
+// [language, role, text, how often the text names the role as drawn]
+const DRAWN_NAME_CASES: ReadonlyArray<[string, string, string, number]> = [
+  // English, as the English pages and messages name the roles.
+  ["en", "Project Owner", "Only Project Owners can.", 1],
+  ["en", "Project Admin", "a Project Admin's key", 1],
+  ["en", "Viewer", "the Incident Viewer", 0],
+  ["en", "Incident Viewer", "the Incident Viewer", 1],
+  // German: one word, its endings appended.
+  ["de", "Project Admin", "Nur Projektadministratoren", 1],
+  ["de", "Project Owner", "den Projektinhabern", 1],
+  ["de", "Project Member", "alle Projektmitglieder", 1],
+  ["de", "Project Member", "den Projektmitgliedern", 1],
+  ["de", "Security Admin", "des Sicherheits-Administrators", 1],
+  ["de", "Viewer", "eines Betrachters", 1],
+  ["de", "Viewer", "den Betrachtern", 1],
+  ["de", "Viewer", "die Betrachter-Rolle", 1],
+  ["de", "Viewer", "Sicherheits-Betrachter", 0],
+  ["de", "Security Viewer", "Sicherheits-Betrachter", 1],
+  ["de", "Viewer", "Cloud-Betrachter", 0],
+  ["de", "Viewer", "Betrachten Sie das", 0],
+  ["de", "Viewer", "Betrachtet man es", 0],
+  ["de", "Project Owner", "Projektinhaberrechte", 0],
+  ["de", "Project Owner", "Projekteigentümer", 0],
+  // Dutch: eigenaar → eigenaren, lid → leden.
+  ["nl", "Project Owner", "de Projecteigenaren", 1],
+  ["nl", "Project Owner", "Projecteigenaars", 1],
+  ["nl", "Project Member", "alle Projectleden", 1],
+  ["nl", "Security Member", "Beveiligingsleden", 1],
+  ["nl", "Viewer", "Kijkers", 1],
+  ["nl", "Viewer", "Kijk naar het dashboard", 0],
+  ["nl", "Viewer", "Kijkt", 0],
+  ["nl", "Project Member", "Projectlimieten", 0],
+  ["nl", "Monitor Member", "Monitorlogs", 0],
+  // Danish.
+  ["da", "Project Owner", "Projektejere", 1],
+  ["da", "Project Owner", "Projektejerne", 1],
+  ["da", "Project Member", "Projektmedlemmer", 1],
+  ["da", "Project Admin", "Projektadministratorerne", 1],
+  ["da", "Security Admin", "Sikkerhedsadministrators", 1],
+  ["da", "Viewer", "Seere", 1],
+  ["da", "Viewer", "See", 0],
+  ["da", "Viewer", "Seed", 0],
+  // Norwegian, and the heading that passed for the Viewer (#11366).
+  ["no", "Viewer", "Leser", 1],
+  ["no", "Viewer", "Lesere", 1],
+  ["no", "Viewer", "Leserne", 1],
+  ["no", "Project Admin", "Prosjektadministratorene", 1],
+  ["no", "Project Owner", "Prosjekteiere", 1],
+  ["no", "Project Member", "Prosjektmedlemmer", 1],
+  ["no", "Viewer", "### Les dekningen", 0],
+  ["no", "Viewer", "Lesefremdrift", 0],
+  ["no", "Viewer", "Lese alt i prosjektet", 0],
+  ["no", "Viewer", "Lesinger", 0],
+  ["no", "Viewer", "Leseoperasjoner", 0],
+  ["no", "Viewer", "Skyleser", 0],
+  ["no", "Viewer", "Hendelsesleser", 0],
+  ["no", "Incident Viewer", "Hendelsesleser", 1],
+  // Swedish: ägare → ägarna, medlem → medlemmar.
+  ["sv", "Project Owner", "Projektägarna", 1],
+  ["sv", "Project Admin", "Projektadministratörer", 1],
+  ["sv", "Project Admin", "Projektadministratörerna", 1],
+  ["sv", "Project Member", "Projektmedlemmar", 1],
+  ["sv", "Security Admin", "Säkerhetsadministratörs", 1],
+  ["sv", "Viewer", "Tittaren", 1],
+  ["sv", "Viewer", "Titta på", 0],
+  ["sv", "Viewer", "Tittar", 0],
+  // French: the head's plural, an elided article before it.
+  ["fr", "Project Owner", "les Propriétaires du projet", 1],
+  ["fr", "Project Admin", "l'Administrateur du projet", 1],
+  ["fr", "Project Admin", "d’Administrateurs du projet", 1],
+  ["fr", "Viewer", "les Lecteurs", 1],
+  ["fr", "Viewer", "Lecteur des incidents", 0],
+  ["fr", "Incident Viewer", "Lecteur des incidents", 1],
+  ["fr", "Project Member", "Members", 0],
+  ["fr", "Project Owner", "les propriétaires", 0],
+  ["fr", "Project Owner", "Propriétaire du projets", 0],
+  // Spanish.
+  ["es", "Project Owner", "los Propietarios del proyecto", 1],
+  ["es", "Project Admin", "Administradores del proyecto", 1],
+  ["es", "Project Admin", "la Administradora del proyecto", 1],
+  ["es", "Viewer", "los Visores", 1],
+  ["es", "Viewer", "Visión general", 0],
+  ["es", "Viewer", "Vista", 0],
+  ["es", "Viewer", "Visitor", 0],
+  ["es", "Viewer", "Visor de incidentes", 0],
+  // Italian: -o and -e to -i, -io to -i.
+  ["it", "Project Owner", "i Proprietari del progetto", 1],
+  ["it", "Project Admin", "dell'Amministratore del progetto", 1],
+  ["it", "Project Admin", "gli Amministratori del progetto", 1],
+  ["it", "Project Member", "i Membri del progetto", 1],
+  ["it", "Viewer", "i Visualizzatori", 1],
+  ["it", "Project Member", "Members", 0],
+  ["it", "Viewer", "Visualizzatore degli incidenti", 0],
+  // Portuguese.
+  ["pt", "Project Owner", "os Proprietários do projeto", 1],
+  ["pt", "Project Admin", "Administradores do projeto", 1],
+  ["pt", "Viewer", "Visualizadores", 1],
+  ["pt", "Project Member", "Member", 0],
+  // Russian: the head's cases, its fleeting vowel.
+  ["ru", "Project Owner", "у Владельца проекта", 1],
+  ["ru", "Project Owner", "Владельцы проекта", 1],
+  ["ru", "Project Owner", "Владельцам проекта", 1],
+  ["ru", "Project Owner", "Владельцами проекта", 1],
+  ["ru", "Project Admin", "Администраторы проекта", 1],
+  ["ru", "Project Admin", "Администратору проекта", 1],
+  ["ru", "Project Member", "Участником проекта", 1],
+  ["ru", "Viewer", "Зрители", 1],
+  ["ru", "Project Admin", "Административные проекта", 0],
+  ["ru", "Project Owner", "Владельцы проектов", 0],
+  ["ru", "Project Owner", "владельцы проекта", 0],
+  ["ru", "Viewer", "Зритель инцидентов", 0],
+  // Hindi: the last word's oblique plural.
+  ["hi", "Project Owner", "प्रोजेक्ट स्वामियों", 1],
+  ["hi", "Project Member", "प्रोजेक्ट सदस्यों", 1],
+  ["hi", "Project Admin", "प्रोजेक्ट एडमिनों", 1],
+  ["hi", "Viewer", "दर्शकों", 1],
+  ["hi", "Viewer", "दर्ज", 0],
+  ["hi", "Viewer", "संदर्भ", 0],
+  ["hi", "Viewer", "दर्शाता", 0],
+  ["hi", "Viewer", "व्यूअर", 0],
+  ["hi", "Viewer", "घटना दर्शक", 0],
+  ["hi", "Project Owner", "प्रोजेक्ट स्वास्थ्य", 0],
+  ["hi", "Project Member", "प्रोजेक्ट सदस्यता", 0],
+  ["hi", "Project Admin", "प्रोजेक्ट एडमिनिस्ट्रेटर", 0],
+  // Persian: the head's plural and ezafe, the phrase's "a", "of", "its".
+  ["fa", "Project Owner", "مالکان پروژه", 1],
+  ["fa", "Project Owner", "مالکِ پروژه", 1],
+  ["fa", "Project Owner", "مالکان پروژهٔ شما", 1],
+  ["fa", "Security Admin", "هیچ مدیر امنیتی", 1],
+  ["fa", "Project Admin", "هیچ مدیر پروژه‌ای", 1],
+  ["fa", "Viewer", "بینندگان", 1],
+  ["fa", "Viewer", "بیننده‌ای", 1],
+  ["fa", "Project Owner", "مالی پروژه", 0],
+  ["fa", "Project Owner", "مال پروژه است", 0],
+  ["fa", "Project Owner", "مالکیت پروژه", 0],
+  ["fa", "Project Owner", "بی‌مالک پروژه", 0],
+  ["fa", "Project Admin", "مدیر پروژه‌ها", 0],
+  ["fa", "Project Owner", "مالکان و مدیران پروژه", 0],
+  // Arabic, which writes "and", "to" and "by" onto the noun.
+  ["ar", "Project Owner", "لمالك المشروع", 1],
+  ["ar", "Project Owner", "مالكو المشروع", 1],
+  ["ar", "Project Admin", "ومسؤولو المشروع", 1],
+  ["ar", "Project Admin", "مسؤولي المشروع", 1],
+  ["ar", "Project Member", "أعضاء المشروع", 1],
+  ["ar", "Project Member", "لأعضاء المشروع", 1],
+  ["ar", "Viewer", "إشعارات", 0],
+  ["ar", "Viewer", "لإشعارات", 0],
+  ["ar", "Project Owner", "المالكون", 0],
+  // Korean: the last word's particles, one or several.
+  ["ko", "Project Admin", "프로젝트 관리자가", 1],
+  ["ko", "Project Admin", "프로젝트 관리자에게만", 1],
+  ["ko", "Project Member", "프로젝트 구성원과", 1],
+  ["ko", "Viewer", "뷰어는", 1],
+  ["ko", "Project Owner", "프로젝트의 소유자", 0],
+  ["ko", "Monitor Admin", "모니터링 관리자", 0],
+  ["ko", "Project Admin", "프로그램 관리자", 0],
+  ["ko", "Viewer", "인시던트 뷰어", 0],
+  ["ko", "Incident Viewer", "인시던트 뷰어", 1],
+  // Japanese and Chinese: as drawn, wherever it is.
+  ["ja", "Project Owner", "プロジェクト所有者と", 1],
+  ["ja", "Runbook Admin", "Runbook 管理者だけ", 1],
+  ["ja", "Incident Viewer", "インシデント閲覧者", 1],
+  ["ja", "Viewer", "インシデント閲覧者", 0],
+  ["ja", "Project Owner", "プロジェクト所属", 0],
+  ["ja", "Project Owner", "プロジェクトのオーナー", 0],
+  ["zh-CN", "Incident Viewer", "事件查看者", 1],
+  ["zh-CN", "Viewer", "事件查看者", 0],
+  ["zh-CN", "Viewer", "只有查看者可以", 1],
+  ["zh-CN", "Project Owner", "项目所有者和项目管理员", 1],
+  ["zh-TW", "Project Owner", "專案擁有者", 1],
+  ["zh-TW", "Viewer", "事件檢視者", 0],
+];
+
+describe("a role's drawn name counts only as a word of its own, or an inflection of it", () => {
+  it.each(DRAWN_NAME_CASES)(
+    "%s: %s, in %j, %i times",
+    (language: string, role: string, text: string, times: number) => {
+      expect(timesRoleNamedAsDrawn(language, text, role)).toBe(times);
+      expect(namesRoleAsDrawn(language, text, role)).toBe(times > 0);
+    },
+  );
+
+  it("covers every language the docs and the Dashboard ship, and its real inflections", () => {
+    const languages: Set<string> = new Set(
+      DRAWN_NAME_CASES.map(
+        ([language]: [string, string, string, number]): string => {
+          return language;
+        },
+      ),
+    );
+
+    expect(DASHBOARD_LOCALE_LANGUAGES.length).toBeGreaterThan(16);
+    for (const language of [
+      ...TRANSLATED_LANGUAGES,
+      ...DASHBOARD_LOCALE_LANGUAGES,
+    ]) {
+      expect(LANGUAGES_WITH_ROLE_NAME_GRAMMAR).toContain(language);
+      expect(languages).toContain(language);
+    }
+    // Each language has a word the old pattern read as a role, and is not.
+    for (const language of languages) {
+      expect(
+        DRAWN_NAME_CASES.some(
+          ([caseLanguage, , , times]: [string, string, string, number]) => {
+            return caseLanguage === language && times === 0;
+          },
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("refuses a language it knows no grammar for, rather than read it some way", () => {
+    expect(() => {
+      return timesRoleNamedAsDrawn("tr", "Proje Sahibi", "Project Owner");
+    }).toThrow(/knows no grammar for "tr"/);
+  });
+
+  it("reads each role's drawn name as that role, in every language", () => {
+    const misread: Array<string> = [];
+
+    for (const language of LANGUAGES_WITH_ROLE_NAME_GRAMMAR) {
+      for (const role of BUILT_IN_ROLE_NAMES) {
+        const drawn: string = writtenPermissionTitle(language, role);
+        const read: Array<string> = rolesNamedAsDrawn(language, `(${drawn}).`);
+
+        if (read.length !== 1 || read[0] !== role) {
+          misread.push(`${language}: ${drawn} -> ${read.join(", ")}`);
+        }
+      }
+    }
+
+    expect(misread).toEqual([]);
+  });
+
+  it("reads a name inside a longer role's name as the longer role, as English does", () => {
+    expect(
+      rolesNamedAsDrawn("fr", "Lecteur des incidents, puis Lecteur."),
+    ).toEqual(["Incident Viewer", "Viewer"]);
+    expect(
+      rolesNamedAsDrawn("de", "Sicherheits-Betrachter und Betrachter"),
+    ).toEqual(["Security Viewer", "Viewer"]);
+    expect(rolesNamedAsDrawn("ja", "インシデント閲覧者と閲覧者")).toEqual([
+      "Incident Viewer",
+      "Viewer",
+    ]);
+    expect(englishRoleNamesIn("Incident Viewer and Viewer")).toEqual([
+      "Incident Viewer",
+      "Viewer",
+    ]);
+  });
+
+  it("would fail each page it caught, worded as it was", () => {
+    // [language, page, the page's words now, its words before #11396, role]
+    const caught: ReadonlyArray<[string, string, string, string, string]> = [
+      ["no", "permissions/index", "| Leser |", "| Viser |", "Viewer"],
+      [
+        "ru",
+        "api-reference/api-reference",
+        "; Владельцы проекта получают письмо",
+        "; владельцы проекта получают письмо",
+        "Project Owner",
+      ],
+      [
+        "ko",
+        "forms/on-submit",
+        "인시던트 생성됨** 알림은 그들이 소유자가 될 때까지 기다리므로, 프로젝트 소유자가 아니라",
+        "인시던트 생성됨** 알림은 그들이 소유자가 될 때까지 기다리므로, 프로젝트의 소유자가 아니라",
+        "Project Owner",
+      ],
+      [
+        "hi",
+        "data-security/integrations",
+        "और दर्शक पढ़",
+        "और व्यूअर पढ़",
+        "Viewer",
+      ],
+      [
+        "fa",
+        "permissions/index",
+        "توسط مالکان پروژه و مدیران پروژه",
+        "توسط مالکان و مدیران پروژه",
+        "Project Owner",
+      ],
+    ];
+
+    for (const [language, page, now, before, role] of caught) {
+      const translated: string = readPage(language, page);
+      const english: number =
+        englishPageRoleCounts(readPage("en", page)).get(role) || 0;
+
+      expect([page, translated.includes(now)]).toEqual([page, true]);
+      expect([
+        page,
+        timesRoleNamedAsDrawn(language, roleText(translated), role) >= english,
+      ]).toEqual([page, true]);
+      expect([
+        page,
+        timesRoleNamedAsDrawn(
+          language,
+          roleText(translated.split(now).join(before)),
+          role,
+        ) < english,
+      ]).toEqual([page, true]);
+    }
+  });
+
+  it("reads a product's level as no built-in role", () => {
+    expect(productLevelTitles()).toContain("Cloud Viewer");
+    expect(productLevelTitles()).toContain("Host Member");
+    for (const title of productLevelTitles()) {
+      expect(isBuiltInRoleName(title)).toBe(false);
+    }
+    // The English pattern alone reads the Viewer into the Cloud's level.
+    expect([...englishRoleCounts("A Cloud Viewer can read them.")]).toEqual([
+      ["Viewer", 1],
+    ]);
+    expect([...englishPageRoleCounts("A Cloud Viewer can read them.")]).toEqual(
+      [],
+    );
+    expect([
+      ...englishPageRoleCounts("A Cloud Viewer, or a Viewer, can read them."),
+    ]).toEqual([["Viewer", 1]]);
+    // The page that named it: German's Cloud-Betrachter is no Viewer either.
+    expect(readPage("en", "telemetry/cloud-costs")).toContain(
+      "A Cloud Viewer can read them.",
+    );
+    expect(
+      englishPageRoleCounts(readPage("en", "telemetry/cloud-costs")).get(
+        "Viewer",
+      ),
+    ).toBeUndefined();
+  });
+});
+
 describe.each(TRANSLATED_LANGUAGES)(
   "%s names the built-in roles as its Dashboard draws them",
   (language: string) => {
@@ -374,7 +735,7 @@ describe.each(TRANSLATED_LANGUAGES)(
         .flatMap((page: string): Array<string> => {
           const text: string = roleText(readPage(language, page));
 
-          return [...englishRoleCounts(roleText(readPage("en", page)))]
+          return [...englishPageRoleCounts(readPage("en", page))]
             .filter(([role, times]: [string, number]): boolean => {
               return timesRoleNamedAsDrawn(language, text, role) < times;
             })

@@ -1,4 +1,5 @@
 import { PermissionHelper, PermissionProps } from "Common/Types/Permission";
+import { isProductLevelPermission } from "Common/Types/Product/ProductLevels";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { escapeRegExp } from "./DocsTranslationChecks";
 
@@ -175,6 +176,52 @@ const ENGLISH_ROLE_NAME: RegExp = new RegExp(
   "g",
 );
 
+/*
+ * A PRODUCT'S LEVEL IS NOT A BUILT-IN ROLE (#11396).
+ *
+ * A product level's name ends with a project-wide role's word ("Cloud
+ * Viewer", "Host Viewer"), so the English pattern above reads it as that
+ * role: "A Cloud Viewer can read them" named the Viewer, and the German
+ * page passed only because the drawn-name pattern found Betrachter inside
+ * Cloud-Betrachter. An English page's roles are counted without its
+ * product levels, as the locale check counts a key's
+ * (BuiltInRoleNamesInLocales); a level that is also a built-in role's name
+ * stays.
+ */
+const PRODUCT_LEVEL_TITLES: ReadonlyArray<string> =
+  PermissionHelper.getAllPermissionProps()
+    .filter((props: PermissionProps): boolean => {
+      return isProductLevelPermission(props.permission);
+    })
+    .map((props: PermissionProps): string => {
+      return props.title;
+    })
+    .filter((title: string): boolean => {
+      return !BUILT_IN_ROLE_NAMES.includes(title);
+    })
+    .sort((first: string, second: string): number => {
+      return second.length - first.length;
+    });
+
+export function productLevelTitles(): ReadonlyArray<string> {
+  return PRODUCT_LEVEL_TITLES;
+}
+
+// Text without the product levels it names, the longest read first.
+export function withoutProductLevelNames(text: string): string {
+  return PRODUCT_LEVEL_TITLES.reduce((rest: string, title: string): string => {
+    return rest.split(title).join(" ");
+  }, text);
+}
+
+/*
+ * How often an English page's running text names each built-in role: its
+ * role text (roleText) without the product levels it names.
+ */
+export function englishPageRoleCounts(markdown: string): Map<string, number> {
+  return englishRoleCounts(withoutProductLevelNames(roleText(markdown)));
+}
+
 // The built-in roles running text names in English, each once, in order.
 export function englishRoleNamesIn(text: string): Array<string> {
   return [...englishRoleCounts(text).keys()];
@@ -211,22 +258,350 @@ export function rolesLeftInEnglish(
   );
 }
 
-// A letter, a combining mark or Persian's zero-width non-joiner.
-const WORD_LETTERS: string = "[\\p{L}\\p{M}\\u200c]*";
+/*
+ * A ROLE'S DRAWN NAME COUNTS AS A WORD OF ITS OWN, OR AN INFLECTION OF IT
+ * (#11396).
+ *
+ * A sentence names a role as its Dashboard draws it, inflected as the
+ * sentence needs. The rule used to be each word's first letters and then any
+ * letters at all, so a short name kept only three, and nothing said where a
+ * word starts. The Norwegian Viewer, Leser, was "Les" and whatever followed
+ * it: the heading "### Les dekningen" ("Read the coverage") counted as the
+ * Viewer, and so did Lese, Lesinger and Leseoperasjoner. Hindi's Viewer,
+ * दर्शक, read दर्ज ("recorded") and the दर्भ of संदर्भ ("reference"); the
+ * Persian Project Owner, مالک پروژه, read مالی ("financial"); Russian's
+ * Administrator read Административные; the Spanish Viewer, Visor, read
+ * Visión and Vista; and Sicherheits-Betrachter, the German Security Viewer,
+ * counted as a Viewer too.
+ *
+ * So a drawn name counts:
+ *   - only where a word starts: no letter, mark, digit or zero-width
+ *     non-joiner right before it, nor a letter and a hyphen
+ *     ("Sicherheits-Betrachter" is the Security Viewer's). Arabic writes
+ *     "and", "to", "by" and "like" onto the noun ("لمالك المشروع", "to the
+ *     Project Owner"), so there a word may start with them. Japanese and
+ *     Chinese run their words together, so there a name counts wherever it
+ *     is, as drawn;
+ *   - as drawn, or with one of its language's endings on the word a
+ *     sentence inflects: the first in French, Spanish, Italian, Portuguese,
+ *     Russian, Persian and Arabic, the last in Hindi and Korean, and the one
+ *     word in German, Dutch and the Scandinavian languages. The endings are
+ *     the ones the docs and the locales use, listed per language below;
+ *   - as the role whose name is longest where two would match, as English
+ *     reads "Incident Viewer" once and not also as a "Viewer": "Lecteur des
+ *     incidents" is the Incident Viewer, and インシデント閲覧者 holds no
+ *     Viewer (閲覧者) of its own.
+ */
+interface RoleNameGrammar {
+  // The word of a drawn name a sentence inflects (its head noun), or none.
+  head: "first" | "last" | "none";
+  /*
+   * How the head may end instead: a word that ends with the first may end
+   * with the second, a regular expression ("" appends it).
+   */
+  endings: ReadonlyArray<readonly [string, string]>;
+  /*
+   * How the last word of a name of several words may end, where a sentence
+   * writes onto the end of the whole name: Persian's "a", "of" and "its"
+   * ("هیچ مدیر امنیتی", "no Security Admin"; "مالکان پروژهٔ شما", "your
+   * Project Owners").
+   */
+  phraseEndings?: ReadonlyArray<readonly [string, string]>;
+  // What a sentence may write onto the front of the name, a regex.
+  prefixes?: string;
+  // Whether the name counts only where a word starts and ends.
+  wordBounded: boolean;
+}
+
+// Each ending appended to the word as it is.
+function appended(
+  endings: ReadonlyArray<string>,
+): Array<readonly [string, string]> {
+  return endings.map((ending: string): readonly [string, string] => {
+    return ["", ending];
+  });
+}
+
+// Danish and Norwegian: medlem, medlemmer, medlemmerne; Seer, Seere, Seerne.
+const DANO_NORWEGIAN_ENDINGS: ReadonlyArray<readonly [string, string]> = [
+  ...appended(["e", "en", "ene", "er", "ere", "erne", "es", "ens", "ne", "s"]),
+  ["em", "emme(?:r|rne|ne|t|ts)"],
+];
+
+// After a Persian noun: a plural, and then "his", "their", "a", "of".
+const PERSIAN_SUFFIX: string =
+  "(?:ان(?:ش|شان|ت|تان|م|مان|ی)?|\\u200c?ها(?:ی|یش|یشان|یت|یتان|یم|یمان)?|ش|شان|ت|تان|م|مان|ی|\\u200cای|\\u200cی|ند|\\u200cاند|[\\u0650\\u0654])?";
+/*
+ * After the last word of a Persian name: its ezafe, "a", "its" or "are",
+ * but no plural, which is the head's (مدیر پروژه‌ها is the projects' admin).
+ */
+const PERSIAN_PHRASE_SUFFIX: string =
+  "(?:[\\u0650\\u0654]|\\u200c(?:ای|ی|اش|ات|ام|شان|تان|مان|است|اند)|ی|ش|شان|ت|تان|م|مان|ست|ند)?";
+
+const ROLE_NAME_GRAMMAR: Readonly<Record<string, RoleNameGrammar>> = {
+  // English names a role in English: Project Owners, a Project Admin's.
+  en: {
+    head: "last",
+    wordBounded: true,
+    endings: appended(["s", "'s", "s'", "’s", "s’"]),
+  },
+  // Projektadministratoren, Projektinhabern, Projektmitglieder(n).
+  de: {
+    head: "first",
+    wordBounded: true,
+    endings: appended(["s", "es", "n", "en", "er", "ern"]),
+  },
+  // Projecteigenaren, Projectbeheerders, Projectleden.
+  nl: {
+    head: "first",
+    wordBounded: true,
+    endings: [
+      ...appended(["s", "'s", "en"]),
+      ["aar", "aren"],
+      ["lid", "leden"],
+    ],
+  },
+  da: { head: "first", wordBounded: true, endings: DANO_NORWEGIAN_ENDINGS },
+  no: { head: "first", wordBounded: true, endings: DANO_NORWEGIAN_ENDINGS },
+  // Projektadministratörer(na), Projektägarna, Projektmedlemmar.
+  sv: {
+    head: "first",
+    wordBounded: true,
+    endings: [
+      ...appended(["s", "n", "ns", "en", "ens", "er", "erna", "ernas"]),
+      ["are", "arn(?:a|as)"],
+      ["em", "emma(?:r|rna|rnas|rs)"],
+      ["em", "emmen"],
+    ],
+  },
+  // Propriétaires du projet, Administratrices.
+  fr: {
+    head: "first",
+    wordBounded: true,
+    endings: [...appended(["s"]), ["eur", "rices?"]],
+  },
+  // Propietarios, Administradores, Administradoras.
+  es: {
+    head: "first",
+    wordBounded: true,
+    endings: [...appended(["s", "es"]), ["o", "as?"], ["or", "oras?"]],
+  },
+  // Proprietari, Amministratori, Membri, Amministratrice.
+  it: {
+    head: "first",
+    wordBounded: true,
+    endings: [
+      ["o", "[iae]"],
+      ["io", "i"],
+      ["e", "i"],
+      ["ore", "ric[ei]"],
+    ],
+  },
+  // Proprietários, Administradores, Administradora(s).
+  pt: {
+    head: "first",
+    wordBounded: true,
+    endings: [...appended(["s", "es"]), ["o", "as?"], ["or", "oras?"]],
+  },
+  // Администраторы, Владельцам, Участником, Зрители.
+  ru: {
+    head: "first",
+    wordBounded: true,
+    endings: [
+      ...appended(["а", "у", "ом", "е", "ы", "и", "ов", "ам", "ами", "ах"]),
+      ["ь", "(?:я|ю|ем|е|и|ей|ям|ями|ях)"],
+      ["ец", "ьц(?:а|у|ем|е|ы|ев|ам|ами|ах)"],
+    ],
+  },
+  // प्रोजेक्ट स्वामियों, प्रोजेक्ट सदस्यों, दर्शकों.
+  hi: {
+    head: "last",
+    wordBounded: true,
+    endings: [...appended(["ों"]), ["ी", "ियों"]],
+  },
+  // مالکان پروژه، مدیرِ پروژه، بینندگان؛ عضو پروژه‌ای، مدیر امنیتی.
+  fa: {
+    head: "first",
+    wordBounded: true,
+    endings: [...appended([PERSIAN_SUFFIX]), ["ه", "گان(?:ش|شان|ی)?"]],
+    phraseEndings: appended([PERSIAN_PHRASE_SUFFIX]),
+  },
+  /*
+   * مالكو المشروع، مسؤولي المشروع، أعضاء المشروع; and "and", "so", "by",
+   * "to", "like" written onto the noun: ومسؤولو المشروع، لمالك المشروع.
+   */
+  ar: {
+    head: "first",
+    wordBounded: true,
+    prefixes: "(?:[وف]?[بلك]?)",
+    endings: [...appended(["[ويا]"]), ["عضو", "أعضاء"]],
+  },
+  // 프로젝트 관리자가, 프로젝트 구성원과, 관리자에게만: a particle, or several.
+  ko: {
+    head: "last",
+    wordBounded: true,
+    endings: appended(["[\\uac00-\\ud7a3]+"]),
+  },
+  ja: { head: "none", wordBounded: false, endings: [] },
+  "zh-CN": { head: "none", wordBounded: false, endings: [] },
+  "zh-TW": { head: "none", wordBounded: false, endings: [] },
+};
+
+// The languages whose role names the checks know how to read.
+export const LANGUAGES_WITH_ROLE_NAME_GRAMMAR: ReadonlyArray<string> =
+  Object.keys(ROLE_NAME_GRAMMAR);
+
+function roleNameGrammar(language: string): RoleNameGrammar {
+  const grammar: RoleNameGrammar | undefined = ROLE_NAME_GRAMMAR[language];
+
+  if (!grammar) {
+    throw new Error(
+      `DocsRoleNames knows no grammar for "${language}": add how its sentences inflect a role's name to ROLE_NAME_GRAMMAR, from that language's docs and locales.`,
+    );
+  }
+
+  return grammar;
+}
+
+// Right before a word: no letter, mark, digit or ZWNJ, nor a letter and a hyphen.
+const WORD_START: string =
+  "(?<![\\p{L}\\p{M}\\p{N}\\u200c])(?<![\\p{L}\\p{M}\\p{N}]-)";
+// Right after one: no letter, mark, digit or ZWNJ.
+const WORD_END: string = "(?![\\p{L}\\p{M}\\p{N}\\u200c])";
+
+// A word as drawn, or with one of the endings given.
+function inflectedPattern(
+  word: string,
+  endings: ReadonlyArray<readonly [string, string]>,
+): string {
+  const forms: Array<string> = [escapeRegExp(word)];
+
+  // An ending may be the whole word: Arabic's عضو, whose plural is أعضاء.
+  for (const [ending, replacement] of endings) {
+    if (word.endsWith(ending)) {
+      forms.push(
+        `${escapeRegExp(word.slice(0, word.length - ending.length))}(?:${replacement})`,
+      );
+    }
+  }
+
+  return `(?:${forms.join("|")})`;
+}
+
+// One role's drawn name, as a sentence may write it (no capturing group).
+export function drawnRolePattern(language: string, role: string): string {
+  const grammar: RoleNameGrammar = roleNameGrammar(language);
+  const words: Array<string> = writtenPermissionTitle(language, role)
+    .split(/\s+/)
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    });
+  const head: number =
+    grammar.head === "first"
+      ? 0
+      : grammar.head === "last"
+        ? words.length - 1
+        : -1;
+  const last: number = words.length > 1 ? words.length - 1 : -1;
+  const name: string = words
+    .map((word: string, index: number): string => {
+      if (index === head) {
+        return inflectedPattern(word, grammar.endings);
+      }
+      if (index === last && grammar.phraseEndings) {
+        return inflectedPattern(word, grammar.phraseEndings);
+      }
+      return escapeRegExp(word);
+    })
+    .join("[\\s\\u200c]+");
+
+  if (!grammar.wordBounded) {
+    return name;
+  }
+
+  return `${WORD_START}${grammar.prefixes || ""}${name}${WORD_END}`;
+}
+
+/*
+ * Every role's drawn name in one pattern, the longest first, each in a
+ * group of its own: the roles in group order.
+ */
+interface RoleNamesPattern {
+  pattern: RegExp;
+  roles: Array<string>;
+}
+
+const ROLE_NAMES_PATTERNS: Map<string, RoleNamesPattern> = new Map();
+
+function roleNamesPattern(language: string): RoleNamesPattern {
+  const cached: RoleNamesPattern | undefined =
+    ROLE_NAMES_PATTERNS.get(language);
+
+  if (cached) {
+    return cached;
+  }
+
+  // Before the drawn names are looked up, so the error names what is missing.
+  roleNameGrammar(language);
+
+  const roles: Array<string> = [...BUILT_IN_ROLE_NAMES].sort(
+    (first: string, second: string): number => {
+      return (
+        writtenPermissionTitle(language, second).length -
+        writtenPermissionTitle(language, first).length
+      );
+    },
+  );
+  const built: RoleNamesPattern = {
+    pattern: new RegExp(
+      roles
+        .map((role: string): string => {
+          return `(${drawnRolePattern(language, role)})`;
+        })
+        .join("|"),
+      "gu",
+    ),
+    roles,
+  };
+
+  ROLE_NAMES_PATTERNS.set(language, built);
+
+  return built;
+}
+
+/*
+ * Each built-in role running text names as this language's Dashboard draws
+ * it, inflected as its sentence needs, in the order the text names them,
+ * each time it does.
+ */
+export function rolesNamedAsDrawn(
+  language: string,
+  text: string,
+): Array<string> {
+  const { pattern, roles }: RoleNamesPattern = roleNamesPattern(language);
+
+  return Array.from(text.matchAll(pattern)).map(
+    (match: RegExpMatchArray): string => {
+      const group: number = match.slice(1).findIndex((value: unknown) => {
+        return value !== undefined;
+      });
+
+      return roles[group] as string;
+    },
+  );
+}
 
 /*
  * Whether running text names a role as this language's Dashboard draws it,
- * inflected as the sentence needs: each word of the drawn name, its last
- * two letters free for a plural or a case ending ("Projektadministratoren"
- * for Projektadministrator, "Propriétaires du projet", "Владельцы
- * проекта"), a short word as it is.
+ * inflected as the sentence needs ("Projektadministratoren" for
+ * Projektadministrator, "Propriétaires du projet", "Владельцы проекта").
  */
 export function namesRoleAsDrawn(
   language: string,
   text: string,
   role: string,
 ): boolean {
-  return new RegExp(drawnRolePattern(language, role), "u").test(text);
+  return timesRoleNamedAsDrawn(language, text, role) > 0;
 }
 
 /*
@@ -240,29 +615,9 @@ export function timesRoleNamedAsDrawn(
   text: string,
   role: string,
 ): number {
-  return Array.from(
-    text.matchAll(new RegExp(drawnRolePattern(language, role), "gu")),
-  ).length;
-}
-
-function drawnRolePattern(language: string, role: string): string {
-  const words: Array<string> = writtenPermissionTitle(language, role)
-    .split(/\s+/)
-    .filter((word: string): boolean => {
-      return word.length > 0;
-    });
-
-  return words
-    .map((word: string): string => {
-      const letters: Array<string> = Array.from(word);
-      const kept: string =
-        letters.length <= 3
-          ? word
-          : letters.slice(0, Math.max(3, letters.length - 2)).join("");
-
-      return escapeRegExp(kept) + (letters.length <= 3 ? "" : WORD_LETTERS);
-    })
-    .join("[\\s\\u200c]+");
+  return rolesNamedAsDrawn(language, text).filter((named: string): boolean => {
+    return named === role;
+  }).length;
 }
 
 /*
