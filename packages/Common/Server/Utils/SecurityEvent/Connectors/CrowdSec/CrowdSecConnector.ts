@@ -425,7 +425,7 @@ export default class CrowdSecConnector implements SecurityEventConnector {
         name: CROWDSEC_BLOCK_CHECK_NAME,
         status: "pass",
         startedAtMs,
-        message: `OneUptime can ban addresses as this machine, and reads its bans back: ${held.length.toLocaleString("en-US")} of OneUptime's ${held.length === 1 ? "ban is" : "bans are"} in force on this Local API. Nothing was changed.`,
+        message: `OneUptime can ban addresses as this machine, and reads its bans back. It has ${held.length.toLocaleString("en-US")} ${held.length === 1 ? "ban" : "bans"} in force on this Local API. Nothing was changed.`,
         details: { bansInForce: held.length },
       });
     } catch (error) {

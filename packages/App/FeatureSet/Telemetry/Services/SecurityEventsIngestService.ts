@@ -32,6 +32,11 @@ import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
+import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import PushedConnectionAlerts, {
+  PUSHED_CONNECTION_HEADER,
+} from "Common/Server/Utils/SecurityEvent/Connectors/PushedConnectionAlerts";
 
 class SecurityEventStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -79,11 +84,30 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
         );
       }
 
-      const format: SecurityEventFormat | null = this.getRequestedFormat(req);
+      /*
+       * The connection a product names its alerts with (CrowdSec's
+       * notification plugin, #11158): refused here, with what to do, when
+       * this project has no such connection - the sender reads why in its
+       * own log.
+       */
+      const connectionId: string = this.getRequestedConnectionId(req);
+      const connection: SecurityEventConnection | null = connectionId
+        ? await PushedConnectionAlerts.findConnection({
+            projectId: (req as TelemetryRequest).projectId,
+            connectionId,
+          })
+        : null;
+
+      const format: SecurityEventFormat | null =
+        this.getRequestedFormat(req) ||
+        (connection?.provider === SecurityEventConnectorProvider.CrowdSec
+          ? SecurityEventFormat.CrowdSec
+          : null);
 
       req.body = {
         events: entries,
         ...(format ? { format } : {}),
+        ...(connection?.id ? { connectionId: connection.id.toString() } : {}),
       } satisfies JSONObject;
 
       /*
@@ -166,6 +190,36 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
           "Security events ingest: no valid events after normalization",
         );
         return;
+      }
+
+      // Alerts sent through a connection are kept as its poll would keep them, and open its cases.
+      const connectionId: string =
+        typeof body["connectionId"] === "string" ? body["connectionId"] : "";
+
+      if (connectionId) {
+        let connection: SecurityEventConnection | null = null;
+
+        try {
+          connection = await PushedConnectionAlerts.findConnection({
+            projectId,
+            connectionId,
+          });
+        } catch (error) {
+          // Deleted since the request was taken: kept as events, opening nothing.
+          logger.warn(
+            `Security events ingest: the connection ${connectionId} the alerts name is gone; storing them as events. ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+
+        if (connection) {
+          await PushedConnectionAlerts.receive({
+            projectId,
+            connection,
+            events: normalizedEvents,
+          });
+
+          return;
+        }
       }
 
       /*
@@ -323,6 +377,18 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
     }
 
     return [];
+  }
+
+  // The connection a request's alerts belong to: ?connection=, or the header.
+  private static getRequestedConnectionId(req: ExpressRequest): string {
+    const fromQuery: unknown = req.query?.["connection"];
+    const fromHeader: unknown = req.headers?.[PUSHED_CONNECTION_HEADER];
+
+    return String(
+      (typeof fromQuery === "string" ? fromQuery : "") ||
+        (typeof fromHeader === "string" ? fromHeader : "") ||
+        "",
+    ).trim();
   }
 
   private static getRequestedFormat(

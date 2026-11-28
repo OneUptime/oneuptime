@@ -164,6 +164,7 @@ describe("how every product is drawn", () => {
         ProviderLogo.AmazonBedrock,
         ProviderLogo.AwsSecurityHub,
         ProviderLogo.CrowdStrike,
+        ProviderLogo.CrowdSec,
         ProviderLogo.Groq,
         ProviderLogo.MicrosoftCopilot,
       ].sort(),
