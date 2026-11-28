@@ -184,7 +184,10 @@ describe("readLeftOutTime", () => {
 describe("a day's name", () => {
   test.each([
     [MonitorPausedBy.Incident, `${DATE}: paused by an incident`],
-    [MonitorPausedBy.ScheduledMaintenance, `${DATE}: paused for scheduled maintenance`],
+    [
+      MonitorPausedBy.ScheduledMaintenance,
+      `${DATE}: paused for scheduled maintenance`,
+    ],
     [
       MonitorPausedBy.IncidentAndScheduledMaintenance,
       `${DATE}: paused by an incident and scheduled maintenance`,
@@ -331,14 +334,18 @@ describe("a day's name", () => {
       DefaultUptimeHistoryLabels.pausedByIncidentAndMaintenanceFor,
     ];
 
+    const SAYS_PAUSED: RegExp = /paused/i;
+    const SAYS_OFF: RegExp = /monitoring off|was off/i;
+
     for (const label of paused) {
-      expect({ label, saysPaused: /paused/i.test(label) }).toEqual({
+      expect({ label, saysPaused: SAYS_PAUSED.test(label) }).toEqual({
         label,
         saysPaused: true,
       });
-      expect({ label, saysOff: /monitoring off|was off/i.test(label) }).toEqual(
-        { label, saysOff: false },
-      );
+      expect({ label, saysOff: SAYS_OFF.test(label) }).toEqual({
+        label,
+        saysOff: false,
+      });
     }
   });
 });

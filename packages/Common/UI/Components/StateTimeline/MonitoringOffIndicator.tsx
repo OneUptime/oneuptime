@@ -35,8 +35,11 @@ export const PAUSED_BY_TEXTS: Record<MonitorPausedBy, string> = {
 // The pill's words: what paused the monitor, or that its monitoring was off.
 export const getMonitoringOffIndicatorText: (
   pausedBy: MonitorPausedBy | string | null | undefined,
-) => string = (pausedBy: MonitorPausedBy | string | null | undefined): string => {
-  const reason: MonitorPausedBy | null = MonitorPausedByUtil.fromValue(pausedBy);
+) => string = (
+  pausedBy: MonitorPausedBy | string | null | undefined,
+): string => {
+  const reason: MonitorPausedBy | null =
+    MonitorPausedByUtil.fromValue(pausedBy);
 
   return reason ? PAUSED_BY_TEXTS[reason] : MONITORING_OFF_TEXT;
 };
@@ -65,7 +68,9 @@ const MonitoringOffIndicator: FunctionComponent<ComponentProps> = (
   return (
     <span
       data-testid="monitoring-off-indicator"
-      data-paused-by={MonitorPausedByUtil.fromValue(props.pausedBy) || undefined}
+      data-paused-by={
+        MonitorPausedByUtil.fromValue(props.pausedBy) || undefined
+      }
       className="inline-flex max-w-full align-middle"
     >
       <Pill

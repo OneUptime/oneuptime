@@ -264,7 +264,12 @@ describe("a day a pause left out of uptime", () => {
 
   test.each(REASONS)(
     "%s for part of a day: its uptime of the checked time, and for how long it was paused, and why",
-    async (pausedBy: MonitorPausedBy, _name: string, _onThisDay: string, forPrefix: string) => {
+    async (
+      pausedBy: MonitorPausedBy,
+      _name: string,
+      _onThisDay: string,
+      forPrefix: string,
+    ) => {
       renderStrip({
         dayReadings: [
           reading({

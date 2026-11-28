@@ -124,7 +124,9 @@ describe("the pill", () => {
   test("drawn with what paused it, for a reader and for a test", () => {
     render(
       <>
-        <MonitoringOffIndicator pausedBy={MonitorPausedBy.ScheduledMaintenance} />
+        <MonitoringOffIndicator
+          pausedBy={MonitorPausedBy.ScheduledMaintenance}
+        />
         <MonitoringOffIndicator />
       </>,
     );
@@ -166,7 +168,9 @@ describe("the legend", () => {
   });
 
   test("Paused and Monitoring Off each as long as they lasted, when both were there", () => {
-    render(<StatusTimelineLegend summary={summaryOf(ENTRIES)} showShare={true} />);
+    render(
+      <StatusTimelineLegend summary={summaryOf(ENTRIES)} showShare={true} />,
+    );
 
     expect(
       screen.getByTestId("status-timeline-legend-paused"),
@@ -188,7 +192,9 @@ describe("the legend", () => {
       />,
     );
 
-    expect(screen.getByTestId("status-timeline-legend-paused")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("status-timeline-legend-paused"),
+    ).toBeInTheDocument();
     expect(
       screen.queryByTestId("status-timeline-legend-monitoring-off"),
     ).toBeNull();
@@ -264,7 +270,10 @@ describe("the list and the band", () => {
     // The pause in effect now runs on.
     expect(
       paused.some((name: string): boolean => {
-        return name.startsWith("Operational, paused, since") && name.endsWith("Currently Active.");
+        return (
+          name.startsWith("Operational, paused, since") &&
+          name.endsWith("Currently Active.")
+        );
       }),
     ).toBe(true);
     // The incident's pause, over.
@@ -282,9 +291,9 @@ describe("the list and the band", () => {
       .getByTestId("status-timeline-legend-paused")
       .closest("ul") as HTMLElement;
 
-    expect(within(legend).getByTestId("status-timeline-legend-paused")).toHaveTextContent(
-      "Paused",
-    );
+    expect(
+      within(legend).getByTestId("status-timeline-legend-paused"),
+    ).toHaveTextContent("Paused");
     expect(
       within(legend).getByTestId("status-timeline-legend-monitoring-off"),
     ).toHaveTextContent("Monitoring Off");

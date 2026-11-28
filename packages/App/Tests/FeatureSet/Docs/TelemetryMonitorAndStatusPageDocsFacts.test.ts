@@ -3113,8 +3113,13 @@ describe("status page resources", () => {
       );
     };
     const dropsOffRows: RegExp = /AND NOT (src\.)?is_off/;
+    /*
+     * In no status in a monitor's day; in a group's, ranked below every
+     * status - a pause's row at 0 and a row with monitoring turned off at
+     * -1, so the day says which it was (#11433).
+     */
     const keepsOffRowsApart: RegExp =
-      /CASE WHEN src\.is_off THEN (NULL|0) ELSE /;
+      /CASE WHEN src\.is_off THEN (NULL|0) ELSE |CASE\s+WHEN src\.is_off AND src\.paused_by IS NOT NULL THEN 0\s+WHEN src\.is_off THEN -1\s+ELSE /;
     const readsTheMark: string = 't."isMonitoringOff" IS TRUE AS is_off';
 
     /*
@@ -3307,6 +3312,98 @@ describe("status page resources", () => {
         word,
         named: true,
       });
+    }
+  });
+
+  /*
+   * Issue #11433: a day a pause left out of uptime reads as paused, and why,
+   * not as Not monitored. The docs name such a day as the bar's label says
+   * it after the date - its status page's, which the monitor's Uptime
+   * history card on the Dashboard words the same - in every language, on
+   * each page that tells what paused time counts as.
+   */
+  it("names a paused day as each language's status page labels its bar (#11433)", () => {
+    const afterTheDate: (label: string) => string = (label: string): string => {
+      return label.replace(/^\{\{date\}\}\s*[:：]\s*/, "");
+    };
+    const boldSpans: (page: string) => Array<string> = (
+      page: string,
+    ): Array<string> => {
+      return (page.match(/\*\*[^*]+\*\*/g) || []).map(
+        (span: string): string => {
+          return span.slice(2, -2);
+        },
+      );
+    };
+    const PAGES: Array<[string, Array<string>]> = [
+      [
+        "incidents/declaring-incidents",
+        ["dayLabelPausedByIncident", "dayLabelPausedForMaintenance"],
+      ],
+      ["scheduled-maintenance/index", ["dayLabelPausedForMaintenance"]],
+      [
+        "status-pages/resources-and-groups",
+        ["dayLabelPausedByIncident", "dayLabelPausedForMaintenance"],
+      ],
+    ];
+    const DASHBOARD_KEYS: Record<string, string> = {
+      dayLabelPausedByIncident: "{{date}}: paused by an incident",
+      dayLabelPausedForMaintenance:
+        "{{date}}: paused for scheduled maintenance",
+      dayLabelPausedByIncidentAndMaintenance:
+        "{{date}}: paused by an incident and scheduled maintenance",
+    };
+
+    expect(SUPPORTED_DOCS_LANGUAGE_CODES.length).toBe(17);
+
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      const history: Record<string, string> = (
+        JSON.parse(
+          readSource(`App/FeatureSet/StatusPage/src/Locales/${language}.json`),
+        ) as Record<string, Record<string, string>>
+      )["uptimeHistory"] as Record<string, string>;
+      const dashboard: Record<string, string> = JSON.parse(
+        readSource(`App/FeatureSet/Dashboard/src/Locales/${language}.json`),
+      ) as Record<string, string>;
+
+      // The Dashboard's card labels a paused day's bar as the status page does.
+      for (const key of Object.keys(DASHBOARD_KEYS)) {
+        expect({
+          language,
+          key,
+          label: dashboard[DASHBOARD_KEYS[key]!],
+        }).toEqual({ language, key, label: history[key] });
+      }
+
+      // Three reasons, three labels, none of them the monitoring-off one.
+      expect(
+        new Set([
+          history["dayLabelPausedByIncident"],
+          history["dayLabelPausedForMaintenance"],
+          history["dayLabelPausedByIncidentAndMaintenance"],
+          history["dayLabelMonitoringOff"],
+        ]).size,
+      ).toBe(4);
+
+      for (const [pageName, keys] of PAGES) {
+        const spans: Array<string> = boldSpans(
+          readPage(language, pageName),
+        ).map((span: string): string => {
+          return span.toLocaleLowerCase(language);
+        });
+
+        for (const key of keys) {
+          const word: string = afterTheDate(history[key]!);
+
+          expect(word).not.toContain("{{");
+          expect({
+            language,
+            pageName,
+            word,
+            named: spans.includes(word.toLocaleLowerCase(language)),
+          }).toEqual({ language, pageName, word, named: true });
+        }
+      }
     }
   });
 });

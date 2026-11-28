@@ -1043,9 +1043,7 @@ describe("what an event affects", () => {
       /disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:\s*false/,
     );
     // Cleared only when no other event still holds the monitor.
-    const heldChecked: number = release.indexOf(
-      "if (!isHeldByAnotherEvent) {",
-    );
+    const heldChecked: number = release.indexOf("if (!isHeldByAnotherEvent) {");
 
     expect(release).toContain("isOperationalState: true,");
     expect(release).toContain(

@@ -490,6 +490,13 @@ const PROSE_LEADS: Record<string, Array<string>> = {
      * its status page draws it (TelemetryMonitorAndStatusPageDocsFacts).
      */
     "Not monitored yet",
+    /*
+     * A status page's words for a day a pause left out of uptime (#11433):
+     * each language names it as its status page labels the day's bar
+     * (TelemetryMonitorAndStatusPageDocsFacts).
+     */
+    "Paused by an incident",
+    "Paused for scheduled maintenance",
     "Resources decide which incidents the page shows.",
     "A monitor group row stands for every monitor in it, for subscribers too.",
     // The parts of the Resources screen, named for what they are.

@@ -31,6 +31,7 @@ import ObjectID from "../../../Types/ObjectID";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import { MergedDowntimeTotals } from "../../../Types/StatusPage/MergedDowntimeTotals";
 import {
+  MonitorGroupUptimeDailyAggregate,
   MonitorUptimeDailyAggregate,
   UptimeDailyAggregate,
   UptimeDayBucket,
@@ -38,7 +39,6 @@ import {
 import SloUtil, { TimeSliResult } from "../../../Utils/Slo/SloUtil";
 import { readStatusChangeNote } from "../../../Utils/Monitor/StatusChangeNotes";
 import MonitorPausedBy from "../../../Types/Monitor/MonitorPausedBy";
-import { MonitorGroupUptimeDailyAggregate } from "../../../Types/StatusPage/UptimeDailyAggregate";
 import { RECORD_WHAT_PAUSED_SQL } from "../../../../App/FeatureSet/Workers/DataMigrations/RecordWhatPausedMonitorsOnStatusTimelines";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
@@ -1861,7 +1861,9 @@ describePostgres(
      * the marks written before the column.
      */
     describe("what paused the time, for the words it is said in", () => {
-      async function pausedRows(monitorId: ObjectID): Promise<Array<PausedRow>> {
+      async function pausedRows(
+        monitorId: ObjectID,
+      ): Promise<Array<PausedRow>> {
         return database.query(
           `SELECT "monitorStatusId"::text AS "monitorStatusId", "isMonitoringOff", "pausedBy", "rootCause"
              FROM "MonitorStatusTimeline" WHERE "monitorId" = $1
@@ -1970,7 +1972,9 @@ describePostgres(
           MonitorPausedBy.IncidentAndScheduledMaintenance,
         ]);
         // The new mark's note names both.
-        expect(rows[2]!.rootCause).toContain(", declared by hand, and by scheduled maintenance (");
+        expect(rows[2]!.rootCause).toContain(
+          ", declared by hand, and by scheduled maintenance (",
+        );
         // Same status throughout: it only says the time is paused by more.
         expect(rows[2]!.monitorStatusId).toBe(rows[1]!.monitorStatusId);
 
@@ -2224,11 +2228,9 @@ describePostgres(
             return row.pausedBy;
           }),
         ).toEqual(
-          notes.map(
-            (note: [string, boolean, string | null]): string | null => {
-              return note[2];
-            },
-          ),
+          notes.map((note: [string, boolean, string | null]): string | null => {
+            return note[2];
+          }),
         );
         expect((await pausedRows(otherMonitorId)).pop()!.pausedBy).toBe(
           MonitorPausedBy.ScheduledMaintenance,
@@ -2245,11 +2247,9 @@ describePostgres(
               return row.pausedBy;
             }),
         ).toEqual(
-          notes.map(
-            (note: [string, boolean, string | null]): string | null => {
-              return note[2];
-            },
-          ),
+          notes.map((note: [string, boolean, string | null]): string | null => {
+            return note[2];
+          }),
         );
       });
     });

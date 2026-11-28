@@ -339,9 +339,13 @@ describe("the payloads the buckets travel in", () => {
       downtimeStatusIds: [],
     } as unknown as MonitorUptimeSummary;
 
-    const back: MonitorUptimeSummary = MonitorUptimeSummaryUtil.fromJSON(
+    const back: MonitorUptimeSummary | null = MonitorUptimeSummaryUtil.fromJSON(
       MonitorUptimeSummaryUtil.toJSON(summary),
     );
+
+    if (!back) {
+      throw new Error("The summary did not read back");
+    }
 
     expect(back.buckets[0]).toEqual(PAUSED_DAY);
     expect(back.buckets[1]).toEqual(OFF_DAY);

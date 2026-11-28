@@ -215,7 +215,9 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
    */
   if (
     isMonitoringOffForPart ||
-    (isMonitoringOffDay && leftOut.turnedOffSeconds > 0 && leftOut.pausedSeconds > 0)
+    (isMonitoringOffDay &&
+      leftOut.turnedOffSeconds > 0 &&
+      leftOut.pausedSeconds > 0)
   ) {
     if (leftOut.pausedSeconds > 0 && leftOut.pausedBy) {
       leftOutLines.push(

@@ -146,9 +146,7 @@ export const DefaultUptimeHistoryLabels: UptimeHistoryLabels = {
   pausedByIncidentAndMaintenanceOnThisDay: translationKey(
     "Monitoring was paused by an incident and scheduled maintenance on this day",
   ),
-  pausedByIncidentFor: translationKey(
-    "Paused by an incident for {{duration}}",
-  ),
+  pausedByIncidentFor: translationKey("Paused by an incident for {{duration}}"),
   pausedForMaintenanceFor: translationKey(
     "Paused for scheduled maintenance for {{duration}}",
   ),

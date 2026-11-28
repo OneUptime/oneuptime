@@ -666,19 +666,16 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       pausedSeconds: number;
       pausedBy: MonitorPausedBy | null;
     } = todaysReading
-        ? {
-            pausedSeconds: Math.max(
-              Number(todaysReading.pausedSeconds) || 0,
-              0,
-            ),
-            pausedBy: MonitorPausedByUtil.fromValue(todaysReading.pausedBy),
-          }
-        : DayUptimeGraphUtil.getPausedTimeOfDay({
-            monitoringOffSpans: props.monitoringOffSpans || [],
-            checkedSpans: checkedSpansOfTheDay,
-            dayStart: startOfTheDay,
-            dayEnd: new Date(dayEndTime),
-          });
+      ? {
+          pausedSeconds: Math.max(Number(todaysReading.pausedSeconds) || 0, 0),
+          pausedBy: MonitorPausedByUtil.fromValue(todaysReading.pausedBy),
+        }
+      : DayUptimeGraphUtil.getPausedTimeOfDay({
+          monitoringOffSpans: props.monitoringOffSpans || [],
+          checkedSpans: checkedSpansOfTheDay,
+          dayStart: startOfTheDay,
+          dayEnd: new Date(dayEndTime),
+        });
 
     const leftOut: DayLeftOutReading = DayUptimeGraphUtil.readLeftOutTime({
       monitoringOffSeconds: monitoringOffSeconds,

@@ -363,7 +363,10 @@ export default class DayUptimeGraphUtil {
       data.pausedBy,
     );
     const pausedSeconds: number = pausedBy
-      ? Math.min(Math.max(Number(data.pausedSeconds) || 0, 0), monitoringOffSeconds)
+      ? Math.min(
+          Math.max(Number(data.pausedSeconds) || 0, 0),
+          monitoringOffSeconds,
+        )
       : 0;
     const turnedOffSeconds: number = monitoringOffSeconds - pausedSeconds;
 
