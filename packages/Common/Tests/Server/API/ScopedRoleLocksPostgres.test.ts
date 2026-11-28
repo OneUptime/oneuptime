@@ -1123,6 +1123,8 @@ describePostgres(
     };
 
     const offeredBeforeButRefused: Array<string> = [];
+    // Of those, what the Dashboard still offers now: the server keeps the last word.
+    const stillOffered: Array<string> = [];
 
     // Every decision both sides made, by role set, operation and monitor.
     const decided: Map<string, { server: boolean; dashboard: boolean }> =
@@ -1211,6 +1213,10 @@ describePostgres(
               offeredBeforeButRefused.push(
                 `${name} - ${asked} of "${monitor.name}"`,
               );
+
+              if (dashboard) {
+                stillOffered.push(`${name} - ${asked} of "${monitor.name}"`);
+              }
             }
           }
         }
@@ -1269,9 +1275,26 @@ describePostgres(
       });
     });
 
-    test("the Dashboard as it was offered changes the server refused, and now offers none of them", () => {
+    test("the Dashboard as it was offered 136 changes the server refused, and now offers only the probes a probe's own labels may decide", () => {
       // Owners and probes on records outside the labels, Owned roles on records not owned.
-      expect(offeredBeforeButRefused.length).toBeGreaterThan(20);
+      const byChange: Record<string, number> = {};
+
+      for (const entry of offeredBeforeButRefused) {
+        const change: string = entry.replace(/^.* - (.*) of ".*"$/, "$1");
+        byChange[change] = (byChange[change] || 0) + 1;
+      }
+
+      expect(byChange).toEqual({
+        "Monitor update": 13,
+        "Monitor delete": 13,
+        "Owner (person) add": 23,
+        "Owner (person) remove": 25,
+        "Owner (team) add": 22,
+        "Owner (team) remove": 22,
+        "Probe add": 9,
+        "Probe remove": 9,
+      });
+      expect(offeredBeforeButRefused.length).toBe(136);
       expect(offeredBeforeButRefused).toContain(
         `Viewer, and Monitor Admin of what Support owns - Monitor delete of "Nobody's"`,
       );
@@ -1281,6 +1304,21 @@ describePostgres(
       expect(offeredBeforeButRefused).toContain(
         `Project Member on Production, and Monitor Admin of what Ops owns - Monitor update of "Support's"`,
       );
+
+      /*
+       * Every one of them is locked now, but the probes of a grant limited
+       * to labels: a monitor's probe names a probe, which may carry the
+       * label, so the server decides those (#11510).
+       */
+      const LABEL_GRANT_PROBES: RegExp =
+        /^Viewer; probes on Production - Probe (add|remove) of /;
+
+      expect(stillOffered.length).toBe(10);
+      expect(
+        stillOffered.every((entry: string): boolean => {
+          return LABEL_GRANT_PROBES.test(entry);
+        }),
+      ).toBe(true);
     });
 
     describe("who owns the records, as the route answers it", () => {
