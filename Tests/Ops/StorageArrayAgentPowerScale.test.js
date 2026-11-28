@@ -127,9 +127,15 @@ function snapshotMetricNames() {
   const source = fs.readFileSync(PLATFORM_PATH, "utf8");
   const block = source.match(/snapshotMetricNames: \[([\s\S]*?)\n {2}\],/);
   expect(block).not.toBeNull();
-  return [...block[1].matchAll(/"(powerscale_[a-z0-9_]+)"/g)].map((match) => {
-    return match[1];
-  });
+  const names = [...block[1].matchAll(/"(powerscale_[a-z0-9_]+)"/g)].map(
+    (match) => {
+      return match[1];
+    },
+  );
+  // Names written another way (single quotes, constants) would read as none,
+  // and "every series the platform reads" would check nothing (#11403).
+  expect(names.length).toBeGreaterThan(0);
+  return names;
 }
 
 // The metric names the config sends: its receivers' and the transform's copies.
