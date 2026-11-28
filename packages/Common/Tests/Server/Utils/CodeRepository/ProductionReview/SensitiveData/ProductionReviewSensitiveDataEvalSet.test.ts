@@ -400,7 +400,9 @@ describe("what the rules read, and how much", () => {
  * (#10778, with #10367): each leak of the eval set of recorded findings -
  * a span's and a log line's email, an email in twenty handlers, a key in
  * an exception's message, an email on a metric, a log line found by its
- * template - leads from its records to the line of code that writes it.
+ * template, and a web application's browser log and session identified
+ * by an email (#11395) - leads from its records to the line of code that
+ * writes it.
  * Had that code come in a pull request, its review's rules would have
  * given a point on that line (or the lines of the call it starts), under
  * the same check and for the same kind of telemetry.
