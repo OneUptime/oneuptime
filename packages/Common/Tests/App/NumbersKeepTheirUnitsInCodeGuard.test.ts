@@ -107,6 +107,9 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
   "packages/Common/Server/Utils/Workspace/WorkspaceRuleOwnersOnCreate.ts":
     SERVER_LOG,
   "packages/Common/Server/Utils/Telemetry/SpanExportQueue.ts": SERVER_LOG,
+  // The alarm an App replica logs while it refuses most probe work, grepped as written.
+  "packages/Common/Server/Utils/Probe/ProbeSchedulingRefusalAlarm.ts":
+    SERVER_LOG,
   "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActivityDeduplicator.ts":
     SERVER_LOG,
   // That the emails of a sign-in settings clear were not all queued in time (#10750).

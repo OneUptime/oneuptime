@@ -25,9 +25,10 @@ import logger from "Common/Server/Utils/Logger";
  *     for the devices that send informs - how many SNMPv3 users it accepts,
  *     and the SNMPv3 traps it refused;
  *   - OneUptime answers with the SNMPv3 users of the devices assigned to
- *     the probe, which replace the receiver's at once. A credential, a
- *     credential profile or a device's probe changed is taken within a
- *     minute, and the receiver never stops listening for it.
+ *     the probe and of the sites whose Default Probe it is, which replace
+ *     the receiver's at once. A credential, a credential profile or a
+ *     device's probe changed is taken within a minute, and the receiver
+ *     never stops listening for it.
  *
  * When the answer does not come, the receiver keeps the users it has: a
  * server that cannot be reached for a while must not start refusing every

@@ -37,6 +37,7 @@ Look up the message Terraform printed, or what you saw happen, in the table belo
 | `Not an ID` | Refer to the record instead of naming it: see [A name where an ID goes](#a-name-where-an-id-goes) |
 | JSON from the dashboard in a `.tf` file | Write it as HCL: see [JSON from the dashboard](#json-from-the-dashboard) |
 | `no available releases match the given constraints` | Use a version range, not one exact version: see [A version that was never published](#a-version-that-was-never-published) |
+| `checksum list has unexpected SHA-256 hash` | Use another version of the provider: see [A version whose checksums do not match](#a-version-whose-checksums-do-not-match) |
 | `x509: certificate signed by unknown authority` | Trust your certificate authority: see [Certificates](#certificates) |
 | `invalid character '<' looking for beginning of value` | Point `oneuptime_url` at your OneUptime itself: see [A web page instead of the API](#a-web-page-instead-of-the-api) |
 | `connection refused` or `Client.Timeout exceeded` | Check the address, the network and any proxy: see [Connections that fail](#connections-that-fail) |
@@ -238,6 +239,14 @@ terraform {
 ```
 
 On a self-hosted OneUptime, cap the range at your OneUptime's version, as [Self-Hosted Setup](/docs/terraform/self-hosted#pick-the-provider-version) shows. [Registry Usage](/docs/terraform/registry#how-versions-are-numbered) explains how versions are numbered.
+
+### A version whose checksums do not match
+
+`checksum list has unexpected SHA-256 hash` means the files the release serves for that version are not the ones the registry read when the version was published. The registry keeps the checksums it read then, and `init` checks every download against them. The files of 14.3.0, 16.0.0, 17.0.0, 17.1.0 and 17.2.0, and of some older 11.x to 14.0.x versions, were built and uploaded a second time after the registries read them, so `init` refuses those versions on every platform, under Terraform and OpenTofu alike. A lock file does not get past it: `init` compares the registry's checksum with the release's before it reads the lock file.
+
+Use another version: 17.3.0 or newer, or 15.0.0. A range that allows a newer version takes it with `terraform init -upgrade`. When such a version is published again, it is as the next patch version, such as 17.2.1 for 17.2.0, with the same provider in it, and a range that allows that patch takes it.
+
+To check a version before you use it, see [Verify a version's checksums](/docs/terraform/registry#verify-a-versions-checksums).
 
 ## Connecting to a self-hosted OneUptime
 

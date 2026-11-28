@@ -33,6 +33,12 @@ import React, { FunctionComponent, ReactElement, useId } from "react";
 export interface ComponentProps {
   // The pill's words, as Pill takes them (translated as Pill translates).
   text: string;
+  /*
+   * The pill's words are drawn as given, never looked up (Pill's
+   * isUserContent): a value read from data that is no word of the
+   * product's - a status a log holds that OneUptime does not know.
+   */
+  isUserContent?: boolean | undefined;
   // Why, as one or two plain sentences (translated where it is drawn).
   explanation: string;
   /*
@@ -101,6 +107,7 @@ const ExplainedPill: FunctionComponent<ComponentProps> = (
         >
           <Pill
             text={props.text}
+            isUserContent={props.isUserContent}
             color={props.color}
             tone={props.tone}
             size={props.size}

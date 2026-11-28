@@ -301,6 +301,16 @@ isVisibleOnStatusPage must be true or false.
 
 En opdatering, der skriver en posts værdier, som de allerede er, ændrer intet: den starter ikke postens **On Update**-arbejdsgange, sender ikke liveopdateringer og tilføjer ikke en post i auditloggen. `false` skrevet over `false` tæller som den samme værdi, og det samme gør `"false"` skrevet over `false`, et tal skrevet som tekst, et tidspunkt skrevet som samme øjeblik i et andet format og etiketter skrevet som de samme etiketter i vilkårlig rækkefølge. Når en opdatering ændrer nogle værdier og skriver andre tilbage, som de er, viser dens auditlogpost kun de værdier, der ændrede sig, og en arbejdsgangs **Felter, der holdes øje med** hører kun dem.
 
+### Værdier skrevet som JSON
+
+Nogle felter indeholder en JSON-værdi med sin egen form, såsom et vagtplanlags `rotation` og `restrictionTimes`; API-referencen viser hver form under sine datatyper. OneUptime læser kun nøglerne i den form, så en værdi, der udelader nøglen, der siger, hvad den betyder, staver den nøgle på en anden måde eller giver den en værdi, OneUptime ikke kender, afvises med en `400`, der nævner nøglen, i stedet for at blive gemt som en værdi, der intet gør:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+En nøgle, der omdøbes, læses fortsat under sit gamle navn: et lags begrænsningstype skrives under `restrictionType` eller under den ældre stavemåde `restictionType`, og et svar angiver begge.
+
 ### Hvor et projekt blev købt
 
 Et projekts forhandler, forhandlerabonnement og forhandlerlicens (`resellerId`, `resellerPlanId`, `resellerLicenseId` og relationerne `reseller` og `resellerPlan`) sættes alene af OneUptime: når et projekt oprettes med en forhandlers kampagnekode, og når forhandleren ændrer abonnementet. En oprettelse eller ændring af et projekt, der sender en af dem, afvises med en `400`, der nævner feltet, uanset hvem der sender den:

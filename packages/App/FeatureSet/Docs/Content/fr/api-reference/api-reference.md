@@ -301,6 +301,16 @@ isVisibleOnStatusPage must be true or false.
 
 Une mise à jour qui écrit les valeurs d'un enregistrement telles qu'elles sont déjà ne change rien : elle ne lance pas les flux de travail **On Update** de l'enregistrement, n'envoie pas de mises à jour en direct et n'ajoute pas d'entrée au journal d'audit. `false` écrit par-dessus `false` compte comme la même valeur, tout comme `"false"` écrit par-dessus `false`, un nombre écrit sous forme de texte, une heure écrite comme le même instant dans un autre format, et des étiquettes écrites comme les mêmes étiquettes dans n'importe quel ordre. Quand une mise à jour modifie certaines valeurs et en réécrit d'autres telles quelles, son entrée de journal d'audit ne liste que les valeurs modifiées, et le **Champs à surveiller** d'un flux de travail n'entend que celles-là.
 
+### Valeurs écrites en JSON
+
+Certains champs contiennent une valeur JSON à la forme propre, comme `rotation` et `restrictionTimes` d'une couche d'un planning d'astreinte ; la référence de l'API décrit chaque forme parmi ses types de données. OneUptime ne lit que les clés de cette forme : une valeur qui omet la clé qui dit ce qu'elle signifie, écrit cette clé autrement ou lui donne une valeur que OneUptime ne connaît pas est refusée avec un `400` qui nomme la clé, au lieu d'être enregistrée comme une valeur qui ne fait rien :
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+Une clé renommée reste lue sous son ancien nom : le type de restriction d'une couche s'écrit sous `restrictionType`, ou sous son ancienne orthographe `restictionType`, et une réponse porte les deux.
+
 ### Où un projet a été acheté
 
 Le revendeur, l'offre du revendeur et la licence du revendeur d'un projet (`resellerId`, `resellerPlanId`, `resellerLicenseId`, et les relations `reseller` et `resellerPlan`) sont définis par OneUptime seul : quand un projet est créé avec le code promotionnel d'un revendeur, et quand le revendeur change l'offre. Une création ou une modification d'un projet qui en envoie un est refusée avec un `400` qui nomme le champ, quel que soit l'expéditeur :

@@ -111,7 +111,7 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a store's free space, a mobile app's screen, a Pod Security control's Linux capabilities, a machine's model and the compliance paperwork's words, a cloud budget's period, an ONTAP aggregate, its unowned disk and its port's link, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target, Notification Settings' phone call and push columns, a message's Read, a store's free space, a mobile app's screen, a Pod Security control's Linux capabilities, a machine's model and the compliance paperwork's words, a cloud budget's period, an ONTAP aggregate, its unowned disk and its port's link, and the US state of Georgia, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
@@ -128,6 +128,7 @@ describe("the keys that name their meaning", () => {
         "Failing (device manager connection)",
         "Free (storage space)",
         "From (range start)",
+        "Georgia (US state)",
         "Insights (explorer analytics)",
         "Missed (target)",
         "Model (hardware model)",
@@ -137,6 +138,8 @@ describe("the keys that name their meaning", () => {
         "Open (pull request)",
         "Open (status)",
         "Push (push notification)",
+        // #11138: a WhatsApp or Telegram message the person has read.
+        "Read (message status)",
         "Recipients (of data)",
         "Screen (app screen)",
         "Table (database object)",
@@ -194,6 +197,9 @@ describe("the keys that name their meaning", () => {
     // #8201: a range's two ends, never a message's sender and recipient.
     expect(getWordOfMeaningKey("From (range start)")).toBe("From");
     expect(getWordOfMeaningKey("To (range end)")).toBe("To");
+    // #10952: the US state, which a translation never names as the country.
+    expect(getWordOfMeaningKey("Georgia (US state)")).toBe("Georgia");
+    expect(getWordOfMeaningKey("Georgia")).toBeUndefined();
     // #5476: a month that missed its SLO's target, never a missed SLA deadline.
     expect(getWordOfMeaningKey("Missed (target)")).toBe("Missed");
     expect(getWordOfMeaningKey("To")).toBeUndefined();

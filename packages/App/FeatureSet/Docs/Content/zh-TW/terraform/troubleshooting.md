@@ -37,6 +37,7 @@
 | `Not an ID` | 引用記錄，而不是寫它的名稱：請參閱[該寫 ID 的地方寫了名稱](#該寫-id-的地方寫了名稱) |
 | `.tf` 檔案中有來自儀表板的 JSON | 把它寫成 HCL：請參閱[來自儀表板的 JSON](#來自儀表板的-json) |
 | `no available releases match the given constraints` | 使用版本範圍，而不是單一確切版本：請參閱[從未發佈過的版本](#從未發佈過的版本) |
+| `checksum list has unexpected SHA-256 hash` | 使用該提供者的其他版本：請參閱[總和檢查碼不符的版本](#總和檢查碼不符的版本) |
 | `x509: certificate signed by unknown authority` | 信任你的憑證授權單位：請參閱[憑證](#憑證) |
 | `invalid character '<' looking for beginning of value` | 讓 `oneuptime_url` 指向 OneUptime 本身：請參閱[傳回網頁而不是 API](#傳回網頁而不是-api) |
 | `connection refused` 或 `Client.Timeout exceeded` | 檢查位址、網路和 Proxy：請參閱[連線失敗](#連線失敗) |
@@ -238,6 +239,14 @@ terraform {
 ```
 
 在自架的 OneUptime 上，請把範圍的上限設為你的 OneUptime 版本，如[自架設定](/docs/terraform/self-hosted#選擇提供者版本)所示。[登錄檔使用](/docs/terraform/registry#版本如何編號)說明了版本的編號方式。
+
+### 總和檢查碼不符的版本
+
+`checksum list has unexpected SHA-256 hash` 表示該發行版本為這個版本提供的檔案，並不是版本發佈時登錄檔讀取的那些檔案。登錄檔會保留它當時讀取的總和檢查碼，`init` 會用這些總和檢查碼核對每一次下載。14.3.0、16.0.0、17.0.0、17.1.0 和 17.2.0 的檔案，以及 11.x 到 14.0.x 中一些較舊版本的檔案，在登錄檔讀取之後又被建置並上傳了一次，所以 `init` 在每個平台上都會拒絕這些版本，Terraform 和 OpenTofu 都一樣。鎖定檔也繞不過去：`init` 會在讀取鎖定檔之前，先把登錄檔的總和檢查碼與該發行版本的總和檢查碼進行比較。
+
+請使用其他版本：17.3.0 或更新的版本，或是 15.0.0。允許較新版本的範圍會透過 `terraform init -upgrade` 選取它。這樣的版本重新發佈時，會作為下一個修補版本發佈，例如 17.2.0 對應 17.2.1，裡面是同一個提供者，允許該修補的範圍會選取它。
+
+要在使用某個版本之前檢查它，請參閱[驗證某個版本的總和檢查碼](/docs/terraform/registry#驗證某個版本的總和檢查碼)。
 
 ## 連線到自架的 OneUptime
 

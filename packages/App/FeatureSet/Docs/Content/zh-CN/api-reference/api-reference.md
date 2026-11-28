@@ -301,6 +301,16 @@ isVisibleOnStatusPage must be true or false.
 
 以记录现有的值写入的更新不会改变任何东西：它不会启动记录的 **On Update** 工作流，不会发送实时更新，也不会添加审计日志条目。写在 `false` 上的 `false` 算作相同的值，写在 `false` 上的 `"false"`、以文本写入的数字、以另一种格式写入的同一时刻，以及以任意顺序写入的相同标签也都一样。当更新更改了一些值、又把另一些值按原样写回时，其审计日志条目只列出更改了的值，工作流的 **要关注的字段** 也只会收到这些值。
 
+### 以 JSON 编写的值
+
+有些字段保存具有自身结构的 JSON 值，例如值班计划中层的 `rotation` 和 `restrictionTimes`；API 参考在其数据类型中列出了每种结构。OneUptime 只读取该结构中的键，因此一个值如果漏掉了说明其含义的键、用别的拼写写了该键，或给了 OneUptime 不认识的值，就会被拒绝并返回指明该键的 `400`，而不是被保存为一个毫无作用的值：
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+改名的键仍会按旧名读取：层的限制类型写在 `restrictionType` 下，或写在其旧拼写 `restictionType` 下，响应中两者都有。
+
 ### 项目的购买渠道
 
 项目的经销商、经销商套餐和经销商许可证（`resellerId`、`resellerPlanId`、`resellerLicenseId`，以及关系 `reseller` 和 `resellerPlan`）只由 OneUptime 设置：在用经销商的优惠码创建项目时，以及经销商更改套餐时。发送其中任何一个的项目创建或更改，无论由谁发送，都会被拒绝，并返回一个指明字段的 `400`：

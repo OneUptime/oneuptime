@@ -78,6 +78,18 @@ export const XCP_NG_AGENT_INSTALL_DIR: string = "/opt/oneuptime-xcp-ng-agent";
 
 // The collector's container (agents/XcpNgAgent/docker-compose.yml).
 export const XCP_NG_AGENT_CONTAINER: string = "oneuptime-xcp-ng-agent";
+/*
+ * The .env variable docker-compose.yml reads the collector's container name
+ * from (its default, XCP_NG_AGENT_CONTAINER): a second Xen Orchestra's agent
+ * on the same machine has a name of its own there, which install.sh writes
+ * and keeps on every upgrade.
+ */
+export const XCP_NG_AGENT_CONTAINER_NAME_VARIABLE: string =
+  "XCP_NG_AGENT_CONTAINER_NAME";
+// The XCP-ng AI agent's container and the .env variable its name comes from.
+export const XCP_NG_AI_AGENT_CONTAINER: string = "oneuptime-xcp-ng-ai-agent";
+export const XCP_NG_AI_AGENT_CONTAINER_NAME_VARIABLE: string =
+  "XCP_NG_AI_AGENT_CONTAINER_NAME";
 
 /*
  * The Xen Orchestra version the agent needs: its OpenMetrics plugin keeps
@@ -382,6 +394,7 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`XO_OPENMETRICS_SECRET\` | Yes | The OpenMetrics plugin's secret, sent as a Bearer token. Every \`$\` in it is written as \`$$\` |
 | \`XO_NAME\` | No | What to call this Xen Orchestra in OneUptime, shown on each of its pools' Settings (default: its address) |
 | \`XO_TLS_SERVER_NAME\` | No | The name Xen Orchestra's certificate is checked against, when \`XO_ADDRESS\` is an address the certificate does not list |
+| \`${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}\` | No | The agent's container name (default: \`${XCP_NG_AGENT_CONTAINER}\`). A second Xen Orchestra's agent on the same machine needs one of its own: the install script names a new agent after its folder unless you set it, and keeps it when you run the script again |
 | \`XO_URL\` | Install script | Xen Orchestra's address as typed; the script derives \`XO_SCHEME\` and \`XO_ADDRESS\` from it |
 | \`XO_TLS_FINGERPRINT\` | Install script | The SHA-256 fingerprint of Xen Orchestra's own certificate, when the agent trusts that certificate and nothing else |
 | \`XO_CA_FILE\` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the script copies to \`${XCP_NG_AGENT_CA_FILE}\` |
@@ -396,6 +409,7 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`ONEUPTIME_AI_PROTECTED_TARGETS\` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |
 | \`LOG_LEVEL\` | No | The AI agent's log level: \`debug\`, \`info\` (default), \`warn\` or \`error\` |
 | \`COMPOSE_PROFILES\` | No | \`xcp-ng-ai-agent\` starts the AI agent; the install script writes it when the read token is set |
+| \`${XCP_NG_AI_AGENT_CONTAINER_NAME_VARIABLE}\` | No | The AI agent's container name (default: \`${XCP_NG_AI_AGENT_CONTAINER}\`). The install script names a second Xen Orchestra's AI agent after its collector (\`${XCP_NG_AI_AGENT_CONTAINER}-lab\` beside \`${XCP_NG_AGENT_CONTAINER}-lab\`) unless you set it, and keeps it when you run the script again |
 
 The agent checks Xen Orchestra's certificate against \`${XCP_NG_AGENT_CA_FILE}\`, next to \`docker-compose.yml\`.`,
   };
@@ -453,9 +467,11 @@ function getSeveralXenOrchestrasTopic(): SetupGuideTopic {
     title: "Reading several Xen Orchestras",
     summary:
       "One agent per Xen Orchestra; each pool belongs to the one that reads it.",
-    markdown: `One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with its own \`container_name\` in its \`docker-compose.yml\`:
+    markdown: `One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with a container name of its own — two containers cannot share one:
 
-${codeBlock("bash", `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh`)}
+${codeBlock("bash", `INSTALL_DIR=${XCP_NG_AGENT_INSTALL_DIR}-lab ${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=${XCP_NG_AGENT_CONTAINER}-lab bash install.sh`)}
+
+Without \`${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}\`, the script names the container after the folder. It keeps the name in that agent's \`.env\`, so running the script again to upgrade the agent keeps it, and an agent whose \`container_name\` you once edited in \`docker-compose.yml\` keeps that name. With Docker Compose, set \`${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}\` in each agent's \`.env\` instead.
 
 Don't let two Xen Orchestras that manage the same pool both be read: the pool is one pool in OneUptime, by its UUID, and would be reported twice.`,
   };

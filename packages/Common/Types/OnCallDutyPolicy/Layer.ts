@@ -452,7 +452,7 @@ export default class LayerUtil {
         isFirstPeriod &&
         !periodProducedCoverage &&
         data.restrictionTimes &&
-        data.restrictionTimes.restictionType !== RestrictionType.None
+        data.restrictionTimes.restrictionType !== RestrictionType.None
       ) {
         const fullSpanTrim: Array<StartAndEndTime> =
           this.trimStartAndEndTimesBasedOnRestrictionTimes({
@@ -740,7 +740,7 @@ export default class LayerUtil {
      */
     if (
       data.restrictionTimes &&
-      data.restrictionTimes.restictionType === RestrictionType.None &&
+      data.restrictionTimes.restrictionType === RestrictionType.None &&
       data.users.length > 0
     ) {
       const firstBoundary: Date =
@@ -1005,7 +1005,7 @@ export default class LayerUtil {
   }): Array<StartAndEndTime> {
     const restrictionTimes: RestrictionTimes = data.restrictionTimes;
 
-    if (restrictionTimes.restictionType === RestrictionType.None) {
+    if (restrictionTimes.restrictionType === RestrictionType.None) {
       return [
         {
           startTime: data.eventStartTime,
@@ -1015,7 +1015,7 @@ export default class LayerUtil {
     }
 
     if (
-      restrictionTimes.restictionType === RestrictionType.Daily &&
+      restrictionTimes.restrictionType === RestrictionType.Daily &&
       restrictionTimes.dayRestrictionTimes
     ) {
       /*
@@ -1050,7 +1050,7 @@ export default class LayerUtil {
       });
     }
 
-    if (restrictionTimes.restictionType === RestrictionType.Weekly) {
+    if (restrictionTimes.restrictionType === RestrictionType.Weekly) {
       return this.getEventsByWeeklyRestriction(data);
     }
 

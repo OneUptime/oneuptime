@@ -116,6 +116,7 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 | `DOCKER_SWARM_NODE_NAME` | 否 | 節點的名稱，會作為 `docker.swarm.node.name` 資源屬性加到其容器的指標和日誌上，[Docker Swarm 監控](/docs/monitor/docker-swarm-monitor#監測器設定) 會依它篩選。安裝指令碼會將它設為節點的主機名稱，也就是 `docker node ls` 顯示的名稱。留空：不加上節點名稱。 |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | 否 | 清單輪詢器拍攝快照的頻率，單位為秒。預設為 `300`。 |
 | `DOCKER_API_VERSION` | 否 | Collector 和清單輪詢器使用的 Docker Engine API 版本。預設為空：它們使用常駐程式自己的版本，因此從 20.10 起的每個 Docker Engine 都能使用。僅在需要固定某個版本時才設定它（請參閱 [疑難排解](#疑難排解)）。除非你指定一個版本，否則 AI 代理程式會自行協商。 |
+| `ONEUPTIME_LOG_OPERATOR_1` 到 `ONEUPTIME_LOG_OPERATOR_5` | 否 | 你自己的 Collector operators，每個都以 JSON 形式提供，用於代理程式讀取不了的日誌格式。請參閱 [讀取自訂日誌格式](#讀取自訂日誌格式)。 |
 
 AI 代理程式自己的設定請見 [AI 代理程式](#ai-代理程式)。
 
@@ -162,6 +163,23 @@ processors:
 
 Collector 只在啟動時讀取其設定：請執行 `docker compose restart oneuptime-docker-swarm-agent`。之後叢集會顯示標籤 `team:platform` 和 `env:production`。標籤比對不區分大小寫，因此現有的 `Production` 標籤會被重複使用而不是重複建立，而且代理程式絕不會移除別人在 OneUptime 中新增的標籤。
 
+## 讀取自訂日誌格式
+
+代理程式能讀取大多數程式所寫格式中的等級。對於它讀取不了的格式，例如公司內部的格式，最多可以給它五個你自己的 Collector operators，每個都以 JSON 形式寫在 `ONEUPTIME_LOG_OPERATOR_1` 到 `ONEUPTIME_LOG_OPERATOR_5` 中。它們會作用於每一行容器日誌，時機是在代理程式讀取其容器和串流之後，在讀取該行的等級之前。若要設定某一行的等級，請將它以代理程式能讀取的字詞寫入 `attributes.severity_text`，例如 `ERROR`、`warn` 或 `critical`，並把該行交給代理程式的第一步 `severity-router`。自行設定嚴重性的 operator（例如 `severity_parser`）的結果會被覆寫：代理程式會在你的 operators 之後讀取每一行的等級。
+
+對於 `<<E>> payment failed` 這樣以字母表示等級的行，請在設定好該 operator 後執行安裝指令碼：
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+sh install.sh
+```
+
+指令碼會將每個 operator 用單引號括起來寫入 `.env`，並在取代你現有的 `.env` 之前，用 Collector 自己的 `validate` 檢查它們。如果 Collector 拒絕它們，指令碼會停止並顯示 Collector 的訊息，代理程式則會依原有設定繼續執行。已寫入 `.env` 的 operator，在你不帶它再次執行指令碼時會保留在那裡；含有單引號的 operator 會被拒絕，因為 `.env` 無法保存它。
+
+使用 Docker Compose 時，將它們寫入 `docker-compose.yml` 旁邊的 `.env`，每個值都用單引號括起來，然後執行 `docker compose up -d`。`oneuptime-docker-swarm-agent-config-check` 服務會先執行同樣的檢查，只有檢查通過，代理程式才會啟動。
+
+[Kubernetes 代理程式](/docs/telemetry/kubernetes-agent#讀取自訂日誌格式) 說明了範例中的 operators，Kubernetes 代理程式也接受這些 operators。
+
 ## 以 systemd 服務執行
 
 若要讓代理程式隨節點啟動，並在失敗時重新啟動，請安裝它的 systemd 單元。它假設代理程式位於 `/opt/oneuptime-docker-swarm-agent`，也就是安裝指令碼放置它的位置：
@@ -183,7 +201,7 @@ curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
-指令碼會根據你的回答重新寫入 `.env`。它只保留 AI 代理程式的目標清單和 AI 可以執行的操作（`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`）：請把你自己設定的任何變數加回去，例如 `DOCKER_API_VERSION`。開啟過 AI 修正嗎？請以 `ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh` 執行它，讓修正保持開啟。之前沒有安裝 AI 代理程式嗎？請再次傳入 `--no-ai-agent`。
+指令碼會根據你的回答重新寫入 `.env`。它只保留 AI 代理程式的目標清單、AI 可以執行的操作（`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`）和你的日誌 operators（`ONEUPTIME_LOG_OPERATOR_1` 到 `ONEUPTIME_LOG_OPERATOR_5`）：請把你自己設定的任何變數加回去，例如 `DOCKER_API_VERSION`。開啟過 AI 修正嗎？請以 `ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh` 執行它，讓修正保持開啟。之前沒有安裝 AI 代理程式嗎？請再次傳入 `--no-ai-agent`。
 
 若使用 Docker Compose，請在代理程式的資料夾中重新下載這三個檔案（然後重新做一次你對 `docker-compose.yml` 所做的任何修改），再提取映像檔並重新啟動：
 

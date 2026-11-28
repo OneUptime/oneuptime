@@ -370,6 +370,8 @@ function dotenvVariables(): Array<string> {
  * default: a quick start that runs the collector alone sets none of them.
  */
 const AI_AGENT_VARIABLES: ReadonlyArray<string> = [
+  // Its container's name: the default is a first agent's.
+  "XCP_NG_AI_AGENT_CONTAINER_NAME",
   "XCP_NG_POOL_ID",
   "ONEUPTIME_AI_AGENT_RESOURCE_NAME",
   "ONEUPTIME_AI_XO_READ_TOKEN",
@@ -1316,7 +1318,19 @@ describe("XCP-ng docs", (): void => {
       expect(readAgentFile("systemd/oneuptime-xcp-ng-agent.service")).toContain(
         `WorkingDirectory=${XCP_NG_AGENT_INSTALL_DIR}`,
       );
-      expect(compose).toContain(`container_name: ${XCP_NG_AGENT_CONTAINER}`);
+      // A second Xen Orchestra's agent on the same machine names its own in .env.
+      expect(compose).toContain(
+        `container_name: \${XCP_NG_AGENT_CONTAINER_NAME:-${XCP_NG_AGENT_CONTAINER}}`,
+      );
+      const several: string = section(
+        markdown,
+        "## Reading several Xen Orchestras",
+      );
+      expect(several).toContain(
+        `\`INSTALL_DIR=${XCP_NG_AGENT_INSTALL_DIR}-lab XCP_NG_AGENT_CONTAINER_NAME=${XCP_NG_AGENT_CONTAINER}-lab bash install.sh\``,
+      );
+      // Never an edit of docker-compose.yml, which an upgrade replaces.
+      expect(several).not.toContain("give it its own `container_name`");
       expect(compose).toContain(`source: ./${XCP_NG_AGENT_CA_FILE}`);
       expect(markdown).toContain(`\`${XCP_NG_AGENT_INSTALL_DIR}\``);
       expect(markdown).toContain(`docker logs -f ${XCP_NG_AGENT_CONTAINER}`);

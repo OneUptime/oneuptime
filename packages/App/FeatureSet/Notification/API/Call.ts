@@ -37,7 +37,9 @@ import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryProvider,
 } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
-import CallStatus from "Common/Types/Call/CallStatus";
+import CallStatus, {
+  isCallStatusBeforeAnOutcome,
+} from "Common/Types/Call/CallStatus";
 import CallLogService from "Common/Server/Services/CallLogService";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import CallRequest from "Common/Types/Call/CallRequest";
@@ -164,7 +166,8 @@ router.post(
  * and is logged with why. It only records how the one call it names ended
  * (CallOutcome):
  *
- *  - on the call's log: Missed Call, Busy or Error, and how it ended;
+ *  - on the call's log, which says Calling until then: Success for an
+ *    answered call, Missed Call, Busy or Error, and how it ended;
  *  - on the on-call notification the call was made for, while that is only
  *    sent: Not Answered or Error. An answer - pressing 1 - an escalation or
  *    a skip is never written over. The notification's own hooks tell the
@@ -266,18 +269,20 @@ router.post(
 
       /*
        * The log says this callback's outcome already - its message says how
-       * the call ended, also for an answered call, whose log still says
-       * Success: Twilio sent the callback again. The log is not written
-       * again, nor the call counted again.
+       * the call ended, also for an answered call, whose log says Success:
+       * Twilio sent the callback again. The log is not written again, nor
+       * the call counted again.
        */
       const isOutcomeWritten: boolean = callLog.statusMessage === statusMessage;
 
       if (!isOutcomeWritten) {
         /*
-         * Written once. A call placed is logged Success; how it ended moves
-         * it on - Missed Call, Busy, Error - or, answered, leaves it so.
+         * Written once. A call placed is logged Calling (Success, placed
+         * before Calling was written); how it ended moves it on - Success
+         * for an answered call, Missed Call, Busy, Error. A log that moved
+         * on already - a machine answered it - is left.
          */
-        if (callLog.status !== CallStatus.Success) {
+        if (!isCallStatusBeforeAnOutcome(callLog.status)) {
           return Response.sendEmptySuccessResponse(req, res);
         }
 
@@ -285,19 +290,20 @@ router.post(
          * A bookkeeping stamp on the call's own log, as an SMS's delivery
          * status is (SMS.ts): CallLog has update workflows disabled and no
          * service update hooks, so the full update pipeline is skipped.
-         * Only while the log still says Success, with the message it had
-         * when the call was placed, in the same statement: of two callbacks
-         * for one call at once, one writes and the other stops.
+         * Only while the log still says what was read - the status it was
+         * placed with, and the message it had then - in the same statement:
+         * of two callbacks for one call at once, one writes and the other
+         * stops.
          */
         const isWritten: boolean =
           await CallLogService.compareAndSetColumnsByIdWithoutHooks({
             id: callLog.id!,
             data: {
-              ...(outcome.callStatus ? { status: outcome.callStatus } : {}),
+              status: outcome.callStatus,
               statusMessage: statusMessage,
             },
             expectedData: {
-              status: CallStatus.Success,
+              status: callLog.status as CallStatus,
               statusMessage: (callLog.statusMessage ?? null) as string,
             },
           });
@@ -376,13 +382,15 @@ async function isAnsweredOnTheCall(
 
 /*
  * Writes that a machine answered the call over its log, once: only while
- * the log still says Success - placed, or answered as its status callback
- * said - at the message it had when read, in the same statement. A status
- * callback that wrote "answered" meanwhile leaves the log at Success, so it
- * is read again and written over; one that wrote anything else - rang out,
- * busy, failed - or another answering machine callback, is left. Whether
- * it was written, and whether the call's end had been counted already: the
- * status callback counts an answered call as it writes its message.
+ * the log still says Calling or Success - placed (Success, for a call placed
+ * before Calling was written), or answered as its status callback said - at
+ * the status and the message it had when read, in the same statement. A
+ * status callback that wrote "answered" meanwhile leaves the log at
+ * Success, so it is read again and written over; one that wrote anything
+ * else - rang out, busy, failed - or another answering machine callback, is
+ * left. Whether it was written, and whether the call's end had been counted
+ * already: the status callback counts an answered call as it writes its
+ * message.
  */
 async function writeMachineAnsweredOutcome(data: {
   callLog: CallLog;
@@ -397,7 +405,7 @@ async function writeMachineAnsweredOutcome(data: {
     attempt < MAX_MACHINE_ANSWERED_WRITE_ATTEMPTS;
     attempt++
   ) {
-    if (status !== CallStatus.Success) {
+    if (!isCallStatusBeforeAnOutcome(status)) {
       return { isWritten: false, wasEndCounted: false };
     }
 
@@ -405,13 +413,11 @@ async function writeMachineAnsweredOutcome(data: {
       await CallLogService.compareAndSetColumnsByIdWithoutHooks({
         id: data.callLog.id!,
         data: {
-          ...(data.outcome.callStatus
-            ? { status: data.outcome.callStatus }
-            : {}),
+          status: data.outcome.callStatus,
           statusMessage: data.statusMessage,
         },
         expectedData: {
-          status: CallStatus.Success,
+          status: status as CallStatus,
           statusMessage: (statusMessage ?? null) as string,
         },
       });
@@ -482,8 +488,8 @@ async function writeMachineAnsweredOutcome(data: {
  * voicemail at the end of its greeting, while the call goes on, so this one
  * comes first as a rule, and the status callback that follows finds the
  * log moved on and leaves it. When the status callback came first - the
- * call had ended - it wrote "answered" and left the log Success, so this one
- * still writes over it, once. A person who pressed 1 or 2 on the call was
+ * call had ended - it wrote "answered" and Success, so this one still writes
+ * over it, once. A person who pressed 1 or 2 on the call was
  * on the line: then nothing is written. Never over an acknowledgement, an
  * escalation or a skip (recordProviderReport). Twilio sends the callback
  * again when this server answered it with an error (StatusCallbackRetry): a
@@ -577,7 +583,7 @@ router.post(
         return Response.sendEmptySuccessResponse(req, res);
       }
 
-      if (callLog.status !== CallStatus.Success) {
+      if (!isCallStatusBeforeAnOutcome(callLog.status)) {
         /*
          * The log says a machine answered already: Twilio sent the callback
          * again. The notification is corrected - the callback that wrote

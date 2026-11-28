@@ -301,6 +301,16 @@ isVisibleOnStatusPage must be true or false.
 
 레코드의 값을 이미 있는 그대로 쓰는 업데이트는 아무것도 바꾸지 않습니다. 레코드의 **On Update** 워크플로를 시작하지 않고, 실시간 업데이트를 보내지 않으며, 감사 로그 항목도 추가하지 않습니다. `false` 위에 쓴 `false`는 같은 값으로 간주되며, `false` 위에 쓴 `"false"`, 텍스트로 쓴 숫자, 다른 형식으로 쓴 같은 시점, 순서만 다른 같은 레이블도 마찬가지입니다. 업데이트가 일부 값을 바꾸고 다른 값은 그대로 다시 쓰면, 감사 로그 항목에는 바뀐 값만 나열되고 워크플로의 **지켜볼 필드**도 그 값만 받습니다.
 
+### JSON으로 쓰는 값
+
+어떤 필드는 온콜 스케줄 레이어의 `rotation` 과 `restrictionTimes` 처럼 고유한 형태의 JSON 값을 담습니다. API 레퍼런스는 각 형태를 데이터 유형에서 보여 줍니다. OneUptime은 그 형태의 키만 읽으므로, 의미를 나타내는 키를 빠뜨리거나, 그 키를 다른 철자로 쓰거나, OneUptime이 모르는 값을 준 값은 아무 일도 하지 않는 값으로 저장되는 대신 키를 밝히는 `400` 으로 거부됩니다:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+이름이 바뀐 키는 예전 이름으로도 계속 읽힙니다. 레이어의 제한 종류는 `restrictionType` 이나 예전 철자 `restictionType` 에 쓰며, 응답에는 둘 다 담깁니다.
+
 ### 프로젝트를 구매한 곳
 
 프로젝트의 리셀러, 리셀러 플랜, 리셀러 라이선스(`resellerId`, `resellerPlanId`, `resellerLicenseId`, 그리고 관계 `reseller`와 `resellerPlan`)는 OneUptime만 설정합니다. 리셀러의 프로모션 코드로 프로젝트를 만들 때와 리셀러가 플랜을 바꿀 때입니다. 이 중 하나를 보내는 프로젝트의 만들기나 변경은 누가 보내든 필드를 알려 주는 `400`으로 거부됩니다.

@@ -1223,6 +1223,9 @@ import { AddDetectionRuleAddedByOneUptimeAt1809187791037 } from "./1809187791037
 import { AddExternalMcpToolReadOnlyMarks1809187791081 } from "./1809187791081-AddExternalMcpToolReadOnlyMarks";
 import { AddMonitorProbeableIndex1809187791119 } from "./1809187791119-AddMonitorProbeableIndex";
 import { AddProjectSecurityAccessLogFormat1809187791129 } from "./1809187791129-AddProjectSecurityAccessLogFormat";
+import { AddProbeLastLateDueAt1809187791200 } from "./1809187791200-AddProbeLastLateDueAt";
+import { AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201 } from "./1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds";
+import { AddScheduleRosterTurnAndRestrictionTypeKey1809187791269 } from "./1809187791269-AddScheduleRosterTurnAndRestrictionTypeKey";
 
 export default [
   InitialMigration,
@@ -2450,4 +2453,7 @@ export default [
   AddExternalMcpToolReadOnlyMarks1809187791081,
   AddMonitorProbeableIndex1809187791119,
   AddProjectSecurityAccessLogFormat1809187791129,
+  AddProbeLastLateDueAt1809187791200,
+  AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201,
+  AddScheduleRosterTurnAndRestrictionTypeKey1809187791269,
 ];

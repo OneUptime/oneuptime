@@ -1371,7 +1371,24 @@ export enum TelemetryIngestionBudgetRefusalKind {
   DailyBudgetExhausted = "daily-budget-exhausted",
   // Over the per-second rate: retryable after retryAfterSeconds.
   RateLimited = "rate-limited",
+  /*
+   * Not a budget the project set: too many of the project's batches of the
+   * signal already wait in the telemetry queue, or the queue is nearly full
+   * for everyone (TelemetryIngestShedding). Retryable after
+   * retryAfterSeconds, like a rate.
+   */
+  QueueBacklogged = "queue-backlogged",
 }
+
+// Whether a sender is told to retry the refused request.
+export const isRetryableTelemetryIngestionBudgetRefusal: (
+  kind: TelemetryIngestionBudgetRefusalKind,
+) => boolean = (kind: TelemetryIngestionBudgetRefusalKind): boolean => {
+  return (
+    kind === TelemetryIngestionBudgetRefusalKind.RateLimited ||
+    kind === TelemetryIngestionBudgetRefusalKind.QueueBacklogged
+  );
+};
 
 // Why a request was refused, as the ingest surfaces answer it.
 export interface TelemetryIngestionBudgetRefusal {

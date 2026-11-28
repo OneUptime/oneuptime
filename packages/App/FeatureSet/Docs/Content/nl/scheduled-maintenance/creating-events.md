@@ -63,7 +63,7 @@ Er wordt niets verstuurd tot je een statuspagina kiest: een gebeurtenis die op g
 | **Eigenaren**                        | **Onderhoudsgegevens**    | Niemand                         | Personen en teams van wie de gebeurtenis is en die erover bericht krijgen.       |
 | **Labels**                           | **Onderhoudsgegevens**    | Geen                            | Labels waarop regels en filters kunnen letten.                                   |
 | **Monitoren**                        | **Getroffen middelen** | Geen                        | De monitoren die niet worden gecontroleerd zolang de gebeurtenis loopt.          |
-| **Monitorstatus wijzigen naar**      | **Getroffen middelen** | Geen wijziging              | De status die deze monitoren tijdens de gebeurtenis tonen. Wordt gevraagd zodra er een monitor is gekozen. |
+| **Monitorstatus wijzigen naar**      | **Getroffen middelen** | Geen wijziging              | De status die deze monitoren tijdens de gebeurtenis tonen, en die hun beschikbaarheid telt. Zonder status houden ze hun status en laat hun beschikbaarheid die tijd weg. Wordt gevraagd zodra er een monitor is gekozen. |
 | **Andere getroffen resources**       | **Getroffen middelen** | Geen                        | Hosts, clusters, databases, netwerklocaties, services en meer.                   |
 | **Gebeurtenis weergeven op deze statuspagina's** | **Getroffen middelen** | Geen           | De enige statuspagina's die de gebeurtenis kunnen tonen of hun abonnees kunnen informeren. |
 | **Meldingen aan abonnees**           | **Getroffen middelen** | Meteen gepubliceerd, alle drie de momenten aan, geen herinneringen | Wanneer de gebeurtenis op die pagina's verschijnt, en wanneer hun abonnees bericht krijgen. |

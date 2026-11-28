@@ -69,7 +69,9 @@ flowchart TB
 | **La rotation commence le** | La date et l'heure de début de la rotation de la couche. |
 | **Rotation tous les** | La fréquence à laquelle l'astreinte passe à la personne suivante de la couche. |
 | **Heure de la première passation** | La première passation à la personne suivante, au début ou après. Les passations suivantes suivent chaque intervalle de rotation. |
-| **Restrictions** | Les heures d'astreinte de la couche : **Aucune restriction**, **Heures spécifiques de la journée** ou **Heures spécifiques de la semaine**, dans le fuseau horaire du planning. En dehors, les couches inférieures prennent le relais. |
+| **Restrictions** | Les heures d'astreinte de la couche (**Heures actives**) : **Aucune restriction**, **Heures spécifiques de la journée** ou **Heures spécifiques de la semaine**, dans le fuseau horaire du planning. En dehors, les couches inférieures prennent le relais. |
+
+Avec des heures actives, chaque plage est une permanence à part entière. De 17:00 à 07:00, c'est une permanence qui se termine à 07:00 le lendemain matin : dans la **Chronologie des astreintes**, dans les e-mails, dans l'application mobile et dans Slack et Microsoft Teams de la même façon, dans le fuseau horaire du planning et aussi les nuits de changement d'heure. Le tour d'une personne couvre toutes ses plages jusqu'au relais suivant, et elle est prévenue une fois dans chaque sens : « You are now on-call » quand la première plage de son tour commence, avec la fin de cette plage et la fin de son tour, et « You are no longer on-call » quand sa dernière plage se termine, pas à chaque plage. Pour recevoir un rappel avant chaque plage, choisissez une heure dans **Me rappeler avant les permanences**, comme le décrit [Flux de calendrier](/docs/on-call/calendar-feeds#rappels-et-avis-de-réaffectation). Quand quelqu'un d'autre est d'astreinte entre deux de ses plages, par un remplacement ou une couche inférieure, ou qu'une modification des couches donne la plage suivante à quelqu'un d'autre, c'est un relais, annoncé comme tel. Son temps d'astreinte est toujours enregistré plage par plage, et les canaux et le flux de la politique d'astreinte disent toujours à chaque fois qui est d'astreinte.
 
 Pour changer la couche qui passe en premier, utilisez les flèches sur la carte d'une couche : **Monter la couche (priorité plus haute)** ou **Descendre la couche (priorité plus basse)**.
 
@@ -111,7 +113,10 @@ Les plannings d'astreinte sont la ressource `/api/on-call-duty-policy-schedule` 
 
 - Créer un planning avec `firstLayerUsers` (une liste d'identifiants d'utilisateurs, dans l'ordre de leurs tours) dans ses `miscDataProps` lui donne sa première couche, comme le fait le tableau de bord : **Layer 1**, d'astreinte dès maintenant, 24 heures sur 24. `firstLayerRotation` indique la durée de chaque tour, sous forme de rotation comme `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}` ; sans elle, une semaine. Chaque utilisateur doit être membre du projet et l'appelant doit être autorisé à créer des couches, sinon le planning n'est pas créé.
 - Un planning créé sans eux n'a pas de couches, comme auparavant ; la ressource Terraform des plannings ne les envoie pas.
-- Une couche créée sans `rotation` passe le relais chaque jour, comme toujours.
+- Une couche créée sans `rotation` passe le relais chaque semaine, et une couche sans `restrictionTimes` est d'astreinte 24 h/24, comme commence une nouvelle couche dans le tableau de bord.
+- Les `restrictionTimes` d'une couche, ses heures actives, nomment leur type sous `restrictionType` : `None` (astreinte 24 h/24), `Daily` ou `Weekly`. `restictionType`, son ancienne orthographe sans le second « r », est lu aussi, et chaque réponse porte le type sous les deux, si bien qu'un client ou une configuration Terraform écrits avec l'une ou l'autre continuent de fonctionner ; la couche est enregistrée avec `restrictionType`.
+- Une écriture qui laisserait une couche d'astreinte à aucun moment est refusée avec un `400` qui nomme la clé : un type absent, inconnu ou différent sous les deux orthographes (une mise à jour prend celui qui diffère du type actuel de la couche) ; une plage `Daily` dont `startTime` et `endTime` ne sont pas des dates et heures (`"09:00"` seul est refusé) ; une restriction `Weekly` sans `weeklyRestrictionTimes` ; ou une plage qui s'ouvre et se ferme à la même heure. Une `rotation` dont l'`intervalType` n'est pas `Hour`, `Day`, `Week`, `Month` ou `Year` est refusée de la même façon.
+- Une couche enregistrée avant que ces écritures soient refusées, sans type qui soit lu, n'était jamais d'astreinte. La mise à niveau de OneUptime lit chacune de ces couches d'après les heures qu'elle contient, l'enregistre ainsi et recalcule qui est d'astreinte dans son planning, de sorte que ses personnes sont alertées dès lors et en sont prévenues.
 - Un changement apporté aux couches d'un planning et aux personnes qui les composent, fait avec l'API ou Terraform, est annoncé comme un seul changement : qui est d'astreinte est calculé une fois que les couches sont restées une demi-minute sans changement, et une personne qui prend ou quitte l'astreinte, ou qui est la suivante, en est informée une fois, et non une fois par couche ou par personne écrite. Les alertes vont à la personne que les couches mettent d'astreinte dès que chaque changement est enregistré.
 - Pour changer d'un coup qui prend son tour dans les couches d'un planning, comme le fait **Enregistrer les modifications** sur la page **Couches**, lisez les couches avec `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` et renvoyez-les, modifiées, à `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. Elles listent chaque couche que le planning garde, la plus prioritaire en premier, chacune avec ses personnes dans l'ordre de leurs tours : une personne déjà dans une couche par son `layerUserId`, une personne ajoutée par son seul `userId`. `deletedLayerIds` liste les couches à supprimer.
 - Un enregistrement est écrit en entier ou pas du tout, et qui est d'astreinte est calculé une seule fois, aussitôt. Un enregistrement fait après qu'une autre personne a changé les couches est refusé avec 409, car son `basedOnVersion` n'est plus celui des couches : lisez à nouveau les couches et appliquez la modification à ce qui s'y trouve maintenant. La ressource Terraform `oneuptime_on_call_schedule_layers` enregistre ainsi les couches d'un planning.
@@ -129,6 +134,28 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
     }
   }'
 ```

@@ -69,7 +69,9 @@ flowchart TB
 | **La rotazione inizia il** | La data e l'ora in cui inizia la rotazione del livello. |
 | **Ruota ogni** | Ogni quanto la reperibilità passa alla persona successiva del livello. |
 | **Ora del primo passaggio** | Il primo passaggio alla persona successiva, all'inizio o dopo. I passaggi successivi seguono ogni intervallo di rotazione. |
-| **Restrizioni** | Gli orari in cui il livello è reperibile: **Nessuna restrizione**, **Orari specifici del giorno** o **Orari specifici della settimana**, nel fuso orario della pianificazione. Fuori da questi orari subentrano i livelli inferiori. |
+| **Restrizioni** | Gli orari in cui il livello è reperibile (**Ore attive**): **Nessuna restrizione**, **Orari specifici del giorno** o **Orari specifici della settimana**, nel fuso orario della pianificazione. Fuori da questi orari subentrano i livelli inferiori. |
+
+Con le ore attive, ogni fascia è un turno a sé. Dalle 17:00 alle 07:00 è un solo turno, che finisce alle 07:00 del mattino dopo: nella **Cronologia delle reperibilità**, nelle email, nell'app mobile e in Slack e Microsoft Teams allo stesso modo, nel fuso orario della pianificazione e anche nelle notti del cambio d'ora. Il turno di una persona comprende tutte le sue fasce fino al passaggio successivo, e viene avvisata una volta per ogni verso: "You are now on-call" quando inizia la prima fascia del suo turno, con la fine di quella fascia e la fine del suo turno, e "You are no longer on-call" quando finisce l'ultima fascia, non a ogni fascia. Per ricevere un promemoria prima di ogni fascia, scegli un orario in **Ricordamelo prima dei turni**, come descrive [Feed calendario](/docs/on-call/calendar-feeds#promemoria-e-avvisi-di-riassegnazione). Quando tra due sue fasce è reperibile qualcun altro, per una sostituzione o un livello inferiore, o una modifica dei livelli dà la fascia successiva a qualcun altro, è un passaggio di turno e viene annunciato come tale. Il suo tempo di reperibilità continua a essere registrato fascia per fascia, e i canali e il feed della policy di reperibilità continuano a dire ogni volta chi è reperibile.
 
 Per cambiare quale livello viene prima, usa le frecce sulla scheda di un livello: **Sposta il livello in alto (priorità più alta)** o **Sposta il livello in basso (priorità più bassa)**.
 
@@ -111,7 +113,10 @@ Le pianificazioni di reperibilità sono la risorsa `/api/on-call-duty-policy-sch
 
 - Creare una pianificazione con `firstLayerUsers` (un elenco di ID utente, nell'ordine in cui si alternano) nei suoi `miscDataProps` le dà il suo primo livello, come fa la dashboard: **Layer 1**, reperibile da adesso, 24 ore su 24. `firstLayerRotation` indica quanto dura ogni turno, come una rotazione del tipo `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; senza, una settimana. Ogni utente deve essere membro del progetto e il chiamante deve poter creare livelli, altrimenti la pianificazione non viene creata.
 - Una pianificazione creata senza di essi non ha livelli, come prima; la risorsa Terraform delle pianificazioni non li invia.
-- Un livello creato senza `rotation` passa il turno ogni giorno, come sempre.
+- Un livello creato senza `rotation` passa il turno ogni settimana, e uno senza `restrictionTimes` è reperibile 24 ore su 24, come inizia un nuovo livello nella dashboard.
+- I `restrictionTimes` di un livello, le sue ore attive, indicano il tipo sotto `restrictionType`: `None` (reperibile 24 ore su 24), `Daily` o `Weekly`. Viene letto anche `restictionType`, la grafia precedente senza la seconda "r", e ogni risposta riporta il tipo sotto entrambe, così un client o una configurazione Terraform scritti con l'una o con l'altra continuano a funzionare; il livello viene salvato con `restrictionType`.
+- Una scrittura che lascerebbe un livello reperibile in nessun momento viene rifiutata con un `400` che indica la chiave: un tipo mancante, sconosciuto o diverso nelle due grafie (un aggiornamento prende quello che differisce dal tipo attuale del livello); una fascia `Daily` i cui `startTime` e `endTime` non sono date e orari (`"09:00"` da solo viene rifiutato); una restrizione `Weekly` senza `weeklyRestrictionTimes`; o una fascia che si apre e si chiude alla stessa ora. Una `rotation` il cui `intervalType` non è `Hour`, `Day`, `Week`, `Month` o `Year` viene rifiutata allo stesso modo.
+- Un livello salvato prima che queste scritture venissero rifiutate, senza un tipo che venisse letto, non era mai reperibile. L'aggiornamento di OneUptime legge ognuno di questi livelli in base alle ore che contiene, lo salva così e ricalcola chi è reperibile nella sua pianificazione, in modo che le sue persone vengano avvisate da quel momento e lo sappiano.
 - Una modifica ai livelli di una pianificazione e alle persone che vi appartengono, fatta con l'API o Terraform, viene comunicata come un'unica modifica: chi è reperibile viene calcolato quando i livelli sono rimasti per mezzo minuto senza modifiche, e chi entra o esce dal turno, o è il prossimo, lo viene a sapere una volta, non una volta per ogni livello o persona scritti. Gli avvisi arrivano a chi i livelli rendono reperibile non appena ogni modifica è salvata.
 - Per cambiare in un colpo solo chi fa i turni nei livelli di una pianificazione, come fa **Salva modifiche** nella pagina **Livelli**, leggi i livelli con `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` e rimandali, modificati, a `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. Elencano ogni livello che la pianificazione mantiene, quello con la priorità più alta per primo, ciascuno con le sue persone nell'ordine dei turni: chi è già in un livello con il suo `layerUserId`, chi viene aggiunto con il solo `userId`. `deletedLayerIds` elenca i livelli da eliminare.
 - Un salvataggio viene scritto per intero o per niente, e chi è reperibile viene calcolato una volta sola, subito. Uno fatto dopo che qualcun altro ha cambiato i livelli viene rifiutato con 409, perché il suo `basedOnVersion` non è più quello dei livelli: rileggi i livelli e applica la modifica a ciò che c'è adesso. La risorsa Terraform `oneuptime_on_call_schedule_layers` salva così i livelli di una pianificazione.
@@ -129,6 +134,28 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
     }
   }'
 ```

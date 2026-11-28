@@ -55,7 +55,7 @@ import PermissionGate, {
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
 import {
-  usePrivateRecordGateOptions,
+  useListGateOptions,
   withPrivateRecordGateOptions,
 } from "../../Utils/PrivateRecordScope";
 import { HeldPermissions } from "../../../Types/HeldPermissions";
@@ -1462,10 +1462,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   /*
    * On a private incident, alert or episode's page, what the reader holds
    * on it: its changes are offered only when a team of theirs that owns it
-   * may make them (PrivateRecordScope).
+   * may make them (PrivateRecordScope). A list of the page's own kind lists
+   * other records, which the page's answer is not about: each row is
+   * weighed by its own labels instead (ModelTable, #11259).
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
-    usePrivateRecordGateOptions(model);
+    useListGateOptions(model);
 
   type GetItemLabelFunction = (item: unknown) => string;
 
@@ -3942,9 +3944,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         model.hasColumn(moreField as string) &&
         model.isEntityColumn(moreField as string)
       ) {
-        (selectFields as Dictionary<boolean>)[moreField as string] = (
-          props.selectMoreFields as any
-        )[moreField];
+        /*
+         * A relation a column selects already keeps what that column reads:
+         * the fields asked for here are added to it. It was replaced, so a
+         * list that also asked for its rows' label ids drew its Labels
+         * column without names.
+         */
+        const selected: unknown = (selectFields as Dictionary<unknown>)[
+          moreField as string
+        ];
+        const more: unknown = (props.selectMoreFields as any)[moreField];
+
+        (selectFields as Dictionary<unknown>)[moreField as string] =
+          selected &&
+          typeof selected === "object" &&
+          more &&
+          typeof more === "object"
+            ? {
+                ...(selected as Dictionary<unknown>),
+                ...(more as Dictionary<unknown>),
+              }
+            : more;
       } else if (model.hasColumn(moreField as string)) {
         (selectFields as Dictionary<boolean>)[moreField as string] = true;
       } else {

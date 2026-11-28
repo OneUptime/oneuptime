@@ -859,6 +859,137 @@ describe("readAnswer (the ingest path)", () => {
   });
 });
 
+/*
+ * Issue #11255: a reasoning model served without a reasoning parser
+ * (DeepSeek-R1, QwQ, Qwen3 on vLLM, Groq's raw format, an older Ollama)
+ * answers with its thinking in the text. The conversation shows it as
+ * thinking, and the answer checks read the answer after it.
+ */
+describe("a reasoning model's thinking in its answer's text", () => {
+  const outputOf: (text: string) => Attributes = (text: string): Attributes => {
+    return {
+      "gen_ai.output.messages": JSON.stringify([
+        { role: "assistant", parts: [{ type: "text", content: text }] },
+      ]),
+    };
+  };
+
+  test("a block it opens with is thinking, and a refusal after it is the answer's opening", () => {
+    const reading: LlmAnswerReading = LlmMessageParser.readAnswer({
+      attributes: outputOf(
+        "<think>\nThe user asks for something I should not do.\n</think>\n\nI'm sorry, but I can't help with that.",
+      ),
+    });
+
+    expect(reading.summary.leadingText).toBe(
+      "I'm sorry, but I can't help with that.",
+    );
+    expect(reading.summary.hasText).toBe(true);
+    expect(reading.output[0]?.parts).toEqual([
+      {
+        type: LlmMessagePartType.Reasoning,
+        text: "The user asks for something I should not do.",
+      },
+      {
+        type: LlmMessagePartType.Text,
+        text: "I'm sorry, but I can't help with that.",
+      },
+    ]);
+  });
+
+  test("the thinking a chat template opened ends at its closing tag", () => {
+    const content: LlmCallContent = read(
+      outputOf("Okay, the user wants a haiku.\n</think>\n\nAutumn moonlight."),
+    );
+
+    expect(textOf(content.output[0])).toBe("Autumn moonlight.");
+    expect(
+      partsOf(content.output[0], LlmMessagePartType.Reasoning)[0]?.text,
+    ).toBe("Okay, the user wants a haiku.");
+    expect(LlmMessageParser.toDisplayText(content.output[0]!)).toBe(
+      "(thinking) Okay, the user wants a haiku.\n\nAutumn moonlight.",
+    );
+  });
+
+  test("a reply of thinking alone has no text", () => {
+    const reading: LlmAnswerReading = LlmMessageParser.readAnswer({
+      attributes: outputOf("<think>I will answer after this, I promise"),
+    });
+
+    expect(reading.summary.recorded).toBe(true);
+    expect(reading.summary.hasText).toBe(false);
+    expect(reading.summary.leadingText).toBe("");
+    expect(
+      partsOf(reading.output[0], LlmMessagePartType.Reasoning),
+    ).toHaveLength(1);
+  });
+
+  test("an OpenAI choice and a Vercel AI SDK text are read the same way", () => {
+    const fromChoices: LlmCallContent = read({
+      "gen_ai.completion": JSON.stringify({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: "<think>plan</think>The cache is cold.",
+            },
+            finish_reason: "stop",
+          },
+        ],
+      }),
+    });
+    const fromVercel: LlmCallContent = read({
+      "ai.response.text": "plan</think>The cache is cold.",
+    });
+
+    expect(textOf(fromChoices.output[0])).toBe("The cache is cold.");
+    expect(textOf(fromVercel.output[0])).toBe("The cache is cold.");
+  });
+
+  test("an answer that shows the tags in code, or says the word, is the answer as written", () => {
+    for (const answer of [
+      "Strip everything up to `</think>` from the output.",
+      "I think the cache is cold.",
+      "```\nplan</think>answer\n```",
+    ]) {
+      const content: LlmCallContent = read(outputOf(answer));
+
+      expect(content.output[0]?.parts).toEqual([
+        { type: LlmMessagePartType.Text, text: answer },
+      ]);
+    }
+  });
+
+  test("the prompt is the caller's text, tags and all", () => {
+    const content: LlmCallContent = read({
+      "gen_ai.input.messages": JSON.stringify([
+        {
+          role: "user",
+          parts: [{ type: "text", content: "<think>is this a tag?</think>" }],
+        },
+      ]),
+      ...outputOf("It is a tag."),
+    });
+
+    expect(textOf(content.input[0])).toBe("<think>is this a tag?</think>");
+    expect(partsOf(content.input[0], LlmMessagePartType.Reasoning)).toEqual([]);
+  });
+
+  test("an answer too long to parse opens where its thinking ends", () => {
+    const reading: LlmAnswerReading = LlmMessageParser.readAnswer({
+      attributes: {
+        "ai.response.text": `<think>${"x".repeat(LLM_ANSWER_MAX_JSON_LENGTH)}</think>I'm sorry, but I can't help with that.`,
+      },
+    });
+
+    expect(reading.output).toEqual([]);
+    expect(reading.summary.hasText).toBe(true);
+    expect(reading.summary.leadingText).toBe(
+      "I'm sorry, but I can't help with that.",
+    );
+  });
+});
+
 describe("robustness: telemetry is untrusted input", () => {
   test.each([
     [null],

@@ -860,6 +860,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
+  // How far each open erasure request has got (#11232).
+  "packages/Common/Server/API/SecurityUserErasureRequestAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/AIInsightAPI.ts": {
     products: [ProductKey.AIInsights],
     leftAlone: {

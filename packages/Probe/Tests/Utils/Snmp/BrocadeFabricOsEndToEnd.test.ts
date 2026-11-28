@@ -62,6 +62,9 @@ import RecordedSnmpAgent, {
 
 const COMMUNITY: string = "public";
 
+// The chassis's one SNMPv3 engine: every logical switch answers as it.
+const CHASSIS_ENGINE_ID: string = "800006340300C4F57C4A1B20";
+
 const V3_USER: snmp.User = {
   name: "oneuptime",
   level: snmp.SecurityLevel.authPriv,
@@ -226,6 +229,7 @@ beforeAll(async () => {
     contexts: {
       "VF:20": simulatorRecording("brocade-g620", "fid20.snmprec"),
     },
+    engineId: CHASSIS_ENGINE_ID,
   });
 
   firstPoll = await poll(pollConfig(chassis.port), true);
@@ -592,6 +596,29 @@ describe("a logical switch of a Virtual Fabric, through its SNMPv3 context", () 
     );
 
     expect(defaultSwitch.systemInfo?.sysName).toBe("fabric-a-edge-01");
+  });
+
+  /*
+   * The engine ID the chassis's agent answered the poll's discovery with
+   * (#11172): what its SNMPv3 traps are sent as. One engine, so every
+   * logical switch reads the same one, and the trap's context tells them
+   * apart (SnmpTrapContextRouting).
+   */
+  test("an SNMPv3 poll reads the agent's engine ID, the same in every context", async () => {
+    const logicalSwitch: SnmpMonitorResponse = await poll(
+      v3Config(chassis!.port, "VF:20"),
+    );
+    const defaultSwitch: SnmpMonitorResponse = await poll(
+      v3Config(chassis!.port, undefined),
+    );
+
+    expect(logicalSwitch.systemInfo?.snmpEngineId).toBe(CHASSIS_ENGINE_ID);
+    expect(defaultSwitch.systemInfo?.snmpEngineId).toBe(CHASSIS_ENGINE_ID);
+  });
+
+  test("a v2c poll reads none: it discovers no engine", () => {
+    expect(firstPoll!.systemInfo?.sysName).toBe("fabric-a-edge-01");
+    expect(firstPoll!.systemInfo).not.toHaveProperty("snmpEngineId");
   });
 
   test("the context is sent only over SNMPv3, trimmed", () => {

@@ -69,7 +69,9 @@ flowchart TB
 | **Rotation starts at** | The date and time the layer's rotation begins. |
 | **Rotate every** | How often on-call duty passes to the next person in the layer. |
 | **First hand-off time** | The first hand-off to the next person, at or after the start. Later hand-offs follow every rotation interval. |
-| **Restrictions** | The hours the layer is on call: **No Restrictions**, **Specific Times of the Day** or **Specific Times of the Week**, in the schedule's time zone. Outside them, lower layers take over. |
+| **Restrictions** | The hours the layer is on call, under **Active hours**: **No Restrictions**, **Specific Times of the Day** or **Specific Times of the Week**, in the schedule's time zone. Outside them, lower layers take over. |
+
+With active hours, each window is a shift of its own. From 17:00 to 07:00 is one shift, ending at 07:00 the next morning, on the **Schedule Timeline**, in the emails, in the mobile app and in Slack and Microsoft Teams alike, in the schedule's time zone and on the nights the clocks change. A person's turn is all their windows until the next hand-off, and they are told once each way: "You are now on-call" as the first window of their turn opens, with when that window ends and when their turn does, and "You are no longer on-call" as its last window closes, not at every window. To be reminded before every window, pick a time on **Remind me before shifts**, as [Calendar Feeds](/docs/on-call/calendar-feeds#reminders-and-reassignment-notices) describes. When someone else holds the pager between two of their windows, through an override or a lower layer, or a change to the layers gives the next window to someone else, that is a hand-off, told as one. Their on-call time is still recorded window by window, and the on-call policy's channels and feed still say each time who is on call.
 
 To change which layer comes first, use the arrows on a layer's card: **Move layer up (higher priority)** or **Move layer down (lower priority)**.
 
@@ -111,7 +113,10 @@ On-call schedules are the `/api/on-call-duty-policy-schedule` resource; their la
 
 - Creating a schedule with `firstLayerUsers` (a list of user ids, in the order they take turns) in its `miscDataProps` gives it its first layer, as the dashboard does: **Layer 1**, on call from now, around the clock. `firstLayerRotation` says how long each turn lasts, as a rotation such as `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; without it, a week. Every user must be a member of the project and the caller must be allowed to create layers, or the schedule is not created.
 - A schedule created without them has no layers, as before; Terraform's schedule resource does not send them.
-- A layer created without a `rotation` hands off daily, as it always has.
+- A layer created without a `rotation` hands off every week, and one without `restrictionTimes` is on call around the clock, as a new layer in the dashboard starts.
+- A layer's `restrictionTimes`, its active hours, names its type under `restrictionType`: `None` (on call around the clock), `Daily` or `Weekly`. `restictionType`, its older spelling without the second "r", is read too, and every answer carries the type under both, so a client or a Terraform configuration written with either keeps working; the layer is stored with `restrictionType`.
+- A write that would leave a layer on call at no time is refused with a `400` that names the key: a type that is missing, unknown, or different under the two spellings (an update takes the one that differs from the layer's type now); a `Daily` window whose `startTime` and `endTime` are not dates and times (`"09:00"` alone is refused); a `Weekly` restriction without `weeklyRestrictionTimes`; or a window that opens and closes at the same time. A `rotation` whose `intervalType` is not `Hour`, `Day`, `Week`, `Month` or `Year` is refused the same way.
+- A layer stored before these writes were refused, with no type that was read, was never on call. Upgrading OneUptime reads each such layer for the hours it holds, stores it so, and works out who is on call in its schedule again, so its people are paged from then on and told so.
 - A change to a schedule's layers and the people in them, made through the API or Terraform, is told as one change: who is on call is worked out once the layers have had no change for half a minute, and someone who goes on or off call, or is next, hears it once, not once for each layer or person written. Pages go to whoever the layers put on call as soon as each change is saved.
 - To change who takes turns in a schedule's layers all at once, as the **Layers** page's **Save changes** does, read the layers with `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` and send them back, changed, to `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. They list every layer the schedule keeps, the highest priority first, each with its people in turn order: someone already in a layer by their `layerUserId`, someone added by `userId` alone. `deletedLayerIds` lists the layers to delete.
 - A save is written all or nothing, and who is on call is worked out once, at once. One made after someone else changed the layers is refused with 409, as its `basedOnVersion` is no longer theirs: read the layers again and make the change to what is there now. Terraform's `oneuptime_on_call_schedule_layers` resource saves a schedule's layers this way.
@@ -129,6 +134,28 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
     }
   }'
 ```
