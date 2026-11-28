@@ -2467,7 +2467,7 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     fact(
       "Investigations are read-only, and secrets are redacted before anything reaches the model.",
       AI_SRE,
-      "**Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns).",
+      "**Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns), and so are",
     ),
   ],
   "ai/flow": [
