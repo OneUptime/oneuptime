@@ -101,6 +101,11 @@ import TeamService from "../../../../Services/TeamService";
 import ActiveMonitorLimit from "../../../Billing/ActiveMonitorLimit";
 import UserLanguage from "../../../Notification/UserLanguage";
 import ServerProducts from "../../../ServerProducts/ServerProducts";
+import HelpAndSupportServerSettings from "../../../HelpAndSupport/HelpAndSupportServerSettings";
+import {
+  HelpAndSupportSettings,
+  getDefaultHelpAndSupportSettings,
+} from "../../../../../Types/HelpAndSupport/HelpAndSupport";
 import {
   answerDataSecurityFromProject,
   readDataSecurityProject,
@@ -752,6 +757,19 @@ export default class AskAiEvalTurnRunner {
     patches.set(ServerProducts, "getSavedSettings", async (): Promise<null> => {
       return null;
     });
+    /*
+     * No admin changed Help and Support either: a new install's links, the
+     * mobile app offered among them. A setup that pages the person asking
+     * says how a page reaches them, and names the app only where it is
+     * offered (#11117), which it reads here, never from the database.
+     */
+    patches.set(
+      HelpAndSupportServerSettings,
+      "getSettings",
+      async (): Promise<HelpAndSupportSettings> => {
+        return getDefaultHelpAndSupportSettings();
+      },
+    );
   }
 
   // Ask AI's reads, from the project; the docs' run for real.
