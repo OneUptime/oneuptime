@@ -414,9 +414,9 @@ export function getFindingIndicatorChange(
  *   - for a finding an earlier erasure un-named (marked erased, holding one
  *     of the request's tokens) whose id still holds another fingerprint
  *     than its group value's, the id alone;
- *   - for a threat intel finding either way, the feed's indicator taken out
- *     (#11230): the erased indicator id in its id places, the feed's name
- *     in ruleName.
+ *   - for a threat intel finding whose indicator was the person, either
+ *     way, the feed's indicator taken out (#11230): the erased indicator
+ *     id in its id places, the feed's name in ruleName.
  *
  * `projectId` keys the fingerprint; `tokens` are the request's.
  */
@@ -474,9 +474,21 @@ export function planFindingRewrite(
     }
   }
 
-  // The feed's indicator, taken out of a finding about the person (#11230).
+  /*
+   * The feed's indicator, taken out of a finding whose indicator was the
+   * person (#11230): its value is one of the names, or - un-named by an
+   * earlier erasure - holds one of the request's tokens. A finding about
+   * another indicator (an address the feed lists) keeps it, though its
+   * sample events named the person.
+   */
+  const isIndicatorTheirs: boolean =
+    unnamedValue !== value ||
+    (row.isMarkedErased === true &&
+      (context.tokens || []).some((token: string): boolean => {
+        return Boolean(token) && value.includes(token);
+      }));
   const indicator: FindingIndicatorChange | undefined =
-    isThreatIntel && unnamedValue && (isNaming || isStale)
+    isThreatIntel && unnamedValue && isIndicatorTheirs
       ? getFindingIndicatorChange(
           row,
           DetectionFingerprint.erasedIndicatorIdOf({

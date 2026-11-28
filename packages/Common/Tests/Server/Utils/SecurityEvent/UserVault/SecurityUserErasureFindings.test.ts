@@ -599,6 +599,40 @@ describe("the feed's indicator, out of a threat intel finding about the person (
     }
   });
 
+  test("a feed's finding about another indicator keeps it, though its sample events named the person", () => {
+    const address: string = "198.51.100.4";
+    const aboutAddress: ErasureFindingRow = feedFinding({
+      observables: [address, ALICE],
+      indicatorValue: address,
+      eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed(address, DetectionFingerprintKind.ThreatIntel)}:1`,
+      ruleName: "Botnet node",
+    });
+    const rewrite: FindingRewrite | null = planFindingRewrite(
+      aboutAddress,
+      NAMES,
+      CONTEXT,
+    );
+
+    // The person comes out of its observables; the address's indicator stays.
+    expect(rewrite?.replacements).toEqual([
+      { position: 2, prefixBytes: 0, token: TOKEN, suffixBytes: 0 },
+    ]);
+    expect(rewrite?.indicator).toBeUndefined();
+
+    // Un-named by an earlier erasure, it is no more the person's.
+    expect(
+      planFindingRewrite(
+        {
+          ...aboutAddress,
+          observables: [address, TOKEN],
+          isMarkedErased: true,
+        },
+        NAMES,
+        CONTEXT,
+      ),
+    ).toBeNull();
+  });
+
   test("a rule's finding names no feed's indicator: its rule is left as it is", () => {
     const rewrite: FindingRewrite | null = planFindingRewrite(
       {
