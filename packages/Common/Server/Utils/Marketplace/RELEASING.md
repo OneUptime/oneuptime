@@ -350,11 +350,12 @@ by hand the fixed way, it was accepted. Google approved OneUptime Cloud
 (case 77068529) with an adjusted revenue share, which the maintainer
 accepted on the case on 19 November; Google's approval letter of that day
 sets it. **Left**: production running #11472 and #11529 (both merged on 28
-November), and the test purchase on its own order then (step 9); the
-accepted report seen in Google's billing, which takes hours, then a plan
-change and a cancellation tested (step 9); the technical integration's
-review (step 10); then **Publish** once all three reviews are approved (the
-maintainer's go-ahead).
+November; the maintainer is deploying them that day), then the paused test
+resumed and an hour's report seen `Reported` (step 9); the accepted report
+seen in Google's billing, which takes hours, then a plan change and a
+cancellation tested (step 9); the technical integration's review (step
+10); then **Publish** once all three reviews are approved (the maintainer's
+go-ahead).
 
 The listing, its service account, its Pub/Sub subscription and its Service
 Control service live in a Google Cloud project made for the listings,
@@ -559,7 +560,11 @@ rules do.
    at 12:19 UTC the way the fix sends it - the check without the label, then
    the report with it, under the report's own ID as the operation ID - and
    Service Control accepted both (HTTP 200, no errors); its row was then
-   marked `Reported`.
+   marked `Reported`. At 12:31 UTC the test was paused until production
+   runs both fixes: the project's trial end was moved to 1 January 2027, so
+   its hours are trial hours again and nothing is reported. Once the
+   release is in production, end the trial again (`trialEndsAt` to the
+   start of the hour) and watch the next hour's report.
 
    A buyer's procurement account holds their orders of all of the
    provider's products. The test billing account also bought OneUptime
@@ -860,6 +865,7 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-28 | Google Cloud | Production's test purchase holds the Kubernetes order's ID; #11472 merged, needed in production by 3 Dec 08:00        | Agent      |
 | 2026-11-28 | Google Cloud | Test project's trial ended by hand (maintainer's request); the purchase put back on its own order                     | Agent      |
 | 2026-11-28 | Google Cloud | First usage report (13 units) refused: check takes no user labels (#11529); resent the fixed way, accepted            | Agent      |
+| 2026-11-28 | Google Cloud | Test paused until production runs #11472 and #11529: the project's trial end moved to 1 January 2027                  | Agent      |
 
 ## Notes for agents driving the browser
 
