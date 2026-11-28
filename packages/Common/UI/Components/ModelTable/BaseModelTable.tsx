@@ -774,6 +774,14 @@ export interface BaseTableProps<
     | ((item: TBaseModel) => string | undefined)
     | undefined;
   /*
+   * What the two reasons above were last worked out from, when that can
+   * change after the rows are drawn - who owns each row, read once the rows
+   * are (#11436), the names of the labels a lock names (#11259): a change
+   * draws the rows' actions again, so a row's menu says what its lock says
+   * now. Left out, the actions follow the rows and columns alone.
+   */
+  rowLocksKey?: string | undefined;
+  /*
    * Supplies the per-row Delete confirmation's wording for the row that was
    * clicked. Runs after onBeforeDelete and before the dialog opens, so it may
    * fetch; if it throws, the dialog does not open and the row shows the error.
@@ -4514,6 +4522,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       serializeToTableColumns();
     }
   }, [sortLockNamesKey]);
+
+  /*
+   * What the rows' locks are worked out from changed - who owns them landed,
+   * a lock's label names arrived (rowLocksKey): their actions say it now.
+   */
+  useEffect(() => {
+    if (props.rowLocksKey) {
+      serializeToTableColumns();
+    }
+  }, [props.rowLocksKey]);
 
   /*
    * The permission snapshot landed after the list chose its sort: a sort the

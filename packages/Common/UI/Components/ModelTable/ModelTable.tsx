@@ -509,6 +509,20 @@ const ModelTable: <TBaseModel extends BaseModel>(
   }
 
   /*
+   * What the rows' locks are worked out from that lands after the rows: the
+   * names of the labels a reason names, and who owns each row. The list
+   * draws its rows' actions again when it changes (BaseModelTable's
+   * rowLocksKey), so a row's menu says what its lock says now.
+   */
+  const rowLocksKey: string = rowLabelLock
+    ? JSON.stringify([
+        Array.from(rowLabelNames.entries()),
+        rowOwnership.isRead,
+        rowOwnership.result,
+      ])
+    : "";
+
+  /*
    * The rows on screen, for who owns them (#11436): kept only for a reader
    * whose rows' owners may lock something, so nobody else's list draws
    * again for it.
@@ -602,6 +616,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
           : {})}
         getEditDisabledReason={getEditDisabledReason}
         getDeleteDisabledReason={getDeleteDisabledReason}
+        rowLocksKey={rowLocksKey}
         onFetchSuccess={onFetchSuccess}
         helpContent={ruleCriteriaTable.helpContent}
         bulkActions={bulkActions}

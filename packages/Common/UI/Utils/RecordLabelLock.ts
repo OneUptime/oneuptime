@@ -406,13 +406,28 @@ export function getRecordLabelAccessScope(data: {
         return undefined;
       }
 
-      if (!parts.has(partTableName)) {
+      /*
+       * By table and the permissions the model asks with: a gate may ask
+       * with a model of its own lists (the Owners card's people and teams
+       * as one, AddOwners.getEitherOwnerTable).
+       */
+      const key: string = isPartGateModel(model)
+        ? JSON.stringify([
+            partTableName,
+            model.getCreatePermissions(),
+            model.getReadPermissions(),
+            model.getUpdatePermissions(),
+            model.getDeletePermissions(),
+          ])
+        : partTableName;
+
+      if (!parts.has(key)) {
         const lock: ModelPartLock | null = isPartGateModel(model)
           ? PermissionGate.getPartLock(model, recordModel)
           : null;
 
         parts.set(
-          partTableName,
+          key,
           lock
             ? getAccess(
                 (action: PartLockAction): LabelVerdict => {
@@ -429,7 +444,7 @@ export function getRecordLabelAccessScope(data: {
         );
       }
 
-      return parts.get(partTableName) || undefined;
+      return parts.get(key) || undefined;
     };
   }
 
