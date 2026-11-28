@@ -83,6 +83,8 @@ type StoredEvent = {
   monitors: Array<string>;
   // Oldest first.
   timeline: Array<StateKind>;
+  // Its Change Monitor Status to, when it has one.
+  monitorStatusId?: string | undefined;
 };
 
 type EventFindBy = {
@@ -323,6 +325,13 @@ beforeEach(() => {
           scheduledMaintenance.currentScheduledMaintenanceState = state(
             storedEvent.state,
           );
+
+          if (storedEvent.monitorStatusId) {
+            scheduledMaintenance.changeMonitorStatusToId = new ObjectID(
+              storedEvent.monitorStatusId,
+            );
+          }
+
           return scheduledMaintenance;
         },
       );
@@ -1181,5 +1190,183 @@ describe("ScheduledMaintenanceService.onDeleteSuccess: deleting an event release
 
     expect(releasedMonitorIds()).toEqual([MONITOR_B]);
     expect(operationalMonitorIds()).toEqual([MONITOR_B]);
+  });
+});
+
+/*
+ * Which events hold a monitor, each with the status it puts its monitors in:
+ * what the time of a monitor maintenance pauses counts as (#11301). The same
+ * definition of holding as isMonitorHeldInMaintenanceByAnyEvent, asked of
+ * every event rather than of any.
+ */
+describe("ScheduledMaintenanceStateTimelineService.findEventsHoldingMonitor", () => {
+  function heldBy(events: Array<ScheduledMaintenance>): Array<string> {
+    return events.map((event: ScheduledMaintenance): string => {
+      return event.id!.toString();
+    });
+  }
+
+  test("reads, as root and oldest first, the events on the monitor in a state that can hold it, with their status and number", async () => {
+    await ScheduledMaintenanceStateTimelineService.findEventsHoldingMonitor(
+      new ObjectID(MONITOR_A),
+    );
+
+    expect(eventFindBy).toHaveBeenCalledTimes(1);
+
+    const findBy: EventFindBy & { sort: JSONObject } = eventFindBy.mock
+      .calls[0]![0] as EventFindBy & { sort: JSONObject };
+
+    expect(
+      findBy.query.monitors.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([MONITOR_A]);
+    expect(findBy.query.currentScheduledMaintenanceState).toEqual({
+      isScheduledState: false,
+      isEndedState: false,
+      isResolvedState: false,
+    });
+    expect(findBy.select).toEqual({
+      _id: true,
+      projectId: true,
+      changeMonitorStatusToId: true,
+      scheduledMaintenanceNumber: true,
+      scheduledMaintenanceNumberWithPrefix: true,
+      currentScheduledMaintenanceState: {
+        _id: true,
+        isScheduledState: true,
+        isOngoingState: true,
+        isEndedState: true,
+        isResolvedState: true,
+      },
+    });
+    expect(findBy.sort).toEqual({ createdAt: SortOrder.Ascending });
+    expect(findBy.limit).toBe(LIMIT_MAX);
+    expect(findBy.props).toEqual({ isRoot: true });
+  });
+
+  test("an ongoing event holds it, with its status, and no timeline is read for it", async () => {
+    storedEvents = [
+      {
+        id: OTHER_EVENT_ID,
+        state: "ongoing",
+        monitors: [MONITOR_A],
+        timeline: ["scheduled", "ongoing"],
+        monitorStatusId: MAINTENANCE_STATUS_ID,
+      },
+    ];
+
+    const events: Array<ScheduledMaintenance> =
+      await ScheduledMaintenanceStateTimelineService.findEventsHoldingMonitor(
+        new ObjectID(MONITOR_A),
+      );
+
+    expect(heldBy(events)).toEqual([OTHER_EVENT_ID]);
+    expect(events[0]!.changeMonitorStatusToId?.toString()).toBe(
+      MAINTENANCE_STATUS_ID,
+    );
+    expect(timelineFindBy).not.toHaveBeenCalled();
+  });
+
+  test("an event in a state of the project's own holds it only once its timeline went through Ongoing", async () => {
+    storedEvents = [
+      // "Verifying", after Ongoing: it holds what Ongoing held.
+      {
+        id: OTHER_EVENT_ID,
+        state: "custom",
+        monitors: [MONITOR_A],
+        timeline: ["scheduled", "ongoing", "custom"],
+      },
+      // "Cancelled", reached from Scheduled: it never held anything.
+      {
+        id: THIRD_EVENT_ID,
+        state: "custom",
+        monitors: [MONITOR_A],
+        timeline: ["scheduled", "custom"],
+      },
+    ];
+
+    expect(
+      heldBy(
+        await ScheduledMaintenanceStateTimelineService.findEventsHoldingMonitor(
+          new ObjectID(MONITOR_A),
+        ),
+      ),
+    ).toEqual([OTHER_EVENT_ID]);
+  });
+
+  test("an ongoing event and one of the project's own both holding it are both found, in the order read", async () => {
+    storedEvents = [
+      {
+        id: OTHER_EVENT_ID,
+        state: "custom",
+        monitors: [MONITOR_A],
+        timeline: ["scheduled", "ongoing", "custom"],
+      },
+      {
+        id: THIRD_EVENT_ID,
+        state: "ongoing",
+        monitors: [MONITOR_A],
+        timeline: ["scheduled", "ongoing"],
+        monitorStatusId: MAINTENANCE_STATUS_ID,
+      },
+    ];
+
+    expect(
+      heldBy(
+        await ScheduledMaintenanceStateTimelineService.findEventsHoldingMonitor(
+          new ObjectID(MONITOR_A),
+        ),
+      ),
+    ).toEqual([OTHER_EVENT_ID, THIRD_EVENT_ID]);
+  });
+
+  test("every event that holds it is found, past the first batch that has one", async () => {
+    const eventIds: Array<string> = manyEventIds(250);
+
+    storedEvents = eventIds.map((id: string, index: number): StoredEvent => {
+      return {
+        id: id,
+        state: "custom",
+        monitors: [MONITOR_A],
+        timeline:
+          index % 2 === 0
+            ? ["scheduled", "ongoing", "custom"]
+            : ["scheduled", "custom"],
+      };
+    });
+
+    const events: Array<ScheduledMaintenance> =
+      await ScheduledMaintenanceStateTimelineService.findEventsHoldingMonitor(
+        new ObjectID(MONITOR_A),
+      );
+
+    expect(heldBy(events)).toEqual(
+      eventIds.filter((_id: string, index: number): boolean => {
+        return index % 2 === 0;
+      }),
+    );
+
+    // Each batch read once, none of them past one read's row limit.
+    const reads: Array<Array<string>> = timelineReads();
+    expect(reads).toHaveLength(3);
+    expect(reads.flat().sort()).toEqual([...eventIds].sort());
+  });
+
+  test("an event on another monitor, or none at all, holds nothing", async () => {
+    storedEvents = [
+      {
+        id: OTHER_EVENT_ID,
+        state: "ongoing",
+        monitors: [MONITOR_B],
+        timeline: ["scheduled", "ongoing"],
+      },
+    ];
+
+    expect(
+      await ScheduledMaintenanceStateTimelineService.findEventsHoldingMonitor(
+        new ObjectID(MONITOR_A),
+      ),
+    ).toEqual([]);
   });
 });
