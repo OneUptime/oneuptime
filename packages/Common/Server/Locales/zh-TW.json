@@ -751,6 +751,8 @@
   "{{count}} minutes_one": "{{count}} 分鐘",
   "{{count}} passkeys and security keys": "{{count}} 個通行密鑰和安全金鑰",
   "{{count}} passkeys and security keys_one": "{{count}} 個通行密鑰和安全金鑰",
+  "{{count}} recommendations": "{{count}} 則建議",
+  "{{count}} recommendations_one": "{{count}} 則建議",
   "{{count}} requests behind the case: {{outcomes}}": "案例背後的請求 {{count}} 個：{{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "案例背後的請求 {{count}} 個：{{outcomes}}",
   "{{count}} resources": "{{count}} 個資源",

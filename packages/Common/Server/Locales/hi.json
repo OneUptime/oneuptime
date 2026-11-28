@@ -751,6 +751,8 @@
   "{{count}} minutes_one": "{{count}} मिनट",
   "{{count}} passkeys and security keys": "{{count}} पासकी और सुरक्षा कुंजियाँ",
   "{{count}} passkeys and security keys_one": "{{count}} पासकी या सुरक्षा कुंजी",
+  "{{count}} recommendations": "{{count}} सिफ़ारिशें",
+  "{{count}} recommendations_one": "{{count}} सिफ़ारिश",
   "{{count}} requests behind the case: {{outcomes}}": "केस के पीछे {{count}} अनुरोध: {{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "केस के पीछे {{count}} अनुरोध: {{outcomes}}",
   "{{count}} resources": "{{count}} संसाधन",

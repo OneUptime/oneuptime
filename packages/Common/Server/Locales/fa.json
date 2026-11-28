@@ -751,6 +751,8 @@
   "{{count}} minutes_one": "{{count}} دقیقه",
   "{{count}} passkeys and security keys": "{{count}} کلید عبور و کلید امنیتی",
   "{{count}} passkeys and security keys_one": "{{count}} کلید عبور یا کلید امنیتی",
+  "{{count}} recommendations": "{{count}} توصیه",
+  "{{count}} recommendations_one": "{{count}} توصیه",
   "{{count}} requests behind the case: {{outcomes}}": "{{count}} درخواست پشت این پرونده: {{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "{{count}} درخواست پشت این پرونده: {{outcomes}}",
   "{{count}} resources": "{{count}} منبع",

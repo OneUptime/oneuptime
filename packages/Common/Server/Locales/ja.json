@@ -751,6 +751,8 @@
   "{{count}} minutes_one": "{{count}} 分",
   "{{count}} passkeys and security keys": "パスキーとセキュリティキー {{count}} 件",
   "{{count}} passkeys and security keys_one": "パスキーとセキュリティキー {{count}} 件",
+  "{{count}} recommendations": "{{count}} 件の推奨事項",
+  "{{count}} recommendations_one": "{{count}} 件の推奨事項",
   "{{count}} requests behind the case: {{outcomes}}": "ケースの背後にあるリクエスト {{count}} 件：{{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "ケースの背後にあるリクエスト {{count}} 件：{{outcomes}}",
   "{{count}} resources": "{{count}}件のリソース",

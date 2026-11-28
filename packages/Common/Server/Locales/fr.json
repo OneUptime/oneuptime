@@ -751,6 +751,8 @@
   "{{count}} minutes_one": "{{count}} minute",
   "{{count}} passkeys and security keys": "{{count}} clés d'accès et clés de sécurité",
   "{{count}} passkeys and security keys_one": "{{count}} clé d'accès ou clé de sécurité",
+  "{{count}} recommendations": "{{count}} recommandations",
+  "{{count}} recommendations_one": "{{count}} recommandation",
   "{{count}} requests behind the case: {{outcomes}}": "{{count}} requêtes derrière le dossier : {{outcomes}}",
   "{{count}} requests behind the case: {{outcomes}}_one": "{{count}} requête derrière le dossier : {{outcomes}}",
   "{{count}} resources": "{{count}} ressources",
