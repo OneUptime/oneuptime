@@ -2,6 +2,7 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleTable from "../../Components/Workspace/WorkspaceNotificationRulesTable";
 import WorkspaceReactionNotesTips from "../../Components/Workspace/WorkspaceReactionNotesTips";
 import WorkspaceSummaryTable from "../../Components/Workspace/WorkspaceSummaryTable";
+import { getWorkspacePageInitialTabName } from "../../Components/Workspace/WorkspaceSummaryTab";
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import PageComponentProps from "../PageComponentProps";
 import WorkspaceConnectionGate from "../../Components/Workspace/WorkspaceConnectionGate";
@@ -80,6 +81,7 @@ const IncidentsTeamsPage: FunctionComponent<
         <Tabs
           label="Microsoft Teams"
           tabs={tabs}
+          initialTabName={getWorkspacePageInitialTabName()}
           onTabChange={() => {
             // Tab changed
           }}

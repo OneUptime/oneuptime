@@ -1221,6 +1221,8 @@ import { AddXcpNgPoolEventsAndBackups1809187780997 } from "./1809187780997-AddXc
 import { AddStorageArrayConnections1809187781104 } from "./1809187781104-AddStorageArrayConnections";
 import { AddDetectionRuleAddedByOneUptimeAt1809187791037 } from "./1809187791037-AddDetectionRuleAddedByOneUptimeAt";
 import { AddExternalMcpToolReadOnlyMarks1809187791081 } from "./1809187791081-AddExternalMcpToolReadOnlyMarks";
+import { AddMonitorProbeableIndex1809187791119 } from "./1809187791119-AddMonitorProbeableIndex";
+import { AddProjectSecurityAccessLogFormat1809187791129 } from "./1809187791129-AddProjectSecurityAccessLogFormat";
 
 export default [
   InitialMigration,
@@ -2446,4 +2448,6 @@ export default [
   AddStorageArrayConnections1809187781104,
   AddDetectionRuleAddedByOneUptimeAt1809187791037,
   AddExternalMcpToolReadOnlyMarks1809187791081,
+  AddMonitorProbeableIndex1809187791119,
+  AddProjectSecurityAccessLogFormat1809187791129,
 ];

@@ -274,7 +274,7 @@ A project that requires unique names, as a new project does, holds most other ki
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-Such a refusal also carries `takenById`, the ID of the record that has the name, when your key may read it. Records that shared a name before the project required unique names keep it until they are renamed, and one update cannot give several records of one kind the same name. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` answers whether a name is taken before you send it, and `GET /api/unique-names/duplicates` lists the names the project holds more than once, kind by kind.
+Such a refusal also carries `takenById`, the ID of the record that has the name, when your key may read it. Records that shared a name before the project required unique names keep it until they are renamed, and one update cannot give several records of one kind the same name. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` answers whether a name is taken before you send it, and `GET /api/unique-names/duplicates` lists the names the project holds more than once, kind by kind. `GET /api/shared-names/Monitor`, or any kind the setting holds by its table's name, answers which of its records share a name, as the dashboard's lists mark them: `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`, each group two or more records your key may read, with when each was made. Archived records are grouped apart from the records in service.
 
 #### Values another record has
 

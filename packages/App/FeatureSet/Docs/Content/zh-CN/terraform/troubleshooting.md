@@ -111,9 +111,9 @@ This network device references records that are not in this project: Network Sit
 
 团队、标签、值班策略和值班计划在项目中各自拥有独一无二的名称，不区分大小写和空格，许多其他类型也是如此，例如事件严重程度、监视器状态和状态页。创建或重命名时使用同类其他记录已有的名称，会得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 或 `Incident Severity with the same name already exists.` 此前就同名的记录会保留名称，仪表板中团队、标签、值班策略和值班计划的列表会标记它们。
 
-要求名称唯一的项目（新项目默认如此，见**项目设置 → 基础 → 项目 → 名称唯一**）会对监视器、模板、API 密钥以及你命名的大多数其他类型执行同样的规则：`Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` 在项目提出这一要求之前就已同名的记录会保留名称，直到被重命名，那张卡片会列出它们。
+要求名称唯一的项目（新项目默认如此，见**项目设置 → 基础 → 项目 → 名称唯一**）会对监视器、模板、API 密钥以及你命名的大多数其他类型执行同样的规则：`Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` 在项目提出这一要求之前就已同名的记录会保留名称，直到被重命名：那张卡片会列出它们，它们自己的列表也会标记它们。
 
-Terraform 会并行执行同一次 apply 中的更改，因此如果创建或重命名时使用的名称正被另一个资源在同一次 apply 中通过重命名或删除让出，在那个资源仍占用该名称时可能会被拒绝。此时提供程序会在最多 30 秒内再次请求，因此重命名链（例如 A 改为 B，同时 B 改为 C）可以在一次 apply 中完成，接手被该 apply 删除的资源名称的资源也是如此。互换（A 改为 B、B 改为 A），或任何最终回到起点的重命名链，则永远无法完成，配置之外的记录占用的名称也是如此，例如 OneUptime 随项目创建的严重程度：30 秒后 apply 会失败，并显示 `The name was still taken after asking again for 30 seconds.` 请给资源起一个没有人使用的名称，或用 `terraform import` 导入占用该名称的记录。如果是互换，请先把其中一个重命名为没有人使用的名称，应用，然后再完成其余更改。
+Terraform 会并行执行同一次 apply 中的更改，因此如果创建或重命名时使用的名称正被另一个资源在同一次 apply 中通过重命名或删除让出，在那个资源仍占用该名称时可能会被拒绝。此时提供程序会在最多 30 秒内再次请求，因此重命名链（例如 A 改为 B，同时 B 改为 C）可以在一次 apply 中完成，接手被该 apply 删除的资源名称的资源也是如此。互换（A 改为 B、B 改为 A），或任何最终回到起点的重命名链，则永远无法完成，配置之外的记录占用的名称也是如此，例如 OneUptime 随项目创建的严重程度：30 秒后 apply 会失败，并显示 `The name was still taken after asking again for 30 seconds.` 请给资源起一个没有人使用的名称，或用 `terraform import` 导入占用该名称的记录。如果你的 API 密钥可以读取该记录，错误会指出该记录并给出要运行的命令，例如 `terraform import oneuptime_monitor.<name> <id>`：导入 apply 正在创建的资源；如果 apply 是在重命名资源，则导入一个单独的资源。如果是互换，请先把其中一个重命名为没有人使用的名称，应用，然后再完成其余更改。
 
 已归档的记录会保留其名称，apply 对正在使用的记录所做的任何操作都不会让出该名称。创建或重命名为该名称会立即失败，并说明在哪里取消归档该记录：请取消归档，或另选一个名称。
 

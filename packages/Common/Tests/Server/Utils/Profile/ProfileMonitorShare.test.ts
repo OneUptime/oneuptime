@@ -100,6 +100,82 @@ describe("a function's share of the monitor's window", () => {
     expect(request.profileQuery.startTime).toBeInstanceOf(InBetween);
   });
 
+  /*
+   * #11334: the share reads the profiles the count reads, over the check's
+   * own window, which holds its start and not its end - a profile that
+   * started on the end is the next check's.
+   */
+  test("reads the check's window as the count does, its end left out, and narrows its types over the same window", async () => {
+    const types: jest.SpiedFunction<
+      typeof ProfileAggregationService.getProfileTypeActivity
+    > = jest
+      .spyOn(ProfileAggregationService, "getProfileTypeActivity")
+      .mockResolvedValue([
+        {
+          profileType: "cpu",
+          unit: "nanoseconds",
+          sampleCount: 900,
+          profileCount: 9,
+        },
+      ]);
+    const read: jest.SpiedFunction<
+      typeof ProfileAggregationService.getStackShare
+    > = shareRead();
+
+    await ProfileMonitorShare.measure({
+      projectId,
+      monitorStepProfileMonitor: step({
+        lastXSecondsOfProfiles: 60,
+        profileType: "",
+        profileTypes: ["cpu", "samples"],
+      }),
+      evaluateUntil: EVALUATE_UNTIL,
+    });
+
+    const window: InBetween<Date> = read.mock.calls[0]![0].profileQuery
+      .startTime as InBetween<Date>;
+
+    expect(window.includesEnd).toBe(false);
+    expect(new Date(window.endValue).toISOString()).toBe(
+      EVALUATE_UNTIL.toISOString(),
+    );
+    expect(
+      new Date(window.endValue).getTime() -
+        new Date(window.startValue).getTime(),
+    ).toBe(60 * 1000);
+
+    const typesRequest: Parameters<
+      typeof ProfileAggregationService.getProfileTypeActivity
+    >[0] = types.mock.calls[0]![0];
+
+    expect(typesRequest.includesEnd).toBe(false);
+    expect(typesRequest.endTime.toISOString()).toBe(
+      EVALUATE_UNTIL.toISOString(),
+    );
+  });
+
+  test("a monitor with no window of its own reads the last five minutes, its end left out too", async () => {
+    activity([]);
+    const read: jest.SpiedFunction<
+      typeof ProfileAggregationService.getStackShare
+    > = shareRead();
+
+    await ProfileMonitorShare.measure({
+      projectId,
+      monitorStepProfileMonitor: step({ lastXSecondsOfProfiles: 0 }),
+      evaluateUntil: EVALUATE_UNTIL,
+    });
+
+    const window: InBetween<Date> = read.mock.calls[0]![0].profileQuery
+      .startTime as InBetween<Date>;
+
+    expect(window.includesEnd).toBe(false);
+    expect(
+      new Date(window.endValue).getTime() -
+        new Date(window.startValue).getTime(),
+    ).toBe(300 * 1000);
+  });
+
   test("CPU time from two profilers in two units is read in the unit with more samples", async () => {
     activity([
       {

@@ -163,6 +163,7 @@ import UpgradeLibraryRuleCopies from "./UpgradeLibraryRuleCopies";
 import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopiesForHashedAddresses";
 import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
 import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
+import MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType from "./MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1726,6 +1727,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * kept last.
    */
   new MergeBackExceptionsSplitByFailedLookups(),
+  /*
+   * The metric rules Scrub It made for a phone number or a US Social
+   * Security number match the data type's pattern type instead of its
+   * frozen pattern (#11112), as MetricScrubRulesMatchTheirPatternType moved
+   * the three types before them: each hides what Data Security finds, in
+   * every reading, and covers its finding again. Postgres only,
+   * idempotent; no ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

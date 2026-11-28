@@ -268,7 +268,9 @@ function isCaSin(digits: string): boolean {
  * serial rules, and nothing else - no check digit. The groups make it worth
  * showing (Low) even with no word around it. However it is written
  * (withEveryReading): in every script's digits (#11030), ١٢٣-٤٥-٦٧٨٩ is the
- * same number, and in a URL (#11199), its groups apart by %20 or "+".
+ * same number, in a URL (#11199), its groups apart by %20 or "+", and typed
+ * wholly in fullwidth, its hyphens or full stops too (#11115):
+ * ５３６－２２－８７３１.
  */
 const US_SSN_GROUPED_DETECTOR: DataTypeDetector = withEveryReading({
   dataTypeId: "us-ssn",
@@ -283,37 +285,45 @@ const US_SSN_GROUPED_DETECTOR: DataTypeDetector = withEveryReading({
 });
 
 /*
- * WHAT DATA SECURITY CALLS A SOCIAL SECURITY NUMBER ON ITS OWN: one in its
- * groups, set apart by dashes, dots or spaces. An SSN scrub rule hides what
- * this finds, as well as what its own pattern does (Utils/Telemetry/
- * ScrubBuiltInPatterns.ts, #11030). Nine digits in a row are an SSN only
- * beside a word that says so, which a rule reading one value at a time does
- * not weigh.
+ * An SSN as nine bare digits: the same rules, but nine digits are
+ * everywhere, so only beside a word that says SSN ("SSN 536221234").
+ * However it is written, as US_SSN_GROUPED_DETECTOR - every government ID
+ * is read so (GOVERNMENT_ID_DETECTORS) - so the SSN rule's own copy reads
+ * what the scanner's does: ssn%3D536221234 in a URL, the digits in
+ * another script's, and an ideographic space before them or between the
+ * words that name them (#11115).
+ */
+const US_SSN_BARE_DETECTOR: DataTypeDetector = withEveryReading({
+  dataTypeId: "us-ssn",
+  quickCheck: hasDigit,
+  pattern: US_SSN_BARE_PATTERN,
+  normalize: digitsOnly,
+  validate: isUsSsn,
+  keywords: US_SSN_KEYWORDS,
+  requiresContext: true,
+  confidenceWithoutContext: DataConfidence.Low,
+  specificity: 1,
+  isTestValue: US_SSN_SAMPLES,
+});
+
+/*
+ * WHAT DATA SECURITY CALLS A SOCIAL SECURITY NUMBER: one in its groups,
+ * set apart by dashes, dots or spaces, on its own, and nine digits in a
+ * row beside a word that says SSN. An SSN scrub rule hides what these
+ * find, as well as what its own pattern does (Utils/Telemetry/
+ * ScrubBuiltInPatterns.ts, #11030): the nine digits only with one of
+ * their words near them in the value the rule reads, as the scanner
+ * judges it (TextReadings.findDetectorRanges, #11114), so nine digits no
+ * word names - "ref 536221234" - are kept.
  */
 export const US_SSN_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   US_SSN_GROUPED_DETECTOR,
+  US_SSN_BARE_DETECTOR,
 ];
 
 const NORTH_AMERICA: ReadonlyArray<DataTypeDetector> = [
   US_SSN_GROUPED_DETECTOR,
-  /*
-   * An SSN as nine bare digits: the same rules, but nine digits are
-   * everywhere, so only beside a word that says SSN.
-   */
-  {
-    dataTypeId: "us-ssn",
-    quickCheck: hasDigit,
-    pattern: US_SSN_BARE_PATTERN,
-    normalize: digitsOnly,
-    validate: isUsSsn,
-    keywords: US_SSN_KEYWORDS,
-    requiresContext: true,
-    confidenceWithoutContext: DataConfidence.Low,
-    specificity: 1,
-    isTestValue: US_SSN_SAMPLES,
-    // In every script's digits too, as US_SSN_GROUPED_DETECTOR.
-    readsDigitsOfEveryScript: true,
-  },
+  US_SSN_BARE_DETECTOR,
   /*
    * US ITIN, 9XX-GG-SSSS: always a 9 first, and a group the IRS issues in
    * (50-65, 70-88, 90-92, 94-99). No check digit.

@@ -37,6 +37,7 @@ import NameTakenException, {
   NAME_TAKEN_REFUSAL_CODE,
   NAME_TAKEN_REFUSAL_CODES,
   REFUSAL_CODE_FIELD,
+  TAKEN_BY_ID_FIELD,
 } from "Common/Types/Exception/NameTakenException";
 import { getRequiredUniqueNameTakenRefusal } from "Common/Types/Database/UniqueName";
 import {
@@ -491,12 +492,21 @@ describe("a name another record has", () => {
     expect(parseResponse).toContain(
       "if resp.StatusCode == http.StatusBadRequest && isNameTakenRefusal(body) {",
     );
-    expect(parseResponse).toContain('message += " " + c.nameTakenAdvice()');
+    expect(parseResponse).toContain(
+      'message += " " + c.nameTakenAdvice(takenNameOf(resp, body))',
+    );
 
     const advice: string = goFunction("func (c *Client) nameTakenAdvice(");
 
+    // Without the record's ID, the two sentences it always said.
     expect(advice).toContain(
-      'advice := "If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record. If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."',
+      'advice := nameTakenOutsideAdvice + " " + nameTakenSwapAdvice',
+    );
+    expect(clientGo).toContain(
+      'const nameTakenOutsideAdvice = "If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record."',
+    );
+    expect(clientGo).toContain(
+      'const nameTakenSwapAdvice = "If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."',
     );
     // The window as describeWait says it, before the advice; none without one.
     expect(advice).toContain(
@@ -560,6 +570,168 @@ describe("a name another record has", () => {
     expect(goFunction("func isNameTakenRefusal(")).not.toContain(
       "nameTakenByArchivedRefusalCode",
     );
+  });
+});
+
+/*
+ * WHICH RECORD HAS THE NAME (#11019). A project that requires unique names
+ * refuses a taken name with the ID of the record that has it, when the
+ * caller's key may read it (NameTakenException's TAKEN_BY_ID_FIELD). Once
+ * nothing of the apply gave the name up, the error names that record and
+ * gives the line that imports it; without the ID it says what it always
+ * did. client_name_taken_test.go runs it against a real HTTP server; these
+ * pin that the client reads the server's own field, never anything else,
+ * and that every resource's writes say their type.
+ */
+/*
+ * OneUptime's ID, as the provider's ids.go recordIDPattern reads one.
+ * Hoisted, as PATTERN_BLOCK is, for wrap-regex and prettier to agree.
+ */
+const RECORD_ID_PATTERN: RegExp =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+describe("the record that has a taken name", () => {
+  function goFunction(name: string): string {
+    const start: number = clientGo.indexOf(name);
+    expect(start).toBeGreaterThanOrEqual(0);
+
+    const end: number = clientGo.indexOf("\nfunc ", start + name.length);
+    return clientGo.slice(start, end === -1 ? undefined : end);
+  }
+
+  test("is read from the server's own field, emitted from Common's constant", () => {
+    expect(TAKEN_BY_ID_FIELD).toBe("takenById");
+    expect(clientGo).toContain(`const takenByIDField = "${TAKEN_BY_ID_FIELD}"`);
+
+    const takenByIDOf: string = goFunction("func takenByIDOf(");
+
+    expect(takenByIDOf).toContain("id, _ := parsed[takenByIDField].(string)");
+    // Only an ID is ever named: what else the field holds never reaches the error.
+    expect(takenByIDOf).toContain("if !isRecordID(id) {");
+    expect(takenByIDOf).toContain('return ""');
+  });
+
+  test("the refusal the server sends carries the field only for a record the key may read", () => {
+    const readable: NameTakenException = new NameTakenException(
+      getRequiredUniqueNameTakenRefusal({
+        kindLabel: "Monitor",
+        name: "API Health Check",
+        isArchived: false,
+      }),
+      { id: "7f0b1d7e-0000-4000-8000-000000011019" },
+    );
+    const unreadable: NameTakenException = new NameTakenException(
+      getRequiredUniqueNameTakenRefusal({
+        kindLabel: "Monitor",
+        name: "API Health Check",
+        isArchived: false,
+      }),
+      {},
+    );
+
+    expect(readable.details[TAKEN_BY_ID_FIELD]).toBe(
+      "7f0b1d7e-0000-4000-8000-000000011019",
+    );
+    expect(unreadable.details).not.toHaveProperty(TAKEN_BY_ID_FIELD);
+    // The ID the provider reads is an ID as its own validator knows one.
+    expect(
+      RECORD_ID_PATTERN.test(readable.details[TAKEN_BY_ID_FIELD] as string),
+    ).toBe(true);
+  });
+
+  test("is named only when the server said it, with the line to copy", () => {
+    const advice: string = goFunction("func (c *Client) nameTakenAdvice(");
+
+    expect(advice).toContain('if taken.takenByID != "" {');
+    expect(advice).toContain(
+      'advice = c.takenByAdvice(taken) + "\\n\\n" + nameTakenSwapAdvice',
+    );
+
+    const takenBy: string = goFunction("func (c *Client) takenByAdvice(");
+
+    expect(takenBy).toContain(
+      'named := fmt.Sprintf("The record that has it is %s.", taken.takenByID)',
+    );
+    expect(takenBy).toContain(
+      'command := fmt.Sprintf("  terraform import %s %s", address, taken.takenByID)',
+    );
+    // Into this resource on a create; into one of its own on a rename.
+    expect(takenBy).toContain(
+      "or import that record into this resource, at the address Terraform shows with this error:\\n\\n%s",
+    );
+    expect(takenBy).toContain(
+      "or import that record into a resource of its own and rename it there:\\n\\n%s",
+    );
+    // The address: the resource's type, else one to fill in.
+    expect(takenBy).toContain('address := "<address>"');
+    expect(takenBy).toContain('address = taken.resourceType + ".<name>"');
+    // Under Crossplane, adopted by its external name rather than imported.
+    expect(takenBy).toContain("if c.lastApplied != nil {");
+    expect(takenBy).toContain("crossplane.io/external-name");
+  });
+
+  test("a rename is a PUT or a PATCH, and the resource's type comes with its request", () => {
+    const takenNameOf: string = goFunction("func takenNameOf(");
+
+    expect(takenNameOf).toContain("takenByID:    takenByIDOf(body),");
+    expect(takenNameOf).toContain("resourceType: resourceTypeOf(resp),");
+    expect(takenNameOf).toContain(
+      "taken.isRename = resp.Request.Method == http.MethodPut || resp.Request.Method == http.MethodPatch",
+    );
+
+    expect(goFunction("func ForResource(")).toContain(
+      "return context.WithValue(ctx, resourceTypeKey{}, resourceType)",
+    );
+    expect(goFunction("func resourceTypeOf(")).toContain(
+      "resp.Request.Context().Value(resourceTypeKey{}).(string)",
+    );
+  });
+
+  test("a name an archived record has, or a value, gains nothing", () => {
+    const parseResponse: string = goFunction("func (c *Client) ParseResponse(");
+
+    // The ID is read for a name a record in service has, and only there.
+    expect(parseResponse.match(/takenNameOf\(/g)).toHaveLength(1);
+    expect(parseResponse).toContain('message += " " + c.valueTakenAdvice()');
+    expect(goFunction("func (c *Client) valueTakenAdvice(")).not.toContain(
+      "takenBy",
+    );
+  });
+
+  test("every generated resource's Create and Update say their type", () => {
+    const monitorGo: string = fs.readFileSync(
+      path.join(outputDir, providerGoFilePath("resource_monitor.go")),
+      "utf-8",
+    );
+
+    const forResource: string = 'ctx = ForResource(ctx, "oneuptime_monitor")';
+
+    for (const method of ["Create", "Update"]) {
+      const start: number = monitorGo.indexOf(
+        `func (r *MonitorResource) ${method}(ctx context.Context`,
+      );
+      expect(start).toBeGreaterThanOrEqual(0);
+
+      const body: string = monitorGo.slice(
+        start,
+        monitorGo.indexOf("\nfunc ", start + 1),
+      );
+
+      // First, before any request is made.
+      expect(body).toContain(forResource);
+      expect(body.indexOf(forResource)).toBeLessThan(body.indexOf("r.client."));
+    }
+
+    // Never a read's or a delete's: no name is refused there.
+    for (const method of ["Read", "Delete"]) {
+      const start: number = monitorGo.indexOf(
+        `func (r *MonitorResource) ${method}(ctx context.Context`,
+      );
+      expect(start).toBeGreaterThanOrEqual(0);
+      expect(
+        monitorGo.slice(start, monitorGo.indexOf("\nfunc ", start + 1)),
+      ).not.toContain("ForResource(");
+    }
   });
 });
 
@@ -769,6 +941,13 @@ describe("static Go test wiring", () => {
       "func TestDoRequest_NeverAsksAgainForAnyOtherRefusal(",
       "func TestDoRequest_NeverAsksAgainForANameOnlyAnArchivedRecordHas(",
       "func TestDoRequest_ANameAnArchivedRecordHasFailsTheApplyAtOnce(",
+      // #11019: the record that has the name, and the line that imports it.
+      "func TestParseResponse_ACreateNamesTheRecordAndTheLineThatImportsItIntoThisResource(",
+      "func TestParseResponse_ARenameNamesTheRecordAndImportsItIntoAResourceOfItsOwn(",
+      "func TestParseResponse_WithoutAnIDTheAdviceIsWhatItWas(",
+      "func TestParseResponse_UnderCrossplaneTheRecordIsAdoptedByItsExternalName(",
+      "func TestParseResponse_AnArchivedHolderOrAValueNamesNoRecord(",
+      "func TestDoRequest_TheErrorNamesOnlyARecordTheKeyMayRead(",
     ]) {
       expect(contents).toContain(test);
     }
@@ -782,6 +961,12 @@ describe("static Go test wiring", () => {
       "refusalCodeField",
       "nameTakenRefusalCode",
       "nameTakenByArchivedRefusalCode",
+      "takenByIDField",
+      "takenByIDOf(",
+      "takenNameOf(",
+      "ForResource(",
+      "resourceTypeOf(",
+      "nameTakenOutsideAdvice",
     ]) {
       expect(contents).toContain(symbol);
       expect(clientGo).toContain(symbol);

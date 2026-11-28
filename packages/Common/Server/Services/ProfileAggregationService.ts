@@ -204,6 +204,12 @@ export interface ProfileTypeActivityRequest {
   projectId: ObjectID;
   startTime: Date;
   endTime: Date;
+  /*
+   * False for a monitor check's window, which leaves out its end
+   * (TelemetryCheckWindow): a profile that started on it is the next
+   * window's. True, or not given, holds both ends.
+   */
+  includesEnd?: boolean | undefined;
   // The services the caller may read and picked (TelemetryReadScope).
   serviceIds?: Array<ObjectID> | undefined;
   // Resources whose rows are left out whatever else matches.
@@ -1456,12 +1462,15 @@ export class ProfileAggregationService {
           type: TableColumnType.Date,
           value: request.startTime,
         }}
-        AND startTime <= ${{
-          type: TableColumnType.Date,
-          value: request.endTime,
-        }}
-    `;
+        AND startTime `;
 
+    statement.append(request.includesEnd === false ? "<" : "<=");
+    statement.append(
+      SQL` ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
     statement.append(" AND retentionDate >= now()");
 
     TelemetryReadScopeUtil.appendServiceFilter(statement, request);

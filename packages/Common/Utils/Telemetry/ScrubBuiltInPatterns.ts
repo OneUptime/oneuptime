@@ -48,37 +48,50 @@ import ScrubIpAddress from "./ScrubIpAddress";
  *    one in any script, 张伟@acmecorp.io or почта@пример.рф (#10960);
  *  - Credit Card Number: its own pattern's matches, in the text as written,
  *    with every script's digits read by their values - a card in
- *    fullwidth, Arabic-Indic or Persian digits (#10960) - and in a URL,
- *    its groups apart by %20 or by a "+" as a query string writes a space
- *    (card=4539+1488+0343+6467, #11199), and every card the card detectors
- *    find, an American Express number's 15 digits among them;
+ *    fullwidth, Arabic-Indic or Persian digits (#10960) - in a URL, its
+ *    groups apart by %20 or by a "+" as a query string writes a space
+ *    (card=4539+1488+0343+6467, #11199), and typed wholly in fullwidth,
+ *    its groups apart by fullwidth hyphens or ideographic spaces
+ *    (４１１１－１１１１－１１１１－１１１１, #11115), and every card the card
+ *    detectors find, an American Express number's 15 digits among them;
  *  - Phone Number: its own pattern's matches - North American numbers -
- *    and every phone number the detectors find on its own (#11025,
- *    #11030): an international one, +44 20 7946 0958 or +49 30 123456, in
- *    the groups people write it in, a North American one as people write
- *    it, and a UK mobile; each in the text as written, with its
- *    percent-escapes read (/callback?phone=%2B44%2020%207946%200958), as a
- *    query string writes it (phone=%2B44+20+7946+0958, #11199) and with
- *    every script's digits read. What only looks like one is left: an
- *    order number, a timestamp or a time zone's offset, a version, a
- *    decimal or a coordinate (ContactDetectors, isWrittenAsPhoneNumber);
+ *    and every phone number the detectors find (#11025, #11030): an
+ *    international one, +44 20 7946 0958 or +49 30 123456, in the groups
+ *    people write it in, a North American one as people write it, and a
+ *    UK mobile, each on its own; and a national number of 9 to 12 digits
+ *    of no other shape beside a word that names it, "tel 02012345678"
+ *    (#11114); each in the text as written, with its percent-escapes read
+ *    (/callback?phone=%2B44%2020%207946%200958), as a query string writes
+ *    it (phone=%2B44+20+7946+0958, #11199), with every script's digits
+ *    read, and typed wholly in fullwidth, its plus sign, hyphens,
+ *    parentheses and ideographic spaces too (＋８１ ３－１２３４－５６７８,
+ *    #11115). What only looks like one is left: an order number, a
+ *    timestamp or a time zone's offset, a version, a decimal or a
+ *    coordinate (ContactDetectors, isWrittenAsPhoneNumber), and a national
+ *    number no word names, "order 02012345678";
  *  - SSN: its own pattern's matches, 123-45-6789, and every Social
- *    Security number the detectors find on its own - in its groups set
- *    apart by dots or spaces too, by the SSA's rules - each in the text as
- *    written, with every script's digits read (#11030) and in a URL,
- *    ssn=123+45+6789 (#11199).
+ *    Security number the detectors find - in its groups set apart by dots
+ *    or spaces too, by the SSA's rules, on its own, and as nine digits in a
+ *    row beside a word that says SSN, "SSN 536221234" (#11114) - each in
+ *    the text as written, with every script's digits read (#11030), in a
+ *    URL, ssn=123+45+6789 (#11199), and typed wholly in fullwidth,
+ *    ５３６－２２－８７３１ (#11115). Nine digits no word names, "ref
+ *    536221234", are left.
  *
  * Each pattern's own matches are kept, so a rule hides everything it hid
  * before. What two readings or the pattern and a detector share is one
  * match, hidden whole, and placed on the characters the text writes it
- * with, escapes and "+"s and all. A value the detectors call a phone number or a
- * Social Security number only beside a word that names it - a national
- * number with no other shape, nine digits in a row - is hidden only where
- * the rule's own pattern finds it: a rule reads one value, not the words
- * around a finding.
+ * with, escapes and "+"s and fullwidth forms and all. A value the
+ * detectors call a phone number or a Social Security number only beside a
+ * word that names it is hidden where one of those words is near it in the
+ * value the rule reads, as the scanner judges it
+ * (TextReadings.findDetectorRanges): a log body's "phone=0201234567", an
+ * attribute's "ssn: 536221234". The attribute's key, which the scanner
+ * also counts as such a word, is not the value's: a rule reads the value.
  *
  * In time in line with the text's length: each pattern and detector is
- * bounded, and each reading of a text is made once.
+ * bounded, each reading of a text is made once, and a detector that needs
+ * its words looks for them only around its candidates.
  */
 
 // Every match of a built-in pattern in a text, as String.prototype.replace finds them.
@@ -123,14 +136,16 @@ export function findEmailAddressRanges(text: string): Array<TextRange> {
 
 /*
  * Every reading a number is read in: as written, with its percent-escapes
- * read, as a URL's query string reads it (a "+" for a space, #11199), and
- * with every script's digits read by their values - as the card, phone
- * and Social Security number detectors read one (withEveryReading).
+ * read, as a URL's query string reads it (a "+" for a space, #11199), with
+ * every script's digits read by their values, and with its fullwidth signs
+ * and separators read as ASCII (#11115) - as the card, phone and Social
+ * Security number detectors read one (withEveryReading).
  */
 const EVERY_READING_OF_A_NUMBER: ReadingNeeds = {
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
   readsPlusAsSpace: true,
+  readsFullwidthForms: true,
 };
 
 /*
@@ -162,9 +177,10 @@ export function findCardNumberRanges(text: string): Array<TextRange> {
 /*
  * Where a Phone Number rule's matches are: its pattern's, in every reading
  * of a number - as written, with the text's percent-escapes read, as a
- * query string writes it, and with every script's digits read by their
- * values - and every phone number the detectors find on its own, ranges
- * two of them share made one.
+ * query string writes it, with every script's digits read by their values
+ * and its fullwidth forms read - and every phone number the detectors
+ * find, a national one beside a word that names it, ranges two of them
+ * share made one.
  */
 export function findPhoneNumberRanges(text: string): Array<TextRange> {
   if (!text) {
@@ -188,9 +204,9 @@ export function findPhoneNumberRanges(text: string): Array<TextRange> {
 
 /*
  * Where an SSN rule's matches are: its pattern's, in every reading of a
- * number - as written, in a URL, in every script's digits - and every
- * Social Security number the detectors find on its own, ranges two of
- * them share made one.
+ * number - as written, in a URL, in every script's digits, in fullwidth -
+ * and every Social Security number the detectors find, nine digits in a
+ * row beside a word that says SSN, ranges two of them share made one.
  */
 export function findSsnRanges(text: string): Array<TextRange> {
   if (!text) {

@@ -71,7 +71,13 @@ import {
  *     calling code in parentheses, its trunk prefix, no-break spaces - one
  *     in a percent-encoded URL, and one in another script's digits (#11025,
  *     #11030), by a Phone Number rule; and a Social Security number set
- *     apart by dots or in another script's digits, by an SSN rule.
+ *     apart by dots or in another script's digits, by an SSN rule;
+ *   - a phone number, a Social Security number, a card or a CPF typed
+ *     wholly in fullwidth, its plus sign, hyphens, parentheses, full stops
+ *     and ideographic spaces too (#11115), and a national phone number or
+ *     nine digits in a row beside the word that names them in the same
+ *     value (#11114), by the rule of their type - and what no word names,
+ *     or is no number, kept.
  *
  * Every place a rule runs compiles its pattern in one place
  * (Common/Utils/Telemetry/ScrubBuiltInPatterns, on Data Security's own
@@ -581,6 +587,117 @@ const WRITTEN: Array<Written> = [
     mask: maskKeepingEnds("HDFC0000123"),
     customRegex: scrubItPatternOf("in-ifsc"),
   },
+  /*
+   * #11115: a number typed wholly in fullwidth, as Japanese and Chinese
+   * text writes one - its plus sign, hyphens, parentheses, full stops and
+   * ideographic spaces too - hidden as written, and masked and hashed as
+   * the number written in ASCII.
+   */
+  {
+    label: "a phone number typed wholly in fullwidth",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "電話：",
+    written: "＋８１ ３－１２３４－５６７８",
+    reads: "+81 3-1234-5678",
+    mask: "***-***-5678",
+  },
+  {
+    label: "one with ideographic spaces between its groups",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "手机 ",
+    written: "＋８６　１３８　００１３　８２４１",
+    reads: "+86 138 0013 8241",
+    mask: "***-***-8241",
+  },
+  {
+    label: "a North American number in fullwidth parentheses and hyphens",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "電話：",
+    written: "（４１５）３２１－８７３１",
+    reads: "(415)321-8731",
+    mask: "***-***-8731",
+  },
+  {
+    label: "a Social Security number typed wholly in fullwidth",
+    patternType: LogScrubPatternType.SSN,
+    dataTypeId: "us-ssn",
+    before: "SSN ",
+    written: "５３６－２２－８７３１",
+    reads: "536-22-8731",
+    mask: "***-**-8731",
+  },
+  {
+    label: "a card typed wholly in fullwidth",
+    patternType: LogScrubPatternType.CreditCard,
+    dataTypeId: "credit-card-number",
+    before: "カード ",
+    written: "４５３２－０１５１－１２８３－０３６６",
+    reads: "4532-0151-1283-0366",
+    mask: "****-****-****-0366",
+  },
+  {
+    label: "a CPF typed wholly in fullwidth (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "br-cpf",
+    before: "CPF ",
+    written: "４７１．３９２．８６５－８２",
+    reads: "471.392.865-82",
+    mask: maskKeepingEnds("471.392.865-82"),
+    customRegex: scrubItPatternOf("br-cpf"),
+  },
+  /*
+   * #11114: a national phone number, or nine digits in a row, beside the
+   * word that names it in the same value - as Data Security finds it - by
+   * the Phone Number or SSN rule.
+   */
+  {
+    label: "a national phone number beside tel",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "tel ",
+    written: "02012345678",
+    reads: "02012345678",
+    mask: "***-***-5678",
+  },
+  {
+    label: "one in a URL, its = escaped",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "GET /notify?phone%3D",
+    written: "02012345678",
+    reads: "02012345678",
+    mask: "***-***-5678",
+  },
+  {
+    label: "nine digits in a row beside SSN",
+    patternType: LogScrubPatternType.SSN,
+    dataTypeId: "us-ssn",
+    before: "SSN ",
+    written: "536221234",
+    reads: "536221234",
+    mask: "***-**-1234",
+  },
+  {
+    label: "nine digits beside the words of an SSN a form wrote",
+    patternType: LogScrubPatternType.SSN,
+    dataTypeId: "us-ssn",
+    before: "GET /apply?social+security+number=",
+    written: "536221234",
+    reads: "536221234",
+    mask: "***-**-1234",
+  },
+  {
+    label: "nine fullwidth digits beside ssn",
+    patternType: LogScrubPatternType.SSN,
+    dataTypeId: "us-ssn",
+    before: "ssn：",
+    written: "５３６２２１２３４",
+    reads: "536221234",
+    mask: "***-**-1234",
+  },
 ];
 
 const ACTIONS: Array<string> = [
@@ -625,6 +742,17 @@ const KEPT: Array<[string, string]> = [
   [LogScrubPatternType.PhoneNumber, "call ++44 20 7946 0958 failed"],
   [LogScrubPatternType.SSN, "GET /verify?ssn=666+22+8731"],
   [LogScrubPatternType.SSN, "GET /verify?ssn=536+22+8731+01"],
+  // #11115: what is no phone or Social Security number, typed in fullwidth.
+  [LogScrubPatternType.PhoneNumber, "差分 ＋５１．５０７２１７ の範囲外"],
+  [LogScrubPatternType.PhoneNumber, "件数 ＋１　２　３　４　５　６　７　８"],
+  [LogScrubPatternType.PhoneNumber, "（注）設定を確認してください。　以上"],
+  [LogScrubPatternType.SSN, "SSN ６６６．２２．８７３１"],
+  [LogScrubPatternType.CreditCard, "注文 ４１１１－１１１１"],
+  // #11114: a national number or nine digits no word names, or a word inside another.
+  [LogScrubPatternType.PhoneNumber, "order 02012345678 shipped"],
+  [LogScrubPatternType.PhoneNumber, "telemetry 02012345678 ok"],
+  [LogScrubPatternType.SSN, "ref 536221234 ok"],
+  [LogScrubPatternType.SSN, "SSN 666221234"],
 ];
 
 type OtlpAttribute = { key: string; value: { stringValue: string } };
@@ -1453,5 +1581,159 @@ describe("through log and trace ingest", () => {
     expect(JSON.stringify(row)).not.toContain("+44");
     expect(JSON.stringify(exceptionRows[0])).not.toContain("8123");
     expect(JSON.stringify(exceptionRows[0])).not.toContain("٥٣٦");
+  });
+
+  test("a log's phone and Social Security numbers typed in fullwidth or beside their words are stored as the tokens of the plain numbers, and what no word names is kept (#11114, #11115)", async () => {
+    setupIngest({
+      logRules: [
+        ...(logRules(
+          LogScrubPatternType.PhoneNumber,
+          LogScrubAction.Hash,
+        ) as unknown as Array<unknown>),
+        ...(logRules(
+          LogScrubPatternType.SSN,
+          LogScrubAction.Hash,
+        ) as unknown as Array<unknown>),
+      ] as never,
+    });
+
+    await OtelLogsIngestService.processLogsFromQueue(
+      request({
+        resourceLogs: [
+          {
+            resource: { attributes: [attribute("service.name", SERVICE_NAME)] },
+            scopeLogs: [
+              {
+                scope: {},
+                logRecords: [
+                  {
+                    timeUnixNano: `${Date.now()}000000`,
+                    severityNumber: 9,
+                    body: {
+                      stringValue:
+                        "SMS sent to ＋８１ ３－１２３４－５６７８, callback tel 02012345678 queued",
+                    },
+                    attributes: [
+                      attribute("user.phone", "＋81　3－1234－5678"),
+                      attribute("note", "verified ssn 536221234 today"),
+                      attribute("customer.ssn", "５３６－２２－８７３１"),
+                      attribute("order.ref", "order 02012345678"),
+                      attribute("ticket", "ref 536221234"),
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(logRows).toHaveLength(1);
+
+    const row: JSONObject = logRows[0]!;
+    const attributes: JSONObject = row["attributes"] as JSONObject;
+    const tokenOfPlain: (value: string) => string = (value: string): string => {
+      return ScrubHashToken.ofValue({ projectId: PROJECT_ID, value });
+    };
+
+    // One token for the number, however it is typed.
+    expect(row["body"]).toBe(
+      `SMS sent to ${tokenOfPlain("+81 3-1234-5678")}, callback tel ${tokenOfPlain("02012345678")} queued`,
+    );
+    expect(attributes["user.phone"]).toBe(tokenOfPlain("+81 3-1234-5678"));
+    expect(attributes["note"]).toBe(
+      `verified ssn ${tokenOfPlain("536221234")} today`,
+    );
+    expect(attributes["customer.ssn"]).toBe(tokenOfPlain("536-22-8731"));
+    // Digits no word names are no one's number: kept.
+    expect(attributes["order.ref"]).toBe("order 02012345678");
+    expect(attributes["ticket"]).toBe("ref 536221234");
+  });
+
+  test("a span's and its exception's numbers typed in fullwidth or beside their words are hidden (#11114, #11115)", async () => {
+    setupIngest({
+      traceRules: [
+        ...(traceRules(
+          LogScrubPatternType.PhoneNumber,
+          LogScrubAction.Redact,
+        ) as unknown as Array<unknown>),
+        ...(traceRules(
+          LogScrubPatternType.SSN,
+          LogScrubAction.Mask,
+        ) as unknown as Array<unknown>),
+      ] as never,
+    });
+
+    const nowNano: string = `${Date.now()}000000`;
+
+    await OtelTracesIngestService.processTracesFromQueue(
+      request({
+        resourceSpans: [
+          {
+            resource: { attributes: [attribute("service.name", SERVICE_NAME)] },
+            scopeSpans: [
+              {
+                scope: {},
+                spans: [
+                  {
+                    traceId: "0af7651916cd43dd8448eb211c80319d",
+                    spanId: "b7ad6b7169203333",
+                    parentSpanId: "",
+                    name: "POST /notify",
+                    kind: 2,
+                    startTimeUnixNano: nowNano,
+                    endTimeUnixNano: nowNano,
+                    status: {
+                      code: 2,
+                      message:
+                        "SMS to ＋８６　１３８　００１３　８２４１ failed",
+                    },
+                    attributes: [
+                      attribute("http.request.method", "POST"),
+                      attribute("customer.ssn", "ssn 536221234"),
+                    ],
+                    events: [
+                      {
+                        name: "exception",
+                        timeUnixNano: nowNano,
+                        attributes: [
+                          attribute(
+                            "exception.message",
+                            "call to phone 201234567 for SSN ５３６．２２．８７３１ failed",
+                          ),
+                          attribute("exception.type", "SmsDeliveryError"),
+                          attribute(
+                            "exception.stacktrace",
+                            "SmsDeliveryError\n    at notify (notify.js:10:5)",
+                          ),
+                        ],
+                      },
+                    ],
+                    links: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(spanRows).toHaveLength(1);
+
+    const row: JSONObject = spanRows[0]!;
+
+    expect(row["statusMessage"]).toBe("SMS to [REDACTED] failed");
+    expect((row["attributes"] as JSONObject)["customer.ssn"]).toBe(
+      "ssn ***-**-1234",
+    );
+    expect(exceptionRows).toHaveLength(1);
+    expect(exceptionRows[0]!["message"]).toBe(
+      "call to phone [REDACTED] for SSN ***-**-8731 failed",
+    );
+    expect(JSON.stringify(row)).not.toContain("８２４１");
+    expect(JSON.stringify(exceptionRows[0])).not.toContain("201234567");
+    expect(JSON.stringify(exceptionRows[0])).not.toContain("８７３１");
   });
 });

@@ -2033,15 +2033,22 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
+  /*
+   * From `startValue` to `endValue`, both held - or the start only, for a
+   * range that leaves out its end (InBetween.includesEnd): a telemetry
+   * check's window, which a record stamped on its end is not in (#11334).
+   */
   public static inBetween<T extends number | Date>(
     startValue: T,
     endValue: T,
+    options?: { includesEnd?: boolean | undefined },
   ): FindWhereProperty<any> {
     const rid1: string = Text.generateRandomText(10);
     const rid2: string = Text.generateRandomText(10);
+    const endOperator: string = options?.includesEnd === false ? "<" : "<=";
     return Raw(
       (alias: string) => {
-        return `(${alias} >= :${rid1} and ${alias} <= :${rid2})`;
+        return `(${alias} >= :${rid1} and ${alias} ${endOperator} :${rid2})`;
       },
       {
         [rid1]: startValue,
