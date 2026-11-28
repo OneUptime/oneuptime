@@ -1727,7 +1727,14 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      /*
+       * The trace is read in the request's own project, where the fix
+       * would be made: a request across the caller's projects would read
+       * one of another project here (pinPropsToTenant).
+       */
+      const props: DatabaseCommonInteractionProps = pinPropsToTenant(
+        await getLoggedInProps(req),
+      );
 
       const traceId: string | undefined = req.body["traceId"] as
         | string
@@ -1794,7 +1801,15 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      /*
+       * The fix is made in the request's own project, in one of its
+       * repositories, so the trace is read there too: across the caller's
+       * projects, a trace of another would become a fix here - its spans
+       * in the run and the pull request (pinPropsToTenant).
+       */
+      const props: DatabaseCommonInteractionProps = pinPropsToTenant(
+        await getLoggedInProps(req),
+      );
 
       const traceId: string | undefined = req.body["traceId"] as
         | string

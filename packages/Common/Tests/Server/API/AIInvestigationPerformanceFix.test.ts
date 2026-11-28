@@ -258,7 +258,8 @@ describe("POST /ai-investigation/performance-fix-suggestion", () => {
     expect(findBy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { traceId: TRACE_ID },
-        props: memberProps(),
+        // The user's own, read in the request's project (see below).
+        props: { ...memberProps(), isMultiTenantRequest: false },
       }),
     );
 
@@ -491,8 +492,11 @@ describe("POST /ai-investigation/create-performance-fix-task", () => {
         traceId: TRACE_ID,
         serviceName: "checkout-service",
         userId: USER_ID,
-        // Whose repositories the fix may use: the caller's own (#11075).
-        props: memberProps(),
+        /*
+         * Whose repositories the fix may use: the caller's own (#11075),
+         * in the request's project (see below).
+         */
+        props: { ...memberProps(), isMultiTenantRequest: false },
       }),
     );
     expect(
@@ -817,7 +821,8 @@ describe("POST /ai-investigation/create-performance-fix-task holds the repositor
     );
     expect(asked.length).toBeGreaterThan(0);
     for (const props of asked) {
-      expect(props).toEqual(memberProps());
+      // The caller's own, in the request's project (see below).
+      expect(props).toEqual({ ...memberProps(), isMultiTenantRequest: false });
     }
   });
 
