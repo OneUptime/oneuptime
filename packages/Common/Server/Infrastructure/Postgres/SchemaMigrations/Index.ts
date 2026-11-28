@@ -1227,6 +1227,7 @@ import { AddProbeLastLateDueAt1809187791200 } from "./1809187791200-AddProbeLast
 import { AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201 } from "./1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds";
 import { AddScheduleRosterTurnAndRestrictionTypeKey1809187791269 } from "./1809187791269-AddScheduleRosterTurnAndRestrictionTypeKey";
 import { AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260 } from "./1809187801260-AddMonitorTemplateChangesAndCreatedFromTemplate";
+import { AddProjectCallVoice1809187801300 } from "./1809187801300-AddProjectCallVoice";
 
 export default [
   InitialMigration,
@@ -2458,4 +2459,5 @@ export default [
   AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201,
   AddScheduleRosterTurnAndRestrictionTypeKey1809187791269,
   AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260,
+  AddProjectCallVoice1809187801300,
 ];

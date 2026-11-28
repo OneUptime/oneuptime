@@ -163,6 +163,7 @@ beforeEach(() => {
     disableUserProjectCreation: false,
     disablePushNotifications: false,
     canSendEmail: true,
+    canProjectsChooseCallVoice: false,
   });
   goTo(`/dashboard/${PROJECT_ID}/user-settings/notification-methods`);
 });

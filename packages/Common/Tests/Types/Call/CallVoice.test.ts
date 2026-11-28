@@ -1,6 +1,7 @@
 import {
   CALL_VOICES,
   CALL_VOICE_CHARACTERS_IN_A_PAGE,
+  CALL_VOICE_MOST_CHARACTERS_IN_A_PAGE,
   CALL_VOICE_PRICE_PER_100_CHARACTERS_IN_USD,
   CALL_VOICE_VALUES,
   CallVoice,
@@ -20,7 +21,9 @@ import { describe, expect, test } from "@jest/globals";
  * THE VOICES ONEUPTIME'S CALLS CAN SPEAK WITH (#10948).
  *
  * A short list rather than a free-text field: each voice is one Twilio
- * names, in English as calls are, reads the SSML a call uses, and is named
+ * names, in English - a call in another language speaks it with that
+ * language's voice of its kind (CallLanguageVoices, #11066) - reads the SSML a
+ * call uses, and is named
  * in TwiML only as the list writes it - with the language it speaks, which
  * Twilio needs beside it. Anything else is no voice: the account's default.
  */
@@ -64,7 +67,7 @@ describe("the list", () => {
     }
   });
 
-  test("every voice speaks English, as every call does, in the language <Say> is told it speaks", () => {
+  test("every voice an admin chooses speaks English, in the language <Say> is told it speaks", () => {
     for (const voice of CALL_VOICES) {
       expect(Object.values(CallVoiceLanguage)).toContain(voice.language);
       expect(voice.language.startsWith("en-")).toBe(true);
@@ -204,7 +207,7 @@ describe("what a voice costs", () => {
     expect(CALL_VOICE_PRICE_PER_100_CHARACTERS_IN_USD).toBe(0.0032);
   });
 
-  test("a page's call says about 500 characters: under 2 US cents in a voice of the list, as the picker says", () => {
+  test("a page's call says about 500 characters in English: under 2 US cents in a voice of the list", () => {
     expect(CALL_VOICE_CHARACTERS_IN_A_PAGE).toBe(500);
 
     for (const voice of CALL_VOICES) {
@@ -212,7 +215,14 @@ describe("what a voice costs", () => {
 
       expect(cost).toBeGreaterThan(0.01);
       expect(cost).toBeLessThan(0.02);
-      expect(getCallVoiceCentsOfAPage(voice)).toBe(2);
+    }
+  });
+
+  test("and up to 700 in another language (#11066): the picker says under 3 US cents, which holds in every one", () => {
+    expect(CALL_VOICE_MOST_CHARACTERS_IN_A_PAGE).toBe(700);
+
+    for (const voice of CALL_VOICES) {
+      expect(getCallVoiceCentsOfAPage(voice)).toBe(3);
     }
   });
 
