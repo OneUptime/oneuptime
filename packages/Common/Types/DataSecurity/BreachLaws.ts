@@ -6056,6 +6056,8 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     sourceTitle:
       "Oklahoma Statutes, Title 24, 162 and 163(C), as Laws 2025, c. 406 (SB 626) amended them",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
+    // The definitions it reads are SB 626's, as its people's notice's are.
+    inForceFrom: "2026-01-01",
     forDataHolders: true,
   },
   {
