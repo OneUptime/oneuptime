@@ -1176,6 +1176,7 @@ describe(CHECK_WORKFLOW, () => {
     }
     expect([...files].sort()).toEqual([
       "Scripts/Release/GenerateReleaseNotes.js",
+      "Scripts/Release/ReleaseAssets.js",
       "Scripts/TerraformProvider/ProviderRelease.js",
       SCRIPT,
     ]);
