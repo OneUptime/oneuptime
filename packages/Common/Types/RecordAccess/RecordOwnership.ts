@@ -106,7 +106,12 @@ export default class RecordOwnership {
    * names none in the shape it takes - `{ ids: [...] }`.
    */
   public static readRequestIds(body: unknown): Array<string> | null {
-    if (!body || typeof body !== "object" || Array.isArray(body)) {
+    if (
+      !body ||
+      typeof body !== "object" ||
+      Array.isArray(body) ||
+      !Array.isArray((body as JSONObject)["ids"])
+    ) {
       return null;
     }
 
