@@ -21,6 +21,7 @@ import {
   ClientAddressReading,
   ClientAddressTrust,
   getAddressSlotText,
+  markForwardedBy,
   readClaimedClientAddress,
   readClientAddressTrust,
 } from "./ClientAddressTrust";
@@ -203,6 +204,9 @@ export function applyRequestAssessment(
     if (client.trust) {
       attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust] = client.trust;
     }
+
+    // And the proxies the trace says it came through, if any (#11046).
+    markForwardedBy(attributes, client);
   }
 
   /*
@@ -232,6 +236,8 @@ export function applyRequestAssessment(
         attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust] =
           client.trust;
       }
+
+      markForwardedBy(attributes, client);
     }
   }
 

@@ -67,6 +67,12 @@ describe("maskCardNumber", () => {
     expect(maskCardNumber("4539 1488 0343 6467")).toBe("**** **** **** 6467");
     expect(maskCardNumber("4539-1488-0343-6467")).toBe("**** **** **** 6467");
     expect(maskCardNumber("378282246310005")).toBe("**** **** **** 0005");
+    // In another script's digits, its separators in fullwidth too (#10960, #11115): the last four as ASCII digits.
+    expect(maskCardNumber("４５３９－１４８８－０３４３－６４６７")).toBe(
+      "**** **** **** 6467",
+    );
+    expect(maskCardNumber("٤٥٣٩١٤٨٨٠٣٤٣٦٤٦٧")).toBe("**** **** **** 6467");
+    expect(maskCardNumber("۴۵۳۹ 1488 0343 ۶۴۶۷")).toBe("**** **** **** 6467");
     expect(maskValue("credit-card-number", "4539148803436467")).toBe(
       "**** **** **** 6467",
     );

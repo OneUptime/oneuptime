@@ -159,11 +159,11 @@ export const ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
  * as it names the Storage Array agent's exporter and syslog sidecars
  * (<project>-pure-fa-exporter-1). A second Storage Array or XCP-ng agent on
  * the same machine runs under a name of its own (its .env's
- * STORAGE_ARRAY_AGENT_CONTAINER_NAME or XCP_NG_AGENT_CONTAINER_NAME), which
- * install.sh derives from these unless someone exports another: whatever it
- * is, the container is still its Compose service's, which
- * parseDockerTargetInspect reads from its labels and run() holds to these
- * names too. OneUptime AI never changes them either.
+ * STORAGE_ARRAY_AGENT_CONTAINER_NAME, or XCP_NG_AGENT_CONTAINER_NAME and
+ * XCP_NG_AI_AGENT_CONTAINER_NAME), which install.sh derives from these
+ * unless someone exports another: whatever it is, the container is still its
+ * Compose service's, which parseDockerTargetInspect reads from its labels
+ * and run() holds to these names too. OneUptime AI never changes them either.
  */
 export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   // agents/HostAIAgent
@@ -196,6 +196,15 @@ export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   "oneuptime-openstack-logs",
   "oneuptime-openstack-traces",
   /*
+   * agents/XcpNgAgent: the collector and the AI agent. A second Xen
+   * Orchestra's collector and AI agent, or the AI agent of a second pool, run
+   * under container names of their own, which keep these in them.
+   */
+  "oneuptime-xcp-ng-agent",
+  "*oneuptime-xcp-ng-agent*",
+  "oneuptime-xcp-ng-ai-agent",
+  "*oneuptime-xcp-ng-ai-agent*",
+  /*
    * agents/StorageArrayAgent: the collector (a second array's agent, in a
    * folder of its own, has a name of its own), and the exporters and the
    * syslog collector Compose names after each install's directory: Pure's,
@@ -208,9 +217,6 @@ export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   "*powerstore-exporter*",
   "*powerstore-syslog*",
   "*netapp-harvest*",
-  // agents/XcpNgAgent: the collector (a second Xen Orchestra's, likewise)
-  "oneuptime-xcp-ng-agent",
-  "*oneuptime-xcp-ng-agent*",
   // agents/DatabaseAgent: Compose services, one install per database
   "*oneuptime-database-agent*",
   "*oneuptime-database-ai-agent*",

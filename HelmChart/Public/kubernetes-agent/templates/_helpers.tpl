@@ -1472,6 +1472,348 @@ false
 {{- end -}}
 
 {{/*
+logs.extraOperators (issue #11225): collector operators of your own, for a
+log format the agent does not read, which run in the DaemonSet collector's pod
+log receiver after a line is put back together and its pod and stream are
+read, and before the agent reads its level. Checked here, at install time, so
+a value the collector would refuse, or would run and quietly lose lines with,
+fails the install with a message naming the operator, instead of shipping a
+DaemonSet that restarts forever. What is checked is what the collector was
+seen to refuse, on 0.165.0 and on 0.96.0:
+
+  - a list of maps, each with a type: a parser or transformer the collector of
+    image.tag has (the newer ones are refused on an older collector);
+  - none that sets the line's severity itself (a severity_parser, a
+    syslog_parser, an otelcol parser, a parser's severity block): the agent
+    reads every line's level after these and would overwrite it, so a level
+    goes to attributes.severity_text, which the agent's router reads first;
+  - not the container parser: the agent has read the runtime's format;
+  - the settings each type cannot do without (a move's from and to, a
+    recombine's combine_field and one of is_first_entry and is_last_entry,
+    ...), every field spelled as the collector reads one, an on_error the
+    collector has;
+  - an id, when given, of its own: no operator's of the agent's, no other of
+    yours, and not the bare name of a type an operator without an id has (the
+    agent's moves, or one of yours), the name the collector gives that one;
+  - every output naming one of yours after it, or the agent's severity-router,
+    which takes the line on (one before it is a loop the collector refuses);
+    a router with routes, each with an expr and an output, and a default
+    (without one it drops every line no route matches);
+  - a regex that compiles: the collector's RE2 is Go's, as Helm's is;
+  - in an expression (an if, a route's or a filter's expr, a recombine's
+    is_first_entry or is_last_entry), its strings: an escape expr-lang refuses,
+    and a regex after `matches` that does not compile.
+
+The rest of an expression is the collector's to refuse when it starts: Helm
+cannot compile expr-lang. It applies in daemonset log mode only, as the API
+log tailer runs no collector operators; with logs on but read by the tailer,
+the setting is refused rather than quietly ignored.
+
+The agent's own ids, and the types of its operators that have none, are listed
+here and held to the template's by Tests/Ops/AgentLogOperators.test.js, as are
+the types to values.schema.json.
+*/}}
+{{- define "kubernetes-agent.extraLogOperatorTypes" -}}
+{{- list "add" "assign_keys" "container" "copy" "csv_parser" "filter" "flatten" "json_array_parser" "json_parser" "key_value_parser" "move" "noop" "otelcol" "recombine" "regex_parser" "regex_replace" "remove" "retain" "router" "sanitize_utf8" "scope_name_parser" "severity_parser" "syslog_parser" "time_parser" "trace_parser" "unquote" "uri_parser" | toJson -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.agentUnnamedLogOperatorTypes" -}}
+{{- list "move" | toJson -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.agentLogOperatorIds" -}}
+{{- list "get-format" "parser-docker" "parser-cri" "parser-containerd" "extract-metadata-from-filepath" "drop-obi-nul-placeholder" "ebpf-trace-route" "parse-ebpf-trace-json" "lift-obi-trace-context" "cleanup-obi-attrs" "parse-ebpf-trace-text" "lift-obi-text-trace-context" "restore-obi-text-body" "cleanup-obi-text-attrs" "recombine-multiline" "openstack-route" "openstack-recombine" "openstack-cloud-name" "move-stream" "severity-router" "parse-klog-severity" "add-exception-severity" "add-warning-severity" "parse-numeric-severity" "parse-mongodb-severity" "parse-cnpg-severity" "parse-clef-severity" "add-clef-information" "parse-redis-severity" "parse-nest-severity" "parse-logrus-severity" "parse-mysql-severity" "parse-jul-severity" "parse-sidekiq-severity" "parse-php-severity" "parse-gitea-severity" "parse-severity-from-body" "parse-slog-severity" "add-fallback-severity" "severity-parser" "remove-severity-attr" "severity-unspecified" | toJson -}}
+{{- end -}}
+
+{{/*
+A regex of logs.extraOperators (an operator's regex, or one after `matches` in
+an expression), refused at install time when the collector of image.tag would
+not compile it. Helm's regexp is Go's, the collector's RE2. regexMatch answers
+false for a pattern that does not compile, and a pattern R compiles exactly
+when "^|R" does, which matches the empty string whatever R matches: ^ is a
+whole alternative of its own, and R is read after it from a clean start to its
+own end (a suffix would not do: after an unended \Q it is read as text). Go's
+regexp took one thing more in 1.22, the (?<name>...) group, and collector
+0.96.0 was built with Go 1.21, 0.97.0 on with 1.22.
+
+Usage: {{- include "kubernetes-agent.checkExtraLogRegex" (dict "root" $ "where" "logs.extraOperators[0] (regex_parser) has a regex" "regex" $regex) }}
+*/}}
+{{- define "kubernetes-agent.checkExtraLogRegex" -}}
+{{- if not (regexMatch (printf "^|%s" .regex) "") -}}
+{{- fail (printf "%s the collector cannot compile: '%s'. Its regular expressions are RE2's (Go's): look for a group or a character class left open, or a \\ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\\1) and possessive quantifiers (a++). Name a group (?P<name>...)." .where .regex) -}}
+{{- end -}}
+{{- if and (regexMatch "(?:^|[^\\\\])(?:\\\\\\\\)*\\(\\?<[^=!]" .regex) (ne (include "kubernetes-agent.collectorAtLeast" (dict "root" .root "version" "0.97.0")) "true") -}}
+{{- fail (printf "%s with a (?<name>...) group, '%s', which the collector of image.tag (%s, built with Go 1.21) cannot compile: write the group (?P<name>...), which every collector takes." .where .regex (toString .root.Values.image.tag)) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+An expression of logs.extraOperators, checked as far as Helm can. The
+collector compiles it with expr-lang when it starts, and a refusal there stops
+the collector. Helm cannot compile expr-lang, but the two refusals that come
+of a regex in an expression are in its strings, which Helm can read. Both were
+seen on 0.165.0 and on 0.96.0:
+
+  - an escape expr-lang does not know. A string takes Go's: \a \b \f \n \r \t
+    \v \\, its own quote (\" in "...", \' in '...'), \x and two hex digits,
+    \u and four (a lone surrogate too), \U and eight up to \U0010FFFF, and
+    three octal digits up to \377. So a regex's \d, \. or \[ is written \\d,
+    \\. or \\[ there, or the regex goes in a raw string, between backquotes,
+    which takes no escapes;
+  - a regex after `matches` that the collector cannot compile, which expr-lang
+    compiles with the expression. The regex is the string's value: each escape
+    becomes the character it stands for, written as RE2 reads it (\x07 for \a,
+    \x{e9} for \u00e9, ...), so that it compiles exactly when the value does.
+
+Comments (from // to the end of the line, and block comments, slash-star to
+star-slash) are dropped first, in one leftmost scan with the strings, so a //
+inside a string ("https?://") stays.
+
+Usage: {{- include "kubernetes-agent.checkExtraLogExpression" (dict "root" $ "where" "logs.extraOperators[0]'s if" "expr" $expr) }}
+*/}}
+{{- define "kubernetes-agent.checkExtraLogExpression" -}}
+{{- $root := .root -}}
+{{- $where := .where -}}
+{{- $expr := .expr -}}
+{{- if not (and (kindIs "string" $expr) $expr) -}}
+{{- fail (printf "%s is not an expression: write one as a string, such as 'body matches \"^SEV1 \"'." $where) -}}
+{{- end -}}
+{{- $literal := "\"(?:[^\"\\\\]|\\\\[\\s\\S])*\"|'(?:[^'\\\\]|\\\\[\\s\\S])*'|`[^`]*`" -}}
+{{- $code := regexReplaceAll (printf "(%s)|//[^\\n]*|/\\*[\\s\\S]*?\\*/" $literal) $expr "${1}" -}}
+{{- $controls := dict "a" "\\x07" "b" "\\x08" "f" "\\x0C" "n" "\\x0A" "r" "\\x0D" "t" "\\x09" "v" "\\x0B" -}}
+{{- range $token := regexFindAll (printf "\\bmatches\\s*(?:%s)|%s" $literal $literal) $code -1 -}}
+{{- $string := regexReplaceAll "^matches\\s*" $token "" -}}
+{{- $quote := substr 0 1 $string -}}
+{{- $body := substr 1 (int (sub (len $string) 1)) $string -}}
+{{- $regex := $body -}}
+{{- if ne $quote "`" -}}
+{{- $known := printf "\\\\(?:[abfnrtv\\\\%s]|[0-3][0-7][0-7]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U(?:000[0-9a-fA-F]{5}|0010[0-9a-fA-F]{4}))" $quote -}}
+{{- $unknown := regexFind "\\\\[\\s\\S]?" (regexReplaceAll $known $body "") -}}
+{{- if $unknown -}}
+{{- fail (printf "%s holds %s in the string %s, an escape expr-lang refuses, so the collector would not start. A regex's backslash is written twice in an expression's string, as in 'body matches \"^\\\\d+ \"', or the regex goes in a raw string, as in 'body matches `^\\d+ `'." $where $unknown $string) -}}
+{{- end -}}
+{{- $regex = "" -}}
+{{- range $piece := regexFindAll "\\\\(?:[0-3][0-7][0-7]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[\\s\\S])|[^\\\\]+" $body -1 -}}
+{{- $c := substr 1 2 $piece -}}
+{{- if not (hasPrefix "\\" $piece) -}}
+{{- $regex = print $regex $piece -}}
+{{- else if hasKey $controls $c -}}
+{{- $regex = print $regex (get $controls $c) -}}
+{{- else if eq $c "u" -}}
+{{- $regex = print $regex "\\x{" (substr 2 6 $piece) "}" -}}
+{{- else if eq $c "U" -}}
+{{- $regex = print $regex "\\x{" (substr 2 10 $piece) "}" -}}
+{{- else if regexMatch "^[x0-3]$" $c -}}
+{{- $regex = print $regex $piece -}}
+{{- else -}}
+{{- $regex = print $regex $c -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- if hasPrefix "matches" $token -}}
+{{- include "kubernetes-agent.checkExtraLogRegex" (dict "root" $root "where" (printf "%s matches a regex" $where) "regex" $regex) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.validateExtraLogOperators" -}}
+{{- $operators := (.Values.logs).extraOperators -}}
+{{- if $operators -}}
+{{- if not (kindIs "slice" $operators) -}}
+{{- fail (printf "logs.extraOperators is a %s: it is a list of collector operators, each a map with a type." (kindOf $operators)) -}}
+{{- end -}}
+{{- if and .Values.logs.enabled (ne (include "kubernetes-agent.daemonSetLogsEnabled" .) "true") -}}
+{{- fail (printf "logs.extraOperators runs in the DaemonSet collector's pod log receiver, and this install reads pod logs with the API log tailer (logs.mode resolves to %s on preset %q), which runs no collector operators. Remove logs.extraOperators, or set logs.mode=daemonset." (include "kubernetes-agent.logMode" .) (toString (default "standard" .Values.preset))) -}}
+{{- end -}}
+{{- $types := include "kubernetes-agent.extraLogOperatorTypes" . | fromJsonArray -}}
+{{- $agentIds := include "kubernetes-agent.agentLogOperatorIds" . | fromJsonArray -}}
+{{- $agentUnnamed := include "kubernetes-agent.agentUnnamedLogOperatorTypes" . | fromJsonArray -}}
+{{- /*
+  The collector names an operator that has no id after its type: the first
+  of a type gets the type's bare name, and one with that name given as an id
+  already is a duplicate it refuses. A number after the name never is: the
+  collector steps around a name that is taken. So a bare type's name is
+  refused as an id when an operator of that type has none, one of the
+  agent's (its moves) or one of these, kept here with the first of each.
+*/ -}}
+{{- $unnamed := dict -}}
+{{- range $index, $operator := $operators -}}
+{{- if and (kindIs "map" $operator) (not (hasKey $operator "id")) (kindIs "string" $operator.type) (not (hasKey $unnamed $operator.type)) -}}
+{{- $_ := set $unnamed $operator.type $index -}}
+{{- end -}}
+{{- end -}}
+{{- /* The first collector each newer type is in, by default (both json_array_parser and assign_keys were behind a feature gate before 0.105.0). */ -}}
+{{- $since := dict "json_array_parser" "0.105.0" "assign_keys" "0.105.0" "regex_replace" "0.122.0" "sanitize_utf8" "0.134.0" -}}
+{{- $required := dict "copy" (list "from" "to") "move" (list "from" "to") "remove" (list "field") "retain" (list "fields") "flatten" (list "field") "assign_keys" (list "field" "keys") "filter" (list "expr") "recombine" (list "combine_field") "regex_parser" (list "regex") "time_parser" (list "layout") -}}
+{{- $fieldKeys := list "field" "from" "to" "parse_from" "parse_to" "combine_field" "source_identifier" -}}
+{{- $field := "^(?:body|attributes|resource)(?:\\.[^.\\[\\]]*|\\[(?:\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*')\\])*$" -}}
+{{- $onError := list "send" "drop" -}}
+{{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.99.0")) "true" -}}
+{{- $onError = concat $onError (list "send_quiet" "drop_quiet") -}}
+{{- end -}}
+{{- $at := dict -}}
+{{- range $index, $operator := $operators -}}
+{{- $where := printf "logs.extraOperators[%d]" $index -}}
+{{- if not (kindIs "map" $operator) -}}
+{{- fail (printf "%s is a %s, not an operator: each is a map with a type." $where (kindOf $operator)) -}}
+{{- end -}}
+{{- $type := $operator.type -}}
+{{- if not (and (kindIs "string" $type) $type) -}}
+{{- fail (printf "%s has no type: name the collector operator it is (regex_parser, router, add, ...)." $where) -}}
+{{- end -}}
+{{- if not (has $type $types) -}}
+{{- fail (printf "%s is a %q operator, which is no parser or transformer the collector has: use one of %s." $where $type (join ", " $types)) -}}
+{{- end -}}
+{{- if eq $type "severity_parser" -}}
+{{- fail (printf "%s is a severity_parser. The agent reads every line's level after your operators, and would overwrite the one it sets: write the level to attributes.severity_text instead (an add, or a regex_parser's severity_text group), as a word the agent reads (ERROR, warn, critical, ...), and the agent reads that before anything else." $where) -}}
+{{- end -}}
+{{- if has $type (list "syslog_parser" "otelcol") -}}
+{{- fail (printf "%s is a%s %s, which sets the line's severity itself, and the agent, reading every line's level after your operators, would overwrite it. Lift the level into attributes.severity_text instead (a regex_parser's severity_text group), and the agent reads that before anything else." $where (ternary "n" "" (eq $type "otelcol")) (ternary "otelcol parser" "syslog_parser" (eq $type "otelcol"))) -}}
+{{- end -}}
+{{- if eq $type "container" -}}
+{{- fail (printf "%s is a container parser, but the agent has read the container runtime's format already: the body your operators see is the program's own line." $where) -}}
+{{- end -}}
+{{- if hasKey $operator "severity" -}}
+{{- fail (printf "%s (%s) has a severity block, and the agent, reading every line's level after your operators, would overwrite what it sets: write the level to attributes.severity_text instead (a regex_parser's severity_text group does), and the agent reads that before anything else." $where $type) -}}
+{{- end -}}
+{{- $first := get $since $type -}}
+{{- if and $first (ne (include "kubernetes-agent.collectorAtLeast" (dict "root" $ "version" $first)) "true") -}}
+{{- fail (printf "%s is an operator of type %s, which came in collector %s, and image.tag runs %s. Use operators that collector has, or a newer image.tag." $where $type $first (toString $.Values.image.tag)) -}}
+{{- end -}}
+{{- range $key := (get $required $type | default list) -}}
+{{- if empty (get $operator $key) -}}
+{{- fail (printf "%s (%s) has no %s, which the collector refuses to start with." $where $type $key) -}}
+{{- end -}}
+{{- end -}}
+{{- if eq $type "recombine" -}}
+{{- if eq (empty (get $operator "is_first_entry")) (empty (get $operator "is_last_entry")) -}}
+{{- fail (printf "%s is a recombine, which takes one of is_first_entry and is_last_entry: the expression that marks where a record starts, or where it ends." $where) -}}
+{{- end -}}
+{{- end -}}
+{{- if eq $type "regex_replace" -}}
+{{- if eq (hasKey $operator "regex") (hasKey $operator "regex_name") -}}
+{{- fail (printf "%s is a regex_replace, which takes a regex or a regex_name, one of them." $where) -}}
+{{- end -}}
+{{- if and (hasKey $operator "regex_name") (ne (toString $operator.regex_name) "ansi_control_sequences") -}}
+{{- fail (printf "%s is a regex_replace whose regex_name is %q: the collector knows ansi_control_sequences only." $where (toString $operator.regex_name)) -}}
+{{- end -}}
+{{- end -}}
+{{- if and (eq $type "csv_parser") (empty $operator.header) (empty $operator.header_attribute) -}}
+{{- fail (printf "%s is a csv_parser with no header and no header_attribute, which the collector refuses to start with." $where) -}}
+{{- end -}}
+{{- if and (eq $type "time_parser") (hasKey $operator "layout_type") (not (has (toString $operator.layout_type) (list "strptime" "gotime" "epoch"))) -}}
+{{- fail (printf "%s is a time_parser whose layout_type is %q: the collector takes strptime, gotime or epoch." $where (toString $operator.layout_type)) -}}
+{{- end -}}
+{{- /*
+  Each field as [where, value, whether a whole map will do]. A bare attributes
+  or resource, the whole map, is taken only by a remove's field and a parser's
+  parse_to (stanza's rootable fields); every other field refuses it, as both
+  collectors were seen to.
+*/ -}}
+{{- $fields := list -}}
+{{- range $key := $fieldKeys -}}
+{{- if hasKey $operator $key -}}
+{{- $fields = append $fields (list (printf "%s's %s" $where $key) (get $operator $key) (or (eq $key "parse_to") (and (eq $type "remove") (eq $key "field")))) -}}
+{{- end -}}
+{{- end -}}
+{{- if kindIs "slice" $operator.fields -}}
+{{- range $n, $value := $operator.fields -}}
+{{- $fields = append $fields (list (printf "%s's fields[%d]" $where $n) $value false) -}}
+{{- end -}}
+{{- end -}}
+{{- range $field3 := $fields -}}
+{{- $value := index $field3 1 -}}
+{{- if not (and (kindIs "string" $value) (regexMatch $field $value)) -}}
+{{- fail (printf "%s is '%v', which is no field the collector knows: a field is body, attributes or resource, then .name or [\"name\"] steps, such as attributes.level or attributes[\"log.level\"]." (index $field3 0) $value) -}}
+{{- end -}}
+{{- if and (has $value (list "attributes" "resource")) (not (index $field3 2)) -}}
+{{- fail (printf "%s is '%s', the whole map, which the collector takes only as a remove's field or a parser's parse_to: name a key under it, such as %s.level." (index $field3 0) $value $value) -}}
+{{- end -}}
+{{- end -}}
+{{- if hasKey $operator "on_error" -}}
+{{- if not (has (toString $operator.on_error) $onError) -}}
+{{- fail (printf "%s's on_error is '%v': the collector of image.tag takes %s." $where $operator.on_error (join ", " $onError)) -}}
+{{- end -}}
+{{- end -}}
+{{- if hasKey $operator "if" -}}
+{{- include "kubernetes-agent.checkExtraLogExpression" (dict "root" $ "where" (printf "%s's if" $where) "expr" $operator.if) -}}
+{{- end -}}
+{{- if and (eq $type "filter") (hasKey $operator "expr") -}}
+{{- include "kubernetes-agent.checkExtraLogExpression" (dict "root" $ "where" (printf "%s's expr" $where) "expr" $operator.expr) -}}
+{{- end -}}
+{{- if eq $type "recombine" -}}
+{{- range $key := list "is_first_entry" "is_last_entry" -}}
+{{- if not (empty (get $operator $key)) -}}
+{{- include "kubernetes-agent.checkExtraLogExpression" (dict "root" $ "where" (printf "%s's %s" $where $key) "expr" (get $operator $key)) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- if hasKey $operator "regex" -}}
+{{- if not (and (kindIs "string" $operator.regex) $operator.regex) -}}
+{{- fail (printf "%s (%s) has a regex that is not a pattern." $where $type) -}}
+{{- end -}}
+{{- include "kubernetes-agent.checkExtraLogRegex" (dict "root" $ "where" (printf "%s (%s) has a regex" $where $type) "regex" $operator.regex) -}}
+{{- end -}}
+{{- if hasKey $operator "id" -}}
+{{- $id := $operator.id -}}
+{{- if not (and (kindIs "string" $id) $id) -}}
+{{- fail (printf "%s's id is not a name: give it a string of its own, or leave it out." $where) -}}
+{{- end -}}
+{{- if has $id $agentIds -}}
+{{- fail (printf "%s's id is %q, which is the id of one of the agent's own operators: choose another." $where $id) -}}
+{{- end -}}
+{{- if has $id $agentUnnamed -}}
+{{- fail (printf "%s's id is %q, the name the collector gives the first of the agent's own %s operators, which have no id: choose another." $where $id $id) -}}
+{{- end -}}
+{{- if hasKey $unnamed $id -}}
+{{- fail (printf "%s's id is %q, the name the collector gives logs.extraOperators[%d], an operator of type %s with no id: choose another, or give that one an id." $where $id (int (get $unnamed $id)) $id) -}}
+{{- end -}}
+{{- if hasKey $at $id -}}
+{{- fail (printf "%s's id %q is another of yours already: each needs its own." $where $id) -}}
+{{- end -}}
+{{- $_ := set $at $id $index -}}
+{{- end -}}
+{{- end -}}
+{{- range $index, $operator := $operators -}}
+{{- $where := printf "logs.extraOperators[%d]" $index -}}
+{{- $handsTo := list -}}
+{{- range $key := list "output" "default" -}}
+{{- if hasKey $operator $key -}}
+{{- $value := get $operator $key -}}
+{{- $handsTo = concat $handsTo (kindIs "slice" $value | ternary $value (list $value)) -}}
+{{- end -}}
+{{- end -}}
+{{- if eq $operator.type "router" -}}
+{{- if not (and (kindIs "slice" $operator.routes) $operator.routes) -}}
+{{- fail (printf "%s is a router with no routes, which drops every line." $where) -}}
+{{- end -}}
+{{- range $n, $route := $operator.routes -}}
+{{- if not (and (kindIs "map" $route) (hasKey $route "expr") (not (empty $route.output))) -}}
+{{- fail (printf "%s is a router whose routes[%d] has no expr or no output: each route needs both, and one with no output drops the lines it matches." $where $n) -}}
+{{- end -}}
+{{- include "kubernetes-agent.checkExtraLogExpression" (dict "root" $ "where" (printf "%s's routes[%d].expr" $where $n) "expr" $route.expr) -}}
+{{- $handsTo = concat $handsTo (kindIs "slice" $route.output | ternary $route.output (list $route.output)) -}}
+{{- end -}}
+{{- if empty $operator.default -}}
+{{- fail (printf "%s is a router with no default, and would drop every line none of its routes match: give it default: severity-router, which hands the line to the agent." $where) -}}
+{{- end -}}
+{{- end -}}
+{{- range $target := $handsTo -}}
+{{- $name := toString $target -}}
+{{- if ne $name "severity-router" -}}
+{{- if not (hasKey $at $name) -}}
+{{- fail (printf "%s (%s) hands lines to %q, which is none of your operators, and not severity-router, where the agent takes a line on." $where $operator.type $name) -}}
+{{- end -}}
+{{- if le (int (get $at $name)) $index -}}
+{{- fail (printf "%s (%s) hands lines to %q, which is %s, a loop the collector refuses: hand them on to an operator of yours after it, or to severity-router." $where $operator.type $name (ternary "itself" "an operator before it" (eq (int (get $at $name)) $index))) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Node metrics are wanted whenever a DaemonSet can run and at least one node-local
 metric source is on. kubeletstats has no enable flag — it is the core node / pod
 / container metric source — so this is true unless the platform cannot schedule

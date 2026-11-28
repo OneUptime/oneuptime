@@ -4,8 +4,10 @@ OneUptimes Lagringsarray-agent overvåker lagringsarrayer: kapasitet og dataredu
 
 :::cards
 - [Installer agenten](#installer-agenten): En skrivebeskyttet bruker, deretter installasjonsskriptet eller Docker Compose.
+- [Dell PowerScale](#dell-powerscale): SNMP på klyngen, hver node avspurt, og hva sidene viser.
 - [Hva agenten samler inn](#hva-agenten-samler-inn): Hvert endepunkt, og sidene som bygges fra det.
 - [Overvåke flere arrayer](#overvåke-flere-arrayer): Én agent per array, på én maskin.
+- [Dell PowerMax](#dell-powermax): Ingen agent: en sonde leser hvert array bak Unisphere.
 - [Feilsøking](#feilsøking): Et diagnoseskript, og de vanlige problemene.
 :::
 
@@ -20,10 +22,15 @@ Storage Arrays er et produkt som fungerer likt for alle leverandører. Det støt
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pures FlashBlade OpenMetrics-eksportør, som den samme Compose-filen kjører som tjenesten `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | Dells PowerStore Metrics Exporter, som den samme Compose-filen bygger og kjører som tjenesten `powerstore-exporter`; klyngens varsler kommer via syslog til tjenesten `powerstore-syslog` | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 og nyere (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP), og **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, som den samme Compose-filen kjører som tjenesten `netapp-harvest`: den logger inn på klyngens REST-API med en skrivebeskyttet bruker og et passord | `otel-collector-config.netapp-ontap.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 og nyere | `dell.powerscale` | Hver node over SNMP (Dells ISILON-MIB), med collectorens egen SNMP-mottaker: ingenting kjører ved siden av collectoren | `otel-collector-config.powerscale.yaml` |
 
 ONTAP har ikke sitt eget målingsendepunkt, så agenten kjører NetApps eksportør med åpen kildekode, Harvest, ved siden av collectoren. Harvest leser klyngens REST-API og leverer det den har lest, på Compose-nettverket, med hver serie navngitt `netapp_<object>_<counter>`; collectoren scraper Harvest og sender dataene videre. Harvest skriver aldri til klyngen, og AutoSupport-rapporten til NetApp er slått av.
 
+**Dell PowerMax** (`dell.powermax`) trenger ingen agent: en OneUptime-sonde leser med en skrivebeskyttet konto hvert array som en Unisphere for PowerMax administrerer. Se [Dell PowerMax](#dell-powermax).
+
 Pure Storage endret navn til **Everpure** i februar 2026. FlashArray, FlashBlade og Purity beholdt navnene sine, og det gjorde også målingene `purefa_*` og `purefb_*`, så alt på denne siden gjelder arrayer som selges under begge navnene.
+
+En **Dell PowerScale**-klynge leses på en annen måte: agenten avspør hver av nodene over SNMP, med en skrivebeskyttet community eller SNMPv3-bruker og uten API-token. [Dell PowerScale](#dell-powerscale) tar deg fra å slå på SNMP til hva sidene viser; installasjonstrinnene nedenfor gjelder Pure Storage.
 
 ```mermaid title="Fra arrayet til OneUptime"
 flowchart TB
@@ -143,6 +150,8 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 POWERSTORE_ENDPOINT=
 POWERSTORE_PASSWORD=
@@ -245,6 +254,18 @@ Installasjonsskriptet skriver disse til `/opt/oneuptime-storage-array-agent/.env
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | Klyngens administrasjonsadresse (på FSx filsystemets administrasjonsendepunkt): et vertsnavn eller en IP, uten `https://`. |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | Den skrivebeskyttede REST-brukeren, for eksempel `oneuptime`. |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | Passordet til brukeren. Bare Harvest leser det, nøyaktig slik det er skrevet. |
+| `POWERSCALE_NODES` | PowerScale | Adressene til alle nodene, atskilt med komma, aldri navnet på SmartConnect-sonen. Installasjonsskriptet skriver avspørringene nedenfor ut fra den. |
+| `POWERSCALE_ENDPOINT` | PowerScale | Noden som klyngens egen helse, kapasitet og kvoter leses gjennom: den første i `POWERSCALE_NODES`. |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Avspørringene collectoren kjører: `snmp/cluster`, `snmp/quotas`, deretter `snmp/node-1` og videre, én per node. |
+| `POWERSCALE_NODE_<n>` | PowerScale | Adressen til node `<n>`, fra `1` til `252`. En IPv6-adresse står i hakeparenteser, for eksempel `[fd00::11]`. |
+| `POWERSCALE_SNMP_VERSION` | Nei | `v2c` eller `v3`. Standard er `v2c`. |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | Klyngens skrivebeskyttede community. |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | Klyngens skrivebeskyttede SNMPv3-bruker. |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | Nei | `auth_priv`, `auth_no_priv` eller `no_auth_no_priv`. Standard er `auth_priv`. |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | Nei | `MD5`, `SHA`, `SHA224`, `SHA256`, `SHA384` eller `SHA512`, slik `isi snmp settings view` viser det. Standard er `SHA`. |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | Autentiseringspassordet til SNMPv3-brukeren. |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | Nei | `DES`, `AES`, `AES192`, `AES256`, `AES192C` eller `AES256C`. Standard er `AES`. |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | Personvernpassordet til SNMPv3-brukeren, på nivået `auth_priv`. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Nei | `true` godtar arrayets selvsignerte sertifikat på det native endepunktet og i Harvest; `false` verifiserer det. Standard er `true`. Pures eksportører verifiserer aldri arrayets sertifikat, så det gjelder ikke for dem. |
 | `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | Nei | Containernavnet til agenten. Standard er `oneuptime-storage-array-agent`. Agenten for et andre array på samme maskin trenger sitt eget: se [Overvåke flere arrayer](#overvåke-flere-arrayer). Installasjonsskriptet navngir en ny agent etter mappen dens med mindre du angir det, og beholder det når du kjører skriptet igjen. |
 
@@ -278,6 +299,9 @@ Pures semantiske konvensjoner deles av det native FlashArray-endepunktet og begg
 | ONTAP, gjennom Harvest | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | Klyngens navn, utgivelse og UUID; kapasiteten (summen av dataaggregatenes) og datareduksjonen; siden **Volumer**; sidene **Aggregater**, **SVM-er**, **LUN-er** og **SnapMirror**, én side per objekt |
 | ONTAP-maskinvare, gjennom Harvest | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | Siden **Maskinvare**: noder, disker, diskhyller, strømforsyningene, viftene, modulene og sensorene deres, nodenes sensorer, og Ethernet- og Fibre Channel-porter |
 | ONTAPs åpne problemer og hendelser | `netapp_health_*`, `netapp_ems_events` | Antallet åpne varsler og kortet **Aktive varsler** (defekte disker, feil på diskhyller, HA-overtakelse, porter som er nede, varsler om systemhelse), og EMS-malene |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`, `powerscale_ifs_*` | Klyngens navn, OneFS-versjon, helse og antall noder; kapasiteten til `/ifs`; gjennomstrømning, nettverk og CPU på tvers av klyngen |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | Siden **Kvoter**: bruken av hver kvote, grensene og hvor nær den er dem |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`, `powerscale_protocol_*`, `powerscale_drive_*`, `powerscale_fan_*`, `powerscale_temperature_*`, `powerscale_power_sensor_*`, `powerscale_interface_*`, `powerscale_chassis_*` | Siden **Noder**: helse, CPU, gjennomstrømning og protokollytelse for hver node; siden **Maskinvare**: diskene, sensorene og portene |
 
 På ONTAP er hver serie Harvests: et objekt navngis med etikettene sine (`volume` innenfor sin `svm`, `aggr`, `lun`, `node`, `disk`, `shelf`, `destination_location` for en SnapMirror-relasjon), en tilstand er en `netapp_*_new_status` på 1 eller 0 eller en serie `netapp_*_labels` der etikettene angir den, og hvert åpent problem er en serie `netapp_health_*_alerts` som finnes så lenge det varer.
 
@@ -375,6 +399,7 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -391,6 +416,121 @@ docker compose down
 Slett deretter den skrivebeskyttede brukeren og API-tokenet dens på arrayet hvis du ikke lenger trenger dem. På ONTAP kjører du `security login delete -user-or-group-name oneuptime -application http -authentication-method password` og deretter `security login rest-role delete -role oneuptime-readonly -api /api`.
 
 På en PowerStore kjører du `docker compose --profile powerstore down`, så også eksportøren og syslog-collectoren stopper.
+
+## Dell PowerMax
+
+En Dell PowerMax trenger ingen agent. En OneUptime-sonde logger seg på REST API i Unisphere for PowerMax med en skrivebeskyttet konto hvert 5. minutt og leser hvert array som den Unisphere-en administrerer. Hvert array vises i **Lagringsarrayer** under sin Symmetrix ID, for eksempel `000220200269`, og du kan gi det nytt navn. Passordet lagres kryptert, vises aldri igjen og sendes bare til sonden du velger.
+
+- **Unisphere for PowerMax 10.1 eller nyere**, som administrerer arrayer med PowerMaxOS 10 eller 5978. Fra Unisphere 10.3 ser en skrivebeskyttet konto også porter og SRDF-grupper.
+- **En sonde som når Unisphere på TCP 8443**, vanligvis en [egendefinert sonde](/docs/probe/custom-probe) i Unispheres nettverk. På OneUptime Cloud mottar en delt sonde aldri et lagringspassord, så velg en av prosjektets egne.
+- **En Unisphere-bruker med rollen Monitor** på hvert array den skal lese, og rollen **PerfMonitor** for ytelse. Mer trenger den ikke: OneUptime endrer aldri arrayet.
+
+:::steps
+### Opprett den skrivebeskyttede brukeren
+
+I Unisphere for PowerMax oppretter du en lokal bruker under **Settings → Users and Groups** eller velger en katalogbruker. Gi den rollen **Monitor** på hvert array, og **PerfMonitor** for ytelse.
+
+### Sjekk at Unisphere samler inn ytelsesdata
+
+Sjekk under **Settings → Performance → System Registrations** at innsamlingen **Diagnostic** er slått på for hvert array: uten den viser OneUptime arrayets inventar og varsler, men tegner ingen ytelsesgrafer. For å se en lagringsgruppe hvert 5. sekund registrerer du den også for **Real Time** der, opptil 100 per array.
+
+### Koble til Unisphere
+
+Gå til **Produkter → Infrastruktur → Lagringsarrayer → Tilkoblinger** og klikk på **Koble til Unisphere**. Skriv inn adressen du åpner Unisphere på, for eksempel `https://unisphere.example.com:8443`, brukernavnet og passordet, og velg sonden.
+
+### Test tilkoblingen
+
+**Test tilkoblingen** får sonden til å logge på og lese det kontoen kan se: hvert array, lagringsgruppene og volumene, og om Unisphere samler inn ytelsesdataene. Unisphere signerer som standard sitt eget sertifikat: testen viser det, og **Stol på dette sertifikatet** setter SHA-256-fingeravtrykket inn i skjemaet. Sammenlign først fingeravtrykket med Unispheres eget, for eksempel med `openssl s_client -connect unisphere.example.com:8443` fra sondens maskin.
+
+### Gi den et navn og koble til
+
+Gi tilkoblingen et navn, eller behold vertsnavnet, og klikk på **Koble til**. Siden for tilkoblingen viser den første innsamlingen i løpet av noen minutter, og hvert array den fant, hvert med en lenke til siden sin i **Lagringsarrayer**.
+:::
+
+Sonden leser Unispheres dokumenterte REST-endepunkter: det klassiske `/univmax/restapi` for arrayene, kapasitet, helse, varsler og pooler, og bulk-API-et `/univmax/rest/v1` for lagringsgruppene, volumene, directorene, portene, SRDF-gruppene og ytelsen. Hvert kall er en lesing. Den sender det den leser som disse seriene, med Unispheres millisekunder som mikrosekunder og MB per sekund som byte per sekund:
+
+| Serier | Hva de inneholder |
+| --- | --- |
+| `powermax_array_*` | Arrayet: modell og mikrokode, brukbar, brukt og lovet kapasitet, datareduksjon, helsescorer, om Unisphere samler inn ytelsesdata, og 5-minutters svartider, IOPS, gjennomstrømning, hurtigbuffer- og belastningstall |
+| `powermax_alert_open` | Én serie per varsel Unisphere har åpent for arrayet, fra Minor og oppover, til noen bekrefter eller fjerner det |
+| `powermax_storage_group_*` | Hver lagringsgruppe: kapasitet og volumer, 5-minutters svartider, IOPS og gjennomstrømning, og 5-sekunders tall når den er registrert for sanntid |
+| `powermax_volume_*` | Hvert volum i en lagringsgruppe: kapasiteten, og tallene når lagringsgruppen er registrert for sanntid |
+| `powermax_srp_*` | Hver lagringsressurspool: kapasitet og svartid |
+| `powermax_director_*` | Hver director: rolle, status og belastningstall, og `powermax_director_offline` så lenge den ikke er online |
+| `powermax_port_*` | Hver port: protokoll, hastighet, lysnivåer og belastningstall, og `powermax_port_offline` så lenge en port noen er avhengig av, er nede |
+| `powermax_srdf_group_*` | Hver SRDF-gruppe: eksternt array og moduser, etterslep og gjennomstrømning, og `powermax_srdf_group_not_healthy` så lenge den er suspendert eller offline |
+
+- **Hvert 5. minutt**, eller hvert 10. for å skåne en travel Unisphere (**Flere felt** i tilkoblingens skjema): Unisphere beregner ytelse hvert 5. minutt.
+- **Bare arrayene Unisphere selv administrerer.** De eksterne arrayene den ser via SRDF, vises på tilkoblingens side og leses av Unisphere-en på deres egen lokasjon: koble til den også.
+- **Opptil 5,000 lagringsgrupper og 10,000 volumer per array**, og 200 nye varsler per innsamling (resten kommer i de neste). Er en liste avkortet, står det på tilkoblingens side.
+- **Unisphere 10.1 og 10.2** viser ingen porter eller SRDF-grupper til en skrivebeskyttet konto: sonden leser directorene én etter én, henter SRDF-gruppene fra lagringsgruppene og sier fra om det.
+
+## Dell PowerScale
+
+Agenten leser en Dell PowerScale-klynge (Isilon) over SNMP, fra Dells ISILON-MIB, med collectorens egen SNMP-mottaker: uten API-token, og ingenting kjører ved siden av collectoren. En klynge er ett lagringsarray, og nodene, kvotene, diskene, sensorene og portene er inventaret.
+
+- **Hver node avspørres på sin egen adresse.** En node svarer på SNMP bare for sine egne disker, sensorer og porter, så agenten avspør hver node via adressen på nettverket agenten når, aldri via navnet på SmartConnect-sonen, som sender hver avspørring videre til en node den selv velger. En klynge har opptil 252 noder.
+- **Klyngens egne objekter leses én gang, gjennom den første noden:** helse, kapasitet, gjennomstrømning, CPU og antall noder hvert 60. sekund (`snmp/cluster`), og SmartQuotas hvert 5. minutt (`snmp/quotas`). Hver nodes helse, CPU, protokollytelse (NFS, SMB, S3, HDFS og resten), disker, sensorer og porter leses fra noden selv hvert 60. sekund (`snmp/node-<n>`).
+- **Avlesninger OneFS gir som tekst eller i andre enheter** (sensoravlesninger, CPU i tideler av en prosent, gjennomstrømning i bit) gjøres om til tall av collectoren før den sender dem, så hvert diagram og hver mal leser en enkel gauge.
+
+### Slå på SNMP på klyngen
+
+Koble til en hvilken som helst node med SSH som administrator: OneFS bruker SNMP-innstillingene på hele klyngen. Hvis klyngen allerede svarer på SNMP for et annet verktøy, gir du agenten samme skrivebeskyttede community eller SNMPv3-bruker og hopper over dette trinnet. Ellers slår du på SNMP-tjenesten og SNMP v2c med en egen skrivebeskyttet community, ikke OneFS' standard-community `I$ilonpublic`:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+Eller slå på SNMPv3, som autentiserer og krypterer hver avspørring. OneFS har én skrivebeskyttet SNMPv3-bruker, `general`, til du gir den nytt navn: gi den passord på minst åtte tegn, uten mellomrom:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` viser innstillingene, med autentiserings- og personvernprotokollene til brukeren. Tillat UDP 161 fra maskinen til agenten til hver node, og vis adressene til nodene med `isi network interfaces list`.
+
+### Installer agenten på en PowerScale-klynge
+
+Kjør installasjonsskriptet med PowerScale-konfigurasjonen:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+Skriptet spør etter OneUptime-URL-en din, inntaksnøkkelen og et navn på klyngen, deretter etter adressene til alle nodene, atskilt med komma, og SNMP-versjonen, deretter etter den skrivebeskyttede communityen, eller SNMPv3-brukeren og de to passordene, som hvert leses uten ekko. En bruker med andre protokoller enn SHA og AES trenger `POWERSCALE_SNMP_AUTH_PROTOCOL` og `POWERSCALE_SNMP_PRIVACY_PROTOCOL` foran `bash install.sh`, og en bruker uten personvern `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`. Skriptet skriver én avspørring per node i `.env`:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+Når klyngen får en ny node, legger du adressen til i `POWERSCALE_NODES` i `.env` og kjører `install.sh` på nytt: det skriver avspørringen for noden og oppretter agenten på nytt. Med Docker Compose laster du ned `docker-compose.yml` og `otel-collector-config.powerscale.yaml` og setter disse linjene i hurtigstartens `.env` i stedet for linjene `STORAGE_SYSTEM`, `STORAGE_ARRAY_COLLECTOR_CONFIG` og `POWERSCALE_*` der. `troubleshoot.sh` spør hver node om klyngens navn med `snmpget` når maskinen har det.
+
+### Hva sidene til en PowerScale viser
+
+Klyngens **Oversikt** henter helsen fra den OneFS selv rapporterer, teller nodene og kvotene og tegner latens og belastning for hver protokoll, gjennomstrømning, de travleste nodene og brukt kapasitet. **Noder** viser hver node med helse, modell, OneFS-versjon, CPU og gjennomstrømning; **Kvoter** viser hver kvote med hvor mye av grensen den bruker, den største først; **Maskinvare** viser diskene til hver node, viftene og temperatur- og strømsensorene med avlesningene, og portene. Kapasiteten er den til `/ifs`, og plassen OneFS holder av til virtuelle hot spares, teller som brukt: den er ikke tilgjengelig for skrivinger.
+
+### Hva agenten ikke leser ennå
+
+- **Hendelsene til OneFS og lagringspoolene.** SNMP bærer ingen av dem: de kommer fra OneFS-API-et, som en OneUptime-sonde skal lese ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). Inntil da sender du hendelsene som SNMP-traps til en [egendefinert sonde](/docs/probe/custom-probe) og legger til nodene i klyngen i den som [nettverksenheter](/docs/monitor/network-device-monitor): trapsene kommer inn på UDP 162, og kriteriene **SNMP-trap mottatt (trap-OID)** varsler på dem. For SNMPv3-traps gir du nettverksenhetene klyngens SNMPv3-bruker ([SNMPv3-traps og -informs](/docs/monitor/network-device-monitor#snmpv3-traps-og-informs)). Opprett kanalen på klyngen og send et varsel til den:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **Datareduksjon**, som OneFS bare rapporterer over API-et sitt, kommer med den samme sonden.
 
 ## Feilsøking
 
@@ -439,6 +579,10 @@ Les Harvests logg: `docker compose logs netapp-harvest`. En `401` eller `Unautho
 Les eksportørens logg med `docker compose logs powerstore-exporter`: en `401` betyr feil brukernavn eller passord, og en `403` på `latest_five_min_metrics` betyr at brukerens rolle ikke kan slå på arkivet med massemålinger (gi den **Storage Operator**, eller sett `POWERSTORE_BULK_METRICS=false` på en PowerStoreOS eldre enn 4.1). Eksportøren trenger et minutt etter oppstart før den svarer. Ingen varsler på siden **Logger**: sjekk klyngens innstillinger for _Remote Logging_, brannmuren på port 5514 og `docker compose logs powerstore-syslog`.
 :::
 
+:::details En PowerScale-klynge eller -node sender ingenting
+`Error scraping metrics` med `request timeout` i loggen til collectoren peker på en node som ikke svarer på SNMP fra maskinen til agenten: SNMP er slått av for versjonen agenten bruker, communityen eller SNMPv3-brukeren er ikke klyngens, eller UDP 161 er blokkert. `bash troubleshoot.sh` spør hver node med `snmpget`. En node som svarer, men mangler under **Noder**, står ikke i `POWERSCALE_NODES`: legg den til og kjør `install.sh` på nytt.
+:::
+
 :::details Slettede volumer eller verter blir værende i inventaret
 OneUptime fjerner et objekt når en fullstendig scrape av endepunktet ikke lenger har det, noe den kjenner igjen på etiketten `scrape_endpoint`. Hvis du har erstattet den medfølgende collector-konfigurasjonen med din egen, behold etikettene `scrape_endpoint` på scrape-jobbene; ellers forlater objekter inventaret først når de blir foreldet.
 :::
@@ -449,6 +593,18 @@ OneUptime registrerer et lagringsarray etter `storage.array.name`, som agenten t
 
 :::details Sende målinger uten agenten
 Agenten er én vanlig collector-konfigurasjon, så collectorer du allerede kjører, kan gjøre den samme jobben: Kopier scrape-jobbene og prosessoren `resource` fra den medfølgende konfigurasjonen inn i din egen. Ressursattributtet `storage.array.name` er det som registrerer arrayet i OneUptime, og slettingene av `service.name` / `service.instance.id` hindrer at dataene arkiveres under en tjeneste: Behold begge, og behold etikettene `scrape_endpoint`.
+:::
+
+:::details Tilkoblingstesten sier at Unispheres sertifikat ikke er klarert
+Unisphere for PowerMax signerer sitt eget sertifikat med mindre noen har installert et fra en sertifiseringsinstans. Sammenlign fingeravtrykket testen viser, med Unispheres eget, klikk deretter på **Stol på dette sertifikatet**, og test på nytt. Når Unispheres sertifikat fornyes, stopper innsamlingen med **Serverens sertifikat er endret** til du stoler på det nye: ingenting sendes til Unisphere før det.
+:::
+
+:::details Tilkoblingstesten sier at kontoen ikke har tilgang til å lese arrayene
+Unisphere svarer `403` for en konto uten rolle på arrayet. Gi brukeren rollen **Monitor** på hvert array under **Settings → Users and Groups**, og **PerfMonitor** for ytelse. Et array kontoen ikke har noen rolle på, vises på tilkoblingens side med årsaken, og de andre leses.
+:::
+
+:::details En PowerMax viser ingen svartider eller IOPS
+Unisphere samler ikke inn ytelsesdata for arrayet, eller kontoen mangler **PerfMonitor**: tilkoblingens side sier hvilken av delene. Slå på innsamlingen **Diagnostic** under **Settings → Performance → System Registrations**. Tallene for et volum, og for en lagringsgruppe hvert 5. sekund, krever at lagringsgruppen også er registrert for **Real Time** der.
 :::
 
 ## Neste trinn

@@ -206,7 +206,7 @@ Hver slags når OneUptime som almindelige logs:
 | Kubernetes-auditlogs | API-serverens auditlogfil, læst af collectorens `filelog`-receiver |
 | Webangreb | En webservers adgangslog, læst af collectorens `filelog`-receiver |
 
-På **Dine logs** viser hver slags, hvornår den sidst blev fundet, og **Tjek en loglinje** viser, hvad en linje, du indsætter, bliver til, før der kommer nogen.
+På **Dine logs** viser hver slags, hvornår den sidst blev fundet, og **Tjek en loglinje** viser, hvad en linje, du indsætter, bliver til, før der kommer nogen. OneUptime læser linjen, som scanningerne læser dine logs, med dine [betroede proxyer](#betroede-proxyer) og dine adgangslogs' indstillinger, så den angiver den klient, som den gemte begivenhed vil angive, og gemmer intet.
 
 En trussel, som et sikkerhedsprodukt skriver i dine logs, for eksempel et CEF- eller LEEF-fund eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åbner en [sag](/docs/telemetry/security-cases), som et forbundet produkts advarsel gør, og øger risikoen for den bruger, vært eller adresse, den nævner. **Åbn sager fra** på **Dine logs** angiver, fra hvilken alvorlighed: **Høj og højere**, medmindre du vælger en anden, eller **Aldrig**. Produktets logins og blokerede forbindelser forbliver hændelser, som dine regler kan læse.
 
@@ -299,6 +299,8 @@ En begivenhed nævner kun den adresse, en anmodning kom fra, når anmodningens a
 
 En angivet adresse blokeres aldrig fra en sag: Alle kan sende `X-Forwarded-For: 192.0.2.44`, og en blokering ville afskære den, der nu end har 192.0.2.44. En begivenhed med kun en angivet adresse har en **Responsplan**, der beder dig finde den rigtige i din load balancers eller firewalls logs.
 
+En begivenhed, hvis klient en proxy, du stoler på, har videresendt, angiver, hvilke proxyer den kom igennem, som **Videresendt af**: i den rækkefølge, `X-Forwarded-For` angiver dem, med forbindelsens egen adresse sidst. De står i `oneuptime.request.forwarded_by`, og **Tjek en loglinje** fortæller, hvorfor hver af dem er betroet.
+
 Registrér to ting på din apps serverspans, så dens adresser er verificerede: forbindelsens egen adresse, `network.peer.address`, som OpenTelemetrys HTTP-instrumenteringer sætter, og bag en proxy headeren `X-Forwarded-For`, som de registrerer som `http.request.header.x-forwarded-for`, når du angiver den i `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. En JSON-adgangslog læses på samme måde: Dens klientfelt, såsom `remote_addr`, er forbindelsens adresse, og dens felt `http_x_forwarded_for` er headeren.
 
 #### Betroede proxyer
@@ -311,10 +313,15 @@ Sikkerhedshændelser tror på, hvad en proxy siger om, hvem dens klient var, nå
 | Angivet under **Betroede proxyer** | Du har angivet den |
 | I de offentliggjorte intervaller for en edge, du har forbundet, såsom [Cloudflare](/docs/integrations/cloudflare) | Så længe forbindelsen findes |
 | En af dine egne application load balancere | Medmindre du slår det fra |
+| En af Googles front-ends bag din Google Cloud Application Load Balancer | Sammen med dine load balancere, medmindre en TCP- eller SSL-proxy-load-balancer, du har, også forbinder fra dem |
 
-**Sikkerhedshændelser → Forbindelser → Yderligere indstillinger** rummer **Betroede proxyer**, listen du skriver, og **Betroet automatisk**, som viser resten og hvorfor. Angiv en proxy under **Betroede proxyer**, én adresse eller ét interval på hver linje, når dens adresse er offentlig, og intet andet stoler på den: et CDN, du ikke har forbundet, en load balancer, der når din app over internettet, eller en reverse proxy såsom nginx på en server med en offentlig adresse foran din app. Indtil du gør det, tilskrives hvert angreb gennem den selve proxyen. Bag en global ekstern Application Load Balancer i Google Cloud kommer din apps forbindelser fra Googles front-ends: Angiv `35.191.0.0/16` og `130.211.0.0/22`.
+En proxy, der arbejder på TCP-niveau, føjer intet til `X-Forwarded-For`: Den sender den header videre, som klienten skrev. Eksempler er en Network Load Balancer, HAProxy i `mode tcp` og en Kubernetes-Service med `externalTrafficPolicy: Cluster`, som giver din ingress hver forbindelse fra en nodes adresse. På en privat adresse er sådan en proxy betroet, så en klient bag den kunne vælge den adresse, et angreb tilskrives. Bag en sådan skal du beholde klientens egen adresse på forbindelsen, med bevarelse af klient-IP eller `externalTrafficPolicy: Local`, og hverken registrere eller logge `X-Forwarded-For`.
+
+**Sikkerhedshændelser → Forbindelser → Yderligere indstillinger** rummer **Betroede proxyer**, listen du skriver, og **Betroet automatisk**, som viser resten og hvorfor. Angiv en proxy under **Betroede proxyer**, én adresse eller ét interval på hver linje, når dens adresse er offentlig, og intet andet stoler på den: et CDN, du ikke har forbundet, en load balancer, der når din app over internettet, eller en reverse proxy såsom nginx på en server med en offentlig adresse foran din app. Indtil du gør det, tilskrives hvert angreb gennem den selve proxyen. Et interval, der er bredere end en proxys, såsom `0.0.0.0/0`, afvises: Det ville stole på alle adresser, så enhver kunne vælge den adresse, et angreb tilskrives. En Projektejer, Projektadministrator eller Sikkerhedsadministrator redigerer listen, og hver ændring står i projektets [auditlog](/docs/configuration/audit-logs).
 
 Dine egne application load balancere er dem, dine [forbundne cloudkonti](/docs/telemetry/cloud-accounts) viser: AWS Application Load Balancers, AWS Classic Load Balancers, hvis listeners alle er HTTP eller HTTPS, Google Cloud Application Load Balancers og Azure Application Gateways, med deres offentlige adresser. Hver føjer den klient, den videresender, til `X-Forwarded-For`. En load balancer i Google Cloud tilføjer sin egen adresse efter klientens, og en Application Gateway når en offentlig backend fra sin egen adresse, så uden dem ville hvert angreb gennem en af dem blive tilskrevet load balanceren. **Dine load balancere** på **Betroet automatisk** viser dem, og en Projektejer, Projektadministrator eller Sikkerhedsadministrator kan slå det fra.
+
+Bag en global ekstern Application Load Balancer i Google Cloud, eller en klassisk, kommer din apps forbindelser fra Googles front-ends, ikke fra load balancerens egen adresse. Så længe et forbundet Google Cloud-projekt har en, stoler Sikkerhedshændelser derfor også på front-endenes intervaller: `35.191.0.0/16`, `130.211.0.0/22` og `2600:2d00:1:1::/64`, som Googles [firewallregler for load balancing](https://cloud.google.com/load-balancing/docs/firewall-rules) angiver dem. **Dine load balancere** viser dem på listens sidste linje sammen med de load balancere, der bringer dem, og dens kontakt slår også dem fra. Ingen uden for Google forbinder fra disse intervaller, og at stole på dem lader aldrig nogen angive en klient: En anmodning gennem en andens load balancer slutter sin `X-Forwarded-For` med den load balancers adresse, som ikke er din, så begivenheden angiver den. Men Googles TCP- og SSL-proxy-load-balancere forbinder fra de samme intervaller og sender en anmodning videre, som klienten sendte den, så så længe en af dine findes, eller ikke alle load balancere kunne vises, er intervallerne ikke betroede, og linjen fortæller hvorfor. Hvis sådan en load balancer ligger i et Google Cloud-projekt, du ikke har forbundet, så forbind det, eller slå **Dine load balancere** fra.
 
 Intet andet af dit er automatisk betroet: ikke dine værter, Kubernetes-noder, sonder eller virtuelle maskiner, en NAT-gateway eller en Network, Gateway eller Azure load balancer. De videresender ingen, eller de sender en anmodning videre, som den kom, så det, der kører på dem, kunne angive en hvilken som helst klient: en anmodning, som en monitor sender med sine egne headere, en pod, en bærbar bag gatewayen. Hvis en af dem er din proxy, så tilføj den til **Betroede proxyer**. En Kubernetes-ingress er betroet som den load balancer, den er: En GKE-ingress er en Google Cloud Application Load Balancer, en AKS-ingress til Application Gateway en Application Gateway, og en EKS-ingress af klassen `alb` en AWS Application Load Balancer. En ingress-controller i dit cluster videresender fra en privat adresse, som altid er betroet.
 
@@ -337,6 +344,25 @@ En linje siger aldrig, hvad dens felter er, så dens sidste felt læses først s
 - når det felt er `-` eller en liste af adresser, hvis sidste ikke har nogen port.
 
 Lad det være slået fra, når dit format slutter med en anden header, der indeholder en adresse, såsom `X-Real-IP`, eller når din webserver skriver headere uden at escape deres anførselstegn, som `morgan` til Express gør: En anmodnings egen user agent kunne så tilføje et felt. En JSON-adgangslog behøver ingen kontakt, da dens felter har navne.
+
+#### Dit eget logformat
+
+Hvis dine webservere sætter `X-Forwarded-For` et andet sted end sidst, så angiv deres format: **Logformat** på **Adgangslogs** under **Yderligere indstillinger**. Indsæt dit `log_format` til nginx, som din `nginx.conf` skriver det, eller start fra et kendt format, nginx' `main` eller ingress-nginx' `upstreaminfo`. For eksempel et format, der efter headeren logger, hvor lang tid hver anmodning tog:
+
+```nginx
+log_format timed '$remote_addr - $remote_user [$time_local] "$request" '
+                 '$status $body_bytes_sent "$http_referer" '
+                 '"$http_user_agent" "$http_x_forwarded_for" $request_time';
+```
+
+Hver linje i dit format læses felt for felt: adressen, der forbandt sig, fra `$remote_addr`, og `X-Forwarded-For` fra `$http_x_forwarded_for`, hvor formatet end placerer den. Den læses som enhver `X-Forwarded-For`: kun når `$remote_addr` er en proxy, du stoler på, og fra højre. Intet andet felt tages nogensinde for nogen af dem, og en linje, der ikke er i dit format, læses som før, hvor **Logs slutter med X-Forwarded-For** afgør dens sidste felt.
+
+- nginx escaper de anførselstegn, en klient sender, som `\x22`, så hvert anførselstegn i en linje er et af dit formats. En linje med flere anførselstegn end dit format, som en server, der ikke escaper dem, skriver (`escape=none`, `morgan` til Express), er ingen linje i dit format, og intet i den læses som en sådan.
+- **Logformat** afviser et format, hvis `X-Forwarded-For` eller `$remote_addr` ikke kan skelnes fra felterne ved siden af, såsom en header uden anførselstegn mellem to felter, som en klient skriver, og beder dig sætte den i anførselstegn, som `"$http_x_forwarded_for"`.
+- ingress-nginx' `upstreaminfo` logger ingen `X-Forwarded-For`, så hver linjes klient er dens `$remote_addr`. Står en Application Load Balancer eller en anden HTTP-proxy foran den, så tilføj `"$http_x_forwarded_for"` til din `log-format-upstream` for at læse den klient, den videresendte. Bag en Network Load Balancer, som sender den header videre, klienten skrev, skal du lade være.
+- Når nginx selv sætter `$remote_addr` ud fra `X-Forwarded-For`, med sit realip-modul eller ingress-nginx' `use-forwarded-headers`, tror den på enhver, som `set_real_ip_from` eller `proxy-real-ip-cidr` angiver, og ingress-nginx' standard angiver alle. Log den adresse, der virkelig forbandt sig, `$realip_remote_addr`, ved siden af `$http_x_forwarded_for`: Sikkerhedshændelser læser så `$realip_remote_addr` som forbindelsen, `$remote_addr` kun som en påstand, og afgør det med dine betroede proxyer.
+
+En Projektejer, Projektadministrator eller Sikkerhedsadministrator angiver det, og hver ændring står i projektets auditlog.
 
 ### Skjult af en rensningsregel
 
@@ -394,9 +420,9 @@ En forespørgsel om en fil med hemmeligheder, såsom `/.env`, `/.git/config`, `/
 - En type, der ikke er en webside, såsom `text/plain` eller `application/octet-stream`: selve filen.
 - En webside, eller JSON for en fil, der ikke er JSON: dit websteds egen side.
 - Intet i svaret: intet blev taget.
-- En størrelse og ingen type, som en webservers adgangslog registrerer svaret: selve filen, når ingen anden sti fik den størrelse og dit websted svarer 404 for de stier, det ikke har, og dit websteds egen side, når den samme størrelse besvarede to forskellige stier. Når intet afgør det, bliver forespørgslen ikke til en begivenhed.
+- En størrelse og ingen type, som en webservers adgangslog registrerer svaret: selve filen, når ingen anden sti fik den størrelse og dit websted svarer 404 for de stier, det ikke har, og dit websteds egen side, når den samme størrelse besvarede to forskellige stier. En forespørgsel uden noget ved siden af, såsom en scanners enlige `/.env`, bedømmes ud fra, hvad dit websted svarede det seneste døgn. Når intet afgør det, bliver forespørgslen ikke til en begivenhed.
 
-En leveret fil får alvorligheden Kritisk, og regelbibliotekets regel **Sensitive file served** åbner en sag om den med trin til at fjerne filen og rotere det, den indeholder. Hver af disse forespørgsler tæller også med i **Scanning for sensitive files**, også dem fra en single-page-app. En administrationsside, dit websted leverer, såsom WordPress', er aldrig en af dem, og en `wp-config.php`, som WordPress kørte, er dit websteds egen side. Cloudflares firewallhændelser siger ikke, hvad din oprindelse sendte, så en forespørgsel, Cloudflare lod passere, tæller kun med i scanningen. En begivenheds panel viser, hvad dit websted sendte, under **Hvad der skete bagefter**.
+En leveret fil får alvorligheden Kritisk, og regelbibliotekets regel **Sensitive file served** åbner en sag om den med trin til at fjerne filen og rotere det, den indeholder. Hver af disse forespørgsler tæller også med i **Scanning for sensitive files**, også dem fra en single-page-app. En administrationsside, dit websted leverer, såsom WordPress', er aldrig en af dem, og en `wp-config.php`, som WordPress kørte, er dit websteds egen side. Cloudflares firewallhændelser siger ikke, hvad din oprindelse sendte, så en forespørgsel, Cloudflare lod passere, tæller kun med i scanningen. En begivenheds panel viser, hvad dit websted sendte, under **Hvad der skete bagefter**. Et projekt, der slog de anbefalede regler til, før **Sensitive file served** var en af dem, og som kører alle de andre, fik den ved opgraderingen, og **Oversigt** siger det.
 
 ### Campaigns
 

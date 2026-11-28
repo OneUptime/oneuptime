@@ -394,6 +394,17 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`XO_URL\` | Install script | Xen Orchestra's address as typed; the script derives \`XO_SCHEME\` and \`XO_ADDRESS\` from it |
 | \`XO_TLS_FINGERPRINT\` | Install script | The SHA-256 fingerprint of Xen Orchestra's own certificate, when the agent trusts that certificate and nothing else |
 | \`XO_CA_FILE\` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the script copies to \`${XCP_NG_AGENT_CA_FILE}\` |
+| \`ONEUPTIME_AI_XO_READ_TOKEN\` | No | A token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else: the XCP-ng AI agent runs when it is set, and reads with it |
+| \`ONEUPTIME_AI_XO_WRITE_TOKEN\` | No | Only for fixes: a token of another user, whose role allows them. The AI agent changes nothing without it |
+| \`XCP_NG_POOL_ID\` | No | The XAPI UUID of the pool the AI agent serves (default: the one pool its read token can see) |
+| \`ONEUPTIME_AI_AGENT_RESOURCE_NAME\` | No | Overrides \`XCP_NG_POOL_ID\` as the pool the AI agent registers as |
+| \`ONEUPTIME_AI_INVESTIGATION\` | No | \`true\` or \`false\`: whether OneUptime AI may run the AI agent's read-only commands while it investigates (default: on) |
+| \`ONEUPTIME_AI_FIXES\` | No | \`off\`, \`ask-for-approval\`, \`automatic\` or \`bypass-approval\`: how OneUptime AI may apply a fix |
+| \`ONEUPTIME_AI_ALLOW_WRITES\` | No | \`true\` lets the AI agent apply fixes, with the token for changes. Anything else keeps it read-only |
+| \`ONEUPTIME_AI_WRITE_TARGETS\` | No | The \`vm/<uuid>\`, \`host/<uuid>\`, \`pbd/<uuid>\` or \`schedule/<uuid>\` a fix may touch, comma-separated (default: all) |
+| \`ONEUPTIME_AI_PROTECTED_TARGETS\` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |
+| \`LOG_LEVEL\` | No | The AI agent's log level: \`debug\`, \`info\` (default), \`warn\` or \`error\` |
+| \`COMPOSE_PROFILES\` | No | \`xcp-ng-ai-agent\` starts the AI agent; the install script writes it when the read token is set |
 
 The agent checks Xen Orchestra's certificate against \`${XCP_NG_AGENT_CA_FILE}\`, next to \`docker-compose.yml\`.`,
   };

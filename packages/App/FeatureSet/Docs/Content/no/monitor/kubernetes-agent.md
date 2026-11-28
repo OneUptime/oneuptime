@@ -384,6 +384,7 @@ Profilering krever **Linux 5.10** eller nyere og en privilegert pod med nodens p
 | `logs.mode` | (fra `preset`) | `daemonset`, `api` eller `disabled`. Overstyrer presetet. |
 | `logs.windowsPods.enabled` | `false` | Følger også pods på Windows-noder. Se [Clustere med flere operativsystemer](#clustere-med-flere-operativsystemer-windows-nodepooler). |
 | `logs.api.replicas` | `1` | Replikaer av logg-taileren, i modusen `api`. |
+| `logs.extraOperators` | `[]` | Dine egne collector-operatorer, for et loggformat agenten ikke leser, i modusen `daemonset`. Se [Lese ditt eget loggformat](/docs/telemetry/kubernetes-agent#lese-ditt-eget-loggformat). |
 | `ebpf.enabled` | `true` | eBPF-spor og forespørselsmålinger. Se [Applikasjonsspor med eBPF](#applikasjonsspor-med-ebpf). |
 | `profiling.enabled` | `false` | CPU-flammegrafer. Se [Kontinuerlig CPU-profilering](#kontinuerlig-cpu-profilering). |
 | `kubeStateMetrics.enabled` | `false` | Clustertilstand fra kube-state-metrics. |

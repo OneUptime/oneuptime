@@ -31,6 +31,9 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunService from "../../../Services/AIRunService";
 import ProjectService from "../../../Services/ProjectService";
 import FixRunBudget, { FixRunBudgetDecision } from "../CodeFix/FixRunBudget";
+import CodeFixPersonRepository, {
+  CodeFixRepositoryUse,
+} from "../CodeFix/CodeFixPersonRepository";
 import CodeFixStartGate, { CodeFixStart } from "../CodeFix/CodeFixStartGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
 import CodeTaskThread from "../CodeTask/CodeTaskThread";
@@ -57,7 +60,9 @@ import {
   InvestigationCodeFixSuggestion,
   InvestigationCodeFixSuggestionInput,
   NO_INVESTIGATION_CODE_FIX_SUGGESTION,
+  PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES,
 } from "../../../../Utils/Suggestions/InvestigationCodeFixSuggestion";
+import { CodeFixRepositoryChoice } from "../../../../Utils/Suggestions/CodeFixRepositoryPick";
 
 /*
  * AI SRE — the FixFromIncident trigger (the roadmap's headline `code_fix`
@@ -65,11 +70,19 @@ import {
  *
  * HUMAN-TRIGGERED: after an AI investigation posts a root-cause analysis on
  * an incident or alert and records a Recommended code-fix decision, the user
- * can click "Open Fix PR from this analysis" on the investigation panel: the
- * agent takes the immutable stored copy of that posted analysis as its
- * context and opens a fix pull request. No project opt-in flag is needed for
- * this form, but the durable recommendation remains a server-side gate so a
- * stale or forged client cannot turn a non-code investigation into a PR.
+ * can click "Open fix pull request" in the Remediation step of the
+ * record's OneUptime AI card: the agent takes the immutable stored copy of
+ * that posted analysis as its context and opens a fix pull request. No
+ * project opt-in flag is needed for this form, but the durable
+ * recommendation remains a server-side gate so a stale or forged client
+ * cannot turn a non-code investigation into a PR. The click starts a code
+ * task on the person's behalf, so it is held to the repositories they may
+ * use in Code - read, and ask OneUptime AI to work in - as every Fix with
+ * AI is (CodeFixPersonRepository, #11209): a pick they may not use is
+ * refused, without one the record's monitor is resolved among theirs only,
+ * and the run is held to the repository decided, when it is queued and
+ * when it starts. It used to be made wherever the monitor's name pointed,
+ * for anyone who may read the record.
  *
  * AUTOMATIC: while the subject lane's fixing switch ("Fix new incidents
  * automatically" or alerts) is on, and the project has no auto remediation
@@ -86,7 +99,13 @@ import {
  * for review, in one of the repositories the matching rules name (every
  * connected one when they name none), and is always human-reviewed — the
  * setting moves the human gate from PR creation to PR review, never past it.
+ * No person started it, so no person's repositories hold it: the rules'
+ * repositories do (allowedCodeRepositoryIds), as before.
  */
+
+// No repository the agent could open the fix pull request in.
+export const NO_CONNECTED_REPOSITORY_FOR_CODE_FIX_MESSAGE: string =
+  "No connected repository exists for this project, so the agent has nowhere to open the fix pull request. Connect one in Code.";
 
 export interface AutoFixTaskGateInput {
   // The project row with enableAi and the subject lane's fixing switch selected.
@@ -128,13 +147,17 @@ export default class FixFromIncidentTaskTrigger {
   /*
    * Gate and enqueue a FixFromIncident CodeFix run for the subject. The
    * caller must already have access-checked the subject under the USER's
-   * permissions — this method reads and writes as root. Exactly one of
-   * incidentId/alertId is expected; userId is the clicking user
-   * (attribution on the run).
+   * permissions. The repository the run works in is held to the ones the
+   * person may use in Code, under `props` (#11209); everything else is
+   * read and written as root. Exactly one of incidentId/alertId is
+   * expected; userId is the clicking user (attribution on the run).
    *
-   * Throws BadDataException naming the failed gate: no latest
-   * completed/recommended investigation, no GitHub-App repository, or a
-   * duplicate active run.
+   * Throws naming the failed gate: no latest completed/recommended
+   * investigation, no connected repository, a duplicate active run, a
+   * repository the person may not use (a pick they may not read or ask AI
+   * in, or none of the connected ones theirs to ask in), what Code's gate
+   * says about the run (CodeFixStartGate, as an error of its kind: the plan
+   * and the bill first, as payment required), or a pick to make.
    */
   @CaptureSpan()
   public static async createFixTaskFromInvestigation(data: {
@@ -143,6 +166,13 @@ export default class FixFromIncidentTaskTrigger {
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     userId: ObjectID;
+    // Who clicked, as their request reads: whose repositories the fix may use.
+    props: DatabaseCommonInteractionProps;
+    /*
+     * The repository the person picked, when the Remediation step asked for
+     * a pick: several are theirs, and none is named like the monitor.
+     */
+    repositoryId?: ObjectID | undefined;
   }): Promise<AIRun> {
     if (!data.investigationRunId) {
       throw new BadDataException(
@@ -279,9 +309,7 @@ export default class FixFromIncidentTaskTrigger {
       await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
 
     if (!hasConnectedRepository) {
-      throw new BadDataException(
-        "No connected repository exists for this project, so the agent has nowhere to open the fix pull request. Connect one in Code.",
-      );
+      throw new BadDataException(NO_CONNECTED_REPOSITORY_FOR_CODE_FIX_MESSAGE);
     }
 
     /*
@@ -303,16 +331,41 @@ export default class FixFromIncidentTaskTrigger {
       );
     }
 
+    const taskContext: CodeFixTaskContext = {
+      sourceInvestigationRunId: data.investigationRunId.toString(),
+      sourceInvestigationAnalysisMarkdown: analysisMarkdown,
+    };
+
+    /*
+     * Gate 4: the repository the person's click has the run made in, among
+     * the ones they may use in Code, with what Code's gate says about it -
+     * the bill and the plan first (CodeFixPersonRepository, #11209). The
+     * run is queued on it, and held to it when it starts.
+     */
+    const codeRepositoryId: ObjectID =
+      await CodeFixPersonRepository.decideRepository({
+        projectId: data.projectId,
+        taskType: CodeFixTaskType.FixFromIncident,
+        taskContext,
+        person: data.props,
+        pickedRepositoryId: data.repositoryId,
+        incidentId: data.incidentId,
+        alertId: data.alertId,
+        refusals: {
+          noConnectedRepository: NO_CONNECTED_REPOSITORY_FOR_CODE_FIX_MESSAGE,
+          pickARepository:
+            PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES[subjectLabel],
+        },
+      });
+
     return SubjectCodeFixRun.enqueueSubjectCodeFixRun({
       projectId: data.projectId,
       taskType: CodeFixTaskType.FixFromIncident,
       incidentId: data.incidentId,
       alertId: data.alertId,
       userId: data.userId,
-      taskContext: {
-        sourceInvestigationRunId: data.investigationRunId.toString(),
-        sourceInvestigationAnalysisMarkdown: analysisMarkdown,
-      },
+      taskContext,
+      codeRepositoryId,
     });
   }
 
@@ -333,6 +386,12 @@ export default class FixFromIncidentTaskTrigger {
    * it, for `reader`: one a reply carried a private incident or alert into
    * that they do not see says it is there, and nothing more
    * (HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION).
+   *
+   * The pull request it would open is offered by the rule the click is
+   * held to (CodeFixPersonRepository, #11209): resolved among the
+   * repositories `reader` may use in Code, with the ones to pick from when
+   * the monitor names none of them - and a reader who may use none is
+   * offered nothing, unless the bill or the plan stops everyone first.
    */
   @CaptureSpan()
   public static async getSuggestionForSubject(data: {
@@ -482,21 +541,58 @@ export default class FixFromIncidentTaskTrigger {
      * still connected does not change what the step links to.
      */
     const hasFix: boolean = Boolean(activeRun || finishedFix);
-    const hasConnectedRepository: boolean = hasFix
+    let hasConnectedRepository: boolean = hasFix
       ? true
       : await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
 
-    // Code's gate: only where it decides the answer - no fix yet, a repository.
-    let blocker: SuggestionBlocker | null = null;
+    /*
+     * The connected repositories the reader may use in Code (#11209),
+     * weighed only where they decide the answer: no fix yet, and a
+     * repository to work in. None OneUptime AI can work in after all (a
+     * GitHub installation that is no longer the project's) is a repository
+     * to connect, as no repository at all is.
+     */
+    let use: CodeFixRepositoryUse | null = null;
 
     if (!hasFix && hasConnectedRepository) {
+      use = await CodeFixPersonRepository.getUsableRepositories({
+        projectId: data.projectId,
+        props: data.reader,
+      });
+      hasConnectedRepository = use.connectedCount > 0;
+    }
+
+    // Code's gate: only where it decides the answer - no fix yet, a repository.
+    let blocker: SuggestionBlocker | null = null;
+    // The repositories to pick from, when the record resolves to none of them.
+    let repositories: Array<CodeFixRepositoryChoice> = [];
+
+    if (use && hasConnectedRepository) {
       const start: CodeFixStart = await CodeFixStartGate.check({
         projectId: data.projectId,
         taskType: CodeFixTaskType.FixFromIncident,
         taskContext: {
           sourceInvestigationRunId: latestInvestigation!.id!.toString(),
         },
+        // Resolved by the record's monitor, as the run resolves it.
+        incidentId: data.incidentId,
+        alertId: data.incidentId ? undefined : data.alertId,
+        // Among the repositories the reader may use, as a click is.
+        allowance: use.allowance,
       });
+
+      /*
+       * Repositories are connected, but none the reader may use in Code:
+       * nothing they could do here would open the pull request - unless
+       * what stops everyone in the project comes first (the bill, the
+       * plan), which the step says as Code would.
+       */
+      if (
+        use.usable.length === 0 &&
+        !CodeFixPersonRepository.isEveryonesBlocker(start.blocker)
+      ) {
+        return NO_INVESTIGATION_CODE_FIX_SUGGESTION;
+      }
 
       blocker = start.blocker
         ? toSuggestionBlocker(
@@ -504,6 +600,15 @@ export default class FixFromIncidentTaskTrigger {
             start.codeRepositoryId?.toString() || null,
           )
         : null;
+
+      /*
+       * The record's monitor names none of the reader's repositories for
+       * certain: the person picks one before the pull request opens - or
+       * the run would find none when it starts. Offered with Act alone.
+       */
+      if (!start.codeRepositoryId) {
+        repositories = CodeFixPersonRepository.getRepositoryChoices(use);
+      }
     }
 
     return getInvestigationCodeFixSuggestion({
@@ -528,6 +633,7 @@ export default class FixFromIncidentTaskTrigger {
             incidentId: data.incidentId,
             alertId: data.alertId,
           }),
+      repositories,
     });
   }
 

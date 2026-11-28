@@ -1421,7 +1421,7 @@ describe("Scan Now and Check Now", () => {
         storeRow = workerStore();
         storeRow.kind = DataStoreKind.AwsDynamoDbTable;
       },
-      "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+      "OneUptime cannot sample this kind of store's content yet.",
     ],
     [
       "a service's telemetry, which the hourly telemetry scan reads",
@@ -6086,6 +6086,13 @@ describe("the exposure assessment's routes", () => {
       refused: EXPOSURE_CHANGE_REFUSED,
       body: { places: [BreachPlace.Eea] },
     },
+    // Reading the store's access logs keeps what they say on the case (#10951).
+    {
+      name: "reading the store's access logs for the window",
+      path: DATA_SECURITY_API_ROUTES.readExposureLogs(":id"),
+      allowed: EXPOSURE_CHANGE,
+      refused: EXPOSURE_CHANGE_REFUSED,
+    },
   ];
 
   let exposureSpies: Array<jest.SpyInstance>;
@@ -6106,6 +6113,9 @@ describe("the exposure assessment's routes", () => {
         .mockResolvedValue({} as never),
       jest
         .spyOn(ExposureAssessmentDrafter, "setPeoplePlaces")
+        .mockResolvedValue({} as never),
+      jest
+        .spyOn(ExposureAssessmentDrafter, "readLogsForPerson")
         .mockResolvedValue({} as never),
     ];
   });
@@ -6131,6 +6141,9 @@ describe("the exposure assessment's routes", () => {
     );
     expect(DATA_SECURITY_API_ROUTES.exposurePeoplePlaces("x")).toBe(
       "/security-case/x/exposure-assessment/people",
+    );
+    expect(DATA_SECURITY_API_ROUTES.readExposureLogs("x")).toBe(
+      "/security-case/x/exposure-assessment/read-logs",
     );
   });
 

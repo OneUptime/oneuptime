@@ -421,6 +421,8 @@ describe("MCP RouteHandler (stateless mode)", () => {
         { type: "api-key", apiKey: "key-from-newer-client" },
         // Handed the answer's headers: a create names the fields it left out (#10136).
         expect.any(Function),
+        // The tool called, which a refusal of a write that asks a person names (#11177).
+        "create_project",
       );
     });
 
@@ -1365,6 +1367,7 @@ describe("MCP RouteHandler (stateless mode)", () => {
         expect.anything(),
         { type: "api-key", apiKey: "secret-key-123" },
         expect.any(Function),
+        "create_project",
       );
     });
 
@@ -1394,6 +1397,7 @@ describe("MCP RouteHandler (stateless mode)", () => {
         expect.anything(),
         { type: "api-key", apiKey: "bearer-key-456" },
         expect.any(Function),
+        "create_project",
       );
     });
 

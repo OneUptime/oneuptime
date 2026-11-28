@@ -63,6 +63,28 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_TLS_FINGERPRINT` | Installasjonsskript | SHA-256-fingeravtrykket til Xen Orchestras eget sertifikat, når agenten stoler på akkurat det sertifikatet og ingenting annet |",
   "| `XO_CA_FILE` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the script copies to `xo-ca.pem` |":
     "| `XO_CA_FILE` | Installasjonsskript | En CA-pakke som har utstedt Xen Orchestras sertifikat, og som skriptet kopierer til `xo-ca.pem` |",
+  "| `ONEUPTIME_AI_XO_READ_TOKEN` | No | A token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else: the XCP-ng AI agent runs when it is set, and reads with it |":
+    "| `ONEUPTIME_AI_XO_READ_TOKEN` | Nei | Et token fra en Xen Orchestra-bruker med en kopi av den innebygde rollen **Read only** og ingenting annet: XCP-ng-AI-agenten kjører når det er satt, og leser med det |",
+  "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Only for fixes: a token of another user, whose role allows them. The AI agent changes nothing without it |":
+    "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | Nei | Bare for rettelser: et token fra en annen bruker med en rolle som tillater dem. Uten det endrer AI-agenten ingenting |",
+  "| `XCP_NG_POOL_ID` | No | The XAPI UUID of the pool the AI agent serves (default: the one pool its read token can see) |":
+    "| `XCP_NG_POOL_ID` | Nei | XAPI-UUID-en til poolen AI-agenten betjener (standard: den ene poolen lesetokenet kan se) |",
+  "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | No | Overrides `XCP_NG_POOL_ID` as the pool the AI agent registers as |":
+    "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Nei | Overstyrer `XCP_NG_POOL_ID` som poolen AI-agenten registrerer seg som |",
+  "| `ONEUPTIME_AI_INVESTIGATION` | No | `true` or `false`: whether OneUptime AI may run the AI agent's read-only commands while it investigates (default: on) |":
+    "| `ONEUPTIME_AI_INVESTIGATION` | Nei | `true` eller `false`: om OneUptime AI kan kjøre AI-agentens skrivebeskyttede kommandoer mens den undersøker (standard: på) |",
+  "| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` or `bypass-approval`: how OneUptime AI may apply a fix |":
+    "| `ONEUPTIME_AI_FIXES` | Nei | `off`, `ask-for-approval`, `automatic` eller `bypass-approval`: hvordan OneUptime AI kan utføre en rettelse |",
+  "| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes, with the token for changes. Anything else keeps it read-only |":
+    "| `ONEUPTIME_AI_ALLOW_WRITES` | Nei | `true` lar AI-agenten utføre rettelser, med tokenet for endringer. Alt annet holder den skrivebeskyttet |",
+  "| `ONEUPTIME_AI_WRITE_TARGETS` | No | The `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` or `schedule/<uuid>` a fix may touch, comma-separated (default: all) |":
+    "| `ONEUPTIME_AI_WRITE_TARGETS` | Nei | `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` eller `schedule/<uuid>` som en rettelse kan røre, kommaseparert (standard: alle) |",
+  "| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |":
+    "| `ONEUPTIME_AI_PROTECTED_TARGETS` | Nei | Det samme, for det OneUptime AI aldri må endre: VM-en AI-agenten kjører i, og Xen Orchestras egen |",
+  "| `LOG_LEVEL` | No | The AI agent's log level: `debug`, `info` (default), `warn` or `error` |":
+    "| `LOG_LEVEL` | Nei | Loggnivået til AI-agenten: `debug`, `info` (standard), `warn` eller `error` |",
+  "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
+    "| `COMPOSE_PROFILES` | Nei | `xcp-ng-ai-agent` starter AI-agenten; installasjonsskriptet skriver det når lesetokenet er satt |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "Agenten kontrollerer Xen Orchestras sertifikat mot `xo-ca.pem` ved siden av `docker-compose.yml`.",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

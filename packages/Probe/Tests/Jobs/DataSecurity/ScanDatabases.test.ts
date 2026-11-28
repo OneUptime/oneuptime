@@ -37,7 +37,12 @@ import API from "Common/Utils/API";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import logger from "Common/Server/Utils/Logger";
 import { DatabaseConnection } from "Common/Server/Utils/DataSecurity/Content/DatabaseSampler";
-import { DataSecurityProbeStoreWork } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
+import {
+  DataSecurityProbeStoreWork,
+  SEARCH_PROBE_ENGINE,
+} from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
+import { SearchStoreConnection } from "Common/Server/Utils/DataSecurity/Content/SearchStoreSampler";
+import { DataStorePostureReadFrom } from "Common/Types/DataSecurity/DataStorePosture";
 import {
   ContentScanOptions,
   ContentScanResult,
@@ -287,6 +292,162 @@ describe("scanStore", () => {
 
     expect(String(report["error"])).toContain("ECONNREFUSED");
     expect(String(report["error"])).not.toContain("Probe0nly-Secret");
+  });
+});
+
+/*
+ * A search cluster a probe scans (#11140): the same job, the same variable
+ * and the same limits as a database's, sampled by the search sampler, which
+ * asks the cluster with GET requests from inside the customer's network.
+ * What it reports is the findings and what the cluster answered without
+ * credentials, never the address's password or API key.
+ */
+describe("scanStore, for an Elasticsearch or OpenSearch cluster", () => {
+  const SEARCH_ADDRESS: string =
+    "https://reader:Probe0nly-Secret@search.internal:9200";
+  const API_KEY_ADDRESS: string =
+    "https://search.internal:9200?api_key=Key1d-Probe0nly:Key-Probe0nly-Value";
+
+  let sampledSearch: Array<{
+    store: SearchStoreConnection;
+    options: ContentScanOptions;
+  }>;
+  let searchError: Error | null;
+
+  function searchDependencies(): ScanDatabasesDependencies {
+    return {
+      ...DEPENDENCIES(),
+      sampleSearch: async (
+        store: SearchStoreConnection,
+        options: ContentScanOptions,
+      ): Promise<ContentScanResult> => {
+        sampledSearch.push({ store, options });
+
+        if (searchError) {
+          throw searchError;
+        }
+
+        return {
+          ...emptyContentScanResult(),
+          objectsRead: 2,
+          readLog: ["orders", "customers"],
+          posture: {
+            readAt: "2026-11-27T08:00:00.000Z",
+            readFrom: DataStorePostureReadFrom.Network,
+            anonymousRead: false,
+            anonymousWrite: false,
+            publicNetworkAccess: null,
+            unknowableFacts: ["publicNetworkAccess"],
+          },
+        };
+      },
+    };
+  }
+
+  function searchWork(
+    overrides: Partial<DataSecurityProbeStoreWork> = {},
+  ): DataSecurityProbeStoreWork {
+    return work({
+      kind: "Elasticsearch",
+      engine: SEARCH_PROBE_ENGINE,
+      probeConnectionVariable: "SEARCH_URL",
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    sampledSearch = [];
+    searchError = null;
+    environment["SEARCH_URL"] = SEARCH_ADDRESS;
+  });
+
+  test.each(["Elasticsearch", "OpenSearch"])(
+    "%s: the search sampler reads the variable's address, and the database sampler is never called",
+    async (kind: string) => {
+      const report: JSONObject = (await scanStore(
+        searchWork({ kind }),
+        searchDependencies(),
+      )) as unknown as JSONObject;
+
+      expect(sampled).toEqual([]);
+      expect(sampledSearch).toHaveLength(1);
+      expect(sampledSearch[0]!.store).toEqual({
+        kind,
+        connectionString: SEARCH_ADDRESS,
+      });
+      // The limits and the project's rules a database's scan has.
+      expect(sampledSearch[0]!.options.limits).toMatchObject({
+        maxRowsPerTable: 500,
+        maxTables: 50,
+        maxBytesTotal: 1_000_000,
+      });
+      expect(sampledSearch[0]!.options.exclusions).toEqual(["audit"]);
+      expect(sampledSearch[0]!.options.fingerprintKey).toBe(
+        "project-fingerprint-key",
+      );
+      expect(report["error"]).toBeUndefined();
+      // What it answered without credentials travels with the findings, asked from the network.
+      expect(report["result"]).toMatchObject({
+        objectsRead: 2,
+        posture: {
+          readFrom: DataStorePostureReadFrom.Network,
+          anonymousRead: false,
+        },
+      });
+    },
+  );
+
+  test("an address with spaces around it is read without them", async () => {
+    environment["SEARCH_URL"] = `  ${SEARCH_ADDRESS}\n`;
+
+    await scanStore(searchWork(), searchDependencies());
+
+    expect(sampledSearch[0]!.store.connectionString).toBe(SEARCH_ADDRESS);
+  });
+
+  test("an error is reported without the address's password", async () => {
+    searchError = new Error(
+      `Could not reach the cluster at ${SEARCH_ADDRESS}: connect ECONNREFUSED`,
+    );
+
+    const report: JSONObject = (await scanStore(
+      searchWork(),
+      searchDependencies(),
+    )) as unknown as JSONObject;
+
+    expect(String(report["error"])).toContain("ECONNREFUSED");
+    expect(String(report["error"])).not.toContain("Probe0nly");
+  });
+
+  test("an error is reported without the API key, as written or as sent", async () => {
+    environment["SEARCH_URL"] = API_KEY_ADDRESS;
+    const sentAs: string = Buffer.from(
+      "Key1d-Probe0nly:Key-Probe0nly-Value",
+    ).toString("base64");
+    searchError = new Error(
+      `The cluster refused ApiKey ${sentAs} from ${API_KEY_ADDRESS}`,
+    );
+
+    const report: JSONObject = (await scanStore(
+      searchWork({ kind: "OpenSearch" }),
+      searchDependencies(),
+    )) as unknown as JSONObject;
+
+    expect(String(report["error"])).toContain("The cluster refused");
+    expect(String(report["error"])).not.toContain("Probe0nly");
+    expect(String(report["error"])).not.toContain(sentAs);
+  });
+
+  test("a variable the probe does not have is reported as such, and nothing is asked", async () => {
+    const report: JSONObject = (await scanStore(
+      searchWork({ probeConnectionVariable: "MISSING_SEARCH_URL" }),
+      searchDependencies(),
+    )) as unknown as JSONObject;
+
+    expect(sampledSearch).toEqual([]);
+    expect(report["error"]).toBe(
+      "The probe has no environment variable MISSING_SEARCH_URL.",
+    );
   });
 });
 

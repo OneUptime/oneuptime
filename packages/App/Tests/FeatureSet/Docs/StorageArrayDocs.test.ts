@@ -317,6 +317,32 @@ function platformVariables(): Array<string> {
   return names;
 }
 
+/*
+ * The variables a platform's setup in install.sh writes besides its address
+ * and token (PLATFORM_EXTRA_VARIABLES: a PowerScale's SNMP settings, its
+ * node list and its polls), each once. A node's own address,
+ * POWERSCALE_NODE_<n>, is numbered as the script counts the nodes, so it is
+ * documented as a pattern and left out here.
+ */
+// A whole name: "POWERSCALE_NODE_$count" is a numbered one, not "POWERSCALE_NODE_".
+const VARIABLE_NAME: RegExp = /^[A-Z][A-Z0-9_]*[A-Z0-9]$/;
+
+function platformExtraVariables(): Array<string> {
+  const names: Array<string> = [];
+  for (const match of readAgentFile("install.sh").matchAll(
+    /PLATFORM_EXTRA_VARIABLES="([^"]*)"/g,
+  )) {
+    // "... POWERSCALE_SNMP_RECEIVERS$PLATFORM_EXTRA_VARIABLES": a name, then what came before.
+    for (const word of match[1]!.split(/\s+/)) {
+      const name: string = word.split("$")[0]!;
+      if (VARIABLE_NAME.test(name) && !names.includes(name)) {
+        names.push(name);
+      }
+    }
+  }
+  return names;
+}
+
 function dotenvVariables(): Array<string> {
   const heredoc: RegExpMatchArray | null = readAgentFile("install.sh").match(
     /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
@@ -721,16 +747,20 @@ describe("Storage Array docs", (): void => {
         }).length;
       };
 
-      // "12 for FlashArray, 8 for FlashBlade, 16 for PowerStore and 31 for ONTAP".
+      // "12 for FlashArray, 8 for FlashBlade, 16 for PowerStore, 31 for ONTAP and 13 for PowerMax": every platform's, in order.
       const perPlatform: Array<string> = StorageSystemUtil.getAllSystems().map(
         (system: StorageSystem): string => {
           return `${count(system)} for ${platformName(system)}`;
         },
       );
+      const counted: string =
+        perPlatform.length > 1
+          ? `${perPlatform.slice(0, -1).join(", ")} and ${
+              perPlatform[perPlatform.length - 1]
+            }`
+          : perPlatform.join("");
       expect(intro).toContain(
-        `OneUptime ships ${templates.length} templates — ${perPlatform
-          .slice(0, -1)
-          .join(", ")} and ${perPlatform[perPlatform.length - 1]}`,
+        `OneUptime ships ${templates.length} templates — ${counted}`,
       );
 
       for (const template of templates) {
@@ -903,7 +933,10 @@ describe("Storage Array docs", (): void => {
           return name !== null;
         });
 
-      expect(documented.sort()).toEqual(dotenvVariables().sort());
+      expect(platformExtraVariables().length).toBeGreaterThan(0);
+      expect(documented.sort()).toEqual(
+        [...dotenvVariables(), ...platformExtraVariables()].sort(),
+      );
     });
 
     it("documents every variable the collector configs read", (): void => {
@@ -1088,24 +1121,34 @@ describe("Storage Array docs", (): void => {
     });
 
     it("names every catalog metric's family on the what-gets-collected table", (): void => {
-      const collected: string = section(
-        readPage(TELEMETRY_PAGE),
-        "## What the agent collects",
-      );
-      // A family is a platform's prefix and more: `purefa_volume_*`, `netapp_health_*`.
-      const prefixes: string = StorageArrayPlatformRegistry.getPlatforms()
-        .map((platform: StorageArrayPlatform): string => {
-          return platform.metricPrefix || "";
-        })
-        .filter(Boolean)
-        .join("|");
-      const families: Array<string> = Array.from(
-        collected.matchAll(
-          new RegExp(`\`((?:${prefixes})[A-Za-z_]*)(\\*?)\``, "g"),
-        ),
-      ).map((match: RegExpMatchArray): string => {
-        return `${match[1]}${match[2]}`;
-      });
+      /*
+       * The agent's platforms under What the agent collects; a platform a
+       * probe reads from its management server (#11004), which no agent
+       * reads, under its own section, named after it (## Dell PowerMax).
+       */
+      const families: Array<string> = [];
+      for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
+        // A family is a platform's prefix and more: `purefa_volume_*`, `netapp_health_*`.
+        const prefix: string | undefined = platform.metricPrefix;
+        if (!prefix) {
+          continue;
+        }
+        const collected: string = section(
+          readPage(TELEMETRY_PAGE),
+          platform.agentConfigs.length > 0
+            ? "## What the agent collects"
+            : `## ${platform.displayName}`,
+        );
+        families.push(
+          ...Array.from(collected.matchAll(/`([a-z]+_[A-Za-z_]+)(\*?)`/g))
+            .filter((match: RegExpMatchArray): boolean => {
+              return (match[1] as string).startsWith(prefix);
+            })
+            .map((match: RegExpMatchArray): string => {
+              return `${match[1]}${match[2]}`;
+            }),
+        );
+      }
 
       for (const metric of getAllStorageArrayMetrics()) {
         expect({

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 66171,
+    "keys": 67577,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -191,6 +191,7 @@
     "OR",
     "OSD",
     "Ollama",
+    "OneFS",
     "OpenSearch",
     "OpenShift",
     "OpenStack-Ansible",
@@ -221,6 +222,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Postmark",
+    "PowerScale",
     "PowerStore",
     "PromQL",
     "Purity CLI",
@@ -269,6 +271,7 @@
     "Traceroute",
     "UID",
     "UTC",
+    "Unisphere",
     "Up & In",
     "Up & Out",
     "Up + In",
@@ -291,6 +294,7 @@
     "Vertical Pod Autoscalers",
     "WAF",
     "WhatsApp: ",
+    "XAPI",
     "Zabbix",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

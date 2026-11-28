@@ -1,0 +1,16 @@
+{{- /*
+  logs.extraOperators (issue #11225), checked at install time: a value the
+  DaemonSet collector would refuse, or would run and quietly lose lines with,
+  fails `helm install` with a message naming the operator, instead of a
+  DaemonSet that restarts forever (kubernetes-agent.validateExtraLogOperators
+  in _helpers.tpl says what is checked, and why).
+
+  A template of its own, which renders nothing: it is checked on every render,
+  whether the DaemonSet's ConfigMap is rendered or not (pod logs off still
+  checks the value), and no other template includes it, so a refusal is this
+  template's, where tests/extra-log-operators_test.yaml reads its message. Helm
+  renders templates in reverse order of their names, so this one comes before
+  daemonset.yaml, which includes the ConfigMap, and its message is the one
+  `helm install` prints.
+*/ -}}
+{{- include "kubernetes-agent.validateExtraLogOperators" . -}}

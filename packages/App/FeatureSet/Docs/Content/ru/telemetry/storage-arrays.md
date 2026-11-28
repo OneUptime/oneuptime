@@ -4,8 +4,10 @@
 
 :::cards
 - [Установка агента](#установка-агента): Пользователь только для чтения, затем скрипт установки или Docker Compose.
+- [Dell PowerScale](#dell-powerscale): SNMP на кластере, опрос каждого узла и то, что показывают его страницы.
 - [Что собирает агент](#что-собирает-агент): Каждый эндпоинт и страницы, построенные на его основе.
 - [Мониторинг нескольких массивов](#мониторинг-нескольких-массивов): Один агент на массив, на одной машине.
+- [Dell PowerMax](#dell-powermax): Без агента: зонд читает каждый массив за Unisphere.
 - [Устранение неполадок](#устранение-неполадок): Диагностический скрипт и типичные проблемы.
 :::
 
@@ -20,10 +22,15 @@ Storage Arrays — это продукт, который работает оди
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Экспортёр OpenMetrics для FlashBlade от Pure, который тот же файл Compose запускает как сервис `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | PowerStore Metrics Exporter от Dell, который тот же файл Compose собирает и запускает как сервис `powerstore-exporter`; оповещения кластера приходят по syslog в его сервис `powerstore-syslog` | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 и новее (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP), а также **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, который тот же файл Compose запускает как сервис `netapp-harvest`: он входит в REST API кластера с пользователем только для чтения и паролем | `otel-collector-config.netapp-ontap.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 и новее | `dell.powerscale` | Каждый узел по SNMP (ISILON-MIB от Dell) собственным приёмником SNMP коллектора: рядом с коллектором ничего не работает | `otel-collector-config.powerscale.yaml` |
 
 У ONTAP нет собственного эндпоинта метрик, поэтому агент запускает рядом с коллектором экспортёр NetApp с открытым исходным кодом — Harvest. Harvest читает REST API кластера и отдаёт прочитанное в сети Compose, где каждая серия называется `netapp_<object>_<counter>`; коллектор опрашивает его и пересылает данные дальше. Harvest никогда ничего не записывает в кластер, а его отчёт AutoSupport в NetApp отключён.
 
+Для **Dell PowerMax** (`dell.powermax`) агент не нужен: зонд OneUptime с учётной записью только для чтения читает каждый массив, которым управляет Unisphere for PowerMax. См. [Dell PowerMax](#dell-powermax).
+
 В феврале 2026 года Pure Storage сменила название на **Everpure**. FlashArray, FlashBlade и Purity сохранили свои названия, как и метрики `purefa_*` и `purefb_*`, поэтому всё на этой странице относится к массивам, продаваемым под любым из двух названий.
+
+Кластер **Dell PowerScale** читается иначе: агент опрашивает каждый его узел по SNMP с сообществом только для чтения или пользователем SNMPv3 и без API-токена. Раздел [Dell PowerScale](#dell-powerscale) ведёт от включения SNMP до того, что показывают его страницы; шаги установки ниже относятся к Pure Storage.
 
 ```mermaid title="От массива до OneUptime"
 flowchart TB
@@ -143,6 +150,8 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 POWERSTORE_ENDPOINT=
 POWERSTORE_PASSWORD=
@@ -245,6 +254,18 @@ Everything is ready. Begin running and processing data.
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | Адрес управления кластером (на FSx — эндпоинт управления файловой системы): имя хоста или IP, без `https://`. |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | REST-пользователь только для чтения, например `oneuptime`. |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | Его пароль. Его читает только Harvest, ровно так, как он записан. |
+| `POWERSCALE_NODES` | PowerScale | Адреса всех узлов через запятую, но не имя зоны SmartConnect. По ним скрипт установки записывает опросы, перечисленные ниже. |
+| `POWERSCALE_ENDPOINT` | PowerScale | Узел, через который читаются состояние, ёмкость и квоты самого кластера: первый в `POWERSCALE_NODES`. |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Опросы, которые выполняет коллектор: `snmp/cluster`, `snmp/quotas`, затем `snmp/node-1` и далее, по одному на узел. |
+| `POWERSCALE_NODE_<n>` | PowerScale | Адрес узла `<n>`, от `1` до `252`. Адрес IPv6 записывается в квадратных скобках, например `[fd00::11]`. |
+| `POWERSCALE_SNMP_VERSION` | Нет | `v2c` или `v3`. По умолчанию `v2c`. |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | Сообщество кластера только для чтения. |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | Пользователь SNMPv3 кластера только для чтения. |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | Нет | `auth_priv`, `auth_no_priv` или `no_auth_no_priv`. По умолчанию `auth_priv`. |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | Нет | `MD5`, `SHA`, `SHA224`, `SHA256`, `SHA384` или `SHA512`, как показывает `isi snmp settings view`. По умолчанию `SHA`. |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | Пароль аутентификации пользователя SNMPv3. |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | Нет | `DES`, `AES`, `AES192`, `AES256`, `AES192C` или `AES256C`. По умолчанию `AES`. |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | Пароль конфиденциальности пользователя SNMPv3 на уровне `auth_priv`. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Нет | `true` принимает самоподписанный сертификат массива на нативном эндпоинте и в Harvest; `false` проверяет его. По умолчанию `true`. Экспортёры Pure никогда не проверяют сертификат массива, поэтому к ним это не относится. |
 | `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | Нет | Имя контейнера агента. По умолчанию `oneuptime-storage-array-agent`. Агенту второго массива на той же машине нужно собственное имя: см. [Мониторинг нескольких массивов](#мониторинг-нескольких-массивов). Если переменная не задана, скрипт установки называет новый агент по его папке и сохраняет это имя при повторном запуске скрипта. |
 
@@ -278,6 +299,9 @@ Everything is ready. Begin running and processing data.
 | ONTAP, через Harvest | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | Имя кластера, выпуск и UUID; его ёмкость (сумма по его агрегатам данных) и сокращение данных; страница **Тома**; страницы **Агрегаты**, **SVM**, **LUN** и **SnapMirror**, по странице на объект |
 | Оборудование ONTAP, через Harvest | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | Страница **Оборудование**: узлы, диски, полки, их блоки питания, вентиляторы, модули и датчики, датчики узлов, а также порты Ethernet и Fibre Channel |
 | Открытые проблемы и события ONTAP | `netapp_health_*`, `netapp_ems_events` | Число открытых оповещений и карточка **Активные оповещения** (вышедшие из строя диски, неисправности полок, HA takeover, недоступные порты, оповещения о состоянии системы), а также шаблоны EMS |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`, `powerscale_ifs_*` | Имя кластера, версия OneFS, состояние и число узлов; ёмкость `/ifs`; пропускная способность, сеть и CPU по всему кластеру |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | Страница **Квоты**: использование каждой квоты, её лимиты и насколько она к ним близка |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`, `powerscale_protocol_*`, `powerscale_drive_*`, `powerscale_fan_*`, `powerscale_temperature_*`, `powerscale_power_sensor_*`, `powerscale_interface_*`, `powerscale_chassis_*` | Страница **Узлы**: состояние, CPU, пропускная способность и производительность протоколов каждого узла; страница **Оборудование**: его накопители, датчики и порты |
 
 На ONTAP все серии — от Harvest: объект называется своими метками (`volume` в пределах своей `svm`, `aggr`, `lun`, `node`, `disk`, `shelf`, `destination_location` для связи SnapMirror), состояние — это `netapp_*_new_status` со значением 1 или 0 или серия `netapp_*_labels`, метки которой его указывают, а каждая открытая проблема — это серия `netapp_health_*_alerts`, которая существует, пока проблема сохраняется.
 
@@ -375,6 +399,7 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -391,6 +416,121 @@ docker compose down
 Затем удалите на массиве пользователя только для чтения и его API-токен, если они больше не нужны. На ONTAP выполните `security login delete -user-or-group-name oneuptime -application http -authentication-method password`, а затем `security login rest-role delete -role oneuptime-readonly -api /api`.
 
 На PowerStore выполните `docker compose --profile powerstore down`, чтобы остановились и экспортёр, и коллектор syslog.
+
+## Dell PowerMax
+
+Для Dell PowerMax агент не нужен. Зонд OneUptime каждые 5 минут входит в REST API Unisphere for PowerMax с учётной записью только для чтения и читает каждый массив, которым управляет этот Unisphere. Каждый массив появляется в разделе **Системы хранения** под своим Symmetrix ID, например `000220200269`, и его можно переименовать. Пароль хранится в зашифрованном виде, больше никогда не показывается и отправляется только выбранному вами зонду.
+
+- **Unisphere for PowerMax 10.1 или новее**, управляющий массивами на PowerMaxOS 10 или 5978. Начиная с Unisphere 10.3 учётная запись только для чтения видит также порты и группы SRDF.
+- **Зонд с доступом к Unisphere по TCP 8443**, обычно [пользовательский зонд](/docs/probe/custom-probe) в сети Unisphere. В OneUptime Cloud общий зонд никогда не получает пароль от системы хранения, поэтому выберите собственный зонд вашего проекта.
+- **Пользователь Unisphere с ролью Monitor** на каждом массиве, который он должен читать, и с ролью **PerfMonitor** для производительности. Больше ничего не нужно: OneUptime никогда не изменяет массив.
+
+:::steps
+### Создайте пользователя только для чтения
+
+В Unisphere for PowerMax в разделе **Settings → Users and Groups** создайте локального пользователя или выберите пользователя каталога. Назначьте ему роль **Monitor** на каждом массиве и **PerfMonitor** для производительности.
+
+### Проверьте, что Unisphere собирает данные производительности
+
+В разделе **Settings → Performance → System Registrations** проверьте, что сбор **Diagnostic** включён для каждого массива: без него OneUptime показывает инвентарь и оповещения массива, но не строит графики производительности. Чтобы видеть группу хранения каждые 5 секунд, зарегистрируйте её там же и для **Real Time**, до 100 на массив.
+
+### Подключите Unisphere
+
+Перейдите в **Продукты → Инфраструктура → Системы хранения → Подключения** и нажмите **Подключить Unisphere**. Введите адрес, по которому вы открываете Unisphere, например `https://unisphere.example.com:8443`, имя пользователя и пароль, и выберите зонд.
+
+### Проверьте подключение
+
+**Проверить подключение** заставляет зонд войти и прочитать то, что видит учётная запись: каждый массив, его группы хранения и тома, а также собирает ли Unisphere данные о его производительности. По умолчанию Unisphere подписывает свой сертификат сам: проверка показывает его, а **Доверять этому сертификату** вносит его отпечаток SHA-256 в форму. Сначала сверьте отпечаток с отпечатком самого Unisphere, например с помощью `openssl s_client -connect unisphere.example.com:8443` с машины зонда.
+
+### Назовите подключение и подключитесь
+
+Назовите подключение или оставьте имя хоста и нажмите **Подключить**. Через несколько минут на его странице появятся первый сбор и каждый найденный массив, и у каждого будет ссылка на его страницу в разделе **Системы хранения**.
+:::
+
+Зонд читает документированные REST-эндпоинты Unisphere: классический `/univmax/restapi` для массивов, ёмкости, состояния, оповещений и пулов и пакетный `/univmax/rest/v1` для групп хранения, томов, директоров, портов, групп SRDF и производительности. Каждый вызов — это чтение. Прочитанное он отправляет в виде этих серий, переводя миллисекунды Unisphere в микросекунды, а его MB в секунду — в байты в секунду:
+
+| Серии | Что они содержат |
+| --- | --- |
+| `powermax_array_*` | Массив: его модель и микрокод, полезная, занятая и выделенная по подписке ёмкость, сокращение данных, оценки состояния, собирает ли Unisphere его производительность, а также 5-минутные значения времени отклика, IOPS, пропускной способности, кеша и загрузки |
+| `powermax_alert_open` | Одна серия на каждое оповещение уровня Minor и выше, открытое в Unisphere для массива, пока его кто-нибудь не подтвердит или не снимет |
+| `powermax_storage_group_*` | Каждая группа хранения: её ёмкость и тома, 5-минутные значения времени отклика, IOPS и пропускной способности, а также 5-секундные значения, если группа зарегистрирована для реального времени |
+| `powermax_volume_*` | Каждый том в группе хранения: его ёмкость, а также его значения, если его группа хранения зарегистрирована для реального времени |
+| `powermax_srp_*` | Каждый пул ресурсов хранения: его ёмкость и время отклика |
+| `powermax_director_*` | Каждый директор: его роль, статус и загрузка, а также `powermax_director_offline`, пока он не в сети |
+| `powermax_port_*` | Каждый порт: его протокол, скорость, уровни сигнала и загрузка, а также `powermax_port_offline`, пока не работает порт, на который кто-то полагается |
+| `powermax_srdf_group_*` | Каждая группа SRDF: её удалённый массив и режимы, отставание и пропускная способность, а также `powermax_srdf_group_not_healthy`, пока она приостановлена или не в сети |
+
+- **Каждые 5 минут** или каждые 10, чтобы снизить нагрузку на загруженный Unisphere (**Дополнительные поля** в форме подключения): Unisphere вычисляет производительность каждые 5 минут.
+- **Только массивы, которыми Unisphere управляет сам.** Удалённые массивы, которые он видит через SRDF, перечислены на странице подключения, а читает их Unisphere на их собственной площадке: подключите и его.
+- **До 5,000 групп хранения и 10,000 томов на массив**, а также 200 новых оповещений за сбор (остальные приходят со следующими). Если список обрезан, об этом сообщает страница подключения.
+- **Unisphere 10.1 и 10.2** не показывают учётной записи только для чтения ни порты, ни группы SRDF: зонд читает директоры по одному, берёт группы SRDF из групп хранения и сообщает об этом.
+
+## Dell PowerScale
+
+Агент читает кластер Dell PowerScale (Isilon) по SNMP, из ISILON-MIB от Dell, собственным приёмником SNMP коллектора: без API-токена, и рядом с коллектором ничего не работает. Кластер — это одна система хранения, а его узлы, квоты, накопители, датчики и порты составляют его инвентарь.
+
+- **Каждый узел опрашивается по его собственному адресу.** Узел отвечает по SNMP только за свои накопители, датчики и порты, поэтому агент опрашивает каждый узел по его адресу в сети, до которой достаёт агент, а не по имени зоны SmartConnect, которая передаёт каждый опрос любому выбранному ею узлу. В кластере до 252 узлов.
+- **Собственные объекты кластера читаются один раз, через первый узел:** его состояние, ёмкость, пропускная способность, CPU и число узлов каждые 60 секунд (`snmp/cluster`), а его SmartQuotas каждые 5 минут (`snmp/quotas`). Состояние, CPU, производительность протоколов (NFS, SMB, S3, HDFS и прочих), накопители, датчики и порты каждого узла читаются с самого узла каждые 60 секунд (`snmp/node-<n>`).
+- **Показания, которые OneFS отдаёт текстом или в других единицах** (показания датчиков, CPU в десятых долях процента, пропускная способность в битах), коллектор переводит в числа перед отправкой, поэтому каждый график и каждый шаблон читает простой gauge.
+
+### Включение SNMP на кластере
+
+Подключитесь по SSH к любому узлу как администратор: OneFS применяет настройки SNMP ко всему кластеру. Если кластер уже отвечает по SNMP другому инструменту, дайте агенту то же сообщество только для чтения или того же пользователя SNMPv3 и пропустите этот шаг. Иначе включите службу SNMP и SNMP v2c с собственным сообществом только для чтения, а не со стандартным сообществом OneFS `I$ilonpublic`:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+Или включите SNMPv3, который аутентифицирует и шифрует каждый опрос. В OneFS есть один пользователь SNMPv3 только для чтения, `general`, пока вы его не переименуете: задайте ему пароли длиной не менее восьми символов, без пробелов:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` показывает настройки, в том числе протоколы аутентификации и конфиденциальности пользователя. Разрешите UDP 161 с машины агента к каждому узлу и выведите адреса узлов командой `isi network interfaces list`.
+
+### Установка агента на кластер PowerScale
+
+Запустите скрипт установки с конфигурацией PowerScale:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+Скрипт спрашивает URL вашего OneUptime, ключ приёма и имя кластера, затем адреса всех узлов через запятую и версию SNMP, затем сообщество только для чтения или пользователя SNMPv3 и два его пароля, каждый из которых считывается без отображения. Пользователю, у которого протоколы не SHA и AES, нужны `POWERSCALE_SNMP_AUTH_PROTOCOL` и `POWERSCALE_SNMP_PRIVACY_PROTOCOL` перед `bash install.sh`, а пользователю без конфиденциальности — `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`. Скрипт записывает по одному опросу на узел в `.env`:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+Когда в кластере появляется новый узел, добавьте его адрес в `POWERSCALE_NODES` в `.env` и снова запустите `install.sh`: он запишет опрос узла и пересоздаст агента. С Docker Compose скачайте `docker-compose.yml` и `otel-collector-config.powerscale.yaml` и поместите эти строки в `.env` из быстрого старта вместо его строк `STORAGE_SYSTEM`, `STORAGE_ARRAY_COLLECTOR_CONFIG` и `POWERSCALE_*`. `troubleshoot.sh` спрашивает у каждого узла имя кластера через `snmpget`, если он есть на машине.
+
+### Что показывают страницы PowerScale
+
+**Обзор** кластера берёт его состояние из того, что сообщает сама OneFS, считает его узлы и квоты и рисует задержку и нагрузку каждого протокола, пропускную способность, самые загруженные узлы и использованную ёмкость. **Узлы** перечисляют каждый узел с его состоянием, моделью, версией OneFS, CPU и пропускной способностью; **Квоты** перечисляют каждую квоту с тем, сколько её лимита она использует, начиная с самой большой; **Оборудование** перечисляет накопители каждого узла, его вентиляторы, датчики температуры и питания с их показаниями и его порты. Ёмкость — это ёмкость `/ifs`, а место, которое OneFS резервирует для виртуальных hot spare, считается занятым: оно недоступно для записи.
+
+### Что агент пока не читает
+
+- **События OneFS и её пулы хранения.** SNMP не передаёт ни то, ни другое: они поступают из API OneFS, который будет читать зонд OneUptime ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). До тех пор отправляйте события как SNMP-трапы на [пользовательский зонд](/docs/probe/custom-probe) и добавьте в него узлы кластера как [сетевые устройства](/docs/monitor/network-device-monitor): трапы приходят на UDP 162, а критерии **Получен SNMP-трап (OID трапа)** создают по ним оповещения. Для трапов SNMPv3 задайте сетевым устройствам пользователя SNMPv3 кластера ([Трапы и informs SNMPv3](/docs/monitor/network-device-monitor#трапы-и-informs-snmpv3)). На кластере создайте канал и отправьте в него оповещение:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **Сокращение данных**, о котором OneFS сообщает только через свой API, появится вместе с тем же зондом.
 
 ## Устранение неполадок
 
@@ -439,6 +579,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-s
 Посмотрите журнал экспортёра командой `docker compose logs powerstore-exporter`: `401` означает неверные имя пользователя или пароль, а `403` на `latest_five_min_metrics` — что роль пользователя не может включить архив пакетных метрик (дайте ему **Storage Operator** или задайте `POWERSTORE_BULK_METRICS=false` на PowerStoreOS старше 4.1). После запуска экспортёру нужна минута, прежде чем он ответит. Нет оповещений на странице **Журналы**: проверьте настройки _Remote Logging_ кластера, брандмауэр на порту 5514 и `docker compose logs powerstore-syslog`.
 :::
 
+:::details Кластер или узел PowerScale ничего не отправляет
+`Error scraping metrics` с `request timeout` в логе коллектора называет узел, который не отвечает по SNMP с машины агента: SNMP выключен для версии, которую использует агент, сообщество или пользователь SNMPv3 не принадлежит кластеру, или UDP 161 заблокирован. `bash troubleshoot.sh` опрашивает каждый узел через `snmpget`. Узел, который отвечает, но отсутствует на странице **Узлы**, не указан в `POWERSCALE_NODES`: добавьте его и снова запустите `install.sh`.
+:::
+
 :::details Удалённые тома или хосты остаются в инвентаре
 OneUptime удаляет объект, когда полный опрос его эндпоинта его больше не содержит, и распознаёт это по метке `scrape_endpoint`. Если вы заменили поставляемую конфигурацию коллектора своей, сохраните метки `scrape_endpoint` в её заданиях опроса; иначе объекты уходят из инвентаря только тогда, когда устаревают.
 :::
@@ -449,6 +593,18 @@ OneUptime регистрирует массив хранения по его `st
 
 :::details Отправка метрик без агента
 Агент — это одна стандартная конфигурация коллектора, поэтому уже работающие у вас коллекторы могут выполнять ту же работу: скопируйте задания опроса и процессор `resource` из поставляемой конфигурации в свою. Атрибут ресурса `storage.array.name` — это то, что регистрирует массив в OneUptime, а удаление `service.name` / `service.instance.id` не даёт отнести данные к сервису: сохраните и то и другое, а также метки `scrape_endpoint`.
+:::
+
+:::details Проверка подключения сообщает, что сертификату Unisphere нет доверия
+Unisphere for PowerMax подписывает свой сертификат сам, если никто не установил сертификат от центра сертификации. Сверьте отпечаток, который показывает проверка, с отпечатком самого Unisphere, затем нажмите **Доверять этому сертификату** и проверьте снова. Когда сертификат Unisphere обновляется, сбор останавливается с сообщением **Сертификат сервера изменился**, пока вы не доверитесь новому: до этого Unisphere ничего не отправляется.
+:::
+
+:::details Проверка подключения сообщает, что учётной записи нельзя читать массивы
+Unisphere отвечает `403` учётной записи без роли на массиве. Назначьте пользователю роль **Monitor** на каждом массиве в разделе **Settings → Users and Groups** и **PerfMonitor** для производительности. Массив, на котором у учётной записи нет роли, указывается на странице подключения с причиной, а остальные читаются.
+:::
+
+:::details PowerMax не показывает время отклика или IOPS
+Unisphere не собирает данные производительности массива, или у учётной записи нет **PerfMonitor**: страница подключения сообщает, что именно. Включите сбор **Diagnostic** в разделе **Settings → Performance → System Registrations**. Для значений тома и 5-секундных значений группы хранения группа хранения должна быть зарегистрирована там же и для **Real Time**.
 :::
 
 ## Дальнейшие шаги

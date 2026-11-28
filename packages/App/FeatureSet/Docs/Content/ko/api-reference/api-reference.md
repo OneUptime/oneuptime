@@ -274,7 +274,7 @@ Incident Severity with the same name already exists.
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-이런 거부에는 키가 그 레코드를 읽을 수 있을 때 그 이름을 가진 레코드의 ID인 `takenById`도 들어 있습니다. 프로젝트가 고유한 이름을 요구하기 전부터 이름을 공유하던 레코드는 이름이 바뀔 때까지 그 이름을 유지하며, 한 번의 업데이트로 같은 종류의 여러 레코드에 같은 이름을 붙일 수는 없습니다. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check`는 이름을 보내기 전에 그 이름이 쓰이고 있는지 알려 주고, `GET /api/unique-names/duplicates`는 프로젝트에서 두 번 이상 쓰이는 이름을 종류별로 나열합니다.
+이런 거부에는 키가 그 레코드를 읽을 수 있을 때 그 이름을 가진 레코드의 ID인 `takenById`도 들어 있습니다. 프로젝트가 고유한 이름을 요구하기 전부터 이름을 공유하던 레코드는 이름이 바뀔 때까지 그 이름을 유지하며, 한 번의 업데이트로 같은 종류의 여러 레코드에 같은 이름을 붙일 수는 없습니다. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check`는 이름을 보내기 전에 그 이름이 쓰이고 있는지 알려 주고, `GET /api/unique-names/duplicates`는 프로젝트에서 두 번 이상 쓰이는 이름을 종류별로 나열합니다. `GET /api/shared-names/Monitor`(또는 이 설정이 적용되는 다른 종류의 테이블 이름)는 대시보드의 목록이 표시하는 것처럼 그 종류의 어떤 레코드가 이름을 공유하는지 알려 줍니다. 응답은 `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}` 형식이며, 각 그룹은 키가 읽을 수 있는 레코드 두 개 이상이고 각 레코드를 만든 시각이 함께 담깁니다. 보관된 레코드는 운영 중인 레코드와 따로 묶입니다.
 
 #### 다른 레코드가 이미 가진 값
 

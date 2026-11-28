@@ -1,6 +1,6 @@
 import App from "./App";
 import getRecordHistoryRoute from "./Components/AuditLogs/RecordHistoryRoute";
-import { getRecordPageRoute } from "./Components/UniqueNames/RecordPages";
+import { DASHBOARD_RECORD_PAGES } from "./Components/UniqueNames/RecordPages";
 import RecordPageContext from "Common/UI/Components/RecordPage/RecordPageContext";
 import { sendPushConfigurationToRegisteredServiceWorker } from "./Components/NotificationMethods/BrowserPushRegistration";
 import { i18nReady } from "./Utils/i18n";
@@ -182,7 +182,7 @@ i18nReady
              * is another record's and the names a project holds twice
              * (#10761).
              */}
-            <RecordPageContext.Provider value={getRecordPageRoute}>
+            <RecordPageContext.Provider value={DASHBOARD_RECORD_PAGES}>
               <App />
             </RecordPageContext.Provider>
           </RecordHistoryContext.Provider>

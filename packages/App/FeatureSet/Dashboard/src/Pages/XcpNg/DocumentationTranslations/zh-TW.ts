@@ -62,6 +62,28 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_TLS_FINGERPRINT` | 安裝指令碼 | 當代理程式只信任 Xen Orchestra 自己的憑證時，該憑證的 SHA-256 指紋 |",
   "| `XO_CA_FILE` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the script copies to `xo-ca.pem` |":
     "| `XO_CA_FILE` | 安裝指令碼 | 簽發 Xen Orchestra 憑證的 CA 憑證組合，指令碼會將其複製到 `xo-ca.pem` |",
+  "| `ONEUPTIME_AI_XO_READ_TOKEN` | No | A token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else: the XCP-ng AI agent runs when it is set, and reads with it |":
+    "| `ONEUPTIME_AI_XO_READ_TOKEN` | 否 | 只持有內建 **Read only** 角色副本的 Xen Orchestra 使用者的權杖：設定後 XCP-ng AI 代理程式就會執行，並用它讀取 |",
+  "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Only for fixes: a token of another user, whose role allows them. The AI agent changes nothing without it |":
+    "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | 否 | 僅用於修正：另一個使用者的權杖，其角色允許這些修正。沒有它，AI 代理程式不會變更任何內容 |",
+  "| `XCP_NG_POOL_ID` | No | The XAPI UUID of the pool the AI agent serves (default: the one pool its read token can see) |":
+    "| `XCP_NG_POOL_ID` | 否 | AI 代理程式所服務資源池的 XAPI UUID（預設：其讀取權杖能看到的唯一資源池） |",
+  "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | No | Overrides `XCP_NG_POOL_ID` as the pool the AI agent registers as |":
+    "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | 否 | 覆寫 `XCP_NG_POOL_ID`，作為 AI 代理程式註冊時使用的資源池 |",
+  "| `ONEUPTIME_AI_INVESTIGATION` | No | `true` or `false`: whether OneUptime AI may run the AI agent's read-only commands while it investigates (default: on) |":
+    "| `ONEUPTIME_AI_INVESTIGATION` | 否 | `true` 或 `false`：OneUptime AI 在調查時能否執行 AI 代理程式的唯讀指令（預設：開啟） |",
+  "| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` or `bypass-approval`: how OneUptime AI may apply a fix |":
+    "| `ONEUPTIME_AI_FIXES` | 否 | `off`、`ask-for-approval`、`automatic` 或 `bypass-approval`：OneUptime AI 可以如何套用修正 |",
+  "| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes, with the token for changes. Anything else keeps it read-only |":
+    "| `ONEUPTIME_AI_ALLOW_WRITES` | 否 | `true` 讓 AI 代理程式使用變更權杖套用修正。其他任何值都會讓它維持唯讀 |",
+  "| `ONEUPTIME_AI_WRITE_TARGETS` | No | The `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` or `schedule/<uuid>` a fix may touch, comma-separated (default: all) |":
+    "| `ONEUPTIME_AI_WRITE_TARGETS` | 否 | 修正可以觸及的 `vm/<uuid>`、`host/<uuid>`、`pbd/<uuid>` 或 `schedule/<uuid>`，以逗號分隔（預設：全部） |",
+  "| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |":
+    "| `ONEUPTIME_AI_PROTECTED_TARGETS` | 否 | 同上，用於 OneUptime AI 絕不能變更的內容：AI 代理程式所在的虛擬機器，以及 Xen Orchestra 自己的虛擬機器 |",
+  "| `LOG_LEVEL` | No | The AI agent's log level: `debug`, `info` (default), `warn` or `error` |":
+    "| `LOG_LEVEL` | 否 | AI 代理程式的日誌層級：`debug`、`info`（預設）、`warn` 或 `error` |",
+  "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
+    "| `COMPOSE_PROFILES` | 否 | `xcp-ng-ai-agent` 會啟動 AI 代理程式；安裝指令碼會在設定了讀取權杖時寫入它 |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "代理程式以 `docker-compose.yml` 旁邊的 `xo-ca.pem` 驗證 Xen Orchestra 的憑證。",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

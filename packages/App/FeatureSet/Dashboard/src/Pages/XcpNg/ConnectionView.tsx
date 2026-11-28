@@ -243,6 +243,12 @@ const XcpNgConnectionView: FunctionComponent<
               fieldType: FieldType.LongText,
               placeholder: "No description",
             },
+            {
+              // The connection's line: its ID, who created it and who last changed it.
+              field: { _id: true },
+              title: "ID",
+              fieldType: FieldType.ObjectID,
+            },
           ],
         }}
       />

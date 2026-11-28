@@ -119,6 +119,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 
 const PAGE_PATH: string = `/dashboard/${PROJECT_ID}/settings/video-calls`;
 const MEET_ID: string = "00000000-0000-4000-8000-00000000b001";
@@ -183,6 +184,17 @@ async function settle(): Promise<void> {
     });
   });
 }
+
+/*
+ * A list of a kind Require Unique Names holds asks which of its records share
+ * a name, to mark them (#11021): none do here.
+ */
+beforeEach(() => {
+  jest.spyOn(UniqueNamesApi, "readSharedNames").mockResolvedValue({
+    groups: [],
+    createdAt: {},
+  });
+});
 
 beforeEach(() => {
   permissionsForTest = [Permission.ProjectAdmin];

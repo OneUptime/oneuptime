@@ -206,7 +206,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | Kubernetes 감사 로그 | API 서버의 감사 로그 파일을 컬렉터의 `filelog` 리시버로 읽음 |
 | 웹 공격 | 웹 서버의 액세스 로그를 컬렉터의 `filelog` 리시버로 읽음 |
 
-**내 로그**에서는 종류마다 마지막으로 발견된 시각을 보여 주고, **로그 줄 확인**에서는 아직 아무것도 도착하지 않았어도 붙여 넣은 줄이 무엇이 되는지 보여 줍니다.
+**내 로그**에서는 종류마다 마지막으로 발견된 시각을 보여 주고, **로그 줄 확인**에서는 아직 아무것도 도착하지 않았어도 붙여 넣은 줄이 무엇이 되는지 보여 줍니다. OneUptime은 스캔이 로그를 읽는 방식 그대로, [신뢰할 수 있는 프록시](#신뢰할-수-있는-프록시) 와 액세스 로그 설정을 적용해 그 줄을 읽으므로, 저장될 이벤트가 지목할 클라이언트를 똑같이 지목하며 아무것도 저장하지 않습니다.
 
 CEF나 LEEF 탐지 결과, Palo Alto Networks, FortiGate, Cisco ASA의 위협처럼 보안 제품이 로그에 기록하는 위협은 연결된 제품의 경고처럼 [케이스](/docs/telemetry/security-cases)를 열고, 그 위협이 가리키는 사용자, 호스트, 주소의 위험을 높입니다. 어느 심각도부터 열지는 **내 로그**의 **케이스를 여는 심각도**에서 정하며, 다른 심각도를 고르지 않는 한 **높음 이상**이고 **없음**으로 둘 수도 있습니다. 제품의 로그인과 차단된 연결은 이벤트로 남아 규칙이 읽을 수 있습니다.
 
@@ -299,6 +299,8 @@ OneUptime 14.0.84 이전에 저장된 이벤트는 프로세스 필드가 비어
 
 주장된 주소는 케이스에서 결코 차단되지 않습니다. 누구나 `X-Forwarded-For: 192.0.2.44` 를 보낼 수 있으므로, 차단하면 192.0.2.44가 누구든 그를 막아 버립니다. 주장된 주소만 있는 이벤트의 **대응 계획** 은 로드 밸런서나 방화벽 로그에서 실제 주소를 찾으라고 안내합니다.
 
+신뢰하는 프록시가 클라이언트를 전달한 이벤트는 거쳐 온 프록시를 **전달한 프록시** 로 보여 줍니다. `X-Forwarded-For` 가 나열하는 순서대로이며, 연결 자체의 주소가 마지막입니다. 이 값은 `oneuptime.request.forwarded_by` 에 있으며, **로그 줄 확인** 은 각각을 신뢰하는 이유를 알려 줍니다.
+
 주소가 검증되도록 앱의 서버 스팬에 두 가지를 기록하세요. OpenTelemetry의 HTTP 계측이 설정하는 연결 자체의 주소 `network.peer.address`, 그리고 프록시 뒤에서는 `X-Forwarded-For` 헤더입니다. 헤더는 `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST` 에 넣으면 `http.request.header.x-forwarded-for` 로 기록됩니다. JSON 액세스 로그도 같은 방식으로 읽습니다. `remote_addr` 같은 클라이언트 필드가 연결의 주소이고, `http_x_forwarded_for` 필드가 헤더입니다.
 
 #### 신뢰할 수 있는 프록시
@@ -311,10 +313,15 @@ OneUptime 14.0.84 이전에 저장된 이벤트는 프로세스 필드가 비어
 | **신뢰할 수 있는 프록시** 에 추가한 주소 | 직접 추가했기 때문입니다 |
 | [Cloudflare](/docs/integrations/cloudflare) 처럼 연결한 엣지가 게시한 범위 | 연결이 있는 동안 |
 | 내 애플리케이션 로드 밸런서 | 끄지 않는 한 |
+| Google Cloud Application Load Balancer 뒤에 있는 Google 프런트엔드 중 하나 | 내 로드 밸런서와 함께. 단, 내 TCP 또는 SSL 프록시 로드 밸런서도 그곳에서 연결한다면 제외 |
 
-**보안 이벤트 → 연결 → 추가 설정** 에는 직접 작성하는 목록인 **신뢰할 수 있는 프록시** 와, 나머지와 그 이유를 보여 주는 **자동으로 신뢰함** 이 있습니다. 주소가 공개되어 있고 다른 어떤 것도 신뢰하지 않는 프록시는 **신뢰할 수 있는 프록시** 에 한 줄에 주소나 범위 하나씩 추가하세요. 연결하지 않은 CDN, 인터넷을 거쳐 앱에 닿는 로드 밸런서, 공개 주소가 있는 서버에서 앱 앞에 둔 nginx 같은 리버스 프록시가 그렇습니다. 추가하기 전까지는 그것을 거친 모든 공격이 프록시의 것으로 간주됩니다. Google Cloud 전역 외부 애플리케이션 부하 분산기 뒤에서는 앱으로의 연결이 Google 프런트엔드에서 오므로 `35.191.0.0/16` 과 `130.211.0.0/22` 를 추가하세요.
+TCP 수준에서 동작하는 프록시는 `X-Forwarded-For` 에 아무것도 추가하지 않고, 클라이언트가 쓴 헤더를 그대로 넘깁니다. Network Load Balancer, `mode tcp` 의 HAProxy, `externalTrafficPolicy: Cluster` 인 Kubernetes Service가 그 예이며, 이 Service는 각 연결을 노드의 주소에서 인그레스로 넘깁니다. 이런 프록시는 사설 주소에 있으면 신뢰되므로, 그 뒤의 클라이언트가 공격의 책임을 돌릴 주소를 고를 수 있습니다. 그 뒤에서는 클라이언트 IP 보존이나 `externalTrafficPolicy: Local` 로 연결에 클라이언트 자신의 주소를 유지하고, `X-Forwarded-For` 를 기록하거나 로그에 남기지 마세요.
+
+**보안 이벤트 → 연결 → 추가 설정** 에는 직접 작성하는 목록인 **신뢰할 수 있는 프록시** 와, 나머지와 그 이유를 보여 주는 **자동으로 신뢰함** 이 있습니다. 주소가 공개되어 있고 다른 어떤 것도 신뢰하지 않는 프록시는 **신뢰할 수 있는 프록시** 에 한 줄에 주소나 범위 하나씩 추가하세요. 연결하지 않은 CDN, 인터넷을 거쳐 앱에 닿는 로드 밸런서, 공개 주소가 있는 서버에서 앱 앞에 둔 nginx 같은 리버스 프록시가 그렇습니다. 추가하기 전까지는 그것을 거친 모든 공격이 프록시의 것으로 간주됩니다. `0.0.0.0/0` 처럼 프록시의 범위보다 넓은 범위는 거부됩니다. 모든 주소를 신뢰하게 되어 누구나 공격의 책임을 돌릴 주소를 고를 수 있기 때문입니다. 목록은 프로젝트 소유자, 프로젝트 관리자, 보안 관리자가 편집하며, 모든 변경은 프로젝트의 [감사 로그](/docs/configuration/audit-logs) 에 남습니다.
 
 내 애플리케이션 로드 밸런서는 [연결된 클라우드 계정](/docs/telemetry/cloud-accounts) 이 나열하는 것으로, AWS Application Load Balancer, 모든 리스너가 HTTP나 HTTPS인 AWS Classic Load Balancer, Google Cloud Application Load Balancer, Azure Application Gateway의 공개 주소입니다. 각각 자신이 전달하는 클라이언트를 `X-Forwarded-For` 에 추가합니다. Google Cloud 로드 밸런서는 클라이언트 주소 뒤에 자기 주소를 덧붙이고, Application Gateway는 공개 백엔드에 자기 주소로 연결하므로, 이것이 없으면 그것을 거친 모든 공격이 로드 밸런서의 것으로 간주됩니다. **자동으로 신뢰함** 의 **내 로드 밸런서** 가 이를 나열하며, 프로젝트 소유자, 프로젝트 관리자, 보안 관리자가 끌 수 있습니다.
+
+Google Cloud 전역 외부 애플리케이션 부하 분산기나 기존 방식의 부하 분산기 뒤에서는 앱으로의 연결이 부하 분산기 자체의 주소가 아니라 Google 프런트엔드에서 옵니다. 그래서 연결된 Google Cloud 프로젝트에 그런 부하 분산기가 있는 동안 보안 이벤트는 프런트엔드의 범위도 신뢰합니다. Google의 [부하 분산 방화벽 규칙](https://cloud.google.com/load-balancing/docs/firewall-rules) 이 나열하는 `35.191.0.0/16`, `130.211.0.0/22`, `2600:2d00:1:1::/64` 입니다. **내 로드 밸런서** 는 이 범위를 목록의 마지막 줄에, 이를 가져오는 로드 밸런서와 함께 보여 주며, 그 스위치로 이 범위도 꺼집니다. Google 밖에서 이 범위로 연결하는 사람은 없으므로, 이 범위를 신뢰해도 누구도 클라이언트를 지목할 수 없습니다. 다른 사람의 로드 밸런서를 거친 요청은 `X-Forwarded-For` 가 그 로드 밸런서의 주소로 끝나는데, 이는 내 것이 아니므로 이벤트는 그 주소를 지목합니다. 하지만 Google의 TCP 및 SSL 프록시 로드 밸런서는 같은 범위에서 연결하고 클라이언트가 보낸 그대로 요청을 넘기므로, 내 것이 하나라도 있거나 모든 로드 밸런서를 나열하지 못한 동안에는 이 범위를 신뢰하지 않으며, 그 줄이 이유를 알려 줍니다. 그런 로드 밸런서가 연결하지 않은 Google Cloud 프로젝트에 있다면 그 프로젝트를 연결하거나 **내 로드 밸런서** 를 끄세요.
 
 그 밖에 자동으로 신뢰하는 것은 없습니다. 호스트, Kubernetes 노드, 프로브, 가상 머신, NAT 게이트웨이, Network·Gateway·Azure 로드 밸런서는 신뢰하지 않습니다. 이들은 아무도 전달하지 않거나 요청을 들어온 그대로 넘기므로, 그 위에서 실행되는 것은 무엇이든 아무 클라이언트나 지목할 수 있습니다. 자체 헤더를 붙여 모니터가 보내는 요청, Pod, 게이트웨이 뒤의 노트북 등입니다. 이 중 하나가 프록시라면 **신뢰할 수 있는 프록시** 에 추가하세요. Kubernetes 인그레스는 실제 로드 밸런서로서 신뢰합니다. GKE 인그레스는 Google Cloud Application Load Balancer, AKS의 Application Gateway 인그레스는 Application Gateway, 클래스가 `alb` 인 EKS 인그레스는 AWS Application Load Balancer입니다. 클러스터 안의 인그레스 컨트롤러는 사설 주소에서 전달하므로 항상 신뢰합니다.
 
@@ -337,6 +344,25 @@ log_format main '$remote_addr - $remote_user [$time_local] "$request" '
 - 그 필드가 `-` 이거나, 마지막 주소에 포트가 없는 주소 목록일 때.
 
 형식이 `X-Real-IP` 처럼 주소를 담은 다른 헤더로 끝나거나, Express의 `morgan` 처럼 웹 서버가 헤더의 따옴표를 이스케이프하지 않고 쓴다면 끈 채로 두세요. 요청 자신의 사용자 에이전트가 필드를 추가할 수 있게 됩니다. JSON 액세스 로그는 필드에 이름이 있으므로 스위치가 필요 없습니다.
+
+#### 나만의 로그 형식
+
+웹 서버가 `X-Forwarded-For` 를 마지막이 아닌 곳에 둔다면 그 형식을 지정하세요. **추가 설정** 아래 **액세스 로그** 의 **로그 형식** 입니다. nginx `log_format` 을 `nginx.conf` 에 적힌 그대로 붙여 넣거나, 알려진 형식인 nginx의 `main` 이나 ingress-nginx의 `upstreaminfo` 에서 시작하세요. 예를 들어 헤더 뒤에 각 요청에 걸린 시간을 기록하는 형식은 다음과 같습니다.
+
+```nginx
+log_format timed '$remote_addr - $remote_user [$time_local] "$request" '
+                 '$status $body_bytes_sent "$http_referer" '
+                 '"$http_user_agent" "$http_x_forwarded_for" $request_time';
+```
+
+형식에 맞는 각 줄은 필드별로 읽습니다. 연결한 주소는 `$remote_addr` 에서, `X-Forwarded-For` 는 형식의 어디에 있든 `$http_x_forwarded_for` 에서 읽습니다. 읽는 방식은 다른 `X-Forwarded-For` 와 같습니다. `$remote_addr` 가 신뢰하는 프록시일 때만, 오른쪽부터 읽습니다. 어느 쪽에도 다른 필드를 쓰는 일은 없으며, 형식에 맞지 않는 줄은 이전처럼 읽고, 마지막 필드는 **로그가 X-Forwarded-For로 끝남** 이 결정합니다.
+
+- nginx는 클라이언트가 보낸 따옴표를 `\x22` 로 이스케이프하므로, 줄 안의 모든 따옴표는 형식의 따옴표입니다. 따옴표를 이스케이프하지 않는 서버(`escape=none`, Express의 `morgan`)가 쓰는 줄처럼 형식보다 따옴표가 많은 줄은 형식의 줄이 아니며, 그 안의 어떤 것도 형식에 따라 읽지 않습니다.
+- **로그 형식** 은 `X-Forwarded-For` 나 `$remote_addr` 를 옆 필드와 구분할 수 없는 형식(예: 클라이언트가 쓰는 두 필드 사이에 따옴표 없이 있는 헤더)을 거부하고, `"$http_x_forwarded_for"` 처럼 따옴표로 묶으라고 알려 줍니다.
+- ingress-nginx의 `upstreaminfo` 는 `X-Forwarded-For` 를 기록하지 않으므로 각 줄의 클라이언트는 `$remote_addr` 입니다. 앞단에 Application Load Balancer나 다른 HTTP 프록시가 있다면, 그것이 전달한 클라이언트를 읽도록 `log-format-upstream` 에 `"$http_x_forwarded_for"` 를 추가하세요. 클라이언트가 쓴 헤더를 그대로 넘기는 Network Load Balancer 뒤에서는 추가하지 마세요.
+- nginx가 realip 모듈이나 ingress-nginx의 `use-forwarded-headers` 로 `X-Forwarded-For` 에서 `$remote_addr` 를 직접 설정하면, nginx는 `set_real_ip_from` 이나 `proxy-real-ip-cidr` 가 지목하는 누구든 믿으며, ingress-nginx의 기본값은 모두를 지목합니다. 실제로 연결한 주소인 `$realip_remote_addr` 를 `$http_x_forwarded_for` 옆에 기록하세요. 그러면 보안 이벤트는 `$realip_remote_addr` 를 연결로, `$remote_addr` 를 주장으로만 읽고, 신뢰할 수 있는 프록시로 판단합니다.
+
+형식은 프로젝트 소유자, 프로젝트 관리자, 보안 관리자가 지정하며, 모든 변경은 프로젝트의 감사 로그에 남습니다.
 
 ### 정리 규칙에 의해 숨겨짐
 
@@ -394,9 +420,9 @@ log_format main '$remote_addr - $remote_user [$time_local] "$request" '
 - `text/plain` 이나 `application/octet-stream` 처럼 웹 페이지에는 없는 유형: 파일 자체.
 - 웹 페이지, 또는 JSON이 아닌 파일에 대한 JSON: 사이트의 자체 페이지.
 - 아무것도 담기지 않음: 가져간 것이 없음.
-- 웹 서버의 액세스 로그가 기록하듯 크기만 있고 유형은 없음: 다른 경로가 그 크기를 받지 않았고 사이트가 없는 경로에 404로 응답하면 파일 자체, 같은 크기가 서로 다른 두 경로에 응답했다면 사이트의 자체 페이지. 어느 쪽도 정해지지 않으면 그 요청은 이벤트가 되지 않습니다.
+- 웹 서버의 액세스 로그가 기록하듯 크기만 있고 유형은 없음: 다른 경로가 그 크기를 받지 않았고 사이트가 없는 경로에 404로 응답하면 파일 자체, 같은 크기가 서로 다른 두 경로에 응답했다면 사이트의 자체 페이지. 스캐너가 단독으로 보낸 `/.env` 처럼 곁에 아무것도 없는 요청은 지난 하루 동안 사이트가 보낸 응답으로 판단합니다. 어느 쪽도 정해지지 않으면 그 요청은 이벤트가 되지 않습니다.
 
-제공된 파일은 심각도 Critical이며, 규칙 라이브러리의 **Sensitive file served** 가 이에 대한 케이스를 열고, 파일을 내리고 담긴 비밀을 교체하는 단계를 제시합니다. 이런 요청은 모두 **Scanning for sensitive files** 에도 세어지며, 단일 페이지 앱에 대한 요청도 포함됩니다. WordPress처럼 사이트가 제공하는 관리 페이지는 해당하지 않으며, WordPress가 실행한 `wp-config.php` 는 사이트 자체의 것입니다. Cloudflare 방화벽 이벤트는 오리진이 무엇을 보냈는지 알려 주지 않으므로, Cloudflare가 통과시킨 요청은 스캔에만 세어집니다. 이벤트 패널의 **그다음에 일어난 일** 에 사이트가 무엇을 보냈는지 표시됩니다.
+제공된 파일은 심각도 Critical이며, 규칙 라이브러리의 **Sensitive file served** 가 이에 대한 케이스를 열고, 파일을 내리고 담긴 비밀을 교체하는 단계를 제시합니다. 이런 요청은 모두 **Scanning for sensitive files** 에도 세어지며, 단일 페이지 앱에 대한 요청도 포함됩니다. WordPress처럼 사이트가 제공하는 관리 페이지는 해당하지 않으며, WordPress가 실행한 `wp-config.php` 는 사이트 자체의 것입니다. Cloudflare 방화벽 이벤트는 오리진이 무엇을 보냈는지 알려 주지 않으므로, Cloudflare가 통과시킨 요청은 스캔에만 세어집니다. 이벤트 패널의 **그다음에 일어난 일** 에 사이트가 무엇을 보냈는지 표시됩니다. **Sensitive file served** 가 권장 규칙이 되기 전에 권장 규칙을 켰고 다른 권장 규칙을 모두 실행하는 프로젝트는 업그레이드 때 이 규칙을 받았으며, **개요** 에 그렇게 표시됩니다.
 
 ### Campaigns
 

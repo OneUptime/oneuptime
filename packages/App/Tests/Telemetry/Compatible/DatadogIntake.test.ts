@@ -629,7 +629,7 @@ describe("DatadogIntake.logsToOtlp: status", () => {
     ["3", 17, "ERROR"],
     // Datadog's status remapper: by the first letters.
     ["errors", 17, "ERROR"],
-    ["fail", 21, "FATAL"],
+    ["failure", 21, "FATAL"],
     ["warned", 13, "WARN"],
     ["dbg-detail", 5, "DEBUG"],
     // Debug, as Datadog and Appendix B read verbose (issue #8536).
@@ -649,7 +649,13 @@ describe("DatadogIntake.logsToOtlp: status", () => {
     ["finest", 1, "TRACE"],
     ["config", 7, "DEBUG3"],
     ["severe", 17, "ERROR"],
-    ["panic", 19, "ERROR3"],
+    // A crash, as every log ingest reads it (issue #11228).
+    ["panic", 21, "FATAL"],
+    /*
+     * .NET's fail, a level word every log ingest reads (issue #11228),
+     * where the remapper would read its f as an emergency.
+     */
+    ["fail", 17, "ERROR"],
     ["WARN2", 14, "WARN2"],
     ["fatal4", 24, "FATAL4"],
     ["ftl", 21, "FATAL"],

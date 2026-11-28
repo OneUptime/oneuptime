@@ -230,6 +230,60 @@ describe("the rule Scrub It makes for a metric's attribute", () => {
     },
   );
 
+  /*
+   * #11112: Scrub It's rule for a phone number or a Social Security number
+   * froze the detectors' shapes into a Matches Regex filter; it matches
+   * the Phone Number or SSN pattern type now, as a log or trace rule of
+   * the type does, so it hides what Data Security finds: encoded, in
+   * another script's digits, typed wholly in fullwidth (#11115) and beside
+   * the word that names it (#11114).
+   */
+  test.each([
+    ["phone-number", "caller", "+44 20 7946 0958"],
+    ["phone-number", "caller", "+44 (0)20 8123 4567"],
+    ["phone-number", "callback", "/callback?phone=%2B44%2020%207946%200958"],
+    ["phone-number", "callback", "/callback?phone=%2B44+20+7946+0958"],
+    ["phone-number", "caller", "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨"],
+    ["phone-number", "caller", "＋８１ ３－１２３４－５６７８"],
+    ["phone-number", "contact", "tel 02012345678"],
+    ["us-ssn", "customer.ssn", "536-22-8731"],
+    ["us-ssn", "customer.ssn", "536.22.8731"],
+    ["us-ssn", "customer.ssn", "٥٣٦-٢٢-٨٧٣١"],
+    ["us-ssn", "customer.ssn", "５３６－２２－８７３１"],
+    ["us-ssn", "applicant", "SSN 536221234"],
+  ])(
+    "the rule for %s redacts %s holding %s (#11112)",
+    (dataTypeId: string, key: string, value: string) => {
+      const rules: MetricRulesForProject = rulesOf(
+        scrubRule(`attributes.${key}`, dataTypeId),
+      );
+
+      expect(
+        attributesAfter(point({ [key]: value, region: "eu" }), CHECKOUT, rules),
+      ).toEqual({ [key]: METRIC_REDACT_REPLACEMENT, region: "eu" });
+    },
+  );
+
+  test.each([
+    ["phone-number", "delta", "+51.507217"],
+    ["phone-number", "tz", "UTC +1 2026-11-24"],
+    ["phone-number", "build", "v1.2.3+build.5"],
+    ["phone-number", "order", "order 02012345678"],
+    ["us-ssn", "customer.ssn", "666.22.8731"],
+    ["us-ssn", "ref", "ref 536221234"],
+  ])(
+    "the rule for %s keeps %s holding what is none, which the frozen pattern took for one or no rule hides: %s (#11112)",
+    (dataTypeId: string, key: string, value: string) => {
+      const rules: MetricRulesForProject = rulesOf(
+        scrubRule(`attributes.${key}`, dataTypeId),
+      );
+
+      expect(
+        attributesAfter(point({ [key]: value, region: "eu" }), CHECKOUT, rules),
+      ).toEqual({ [key]: value, region: "eu" });
+    },
+  );
+
   test("the rule for an IP address keeps what is no one's address, which the frozen IPv4 pattern redacted", () => {
     const rules: MetricRulesForProject = rulesOf(
       scrubRule("attributes.peer", "ip-address"),

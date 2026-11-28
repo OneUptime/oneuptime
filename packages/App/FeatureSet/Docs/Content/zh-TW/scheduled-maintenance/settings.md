@@ -23,7 +23,7 @@
 
 **設定** 區段包含 **維護狀態** （在 [維護狀態](/docs/scheduled-maintenance/states) 中介紹）、 **維護範本** （在 [範本與週期性事件](/docs/scheduled-maintenance/templates) 中介紹），以及 **備註範本** 、 **公開備註核准** 、 **自訂欄位** 、 **測量** 、 **行事曆設定** 和 **編號規則** 。 **行事曆設定** 在 [維護行事曆](/docs/scheduled-maintenance/calendar#外部行事曆) 中介紹，其餘在下文介紹。
 
-**工作區** 區段包含把事件發佈到頻道的 Slack 和 Microsoft Teams 規則。請參閱 [Slack](/docs/workspace-connections/slack#通知規則) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知規則)。
+**工作區** 區段包含把事件發佈到頻道的 Slack 和 Microsoft Teams 規則：每個事件在建立時發佈，之後是它的狀態變更、備註、新增和移除的擁有者以及提醒，依每條規則在 **更新** 步驟中的選擇發佈。請參閱 [Slack](/docs/workspace-connections/slack#通知規則) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知規則)。
 
 ## 新事件依序經過的規則
 

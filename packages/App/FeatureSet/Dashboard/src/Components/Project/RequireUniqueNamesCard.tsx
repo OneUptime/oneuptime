@@ -4,7 +4,10 @@ import RequireUniqueNamesCopy, {
   REQUIRE_UNIQUE_NAMES_SWITCH_TEST_ID,
   UNIQUE_NAMES_CARD_ID,
 } from "./RequireUniqueNamesCopy";
-import { getRecordPageRoute } from "../UniqueNames/RecordPages";
+import {
+  getNoRecordPageNote,
+  getRecordPageRoute,
+} from "../UniqueNames/RecordPages";
 import Project from "Common/Models/DatabaseModels/Project";
 import Route from "Common/Types/API/Route";
 import {
@@ -178,6 +181,8 @@ const DuplicateNamesOfKindSection: FunctionComponent<{
   const pluralName: string =
     translator.translateText(props.kind.pluralName) || props.kind.pluralName;
   const moreNames: number = props.kind.groupCount - props.kind.groups.length;
+  // A kind no Dashboard page shows says so, where its records have no link.
+  const noPageNote: string | null = getNoRecordPageNote(props.kind.tableName);
 
   return (
     <section
@@ -187,6 +192,16 @@ const DuplicateNamesOfKindSection: FunctionComponent<{
       <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {pluralName}
       </h4>
+      {noPageNote ? (
+        <p
+          className="mt-1 text-xs text-gray-500"
+          data-testid={`${DUPLICATE_NAMES_TEST_ID}-no-page`}
+        >
+          {translator.translateText(noPageNote) || noPageNote}
+        </p>
+      ) : (
+        <></>
+      )}
       <ul className="mt-1 divide-y divide-gray-100">
         {props.kind.groups.map(
           (group: DuplicateNameGroup, index: number): ReactElement => {
@@ -264,6 +279,7 @@ const DuplicateNameRecordLine: FunctionComponent<{
   const route: Route | null = getRecordPageRoute({
     tableName: props.tableName,
     modelId: new ObjectID(props.record.id),
+    pageFields: props.record.pageFields,
   });
   const createdAt: Date | null = props.record.createdAt
     ? OneUptimeDate.fromString(props.record.createdAt)

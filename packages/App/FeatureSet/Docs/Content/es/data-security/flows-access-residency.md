@@ -60,7 +60,9 @@ A partir de lo que lee, cada almacén recibe una exposición:
 | **Otras cuentas** | Pueden acceder a él cuentas ajenas a las que tienes conectadas. |
 | **Accesible desde internet** | Su endpoint de red acepta conexiones desde internet. |
 | **Privado** | Solo acceden a él tus propias cuentas y redes. |
-| **Desconocido** | OneUptime no pudo leer lo suficiente de su configuración para saberlo. |
+| **Desconocido** | OneUptime lo comprobó, pero no pudo saberlo con lo que pudo leer. |
+| **Aún sin comprobar** | OneUptime aún no ha comprobado cómo se puede acceder a él. |
+| **No se puede comprobar** | OneUptime no tiene forma de comprobar cómo se puede acceder a este tipo de almacén. |
 
 Público prevalece sobre compartido, y compartido sobre accesible: un bucket público que además se comparte con otra cuenta es Público. La exposición suma a la [puntuación de riesgo](/docs/data-security/checks-and-issues#puntuación-de-riesgo) de un problema.
 

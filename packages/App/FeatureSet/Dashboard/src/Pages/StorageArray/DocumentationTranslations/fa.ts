@@ -39,8 +39,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- این‌که گواهی آرایه بررسی شود یا نه: پاسخ **N** بدهید، مگر آن‌که آرایه گواهی‌ای از یک CA مورد اعتماد شما داشته باشد (آرایه‌ها با یک گواهی خودامضا عرضه می‌شوند)",
   "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the API token) and starts the agent with Docker Compose.":
     "در `/opt/oneuptime-storage-array-agent` نصب می‌شود، یک فایل `.env` می‌نویسد که فقط شما می‌توانید بخوانید (توکن API در آن است) و عامل را با Docker Compose راه می‌اندازد.",
-  "Download the compose file and the three collector configs from this OneUptime into a new folder:":
-    "فایل compose و سه پیکربندی کالکتور را از این OneUptime در یک پوشه تازه دانلود کنید:",
+  "Download the compose file and the collector configs from this OneUptime into a new folder:":
+    "فایل compose و پیکربندی‌های کالکتور را از این OneUptime در یک پوشه تازه دانلود کنید:",
   "Create a `.env` file next to them:": "یک فایل `.env` کنار آن‌ها بسازید:",
   "- Replace `my-storage-array` with a name for this array, such as `fa-prod-01`. It is how the array appears in OneUptime, so keep it stable: a new name registers a new storage array.":
     "- `my-storage-array` را با نامی برای این آرایه جایگزین کنید، مثلاً `fa-prod-01`. آرایه با همین نام در OneUptime نشان داده می‌شود، پس آن را ثابت نگه دارید: نام تازه یک آرایه ذخیره‌سازی تازه ثبت می‌کند.",
@@ -128,8 +128,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "**ارتقا**: ایمیج کالکتور در `docker-compose.yml` ثابت شده و پیکربندی‌هایش فایل‌هایی کنار آن هستند، پس فقط کشیدن ایمیج عامل را جلو نمی‌برد. اسکریپت نصب را دوباره اجرا کنید. هر مقدار `.env` موجود شما را دوباره به کار می‌برد (چیزی دوباره پرسیده نمی‌شود)، آخرین `docker-compose.yml` و پیکربندی‌های کالکتور را دانلود می‌کند (فایلی که ویرایش کرده‌اید کنار فایل تازه با نام `<file>.bak.<timestamp>` نگه داشته می‌شود) و عامل را با آن‌ها از نو می‌سازد:",
   "An agent installed outside `/opt/oneuptime-storage-array-agent` (a second array's, say) needs its folder: `INSTALL_DIR=<folder> bash install.sh`.":
     "عاملی که بیرون از `/opt/oneuptime-storage-array-agent` نصب شده است (مثلاً عامل آرایه دوم) به پوشه‌اش نیاز دارد: `INSTALL_DIR=<folder> bash install.sh`.",
-  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
-    "آن را با Docker Compose نصب کرده‌اید؟ در پوشه عامل، فایل compose و سه پیکربندی کالکتور را دوباره دانلود کنید؛ `.env` شما می‌ماند، و تغییری که در هر کدام از آن‌ها داده‌اید باید دوباره انجام شود:",
+  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
+    "آن را با Docker Compose نصب کرده‌اید؟ در پوشه عامل، فایل compose و پیکربندی‌های کالکتور را دوباره دانلود کنید؛ `.env` شما می‌ماند، و تغییری که در هر کدام از آن‌ها داده‌اید باید دوباره انجام شود:",
   "Then pull the images and recreate the agent, so the collector reads its new config:":
     "سپس ایمیج‌ها را بکشید و عامل را از نو بسازید تا کالکتور پیکربندی تازه‌اش را بخواند:",
   "The config reports the collector version it pins as the array's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.":
@@ -209,6 +209,76 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **سامانه‌های فایل** (`/metrics/filesystems`) | فضا، کاهش داده و کارایی برای هر سامانه فایل |",
   "| **Object store** (`/metrics/objectstore`) | Space, quota, object counts and performance per bucket |":
     "| **ذخیره‌گاه اشیا** (`/metrics/objectstore`) | فضا، سهمیه، شمار اشیا و کارایی برای هر باکت |",
+  "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that reaches every node of the cluster on UDP 161 (SNMP)":
+    "Docker Engine 20.10 یا جدیدتر با افزونه Docker Compose v2، روی ماشینی که از راه UDP 161 (SNMP) به همه گره‌های خوشه دسترسی داشته باشد",
+  "An administrator account on the cluster, to turn on SNMP and set the agent's read-only community or SNMPv3 user":
+    "یک حساب مدیر روی خوشه، برای روشن کردن SNMP و تنظیم community فقط‌خواندنی یا کاربر SNMPv3 عامل",
+  "SSH to any node as an administrator: OneFS applies SNMP settings to the whole cluster. If the cluster already answers SNMP for another tool, give the agent the same community or user and skip this step. Otherwise, turn on SNMP v2c with a read-only community of your own, not OneFS's default `I$ilonpublic`:":
+    "با SSH و به‌عنوان مدیر به هر گره‌ای وصل شوید: OneFS تنظیمات SNMP را روی کل خوشه اعمال می‌کند. اگر خوشه از پیش برای ابزار دیگری به SNMP پاسخ می‌دهد، همان community یا کاربر را به عامل بدهید و از این مرحله بگذرید. در غیر این صورت، SNMP v2c را با یک community فقط‌خواندنی از آنِ خودتان روشن کنید، نه community پیش‌فرض OneFS یعنی `I$ilonpublic`:",
+  "Or turn on SNMPv3, which authenticates and encrypts every poll. OneFS has one SNMPv3 read-only user, `general` until you rename it: give it passwords of at least eight characters, without spaces:":
+    "یا SNMPv3 را روشن کنید که هر پرس‌وجو را احراز هویت و رمزگذاری می‌کند. OneFS یک کاربر فقط‌خواندنی SNMPv3 دارد که تا وقتی نامش را تغییر ندهید `general` است: به آن گذرواژه‌هایی با دست‌کم هشت نویسه و بدون فاصله بدهید:",
+  "`isi snmp settings view` shows the settings, with the user's authentication and privacy protocols. Allow UDP 161 from the agent's machine to every node, and list the nodes' addresses with `isi network interfaces list`.":
+    "`isi snmp settings view` تنظیمات را همراه با پروتکل‌های احراز هویت و حریم خصوصی کاربر نشان می‌دهد. UDP 161 را از ماشین عامل به همه گره‌ها مجاز کنید و نشانی گره‌ها را با `isi network interfaces list` فهرست کنید.",
+  "- **every node's address**, separated by commas: each node's own address, never the SmartConnect zone name, since a node answers only for its own drives, sensors and ports":
+    "- **نشانی همه گره‌ها**، جداشده با ویرگول: نشانی خود هر گره، هرگز نام زُن SmartConnect، چون هر گره فقط برای درایوها، حسگرها و پورت‌های خودش پاسخ می‌دهد",
+  "- the **SNMP version**, then the read-only **community**, or the SNMPv3 **user** and its two passwords, each read without echo":
+    "- **نسخه SNMP**، سپس **community** فقط‌خواندنی، یا **کاربر** SNMPv3 و دو گذرواژه آن، که اسکریپت هر کدام را بدون نمایش روی صفحه می‌خواند",
+  "A user whose protocols are not SHA and AES needs `POWERSCALE_SNMP_AUTH_PROTOCOL` and `POWERSCALE_SNMP_PRIVACY_PROTOCOL` in front of `bash install.sh`, and a user without privacy `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.":
+    "کاربری که پروتکل‌هایش SHA و AES نیستند، به `POWERSCALE_SNMP_AUTH_PROTOCOL` و `POWERSCALE_SNMP_PRIVACY_PROTOCOL` پیش از `bash install.sh` نیاز دارد، و کاربر بدون حریم خصوصی به `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.",
+  "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the community or the SNMPv3 passwords), with one poll per node, and starts the agent with Docker Compose. When the cluster gains a node, add its address to `POWERSCALE_NODES` in that file and run `bash install.sh` again.":
+    "در `/opt/oneuptime-storage-array-agent` نصب می‌شود، یک فایل `.env` می‌نویسد که فقط شما می‌توانید بخوانید (community یا گذرواژه‌های SNMPv3 در آن است)، با یک پرس‌وجو برای هر گره، و عامل را با Docker Compose راه می‌اندازد. وقتی گره‌ای به خوشه اضافه می‌شود، نشانی آن را در همان فایل به `POWERSCALE_NODES` بیفزایید و `bash install.sh` را دوباره اجرا کنید.",
+  "- Replace `my-storage-array` with a name for this cluster, such as `ps-prod`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new storage array.":
+    "- `my-storage-array` را با نامی برای این خوشه جایگزین کنید، مثلاً `ps-prod`. خوشه با همین نام در OneUptime نشان داده می‌شود، پس آن را ثابت نگه دارید: نام تازه یک آرایه ذخیره‌سازی تازه ثبت می‌کند.",
+  "- List every node in `POWERSCALE_NODES` and give each its own `POWERSCALE_NODE_<n>` and `snmp/node-<n>` in `POWERSCALE_SNMP_RECEIVERS`, up to 252, after `snmp/cluster` and `snmp/quotas`. An IPv6 address goes in brackets, such as `[fd00::11]`.":
+    "- همه گره‌ها را در `POWERSCALE_NODES` فهرست کنید و به هر کدام `POWERSCALE_NODE_<n>` خودش و `snmp/node-<n>` خودش را در `POWERSCALE_SNMP_RECEIVERS` بدهید، تا 252 گره، پس از `snmp/cluster` و `snmp/quotas`. نشانی IPv6 درون کروشه می‌آید، مانند `[fd00::11]`.",
+  "- For SNMPv3, set `POWERSCALE_SNMP_VERSION=v3`, `POWERSCALE_SNMP_USER`, `POWERSCALE_SNMP_AUTH_PASSWORD` and `POWERSCALE_SNMP_PRIVACY_PASSWORD` instead of the community. Run `chmod 600 .env`: it holds the community or the passwords.":
+    "- برای SNMPv3، به جای community، `POWERSCALE_SNMP_VERSION=v3`، `POWERSCALE_SNMP_USER`، `POWERSCALE_SNMP_AUTH_PASSWORD` و `POWERSCALE_SNMP_PRIVACY_PASSWORD` را تنظیم کنید. `chmod 600 .env` را اجرا کنید: community یا گذرواژه‌ها در این فایل است.",
+  "| `STORAGE_ARRAY_NAME` | Yes | The name this cluster registers under in OneUptime, stamped on every metric as `storage.array.name`. Keep it stable — changing it registers a new storage array |":
+    "| `STORAGE_ARRAY_NAME` | بله | نامی که این خوشه با آن در OneUptime ثبت می‌شود و روی هر متریک به‌عنوان `storage.array.name` زده می‌شود. آن را ثابت نگه دارید: تغییرش یک آرایه ذخیره‌سازی تازه ثبت می‌کند |",
+  "| `STORAGE_SYSTEM` | Yes | `dell.powerscale` |":
+    "| `STORAGE_SYSTEM` | بله | `dell.powerscale` |",
+  "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Yes | `otel-collector-config.powerscale.yaml` |":
+    "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | بله | `otel-collector-config.powerscale.yaml` |",
+  "| `POWERSCALE_NODES` | Yes | Every node's address, separated by commas. The install script writes the polls below from it |":
+    "| `POWERSCALE_NODES` | بله | نشانی همه گره‌ها، جداشده با ویرگول. اسکریپت نصب پرس‌وجوهای زیر را از روی آن می‌نویسد |",
+  "| `POWERSCALE_ENDPOINT` | Yes | The node the cluster's own health, capacity and quotas are read through: the first in `POWERSCALE_NODES` |":
+    "| `POWERSCALE_ENDPOINT` | بله | گره‌ای که سلامت، ظرفیت و سهمیه‌های خود خوشه از راه آن خوانده می‌شوند: نخستین گره در `POWERSCALE_NODES` |",
+  "| `POWERSCALE_SNMP_RECEIVERS` | Yes | The polls the collector runs: `snmp/cluster`, `snmp/quotas`, then `snmp/node-<n>` for each node |":
+    "| `POWERSCALE_SNMP_RECEIVERS` | بله | پرس‌وجوهایی که کالکتور اجرا می‌کند: `snmp/cluster`، `snmp/quotas`، سپس `snmp/node-<n>` برای هر گره |",
+  "| `POWERSCALE_NODE_<n>` | Yes | Node `<n>`'s address, from 1 to 252 |":
+    "| `POWERSCALE_NODE_<n>` | بله | نشانی گره `<n>`، از 1 تا 252 |",
+  "| `POWERSCALE_SNMP_VERSION` | No | `v2c` (default) or `v3` |":
+    "| `POWERSCALE_SNMP_VERSION` | خیر | `v2c` (پیش‌فرض) یا `v3` |",
+  "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | The cluster's read-only community |":
+    "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | community فقط‌خواندنی خوشه |",
+  "| `POWERSCALE_SNMP_USER` | SNMPv3 | The cluster's SNMPv3 read-only user |":
+    "| `POWERSCALE_SNMP_USER` | SNMPv3 | کاربر فقط‌خواندنی SNMPv3 خوشه |",
+  "| `POWERSCALE_SNMP_SECURITY_LEVEL` | No | `auth_priv` (default), `auth_no_priv` or `no_auth_no_priv` |":
+    "| `POWERSCALE_SNMP_SECURITY_LEVEL` | خیر | `auth_priv` (پیش‌فرض)، `auth_no_priv` یا `no_auth_no_priv` |",
+  "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | No | `SHA` (default), `MD5`, `SHA224`, `SHA256`, `SHA384` or `SHA512` |":
+    "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | خیر | `SHA` (پیش‌فرض)، `MD5`، `SHA224`، `SHA256`، `SHA384` یا `SHA512` |",
+  "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | The SNMPv3 user's authentication password |":
+    "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | گذرواژه احراز هویت کاربر SNMPv3 |",
+  "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | No | `AES` (default), `DES`, `AES192`, `AES256`, `AES192C` or `AES256C` |":
+    "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | خیر | `AES` (پیش‌فرض)، `DES`، `AES192`، `AES256`، `AES192C` یا `AES256C` |",
+  "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | The SNMPv3 user's privacy password |":
+    "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | گذرواژه حریم خصوصی کاربر SNMPv3 |",
+  "- **One collector, no exporter.** The collector's own SNMP receiver reads Dell's ISILON-MIB; nothing else runs beside it.":
+    "- **یک کالکتور، بدون صادرکننده.** گیرنده SNMP خود کالکتور ISILON-MIB متعلق به Dell را می‌خواند؛ چیز دیگری کنار آن اجرا نمی‌شود.",
+  "- **The cluster's objects once, through `POWERSCALE_ENDPOINT`:** its health, capacity, throughput and node counts every 60 seconds (`snmp/cluster`), and its SmartQuotas every 5 minutes (`snmp/quotas`).":
+    "- **اشیای خوشه یک بار، از راه `POWERSCALE_ENDPOINT`:** سلامت، ظرفیت، توان عملیاتی و تعداد گره‌های آن هر 60 ثانیه (`snmp/cluster`)، و SmartQuotas آن هر 5 دقیقه (`snmp/quotas`).",
+  "- **Each node's from the node:** its health, CPU, protocol performance, drives, sensors and ports every 60 seconds (`snmp/node-<n>`).":
+    "- **اشیای هر گره از خود همان گره:** سلامت، CPU، کارایی پروتکل‌ها، درایوها، حسگرها و پورت‌های آن هر 60 ثانیه (`snmp/node-<n>`).",
+  "- **Every poll labels its series `scrape_endpoint: <poll>`**, so OneUptime knows which objects a batch is the complete list of — that is how a deleted quota leaves the inventory. Keep the labels as shipped.":
+    "- **هر پرس‌وجو روی سری‌هایش برچسب `scrape_endpoint: <poll>` می‌زند**، تا OneUptime بداند هر دسته فهرست کامل کدام اشیاست؛ سهمیه حذف‌شده این‌گونه از موجودی بیرون می‌رود. برچسب‌ها را همان‌طور که عرضه شده‌اند نگه دارید.",
+  "The full config, one SNMP receiver per node slot, is `otel-collector-config.powerscale.yaml` in the agent's folder:":
+    "پیکربندی کامل، با یک گیرنده SNMP برای هر جایگاه گره، فایل `otel-collector-config.powerscale.yaml` در پوشه عامل است:",
+  "Then turn SNMP off on the cluster, or change the agent's community or SNMPv3 passwords, if nothing else polls it.":
+    "سپس اگر چیز دیگری از خوشه پرس‌وجو نمی‌کند، SNMP را روی آن خاموش کنید، یا community یا گذرواژه‌های SNMPv3 عامل را تغییر دهید.",
+  "`troubleshoot.sh` checks the whole chain — the container runtime, the node addresses and the community or SNMPv3 user in `.env`, each node with `snmpget` when the machine has it, array-name stamping, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key.":
+    "`troubleshoot.sh` کل زنجیره را بررسی می‌کند (محیط اجرای کانتینر، نشانی گره‌ها و community یا کاربر SNMPv3 در `.env`، هر گره با `snmpget` وقتی ماشین آن را داشته باشد، زدن نام آرایه، متریک‌های خود کالکتور) و مستقیم از OneUptime می‌پرسد که آیا کلید دریافت داده شما را می‌پذیرد.",
+  "`Error scraping metrics` with `request timeout` in `docker logs oneuptime-storage-array-agent` names a node that does not answer SNMP from this machine: SNMP is off for the version the agent uses, the community or SNMPv3 user is not the cluster's, or UDP 161 is blocked on the way. A node that answers but is missing from the cluster's nodes is not in `POWERSCALE_NODES`: add it and run `bash install.sh` again.":
+    "`Error scraping metrics` همراه با `request timeout` در `docker logs oneuptime-storage-array-agent` گره‌ای را نام می‌برد که از این ماشین به SNMP پاسخ نمی‌دهد: SNMP برای نسخه‌ای که عامل به کار می‌برد خاموش است، community یا کاربر SNMPv3 از آنِ خوشه نیست، یا UDP 161 در مسیر مسدود است. گره‌ای که پاسخ می‌دهد اما در میان گره‌های خوشه نیست، در `POWERSCALE_NODES` نیامده است: آن را بیفزایید و `bash install.sh` را دوباره اجرا کنید.",
 };
 
 export default TRANSLATION;

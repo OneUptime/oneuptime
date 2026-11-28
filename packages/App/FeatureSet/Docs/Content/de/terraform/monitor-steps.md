@@ -11,7 +11,7 @@
 
 ## Wie eine Prüfung beurteilt wird
 
-Jede Prüfung liefert ein Ergebnis: die Antwort einer Sonde, den Rückgabewert eines Skripts oder die Telemetrie, die die Prüfung liest. Die Kriterien des Schritts beurteilen es dann in ihrer Reihenfolge. Das erste Kriterium, dessen Filter passen, entscheidet, was geschieht: Es kann den Status des Monitors ändern, Vorfälle öffnen und Warnungen öffnen. Die Kriterien danach werden für diese Prüfung nicht angesehen.
+Jede Prüfung liefert ein Ergebnis: die Antwort einer Sonde, den Rückgabewert eines Skripts oder die Telemetrie, die die Prüfung liest. Die Kriterien des Schritts beurteilen es dann in ihrer Reihenfolge. Das erste Kriterium, dessen Filter passen, entscheidet, was geschieht: Es kann den Status des Monitors ändern, Vorfälle öffnen und Warnungen öffnen. Die Kriterien danach werden für diese Prüfung nicht angesehen, es sei denn, es ändert keinen Status (`change_monitor_status` aus): Dann werden die Kriterien danach, die den Status ändern, allein für den Status beurteilt, und das erste von ihnen, das passt, setzt ihn. Passt keines, geht der Monitor in seinen Standardstatus.
 
 ```mermaid title="Wie jede Prüfung beurteilt wird"
 flowchart TB

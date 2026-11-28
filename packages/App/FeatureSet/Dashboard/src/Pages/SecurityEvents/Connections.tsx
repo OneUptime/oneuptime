@@ -8,6 +8,7 @@ import SecurityTrustedProxiesCard, {
   TRUSTED_PROXIES_CARD_KEY,
 } from "../../Components/SecurityEvents/SecurityTrustedProxiesCard";
 import {
+  ACCESS_LOG_FORMAT_GIVEN,
   ACCESS_LOGS_TITLE,
   CONNECTIONS_MORE_SETTINGS_DESCRIPTION,
   TRUSTED_AUTOMATICALLY_TITLE,
@@ -50,7 +51,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *                         they trust without being listed, and the switch
  *                         for the project's own load balancers (#10546);
  *                         Access Logs: whether its access logs end with
- *                         X-Forwarded-For (#10548) - optional, and about
+ *                         X-Forwarded-For (#10548), and the format they
+ *                         are written in (#11048) - optional, and about
  *                         the project's own infrastructure, so folded
  *
  * Each card owns its own state, so the page is only the plan gate in front
@@ -71,6 +73,8 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
     useState<boolean>(true);
   const [isReadingAccessLogHeader, setIsReadingAccessLogHeader] =
     useState<boolean>(false);
+  // Whether the project gave its access logs' own format (#11048).
+  const [hasAccessLogFormat, setHasAccessLogFormat] = useState<boolean>(false);
 
   /*
    * Same reseller-telemetry gate as every other Security Events page —
@@ -110,10 +114,13 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
             value: FOLDED_SECTION_OFF,
             translateValue: true,
           }),
+          // On, or reading the project's own format: what a project starts without.
           foldedSectionItem(ACCESS_LOGS_TITLE, {
             key: ACCESS_LOGS_CARD_KEY,
-            isSet: isReadingAccessLogHeader,
-            value: FOLDED_SECTION_ON,
+            isSet: isReadingAccessLogHeader || hasAccessLogFormat,
+            value: hasAccessLogFormat
+              ? ACCESS_LOG_FORMAT_GIVEN
+              : FOLDED_SECTION_ON,
             translateValue: true,
           }),
         ]}
@@ -123,7 +130,10 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
         <SecurityTrustedAutomaticallyCard
           onChange={setIsTrustingOwnLoadBalancers}
         />
-        <SecurityAccessLogsCard onChange={setIsReadingAccessLogHeader} />
+        <SecurityAccessLogsCard
+          onChange={setIsReadingAccessLogHeader}
+          onFormatChange={setHasAccessLogFormat}
+        />
       </AdvancedPageSection>
     </div>
   );

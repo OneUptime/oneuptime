@@ -275,9 +275,9 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ## 安全案例检查
 
-在 AWS 上，同一个连接还可以让 [安全案例](/docs/telemetry/security-cases#oneuptime-如何检查一个步骤) 检查攻击对 IAM 用户所做的更改已被撤销：它创建的访问密钥、它设置的控制台密码、它附加或写入的策略、它把用户加入的组、它启用的 MFA 设备，以及它创建的用户。在 **更多字段** 下，**安全案例检查** 默认为 **关闭**，直到你将其开启；表单显示的命令会随之变化。每个操作都只读取，且没有一个读取机密：读取访问密钥的 ID 及其是否处于活动状态，但从不读取密钥本身；读取控制台密码已设置这一事实，但从不读取密码本身。
+在 AWS 上，同一个连接还可以让 [安全案例](/docs/telemetry/security-cases#oneuptime-如何检查一个步骤) 检查攻击对 IAM 用户或角色所做的更改已被撤销：它创建的访问密钥、它设置的控制台密码、它附加或写入的策略、它把用户加入的组、它启用的 MFA 设备、它创建的用户或角色，以及它为角色设置的信任策略。在 **更多字段** 下，**安全案例检查** 默认为 **关闭**，直到你将其开启；表单显示的命令会随之变化。每个操作都只读取，且没有一个读取机密：读取访问密钥的 ID 及其是否处于活动状态，但从不读取密钥本身；读取控制台密码已设置这一事实，但从不读取密码本身。
 
-| 案例对其 CloudTrail 事件中提到的每个用户读取什么 | 操作 |
+| 案例对其 CloudTrail 事件中提到的每个用户和角色读取什么 | 操作 |
 | --- | --- |
 | 该用户，或它已不存在 | `iam:GetUser` |
 | 它的访问密钥，以及每个密钥是否处于活动状态 | `iam:ListAccessKeys` |
@@ -285,11 +285,13 @@ cat oneuptime-key.json && rm oneuptime-key.json
 | 它的托管策略，以及它的内联策略的名称 | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | 它所在的组 | `iam:ListGroupsForUser` |
 | 它的 MFA 设备 | `iam:ListMFADevices` |
+| 角色、其信任策略信任的对象，或角色已不存在 | `iam:GetRole` |
+| 角色的托管策略，以及其内联策略的名称 | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 角色的命令会多用一行添加一个单独的内联策略 `OneUptimeSecurityCaseChecks`，组织的 StackSet 会把它放进每个账户的角色中：
 
 ```bash
-aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 ```
 
 使用 **访问密钥** 时，该策略会放在用户所加入的同名组 `OneUptimeSecurityCaseChecks` 上：
@@ -298,12 +300,12 @@ aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseC
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
 aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
-aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-案例只通过能到达更改所在账户的连接读取更改，并且不会通过 **安全案例检查** 为 **关闭** 的连接向 IAM 询问任何内容：它会列出这些更改，由你来确认，并提示你将其开启。**关闭** 不添加任何内容，因此之前的命令所授予的权限会保留，直到你使用 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 删除它。
+案例只通过能到达更改所在账户的连接读取更改，并且不会通过 **安全案例检查** 为 **关闭** 的连接向 IAM 询问任何内容：它会列出这些更改，由你来确认，并提示你将其开启。**关闭** 不添加任何内容，因此之前的命令所授予的权限会保留，直到你使用 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 删除它。在该设置读取角色之前运行的命令只授予读取用户的权限：请再次运行该连接的命令；在你这样做之前，案例会列出其角色更改，由你来确认，并提示你运行它。
 
 ## OneUptime 读取什么
 
@@ -352,7 +354,7 @@ Compute Engine VM 的内存和磁盘使用率不是 Google Cloud 自己的指标
 - **事件和警报。** 在监视器、事件或警报的关联资源中关联一个云资源，它的事件和警报就会列在该资源的页面上。如果网站、API、SSL、ping 或端口监视器的主机直接或通过 DNS 指向某个资源的端点，该监视器的 **已关联资源** 卡片会在 **建议的云资源** 下列出该资源：选择 **关联资源** 即可关联它。
 - **资源的健康状况。** 每次读取都会保存资源关键指标的最新值并加以判断：资源会显示 **健康**、**性能下降** 或 **不健康**，并附上原因，例如状态检查失败或存储快满，指标停止时会显示 **未上报**。**云 → 概览** 和账户的概览会列出需要关注的内容，最紧急的排在最前。资源页面以其类型所依据的数字开头，例如虚拟机的 CPU、内存、网络和磁盘；上次读取未带回的数字显示为 **未报告**。
 - **推荐的监视器。** 账户的 **建议** 按资源类型列出 OneUptime 为其资源推荐的监视器，以及每个监视器适用的资源和已有多少资源设置了它：可以将其添加到单个资源，或一次添加到同类型的所有资源，侧边菜单会统计仍待设置的数量。资源自己的 **建议** 选项卡会提供它自己的监视器。每个监视器每 5 分钟读取一次连接所读取的关键指标，在 AWS 上读取最近 30 分钟、在 Azure 和 Google Cloud 上读取最近 15 分钟的数据，并关联到其资源。读取间隔更长的连接会为每个监视器设置更长的窗口，足以判断每次读取带来的每个值：每小时读取一次时为最近 2 小时。在间隔更改之前创建的监视器会保留其窗口。计数（例如错误或被限流的请求）会在该时间窗口内汇总，因此[以流式方式传输指标](/docs/telemetry/cloud-streaming)的账户与被读取的账户会以相同方式警报，流式传输的账户会更早警报。ACM 每天发布两次的证书剩余天数每小时读取一次：其监视器读取最近 2 天的数据，在证书剩余 30 天或更少时，或在证书过期、ACM 停止发布时警报。RDS 实例的连接数会与其实例类和引擎连接上限的 90% 进行比较。当[维护事件](/docs/scheduled-maintenance/creating-events)包含某个资源时，其监视器不会创建事件或警报。设置了健康检查的 App Service 应用还会再获得两个推荐，读取最近 30 分钟，因为 Azure Monitor 以五分钟粒度保存其指标：一个针对某个实例未通过健康检查，另一个针对通过的实例不到一半；每个事件都会给出在 Azure Cloud Shell 中运行的命令，指出未通过的实例。
-- **账户的成本。** **云 → 支出 → 成本** 绘制每天的支出及其去向，**云 → 支出 → 节省** 列出减少支出的方法，**云 → 支出 → 预算** 会在某个月的成本超出应有水平之前发出警报：[云成本与节省](/docs/telemetry/cloud-costs)。
+- **账户的成本。** **云 → 支出 → 成本** 绘制每天的支出及其去向，**云 → 支出 → 节省** 列出减少支出的方法，**云 → 支出 → 预算** 会在某个月、季度或年度的成本超出应有水平之前告知你，**云 → 支出 → 预测** 说明未来几个月预计花费多少：[云成本与节省](/docs/telemetry/cloud-costs)。
 
 ## 节省操作
 

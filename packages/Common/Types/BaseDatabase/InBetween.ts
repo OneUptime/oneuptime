@@ -3,6 +3,15 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
 import QueryOperator from "./QueryOperator";
 
+export interface InBetweenOptions {
+  /*
+   * Whether the range holds its end: true, the default, for a range a
+   * person filters by; false for the window a telemetry check judges
+   * (TelemetryCheckWindow), which holds its start and not its end.
+   */
+  includesEnd?: boolean | undefined;
+}
+
 export default class InBetween<
   T extends number | Date | string,
 > extends QueryOperator<T> {
@@ -22,10 +31,27 @@ export default class InBetween<
     this._endValue = v;
   }
 
-  public constructor(startValue: T, endValue: T) {
+  /*
+   * Whether a value equal to the end is in the range. A range always holds
+   * its start. One that holds its end too (`time >= start AND time <= end`)
+   * is what a filter asks for. A telemetry check's window does not (`time >=
+   * start AND time < end`): a monitor's windows follow on, each starting
+   * where the one before ended, so a record stamped on that instant is in
+   * exactly one of them - the later one (issue #11334). Every reader of a
+   * range writes this end as it says: the analytics and Postgres query
+   * builders (StatementGenerator, QueryHelper) and the reads that write
+   * their own SQL from a range's bounds.
+   */
+  private _includesEnd: boolean = true;
+  public get includesEnd(): boolean {
+    return this._includesEnd;
+  }
+
+  public constructor(startValue: T, endValue: T, options?: InBetweenOptions) {
     super();
     this.startValue = startValue;
     this.endValue = endValue;
+    this._includesEnd = options?.includesEnd !== false;
   }
 
   public override toJSON(): JSONObject {
@@ -33,6 +59,11 @@ export default class InBetween<
       _type: ObjectType.InBetween,
       startValue: (this as InBetween<T>).startValue,
       endValue: (this as InBetween<T>).endValue,
+      /*
+       * Written only when the end is left out, so every range that holds
+       * both ends - what every range was before - reads exactly as it did.
+       */
+      ...(this.includesEnd ? {} : { includesEnd: false }),
     };
   }
 
@@ -40,7 +71,9 @@ export default class InBetween<
     json: JSONObject,
   ): InBetween<T> {
     if (json["_type"] === ObjectType.InBetween) {
-      return new InBetween(json["startValue"] as T, json["endValue"] as T);
+      return new InBetween(json["startValue"] as T, json["endValue"] as T, {
+        includesEnd: json["includesEnd"] !== false,
+      });
     }
 
     throw new BadDataException("Invalid JSON: " + JSON.stringify(json));

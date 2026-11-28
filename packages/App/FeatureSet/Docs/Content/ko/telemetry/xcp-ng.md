@@ -198,6 +198,17 @@ key = '/etc/ssl/xo/key.pem'
 | `XO_TLS_FINGERPRINT` | 설치 스크립트 | Xen Orchestra 자체 인증서의 SHA-256 지문으로, `openssl x509 -fingerprint -sha256`이 출력하는 형태이며 콜론은 선택입니다. 에이전트가 그 인증서만 신뢰할 때 씁니다. 설치 스크립트는 일치하지 않는 인증서를 거부합니다. |
 | `XO_CA_FILE` | 설치 스크립트 | Xen Orchestra의 인증서를 발급한 CA 번들. 설치 스크립트가 인증서를 이것으로 검증하고 `xo-ca.pem`에 복사합니다. |
 | `XO_TLS_SERVER_NAME` | 아니요 | `XO_ADDRESS`가 인증서에 없는 주소일 때 Xen Orchestra의 인증서를 검사할 이름. 비어 있으면 `XO_ADDRESS`의 호스트입니다. |
+| `ONEUPTIME_AI_XO_READ_TOKEN` | 아니요 | 기본 제공 **Read only** 역할의 사본만 가진 Xen Orchestra 사용자의 토큰. 설정하면 [AI 에이전트](#ai-에이전트)가 실행되고 이 토큰으로 읽습니다. |
+| `ONEUPTIME_AI_XO_WRITE_TOKEN` | 아니요 | 수정 전용: 수정을 허용하는 역할을 가진 다른 사용자의 토큰. 이것이 없으면 AI 에이전트는 아무것도 변경하지 않습니다. |
+| `XCP_NG_POOL_ID` | 아니요 | AI 에이전트가 담당하는 풀의 XAPI UUID. 비어 있으면 읽기 토큰이 볼 수 있는 유일한 풀입니다. |
+| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | 아니요 | AI 에이전트가 등록할 풀로 `XCP_NG_POOL_ID`를 재정의합니다. |
+| `ONEUPTIME_AI_INVESTIGATION` | 아니요 | `true` 또는 `false`: OneUptime AI가 조사하는 동안 AI 에이전트의 읽기 전용 명령을 실행해도 되는지 여부. 비어 있으면 켜짐. |
+| `ONEUPTIME_AI_FIXES` | 아니요 | `off`, `ask-for-approval`, `automatic` 또는 `bypass-approval`: OneUptime AI가 수정을 적용하는 방식. 비어 있으면 쓰기가 허용된 경우 `ask-for-approval`, 그렇지 않으면 `off`. |
+| `ONEUPTIME_AI_ALLOW_WRITES` | 아니요 | `true`이면 AI 에이전트가 변경용 토큰으로 수정을 적용할 수 있습니다. 그 밖의 값이면 읽기 전용으로 유지됩니다. |
+| `ONEUPTIME_AI_WRITE_TARGETS` | 아니요 | 수정이 건드릴 수 있는 대상(`vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` 또는 `schedule/<uuid>`), 쉼표로 구분. `*`는 임의의 문자열과 일치합니다. 비어 있으면 모두. |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | 아니요 | 같은 형식으로, 누가 승인하든 OneUptime AI가 절대 변경하면 안 되는 것: AI 에이전트가 실행되는 VM과 Xen Orchestra 자체의 VM. |
+| `LOG_LEVEL` | 아니요 | AI 에이전트의 로그 수준: `debug`, `info`(기본값), `warn` 또는 `error`. |
+| `COMPOSE_PROFILES` | 아니요 | `xcp-ng-ai-agent`이면 AI 에이전트가 시작됩니다. 설치 스크립트는 읽기 토큰이 설정되어 있으면 이 값을 쓰고, 그렇지 않으면 뺍니다. |
 | `XCP_NG_AGENT_CONTAINER_NAME` | 아니요 | 에이전트의 컨테이너 이름입니다. 기본값은 `oneuptime-xcp-ng-agent`입니다. 같은 머신에 있는 두 번째 Xen Orchestra의 에이전트에는 고유한 이름이 필요합니다. [여러 Xen Orchestra 읽기](#여러-xen-orchestra-읽기)를 참고하세요. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다. |
 
 ## 에이전트가 수집하는 것
@@ -228,6 +239,17 @@ OneUptime은 각 풀의 데이터가 들어올 때 0/1 계열 4개를 만들어 
 | `xcp_ng.host.enabled` | 호스트가 활성화된 동안. 유지 관리 모드이거나 대피 중이라 XAPI가 그 호스트에서 VM을 시작하지 않을 때는 0 |
 | `xcp_ng.vm.running` | VM이 Running인 동안. Halted, Paused, Suspended이면 0 |
 | `xcp_ng.vm.stopped_after_running` | 지난 24시간 동안 실행된 VM이 Halted 또는 Paused인 동안 |
+
+Xen Orchestra나 풀의 XAPI에 연결된 프로브가 있으면, OneUptime은 프로브가 메트릭 외에 읽는 내용에서 다음 계열도 만들어 냅니다. 에이전트는 이 중 어느 것도 읽지 않습니다.
+
+| 계열 | 값 |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | 풀의 HA가 켜져 있는 동안 1, 그렇지 않으면 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | HA가 아직 호스트 하나의 장애를 견딜 수 있는 동안 1, 그렇지 않으면 0: XAPI를 통해서는 HA 자체의 계획, Xen Orchestra를 통해서는 장애가 난 호스트 외에 켜져 있고 활성화된 호스트 |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | HA가 견디도록 설정된 호스트 장애 수(XAPI를 통해서만) |
+| `xcp_ng.pool.ha.plan_exists_for` | 현재 계획이 감당하는 호스트 장애 수(XAPI를 통해서만) |
+| `xcp_ng.vm.backup_overdue` | 예약된 백업 작업에 포함된 VM에 간격과 그 4분의 1(최소 1시간) 안에 성공한 백업이 없는 동안 1(Xen Orchestra를 통해서만) |
+| `xcp_ng.host.missing_patches` | 호스트의 누락된 패치 수, 6시간마다 확인(Xen Orchestra를 통해서만) |
 
 또한 모든 지점에 `xcp_ng.scope`(`pool`, `host`, `vm`, `sr`, `vdi`, `xostor` 중 하나)와 `xcp_ng.id`(그 객체의 UUID)를 붙이며, 모니터와 대시보드는 이것으로 필터링합니다. [리소스 식별](/docs/monitor/xcp-ng-monitor#리소스-식별)을 참조하세요.
 
@@ -287,6 +309,19 @@ processors:
 에이전트 하나는 Xen Orchestra 하나와 그것이 관리하는 모든 풀을 읽습니다. 같은 머신에서 두 번째 Xen Orchestra를 읽으려면 두 컨테이너는 이름을 공유할 수 없으므로 두 번째 에이전트를 별도 `.env`와 별도 컨테이너 이름으로 별도 폴더에 설치하세요(예: `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab XCP_NG_AGENT_CONTAINER_NAME=oneuptime-xcp-ng-agent-lab bash install.sh`). `XCP_NG_AGENT_CONTAINER_NAME`을 지정하지 않으면 스크립트가 폴더 이름을 따서 컨테이너 이름을 짓는데, 이 예에서는 같은 이름이 됩니다. 스크립트는 그 이름을 해당 에이전트의 `.env`에 보관하므로 에이전트를 업그레이드하려고 스크립트를 다시 실행해도 이름이 유지되며, `container_name`을 예전에 `docker-compose.yml`에서 직접 수정한 에이전트도 그 이름을 유지합니다. Docker Compose를 쓴다면 대신 `XCP_NG_AGENT_CONTAINER_NAME`을 각 에이전트의 `.env`에 설정하세요. 각각 고유한 `XO_NAME`을 주면 각 풀의 **설정** 에 어느 Xen Orchestra가 읽는지 표시되며, 진단 스크립트에는 `-d`로 폴더를 넘깁니다.
 
 같은 풀을 관리하는 두 Xen Orchestra를 통해 두 에이전트가 같은 풀을 읽게 하지 마세요. OneUptime에서는 UUID로 하나의 풀이 되어 두 번 보고됩니다.
+
+## AI 에이전트
+
+에이전트의 `docker-compose.yml`에는 **XCP-ng AI 에이전트**인 `oneuptime-xcp-ng-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)도 `xcp-ng-ai-agent` 프로필 아래에 있습니다. OneUptime AI가 풀의 인시던트나 경고를 조사하는 동안 이를 통해 `xo-cli` REST 명령(예: `xo-cli rest get vms fields=name_label,power_state filter=power_state:Halted` 또는 `xo-cli rest get pbds fields=attached,host,SR filter=!attached?`)을 읽기 전용으로 실행하고, 허용한 경우에만 VM 시작이나 스토리지 리포지토리의 PBD 연결 같은 수정을 적용합니다. 안에 `xo-cli` 바이너리는 없습니다. 각 명령은 수집기가 쓰는 주소와 `xo-ca.pem`으로 Xen Orchestra REST API를 정확히 한 번 호출하는 것이 됩니다. OneUptime에서 풀의 **AI 에이전트** 페이지에 나타납니다.
+
+- **읽기 전용 토큰이 따로 필요합니다.** OpenMetrics 시크릿은 메트릭만 읽으므로, AI 에이전트는 기본 제공 **Read only** 역할의 사본만 가진 Xen Orchestra 사용자의 토큰인 `ONEUPTIME_AI_XO_READ_TOKEN`로 Xen Orchestra REST API(Xen Orchestra 6.9 이상)를 읽습니다. 이 값을 설정한 채로 `install.sh`를 실행하거나, 첫 설치에서 물을 때 입력하세요. 스크립트는 Xen Orchestra에 그 토큰을 아는지 묻고, 모드 600의 `.env`에 보관한 뒤 AI 에이전트를 시작합니다. 에이전트는 무엇이든 실행하기 전과 5분마다 토큰이 읽기만 할 수 있는지 확인합니다. 관리자의 토큰이나, 역할이 변경을 허용하는 토큰으로는 아무것도 실행하지 않습니다.
+- **AI 에이전트 하나당 풀 하나.** `XCP_NG_POOL_ID`는 에이전트가 담당하는 풀로, 풀의 **설정**에 표시되는 XAPI UUID입니다. 비워 두면 토큰이 볼 수 있는 유일한 풀을 담당합니다. 풀이 여러 개인 Xen Orchestra의 경우, 풀마다 하나씩 더 실행하는 방법이 에이전트의 README에 있습니다. 프로브가 읽는 풀에는 XCP-ng 에이전트가 필요 없습니다. 같은 `docker-compose.yml`에서 그 풀을 위한 AI 에이전트만 단독으로 실행하는 방법도 README에 있습니다.
+- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 풀의 인시던트와 경고를 조사하며, 풀의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 토큰을 빼세요.
+- **수정에는 두 번째 토큰이 필요합니다.** `ONEUPTIME_AI_ALLOW_WRITES=true`와 `ONEUPTIME_AI_XO_WRITE_TOKEN`를 설정하지 않는 한 에이전트는 읽기 전용입니다. 후자는 수정을 허용하는 역할(**VMs power state manager** 역할의 사본에 에이전트의 README가 나열하는 권한을 더한 것)을 가진 다른 사용자의 토큰이며, 변경 자체에만 쓰이고 다른 데에는 쓰이지 않습니다. `ONEUPTIME_AI_WRITE_TARGETS`(`vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>`, `schedule/<uuid>`)가 수정이 건드릴 수 있는 대상을 제한합니다. 에이전트가 실행되는 VM과 Xen Orchestra 자체 VM의 UUID는 `ONEUPTIME_AI_PROTECTED_TARGETS`에 넣으세요. `ONEUPTIME_AI_FIXES`(같은 `.env`에 있음)가 수정 실행 방식, 즉 `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나를 정하며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
+- **수집기와 같은 방식으로 Xen Orchestra의 인증서를 검사합니다.** subjectAltName을 보고 `xo-ca.pem`만을 기준으로 검사하므로, Xen Orchestra가 스스로 만드는 인증서는 여기서도 거부됩니다([Xen Orchestra의 인증서](#xen-orchestra의-인증서)). `http://`로는 절대 Xen Orchestra를 읽지 않습니다. 토큰이 암호화되지 않은 채 네트워크를 지나가기 때문입니다.
+- 기능(capability) 없이 UID 1000으로 읽기 전용 루트 파일 시스템에서 실행되며, Xen Orchestra의 사용자, 역할, 서버, 플러그인, 원격 저장소를 읽지 않고, 시크릿을 담는 속성으로 필터링하지 않으며, 무엇이든 편집, 삭제, 되돌리기, 복제하지 않습니다.
+
+실행할 수 있는 명령, 수정 방식, 문제 해결 방법은 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#xcp-ng-풀)를 참조하세요. 에이전트의 README에 두 토큰의 역할과 권한이 있습니다.
 
 ## systemd 서비스로 실행
 
@@ -383,7 +418,8 @@ Xen Orchestra는 연결된 풀만 보고하고, 에이전트는 그 Xen Orchestr
 
 Xen Orchestra의 OpenMetrics 플러그인은 메트릭을 제공하므로, XCP-ng 풀에서 지켜볼 것 중 일부는 아직 없습니다.
 
-- XOSTOR 외의 **알람**, **HA 상태**, **풀 마스터**, **누락된 패치**, **백업**, **스냅숏**, 호스트 물리 인터페이스(PIF)의 **링크 상태**. 이들은 Xen Orchestra의 REST API에서 가져옵니다([#10997](https://github.com/OneUptime/oneuptime/issues/10997)).
+- XOSTOR 외의 **알람**, **HA 상태**, **풀 마스터**, **누락된 패치**, **백업**. OneUptime 프로브가 Xen Orchestra의 REST API나 풀의 XAPI에서 읽습니다([#10997](https://github.com/OneUptime/oneuptime/issues/10997)). [에이전트 없는 XCP-ng](/docs/telemetry/xcp-ng-agentless)를 참조하세요.
+- 각 VM의 **스냅숏**과 호스트 물리 인터페이스(PIF)의 **링크 상태**. 아직 어떤 프로브도 읽지 않습니다([#11328](https://github.com/OneUptime/oneuptime/issues/11328)).
 - Xen Orchestra가 없는 **풀**, 또는 플러그인에 필요한 Premium 라이선스가 없는 XOA 뒤의 풀. OneUptime 프로브가 이들을 XAPI에서 직접 읽습니다([#10999](https://github.com/OneUptime/oneuptime/issues/10999)). [에이전트 없는 XCP-ng](/docs/telemetry/xcp-ng-agentless)를 참조하세요.
 - VMware처럼 OneUptime 프로브가 Xen Orchestra의 플러그인을 직접 읽는 **에이전트 없는 연결**([#10996](https://github.com/OneUptime/oneuptime/issues/10996)). 같은 페이지에서 설명합니다.
 

@@ -206,7 +206,7 @@ Varje typ når OneUptime som vanliga loggar:
 | Kubernetes-granskningsloggar | API-serverns granskningsloggfil, läst av collectorns `filelog`-receiver |
 | Webbattacker | En webbservers åtkomstlogg, läst av collectorns `filelog`-receiver |
 
-På **Dina loggar** visar varje typ när den senast hittades, och **Kontrollera en loggrad** visar vad en rad som du klistrar in blir, innan någon har kommit.
+På **Dina loggar** visar varje typ när den senast hittades, och **Kontrollera en loggrad** visar vad en rad som du klistrar in blir, innan någon har kommit. OneUptime läser raden så som skanningarna läser dina loggar, med dina [betrodda proxyservrar](#betrodda-proxyservrar) och inställningarna för dina åtkomstloggar, så den anger den klient som den sparade händelsen kommer att ange, och sparar inget.
 
 Ett hot som en säkerhetsprodukt skriver i dina loggar, till exempel ett CEF- eller LEEF-fynd eller ett hot från Palo Alto Networks, FortiGate eller Cisco ASA, öppnar ett [ärende](/docs/telemetry/security-cases) på samma sätt som en ansluten produkts larm, och ökar risken för användaren, värden eller adressen som det nämner. **Öppna ärenden från** på **Dina loggar** anger från vilken allvarlighetsgrad: **Hög och högre** om du inte väljer en annan, eller **Aldrig**. Produktens inloggningar och blockerade anslutningar förblir händelser som dina regler kan läsa.
 
@@ -299,6 +299,8 @@ En händelse nämner adressen som en begäran kom från bara när begärans avs�
 
 En uppgiven adress blockeras aldrig från ett ärende: Vem som helst kan skicka `X-Forwarded-For: 192.0.2.44`, och en blockering skulle stänga ute den som än har 192.0.2.44. En händelse med bara en uppgiven adress har en **Responsplan** som ber dig hitta den riktiga adressen i loggarna från din lastbalanserare eller brandvägg.
 
+En händelse vars klient en proxy du litar på har vidarebefordrat visar vilka proxyservrar den kom genom, som **Vidarebefordrad av**: i den ordning som `X-Forwarded-For` listar dem, med anslutningens egen adress sist. De finns i `oneuptime.request.forwarded_by`, och **Kontrollera en loggrad** säger varför var och en är betrodd.
+
 Registrera två saker på appens serverspann så att dess adresser är verifierade: anslutningens egen adress, `network.peer.address`, som OpenTelemetrys HTTP-instrumenteringar sätter, och bakom en proxy headern `X-Forwarded-For`, som de registrerar som `http.request.header.x-forwarded-for` när du anger den i `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. En JSON-åtkomstlogg läses på samma sätt: Dess klientfält, som `remote_addr`, är anslutningens adress, och dess fält `http_x_forwarded_for` är headern.
 
 #### Betrodda proxyservrar
@@ -311,10 +313,15 @@ Säkerhetshändelser tror en proxy om vem dess klient var när dess adress är:
 | Listad under **Betrodda proxyservrar** | Du listade den |
 | I de publicerade intervallen för en kant du har anslutit, som [Cloudflare](/docs/integrations/cloudflare) | Så länge anslutningen finns |
 | En av dina egna applikationslastbalanserare | Om du inte stänger av det |
+| En av Googles front-ends, bakom din Google Cloud Application Load Balancer | Med dina lastbalanserare, om inte även en TCP- eller SSL-proxylastbalanserare som du har ansluter från dem |
 
-**Säkerhetshändelser → Anslutningar → Fler inställningar** innehåller **Betrodda proxyservrar**, listan du skriver, och **Betrodda automatiskt**, som visar resten och varför. Lista en proxy under **Betrodda proxyservrar**, en adress eller ett intervall på varje rad, när dess adress är offentlig och inget annat litar på den: ett CDN du inte har anslutit, en lastbalanserare som når din app över internet, eller en omvänd proxy som nginx på en server med en offentlig adress framför din app. Tills du gör det skylls varje attack genom den på proxyn. Bakom en global extern Application Load Balancer i Google Cloud kommer appens anslutningar från Googles front-ends: Lista `35.191.0.0/16` och `130.211.0.0/22`.
+En proxy som arbetar på TCP-nivå lägger inte till något i `X-Forwarded-For`: Den skickar vidare headern som klienten skrev. Exempel är en Network Load Balancer, HAProxy i `mode tcp` och en Kubernetes-Service med `externalTrafficPolicy: Cluster`, som lämnar över varje anslutning till din ingress från en nods adress. På en privat adress är en sådan proxy betrodd, så en klient bakom den skulle kunna välja den adress som en attack skylls på. Bakom en sådan behåller du klientens egen adress på anslutningen, med bevarande av klient-IP eller `externalTrafficPolicy: Local`, och varken registrerar eller loggar `X-Forwarded-For`.
+
+**Säkerhetshändelser → Anslutningar → Fler inställningar** innehåller **Betrodda proxyservrar**, listan du skriver, och **Betrodda automatiskt**, som visar resten och varför. Lista en proxy under **Betrodda proxyservrar**, en adress eller ett intervall på varje rad, när dess adress är offentlig och inget annat litar på den: ett CDN du inte har anslutit, en lastbalanserare som når din app över internet, eller en omvänd proxy som nginx på en server med en offentlig adress framför din app. Tills du gör det skylls varje attack genom den på proxyn. Ett intervall som är bredare än en proxys, som `0.0.0.0/0`, avvisas: Det skulle lita på alla adresser, så vem som helst kunde välja den adress som en attack skylls på. En Projektägare, Projektadministratör eller Säkerhetsadministratör redigerar listan, och varje ändring finns i projektets [granskningslogg](/docs/configuration/audit-logs).
 
 Dina egna applikationslastbalanserare är de som dina [anslutna molnkonton](/docs/telemetry/cloud-accounts) listar: AWS Application Load Balancers, AWS Classic Load Balancers vars lyssnare alla är HTTP eller HTTPS, Google Cloud Application Load Balancers och Azure Application Gateways, med sina offentliga adresser. Var och en lägger till klienten den vidarebefordrar i `X-Forwarded-For`. En lastbalanserare i Google Cloud lägger till sin egen adress efter klientens, och en Application Gateway når en offentlig backend från sin egen adress, så utan dem skulle varje attack genom en av dem skyllas på lastbalanseraren. **Dina lastbalanserare** på **Betrodda automatiskt** listar dem, och en Projektägare, Projektadministratör eller Säkerhetsadministratör kan stänga av det.
+
+Bakom en global extern Application Load Balancer i Google Cloud, eller en klassisk, kommer appens anslutningar från Googles front-ends, inte från lastbalanserarens egen adress. Så länge ett anslutet Google Cloud-projekt har en litar Säkerhetshändelser därför även på front-endarnas intervall: `35.191.0.0/16`, `130.211.0.0/22` och `2600:2d00:1:1::/64`, så som Googles [brandväggsregler för lastbalansering](https://cloud.google.com/load-balancing/docs/firewall-rules) listar dem. **Dina lastbalanserare** visar dem på listans sista rad, med de lastbalanserare som för med sig dem, och dess reglage stänger av även dem. Ingen utanför Google ansluter från de här intervallen, och att lita på dem låter aldrig någon ange en klient: En begäran genom någon annans lastbalanserare avslutar sin `X-Forwarded-For` med den lastbalanserarens adress, som inte är din, så händelsen anger den. Men Googles TCP- och SSL-proxylastbalanserare ansluter från samma intervall och skickar vidare en begäran så som klienten skickade den, så så länge en av dina finns, eller inte alla lastbalanserare kunde listas, är intervallen inte betrodda, och raden säger varför. Om en sådan lastbalanserare finns i ett Google Cloud-projekt som du inte har anslutit, anslut det, eller stäng av **Dina lastbalanserare**.
 
 Inget annat av ditt är betrott automatiskt: inte dina värdar, Kubernetes-noder, sonder eller virtuella maskiner, en NAT-gateway eller en Network-, Gateway- eller Azure-lastbalanserare. De vidarebefordrar ingen, eller skickar en begäran vidare som den kom, så det som körs på dem skulle kunna ange vilken klient som helst: en begäran som en monitor skickar med egna headers, en pod, en bärbar dator bakom gatewayen. Om en av dem är din proxy, lägg till den i **Betrodda proxyservrar**. En Kubernetes-ingress är betrodd som den lastbalanserare den är: En GKE-ingress är en Google Cloud Application Load Balancer, en AKS-ingress för Application Gateway en Application Gateway, och en EKS-ingress av klassen `alb` en AWS Application Load Balancer. En ingress-controller i ditt kluster vidarebefordrar från en privat adress, som alltid är betrodd.
 
@@ -337,6 +344,25 @@ En rad säger aldrig vad dess fält är, så dess sista fält läses som `X-Forw
 - när det fältet är `-` eller en lista med adresser vars sista saknar port.
 
 Låt det vara avstängt när ditt format slutar med en annan header som innehåller en adress, som `X-Real-IP`, eller när din webbserver skriver headers utan att escapa deras citattecken, som `morgan` för Express gör: En begärans egen user agent skulle då kunna lägga till ett fält. En JSON-åtkomstlogg behöver inget reglage, eftersom dess fält har namn.
+
+#### Ditt eget loggformat
+
+Om dina webbservrar placerar `X-Forwarded-For` någon annanstans än sist, ange deras format: **Loggformat** på **Åtkomstloggar** under **Fler inställningar**. Klistra in ditt `log_format` för nginx så som din `nginx.conf` skriver det, eller utgå från ett känt format, nginx `main` eller ingress-nginx `upstreaminfo`. Till exempel ett format som efter headern loggar hur lång tid varje begäran tog:
+
+```nginx
+log_format timed '$remote_addr - $remote_user [$time_local] "$request" '
+                 '$status $body_bytes_sent "$http_referer" '
+                 '"$http_user_agent" "$http_x_forwarded_for" $request_time';
+```
+
+Varje rad i ditt format läses fält för fält: adressen som anslöt från `$remote_addr`, och `X-Forwarded-For` från `$http_x_forwarded_for`, var formatet än placerar den. Den läses som alla `X-Forwarded-For`: bara när `$remote_addr` är en proxy du litar på, och från höger. Inget annat fält tas någonsin för någon av dem, och en rad som inte är i ditt format läses som förut, där **Loggar slutar med X-Forwarded-For** avgör dess sista fält.
+
+- nginx escapar citattecknen som en klient skickar, som `\x22`, så varje citattecken på en rad hör till ditt format. En rad med fler citattecken än ditt format, som en server som inte escapar dem skriver (`escape=none`, `morgan` för Express), är ingen rad i ditt format, och inget i den läses som en sådan.
+- **Loggformat** avvisar ett format vars `X-Forwarded-For` eller `$remote_addr` inte kan skiljas från fälten bredvid, som en header utan citattecken mellan två fält som en klient skriver, och säger att du ska sätta den inom citattecken, som `"$http_x_forwarded_for"`.
+- ingress-nginx `upstreaminfo` loggar ingen `X-Forwarded-For`, så varje rads klient är dess `$remote_addr`. Om en Application Load Balancer eller en annan HTTP-proxy står framför den, lägg till `"$http_x_forwarded_for"` i din `log-format-upstream` för att läsa klienten som den vidarebefordrade. Bakom en Network Load Balancer, som skickar vidare headern som klienten skrev, ska du låta bli.
+- När nginx själv sätter `$remote_addr` från `X-Forwarded-For`, med sin realip-modul eller ingress-nginx `use-forwarded-headers`, tror den på vem som helst som `set_real_ip_from` eller `proxy-real-ip-cidr` anger, och standardvärdet i ingress-nginx anger alla. Logga adressen som verkligen anslöt, `$realip_remote_addr`, bredvid `$http_x_forwarded_for`: Säkerhetshändelser läser då `$realip_remote_addr` som anslutningen, `$remote_addr` bara som ett påstående, och avgör med dina betrodda proxyservrar.
+
+En Projektägare, Projektadministratör eller Säkerhetsadministratör anger det, och varje ändring finns i projektets granskningslogg.
 
 ### Dold av en rensningsregel
 
@@ -394,9 +420,9 @@ En förfrågan efter en fil som innehåller hemligheter, till exempel `/.env`, `
 - En typ som ingen webbsida har, till exempel `text/plain` eller `application/octet-stream`: själva filen.
 - En webbsida, eller JSON för en fil som inte är JSON: din webbplats egen sida.
 - Ingenting i det: inget togs.
-- En storlek och ingen typ, som en webbservers åtkomstlogg registrerar det: själva filen när ingen annan sökväg fick den storleken och din webbplats svarar 404 för de sökvägar den inte har, och din webbplats egen sida när samma storlek besvarade två olika sökvägar. När inget avgör det blir förfrågan ingen händelse.
+- En storlek och ingen typ, som en webbservers åtkomstlogg registrerar det: själva filen när ingen annan sökväg fick den storleken och din webbplats svarar 404 för de sökvägar den inte har, och din webbplats egen sida när samma storlek besvarade två olika sökvägar. En förfrågan utan något bredvid sig, till exempel en skanners ensamma `/.env`, bedöms efter vad din webbplats svarade det senaste dygnet. När inget avgör det blir förfrågan ingen händelse.
 
-En levererad fil är kritisk, och regeln **Sensitive file served** i regelbiblioteket öppnar ett ärende om den, med steg för att ta bort filen och byta ut det den innehåller. Var och en av dessa förfrågningar räknas också mot **Scanning for sensitive files**, även en ensidesapps. En administratörssida som din webbplats levererar, till exempel WordPress, är aldrig en sådan, och `wp-config.php` som WordPress körde är din webbplats egen. Cloudflares brandväggshändelser säger inte vad din ursprungsserver skickade, så en förfrågan som Cloudflare släppte igenom räknas bara mot skanning. En händelses panel säger vad din webbplats skickade under **Vad som hände sedan**.
+En levererad fil är kritisk, och regeln **Sensitive file served** i regelbiblioteket öppnar ett ärende om den, med steg för att ta bort filen och byta ut det den innehåller. Var och en av dessa förfrågningar räknas också mot **Scanning for sensitive files**, även en ensidesapps. En administratörssida som din webbplats levererar, till exempel WordPress, är aldrig en sådan, och `wp-config.php` som WordPress körde är din webbplats egen. Cloudflares brandväggshändelser säger inte vad din ursprungsserver skickade, så en förfrågan som Cloudflare släppte igenom räknas bara mot skanning. En händelses panel säger vad din webbplats skickade under **Vad som hände sedan**. Ett projekt som slog på de rekommenderade reglerna innan **Sensitive file served** var en av dem, och som kör alla de andra, fick den vid uppgraderingen, och **Översikt** säger det.
 
 ### Campaigns
 

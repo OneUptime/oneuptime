@@ -146,11 +146,14 @@ describe("the kinds the page reads are the server's own", () => {
         DataStoreKind.PostgreSql,
         DataStoreKind.MySql,
         DataStoreKind.SqlServer,
+        // Read over their HTTP API (#11140).
+        DataStoreKind.Elasticsearch,
+        DataStoreKind.OpenSearch,
       ].sort(),
     );
   });
 
-  test("every kind a probe samples is a self-managed database", () => {
+  test("every kind a probe samples is a store you run yourself", () => {
     for (const kind of PROBE_SCANNABLE_DATA_STORE_KINDS) {
       expect(getDataStoreKindInfo(kind)?.provider).toBe(
         DataStoreProvider.SelfManaged,
@@ -261,10 +264,14 @@ describe("a store scanned from a probe", () => {
       probeFacts({ projectSetting: { isContentScanEnabled: false } }),
       DataStoreContentScanStop.ProjectScanOff,
     ],
+    /*
+     * A kind nothing samples, a probe no more than a worker: said as such,
+     * never "scan it from OneUptime's workers", which do not either (#11140).
+     */
     [
-      "a kind a probe does not sample",
+      "a kind nothing samples",
       probeFacts({}, { kind: DataStoreKind.MongoDb }),
-      DataStoreContentScanStop.KindNotScannableByProbe,
+      DataStoreContentScanStop.KindNotScannable,
     ],
     [
       "a cloud store, which a probe never samples",

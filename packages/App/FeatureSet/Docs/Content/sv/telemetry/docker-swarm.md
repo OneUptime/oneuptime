@@ -116,6 +116,7 @@ Installationsskriptet skriver de fyra första till `/opt/oneuptime-docker-swarm-
 | `DOCKER_SWARM_NODE_NAME` | Nej | Nodens namn, stämplat på dess containrars mätvärden och loggar som resursattributet `docker.swarm.node.name`, som en [Docker Swarm-monitor](/docs/monitor/docker-swarm-monitor#monitorinställningar) filtrerar på. Installationsskriptet sätter det till nodens värdnamn, så som `docker node ls` visar det. Tomt: inget nodnamn stämplas. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | Nej | Hur ofta inventariepollern tar en ögonblicksbild, i sekunder. Standard är `300`. |
 | `DOCKER_API_VERSION` | Nej | Den Docker Engine-API-version som collectorn och inventariepollern talar. Tom som standard: de använder daemonens egen, så varje Docker Engine från 20.10 och framåt fungerar. Sätt den bara för att låsa en version (se [Felsökning](#felsökning)). AI-agenten förhandlar den om du inte anger en. |
+| `ONEUPTIME_LOG_OPERATOR_1` till `ONEUPTIME_LOG_OPERATOR_5` | Nej | Egna collector-operatorer, en per variabel som JSON, för ett loggformat som agenten inte läser. Se [Läsa ditt eget loggformat](#läsa-ditt-eget-loggformat). |
 
 AI-agentens egna inställningar finns under [AI-agent](#ai-agent).
 
@@ -162,6 +163,23 @@ processors:
 
 Collectorn läser sin konfiguration bara när den startar: Kör `docker compose restart oneuptime-docker-swarm-agent`. Klustret visar då etiketterna `team:platform` och `env:production`. Etiketter jämförs utan hänsyn till skiftläge, så en befintlig etikett `Production` återanvänds i stället för att dupliceras, och agenten tar aldrig bort en etikett som någon har lagt till i OneUptime.
 
+## Läsa ditt eget loggformat
+
+Agenten läser nivåerna i de format som de flesta program skriver. För ett format som den inte läser, till exempel ett internt, kan du ge den upp till fem egna collector-operatorer, var och en som JSON i `ONEUPTIME_LOG_OPERATOR_1` till `ONEUPTIME_LOG_OPERATOR_5`. De körs på varje loggrad från en container efter att agenten har läst dess container och ström, och innan den läser radens nivå. För att sätta en rads nivå skriver du den till `attributes.severity_text` som ett ord agenten läser, till exempel `ERROR`, `warn` eller `critical`, och skickar raden vidare till `severity-router`, agentens första steg. En operator som själv sätter allvarlighetsgraden, till exempel en `severity_parser`, skrivs över: agenten läser varje rads nivå efter dina operatorer.
+
+För rader som `<<E>> payment failed`, där bokstaven är nivån, kör du installationsskriptet med operatorn satt:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+sh install.sh
+```
+
+Skriptet skriver varje operator till `.env` inom enkla citattecken och kontrollerar dem med collectorns egen `validate` innan det ersätter den `.env` du har. Om collectorn avvisar dem stoppar skriptet med collectorns meddelande, och agenten fortsätter att köra på det den hade. En operator som finns i `.env` ligger kvar där när du kör skriptet igen utan den; en som innehåller ett enkelt citattecken avvisas, eftersom `.env` inte kan behålla den.
+
+Med Docker Compose lägger du dem i `.env` bredvid `docker-compose.yml`, varje värde inom enkla citattecken, och kör `docker compose up -d`. Tjänsten `oneuptime-docker-swarm-agent-config-check` kör samma kontroll först, och agenten startar bara om den går igenom.
+
+[Kubernetes-agent](/docs/telemetry/kubernetes-agent#läsa-ditt-eget-loggformat) förklarar operatorerna i exemplet, som Kubernetes-agenten också tar emot.
+
 ## Kör som en systemd-tjänst
 
 För att starta agenten med noden och starta om den när den misslyckas installerar du dess systemd-enhet. Den förutsätter att agenten ligger i `/opt/oneuptime-docker-swarm-agent`, där installationsskriptet placerar den:
@@ -183,7 +201,7 @@ curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
-Skriptet skriver `.env` på nytt utifrån dina svar. Det behåller bara AI-agentens mållistor och vad AI får göra (`ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`): Lägg tillbaka alla variabler som du själv har satt, till exempel `DOCKER_API_VERSION`. Har du slagit på AI-åtgärder? Kör det som `ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh` för att behålla dem påslagna. Utelämnade du AI-agenten? Skicka `--no-ai-agent` igen.
+Skriptet skriver `.env` på nytt utifrån dina svar. Det behåller bara AI-agentens mållistor, vad AI får göra (`ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`) och dina loggoperatorer (`ONEUPTIME_LOG_OPERATOR_1` till `ONEUPTIME_LOG_OPERATOR_5`): Lägg tillbaka alla variabler som du själv har satt, till exempel `DOCKER_API_VERSION`. Har du slagit på AI-åtgärder? Kör det som `ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh` för att behålla dem påslagna. Utelämnade du AI-agenten? Skicka `--no-ai-agent` igen.
 
 Med Docker Compose laddar du ned de tre filerna igen i agentens mapp (och gör sedan om eventuella ändringar du gjort i `docker-compose.yml`), och hämtar och startar om:
 

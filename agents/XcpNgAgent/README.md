@@ -148,7 +148,17 @@ Without `xo-ca.pem`, `docker compose up` stops with `bind source path does not e
 | `XO_TLS_FINGERPRINT` | No | The SHA-256 fingerprint of Xen Orchestra's certificate, as `openssl x509 -fingerprint -sha256` prints it (colons optional): `install.sh` pins that certificate, and refuses any other |
 | `XO_CA_FILE` | No | A PEM CA bundle to trust for Xen Orchestra instead: `install.sh` checks Xen Orchestra's certificate against it and copies it to `xo-ca.pem` |
 | `XO_TLS_SERVER_NAME` | No | The name Xen Orchestra's certificate is checked against when `XO_URL` uses an address it does not list (`install.sh` fills it from the certificate) |
+| `ONEUPTIME_AI_XO_READ_TOKEN` | No | A token of a Xen Orchestra user holding a copy of the **Read only** role and nothing else: the [OneUptime AI agent](#oneuptime-ai-agent) runs when it is set |
+| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Only for fixes: a token of another user, whose role allows them (see [Fixes](#fixes)) |
+| `XCP_NG_POOL_ID` | No | The XAPI UUID of the pool the AI agent serves (default: the one pool the read token can see) |
+| `ONEUPTIME_AI_INVESTIGATION` | No | `true` or `false`: whether OneUptime AI may run read-only commands while it investigates (default: on) |
+| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` or `bypass-approval` (default: `ask-for-approval` when writes are allowed, else `off`) |
+| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes (with the token for changes). Anything else keeps it read-only |
+| `ONEUPTIME_AI_WRITE_TARGETS` | No | Comma-separated `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` or `schedule/<uuid>` fixes may touch (`*` matches any run of characters; empty: all) |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | The same, for what OneUptime AI must never change, whoever approves it |
+| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent: `install.sh` writes it when the read token is set |
 | `XCP_NG_AGENT_CONTAINER_NAME` | No | The agent's container name (default: `oneuptime-xcp-ng-agent`). A second Xen Orchestra's agent on the same machine needs one of its own ([Reading several Xen Orchestras](#reading-several-xen-orchestras)): `install.sh` names a new agent after its directory unless you set it, and keeps it on every re-run |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-xcp-ng-ai-agent`). `install.sh` names a second agent's AI agent after its collector (`oneuptime-xcp-ng-ai-agent-lab` beside `oneuptime-xcp-ng-agent-lab`) unless you set it, and keeps it on every re-run |
 
 ## What the agent sends
 
@@ -176,6 +186,91 @@ bash install.sh
 Without `XCP_NG_AGENT_CONTAINER_NAME`, `install.sh` names the container after its directory (`oneuptime-xcp-ng-agent-lab` here too). Either way the name is written to that agent's `.env`, which `docker-compose.yml` reads it from (`container_name: ${XCP_NG_AGENT_CONTAINER_NAME:-oneuptime-xcp-ng-agent}`), so re-running `install.sh` to upgrade the agent keeps it. Leave `container_name` in `docker-compose.yml` as it is: an upgrade replaces that file. An agent set up before `.env` held the name, by editing `container_name` there, keeps that name on its next upgrade — `install.sh` reads it from the old file (or the container it runs, or the copy an earlier upgrade kept) and writes it to `.env`. With Docker Compose, set `XCP_NG_AGENT_CONTAINER_NAME` in each agent's `.env`. Give each agent its own `XO_NAME`, and pass its directory to the doctor script with `-d`.
 
 Where to run it: anywhere that reaches Xen Orchestra. A machine outside the pools it watches (or Xen Orchestra's own VM, if it runs off them) keeps reporting when a pool goes down; inside the container, `localhost` is the container itself, so `XO_URL` must be Xen Orchestra's address on the network.
+
+## OneUptime AI agent
+
+The XCP-ng AI agent lets OneUptime AI look at a pool while it investigates an incident or an alert on it: its hosts, VMs, storage repositories and their PBDs, alarms, tasks, backup jobs and logs. Only if you allow it does it apply a fix, and then each fix goes through the pool's AI settings in OneUptime, with a person's approval unless you choose otherwise. It is OneUptime's resource AI agent (`oneuptime/resource-ai-agent`, the same image as every other one), the `oneuptime-xcp-ng-ai-agent` service of this `docker-compose.yml`, under the `xcp-ng-ai-agent` profile, which `install.sh` turns on when it has a read token.
+
+It reads Xen Orchestra's REST API (Xen Orchestra 6.9 or later), over HTTPS only, trusting exactly the `xo-ca.pem` the collector trusts: the certificate Xen Orchestra makes for itself, which names no address, is refused here too, and [the same fix](#when-xen-orchestra-uses-its-own-self-signed-certificate) works for both. OneUptime never sends it a credential: it has the tokens you give it, which never leave it, are never logged, and are sent to Xen Orchestra only in its `authenticationToken` cookie. Everything it reads has secrets masked before it leaves the agent, and again in OneUptime.
+
+### A read-only token
+
+1. In Xen Orchestra, create a user for OneUptime AI. Not an administrator: Xen Orchestra lets an administrator change anything, whatever their roles.
+2. Give it a copy of the built-in **Read only** role and nothing else. The built-in roles are templates: copy one, then give the copy to the user, on the pools it should read.
+3. Create a token for that user (signed in as it, its profile's authentication tokens, or `xo-cli create-token`) and give it to the agent. The first line reads it without showing it or keeping it in your shell history: paste the token, then press Enter.
+
+```bash
+read -rs ONEUPTIME_AI_XO_READ_TOKEN && export ONEUPTIME_AI_XO_READ_TOKEN
+bash install.sh
+```
+
+`install.sh` asks Xen Orchestra whether it knows the token before it installs anything, writes it to the mode-600 `.env`, and starts the agent. Run without it at a terminal, a first install asks for it (not echoed); Enter skips it. Before the agent runs a command, and again every 5 minutes, it asks Xen Orchestra who the token belongs to and what that user may do: the token of an administrator, or of a user whose roles allow any change, runs nothing, and the pool's AI agent page in OneUptime says why.
+
+### Which pool
+
+An AI agent serves one pool: `XCP_NG_POOL_ID`, its XAPI UUID, shown on the pool's Settings in OneUptime. Left empty, the agent serves the one pool its token can see, and refuses to guess between several. For a Xen Orchestra with several pools, set `XCP_NG_POOL_ID`, and run one more AI agent per pool from a `docker-compose.override.yml` next to `docker-compose.yml`, which `install.sh` leaves alone:
+
+```yaml
+services:
+  oneuptime-xcp-ng-ai-agent-lab:
+    extends:
+      file: docker-compose.yml
+      service: oneuptime-xcp-ng-ai-agent
+    container_name: oneuptime-xcp-ng-ai-agent-lab
+    environment:
+      - XCP_NG_POOL_ID=<the other pool's UUID>
+```
+
+### A pool a probe reads
+
+A pool OneUptime reads through a probe (Collection Method: Probe, on the pool's Settings) needs no XCP-ng Agent, but OneUptime AI still reaches it through this AI agent. Run the AI agent alone: put this directory's `docker-compose.yml` on a machine that reaches Xen Orchestra, with a `.env` beside it holding `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `XO_ADDRESS`, `XCP_NG_POOL_ID` and the tokens, and an `xo-ca.pem` holding the certificates Xen Orchestra's certificate chains to (for a publicly trusted one, a copy of the machine's CA bundle, such as `/etc/ssl/certs/ca-certificates.crt`). Then start it, and nothing else:
+
+```bash
+docker compose --profile xcp-ng-ai-agent up -d oneuptime-xcp-ng-ai-agent
+```
+
+### Fixes
+
+Fixes are off until you allow them twice over: `ONEUPTIME_AI_ALLOW_WRITES=true` with a token for changes, `ONEUPTIME_AI_XO_WRITE_TOKEN`, of another user. The read token in its place is refused. The token for changes is used for the change itself and for nothing else, so a mistake in what OneUptime AI reads can never change anything. Give that user a copy of the built-in **VMs power state manager** role, which holds the privileges of the first two rows, add the others, and give it the copy on the pools it may fix:
+
+| Privilege | For |
+| --- | --- |
+| `vm:start`, `vm:resume`, `vm:unpause` | Starting a halted VM, resuming a suspended one, unpausing a paused one (safe changes) |
+| `vm:reboot`, `vm:shutdown`, `vm:suspend`, `vm:pause` | Clean or hard reboots and shutdowns, suspending and pausing a VM (riskier changes) |
+| `vm:snapshot` | A snapshot of a VM before a riskier fix (riskier) |
+| `vm:migrate-send`, `host:migrate-receive` | Moving a VM to another host of the pool, which always asks a person |
+| `host:allow-vm` | Starting a VM on a host it names |
+| `host:enable` | Enabling a host that was disabled (riskier) |
+| `host:restart-toolstack` | Restarting a host's toolstack, which always asks a person |
+| `pbd:plug` | Plugging a storage repository's PBD that did not plug (safe) |
+| `schedule:run` | Running a backup schedule now (safe) |
+
+Then set both in `.env` and run `install.sh` again:
+
+```bash
+ONEUPTIME_AI_ALLOW_WRITES=true
+ONEUPTIME_AI_XO_WRITE_TOKEN=<a token of the user above>
+```
+
+Before a change the agent reads the object with the read token: one of another pool is refused, a change already made is not made again, and one the object's state does not allow says what to run instead. Then it sends the one request, follows Xen Orchestra's task within the command's time limit, and reads the object again, so what OneUptime shows ends with the object's state after the change. It never edits, deletes, reverts or clones anything, never acts on a pool or a storage repository, never shuts down, reboots, evacuates or disables a host, and never migrates to another pool or storage repository. That user's role is the hard limit.
+
+The agent protects nothing of its own accord: put the UUIDs of the VM it runs in, and of Xen Orchestra's own VM, in `ONEUPTIME_AI_PROTECTED_TARGETS` (`vm/<uuid>`, or a bare UUID). The pool's AI agent page in OneUptime shows what the agent may do, and whether its token for changes works.
+
+### Check it
+
+```bash
+cd /opt/oneuptime-xcp-ng-agent
+docker compose logs --tail=100 oneuptime-xcp-ng-ai-agent
+docker compose exec oneuptime-xcp-ng-ai-agent wget -qO- http://127.0.0.1:3877/status
+```
+
+| The agent says | What to do |
+| --- | --- |
+| `ONEUPTIME_AI_XO_READ_TOKEN belongs to a Xen Orchestra administrator` or `... to a user ... whose roles allow changes` | Give the token's user a copy of the Read only role and nothing else. |
+| `did not accept ONEUPTIME_AI_XO_READ_TOKEN, which is wrong or has expired` | Make a new token for the same user, set it in `.env` and run `install.sh` again. |
+| `the certificate names no address` | Give Xen Orchestra [a certificate that names its address](#when-xen-orchestra-uses-its-own-self-signed-certificate) and run `install.sh` again. |
+| `manages 2 pools ...: set XCP_NG_POOL_ID` | Set `XCP_NG_POOL_ID` to the pool's UUID ([Which pool](#which-pool)). |
+| `HTTPS only` | The AI agent never reads Xen Orchestra over `http://`: give it a certificate. |
 
 ## Auto-tag with Project Labels
 

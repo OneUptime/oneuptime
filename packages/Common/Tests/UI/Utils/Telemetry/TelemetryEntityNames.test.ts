@@ -677,7 +677,8 @@ describe("TelemetryEntityNameResolver.resolve — query plan", () => {
     expect(includedIds(args.query._id)).toEqual([SERVICE_ID, SERVICE_ID_2]);
     expect(args.limit).toBe(2);
     expect(args.skip).toBe(0);
-    expect(args.select).toEqual({ _id: true, name: true });
+    // And whether each is archived, which a chip naming it says (#11213).
+    expect(args.select).toEqual({ _id: true, name: true, isArchived: true });
     expect(args.sort).toEqual({});
   });
 
@@ -691,6 +692,7 @@ describe("TelemetryEntityNameResolver.resolve — query plan", () => {
       _id: true,
       name: true,
       appIdentifier: true,
+      isArchived: true,
     });
 
     getListMock.mockClear();

@@ -13,4 +13,11 @@ export default interface SnmpSystemInfo {
   sysLocation?: string | undefined;
   sysContact?: string | undefined;
   sysUpTimeSeconds?: number | undefined;
+  /*
+   * The agent's SNMP engine ID, as hex in capitals, when it was polled over
+   * SNMPv3: what its SNMPv3 traps are sent as (NetworkDevice.snmpEngineId,
+   * #11172). Learned from the walk's own engine discovery, never asked for;
+   * absent from a v1 or v2c poll and from probes older than #11172.
+   */
+  snmpEngineId?: string | undefined;
 }

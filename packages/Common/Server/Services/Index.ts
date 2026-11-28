@@ -119,6 +119,8 @@ import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
 import StorageArrayService from "./StorageArrayService";
 import StorageArrayResourceService from "./StorageArrayResourceService";
+import StorageArrayConnectionService from "./StorageArrayConnectionService";
+import StorageArrayConnectionTestService from "./StorageArrayConnectionTestService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
 import OpenStackCloudLabelRuleService from "./OpenStackCloudLabelRuleService";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
@@ -259,6 +261,7 @@ import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogServi
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ProbeService from "./ProbeService";
 import ProbeOwnerTeamService from "./ProbeOwnerTeamService";
+import GlobalProbeSnmpTrapReportService from "./GlobalProbeSnmpTrapReportService";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
 import AIAgentService from "./AIAgentService";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
@@ -563,6 +566,7 @@ import ServiceLevelObjectiveErrorBudgetPolicyTierService from "./ServiceLevelObj
 import LlmCostBudgetService from "./LlmCostBudgetService";
 import LlmObservabilityConnectionService from "./LlmObservabilityConnectionService";
 import ExternalMcpServerService from "./ExternalMcpServerService";
+import ExternalMcpToolReadOnlyMarkService from "./ExternalMcpToolReadOnlyMarkService";
 import LlmModelPriceService from "./LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
@@ -820,6 +824,8 @@ const services: Array<BaseService> = [
   CephResourceService,
   StorageArrayService,
   StorageArrayResourceService,
+  StorageArrayConnectionService,
+  StorageArrayConnectionTestService,
   ProxmoxClusterLabelRuleService,
   OpenStackCloudLabelRuleService,
   DockerSwarmClusterLabelRuleService,
@@ -922,6 +928,7 @@ const services: Array<BaseService> = [
   ProjectSmtpConfigService,
   ProbeService,
   ProbeOwnerTeamService,
+  GlobalProbeSnmpTrapReportService,
   ProbeOwnerUserService,
   AIAgentService,
   AIAgentOwnerUserService,
@@ -1219,6 +1226,7 @@ const services: Array<BaseService> = [
   LlmCostBudgetService,
   LlmObservabilityConnectionService,
   ExternalMcpServerService,
+  ExternalMcpToolReadOnlyMarkService,
   LlmModelPriceService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,

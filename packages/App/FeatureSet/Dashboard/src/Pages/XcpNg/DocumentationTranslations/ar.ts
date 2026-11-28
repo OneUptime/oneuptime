@@ -62,6 +62,28 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_TLS_FINGERPRINT` | برنامج التثبيت النصي | بصمة SHA-256 لشهادة Xen Orchestra نفسها، حين يثق الوكيل بتلك الشهادة وحدها دون غيرها |",
   "| `XO_CA_FILE` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the script copies to `xo-ca.pem` |":
     "| `XO_CA_FILE` | برنامج التثبيت النصي | حزمة CA أصدرت شهادة Xen Orchestra، ينسخها البرنامج النصي إلى `xo-ca.pem` |",
+  "| `ONEUPTIME_AI_XO_READ_TOKEN` | No | A token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else: the XCP-ng AI agent runs when it is set, and reads with it |":
+    "| `ONEUPTIME_AI_XO_READ_TOKEN` | لا | رمز لمستخدم Xen Orchestra يحمل نسخة من الدور المدمج **Read only** ولا شيء غيره: يعمل وكيل الذكاء الاصطناعي لـ XCP-ng عند ضبطه، ويقرأ به |",
+  "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Only for fixes: a token of another user, whose role allows them. The AI agent changes nothing without it |":
+    "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | لا | للإصلاحات فقط: رمز لمستخدم آخر يسمح دوره بها. ومن دونه لا يغيّر وكيل الذكاء الاصطناعي شيئًا |",
+  "| `XCP_NG_POOL_ID` | No | The XAPI UUID of the pool the AI agent serves (default: the one pool its read token can see) |":
+    "| `XCP_NG_POOL_ID` | لا | معرّف UUID في XAPI للتجمّع الذي يخدمه وكيل الذكاء الاصطناعي (الافتراضي: التجمّع الوحيد الذي يراه رمز القراءة الخاص به) |",
+  "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | No | Overrides `XCP_NG_POOL_ID` as the pool the AI agent registers as |":
+    "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | لا | يتجاوز `XCP_NG_POOL_ID` بوصفه التجمّع الذي يسجّل به وكيل الذكاء الاصطناعي |",
+  "| `ONEUPTIME_AI_INVESTIGATION` | No | `true` or `false`: whether OneUptime AI may run the AI agent's read-only commands while it investigates (default: on) |":
+    "| `ONEUPTIME_AI_INVESTIGATION` | لا | `true` أو `false`: هل يمكن لـ OneUptime AI تشغيل أوامر وكيل الذكاء الاصطناعي للقراءة فقط أثناء التحقيق (الافتراضي: مفعّل) |",
+  "| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` or `bypass-approval`: how OneUptime AI may apply a fix |":
+    "| `ONEUPTIME_AI_FIXES` | لا | `off` أو `ask-for-approval` أو `automatic` أو `bypass-approval`: كيف يمكن لـ OneUptime AI تطبيق إصلاح |",
+  "| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes, with the token for changes. Anything else keeps it read-only |":
+    "| `ONEUPTIME_AI_ALLOW_WRITES` | لا | `true` يتيح لوكيل الذكاء الاصطناعي تطبيق الإصلاحات برمز التغييرات. وأي قيمة أخرى تُبقيه للقراءة فقط |",
+  "| `ONEUPTIME_AI_WRITE_TARGETS` | No | The `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` or `schedule/<uuid>` a fix may touch, comma-separated (default: all) |":
+    "| `ONEUPTIME_AI_WRITE_TARGETS` | لا | قيم `vm/<uuid>` أو `host/<uuid>` أو `pbd/<uuid>` أو `schedule/<uuid>` التي يمكن أن يمسها إصلاح، مفصولة بفواصل (الافتراضي: الكل) |",
+  "| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |":
+    "| `ONEUPTIME_AI_PROTECTED_TARGETS` | لا | الأمر نفسه، لما يجب ألا يغيّره OneUptime AI أبدًا: الجهاز الافتراضي الذي يعمل فيه وكيل الذكاء الاصطناعي، والجهاز الافتراضي الخاص بـ Xen Orchestra نفسه |",
+  "| `LOG_LEVEL` | No | The AI agent's log level: `debug`, `info` (default), `warn` or `error` |":
+    "| `LOG_LEVEL` | لا | مستوى سجل وكيل الذكاء الاصطناعي: `debug` أو `info` (الافتراضي) أو `warn` أو `error` |",
+  "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
+    "| `COMPOSE_PROFILES` | لا | `xcp-ng-ai-agent` يشغّل وكيل الذكاء الاصطناعي؛ ويكتبه برنامج التثبيت النصي عند ضبط رمز القراءة |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "يتحقق الوكيل من شهادة Xen Orchestra مقابل `xo-ca.pem` الموجود بجوار `docker-compose.yml`.",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

@@ -11,7 +11,7 @@
 
 ## Så bedöms en kontroll
 
-Varje kontroll ger ett resultat: svaret från en sond, returvärdet från ett skript eller den telemetri som kontrollen läser. Stegets kriterier bedömer det sedan i sin ordning. Det första kriterium vars filter stämmer avgör vad som händer: det kan ändra monitorns status, öppna incidenter och öppna larm. Kriterierna efter det tittas inte på för den kontrollen.
+Varje kontroll ger ett resultat: svaret från en sond, returvärdet från ett skript eller den telemetri som kontrollen läser. Stegets kriterier bedömer det sedan i sin ordning. Det första kriterium vars filter stämmer avgör vad som händer: det kan ändra monitorns status, öppna incidenter och öppna larm. Kriterierna efter det tittas inte på för den kontrollen, om det inte ändrar någon status (`change_monitor_status` av): då bedöms kriterierna efter det som ändrar statusen bara för statusen, och det första av dem som stämmer sätter den. Om inget gör det går monitorn till sin standardstatus.
 
 ```mermaid title="Så bedöms varje kontroll"
 flowchart TB

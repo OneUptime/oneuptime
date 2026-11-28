@@ -16,14 +16,18 @@ import DatabaseCommonInteractionPropsUtil, {
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../../Types/Exception/NotFoundException";
-import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
 import { FindWhereProperty } from "../../../../Types/BaseDatabase/Query";
+import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
+import FilterGroups from "../../../../Types/BaseDatabase/FilterGroups";
 import OwnedScopePermission from "./OwnedScopePermission";
 import ObjectID from "../../../../Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../../Types/Permission";
+import Permission, { UserPermission } from "../../../../Types/Permission";
+import LabelAccess, {
+  LabelGrant,
+  LabelRefusal,
+  LabelRuleRows,
+  LabelVerdict,
+} from "../../../../Types/LabelAccess/LabelAccess";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../../Types/HeldPermissions";
@@ -39,10 +43,8 @@ import Dictionary from "../../../../Types/Dictionary";
  * different per-tenant props and must rebuild fresh).
  */
 type AccessControlPermissionContext = {
-  nonAccessControlPermissions: Array<Permission>;
-  accessControlPermissions: Array<UserPermission>;
-  // The allow rows scoped to Owned, of roles that can be scoped.
-  ownedPermissions: Array<UserPermission>;
+  // The caller's rows as the label rule reads them (LabelAccess.readRows).
+  labelRows: LabelRuleRows;
   // What the caller holds, for the wildcards the grants count.
   held: HeldPermissions;
 };
@@ -62,10 +64,20 @@ type AccessControlPermissionContext = {
  * whole project, or only owned records (OwnedScopePermission), and
  * `ownedTeamIds` is null. `ownedTeamIds` null: no grant scoped to Owned
  * stands beside the labels.
+ *
+ * Worked out by the rule the Dashboard locks by too (Types/LabelAccess
+ * /LabelAccess, #11259).
  */
-export interface LabelGrant {
-  labelIds: Array<ObjectID>;
-  ownedTeamIds: Array<ObjectID> | null;
+export type { LabelGrant };
+
+/*
+ * A column a caller reads on fewer of a labelled model's records than they
+ * read the model itself (AccessControlPermission.getColumnsKeptToLabels),
+ * and the grant that says on which.
+ */
+export interface ColumnKeptToLabels {
+  column: string;
+  grant: LabelGrant;
 }
 
 export default class AccessControlPermission {
@@ -172,48 +184,24 @@ export default class AccessControlPermission {
       return;
     }
 
-    for (const blockPermissionBelongToThisModel of blockPermissionsBelongToThisModel) {
-      const blockPermissionLabelIds: Array<ObjectID> =
-        blockPermissionBelongToThisModel.labelIds || [];
+    /*
+     * The first block whose labels the record carries takes the operation
+     * away on it (LabelAccess.getBlockOnRecord): the rule the Dashboard
+     * locks the record's changes by too.
+     */
+    const blockOnRecord: UserPermission | null = LabelAccess.getBlockOnRecord(
+      this.getRecordLabelIds(fetchedModel),
+      blockPermissionsBelongToThisModel,
+    );
 
-      const blockPermissionLabelIdAsString: Array<string> =
-        blockPermissionLabelIds.map((id: ObjectID) => {
-          return id.toString();
-        });
-
-      if (blockPermissionLabelIds.length === 0) {
-        continue;
-      }
-
-      const model: TBaseModel = fetchedModel;
-
-      const modelAccessControlColumnName: string | null =
-        model.getAccessControlColumn();
-
-      if (modelAccessControlColumnName) {
-        const modelAccessControl: Array<AccessControlModel> =
-          (model.getColumnValue(
-            modelAccessControlColumnName,
-          ) as Array<AccessControlModel>) || [];
-
-        for (const accessControl of modelAccessControl) {
-          if (!accessControl.id) {
-            continue;
-          }
-
-          if (
-            blockPermissionLabelIdAsString.includes(accessControl.id.toString())
-          ) {
-            throw new NotAuthorizedException(
-              `You are not authorized to ${type.toLowerCase()} this ${
-                model.singularName
-              } because ${
-                blockPermissionBelongToThisModel.permission
-              } is in your team's permission block list.`,
-            );
-          }
-        }
-      }
+    if (blockOnRecord) {
+      throw new NotAuthorizedException(
+        `You are not authorized to ${type.toLowerCase()} this ${
+          fetchedModel.singularName
+        } because ${
+          blockOnRecord.permission
+        } is in your team's permission block list.`,
+      );
     }
   }
 
@@ -272,12 +260,20 @@ export default class AccessControlPermission {
         throw new NotFoundException(`${model.singularName} not found.`);
       }
 
-      const accessControlIdsWhichUserHasAccessToAsStrings: Array<string> =
-        accessControlIdsWhichUserHasAccessTo.map((id: ObjectID) => {
-          return id.toString();
-        }) || [];
+      /*
+       * The record carries one of the labels the grant is limited to, or it
+       * is refused (LabelAccess.carriesAny): the rule the Dashboard locks
+       * the record's changes by too.
+       */
+      if (
+        LabelAccess.carriesAny(
+          this.getRecordLabelIds(fetchedModel),
+          accessControlIdsWhichUserHasAccessTo,
+        )
+      ) {
+        return;
+      }
 
-      // Check if the object has any of these access control ids.  if not, then throw an error.
       const modelAccessControl: Array<AccessControlModel> =
         (fetchedModel.getColumnValue(
           modelAccessControlColumnName,
@@ -288,14 +284,6 @@ export default class AccessControlPermission {
       for (const accessControl of modelAccessControl) {
         if (!accessControl.id) {
           continue;
-        }
-
-        if (
-          accessControlIdsWhichUserHasAccessToAsStrings.includes(
-            accessControl.id.toString(),
-          )
-        ) {
-          return;
         }
 
         const accessControlName: string = accessControl.getColumnValue(
@@ -316,7 +304,7 @@ export default class AccessControlPermission {
           ", ",
         )}.`;
       } else {
-        errorString = ` You do not have permission to ${type.toLowerCase()} ${
+        errorString = `You do not have permission to ${type.toLowerCase()} ${
           model.singularName
         } without any labels.`;
       }
@@ -542,24 +530,43 @@ export default class AccessControlPermission {
     const readBlocks: Array<ObjectID> =
       blockedLabelIds[DatabaseRequestType.Read] || [];
 
-    // A record with labels of its own: weighed by them, with no lookup.
+    /*
+     * A record with labels of its own: weighed by them, with no lookup, by
+     * the rule the Dashboard locks the record's changes by
+     * (LabelAccess.weighLabelledRecord). The grants scoped to Owned beside
+     * the labels are left to the query the operation runs with: the labels
+     * here are the ones that decide alone (getLabelsNarrowingAlone).
+     */
     if (model.getAccessControlColumn()) {
-      const recordLabelIds: Array<string> = this.getRecordLabelIds(record);
+      const verdict: LabelVerdict = LabelAccess.weighLabelledRecord({
+        recordLabelIds: this.getRecordLabelIds(record),
+        read: {
+          grant: { labelIds: readGrants, ownedTeamIds: null },
+          blockedLabelIds: readBlocks,
+          blockRows: [],
+        },
+        operation:
+          type === DatabaseRequestType.Read
+            ? undefined
+            : {
+                grant: {
+                  labelIds: grantedLabelIds[operation] || [],
+                  ownedTeamIds: null,
+                },
+                blockedLabelIds: blockedLabelIds[operation] || [],
+                blockRows: [],
+              },
+      });
 
-      const isReadable: boolean =
-        (readGrants.length === 0 ||
-          readGrants.some((labelId: ObjectID): boolean => {
-            return recordLabelIds.includes(labelId.toString());
-          })) &&
-        !readBlocks.some((labelId: ObjectID): boolean => {
-          return recordLabelIds.includes(labelId.toString());
-        });
-
-      if (!isReadable) {
+      if (verdict.refusal === LabelRefusal.NotReadable) {
         throw new NotFoundException(`${model.singularName} not found.`);
       }
 
-      // The operation's own checks weigh the same labels, read already.
+      if (verdict.isAllowed) {
+        return true;
+      }
+
+      // The operation's own checks say why, from the same labels read already.
       return false;
     }
 
@@ -1034,7 +1041,14 @@ export default class AccessControlPermission {
   ): Array<Array<Permission>> {
     const model: BaseModel = new modelType();
 
-    let columns: Array<string> = Object.keys(query);
+    /*
+     * The columns the query compares - a free-text search's fields and a
+     * filter group's columns among them: a match on a column read only on
+     * some labels says what it holds on the others, as a filter by its name
+     * does (#11259).
+     */
+    let columns: Array<string> =
+      AccessControlPermission.getColumnsNamedByQuery(query);
 
     if (select) {
       columns = [...columns, ...Object.keys(select)];
@@ -1122,6 +1136,337 @@ export default class AccessControlPermission {
   }
 
   /*
+   * THE COLUMNS A CALLER READS ON FEWER OF A LABELLED MODEL'S RECORDS THAN
+   * THE MODEL ITSELF (#11259), of those `select` names: a column only those
+   * who may change the model read - a monitor's secret keys, a runner's key,
+   * a network device's SNMP credentials - for a caller whose grant to read
+   * it is limited to labels, and whose read of the model reaches further. A
+   * Viewer over the whole project who is a Project Member on the monitors
+   * labelled Payments reads every monitor, and the keys only of the
+   * Payments monitors.
+   *
+   * Selected, such a column used to narrow the whole read to its labels
+   * (getLabelGrantsForQuery): the Dashboard asks for the keys of every
+   * monitor it opens, so the reader could open none of the monitors outside
+   * Payments, and a list that selects a runner's key showed only the
+   * labelled runners - holding the Project Member role took away what the
+   * Viewer role let them read. A read by DatabaseService now reads every
+   * record its own grants reach and leaves such a column out of the records
+   * the column's grant does not reach (withholdColumnsKeptToLabels), as a
+   * column kept to its owners is left out of the records the caller does
+   * not own (OwnedScopePermission.withholdColumnsKeptToOwners).
+   *
+   * What the column holds is never read through another way: a filter on
+   * it still reaches only the records it is read on (the query's columns
+   * narrow as before), and an order by it is refused
+   * (checkSortOnColumnsKeptToLabels) - a match or an order is read one guess
+   * at a time.
+   *
+   * None for root and a master admin, a model that carries no labels, and a
+   * read across projects: each project's rows narrow such a read as before
+   * (TenantPermission), whose rows a read of one project's grants could not
+   * withhold by.
+   */
+  public static getColumnsKeptToLabels<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    select: Select<TBaseModel> | null | undefined,
+    props: DatabaseCommonInteractionProps,
+  ): Array<ColumnKeptToLabels> {
+    if (
+      !select ||
+      props.isRoot ||
+      props.isMasterAdmin ||
+      !props.tenantId ||
+      props.isMultiTenantRequest ||
+      !new modelType().getAccessControlColumn()
+    ) {
+      return [];
+    }
+
+    const selected: Array<string> = Object.keys(select).filter(
+      (column: string): boolean => {
+        // A relation's columns are its own model's to weigh.
+        return (select as Dictionary<unknown>)[column] === true;
+      },
+    );
+
+    if (selected.length === 0) {
+      return [];
+    }
+
+    const context: AccessControlPermissionContext =
+      this.buildPermissionContext(props);
+
+    const readGrant: LabelGrant = this.getLabelGrantForModel(
+      modelType,
+      props,
+      DatabaseRequestType.Read,
+      context,
+    );
+
+    const columnAccessControl: Dictionary<ColumnAccessControl> =
+      new modelType().getColumnAccessControlForAllColumns();
+
+    const kept: Array<ColumnKeptToLabels> = [];
+
+    for (const column of selected) {
+      const readPermissions: Array<Permission> | undefined =
+        columnAccessControl[column]?.read;
+
+      if (!readPermissions || readPermissions.length === 0) {
+        continue;
+      }
+
+      const grant: LabelGrant = this.getGrantByPermissions(
+        modelType,
+        DatabaseRequestType.Read,
+        this.getColumnGrantingPermissions(
+          modelType,
+          DatabaseRequestType.Read,
+          readPermissions,
+          context.held,
+        ),
+        context,
+      );
+
+      // Read wherever the model is, or on no record the read does not keep to already.
+      if (
+        grant.labelIds.length === 0 ||
+        (readGrant.labelIds.length > 0 &&
+          AccessControlPermission.isGrantWithin(readGrant, grant))
+      ) {
+        continue;
+      }
+
+      kept.push({ column: column, grant: grant });
+    }
+
+    return kept;
+  }
+
+  /*
+   * The select a read's record rule narrows by (BasePermission
+   * .addRecordScopeToQuery) when `withheldColumns` are left out of the
+   * records their grants do not reach rather than narrowing it
+   * (getColumnsKeptToLabels): the select without them - but for a column
+   * the query filters on too, which narrows the read whatever the select
+   * says. The select handed in is never changed.
+   */
+  public static getSelectNarrowingRead<TBaseModel extends BaseModel>(
+    select: Select<TBaseModel> | null,
+    query: Query<TBaseModel>,
+    withheldColumns: ReadonlyArray<string> | undefined,
+  ): Select<TBaseModel> | null {
+    if (!select || !withheldColumns || withheldColumns.length === 0) {
+      return select;
+    }
+
+    const filtered: Set<string> = new Set<string>(
+      AccessControlPermission.getColumnsNamedByQuery(query),
+    );
+
+    const narrowing: Dictionary<unknown> = {};
+
+    for (const [column, value] of Object.entries(
+      select as Dictionary<unknown>,
+    )) {
+      if (withheldColumns.includes(column) && !filtered.has(column)) {
+        continue;
+      }
+
+      narrowing[column] = value;
+    }
+
+    return narrowing as Select<TBaseModel>;
+  }
+
+  /*
+   * The columns a query compares: its own keys, the fields a free-text
+   * search reads, and the columns each group of a filter compares - as a
+   * column kept to its owners is looked for in a filter
+   * (OwnedScopePermission.getTeamListsOfColumnsKeptToOwnersNamed).
+   */
+  private static getColumnsNamedByQuery<TBaseModel extends BaseModel>(
+    query: Query<TBaseModel>,
+  ): Array<string> {
+    const named: Set<string> = new Set<string>();
+
+    for (const key of Object.keys(query || {})) {
+      const value: unknown = (query as Dictionary<unknown>)[key];
+
+      if (value instanceof MultiSearch) {
+        for (const field of value.fields || []) {
+          named.add(field);
+        }
+
+        continue;
+      }
+
+      if (value instanceof FilterGroups) {
+        for (const column of value.columns) {
+          named.add(column);
+        }
+
+        continue;
+      }
+
+      named.add(key);
+    }
+
+    return Array.from(named);
+  }
+
+  /*
+   * LEAVES THE COLUMNS KEPT TO LABELS (getColumnsKeptToLabels) OUT OF THE
+   * ROWS A READ HANDS BACK THAT THEIR GRANTS DO NOT REACH: the rest of each
+   * record is read as its own grants allow. Which rows a grant reaches is
+   * asked of the database by the very condition that narrowed such a read
+   * before (addGrantToQuery) - the rows carrying one of its labels, or that
+   * the caller or the teams of grants scoped to Owned beside them own - in
+   * one lookup of the rows' ids per grant (`findIds`, a read as OneUptime).
+   * A row read without its id is left without them too.
+   */
+  public static async withholdColumnsKeptToLabels<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    rows: Array<TBaseModel>;
+    kept: ReadonlyArray<ColumnKeptToLabels>;
+    props: DatabaseCommonInteractionProps;
+    // The ids, in lower case, of the rows a query finds.
+    findIds: (query: Query<TBaseModel>) => Promise<Array<string>>;
+  }): Promise<Array<TBaseModel>> {
+    if (data.rows.length === 0 || data.kept.length === 0) {
+      return data.rows;
+    }
+
+    const rowIds: Array<string> = [];
+
+    for (const row of data.rows) {
+      const id: string = LabelAccess.readId(row._id || row.id);
+
+      if (id && !rowIds.includes(id)) {
+        rowIds.push(id);
+      }
+    }
+
+    // Each grant's rows looked up once, whatever number of columns it keeps.
+    const groups: Map<string, { grant: LabelGrant; columns: Array<string> }> =
+      new Map<string, { grant: LabelGrant; columns: Array<string> }>();
+
+    for (const kept of data.kept) {
+      const key: string = AccessControlPermission.getGrantKey(kept.grant);
+      const group: { grant: LabelGrant; columns: Array<string> } = groups.get(
+        key,
+      ) || { grant: kept.grant, columns: [] };
+
+      group.columns.push(kept.column);
+      groups.set(key, group);
+    }
+
+    for (const group of groups.values()) {
+      let reached: Set<string> = new Set<string>();
+
+      if (rowIds.length > 0) {
+        const query: Query<TBaseModel> = await this.addGrantToQuery(
+          data.modelType,
+          { _id: QueryHelper.any(rowIds) } as Query<TBaseModel>,
+          group.grant,
+          data.props,
+        );
+
+        reached = new Set<string>(
+          (await data.findIds(query)).map((id: string): string => {
+            return LabelAccess.readId(id);
+          }),
+        );
+      }
+
+      for (const row of data.rows) {
+        if (reached.has(LabelAccess.readId(row._id || row.id))) {
+          continue;
+        }
+
+        for (const column of group.columns) {
+          (row as unknown as Dictionary<unknown>)[column] = undefined;
+        }
+      }
+    }
+
+    return data.rows;
+  }
+
+  // One key for a grant, whatever the order or case of its ids.
+  private static getGrantKey(grant: LabelGrant): string {
+    const ids: (values: ReadonlyArray<ObjectID>) => string = (
+      values: ReadonlyArray<ObjectID>,
+    ): string => {
+      return values
+        .map((value: ObjectID): string => {
+          return LabelAccess.readId(value);
+        })
+        .sort()
+        .join(",");
+    };
+
+    return `${ids(grant.labelIds)}|${
+      grant.ownedTeamIds ? ids(grant.ownedTeamIds) : "-"
+    }`;
+  }
+
+  /*
+   * Refuses an order by a column the caller reads on fewer records than the
+   * model (getColumnsKeptToLabels): where the other records fall in it says
+   * what they hold, one guess at a time - as an order by a column kept to its
+   * owners is refused (OwnedScopePermission.checkSortOnColumnsKeptToOwners).
+   * A read across projects narrows by such a column instead, and is left to
+   * do so.
+   */
+  public static checkSortOnColumnsKeptToLabels<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    sort: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (!sort || typeof sort !== "object") {
+      return;
+    }
+
+    const model: BaseModel = new modelType();
+    const ordered: Dictionary<boolean> = {};
+
+    for (const [column, order] of Object.entries(sort as Dictionary<unknown>)) {
+      // An order through a relation is by the related record's columns.
+      if (
+        order === undefined ||
+        order === null ||
+        model.getTableColumnMetadata(column)?.modelType
+      ) {
+        continue;
+      }
+
+      ordered[column] = true;
+    }
+
+    const kept: Array<ColumnKeptToLabels> =
+      AccessControlPermission.getColumnsKeptToLabels(
+        modelType,
+        ordered as Select<TBaseModel>,
+        props,
+      );
+
+    if (kept.length === 0) {
+      return;
+    }
+
+    const column: string = kept[0]!.column;
+    const title: string = model.getTableColumnMetadata(column)?.title || column;
+
+    throw new NotAuthorizedException(
+      `Your access lets you read the ${title} only of the ${model.pluralName} carrying some labels, so you cannot sort ${model.pluralName} by it.`,
+    );
+  }
+
+  /*
    * Every label the grants of getLabelGrantsForQuery are limited to, as one
    * list: whether the caller's grants are limited to labels at all, not the
    * records they reach.
@@ -1159,24 +1504,18 @@ export default class AccessControlPermission {
   private static buildPermissionContext(
     props: DatabaseCommonInteractionProps,
   ): AccessControlPermissionContext {
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
     return {
-      nonAccessControlPermissions:
-        PermissionHelper.getNonAccessControlPermissions(userPermissions),
-      accessControlPermissions:
-        PermissionHelper.getAccessControlPermissions(userPermissions),
-      ownedPermissions: userPermissions.filter(
-        (row: UserPermission): boolean => {
-          return (
-            row.scope === PermissionScope.Owned &&
-            PermissionHelper.isScopeApplicable(row.permission)
-          );
-        },
+      /*
+       * The allow rows the grants are read from (LabelAccess.readRows) -
+       * the caller's global permissions among them, as rows with no labels.
+       * A grant weighs no block: the blocks narrow in a step of their own
+       * (ReadPermission.getLabelledBlockRows).
+       */
+      labelRows: LabelAccess.readRows(
+        DatabaseCommonInteractionPropsUtil.getUserPermissions(
+          props,
+          PermissionType.Allow,
+        ),
       ),
       // What the table check holds the caller to, read the same way.
       held: TablePermission.getHeldPermissions(props),
@@ -1185,11 +1524,11 @@ export default class AccessControlPermission {
 
   /*
    * What the allow rows of `permissions` reach of a model's records, for
-   * `type` (see LabelGrant): nothing to narrow when one of them reaches the
-   * whole project, or when none is limited to labels; otherwise the labels
-   * of the rows limited to them and, when rows scoped to Owned stand beside
-   * them, those rows' teams (OwnedScopePermission.getTeamIdsOfRows) - or
-   * nothing to narrow, when the Owned scope narrows nothing here
+   * `type` (see LabelGrant), by the shared rule (LabelAccess.getGrant):
+   * nothing to narrow when one of them reaches the whole project, or when
+   * none is limited to labels; otherwise the labels of the rows limited to
+   * them and, when rows scoped to Owned stand beside them, those rows'
+   * teams - or nothing to narrow, when the Owned scope narrows nothing here
    * (OwnedScopePermission.narrowsRecords): such a row reaches every record,
    * as it does on its own.
    */
@@ -1199,55 +1538,13 @@ export default class AccessControlPermission {
     permissions: Array<Permission>,
     context: AccessControlPermissionContext,
   ): LabelGrant {
-    const reachesEverything: LabelGrant = { labelIds: [], ownedTeamIds: null };
-
-    if (
-      PermissionHelper.doesPermissionsIntersect(
-        permissions,
-        context.nonAccessControlPermissions,
-      )
-    ) {
-      return reachesEverything; // if this is intersecting, then return empty array. We dont need to check for access control.
-    }
-
-    let labelIds: Array<ObjectID> = [];
-
-    for (const permission of permissions) {
-      for (const accessControlPermission of context.accessControlPermissions) {
-        if (
-          accessControlPermission.permission === permission &&
-          accessControlPermission.labelIds.length > 0
-        ) {
-          labelIds = [...labelIds, ...accessControlPermission.labelIds];
-        }
-      }
-    }
-
-    // remove duplicates
-    labelIds = ArrayUtil.removeDuplicatesFromObjectIDArray(labelIds);
-
-    if (labelIds.length === 0) {
-      return reachesEverything;
-    }
-
-    const ownedRows: Array<UserPermission> = context.ownedPermissions.filter(
-      (row: UserPermission): boolean => {
-        return permissions.includes(row.permission);
+    return LabelAccess.getGrant({
+      rows: context.labelRows,
+      permissions: permissions,
+      ownedScopeNarrows: (): boolean => {
+        return OwnedScopePermission.narrowsRecords(modelType, type);
       },
-    );
-
-    if (ownedRows.length === 0) {
-      return { labelIds: labelIds, ownedTeamIds: null };
-    }
-
-    if (!OwnedScopePermission.narrowsRecords(modelType, type)) {
-      return reachesEverything;
-    }
-
-    return {
-      labelIds: labelIds,
-      ownedTeamIds: OwnedScopePermission.getTeamIdsOfRows(ownedRows),
-    };
+    });
   }
 
   /*

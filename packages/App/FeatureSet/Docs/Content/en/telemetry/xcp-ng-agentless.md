@@ -6,6 +6,7 @@ Monitor XCP-ng pools without installing anything: a OneUptime probe reads them, 
 - [Before you begin](#before-you-begin): A probe that reaches Xen Orchestra or the pool, and read-only access.
 - [Connect Xen Orchestra](#connect-xen-orchestra): Every pool it manages, through one connection.
 - [Connect a pool without Xen Orchestra](#connect-a-pool-without-xen-orchestra): One pool, read from its master.
+- [Alarms, HA and backups](#alarms-ha-and-backups): What a probe reads beyond the metrics, and the alerts it offers.
 - [Troubleshooting](#troubleshooting): What each message means and what fixes it.
 :::
 
@@ -22,7 +23,7 @@ flowchart TB
 
 Every minute the probe reads each connection and sends what it read to OneUptime:
 
-- **Xen Orchestra**: the probe reads Xen Orchestra's OpenMetrics plugin with the plugin's secret, exactly as the XCP-ng Agent does, so every pool Xen Orchestra manages arrives with the same series.
+- **Xen Orchestra**: the probe reads Xen Orchestra's OpenMetrics plugin with the plugin's secret, exactly as the XCP-ng Agent does, so every pool Xen Orchestra manages arrives with the same series. With an API token, it also reads each pool's alarms, HA and backups from Xen Orchestra's REST API.
 - **A pool's XAPI**: the probe logs in to the pool master and makes the reads Xen Orchestra's plugin makes itself: the pool's records, and each running host's metrics from that host. It turns them into the same series the plugin serves, so the pool reads exactly as it would through Xen Orchestra. It also puts the pool's XAPI messages, such as a VM that crashed or a host that HA lost, on the pool's feed.
 
 Each pool registers itself by its UUID with its first read, as the agent's pools do, and shows up under **XCP-ng → All Pools**.
@@ -35,7 +36,7 @@ Each pool registers itself by its UUID with its first read, as the agent's pools
 | What it reads | Every pool Xen Orchestra manages | One pool | Every pool Xen Orchestra manages |
 | What it needs | The OpenMetrics plugin's secret, and an optional read-only API token | A pool account: root, or an Active Directory user with the read-only role | The OpenMetrics plugin's secret |
 | Where the secrets are kept | Encrypted in OneUptime, sent only to the probe | Encrypted in OneUptime, sent only to the probe | In the agent's `.env` file |
-| XAPI messages on the pool's feed | Not included | Included | Not included |
+| Alarms, HA and backups | All three, and missing patches, with an API token | Alarms and HA, without backups | Not included |
 
 All three send the same series. A pool is read by one of them at a time, so its history stays one line whichever reads it.
 
@@ -118,11 +119,28 @@ A saved secret is only ever sent to the address, through the probe and to the ce
 
 ## The API token
 
-An API token is optional: the metrics come through the plugin's secret. With a token, every read checks it at most once an hour:
+An API token is optional: the metrics come through the plugin's secret, and the token reads each pool's alarms, HA and backups. With a token, every read checks it at most once an hour:
 
 - **It only reads.** A token whose user is an administrator, or whose role may change anything, fails the test and is shown as a problem on the connection's page. OneUptime keeps only read-only tokens.
 - **It reads what OneUptime needs.** Xen Orchestra answers a list a user may not read with an empty list, so the token must read alarms, messages and backup logs. The built-in **Read only** role reads all three.
 - **When it expires.** Xen Orchestra forgets a token the moment it expires. Two weeks before, the connection's page and the feed of every pool it reads say so. Create a new token for the same user and enter it with **Edit Connection**.
+
+## Alarms, HA and backups
+
+Besides the metrics, a probe reads what XCP-ng and Xen Orchestra report about each pool. What it reads depends on the connection:
+
+| | Xen Orchestra, with an API token | A pool's XAPI |
+|---|---|---|
+| XAPI messages and alarms | Read | Read |
+| HA and the pool master | Read | Read, with HA's own plan |
+| Backup jobs and their runs | Read | Not read: backups are Xen Orchestra's |
+| Missing patches | Read every six hours, where Xen Orchestra's plan includes them | Not read: Xen Orchestra works them out |
+
+A Xen Orchestra connection without an API token reads only the metrics, as the XCP-ng Agent does.
+
+- **On the pool's pages.** The pool's **Overview** shows its HA and each backup job's last runs, a host's page its missing patches, and a VM's page its last backup. Messages of priority 1 to 4, a master that moved, HA turned on or off or no longer able to tolerate a host failure, and failed backup runs go on the pool's **Feed**, and every message and backup run is a record on its **Logs** page.
+- **As alerts.** The pool's **Recommendations** offer a template for each under **XCP-ng alarms** and **Backups**: VM Crashed, HA Host Failed, HA State File Lost, HA Protected VM Restart Failed, Storage Failed to Plug, Storage GC Out of Space, XAPI Alarm, Pool Master Changed and Backup Job Failed. The [XCP-ng monitor](/docs/monitor/xcp-ng-monitor) adds HA Cannot Tolerate a Host Failure and VM Not Backed Up.
+- **From the first read on.** What XAPI said before a pool's first read is not raised, and each message is raised once. The first read of the backup logs looks back a week and a day, so each job's last runs show at once.
 
 ## Reference
 
@@ -132,6 +150,8 @@ An API token is optional: the metrics come through the plugin's secret. With a t
 | Reads at once | 4 per probe | A read slower than its interval is skipped, never stacked. |
 | Largest read | About 48 MiB | Larger Xen Orchestras need the XCP-ng Agent. |
 | XAPI messages | 200 per read | From the moment the pool is connected, each delivered once, the oldest first. |
+| Backup runs | 20 per read | The first read looks back a week and a day. A run Xen Orchestra still calls pending after three days is no longer waited for. |
+| Missing patches | Every 6 hours | Through Xen Orchestra, for up to 100 hosts a check. |
 | Connection test | 90 seconds to start | A test no probe picks up in time, or that runs longer than 150 seconds, is answered as failed. |
 
 ## Troubleshooting

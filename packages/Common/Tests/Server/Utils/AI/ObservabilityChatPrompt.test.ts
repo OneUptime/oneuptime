@@ -1227,6 +1227,7 @@ describe("infrastructure commands guidance (issue #5259)", () => {
       [AiResourceType.AzureSubscription]: "Azure subscriptions",
       [AiResourceType.GoogleCloudProject]: "Google Cloud projects",
       [AiResourceType.OpenStackCloud]: "OpenStack clouds",
+      [AiResourceType.XcpNgPool]: "XCP-ng pools",
     };
 
     for (const type of ALL_AI_RESOURCE_TYPES) {

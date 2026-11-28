@@ -226,6 +226,7 @@ describe("McpClient over Streamable HTTP", () => {
         },
         readsOnly: true,
         saysWhetherItReads: true,
+        serverMarksAsChange: false,
       },
       {
         name: "restart_service",
@@ -233,6 +234,8 @@ describe("McpClient over Streamable HTTP", () => {
         inputSchema: { type: "object", properties: {} },
         readsOnly: false,
         saysWhetherItReads: true,
+        // The server says it may change something: never marked read-only (#11081).
+        serverMarksAsChange: true,
       },
       // The protocol does not say whether it changes anything (#10879).
       {
@@ -240,6 +243,7 @@ describe("McpClient over Streamable HTTP", () => {
         inputSchema: { type: "object", properties: {} },
         readsOnly: false,
         saysWhetherItReads: false,
+        serverMarksAsChange: false,
       },
     ]);
   });
@@ -864,6 +868,7 @@ describe("readMcpToolDescription", () => {
       inputSchema: { type: "object", properties: {} },
       readsOnly: true,
       saysWhetherItReads: true,
+      serverMarksAsChange: false,
     });
   });
 
@@ -888,6 +893,42 @@ describe("readMcpToolDescription", () => {
       })?.readsOnly,
     ).toBe(false);
   });
+
+  /*
+   * Issue #11081: a tool its server marks as one that may change something
+   * is never marked read-only by a Project Admin - readOnlyHint false, or
+   * destructiveHint true, as mcp-go writes for every tool its author did
+   * not annotate. Only a tool the server says nothing about may be.
+   */
+  test.each([
+    [{ readOnlyHint: false }, true],
+    [{ destructiveHint: true }, true],
+    [
+      {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+      true,
+    ],
+    [{ readOnlyHint: true }, false],
+    [{ destructiveHint: false }, false],
+    [{ openWorldHint: true }, false],
+    [{ readOnlyHint: "false" }, false],
+    [{}, false],
+    [undefined, false],
+  ])(
+    "annotations %j: the server marks it as a change: %s",
+    (annotations: unknown, serverMarksAsChange: boolean) => {
+      expect(
+        readMcpToolDescription({
+          name: "x",
+          ...(annotations !== undefined ? { annotations } : {}),
+        })?.serverMarksAsChange,
+      ).toBe(serverMarksAsChange);
+    },
+  );
 
   test("leaves out what is not a tool", () => {
     expect(readMcpToolDescription(null)).toBeNull();

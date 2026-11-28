@@ -80,13 +80,14 @@ export function getInsightsQueries(data: {
         const metric: StorageArrayMetricDefinition | undefined =
           getStorageArrayMetricById(metricId);
         const objectLabel: string | null =
-          data.section.groupByObject && metric
+          data.section.groupByLabel ||
+          (data.section.groupByObject && metric
             ? getStorageArrayObjectLabel(
                 metric.defaultResourceScope,
                 data.storageSystem,
                 metric.metricName,
               )
-            : null;
+            : null);
 
         return {
           metricId: metricId,

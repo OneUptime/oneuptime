@@ -314,7 +314,7 @@ Fate clic su **Mostra altri dettagli** per vedere il resto:
 
 La scheda mostra solo l'email più recente. Ogni email valutata dal monitor viene anche scritta in **Log di monitoraggio**: la colonna **E-mail** ne mostra oggetto e mittente, e **Visualizza riepilogo** sulla sua riga mostra l'email intera come fa la scheda. Un monitor che non viene controllato — con il monitoraggio disattivato, o messo in pausa da un incidente o da un evento di manutenzione — non valuta nulla, quindi ogni email che riceve ha una riga che dice che non è stata valutata, e perché. Se uno dei vostri criteri controlla **Email ricevuta**, il monitor scrive anche una riga a ogni controllo delle email mancanti. La colonna **E-mail** indica "Scheduled check" su quelle righe, e il loro **Visualizza riepilogo** mostra l'email più recente al momento del controllo, oppure "No email yet" se non ne era arrivata nessuna.
 
-I registri di monitoraggio vengono conservati per un giorno per impostazione predefinita. Su un server self-hosted, un amministratore può cambiarlo con **Conservazione dei log del monitor (giorni)** nelle impostazioni della Admin Dashboard.
+I log di monitoraggio vengono conservati per un giorno per impostazione predefinita. Su un server self-hosted, un amministratore può cambiarlo con **Conservazione dei log del monitor (giorni)** nelle impostazioni della Admin Dashboard.
 
 ## Configurazione self-hosted
 

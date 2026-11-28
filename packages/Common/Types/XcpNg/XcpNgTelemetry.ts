@@ -202,6 +202,33 @@ export enum XcpNgDerivedSeries {
    * VM switched off on purpose stops alerting after a day.
    */
   VmStoppedAfterRunning = "xcp_ng.vm.stopped_after_running",
+
+  /*
+   * #10997: what a probe reads beyond the metrics - Xen Orchestra's REST
+   * API, or the pool's XAPI - added by the server from what it read
+   * (XcpNgEventRecords), never by the XCP-ng Agent, whose plugin carries
+   * none of it.
+   */
+  // 1 while the pool's HA is on, else 0.
+  PoolHaEnabled = "xcp_ng.pool.ha.enabled",
+  /*
+   * While HA is on: 1 while it can still tolerate the host failures it is
+   * set to (XAPI's plan) - or, through Xen Orchestra, a host failure (a
+   * host up and enabled beyond the one that fails) - else 0
+   * (XcpNgHighAvailability).
+   */
+  PoolHaCanTolerateHostFailure = "xcp_ng.pool.ha.can_tolerate_host_failure",
+  // How many host failures HA is set to tolerate (straight from XAPI only).
+  PoolHaHostFailuresToTolerate = "xcp_ng.pool.ha.host_failures_to_tolerate",
+  // How many host failures HA's plan still covers (straight from XAPI only).
+  PoolHaPlanExistsFor = "xcp_ng.pool.ha.plan_exists_for",
+  /*
+   * For each VM in a scheduled backup job: 1 while it has had no successful
+   * backup within its jobs' interval and grace (XcpNgBackupSchedule), else 0.
+   */
+  VmBackupOverdue = "xcp_ng.vm.backup_overdue",
+  // How many patches a host misses, as Xen Orchestra last listed them.
+  HostMissingPatches = "xcp_ng.host.missing_patches",
 }
 
 // The OTLP scope the derived series are appended under.
@@ -231,6 +258,7 @@ const SCOPE_BY_PREFIX: ReadonlyArray<{ prefix: string; scope: XcpNgScope }> = [
   { prefix: "xcp_sr_", scope: XcpNgScope.StorageRepository },
   { prefix: "xcp_vdi_", scope: XcpNgScope.VDI },
   { prefix: "xcp_xostor_", scope: XcpNgScope.Xostor },
+  { prefix: "xcp_ng.pool.", scope: XcpNgScope.Pool },
   { prefix: "xcp_ng.host.", scope: XcpNgScope.Host },
   { prefix: "xcp_ng.vm.", scope: XcpNgScope.VM },
 ];

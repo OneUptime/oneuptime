@@ -35,6 +35,12 @@ export interface RecordedSnmpAgentOptions {
   users?: Array<snmp.User> | undefined;
   // Context name -> recording, served over SNMPv3 in that context.
   contexts?: Record<string, string> | undefined;
+  /*
+   * The agent's SNMPv3 engine ID, as hex: what its Reports to a poll's
+   * discovery say, and what its traps would be sent as. A random one when
+   * absent, as net-snmp makes one.
+   */
+  engineId?: string | undefined;
 }
 
 interface NumericVariation {
@@ -260,7 +266,12 @@ export default class RecordedSnmpAgent {
     const port: number = await findFreeUdpPort();
 
     const agent: SnmpAgent = snmp.createAgent(
-      { port: port, address: "127.0.0.1", disableAuthorization: false },
+      {
+        port: port,
+        address: "127.0.0.1",
+        disableAuthorization: false,
+        ...(options.engineId ? { engineID: options.engineId } : {}),
+      },
       () => {
         // Agent-side errors surface to the client as a timeout.
       },

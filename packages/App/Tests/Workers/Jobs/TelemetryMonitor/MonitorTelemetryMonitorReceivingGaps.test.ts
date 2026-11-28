@@ -180,6 +180,22 @@ async function runOnce(): Promise<void> {
   });
 }
 
+/*
+ * A job as the queue hands it over: its dates as the ISO text the queue
+ * keeps them in, unless a test hands them as dates.
+ */
+async function runJob(data: {
+  dueAt?: Date | string | undefined;
+  queuedAt?: Date | string | undefined;
+}): Promise<void> {
+  await processTelemetryMonitorEvaluationFromQueue({
+    monitorId: monitorId.toString(),
+    projectId: projectId.toString(),
+    queuedAt: data.queuedAt === undefined ? new Date() : data.queuedAt,
+    ...(data.dueAt === undefined ? {} : { dueAt: data.dueAt }),
+  });
+}
+
 // The window the host check read: the query's own InBetween.
 function hostWindow(): { start: Date; end: Date } {
   const time: InBetween<Date> = (
@@ -406,19 +422,26 @@ describe("A telemetry check and OneUptime's own receiving gaps", () => {
 });
 
 describe("The plan the job asks for", () => {
-  test("asks with the window the monitor's step judges", async () => {
+  test("asks with the window the monitor's step judges, ending when the check was due", async () => {
     const plan: jest.SpyInstance = jest.spyOn(
       ReceivingCoverage,
       "planTelemetryEvaluation",
     );
+    const dueAt: Date = new Date(Date.now() - 20 * SECOND);
 
     givenMonitor(MonitorType.Host, hostStep(RollingTime.Past15Minutes));
-    await runOnce();
-    expect(plan.mock.calls[0]![0]).toEqual({ windowInMs: 15 * MINUTE });
+    await runJob({ dueAt: dueAt });
+    expect(plan.mock.calls[0]![0]).toEqual({
+      windowInMs: 15 * MINUTE,
+      windowEndsAt: dueAt,
+    });
 
     givenMonitor(MonitorType.Logs, logStep(90));
-    await runOnce();
-    expect(plan.mock.calls[1]![0]).toEqual({ windowInMs: 90 * SECOND });
+    await runJob({ dueAt: dueAt });
+    expect(plan.mock.calls[1]![0]).toEqual({
+      windowInMs: 90 * SECOND,
+      windowEndsAt: dueAt,
+    });
   });
 
   test("a check told to wait for a reconnecting OneUptime reads nothing", async () => {
@@ -434,5 +457,240 @@ describe("The plan the job asks for", () => {
 
     expect(logCountBy).not.toHaveBeenCalled();
     expect(monitorResource).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Issue #11248: a check judges the window that ends when it was due - the
+ * due time the scheduler carries on its job - however late it runs. A check
+ * that ran late used to judge the window that ended when it ran, so the time
+ * between the window before and its own was judged by no check, and the next
+ * check overlapped it.
+ */
+describe("A telemetry check that runs late (#11248)", () => {
+  test("judges the window that ends when it was due, not when it runs", async () => {
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const dueAt: Date = new Date(Date.now() - 25 * SECOND);
+
+    await runJob({ dueAt: dueAt.toISOString() });
+
+    expect(logWindow()).toEqual({
+      start: new Date(dueAt.getTime() - MINUTE),
+      end: dueAt,
+    });
+  });
+
+  test("an infrastructure check's rolling window ends when it was due too", async () => {
+    givenMonitor(MonitorType.Host, hostStep(RollingTime.Past5Minutes));
+    const dueAt: Date = new Date(Date.now() - 40 * SECOND);
+
+    await runJob({ dueAt: dueAt });
+
+    expect(hostWindow()).toEqual({
+      start: new Date(dueAt.getTime() - 5 * MINUTE),
+      end: dueAt,
+    });
+  });
+
+  test("two checks due a minute apart judge windows that follow on exactly, however late each ran", async () => {
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const firstDueAt: number = Date.now() - 3 * MINUTE;
+
+    // Due at 0, 1 and 2 minutes; each job's own lateness is not the window's.
+    for (let check: number = 0; check < 3; check++) {
+      await runJob({ dueAt: new Date(firstDueAt + check * MINUTE) });
+    }
+
+    const windows: Array<{ start: number; end: number }> =
+      logCountBy.mock.calls.map((args: Array<unknown>) => {
+        const time: InBetween<Date> = (
+          args[0] as { query: { time: InBetween<Date> } }
+        ).query.time;
+        return {
+          start: (time.startValue as Date).getTime(),
+          end: (time.endValue as Date).getTime(),
+        };
+      });
+
+    expect(windows).toEqual([
+      { start: firstDueAt - MINUTE, end: firstDueAt },
+      { start: firstDueAt, end: firstDueAt + MINUTE },
+      { start: firstDueAt + MINUTE, end: firstDueAt + 2 * MINUTE },
+    ]);
+  });
+
+  test("a job tried again after it failed judges the same window it was due to", async () => {
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const dueAt: string = new Date(Date.now() - 15 * SECOND).toISOString();
+
+    logCountBy.mockRejectedValueOnce(new Error("timeout exceeded"));
+    await expect(runJob({ dueAt: dueAt })).rejects.toThrow("timeout exceeded");
+
+    // BullMQ tries it again with the same data, later.
+    await runJob({ dueAt: dueAt });
+
+    const first: { query: { time: InBetween<Date> } } = logCountBy.mock
+      .calls[0]![0] as { query: { time: InBetween<Date> } };
+    const second: { query: { time: InBetween<Date> } } = logCountBy.mock
+      .calls[1]![0] as { query: { time: InBetween<Date> } };
+
+    expect(second.query.time.startValue).toEqual(first.query.time.startValue);
+    expect(second.query.time.endValue).toEqual(first.query.time.endValue);
+    expect(second.query.time.endValue).toEqual(new Date(dueAt));
+  });
+
+  test("a job queued before the due time was carried judges the window that ends when it was queued", async () => {
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const queuedAt: Date = new Date(Date.now() - 20 * SECOND);
+
+    await runJob({ queuedAt: queuedAt.toISOString() });
+
+    expect(logWindow()).toEqual({
+      start: new Date(queuedAt.getTime() - MINUTE),
+      end: queuedAt,
+    });
+  });
+
+  test("a job with neither judges the window that ends now, as every check once did", async () => {
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const before: number = Date.now();
+
+    await processTelemetryMonitorEvaluationFromQueue({
+      monitorId: monitorId.toString(),
+      projectId: projectId.toString(),
+    } as unknown as Parameters<
+      typeof processTelemetryMonitorEvaluationFromQueue
+    >[0]);
+
+    const window: { start: Date; end: Date } = logWindow();
+    expect(window.end.getTime()).toBeGreaterThanOrEqual(before);
+    expect(window.end.getTime() - window.start.getTime()).toBe(MINUTE);
+  });
+
+  test("a due time to come - the scheduler's clock ahead of this server's - is now", async () => {
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const before: number = Date.now();
+
+    await runJob({ dueAt: new Date(before + 30 * SECOND) });
+
+    expect(logWindow().end.getTime()).toBeGreaterThanOrEqual(before);
+    expect(logWindow().end.getTime()).toBeLessThan(before + 30 * SECOND);
+  });
+
+  test("a due time that cannot be read is no due time: the window ends when the job was queued", async () => {
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const queuedAt: Date = new Date(Date.now() - 9 * SECOND);
+
+    await runJob({ dueAt: "not a date", queuedAt: queuedAt });
+
+    expect(logWindow().end).toEqual(queuedAt);
+  });
+
+  test("while ingest is more than a minute behind the window's end, the window ends where the queue is: the earlier end wins", async () => {
+    givenBacklogSince(2 * MINUTE);
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const before: number = Date.now();
+
+    await runJob({ dueAt: new Date(before - 30 * SECOND) });
+
+    const window: { start: Date; end: Date } = logWindow();
+    expect(before - window.end.getTime()).toBeGreaterThanOrEqual(
+      2 * MINUTE - SECOND,
+    );
+    expect(before - window.end.getTime()).toBeLessThan(2 * MINUTE + SECOND);
+  });
+
+  test("how far behind ingest is counts from the window's end: a late check is not held back by data it does not read", async () => {
+    // 100 seconds behind now, 55 behind the window's end.
+    givenBacklogSince(100 * SECOND);
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const dueAt: Date = new Date(Date.now() - 45 * SECOND);
+
+    await runJob({ dueAt: dueAt });
+
+    expect(logWindow().end).toEqual(dueAt);
+  });
+
+  test("a window that ended before OneUptime stopped receiving is judged, though the check runs during the reconnect", async () => {
+    // Down from 5 to 2 minutes ago, reconnecting since: a check due now waits.
+    givenLedger([
+      [10 * HOUR, 5 * MINUTE],
+      [2 * MINUTE, 10 * SECOND],
+    ]);
+    givenMonitor(MonitorType.Logs, logStep(60));
+
+    await runOnce();
+    expect(monitorResource).not.toHaveBeenCalled();
+
+    // Its check was due before the outage, and that window holds none of it.
+    ReceivingCoverage.clearCache();
+    const dueAt: Date = new Date(Date.now() - 6 * MINUTE);
+    await runJob({ dueAt: dueAt });
+
+    expect(monitorResource).toHaveBeenCalledTimes(1);
+    expect(logWindow().end).toEqual(dueAt);
+  });
+
+  test("its log entry says the window it judged: the one it was due to, or where the queue was", async () => {
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const dueAt: Date = new Date(Date.now() - 25 * SECOND);
+
+    await runJob({ dueAt: dueAt });
+
+    expect(monitorResource.mock.calls[0]![1]).toMatchObject({
+      judgedWindow: {
+        startsAt: new Date(dueAt.getTime() - MINUTE),
+        endsAt: dueAt,
+      },
+    });
+
+    monitorResource.mockClear();
+    ReceivingCoverage.clearCache();
+    givenBacklogSince(3 * MINUTE);
+    givenMonitor(MonitorType.Host, hostStep(RollingTime.Past5Minutes));
+
+    await runJob({ dueAt: dueAt });
+
+    const judged: { startsAt: Date; endsAt: Date } = (
+      monitorResource.mock.calls[0]![1] as {
+        judgedWindow: { startsAt: Date; endsAt: Date };
+      }
+    ).judgedWindow;
+
+    expect(judged.endsAt).toEqual(hostWindow().end);
+    expect(judged.endsAt.getTime()).toBeLessThan(dueAt.getTime());
+    expect(judged.endsAt.getTime() - judged.startsAt.getTime()).toBe(
+      5 * MINUTE,
+    );
+  });
+
+  // #11334: every check's window holds its start and not its end, and says so.
+  test("its log entry says the window held its start and not its end, as every read of it did", async () => {
+    givenMonitor(MonitorType.Logs, logStep(60));
+    const dueAt: Date = new Date(Date.now() - 25 * SECOND);
+
+    await runJob({ dueAt: dueAt });
+
+    expect(monitorResource.mock.calls[0]![1]).toMatchObject({
+      judgedWindow: {
+        startsAt: new Date(dueAt.getTime() - MINUTE),
+        endsAt: dueAt,
+        includesEnd: false,
+      },
+    });
+
+    monitorResource.mockClear();
+    ReceivingCoverage.clearCache();
+    givenMonitor(MonitorType.Host, hostStep(RollingTime.Past5Minutes));
+
+    await runJob({ dueAt: dueAt });
+
+    expect(
+      (
+        monitorResource.mock.calls[0]![1] as {
+          judgedWindow: { includesEnd?: boolean };
+        }
+      ).judgedWindow.includesEnd,
+    ).toBe(false);
   });
 });

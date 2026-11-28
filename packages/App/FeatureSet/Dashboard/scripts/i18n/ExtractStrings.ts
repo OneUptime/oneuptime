@@ -265,6 +265,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What OneUptime checks on a kind of store, and what it cannot, and why
+   * (#11140): the lines the form that adds a store, its Settings and its
+   * Overview draw in the reader's language. Only the words the file marks
+   * are read.
+   */
+  {
+    directory: "packages/Common/Utils/DataSecurity/DataStoreCoverage.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -1147,6 +1157,20 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Cloud/CloudCostBasis.ts",
+    kind: "keys",
+  },
+  /*
+   * Cloud budgets and forecasts (#11008): what a budget counts, its period
+   * and how a year is spread, and how a forecast is made and how sure it
+   * is, on Cloud > Spend > Budgets, a budget's page and the Forecast.
+   * Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudBudget.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudCostForecast.ts",
     kind: "keys",
   },
   /*

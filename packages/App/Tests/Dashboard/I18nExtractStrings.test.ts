@@ -1668,6 +1668,8 @@ describe("the real source roots", () => {
       // Why a pull request a person links to a Data Security issue is refused (#10831).
       "keys packages/Common/Types/DataSecurity/DataSecurityIssuePullRequestLink.ts",
       "keys packages/Common/Types/DataSecurity/ScanWarnings.ts",
+      // What OneUptime checks on a kind of store, and what it cannot, and why (#11140).
+      "keys packages/Common/Utils/DataSecurity/DataStoreCoverage.ts",
       // What the compliance page says is wrong with a rule, and why a member fails one (#8632).
       "keys packages/Common/Types/Team/TeamComplianceFindings.ts",
       // Why a team or a label may not take a name: another one of the project has it (#9674).
@@ -1699,6 +1701,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Cloud/CloudSavingsAction.ts",
       "keys packages/Common/Types/Cloud/CloudResourceEnvironment.ts",
       "keys packages/Common/Types/Cloud/CloudSavingsAi.ts",
+      "keys packages/Common/Types/Cloud/CloudCostReport.ts",
+      "keys packages/Common/Types/Cloud/CloudCostReportWords.ts",
       // A managed device's status, as Inventory > Managed Devices draws it - not the server's.
       "keys packages/Common/Types/DeviceManagement/ManagedDeviceStatus.ts",
       // The monitor pages' shared helpers: hero, uptime, metric groups.
@@ -1863,6 +1867,9 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Cloud/CloudCommitments.ts",
       // Billed, amortized and net: what each is called and counts (#11007).
       "keys packages/Common/Types/Cloud/CloudCostBasis.ts",
+      // What a budget counts and its period, and how a forecast is made (#11008).
+      "keys packages/Common/Types/Cloud/CloudBudget.ts",
+      "keys packages/Common/Types/Cloud/CloudCostForecast.ts",
       // A commitment's state, scope and payment option (#11011).
       "keys packages/Common/Types/Cloud/CloudCommitmentInventory.ts",
       // A resource's right-sizing from OneUptime's own readings: its verdict and why.

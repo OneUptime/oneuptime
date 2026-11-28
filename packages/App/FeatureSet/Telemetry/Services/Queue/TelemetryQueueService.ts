@@ -1,5 +1,6 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
+import TelemetryInsertBackpressure from "Common/Server/Utils/Telemetry/TelemetryInsertBackpressure";
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
@@ -35,7 +36,13 @@ import {
   measureRawTelemetryIngestBody,
   TelemetryIngestBodySize,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestBodySize";
-import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import {
+  TelemetryIngestionBudgetRefusal,
+  TelemetryIngestionBudgetSignal,
+} from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import TelemetryIngestShedding, {
+  TelemetryIngestShedError,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestShedding";
 import {
   ProductAnalyticsParsedEvent,
   ProductAnalyticsParsedMetric,
@@ -310,10 +317,24 @@ export interface IncomingRequestPendingJobData {
   secretKeyHash: string;
 }
 
+/*
+ * One telemetry monitor's check, as the scheduler queues it
+ * (MonitorTelemetryMonitor). Its dates arrive as the ISO text the queue
+ * keeps them in.
+ */
 export interface TelemetryMonitorEvaluationJobData {
   monitorId: string;
   projectId?: string | undefined;
-  queuedAt: Date;
+  queuedAt: Date | string;
+  /*
+   * When the check was due: the end of the window it judges, however late
+   * it runs - its workers were busy, a refused job was queued by the next
+   * run, a failed one was tried again - so a monitor's windows follow on
+   * from one another exactly (issue #11248). A job queued before this was
+   * carried has none: its window ends when it was queued (queuedAt), which
+   * the scheduler does at the moment the check is due.
+   */
+  dueAt?: Date | string | undefined;
 }
 
 export interface KubernetesCostIngestJobData {
@@ -919,6 +940,27 @@ export default class TelemetryQueueService {
         getTelemetryIngestionBudgetSignalForTelemetryType(type);
 
       /*
+       * A project far ahead of the workers, or a queue nearly full for
+       * everyone (TelemetryIngestShedding, 2026-11-27): refused before
+       * anything is stored for it, whichever producer made the batch. The
+       * HTTP and gRPC ingest refuse it before it gets here; this is for the
+       * rest - MQTT, the cloud streams, the compatible endpoints,
+       * OneUptime's own collectors - which answer a TooManyRequests as they
+       * answer a queue that cannot take the batch.
+       */
+      if (budgetSignal) {
+        const shed: TelemetryIngestionBudgetRefusal | null =
+          TelemetryIngestShedding.getRefusal({
+            projectId: req.projectId,
+            signal: budgetSignal,
+          });
+
+        if (shed) {
+          throw new TelemetryIngestShedError(shed);
+        }
+      }
+
+      /*
        * Count the batch against its ingestion budget before anything is
        * stored for it, so a batch dropped over a used-up budget costs no
        * Redis body and no job. Measured lazily: a project without a budget
@@ -1108,8 +1150,14 @@ export default class TelemetryQueueService {
 
       logger.debug(`Added ${type} ingestion job: ${jobId}`);
     } catch (error) {
-      logger.error(`Error adding ${type} ingestion job:`);
-      logger.error(error);
+      /*
+       * A refused batch is not an error of this server's: the flood it is
+       * part of is logged once, where it is decided.
+       */
+      if (!(error instanceof TelemetryIngestShedError)) {
+        logger.error(`Error adding ${type} ingestion job:`);
+        logger.error(error);
+      }
       throw error;
     }
   }
@@ -1764,6 +1812,8 @@ export default class TelemetryQueueService {
   public static async addTelemetryMonitorEvaluationJob(data: {
     monitorId: ObjectID;
     projectId?: ObjectID | undefined;
+    // When the check was due: the end of the window it judges.
+    dueAt?: Date | undefined;
   }): Promise<void> {
     try {
       const monitorId: string = data.monitorId.toString();
@@ -1772,6 +1822,10 @@ export default class TelemetryQueueService {
         monitorId,
         queuedAt: OneUptimeDate.getCurrentDate(),
       };
+
+      if (data.dueAt) {
+        telemetryMonitorEvaluation.dueAt = data.dueAt;
+      }
 
       const jobData: TelemetryIngestJobData = {
         type: TelemetryType.TelemetryMonitorEvaluation,
@@ -1982,7 +2036,12 @@ export default class TelemetryQueueService {
    * stays active-inclusive for the ingest backpressure checks, where
    * in-flight work genuinely counts against capacity.
    */
+  /*
+   * The Telemetry queue's backlog for its KEDA endpoint: without the bulk
+   * telemetry while ClickHouse is refusing inserts, which more pods could
+   * not store faster (TelemetryInsertBackpressure).
+   */
   public static async getQueueBacklogSize(): Promise<number> {
-    return Queue.getQueueBacklogSize(QueueName.Telemetry);
+    return TelemetryInsertBackpressure.getTelemetryBacklogForScaling();
   }
 }

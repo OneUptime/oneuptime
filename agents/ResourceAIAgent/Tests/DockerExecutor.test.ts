@@ -803,7 +803,7 @@ describe("prepare: what the agent never changes", () => {
     assert.deepStrictEqual(built.docker.calls, []);
   });
 
-  test("OneUptime's other agents on the same engine: Host, Ceph, Proxmox, VMware, OpenStack, Storage Array, XCP-ng and database agents", () => {
+  test("OneUptime's other agents on the same engine: Host, Ceph, Proxmox, VMware, OpenStack, XCP-ng, Storage Array and database agents", () => {
     const built: Built = build({ config: WRITES });
 
     for (const name of [
@@ -819,6 +819,15 @@ describe("prepare: what the agent never changes", () => {
       // OpenStack's log-only and trace-only collectors.
       "oneuptime-openstack-logs",
       "oneuptime-openstack-traces",
+      "oneuptime-xcp-ng-agent",
+      "oneuptime-xcp-ng-ai-agent",
+      /*
+       * A second Xen Orchestra's collector and AI agent, named after its
+       * folder by install.sh, and a second pool's AI agent.
+       */
+      "oneuptime-xcp-ng-agent-lab",
+      "oneuptime-xcp-ng-ai-agent-lab",
+      "oneuptime-xcp-ng-ai-agent-lab-pool",
       "oneuptime-storage-array-agent",
       // A second array's agent, named after its folder by install.sh.
       "oneuptime-storage-array-agent-fb",
@@ -831,9 +840,6 @@ describe("prepare: what the agent never changes", () => {
       "oneuptime-storage-array-agent-powerstore-exporter-1",
       "array2-powerstore-syslog-1",
       "ontap-netapp-harvest-1",
-      "oneuptime-xcp-ng-agent",
-      // A second Xen Orchestra's agent, named after its folder by install.sh.
-      "oneuptime-xcp-ng-agent-lab",
       // Compose's names for the database agent installed in /opt/oneuptime-database-agent.
       "oneuptime-database-agent-oneuptime-database-agent-1",
       "orders-db-oneuptime-database-ai-agent-1",
@@ -3727,14 +3733,21 @@ describe("pure helpers", () => {
       ...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
     ];
 
+    // Each service, and the .env variable its container's name comes from.
+    const variables: Record<string, string> = {
+      "StorageArrayAgent/docker-compose.yml: oneuptime-storage-array-agent":
+        "STORAGE_ARRAY_AGENT_CONTAINER_NAME",
+      "XcpNgAgent/docker-compose.yml: oneuptime-xcp-ng-agent":
+        "XCP_NG_AGENT_CONTAINER_NAME",
+      "XcpNgAgent/docker-compose.yml: oneuptime-xcp-ng-ai-agent":
+        "XCP_NG_AI_AGENT_CONTAINER_NAME",
+    };
+
     assert.deepStrictEqual(
       services.map((entry: { file: string; service: string }): string => {
         return `${entry.file}: ${entry.service}`;
       }),
-      [
-        "StorageArrayAgent/docker-compose.yml: oneuptime-storage-array-agent",
-        "XcpNgAgent/docker-compose.yml: oneuptime-xcp-ng-agent",
-      ],
+      Object.keys(variables),
     );
     for (const entry of services) {
       // run() holds the container's com.docker.compose.service to the list.
@@ -3745,11 +3758,7 @@ describe("pure helpers", () => {
       // ...and the default name it falls back to is that service's.
       assert.strictEqual(
         entry.containerName,
-        `\${${
-          entry.service === "oneuptime-xcp-ng-agent"
-            ? "XCP_NG_AGENT_CONTAINER_NAME"
-            : "STORAGE_ARRAY_AGENT_CONTAINER_NAME"
-        }:-${entry.service}}`,
+        `\${${variables[`${entry.file}: ${entry.service}`]}:-${entry.service}}`,
       );
     }
   });

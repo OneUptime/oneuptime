@@ -94,6 +94,8 @@ export const RESOURCE_AI_ALLOWLIST_EXAMPLES: Readonly<
     "cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1",
   [AiResourceType.OpenStackCloud]:
     "openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6",
+  [AiResourceType.XcpNgPool]:
+    "xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot",
 };
 
 /*

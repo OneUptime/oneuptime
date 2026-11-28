@@ -39,8 +39,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 是否驗證陣列的憑證：除非陣列裝有你信任的 CA 簽發的憑證，否則回答 **N**（陣列出廠時帶有自我簽署憑證）",
   "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the API token) and starts the agent with Docker Compose.":
     "它會安裝到 `/opt/oneuptime-storage-array-agent`，寫入一個只有你能讀取的 `.env` 檔案（其中包含 API 權杖），並用 Docker Compose 啟動代理程式。",
-  "Download the compose file and the three collector configs from this OneUptime into a new folder:":
-    "從此 OneUptime 下載 compose 檔案與三份收集器組態到一個新資料夾：",
+  "Download the compose file and the collector configs from this OneUptime into a new folder:":
+    "從此 OneUptime 下載 compose 檔案與收集器組態到一個新資料夾：",
   "Create a `.env` file next to them:": "在它們旁邊建立一個 `.env` 檔案：",
   "- Replace `my-storage-array` with a name for this array, such as `fa-prod-01`. It is how the array appears in OneUptime, so keep it stable: a new name registers a new storage array.":
     "- 將 `my-storage-array` 換成此陣列的名稱，例如 `fa-prod-01`。陣列在 OneUptime 中就以此名稱顯示，所以請保持不變：新名稱會註冊一個新的儲存陣列。",
@@ -128,8 +128,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "**升級**——收集器映像檔固定在 `docker-compose.yml` 中，其組態是旁邊的檔案，所以只提取映像檔並不會讓代理程式更新。請再次執行安裝指令碼。它會沿用你現有 `.env` 中的每個值（不會再詢問任何內容），下載最新的 `docker-compose.yml` 與收集器組態（你編輯過的檔案會以 `<file>.bak.<timestamp>` 保留在新檔案旁邊），並用它們重新建立代理程式：",
   "An agent installed outside `/opt/oneuptime-storage-array-agent` (a second array's, say) needs its folder: `INSTALL_DIR=<folder> bash install.sh`.":
     "安裝在 `/opt/oneuptime-storage-array-agent` 以外的代理程式（例如第二個陣列的代理程式）需要指定其資料夾：`INSTALL_DIR=<folder> bash install.sh`。",
-  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
-    "改用 Docker Compose 安裝的？在代理程式的資料夾中重新下載 compose 檔案與三份收集器組態；你的 `.env` 會保留，而你對其中任何檔案所做的變更都需要重做一遍：",
+  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
+    "改用 Docker Compose 安裝的？在代理程式的資料夾中重新下載 compose 檔案與收集器組態；你的 `.env` 會保留，而你對其中任何檔案所做的變更都需要重做一遍：",
   "Then pull the images and recreate the agent, so the collector reads its new config:":
     "然後提取映像檔並重新建立代理程式，讓收集器讀取新組態：",
   "The config reports the collector version it pins as the array's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.":
@@ -209,6 +209,76 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **檔案系統**（`/metrics/filesystems`） | 每個檔案系統的空間、資料縮減與效能 |",
   "| **Object store** (`/metrics/objectstore`) | Space, quota, object counts and performance per bucket |":
     "| **物件儲存**（`/metrics/objectstore`） | 每個儲存貯體的空間、配額、物件數與效能 |",
+  "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that reaches every node of the cluster on UDP 161 (SNMP)":
+    "Docker Engine 20.10 或更新版本及 Docker Compose v2 外掛程式，所在機器能透過 UDP 161（SNMP）連到叢集的每個節點",
+  "An administrator account on the cluster, to turn on SNMP and set the agent's read-only community or SNMPv3 user":
+    "叢集上的管理員帳戶，用於啟用 SNMP 並為代理程式設定唯讀社群或 SNMPv3 使用者",
+  "SSH to any node as an administrator: OneFS applies SNMP settings to the whole cluster. If the cluster already answers SNMP for another tool, give the agent the same community or user and skip this step. Otherwise, turn on SNMP v2c with a read-only community of your own, not OneFS's default `I$ilonpublic`:":
+    "以管理員身分透過 SSH 登入任一節點：OneFS 會將 SNMP 設定套用到整個叢集。如果叢集已經為其他工具回應 SNMP，請為代理程式提供相同的社群或使用者，並跳過此步驟。否則，請使用你自己的唯讀社群啟用 SNMP v2c，不要使用 OneFS 預設的 `I$ilonpublic`：",
+  "Or turn on SNMPv3, which authenticates and encrypts every poll. OneFS has one SNMPv3 read-only user, `general` until you rename it: give it passwords of at least eight characters, without spaces:":
+    "或者啟用 SNMPv3，它會對每次輪詢進行驗證和加密。OneFS 只有一個 SNMPv3 唯讀使用者，在你重新命名之前名為 `general`：為它設定至少八個字元且不含空格的密碼：",
+  "`isi snmp settings view` shows the settings, with the user's authentication and privacy protocols. Allow UDP 161 from the agent's machine to every node, and list the nodes' addresses with `isi network interfaces list`.":
+    "`isi snmp settings view` 會顯示設定，包括該使用者的驗證通訊協定和隱私通訊協定。允許從代理程式所在機器到每個節點的 UDP 161，並用 `isi network interfaces list` 列出各節點的位址。",
+  "- **every node's address**, separated by commas: each node's own address, never the SmartConnect zone name, since a node answers only for its own drives, sensors and ports":
+    "- **每個節點的位址**，以逗號分隔：每個節點自己的位址，而不是 SmartConnect 區域名稱，因為節點只會為它自己的磁碟機、感應器和連接埠回應",
+  "- the **SNMP version**, then the read-only **community**, or the SNMPv3 **user** and its two passwords, each read without echo":
+    "- **SNMP 版本**，然後是唯讀**社群**，或 SNMPv3 **使用者**及其兩個密碼，指令碼讀取時都不會回顯",
+  "A user whose protocols are not SHA and AES needs `POWERSCALE_SNMP_AUTH_PROTOCOL` and `POWERSCALE_SNMP_PRIVACY_PROTOCOL` in front of `bash install.sh`, and a user without privacy `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.":
+    "如果使用者的通訊協定不是 SHA 和 AES，需要在 `bash install.sh` 前加上 `POWERSCALE_SNMP_AUTH_PROTOCOL` 和 `POWERSCALE_SNMP_PRIVACY_PROTOCOL`；不使用隱私保護的使用者則需要加上 `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`。",
+  "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the community or the SNMPv3 passwords), with one poll per node, and starts the agent with Docker Compose. When the cluster gains a node, add its address to `POWERSCALE_NODES` in that file and run `bash install.sh` again.":
+    "它會安裝到 `/opt/oneuptime-storage-array-agent`，寫入一個只有你能讀取的 `.env` 檔案（其中包含社群或 SNMPv3 密碼），每個節點一項輪詢，並用 Docker Compose 啟動代理程式。叢集新增節點時，請將其位址加到該檔案的 `POWERSCALE_NODES` 中，然後再次執行 `bash install.sh`。",
+  "- Replace `my-storage-array` with a name for this cluster, such as `ps-prod`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new storage array.":
+    "- 將 `my-storage-array` 替換為此叢集的名稱，例如 `ps-prod`。叢集在 OneUptime 中就以此名稱顯示，所以請保持不變：新名稱會註冊一個新的儲存陣列。",
+  "- List every node in `POWERSCALE_NODES` and give each its own `POWERSCALE_NODE_<n>` and `snmp/node-<n>` in `POWERSCALE_SNMP_RECEIVERS`, up to 252, after `snmp/cluster` and `snmp/quotas`. An IPv6 address goes in brackets, such as `[fd00::11]`.":
+    "- 在 `POWERSCALE_NODES` 中列出每個節點，並為每個節點指派各自的 `POWERSCALE_NODE_<n>`，以及在 `POWERSCALE_SNMP_RECEIVERS` 中 `snmp/cluster` 和 `snmp/quotas` 之後的各自的 `snmp/node-<n>`，最多 252 個。IPv6 位址要放在方括號中，例如 `[fd00::11]`。",
+  "- For SNMPv3, set `POWERSCALE_SNMP_VERSION=v3`, `POWERSCALE_SNMP_USER`, `POWERSCALE_SNMP_AUTH_PASSWORD` and `POWERSCALE_SNMP_PRIVACY_PASSWORD` instead of the community. Run `chmod 600 .env`: it holds the community or the passwords.":
+    "- 對於 SNMPv3，請設定 `POWERSCALE_SNMP_VERSION=v3`、`POWERSCALE_SNMP_USER`、`POWERSCALE_SNMP_AUTH_PASSWORD` 和 `POWERSCALE_SNMP_PRIVACY_PASSWORD`，而不是社群。執行 `chmod 600 .env`：該檔案包含社群或密碼。",
+  "| `STORAGE_ARRAY_NAME` | Yes | The name this cluster registers under in OneUptime, stamped on every metric as `storage.array.name`. Keep it stable — changing it registers a new storage array |":
+    "| `STORAGE_ARRAY_NAME` | 是 | 此叢集在 OneUptime 中註冊所用的名稱，以 `storage.array.name` 標記在每個指標上。請保持不變：變更它會註冊一個新的儲存陣列 |",
+  "| `STORAGE_SYSTEM` | Yes | `dell.powerscale` |":
+    "| `STORAGE_SYSTEM` | 是 | `dell.powerscale` |",
+  "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Yes | `otel-collector-config.powerscale.yaml` |":
+    "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | 是 | `otel-collector-config.powerscale.yaml` |",
+  "| `POWERSCALE_NODES` | Yes | Every node's address, separated by commas. The install script writes the polls below from it |":
+    "| `POWERSCALE_NODES` | 是 | 每個節點的位址，以逗號分隔。安裝指令碼據此寫入下面的輪詢 |",
+  "| `POWERSCALE_ENDPOINT` | Yes | The node the cluster's own health, capacity and quotas are read through: the first in `POWERSCALE_NODES` |":
+    "| `POWERSCALE_ENDPOINT` | 是 | 讀取叢集本身健康狀況、容量和配額所經由的節點：`POWERSCALE_NODES` 中的第一個 |",
+  "| `POWERSCALE_SNMP_RECEIVERS` | Yes | The polls the collector runs: `snmp/cluster`, `snmp/quotas`, then `snmp/node-<n>` for each node |":
+    "| `POWERSCALE_SNMP_RECEIVERS` | 是 | 收集器執行的輪詢：`snmp/cluster`、`snmp/quotas`，然後是每個節點的 `snmp/node-<n>` |",
+  "| `POWERSCALE_NODE_<n>` | Yes | Node `<n>`'s address, from 1 to 252 |":
+    "| `POWERSCALE_NODE_<n>` | 是 | 節點 `<n>` 的位址，從 1 到 252 |",
+  "| `POWERSCALE_SNMP_VERSION` | No | `v2c` (default) or `v3` |":
+    "| `POWERSCALE_SNMP_VERSION` | 否 | `v2c`（預設）或 `v3` |",
+  "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | The cluster's read-only community |":
+    "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | 叢集的唯讀社群 |",
+  "| `POWERSCALE_SNMP_USER` | SNMPv3 | The cluster's SNMPv3 read-only user |":
+    "| `POWERSCALE_SNMP_USER` | SNMPv3 | 叢集的 SNMPv3 唯讀使用者 |",
+  "| `POWERSCALE_SNMP_SECURITY_LEVEL` | No | `auth_priv` (default), `auth_no_priv` or `no_auth_no_priv` |":
+    "| `POWERSCALE_SNMP_SECURITY_LEVEL` | 否 | `auth_priv`（預設）、`auth_no_priv` 或 `no_auth_no_priv` |",
+  "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | No | `SHA` (default), `MD5`, `SHA224`, `SHA256`, `SHA384` or `SHA512` |":
+    "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | 否 | `SHA`（預設）、`MD5`、`SHA224`、`SHA256`、`SHA384` 或 `SHA512` |",
+  "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | The SNMPv3 user's authentication password |":
+    "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3 使用者的驗證密碼 |",
+  "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | No | `AES` (default), `DES`, `AES192`, `AES256`, `AES192C` or `AES256C` |":
+    "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | 否 | `AES`（預設）、`DES`、`AES192`、`AES256`、`AES192C` 或 `AES256C` |",
+  "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | The SNMPv3 user's privacy password |":
+    "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 使用者的隱私密碼 |",
+  "- **One collector, no exporter.** The collector's own SNMP receiver reads Dell's ISILON-MIB; nothing else runs beside it.":
+    "- **一個收集器，沒有匯出器。** 收集器內建的 SNMP 接收器讀取 Dell 的 ISILON-MIB；旁邊不執行任何其他元件。",
+  "- **The cluster's objects once, through `POWERSCALE_ENDPOINT`:** its health, capacity, throughput and node counts every 60 seconds (`snmp/cluster`), and its SmartQuotas every 5 minutes (`snmp/quotas`).":
+    "- **叢集的物件透過 `POWERSCALE_ENDPOINT` 讀取一次：** 每 60 秒讀取其健康狀況、容量、輸送量和節點數（`snmp/cluster`），每 5 分鐘讀取其 SmartQuotas（`snmp/quotas`）。",
+  "- **Each node's from the node:** its health, CPU, protocol performance, drives, sensors and ports every 60 seconds (`snmp/node-<n>`).":
+    "- **每個節點的物件從該節點本身讀取：** 每 60 秒讀取其健康狀況、CPU、通訊協定效能、磁碟機、感應器和連接埠（`snmp/node-<n>`）。",
+  "- **Every poll labels its series `scrape_endpoint: <poll>`**, so OneUptime knows which objects a batch is the complete list of — that is how a deleted quota leaves the inventory. Keep the labels as shipped.":
+    "- **每次輪詢都為自己的序列加上標籤 `scrape_endpoint: <poll>`**，讓 OneUptime 知道一個批次是哪些物件的完整列表——已刪除的配額正是這樣離開資產清單的。請讓標籤保持隨附時的樣子。",
+  "The full config, one SNMP receiver per node slot, is `otel-collector-config.powerscale.yaml` in the agent's folder:":
+    "完整組態為代理程式資料夾中的 `otel-collector-config.powerscale.yaml`，每個節點欄位一個 SNMP 接收器：",
+  "Then turn SNMP off on the cluster, or change the agent's community or SNMPv3 passwords, if nothing else polls it.":
+    "如果沒有其他工具輪詢該叢集，再在叢集上關閉 SNMP，或變更代理程式的社群或 SNMPv3 密碼。",
+  "`troubleshoot.sh` checks the whole chain — the container runtime, the node addresses and the community or SNMPv3 user in `.env`, each node with `snmpget` when the machine has it, array-name stamping, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key.":
+    "`troubleshoot.sh` 會檢查整條鏈路（容器執行階段、`.env` 中的節點位址和社群或 SNMPv3 使用者、機器上有 `snmpget` 時用它檢查每個節點、陣列名稱標記、收集器本身的指標），並直接詢問 OneUptime 是否接受你的擷取金鑰。",
+  "`Error scraping metrics` with `request timeout` in `docker logs oneuptime-storage-array-agent` names a node that does not answer SNMP from this machine: SNMP is off for the version the agent uses, the community or SNMPv3 user is not the cluster's, or UDP 161 is blocked on the way. A node that answers but is missing from the cluster's nodes is not in `POWERSCALE_NODES`: add it and run `bash install.sh` again.":
+    "`docker logs oneuptime-storage-array-agent` 中帶有 `request timeout` 的 `Error scraping metrics` 指出了一個對來自這台機器的 SNMP 沒有回應的節點：代理程式所用版本的 SNMP 已關閉、社群或 SNMPv3 使用者不屬於該叢集，或者 UDP 161 在途中遭到封鎖。能回應卻不在叢集節點中的節點，就是不在 `POWERSCALE_NODES` 中：加入它，然後再次執行 `bash install.sh`。",
 };
 
 export default TRANSLATION;

@@ -1334,7 +1334,8 @@ describe("the Storage Array page against the form and the agent", () => {
       ["Host", [flashArray], "FlashArray only."],
       ["Pod", [flashArray], "FlashArray only."],
       ["Hardware Component", [flashArray, flashBlade, ontap], ""],
-      ["File System", [flashBlade], "FlashBlade only."],
+      // A PowerScale's quotas take it too, so it is not FlashBlade's only.
+      ["File System", [flashBlade], ""],
       ["Bucket", [flashBlade], "FlashBlade only."],
     ] as Array<[string, Array<StorageSystem>, string]>) {
       // The form's title for a filter, by the filter's key...
@@ -1360,9 +1361,12 @@ describe("the Storage Array page against the form and the agent", () => {
         title,
         platforms: platforms
           .filter((system: string): boolean => {
-            return [flashArray, flashBlade, ontap].includes(
-              system as StorageSystem,
-            );
+            /*
+             * As StorageSystem: each const above narrows to its own member,
+             * and an array of the three would take no other.
+             */
+            const held: Array<StorageSystem> = [flashArray, flashBlade, ontap];
+            return held.includes(system as StorageSystem);
           })
           .sort(),
       }).toEqual({

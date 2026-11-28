@@ -313,6 +313,28 @@ describe("monitorLlm: one check of an AI / LLM monitor", () => {
     expect(lastCount().startTime.getTime()).toBe(until.getTime() - 5 * MINUTE);
   });
 
+  // #11334: an answer that started on the window's end is the next check's.
+  test("counts its window from its start up to its end, not included", async () => {
+    const until: Date = new Date(Date.now() - 7 * MINUTE);
+
+    const response: LlmMonitorResponse = await monitorLlm({
+      monitorStep: llmStep({ lastXSecondsOfCalls: 300 }),
+      monitorId,
+      projectId,
+      evaluateUntil: until,
+    });
+
+    expect(lastCount().includesEnd).toBe(false);
+
+    // The span query an incident links to reads the same window.
+    const linked: InBetween<Date> = (
+      response.llmSpanQuery as unknown as { startTime: InBetween<Date> }
+    ).startTime;
+
+    expect(linked.includesEnd).toBe(false);
+    expect(linked.endValue.getTime()).toBe(until.getTime());
+  });
+
   test("no answers is 0% bad, never a division by zero", async () => {
     countAnswers.mockResolvedValue({ answerCount: 0, badAnswerCount: 0 });
 

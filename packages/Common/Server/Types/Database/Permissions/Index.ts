@@ -10,6 +10,7 @@ import CreateScopePermission, {
   RecordLabelsFinder,
 } from "./CreateScopePermission";
 import DeletePermission from "./DeletePermission";
+import { RecordScopeOptions } from "./BasePermission";
 import ReadPermission, { CheckReadPermissionType } from "./ReadPermission";
 import RelationListPermission from "./RelationListPermission";
 import TablePermission from "./TablePermission";
@@ -511,7 +512,9 @@ export default class ModelPermission {
   /*
    * `sort` is the order the read asked for: each column it names is held to
    * the caller's read, as the select's are (SortValidator
-   * .checkSortPermission, #8839).
+   * .checkSortPermission, #8839). `options` says how the record rule treats
+   * the select (RecordScopeOptions): only a read that withholds columns per
+   * row itself - DatabaseService's - asks it not to narrow by them.
    */
   @CaptureSpan()
   public static async checkReadQueryPermission<TBaseModel extends BaseModel>(
@@ -520,6 +523,7 @@ export default class ModelPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
     sort?: unknown,
+    options?: RecordScopeOptions,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
     props = await CallerPlan.withPlanFor({
       props: props,
@@ -534,6 +538,7 @@ export default class ModelPermission {
         select,
         props,
         sort,
+        options,
       );
     } catch (error) {
       throw ModelPermission.toAnonymousRefusal(error, props);

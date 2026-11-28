@@ -1891,6 +1891,312 @@ describe("the real Docker Compose names the agent's container as .env says", () 
   );
 });
 
+/* ------------------------------------- install.sh and the XCP-ng AI agent */
+
+/*
+ * The XCP-ng AI agent beside the collector (docker-compose.yml's
+ * oneuptime-xcp-ng-ai-agent, under its profile): it runs exactly when it has
+ * a read-only Xen Orchestra token, which Xen Orchestra is asked whether it
+ * knows before anything is installed. The tokens reach curl on stdin, are
+ * kept in the mode-600 .env, and are never shown.
+ */
+const READ_TOKEN = "Rk7ZQxN3pD0vL2mW9sT4yB8cH1jF6gU5aE_oI-nKqMx";
+const WRITE_TOKEN = "Wq2HnV8cT5xL1mZ9pR4sK7dJ3fG6bY0aU_eO-iNtQwE";
+const READ_USER = "c8715f02-20e7-4881-8b02-28ce2260c39f";
+const FIX_USER = "e8715f02-20e7-4881-8b02-28ce2260c3a1";
+
+function restTokens() {
+  return { [READ_TOKEN]: READ_USER, [WRITE_TOKEN]: FIX_USER };
+}
+
+function tokenRequests(fake) {
+  return fake.requests.filter((request) => {
+    return request.url === "/rest/v0/users/me";
+  });
+}
+
+function expectTokensNeverShown(result) {
+  for (const text of [
+    result.output,
+    result.docker,
+    result.curlLog,
+    result.opensslLog,
+  ]) {
+    expect(text).not.toContain(READ_TOKEN);
+    expect(text).not.toContain(WRITE_TOKEN);
+  }
+}
+
+describe("install.sh and the XCP-ng AI agent", () => {
+  test("a read token Xen Orchestra knows: its profile is on, the tokens are kept, and never shown", async () => {
+    const { fake, port } = await startXo({
+      certificate: CERTS.caSigned,
+      restTokens: restTokens(),
+    });
+    const result = await install({
+      port,
+      env: freshEnv(port, {
+        CURL_CA_BUNDLE: CA.certFile,
+        ONEUPTIME_AI_XO_READ_TOKEN: READ_TOKEN,
+        ONEUPTIME_AI_XO_WRITE_TOKEN: WRITE_TOKEN,
+        XCP_NG_POOL_ID: "b7569d99-30f8-178a-7d94-801de3e29b5b",
+        ONEUPTIME_AI_ALLOW_WRITES: "true",
+      }),
+    });
+    await fake.close();
+
+    expect(result.status).toBe(0);
+    expect(result.output).toContain(
+      "Xen Orchestra knows the XCP-ng AI agent's read token.",
+    );
+    expect(result.output).toContain(
+      "The XCP-ng AI agent runs too (oneuptime-xcp-ng-ai-agent)",
+    );
+    expect(dotenv(result.envFile, "COMPOSE_PROFILES")).toBe("xcp-ng-ai-agent");
+    expect(dotenv(result.envFile, "ONEUPTIME_AI_XO_READ_TOKEN")).toBe(READ_TOKEN);
+    expect(dotenv(result.envFile, "ONEUPTIME_AI_XO_WRITE_TOKEN")).toBe(
+      WRITE_TOKEN,
+    );
+    expect(dotenv(result.envFile, "XCP_NG_POOL_ID")).toBe(
+      "b7569d99-30f8-178a-7d94-801de3e29b5b",
+    );
+    expect(dotenv(result.envFile, "ONEUPTIME_AI_ALLOW_WRITES")).toBe("true");
+    expect(fs.statSync(result.envFile).mode & 0o777).toBe(0o600);
+    // Both tokens asked about, each in the cookie, over the trusted TLS.
+    expect(
+      tokenRequests(fake).map((request) => {
+        return [request.token, request.verdict];
+      }),
+    ).toEqual([
+      ["present", "rest-me"],
+      ["present", "rest-me"],
+    ]);
+    // Started as the .env says, not removed.
+    expect(result.docker).not.toContain("rm -sf");
+    expect(result.docker).toContain("compose up -d --force-recreate");
+    expectTokensNeverShown(result);
+    expectSecretNeverShown(result);
+  });
+
+  test("a read token Xen Orchestra refuses stops the install, and nothing is installed", async () => {
+    const { fake, port } = await startXo({
+      certificate: CERTS.caSigned,
+      restTokens: restTokens(),
+    });
+    const result = await install({
+      port,
+      env: freshEnv(port, {
+        CURL_CA_BUNDLE: CA.certFile,
+        ONEUPTIME_AI_XO_READ_TOKEN: "expired-Tok3nXoForgotItAfterItsExpiration_1",
+      }),
+    });
+    await fake.close();
+
+    expect(result.status).toBe(1);
+    expect(result.output).toContain(
+      "Error: Xen Orchestra refused ONEUPTIME_AI_XO_READ_TOKEN, which is wrong or has expired.",
+    );
+    expectNothingInstalled(result);
+    expect(result.output).not.toContain(
+      "expired-Tok3nXoForgotItAfterItsExpiration_1",
+    );
+  });
+
+  test("a token for changes Xen Orchestra refuses stops the install too", async () => {
+    const { fake, port } = await startXo({
+      certificate: CERTS.caSigned,
+      restTokens: { [READ_TOKEN]: READ_USER },
+    });
+    const result = await install({
+      port,
+      env: freshEnv(port, {
+        CURL_CA_BUNDLE: CA.certFile,
+        ONEUPTIME_AI_XO_READ_TOKEN: READ_TOKEN,
+        ONEUPTIME_AI_XO_WRITE_TOKEN: WRITE_TOKEN,
+      }),
+    });
+    await fake.close();
+
+    expect(result.status).toBe(1);
+    expect(result.output).toContain(
+      "Error: Xen Orchestra refused ONEUPTIME_AI_XO_WRITE_TOKEN",
+    );
+    expectNothingInstalled(result);
+    expectTokensNeverShown(result);
+  });
+
+  test("the read token as the token for changes is refused before Xen Orchestra is asked", async () => {
+    const { fake, port } = await startXo({
+      certificate: CERTS.caSigned,
+      restTokens: restTokens(),
+    });
+    const result = await install({
+      port,
+      env: freshEnv(port, {
+        CURL_CA_BUNDLE: CA.certFile,
+        ONEUPTIME_AI_XO_READ_TOKEN: READ_TOKEN,
+        ONEUPTIME_AI_XO_WRITE_TOKEN: READ_TOKEN,
+      }),
+    });
+    await fake.close();
+
+    expect(result.status).toBe(1);
+    expect(result.output).toContain(
+      "Error: ONEUPTIME_AI_XO_WRITE_TOKEN is the read token.",
+    );
+    expect(tokenRequests(fake)).toEqual([]);
+    expectNothingInstalled(result);
+  });
+
+  test("a Xen Orchestra without the REST API says which version the AI agent needs", async () => {
+    const { fake, port } = await startXo({
+      certificate: CERTS.caSigned,
+      rest: "absent",
+    });
+    const result = await install({
+      port,
+      env: freshEnv(port, {
+        CURL_CA_BUNDLE: CA.certFile,
+        ONEUPTIME_AI_XO_READ_TOKEN: READ_TOKEN,
+      }),
+    });
+    await fake.close();
+
+    expect(result.status).toBe(1);
+    expect(result.output).toContain("Error: Xen Orchestra has no REST API at /rest/v0");
+    expect(result.output).toContain("Orchestra 6.9 or later.");
+    expectNothingInstalled(result);
+  });
+
+  test("without a token: no profile, an AI agent started before is stopped, and how to turn it on is said", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.caSigned });
+    const result = await install({
+      port,
+      env: freshEnv(port, { CURL_CA_BUNDLE: CA.certFile }),
+    });
+    await fake.close();
+
+    expect(result.status).toBe(0);
+    expect(dotenv(result.envFile, "COMPOSE_PROFILES")).toBe("");
+    expect(tokenRequests(fake)).toEqual([]);
+    expect(result.docker).toContain(
+      "compose --profile xcp-ng-ai-agent rm -sf oneuptime-xcp-ng-ai-agent",
+    );
+    expect(result.output).toContain(
+      "OneUptime AI can look at your pools too: set ONEUPTIME_AI_XO_READ_TOKEN",
+    );
+  });
+
+  test("http:// never starts the AI agent: its tokens would cross the network in clear", async () => {
+    const { fake, port } = await startXo({
+      certificate: null,
+      restTokens: restTokens(),
+    });
+    const result = await install({
+      port,
+      env: freshEnv(port, {
+        XO_URL: `http://${XO_HOST}:${port}`,
+        CURL_CA_BUNDLE: CA.certFile,
+        ONEUPTIME_AI_XO_READ_TOKEN: READ_TOKEN,
+      }),
+    });
+    await fake.close();
+
+    expect(result.status).toBe(0);
+    expect(result.output).toContain(
+      "it is not started while XO_URL uses http://",
+    );
+    expect(tokenRequests(fake)).toEqual([]);
+    expect(dotenv(result.envFile, "COMPOSE_PROFILES")).toBe("");
+    expect(result.docker).toContain("rm -sf oneuptime-xcp-ng-ai-agent");
+    expectTokensNeverShown(result);
+  });
+
+  test("the upgrade keeps the AI agent and its tokens, another profile someone set, and drops the agent with its token", async () => {
+    const { fake, port } = await startXo({
+      certificate: CERTS.caSigned,
+      restTokens: restTokens(),
+    });
+    const first = await install({
+      port,
+      env: freshEnv(port, {
+        CURL_CA_BUNDLE: CA.certFile,
+        ONEUPTIME_AI_XO_READ_TOKEN: READ_TOKEN,
+        COMPOSE_PROFILES: "my-sidecar",
+      }),
+    });
+    expect(first.status).toBe(0);
+    expect(dotenv(first.envFile, "COMPOSE_PROFILES")).toBe(
+      "my-sidecar,xcp-ng-ai-agent",
+    );
+
+    const again = await install({
+      port,
+      dir: first.dir,
+      env: { CURL_CA_BUNDLE: CA.certFile },
+    });
+    expect(again.status).toBe(0);
+    expect(again.envText).toBe(first.envText);
+    expect(again.output).not.toContain("Read-only Xen Orchestra token");
+
+    // The reader takes the token out of .env: the agent stops with it.
+    fs.writeFileSync(
+      first.envFile,
+      fs
+        .readFileSync(first.envFile, "utf8")
+        .replace(/^ONEUPTIME_AI_XO_READ_TOKEN=.*$/m, "ONEUPTIME_AI_XO_READ_TOKEN=''"),
+    );
+    const without = await install({
+      port,
+      dir: first.dir,
+      env: { CURL_CA_BUNDLE: CA.certFile },
+    });
+    await fake.close();
+
+    expect(without.status).toBe(0);
+    expect(dotenv(without.envFile, "COMPOSE_PROFILES")).toBe("my-sidecar");
+    expect(without.docker).toContain(
+      "compose --profile xcp-ng-ai-agent rm -sf oneuptime-xcp-ng-ai-agent",
+    );
+    expectTokensNeverShown(again);
+    expectTokensNeverShown(without);
+  });
+
+  test("at a terminal, a first install asks for the read token once, without echoing it", async () => {
+    if (!HAS_SCRIPT) {
+      expect(IN_CI).toBe(false);
+      return;
+    }
+    const { fake, port } = await startXo({
+      certificate: CERTS.caSigned,
+      restTokens: restTokens(),
+    });
+    const result = await install({
+      port,
+      env: freshEnv(port, { CURL_CA_BUNDLE: CA.certFile }),
+      input: `${READ_TOKEN}\n`,
+      tty: true,
+    });
+    await fake.close();
+
+    expect(result.status).toBe(0);
+    expect(result.output).toContain("Read-only Xen Orchestra token:");
+    expect(dotenv(result.envFile, "ONEUPTIME_AI_XO_READ_TOKEN")).toBe(READ_TOKEN);
+    expect(dotenv(result.envFile, "COMPOSE_PROFILES")).toBe("xcp-ng-ai-agent");
+    /*
+     * Read with echo off (read -s, pinned statically above): after its
+     * prompt nothing shows it. Before the prompt, the terminal echoes what
+     * this test types ahead, as any terminal would.
+     */
+    const afterPrompt = result.output.slice(
+      result.output.indexOf("Read-only Xen Orchestra token:"),
+    );
+    expect(afterPrompt).not.toContain(READ_TOKEN);
+    expect(result.docker).not.toContain(READ_TOKEN);
+    expect(result.curlLog).not.toContain(READ_TOKEN);
+  });
+});
+
 /* ------------------------------------------------------------ the doctor */
 
 /*

@@ -1,6 +1,6 @@
 # Molnkostnader och besparingar
 
-Ett anslutet molnkonto säger också vad det kostar och hur det kunde kosta mindre. OneUptime läser varje dags kostnader från molnets egen fakturering och rekommendationerna från molnets egen rekommendationstjänst, visar dem under **Moln → Utgifter → Kostnader** och **Moln → Utgifter → Besparingar**, listar dina Savings Plans, reservationer och rabatter för åtagen användning under **Moln → Utgifter → Åtaganden**, och larmar innan en månad kostar mer än sin budget under **Moln → Utgifter → Budgetar**. När du tillåter det genomför den också de besparingar som en ägare godkänner, stoppar resurser som inte är produktion utanför arbetstid och kontrollerar varje ändring mot fakturan.
+Ett anslutet molnkonto säger också vad det kostar och hur det kunde kosta mindre. OneUptime läser varje dags kostnader från molnets egen fakturering och rekommendationerna från molnets egen rekommendationstjänst, visar dem under **Moln → Utgifter → Kostnader** och **Moln → Utgifter → Besparingar**, listar dina Savings Plans, reservationer och rabatter för åtagen användning under **Moln → Utgifter → Åtaganden**, säger till under **Moln → Utgifter → Budgetar** innan en månad, ett kvartal eller ett år kostar mer än sin budget, och förutsäger de kommande månaderna under **Moln → Utgifter → Prognos**. När du tillåter det genomför den också de besparingar som en ägare godkänner, stoppar resurser som inte är produktion utanför arbetstid och kontrollerar varje ändring mot fakturan.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer och Cost Optimization Hub, var och en påslagen en gång.
@@ -11,7 +11,8 @@ Ett anslutet molnkonto säger också vad det kostar och hur det kunde kosta mind
 - [Genomför besparingar](#genomför-besparingar): Tillämpa en besparing med ägarens godkännande, och ångra den.
 - [Scheman utanför arbetstid](#scheman-utanför-arbetstid): Stoppa resurser som inte är produktion på natten och på helgerna.
 - [AI-regler för besparingar](#ai-regler-för-besparingar): Förslag till ägare, eller ändringar inom en gräns.
-- [Budgetar](#budgetar): Ett larm när en månads utgifter passerar en andel av dess budget.
+- [Budgetar](#budgetar): En månads, ett kvartals eller ett års budget för valfritt konto, kostnadsgrupp eller tjänst.
+- [Prognoser](#prognoser): Vad de kommande 12 månaderna är på väg att kosta, och hur säkert det är.
 - [Obligatoriska taggar](#obligatoriska-taggar): Hur mycket av dina utgifter som har taggarna du kräver, och nya resurser utan dem.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Molnets fakturering,<br/>läses två gånger om dagen"] --> costs["Kostnader"]
     rec["Molnets rekommendationer,<br/>läses en gång om dagen"] --> savings["Besparingar"]
     costs --> budgets["Budgetar som larmar"]
+    costs --> forecast["Prognoser"]
+    forecast --> budgets
     costs --> overview["Molns översikt"]
     savings --> overview
 ```
@@ -222,30 +225,41 @@ När arbetstiden slutar stoppar ett schema via sitt kontos anslutning varje resu
 Ett schema stoppar aldrig produktion, och aldrig en resurs vars miljö inget säger. En resurs är känd för att inte vara produktion när:
 
 - en av dess taggar säger det, under en nyckel som `environment`, `env`, `stage`, `tier` eller `deployment.environment`, med ett ord som `dev`, `test`, `qa`, `staging` eller `sandbox`;
-- dess konto är markerat som **Icke-produktion** under **Miljö** i kontots **Inställningar**;
-- eller en av dess etiketter säger det, till exempel `Staging` eller `env: dev`.
+- eller dess konto är markerat som **Icke-produktion** under **Miljö** i kontots **Inställningar**.
 
-Produktion vinner: En tagg som säger `prod`, `production` eller `live`, eller ett konto markerat som **Produktion**, håller en resurs igång oavsett vad annat säger. En resurs namn läses aldrig för det. Stänger du av ett schema stoppar det inget mer och startar det som det stoppade när dess arbetstid börjar; tar du bort det startas det som det stoppade direkt.
+En OneUptime-etikett gör aldrig en resurs till icke-produktion för ett schema. Att byta namn på en etikett ändrar varje resurs som bär den på en gång, så en etikett som `Staging` eller `env: dev` läses bara där en person godkänner ändringen, som vid **Tillämpa**. Produktion vinner: En tagg som säger `prod`, `production` eller `live`, ett konto markerat som **Produktion**, eller en etikett som `Production` eller `env: prod` håller en resurs igång oavsett vad annat säger. En resurs namn läses aldrig för det. Varje stopp läser resursen igen precis innan det görs. Stänger du av ett schema stoppar det inget mer och startar det som det stoppade när dess arbetstid börjar; tar du bort det startas det som det stoppade direkt.
 
 ## AI-regler för besparingar
 
 Med **Aktivera AI** påslaget föreslår OneUptime AI efter varje läsning av kontots besparingar varje besparing den kan genomföra för resursens ägare, och de godkänner eller avvisar den under **Väntar på godkännande**. Under **Moln → Inställningar → AI-regler för besparingar** säger en regel vad OneUptime AI gör med de besparingar den matchar, efter typ av ändring, resursens miljö och dess moln: **Av**, **Föreslå för ägaren** eller **Agera utan att fråga**, upp till en månadsgräns. Utan regel föreslås varje besparing och ingen genomförs; med regler bara det en regel matchar, och mellan regler som matchar vinner den mest försiktiga.
 
-En regel agerar bara utan att fråga på en resurs som är känd för att inte vara produktion, bara för en ändring som kan ångras, bara upp till den lägsta gränsen bland reglerna som matchar, och högst 10 gånger i timmen i ett projekt: Allt annat föreslås. En ändring som görs utan att fråga finns på tidslinjerna med regeln som gjorde den, och dess ägare kan ångra den. En avvisad eller ångrad besparing föreslås inte igen på 30 dagar.
+En regel agerar bara utan att fråga på en resurs som är känd för att inte vara produktion så som ett schema läser det, utifrån dess taggar eller dess konto och aldrig utifrån dess etiketter enbart, bara för en ändring som kan ångras, bara upp till den lägsta gränsen bland reglerna som matchar, och högst 10 gånger i timmen i ett projekt: Allt annat föreslås. Resursen läses igen precis innan ändringen görs, och en som då inte längre är känd för att inte vara produktion föreslås i stället. En ändring som görs utan att fråga finns på tidslinjerna med regeln som gjorde den, och dess ägare kan ångra den. En avvisad eller ångrad besparing föreslås inte igen på 30 dagar.
 
 ## Budgetar
 
 :::steps
 ### Skapa en budget
 
-Under **Moln → Utgifter → Budgetar** skapar du en budget: dess **Månadsbelopp**, det **Konto** den gäller, eller inget för alla konton, och den **Kostnadsbas** den räknar, eller ingen för projektets.
+Skapa en budget under **Moln → Utgifter → Budgetar** och välj vad den **Gäller för**: alla konton, ett **Konto**, en **Kostnadsgrupp** så som dess regler sorterar utgifterna, eller de tjänster, regioner och taggar som ett **Filter** nämner, skrivet så som en kostnadsgrupps regler är. Lämna dess **Kostnadsbas** tom för att räkna projektets.
+
+### Säg vad den får kosta
+
+Dess **Tidsperiod** är en månad, ett kvartal eller ett år, och dess **Belopp** är vad en period får kosta. Kvartal och år börjar i **Årets första månad**: från april löper ett år från april till mars. Ett års **Budgetplan** kan fördela beloppet jämnt på månaderna, eller ge varje månad sitt eget i en **Månadsplan**. Varje månad hålls då till sin egen andel, så att en lugn månad aldrig får larm för en hektisk månads utgifter.
 
 ### Välj när den larmar
 
-**Larma vid** tar de andelar av budgeten som det ska larmas vid, i procent: 80 och 100 till att börja med. **Larma när en överskridning är på väg** larmar också, en gång per månad, när takten under den senaste veckan skulle ta månaden över budgeten. **Larma vid ovanliga dagar** larmar också dagen efter en dag som kostade långt mer än vanligt: se [Ovanliga dagar](#ovanliga-dagar). **Larmallvar** och **Jourpolicyer** anger hur allvarliga larmen är och vem som larmas.
+**Larma vid** tar de andelar av budgeten som ska ge åtgärd, i procent: 80 och 100 till att börja med. **Larma när en överskridning är på väg** larmar också, en gång per period, när perioden är på väg att kosta mer än budgeten. **Larma vid ovanliga dagar** larmar också dagen efter en dag som kostade mycket mer än vanligt: se [Ovanliga dagar](#ovanliga-dagar). **Larmallvar** anger hur allvarliga dess larm är.
+
+### Välj vem som meddelas
+
+Personerna och teamen under **Avisera** meddelas via e-post och chatt när utgifterna passerar en andel under 100 %, utan larm, så att ingen larmas för utgifter inom budgeten. **Meddela kostnadsgruppens team** meddelar också teamet som kostnadsgruppen hör till. Från 100 % skapas ett larm, de äger det, och **Jourpolicyer** larmas. En budget utan någon att meddela skapar ett larm vid varje andel.
 :::
 
-En budget kontrolleras efter varje läsning av kostnaderna och varje timme. När månadens utgifter passerar ett tröskelvärde skapas ett larm för det, det högsta när en läsning passerar flera på en gång, och en ny månad löser förra månadens larm. En budget räknar bara de konton som faktureras i dess valuta, på dess bas: en amorterad budget utlöses inte av ett förskottsköpt åtagande, som en fakturerad budget räknar den dag det köptes.
+En budget kontrolleras efter varje läsning av kostnaderna och varje timme. När periodens utgifter passerar en andel meddelas personerna som ska aviseras, eller från 100 % skapas ett larm, ett för den högsta när en läsning passerar flera på en gång, och en ny period löser föregående periods larm. Ett år uppdelat per månad kontrolleras en månad i taget, mot den månadens andel. En budget räknar bara de konton som faktureras i dess valuta, på dess bas: en amorterad budget utlöses inte av ett åtagande som köpts i förväg, som en fakturerad budget räknar den dag det köptes.
+
+En period är på väg att överskrida budgeten när det den har kostat hittills, resten av den här månaden i den senaste hela veckans takt och ett kvartals eller ett års senare månader enligt [prognosen](#prognoser) tillsammans blir mer än budgeten.
+
+Varje budgets rad visar vad den räknar, dess period och perioden hittills: för ett år uppdelat per månad den här månaden mot sin andel, med året bredvid. Dess sida visar perioden månad för månad mot varje månads andel, den här månaden dag för dag, vad som kostade mest och vem som meddelas. Sidan för en årsbudget kan spara dess prognos som dess plan.
 
 AI-agenter kan skapa och ändra budgetar via [MCP-servern](/docs/ai/mcp-server), och skript med CLI:ns kommando `oneuptime cloud-budget`: se [Resursoperationer](/docs/cli/resource-operations).
 
@@ -253,7 +267,41 @@ AI-agenter kan skapa och ändra budgetar via [MCP-servern](/docs/ai/mcp-server),
 
 Efter varje läsning jämförs var och en av ett kontos senaste 14 hela dagar med de 14 dagarna före. En dag är ovanlig när en tjänst kostade det dubbla mot sin vanliga dag eller mer, eller hela kontot en och en halv gång sin vanliga dag eller mer. I båda fallen måste det vara minst 10 mer än vanligt i kontots valuta och minst 5 % av kontots vanliga dag, så att några ören aldrig räknas som en topp. En dags vanliga värde är medianen av de 14 dagarna före, så en enstaka topp flyttar det lite, och ett konto bedöms först när det har en veckas kostnader.
 
-**Moln → Utgifter → Kostnader** markerar de ovanliga dagarna i de dagliga utgifterna, ovanför deras staplar, och listar dem nedanför. Över alla konton öppnar varje markering sitt kontos **Kostnader**. En budget som räknar in kontot skapar ett larm för varje konto och dag, dagen efter, och nämner varje tjänst som låg högt. En topp som håller i sig i flera dagar meddelas den dag den började, och en dag som är mer än en vecka gammal meddelas inte. En budget som skapades innan de här larmen fanns skapar dem inte förrän du redigerar den och slår på dem.
+**Moln → Utgifter → Kostnader** markerar de ovanliga dagarna i de dagliga utgifterna, ovanför deras staplar, och listar dem under. Över alla konton öppnar varje markering kontots **Kostnader**. En månadsbudget för alla konton eller ett konto skapar ett larm för varje konto och dag, dagen efter, och nämner varje tjänst som låg högt. Varje annan budget håller det den räknar mot sin egen vanliga dag på samma sätt. En topp som varar i flera dagar rapporteras den dag den började, och en dag som är mer än en vecka gammal rapporteras inte. En budget som skapades före de här larmen skapar dem först när du redigerar den och slår på dem.
+
+## Prognoser
+
+**Moln → Utgifter → Prognos** säger vad utgifterna är på väg att kosta under var och en av de kommande 12 månaderna, för allt, ett konto, en kostnadsgrupp eller en tjänst, på den kostnadsbas du väljer. Den säger hur varje prognos görs, från de hela månader med kostnader som OneUptime sparar, ett år eller lite mer:
+
+- **Den här månaden** är vad den har kostat hittills, med varje dag som återstår till genomsnittet av de senaste sju hela dagarna, så som en budget räknar fram den.
+- **Med färre än 3 hela månader** förlänger varje kommande månad den takten, utan troligt intervall: för lite har lästs för att skilja en trend från en enstaka topp.
+- **Från 3 hela månader** går en trend genom varje månads genomsnittsdag: medianen av lutningarna mellan varje par av månader, så att en avvikande månad knappt flyttar den.
+- **Från 12 hela månader** minns varje kalendermånad också hur långt den låg över eller under trenden förra året, så att en decembertopp också förutsägs för nästa december.
+
+Varje kommande månad har ett troligt intervall, där den bör hamna 8 gånger av 10, utifrån hur långt tidigare månader föll från sin trend, och aldrig smalare än 5 % åt vardera hållet. Det blir bredare ju längre fram en månad ligger och ju färre månader prognosen vilar på. Från 12 hela månader är varje intervall ännu bredare, eftersom ett år bara visar varje kalendermånad en gång. En prognos är inget löfte: en ny tjänst, en migrering eller en prisändring flyttar de kommande månaderna på sätt som ingen tidigare månad visar.
+
+**Vad om** låter varje kommande månad växa eller krympa från den månad du väljer, med den andel du skriver, till exempel 20 % från januari. **Spara som budgetplan** gör de kommande tolv månaderna till en årsbudgets plan, i en ny budget eller en du har, där varje månad hålls till sin prognostiserade andel.
+
+## Budgetar och prognoser i API:et
+
+Budgetar är en API-resurs (`cloud-budget`), med CLI-kommandon och MCP-verktyg som varje resurs. En budgets `scope` är `allAccounts`, `account` (med `cloudAccountId`), `costGroup` (med `cloudCostGroupId`) eller `filter` (med `filterRules`, skrivet så som en kostnadsgrupps regler är). Dess `period` är `month`, `quarter` eller `year`, från `fiscalYearStartMonth`, 1 till 12. Ett års `planSplit` är `none`, `equal` eller `byMonth`, med dess tolv månader i `monthlyPlan`, i räkenskapsårets ordning.
+
+Så här läser du en budgets period månad för månad, den här månadens dagar och vad som kostade mest, som dess sida gör:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+Så här förutsäger du ett omfång för 1 till 24 månader framåt, med ett valfritt vad-om:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+Svarets `forecast` har sin `method` (`pace`, `trend` eller `trendAndSeason`), de månader den gjordes från och varje månad med sitt `amount` och, för de kommande, sitt `low` och `high`. Skicka `basis` som `billed`, `amortized` eller `net` för att förutsäga på den basen; utan den ligger prognosen på projektets, och svarets `basis` säger vilken. En budgets utgifter ligger på dess egen bas.
 
 ## Vart pengarna går
 
@@ -332,7 +380,7 @@ En Slack- eller Microsoft Teams-kanal får ett kort meddelande: summan och dess 
 
 - Projektets personer och team får den via e-post, genom sina aviseringsinställningar, där var och en kan stänga av molnkostnadsrapporter. Var och en får de siffror de får läsa: den vars åtkomst begränsas av etiketter får bara sina konton, och den som inte längre får läsa projektets molnkostnader utelämnas.
 - **E-postadresser** utanför projektet, till exempel din revisors, och Slack- och Microsoft Teams-kanaler kräver behörigheten Molnadministratör, eller Projektadministratör eller Projektägare, eftersom OneUptime inte kan veta vem som läser dem. De får rapporten så som personen som lade till dem får läsa den, och slutar få den om personen förlorar behörigheten. En API-nyckel kan inte ange dem.
-- Den som får skapa de andra Moln-posterna, från Molnmedlem och uppåt, kan skapa, ändra och ta bort rapporter. En Molntittare kan läsa dem.
+- Den som får skapa de andra Moln-posterna, från Molnmedlem och uppåt, kan skapa, ändra och ta bort rapporter. Den som har Moln på nivån Tittare kan läsa dem.
 
 En rapport går till högst 200 personer, 25 adresser och 10 kanaler av varje slag. **Senaste utskick** säger när den senast skickades, och vem den utelämnade och varför.
 
@@ -389,6 +437,8 @@ Widgeten **Molnkostnad** ställer en summa, en uppdelning eller en trend för ut
 - **Ett kontos kostnader.** Ett kontos **Kostnader** visar samma sak för kontot ensamt, med dess åtaganden och dess sätt att spendera mindre.
 - **Obligatoriska taggar.** **Moln → Utgifter → Taggar** visar hur mycket av utgifterna och resurserna som har dina obligatoriska taggar, och ett kontos **Taggar** visar detsamma för bara det kontot.
 - **En resurs kostnad.** En resurs sida visar vad den har kostat den här månaden och de senaste 30 dagarna när dess moln fakturerar den med namn, med dess sätt att spendera mindre och dess storleksanpassning.
+- **Varje budget.** **Moln → Utgifter → Budgetar** listar varje budget med vad den räknar, dess period och perioden hittills, och var och en öppnar sin sida.
+- **De kommande månaderna.** **Moln → Utgifter → Prognos** ritar de månader en prognos gjordes från, den här månaden på väg och de kommande 12, med hur den gjordes.
 - **Vad som sparades.** **Moln → Utgifter → Besparingar** börjar med vad de genomförda ändringarna har sparat den här månaden enligt fakturan, ändringarna som väntar på godkännande och de genomförda, och timmarna som scheman har stoppat resurser.
 
 ## Felsökning
@@ -430,7 +480,19 @@ OneUptime gör bara ändringar i ett steg: Ett åtagande, eller en rekommendatio
 :::
 
 :::details Ett schema låter en resurs köras
-**Visa resurser** säger varför: Den är produktion, inget säger att den inte är produktion, eller dess kontos anslutning tillåter inte besparingsåtgärder. Tagga den, till exempel `environment` = `dev`, eller markera dess konto som **Icke-produktion**.
+**Visa resurser** säger varför: Den är produktion, inget säger att den inte är produktion, bara dess etiketter säger det, eller dess kontos anslutning tillåter inte besparingsåtgärder. Tagga den i ditt moln, till exempel `environment` = `dev`, eller markera dess konto som **Icke-produktion**.
+:::
+
+:::details En regel föreslår en ändring som den tidigare gjorde utan att fråga
+Dess kort säger varför. En regel gör bara en ändring utan att fråga på en resurs som dess taggar eller dess konto säger inte är produktion: En som bara dess etiketter kallar icke-produktion föreslås i stället för dess ägare. Tagga den i ditt moln, till exempel `environment` = `dev`, eller markera dess konto som **Icke-produktion**.
+:::
+
+:::details En prognos har inget troligt intervall
+Den gjordes från färre än 3 hela månader med kostnader, så varje kommande månad förlänger den senaste hela veckans takt, och inget intervall anges. Intervallet kommer så snart den tredje hela månaden har lästs. En anslutnings första läsning går tillbaka till början av förrförra månaden.
+:::
+
+:::details Någon meddelades om en budget men inget larm kom
+Under 100 % meddelar en budget som nämner personer eller team att avisera dem och skapar inget larm, så att ingen larmas. Från 100 % skapar den ett larm, och dess jourpolicyer larmas. En budget utan någon att meddela skapar ett larm vid varje andel.
 :::
 
 :::details Den här månaden är lägre än i molnets konsol

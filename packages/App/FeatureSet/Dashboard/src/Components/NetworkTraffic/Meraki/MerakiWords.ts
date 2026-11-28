@@ -135,6 +135,10 @@ export const MERAKI_TONE_PILL: Record<MerakiTone, Color> = {
 export const MERAKI_CONNECTION_NAME: string =
   translationKey("Meraki connection");
 
+// The same, counted: "2 Meraki connections have the same name as..." (TwinMarks).
+export const MERAKI_CONNECTIONS_NAME: string =
+  translationKey("Meraki connections");
+
 export interface MerakiTimeOptions {
   // The reader's language code ("de" reads "vor 2 Minuten"); English if unset.
   language?: string | undefined;

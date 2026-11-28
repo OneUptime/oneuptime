@@ -46,6 +46,9 @@ const { entryForAgentDirectory } = require("./Utils/InstallScriptsCatalog");
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT_DIR = "agents/XcpNgAgent";
 const SERVICE = "oneuptime-xcp-ng-agent";
+// The XCP-ng AI agent beside it (agents/ResourceAIAgent), under its own profile.
+const AI_SERVICE = "oneuptime-xcp-ng-ai-agent";
+const AI_PROFILE = "xcp-ng-ai-agent";
 const INSTALL_DIR = "/opt/oneuptime-xcp-ng-agent";
 const CA_FILE_IN_CONTAINER = "/etc/oneuptime/xo-ca.pem";
 const PROCESSORS = [
@@ -476,9 +479,9 @@ describe("agents/XcpNgAgent/otel-collector-config.yaml", () => {
 });
 
 describe("agents/XcpNgAgent/docker-compose.yml", () => {
-  test("runs the pinned stock collector and nothing else, hardened", () => {
+  test("runs the pinned stock collector, and the AI agent beside it, hardened", () => {
     const parsed = compose();
-    expect(Object.keys(parsed.services)).toEqual([SERVICE]);
+    expect(Object.keys(parsed.services)).toEqual([SERVICE, AI_SERVICE]);
     const service = parsed.services[SERVICE];
     expect(service.image).toBe(
       `otel/opentelemetry-collector-contrib:${composePin()}`,
@@ -532,10 +535,115 @@ describe("agents/XcpNgAgent/docker-compose.yml", () => {
   });
 });
 
+describe("agents/XcpNgAgent/docker-compose.yml: the XCP-ng AI agent", () => {
+  const service = () => {
+    return compose().services[AI_SERVICE];
+  };
+
+  test("runs the resource AI agent image only when its profile is on, hardened, as no root", () => {
+    expect(service().image).toBe("oneuptime/resource-ai-agent:release");
+    expect(service().container_name).toBe(AI_SERVICE);
+    expect(service().profiles).toEqual([AI_PROFILE]);
+    expect(service().user).toBe("1000:1000");
+    expect(service().read_only).toBe(true);
+    expect(service().tmpfs).toEqual(["/tmp"]);
+    expect(service().cap_drop).toEqual(["ALL"]);
+    expect(service().security_opt).toEqual(["no-new-privileges:true"]);
+    expect(service().restart).toBe("unless-stopped");
+    expect(service()).not.toHaveProperty("ports");
+    expect(service()).not.toHaveProperty("env_file");
+    expect(service()).not.toHaveProperty("privileged");
+    expect(service()).not.toHaveProperty("network_mode");
+    expect(service().healthcheck.test).toContain(
+      "http://127.0.0.1:3877/status/live",
+    );
+  });
+
+  test("trusts exactly the collector's xo-ca.pem, mounted read-only where the agent reads it, never creating it", () => {
+    const collectorMount = compose().services[SERVICE].volumes[1];
+    expect(service().volumes).toEqual([collectorMount]);
+    expect(collectorMount).toEqual({
+      type: "bind",
+      source: "./xo-ca.pem",
+      target: CA_FILE_IN_CONTAINER,
+      read_only: true,
+      bind: { create_host_path: false },
+    });
+    // The agent's own default (ONEUPTIME_AI_XO_CA_FILE), so the compose file sets none.
+    expect(
+      read("agents/ResourceAIAgent/Executors/XcpNgExecutor.ts"),
+    ).toContain(`DEFAULT_XO_CA_FILE: string = "${CA_FILE_IN_CONTAINER}"`);
+  });
+
+  test("reads Xen Orchestra where the collector does, and never the collector's secret", () => {
+    const environment = service().environment;
+    const collector = compose().services[SERVICE].environment;
+    for (const name of ["XO_SCHEME", "XO_ADDRESS", "XO_TLS_SERVER_NAME"]) {
+      const line = environment.find((entry) => {
+        return entry.startsWith(`${name}=`);
+      });
+      expect({ name, line }).toEqual({
+        name,
+        line: collector.find((entry) => {
+          return entry.startsWith(`${name}=`);
+        }),
+      });
+    }
+    expect(JSON.stringify(environment)).not.toContain("XO_OPENMETRICS_SECRET");
+  });
+
+  test("passes the agent's type, the pool, its two tokens and what AI may do, all from .env", () => {
+    expect(service().environment).toEqual([
+      "ONEUPTIME_URL=${ONEUPTIME_URL}",
+      "ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}",
+      "ONEUPTIME_AI_AGENT_RESOURCE_TYPE=xcp-ng",
+      "XCP_NG_POOL_ID=${XCP_NG_POOL_ID:-}",
+      "ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}",
+      "XO_SCHEME=${XO_SCHEME:-https}",
+      "XO_ADDRESS=${XO_ADDRESS}",
+      "XO_TLS_SERVER_NAME=${XO_TLS_SERVER_NAME:-}",
+      "ONEUPTIME_AI_XO_READ_TOKEN=${ONEUPTIME_AI_XO_READ_TOKEN:-}",
+      "ONEUPTIME_AI_XO_WRITE_TOKEN=${ONEUPTIME_AI_XO_WRITE_TOKEN:-}",
+      "ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION:-}",
+      "ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES:-}",
+      "ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}",
+      "ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}",
+      "ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}",
+      "LOG_LEVEL=${LOG_LEVEL:-info}",
+    ]);
+  });
+
+  test("names only variables the agent reads", () => {
+    const sources = [
+      "agents/ResourceAIAgent/Config.ts",
+      "agents/ResourceAIAgent/Executors/XcpNgExecutor.ts",
+      "agents/ResourceAIAgent/Common/Types/ResourceAiAgent/ResourceAiAccess.ts",
+      "agents/ResourceAIAgent/Common/Types/ResourceAiAgent/AiResourceType.ts",
+      "agents/ResourceAIAgent/Common/Types/AI/AgentAiSettings.ts",
+      "agents/ResourceAIAgent/Logger.ts",
+    ]
+      .filter((file) => {
+        return fs.existsSync(path.join(REPO_ROOT, file));
+      })
+      .map(read)
+      .join("\n");
+    for (const entry of service().environment) {
+      const name = entry.split("=")[0];
+      if (name.startsWith("ONEUPTIME_URL") || name.endsWith("_KEY")) {
+        continue;
+      }
+      expect({ name, read: sources.includes(`"${name}"`) }).toEqual({
+        name,
+        read: true,
+      });
+    }
+  });
+});
+
 describe("agents/XcpNgAgent/install.sh, statically", () => {
   const script = read(`${AGENT_DIR}/install.sh`);
 
-  test("keeps every variable docker-compose.yml reads, and the three it reads again itself", () => {
+  test("keeps every variable docker-compose.yml reads, and the four it reads again itself", () => {
     const names = envNames(script);
     expect([...names].sort()).toEqual(
       [
@@ -543,6 +651,8 @@ describe("agents/XcpNgAgent/install.sh, statically", () => {
         "XO_URL",
         "XO_TLS_FINGERPRINT",
         "XO_CA_FILE",
+        // Starts the AI agent: Compose reads it from .env.
+        "COMPOSE_PROFILES",
       ].sort(),
     );
     const lines = heredoc(script);
@@ -624,6 +734,36 @@ describe("agents/XcpNgAgent/install.sh, statically", () => {
     expect(script).toContain(
       "printf 'Authorization: Bearer %s\\n' \"$XO_OPENMETRICS_SECRET\"",
     );
+  });
+
+  test("starts the AI agent exactly when it has a read token, and stops one whose token is gone", () => {
+    expect(script).toContain('AI_AGENT_PROFILE="xcp-ng-ai-agent"');
+    expect(script).toContain('AI_AGENT_SERVICE="oneuptime-xcp-ng-ai-agent"');
+    expect(script).toContain(
+      'COMPOSE_PROFILES="${OTHER_PROFILES:+$OTHER_PROFILES,}$AI_AGENT_PROFILE"',
+    );
+    expect(script).toContain(
+      'docker compose --profile "$AI_AGENT_PROFILE" rm -sf "$AI_AGENT_SERVICE"',
+    );
+    // Asked for once, at a terminal, without echoing it; never over http://.
+    expect(script).toContain(
+      'read -rsp "Read-only Xen Orchestra token: " ONEUPTIME_AI_XO_READ_TOKEN',
+    );
+    expect(script).toMatch(
+      /if \[ -z "\$ONEUPTIME_AI_XO_READ_TOKEN" \] && \[ "\$REUSED_ENV" = 0 \] && \[ -t 0 \] && \[ "\$XO_SCHEME" = "https" \]; then/,
+    );
+  });
+
+  test("hands the AI agent's tokens to curl on stdin, and prints them nowhere", () => {
+    expect(script).toContain(
+      "printf 'Cookie: authenticationToken=%s\\n' \"$1\"",
+    );
+    for (const line of script.split("\n")) {
+      if (/\becho\b/.test(line)) {
+        expect(line).not.toMatch(/\$\{?ONEUPTIME_AI_XO_(READ|WRITE)_TOKEN/);
+      }
+      expect(line).not.toMatch(/authenticationToken=\$\{?ONEUPTIME_AI/);
+    }
   });
 
   test("pulls, then starts the agent once, recreating it, so a re-run runs the files it downloaded", () => {

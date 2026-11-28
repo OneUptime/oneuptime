@@ -38,7 +38,9 @@ import ExposureAssessmentDrafter, {
  *  2. Plain code's assessment is started on the case, once
  *     (ExposureAssessmentDrafter.startOnItsOwn): the window, who could read
  *     it, whose data, the secrets to rotate and the breach laws that may
- *     apply are worked out every time it is read, AI on or off.
+ *     apply are worked out every time it is read, AI on or off. Where the
+ *     store logs its reads, its own access logs are read for the window
+ *     (readLogsOnItsOwn, #10951), so it says who read it.
  *  3. OneUptime AI writes it up under the project's Data Security AI rules
  *     (#10364): Enable AI and "Work on new Data Security issues" on, and
  *     the issue's Analyze work not Off by the rules that match it - an
@@ -158,6 +160,17 @@ export default class ExposureAssessmentRun {
       if (!started) {
         return { ...outcome, skipped: ExposureRunSkip.AlreadyAssessed };
       }
+
+      /*
+       * Where the store logs its reads, what its logs say of the window
+       * (#10951): read before OneUptime AI writes it up, so the write-up
+       * says who read it - counted. AI on or off, the card shows it.
+       */
+      await ExposureAssessmentDrafter.readLogsOnItsOwn({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+        now,
+      });
 
       const decided: {
         aiSkipped: ExposureRunAiSkip | null;

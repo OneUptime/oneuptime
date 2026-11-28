@@ -11,7 +11,7 @@
 
 ## Come viene giudicato un controllo
 
-Ogni controllo dà un risultato: la risposta di una sonda, il valore restituito da uno script o la telemetria che il controllo legge. I criteri del passaggio lo giudicano poi nel loro ordine. Il primo criterio i cui filtri corrispondono decide cosa succede: può cambiare lo stato del monitor, aprire incidenti e aprire avvisi. I criteri che lo seguono non vengono considerati per quel controllo.
+Ogni controllo dà un risultato: la risposta di una sonda, il valore restituito da uno script o la telemetria che il controllo legge. I criteri del passaggio lo giudicano poi nel loro ordine. Il primo criterio i cui filtri corrispondono decide cosa succede: può cambiare lo stato del monitor, aprire incidenti e aprire avvisi. I criteri che lo seguono non vengono considerati per quel controllo, a meno che non cambi alcuno stato (`change_monitor_status` disattivato): allora i criteri che lo seguono e cambiano lo stato vengono giudicati solo per lo stato, e il primo di essi che corrisponde lo imposta. Se nessuno lo fa, il monitor passa al suo stato predefinito.
 
 ```mermaid title="Come viene giudicato ogni controllo"
 flowchart TB

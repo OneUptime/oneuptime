@@ -526,7 +526,7 @@ describe("a place read from one record (#11098)", () => {
     expect(namesIn(places)).toEqual([]);
   });
 
-  test("aligned reads keep what they share, but a name every read holds", () => {
+  test("aligned reads keep only the code's words: a name every read holds is masked", () => {
     const places: Array<TelemetryLeakPlace> = placesOf(
       TelemetrySampleSource.Logs,
       ["insufficient funds", "card expired"].map((reason: string) => {
@@ -545,6 +545,73 @@ describe("a place read from one record (#11098)", () => {
         lineNumber: 31,
         template: "Payment declined for <value>: <value> <value>",
       },
+    ]);
+  });
+
+  /*
+   * #11204: the records of one line read with different words share a
+   * value as readily as the code's words - one user's session, one
+   * engineer every ticket goes to, one tenant - so a word they all hold
+   * that is not one code writes log lines with is masked, as one read's
+   * would be. The line's file and number say where the code is.
+   */
+  test("aligned reads mask a lower-case value every read shares: a username", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      ["urgent", "normal", "low"].map((priority: string) => {
+        return {
+          readFile1: "/app/src/tickets.js",
+          readLine1: "44",
+          readBody: `Ticket assigned to jdoe with priority ${priority}`,
+        };
+      }),
+    );
+
+    expect(places).toEqual([
+      {
+        recordCount: 3,
+        filePath: "src/tickets.js",
+        lineNumber: 44,
+        template: "Ticket assigned to <value> with priority <value>",
+      },
+    ]);
+  });
+
+  test("aligned reads of one session mask the name, the local part and the tenant they share", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      ["settings", "billing", "invoices", "team"].map((tab: string) => {
+        return {
+          readFile1: "/app/src/session.js",
+          readLine1: "9",
+          readBody: `Opened ${tab} for ottilie quarrington (ottilie.q) at northwind`,
+        };
+      }),
+    );
+
+    expect(places).toHaveLength(1);
+    expect(places[0]!.filePath).toBe("src/session.js");
+    expect(places[0]!.lineNumber).toBe(9);
+    expect(places[0]!.recordCount).toBe(4);
+    expect(JSON.stringify(places)).not.toMatch(
+      /ottilie|quarrington|northwind/i,
+    );
+  });
+
+  test("a line read aligned whose words none are the code's still names its file and line", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      ["jdoe", "asmith"].map((user: string) => {
+        return {
+          readFile1: "/app/src/de/zahlung.js",
+          readLine1: "3",
+          readBody: `Zahlung abgelehnt für ${user}`,
+        };
+      }),
+    );
+
+    expect(places).toEqual([
+      { recordCount: 2, filePath: "src/de/zahlung.js", lineNumber: 3 },
     ]);
   });
 

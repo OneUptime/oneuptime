@@ -1447,6 +1447,7 @@ describe("Storage Array agent: the install script again, or every file again", (
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerscale.yaml",
     ]);
     expect(STORAGE_ARRAY_AGENT_RECREATE_COMMAND).toBe(
       "docker compose pull\ndocker compose up -d --force-recreate",

@@ -1,8 +1,8 @@
 # OneUptime Storage Array Agent
 
-Monitor storage arrays — capacity, latency, IOPS and bandwidth, volumes, hosts, pods and replication, hardware health, file systems and buckets — with OneUptime using a pre-configured OpenTelemetry Collector.
+Monitor storage arrays — capacity, latency, IOPS and bandwidth, volumes, hosts, pods and replication, hardware health, file systems, buckets and quotas — with OneUptime using a pre-configured OpenTelemetry Collector.
 
-The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container with a tuned config that scrapes the array's metrics — its OpenMetrics endpoints, or its vendor's exporter beside the collector — stamps every metric with your array's identity, and ships it to OneUptime over OTLP. It supports:
+The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container with a tuned config that scrapes the array's metrics — its OpenMetrics endpoints, its vendor's exporter beside the collector, or a Dell PowerScale's nodes over SNMP — stamps every metric with your array's identity, and ships it to OneUptime over OTLP. It supports:
 
 | Array | How the agent reads it | Collector config |
 |---|---|---|
@@ -11,6 +11,7 @@ The agent is config-only: a stock `otel/opentelemetry-collector-contrib` contain
 | **Pure Storage FlashBlade** | Pure's [FlashBlade OpenMetrics exporter](https://github.com/PureStorage-OpenConnect/pure-fb-openmetrics-exporter), run as the `pure-fb-exporter` sidecar | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | Dell's [PowerStore Metrics Exporter](https://github.com/dell/powerstore-metrics-exporter), built and run as the `powerstore-exporter` sidecar; the cluster's alerts arrive by syslog at the `powerstore-syslog` collector | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 and later (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP), and **Amazon FSx for NetApp ONTAP** | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, run as the `netapp-harvest` sidecar: it logs in to the cluster's REST API with a read-only user and password | `otel-collector-config.netapp-ontap.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 and later | Each node over SNMP (Dell's ISILON-MIB), with the collector's own `snmp` receiver — no sidecar ([Dell PowerScale](#dell-powerscale)) | `otel-collector-config.powerscale.yaml` |
 
 Pure Storage renamed itself **Everpure** in February 2026. FlashArray, FlashBlade and Purity kept their names, and so did the `purefa_*` / `purefb_*` metrics — everything here applies unchanged.
 
@@ -183,6 +184,36 @@ docker compose up -d
 
 After the first scrape (about a minute) the array appears automatically in the **Storage Arrays** section of OneUptime.
 
+## Dell PowerScale
+
+The agent polls a PowerScale (Isilon) cluster over SNMP, reading Dell's ISILON-MIB with the collector's own `snmp` receiver (no exporter, no API token). One cluster is one storage array.
+
+- **Every node is polled at its own address** — a node answers SNMP only for its own drives, sensors and ports. Never use the SmartConnect zone name: it hands each poll to whichever node it picks.
+- **`snmp/cluster`** (every 60 s) and **`snmp/quotas`** (every 5 min) read the cluster's health, capacity, throughput, node counts and SmartQuotas once, through `POWERSCALE_ENDPOINT`. **`snmp/node-<n>`** (every 60 s) reads node `<n>`'s health, CPU, protocol performance (NFS, SMB, S3, HDFS, ...), drives, fans, temperature and power sensors and ports.
+- The config has 252 node slots (OneFS's largest cluster), `snmp/node-1` to `snmp/node-252`, each a copy of `snmp/node` at `POWERSCALE_NODE_<n>`. Only the ones `POWERSCALE_SNMP_RECEIVERS` lists run, and `install.sh` writes that list from `POWERSCALE_NODES`.
+- OneFS gives sensor readings as text and CPU in per mil, throughput in bits: the `transform/powerscale` processor turns them into plain gauges, and `filter/powerscale` drops what is not a number (a sensor reading `N/A`).
+
+Turn SNMP on with Dell's commands, on any node (OneFS applies them to the cluster), unless another tool already polls it — then reuse its community or user:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+# or SNMPv3; the read-only user is `general` until renamed
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+isi snmp settings view
+```
+
+Then install:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+It asks for every node's address (`isi network interfaces list` lists them), the SNMP version, then the community or the SNMPv3 user and passwords (read without echo). Put `POWERSCALE_SNMP_AUTH_PROTOCOL`, `POWERSCALE_SNMP_PRIVACY_PROTOCOL` or `POWERSCALE_SNMP_SECURITY_LEVEL` in front of `bash install.sh` for an SNMPv3 user on other protocols or without privacy. A node added later: add it to `POWERSCALE_NODES` in `.env` and run `install.sh` again. `troubleshoot.sh` asks each node for `clusterName` with `snmpget` (the community or passwords go to it in a `snmp.conf` of its own, never on a command line).
+
+Not read yet: OneFS's events, storage pools and data reduction, which only the OneFS API gives ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). Until then, send the events as SNMP traps to a OneUptime probe (`isi event channels create oneuptime snmp --host <probe> --community '<community>' --use-snmp-trap true`, then `isi event alerts modify <alert> --channel oneuptime`), with the nodes added as network devices on it.
+
 ## Environment Variables
 
 | Variable | Required | Description |
@@ -190,8 +221,8 @@ After the first scrape (about a minute) the array appears automatically in the *
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Ingestion key (_Project Settings → Telemetry & APM → Ingestion Keys_) |
 | `STORAGE_ARRAY_NAME` | Yes | The name this array registers under in OneUptime. Stamped on every metric as the `storage.array.name` resource attribute. Keep it stable — changing it registers a new array. The collector refuses to start without it |
-| `STORAGE_SYSTEM` | No | The platform, stamped as the `storage.system` resource attribute: `purestorage.flasharray`, `purestorage.flashblade`, `dell.powerstore` or `netapp.ontap` (default: `purestorage.flasharray`) |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Which shipped config runs: `otel-collector-config.yaml` (FlashArray, native — the default), `otel-collector-config.flasharray-exporter.yaml` (older FlashArray), `otel-collector-config.flashblade.yaml` (FlashBlade), `otel-collector-config.powerstore.yaml` (Dell PowerStore) or `otel-collector-config.netapp-ontap.yaml` (ONTAP) |
+| `STORAGE_SYSTEM` | No | The platform, stamped as the `storage.system` resource attribute: `purestorage.flasharray`, `purestorage.flashblade`, `dell.powerstore`, `netapp.ontap` or `dell.powerscale` (default: `purestorage.flasharray`) |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Which shipped config runs: `otel-collector-config.yaml` (FlashArray, native — the default), `otel-collector-config.flasharray-exporter.yaml` (older FlashArray), `otel-collector-config.flashblade.yaml` (FlashBlade), `otel-collector-config.powerstore.yaml` (Dell PowerStore), `otel-collector-config.netapp-ontap.yaml` (ONTAP) or `otel-collector-config.powerscale.yaml` (PowerScale) |
 | `COMPOSE_PROFILES` | No | Starts the exporter the config needs: empty for the native FlashArray config, `flasharray-exporter`, `flashblade`, `powerstore` or `netapp-ontap` for the others |
 | `PURE_FA_ENDPOINT` | FlashArray | The FlashArray's management address — host name or IP, no `https://` |
 | `PURE_FA_API_TOKEN` | FlashArray | API token of the FlashArray user with the readonly role |
@@ -208,6 +239,16 @@ After the first scrape (about a minute) the array appears automatically in the *
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | The cluster's management address (for FSx, the file system's management endpoint) — host name or IP, no `https://` |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | The read-only REST user (`oneuptime` above) |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | Its password. Only Harvest reads it, exactly as written |
+| `POWERSCALE_NODES` | PowerScale | Every node's address, comma-separated — never the SmartConnect zone name. `install.sh` writes the three below from it |
+| `POWERSCALE_ENDPOINT` | PowerScale | The node the cluster's own objects (health, capacity, quotas) are read through: the first node |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | The polls the collector runs: `[snmp/cluster, snmp/quotas, snmp/node-1, ...]`, one `snmp/node-<n>` per node |
+| `POWERSCALE_NODE_<n>` | PowerScale | Node `<n>`'s address, 1 to 252 (an IPv6 address in brackets) |
+| `POWERSCALE_SNMP_VERSION` | No | `v2c` (default) or `v3` |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | The cluster's read-only community. OneFS's default, `I$ilonpublic`, works: `install.sh` refuses only `$$` and `${`, which the collector would expand |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | The cluster's SNMPv3 read-only user |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | No | `auth_priv` (default), `auth_no_priv` or `no_auth_no_priv` |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` / `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | `SHA` (default), `MD5`, `SHA224`, `SHA256`, `SHA384` or `SHA512`, and the password |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` / `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3, `auth_priv` | `AES` (default), `DES`, `AES192`, `AES256`, `AES192C` or `AES256C`, and the password |
 | `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | No | The agent's container name (default: `oneuptime-storage-array-agent`). A second array's agent on the same machine needs one of its own ([Monitoring several arrays](#monitoring-several-arrays)): `install.sh` names a new agent after its directory unless you set it, and keeps it on every re-run |
 
 ## Scrape Behavior
@@ -315,6 +356,7 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -330,7 +372,7 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-Then delete the read-only user (and its API token) on the array if you no longer need it. On a PowerStore, run `docker compose --profile powerstore down` instead, to stop the exporter and the syslog collector too, then delete the agent's user and the remote syslog server. On ONTAP: `security login delete -user-or-group-name oneuptime -application http -authentication-method password`, then `security login rest-role delete -role oneuptime-readonly -api /api`.
+Then delete the read-only user (and its API token) on the array if you no longer need it. On a PowerStore, run `docker compose --profile powerstore down` instead, to stop the exporter and the syslog collector too, then delete the agent's user and the remote syslog server. On ONTAP: `security login delete -user-or-group-name oneuptime -application http -authentication-method password`, then `security login rest-role delete -role oneuptime-readonly -api /api`. On a PowerScale, turn SNMP off or change the agent's community or SNMPv3 passwords if nothing else polls the cluster.
 
 ## Troubleshooting
 

@@ -1,4 +1,12 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import GlobalCache from "../../../../../Server/Infrastructure/GlobalCache";
 import type { SpyInstance } from "jest-mock";
 import SecurityLogSource from "../../../../../Models/DatabaseModels/SecurityLogSource";
 import LogService, {
@@ -913,6 +921,286 @@ describe("SecurityLogScanner.scanSource - a sensitive file a site served", () =>
     expect(result.eventsFound).toBe(0);
     expect(installed.inserted).toEqual([]);
     expect(installed.updates[0]!["cursor"]).toBe(UNTIL.toISOString());
+  });
+});
+
+/*
+ * A LONE REQUEST FOR /.env, JUDGED BY WHAT ITS SITE ANSWERED BEFORE (#11036):
+ * the scan keeps what its pages said of each site, from one page to the next
+ * and, through the cache, from one scan to the next - one read and at most
+ * one write a scan.
+ */
+describe("SecurityLogScanner.scanSource - a lone request judged by what its site answered before", () => {
+  const CLASSIC_SITE: string = "0192f1a0-0000-7000-8000-0000000b1001";
+  const APP_SITE: string = "0192f1a0-0000-7000-8000-0000000b1002";
+
+  // The cache, kept across the scans of a test, and what each scan asked it.
+  let cached: Map<string, JSONObject>;
+  let cacheReads: number;
+  let cacheWrites: number;
+
+  function installCache(): void {
+    jest.spyOn(Redis, "isConnected").mockReturnValue(true);
+    jest
+      .spyOn(GlobalCache, "getJSONObject")
+      .mockImplementation(
+        async (namespace: string, key: string): Promise<JSONObject | null> => {
+          cacheReads++;
+          const value: JSONObject | undefined = cached.get(
+            `${namespace}-${key}`,
+          );
+          return value
+            ? (JSON.parse(JSON.stringify(value)) as JSONObject)
+            : null;
+        },
+      );
+    jest
+      .spyOn(GlobalCache, "setJSON")
+      .mockImplementation(
+        async (
+          namespace: string,
+          key: string,
+          value: JSONObject,
+        ): Promise<void> => {
+          cacheWrites++;
+          cached.set(
+            `${namespace}-${key}`,
+            JSON.parse(JSON.stringify(value)) as JSONObject,
+          );
+        },
+      );
+  }
+
+  beforeEach(() => {
+    cached = new Map();
+    cacheReads = 0;
+    cacheWrites = 0;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  let index: number = 0;
+
+  function request(data: {
+    target: string;
+    status: number;
+    size: number;
+    site: string;
+    arrivedAt?: Date;
+  }): StoredLog {
+    index++;
+
+    return {
+      id: `0192f1a0-0000-7000-8000-11036${String(index).padStart(7, "0")}`,
+      arrivedAt:
+        data.arrivedAt ||
+        new Date(
+          OneUptimeDate.addRemoveMinutes(NOW, -3).getTime() +
+            (index % 60) * 1000,
+        ),
+      body: `198.51.100.23 - - [19/Oct/2026:11:57:00 +0000] "GET ${data.target} HTTP/1.1" ${data.status} ${data.size} "-" "Mozilla/5.0 zgrab/0.x"`,
+      primaryEntityId: data.site,
+      primaryEntityType: ServiceType.OpenTelemetry,
+    };
+  }
+
+  function storedLines(installed: Installed): Array<string> {
+    return installed.inserted.map((row: JSONObject): string => {
+      return `${String(row["message"])} | ${String(row["severityName"])} | ${String(row["requestOutcome"])}`;
+    });
+  }
+
+  // One scan of what arrived in the last four minutes.
+  async function scan(stored: Array<StoredLog>): Promise<{
+    installed: Installed;
+    result: SecurityLogScanResult;
+    reads: number;
+    writes: number;
+  }> {
+    const readsBefore: number = cacheReads;
+    const writesBefore: number = cacheWrites;
+    const installed: Installed = install(stored);
+    installCache();
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -4).toISOString()),
+    );
+
+    jest.restoreAllMocks();
+
+    return {
+      installed,
+      result,
+      reads: cacheReads - readsBefore,
+      writes: cacheWrites - writesBefore,
+    };
+  }
+
+  test("a scan learns the site answers 404; the next stores the lone /.env it served as served, Critical, where it stored nothing before", async () => {
+    const first: { installed: Installed; reads: number; writes: number } =
+      await scan([
+        request({
+          target: "/.git/config",
+          status: 404,
+          size: 153,
+          site: CLASSIC_SITE,
+        }),
+      ]);
+
+    expect(storedLines(first.installed)).toEqual([
+      "Request for a sensitive file: GET /.git/config → 404 | Low | Rejected",
+    ]);
+    // It read what was kept before it wrote, once each.
+    expect(first.reads).toBe(1);
+    expect(first.writes).toBe(1);
+
+    const second: {
+      installed: Installed;
+      result: SecurityLogScanResult;
+      reads: number;
+      writes: number;
+    } = await scan([
+      request({ target: "/.env", status: 200, size: 412, site: CLASSIC_SITE }),
+    ]);
+
+    expect(second.result.eventsFound).toBe(1);
+    expect(storedLines(second.installed)).toEqual([
+      "Sensitive file served: GET /.env → 200 | Critical | Reached App",
+    ]);
+    expect(second.reads).toBe(1);
+    expect(second.writes).toBe(1);
+  });
+
+  test("and not when what the site answered before says the size is its own page", async () => {
+    await scan([
+      request({ target: "/.env", status: 200, size: 1789, site: APP_SITE }),
+      request({
+        target: "/.git/config",
+        status: 200,
+        size: 1789,
+        site: APP_SITE,
+      }),
+      request({
+        target: "/.git/config",
+        status: 404,
+        size: 153,
+        site: CLASSIC_SITE,
+      }),
+    ]);
+
+    const second: { installed: Installed } = await scan([
+      request({
+        target: "/.aws/credentials",
+        status: 200,
+        size: 1789,
+        site: APP_SITE,
+      }),
+    ]);
+
+    expect(storedLines(second.installed)).toEqual([
+      "Request for a sensitive file: GET /.aws/credentials → 200 | Low | Rejected",
+    ]);
+  });
+
+  test("a lone /.env on the page after its site's 404s needs no cache at all: the scan's pages teach each other", async () => {
+    const stored: Array<StoredLog> = [];
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+
+    // A full page of the site's 404s, then the .env alone on the next.
+    for (let line: number = 0; line < LOG_SCAN_PAGE_SIZE; line++) {
+      stored.push(
+        request({
+          target: `/.env.${line}`,
+          status: 404,
+          size: 153,
+          site: CLASSIC_SITE,
+          arrivedAt: new Date(startAt.getTime() + 1000),
+        }),
+      );
+    }
+
+    stored.push(
+      request({
+        target: "/.env",
+        status: 200,
+        size: 412,
+        site: CLASSIC_SITE,
+        arrivedAt: new Date(startAt.getTime() + 2000),
+      }),
+    );
+
+    const installed: Installed = install(stored);
+    jest.spyOn(Redis, "isConnected").mockReturnValue(false);
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -4).toISOString()),
+    );
+
+    // Two pages, the second holding only the .env.
+    expect(installed.reads.length).toBeGreaterThanOrEqual(2);
+    expect(result.logsRead).toBe(LOG_SCAN_PAGE_SIZE + 1);
+    expect(storedLines(installed).slice(-1)).toEqual([
+      "Sensitive file served: GET /.env → 200 | Critical | Reached App",
+    ]);
+  });
+
+  test("THE COST BOUND: three pages of lone requests from many sites read the cache once, and write it once", async () => {
+    const stored: Array<StoredLog> = [];
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+
+    for (let line: number = 0; line < LOG_SCAN_PAGE_SIZE * 2 + 10; line++) {
+      stored.push(
+        request({
+          target: `/.env.${line}`,
+          status: 200,
+          size: 1789,
+          site: `0192f1a0-0000-7000-8000-0000${String(line % 150).padStart(8, "0")}`,
+          arrivedAt: new Date(startAt.getTime() + 1000),
+        }),
+      );
+    }
+
+    const run: { installed: Installed; reads: number; writes: number } =
+      await scan(stored);
+
+    expect(run.installed.reads.length).toBe(3);
+    expect(run.reads).toBe(1);
+    expect(run.writes).toBe(1);
+  });
+
+  test("a scan with no request for a sensitive file asks the cache nothing", async () => {
+    const run: { reads: number; writes: number } = await scan([
+      {
+        id: "0192f1a0-0000-7000-8000-110360000999",
+        arrivedAt: OneUptimeDate.addRemoveMinutes(NOW, -2),
+        body: SSH_LINES.failedPasswordInvalidUser,
+      },
+    ]);
+
+    expect(run.reads).toBe(0);
+    expect(run.writes).toBe(0);
+  });
+
+  test("a cache that cannot be read fails nothing: the lone request is left out, as before", async () => {
+    const installed: Installed = install([
+      request({ target: "/.env", status: 200, size: 412, site: CLASSIC_SITE }),
+    ]);
+    jest.spyOn(Redis, "isConnected").mockReturnValue(true);
+    jest
+      .spyOn(GlobalCache, "getJSONObject")
+      .mockRejectedValue(new Error("ECONNREFUSED"));
+    jest.spyOn(logger, "warn").mockImplementation(() => {
+      return undefined as never;
+    });
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -4).toISOString()),
+    );
+
+    expect(result.eventsFound).toBe(0);
+    expect(installed.updates[0]!["lastError"]).toBeNull();
   });
 });
 

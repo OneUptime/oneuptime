@@ -34,6 +34,9 @@ const AGENT_DIRECTORY: string = path.resolve(
 // A collector config's file name, as the agent ships each.
 const COLLECTOR_CONFIG: RegExp = /^otel-collector-config[a-z0-9.-]*\.yaml$/;
 
+// An exporter's own config file, which it may read the array's login from.
+const YAML_FILE: RegExp = /\.ya?ml$/;
+
 interface TableLine {
   config: string;
   system: string;
@@ -47,6 +50,8 @@ interface TableLine {
   userVariable: string;
   otherFiles: Array<string>;
   optionalVariables: Array<string>;
+  // A setup step of the platform's own (a function of install.sh), or "".
+  setup: string;
 }
 
 interface ComposeFile {
@@ -76,7 +81,8 @@ function installTable(): Array<TableLine> {
     })
     .map((line: string): TableLine => {
       const fields: Array<string> = line.split("|");
-      expect({ line, fields: fields.length }).toEqual({ line, fields: 12 });
+      // Twelve fields, and a thirteenth: a platform's own setup step, or -.
+      expect({ line, fields: fields.length }).toEqual({ line, fields: 13 });
       const list: (field: string) => Array<string> = (
         field: string,
       ): Array<string> => {
@@ -95,6 +101,7 @@ function installTable(): Array<TableLine> {
         userVariable: fields[9] === "-" ? "" : fields[9]!,
         otherFiles: list(fields[10]!),
         optionalVariables: list(fields[11]!),
+        setup: fields[12] && fields[12] !== "-" ? fields[12] : "",
       };
     });
 }
@@ -155,11 +162,13 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
         noun: entry.config.arrayNoun,
         /*
          * Only an agent that talks to the array itself asks about its TLS:
-         * the collector, or an exporter that checks the array's certificate
-         * (NetApp Harvest).
+         * the collector, which does unless its platform says it does not
+         * (talksTlsToArray: PowerScale's SNMP), or an exporter that checks
+         * the array's certificate (NetApp Harvest).
          */
         tlsToArray:
-          entry.config.exporterService === null ||
+          (entry.config.talksTlsToArray ??
+            entry.config.exporterService === null) ||
           entry.config.exporterChecksCertificate
             ? "yes"
             : "no",
@@ -169,6 +178,10 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
       });
       expect(line!.menu).not.toBe("");
       expect(line!.readHow).not.toBe("");
+      // A setup step the line names is a function of the script.
+      if (line!.setup) {
+        expect(readAgentFile("install.sh")).toContain(`\n${line!.setup}() {\n`);
+      }
     },
   );
 
@@ -208,7 +221,7 @@ describe("each config of the table", () => {
         expect(text).not.toContain(`\${env:${line.tokenVariable}}`);
         const exporterFiles: string = line.otherFiles
           .filter((file: string): boolean => {
-            return /\.ya?ml$/.test(file);
+            return YAML_FILE.test(file);
           })
           .map((file: string): string => {
             return readAgentFile(file);

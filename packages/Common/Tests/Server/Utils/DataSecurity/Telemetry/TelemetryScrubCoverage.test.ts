@@ -586,7 +586,7 @@ describe("a metric pipeline rule", () => {
     }
   });
 
-  test("Scrub It's filter is the built-in Pattern Type for an IP address, an email address or a card, the type's own pattern for another, or none where no pattern finds the type", () => {
+  test("Scrub It's filter is the built-in Pattern Type for an IP address, an email address, a card, a phone number or an SSN, the type's own pattern for another, or none where no pattern finds the type", () => {
     expect(buildMetricScrubFilters("email-address", "user.email")).toEqual([
       redactEmails,
     ]);
@@ -606,18 +606,36 @@ describe("a metric pipeline rule", () => {
         value: "creditCard",
       },
     ]);
-    // The Phone Number and SSN patterns find less than the types' own do.
+    /*
+     * #11112: the Phone Number and SSN Pattern Types hide what the
+     * detectors find since #11030, in every reading, so Scrub It's rule
+     * for them matches those, not the types' frozen shapes.
+     */
     expect(buildMetricScrubFilters("phone-number", "caller")).toEqual([
       {
         checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
         attributeKey: "caller",
-        conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
-        value: buildScrubPatternForDataType("phone-number"),
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+        value: "phoneNumber",
       },
     ]);
-    expect(buildMetricScrubFilters("us-ssn", "ssn")[0]?.conditionType).toBe(
-      MetricPipelineRuleFilterConditionType.MatchesRegex,
-    );
+    expect(buildMetricScrubFilters("us-ssn", "ssn")).toEqual([
+      {
+        checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+        attributeKey: "ssn",
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+        value: "ssn",
+      },
+    ]);
+    // Every other type the scanner finds by value keeps its own pattern.
+    expect(buildMetricScrubFilters("iban", "payout.iban")).toEqual([
+      {
+        checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+        attributeKey: "payout.iban",
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+        value: buildScrubPatternForDataType("iban"),
+      },
+    ]);
     // Found by the field's name, or one of the project's own: every value under the key.
     expect(buildMetricScrubFilters("person-name", "customer.name")).toEqual([]);
     expect(
@@ -633,6 +651,8 @@ describe("a metric pipeline rule", () => {
       "email-address",
       "credit-card-number",
       "phone-number",
+      "us-ssn",
+      "iban",
     ]) {
       expect(() => {
         validateMetricPipelineRuleFilters(

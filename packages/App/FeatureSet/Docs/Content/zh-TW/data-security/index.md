@@ -6,7 +6,7 @@
 
 :::cards
 - [我們的敏感資料在哪裡？](/docs/data-security/data-types): 143 種資料類型，從卡號、國民身分證號碼到 API 金鑰，可在儲存貯體、資料表和遙測中找到。
-- [資料是否暴露在外？](/docs/data-security/checks-and-issues): 對每個資料儲存區進行 34 項檢查：公開存取、加密、備份、日誌記錄、祕密和複本。
+- [資料是否暴露在外？](/docs/data-security/checks-and-issues): 對每個資料儲存區進行 35 項檢查：公開存取、加密、備份、日誌記錄、祕密和複本。
 - [誰可以存取它，它又流向哪裡？](/docs/data-security/flows-access-residency): 可以存取每個資料儲存區的每個身分（風險最高的排在前面）、哪些服務使用它，以及它的資料會到達哪些 AI 供應商和主機。
 - [它符合我們的規定嗎？](/docs/data-security/compliance): 資料落地規則，以及根據掃描結果評分的九個合規框架。
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## 開始之前
 
 - **能設定它的角色。** 專案擁有者、專案管理員和安全性管理員可以變更資料安全的設定。安全性成員可以處理問題和掃描資料儲存區，安全性檢視者可以讀取它找到的內容。除非其團隊被授予相應的權限，否則其他角色什麼也看不到：哪些儲存貯體保存了卡號，正是攻擊者想知道的事。請參閱 [角色](/docs/permissions/reference#角色)。
-- **一個要讀取的雲端帳戶，或一個資料庫。** 資料安全透過 [雲端連線](/docs/telemetry/cloud-accounts) 讀取雲端帳戶，並透過唯讀連線字串讀取你自行執行的資料庫。遙測不需要任何設定：它每小時掃描一次。
+- **一個要讀取的雲端帳戶，或一個你自行執行的資料儲存區。** 資料安全透過 [雲端連線](/docs/telemetry/cloud-accounts) 讀取雲端帳戶，並透過唯讀連線字串讀取你自行執行的資料庫或搜尋叢集。遙測不需要任何設定：它每小時掃描一次。
 
 ## 快速入門
 
@@ -69,10 +69,10 @@ flowchart TB
 | AWS | AWS S3 Bucket、AWS RDS Instance、AWS Aurora Cluster、AWS RDS Snapshot、AWS DynamoDB Table、AWS Redshift Cluster、AWS DocumentDB Cluster、AWS OpenSearch Domain、AWS ElastiCache Cluster、AWS EFS File System、Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
-| 你自行執行的資料庫 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
+| 你自行執行的資料儲存區 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、OpenSearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server、Elasticsearch、OpenSearch |
 | OneUptime | 日誌、追蹤、例外、工作階段重播、AI 對話、指標、安全事件、Network Flows、安全位址保管庫、安全使用者保管庫 | 日誌、追蹤、例外、工作階段重播、AI 對話、指標 |
 
-每個資料儲存區都會執行適用於其種類的檢查。無法對內容取樣的資料儲存區仍會接受檢查：公開的儲存貯體或未加密的資料庫，無論其中保存什麼，都是缺失。安全事件、Network Flows 和安全位址保管庫是 OneUptime 為你的安全所保留的自有資料儲存區：它們是宣告的，從不掃描，也從不檢查（請參閱 [OneUptime 為你的安全所保留的資料儲存區](/docs/data-security/compliance#oneuptime-為你的安全所保留的資料儲存區)）。
+每個資料儲存區都會依據 OneUptime 能從中讀取的內容，執行適用於其種類的檢查。雲端帳戶中的資料儲存區會從其所在雲端本身的設定讀取，因此無論能否對其內容取樣都會接受檢查：公開的儲存貯體或未加密的資料庫，無論其中保存什麼，都是缺失。你自行執行的資料儲存區沒有可供 OneUptime 讀取的這類設定：對於 Elasticsearch 或 OpenSearch 叢集，每次內容掃描時都會在其自身位址上詢問它是否無需憑證即可回應，至於其他種類如何被存取則不會檢查（請參閱 [OneUptime 對你自行執行的資料儲存區檢查的項目](/docs/data-security/setup#oneuptime-對你自行執行的資料儲存區檢查的項目)）。每個資料儲存區的 **設定** 會在 **OneUptime 檢查的項目** 下說明會檢查哪些項目、不檢查哪些項目。安全事件、Network Flows 和安全位址保管庫是 OneUptime 為你的安全所保留的自有資料儲存區：它們是宣告的，從不掃描，也從不檢查（請參閱 [OneUptime 為你的安全所保留的資料儲存區](/docs/data-security/compliance#oneuptime-為你的安全所保留的資料儲存區)）。
 
 一旦來源不再列出某個資料儲存區，它就會連同其歷程一起封存，其未解決的問題也會變為已解決：資料安全選單末端的 **已封存的資料儲存區** 會保留它。如果來源再次列出它，它會自行恢復，而檢查仍未通過的問題會重新開啟。
 
@@ -86,9 +86,10 @@ flowchart TB
 | 讀取雲端連線的設定 | 每天一次，以及在 CloudTrail 記錄到 AWS 資料儲存區的存取、加密、備份或共用發生變更後的一小時內 |
 | 對資料儲存區的內容取樣 | 每 24 小時，或依 **掃描間隔（小時）** 設定的頻率 |
 | 對每個服務的遙測取樣 | 每小時一次，取樣最近一小時的遙測 |
+| 詢問你自行執行的搜尋叢集是否無需憑證即可回應 | 隨其每次內容掃描 |
 | 重新檢查每個資料儲存區 | 每次讀取和掃描之後、你變更任何檢查所依賴的內容之後，以及每天一次 |
 
-資料儲存區上的 **立即掃描** 會立即對其內容取樣，**立即檢查** 則會重新讀取其設定。
+資料儲存區上的 **立即掃描** 會立即對其內容取樣，並再次詢問你自行執行的搜尋叢集是否無需憑證即可回應。**立即檢查** 會重新讀取雲端帳戶中資料儲存區的設定，並重新執行該資料儲存區的檢查。
 
 ## 後續步驟
 

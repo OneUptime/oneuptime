@@ -63,6 +63,28 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_TLS_FINGERPRINT` | Script d'installation | L'empreinte SHA-256 du certificat propre à Xen Orchestra, quand l'agent fait confiance à ce certificat et à rien d'autre |",
   "| `XO_CA_FILE` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the script copies to `xo-ca.pem` |":
     "| `XO_CA_FILE` | Script d'installation | Un bundle de CA qui a émis le certificat de Xen Orchestra, que le script copie dans `xo-ca.pem` |",
+  "| `ONEUPTIME_AI_XO_READ_TOKEN` | No | A token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else: the XCP-ng AI agent runs when it is set, and reads with it |":
+    "| `ONEUPTIME_AI_XO_READ_TOKEN` | Non | Un jeton d'un utilisateur Xen Orchestra qui détient une copie du rôle intégré **Read only** et rien d'autre : l'agent IA XCP-ng s'exécute quand il est défini, et lit avec lui |",
+  "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Only for fixes: a token of another user, whose role allows them. The AI agent changes nothing without it |":
+    "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | Non | Uniquement pour les correctifs : un jeton d'un autre utilisateur, dont le rôle les autorise. Sans lui, l'agent IA ne modifie rien |",
+  "| `XCP_NG_POOL_ID` | No | The XAPI UUID of the pool the AI agent serves (default: the one pool its read token can see) |":
+    "| `XCP_NG_POOL_ID` | Non | L'UUID XAPI du pool que sert l'agent IA (par défaut : le seul pool que son jeton de lecture peut voir) |",
+  "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | No | Overrides `XCP_NG_POOL_ID` as the pool the AI agent registers as |":
+    "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Non | Remplace `XCP_NG_POOL_ID` comme pool sous lequel l'agent IA s'enregistre |",
+  "| `ONEUPTIME_AI_INVESTIGATION` | No | `true` or `false`: whether OneUptime AI may run the AI agent's read-only commands while it investigates (default: on) |":
+    "| `ONEUPTIME_AI_INVESTIGATION` | Non | `true` ou `false` : si OneUptime AI peut exécuter les commandes en lecture seule de l'agent IA pendant qu'elle enquête (par défaut : activé) |",
+  "| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` or `bypass-approval`: how OneUptime AI may apply a fix |":
+    "| `ONEUPTIME_AI_FIXES` | Non | `off`, `ask-for-approval`, `automatic` ou `bypass-approval` : comment OneUptime AI peut appliquer un correctif |",
+  "| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes, with the token for changes. Anything else keeps it read-only |":
+    "| `ONEUPTIME_AI_ALLOW_WRITES` | Non | `true` permet à l'agent IA d'appliquer des correctifs, avec le jeton pour les modifications. Toute autre valeur le laisse en lecture seule |",
+  "| `ONEUPTIME_AI_WRITE_TARGETS` | No | The `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` or `schedule/<uuid>` a fix may touch, comma-separated (default: all) |":
+    "| `ONEUPTIME_AI_WRITE_TARGETS` | Non | Les `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` ou `schedule/<uuid>` qu'un correctif peut toucher, séparés par des virgules (par défaut : tous) |",
+  "| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |":
+    "| `ONEUPTIME_AI_PROTECTED_TARGETS` | Non | De même, pour ce que OneUptime AI ne doit jamais modifier : la VM dans laquelle s'exécute l'agent IA, et celle de Xen Orchestra |",
+  "| `LOG_LEVEL` | No | The AI agent's log level: `debug`, `info` (default), `warn` or `error` |":
+    "| `LOG_LEVEL` | Non | Le niveau de journalisation de l'agent IA : `debug`, `info` (par défaut), `warn` ou `error` |",
+  "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
+    "| `COMPOSE_PROFILES` | Non | `xcp-ng-ai-agent` démarre l'agent IA ; le script d'installation l'écrit quand le jeton de lecture est défini |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "L'agent vérifie le certificat de Xen Orchestra avec `xo-ca.pem`, à côté de `docker-compose.yml`.",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

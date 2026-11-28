@@ -67,6 +67,7 @@ import HostAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/
 import PodmanHostAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/AI/Insights";
 import ProxmoxClusterAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/AI/Insights";
 import VMwareVCenterAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/AI/Insights";
+import XcpNgPoolAiInsights from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/AI/Insights";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -188,6 +189,7 @@ const THIN_PAGES: Partial<
   [AiResourceType.VMwareVCenter]: VMwareVCenterAiInsights,
   [AiResourceType.CephCluster]: CephClusterAiInsights,
   [AiResourceType.OpenStackCloud]: OpenStackCloudAiInsights,
+  [AiResourceType.XcpNgPool]: XcpNgPoolAiInsights,
   [AiResourceType.DatabaseServer]: DatabaseServerAiInsights,
   [AiResourceType.Host]: HostAiInsights,
 };

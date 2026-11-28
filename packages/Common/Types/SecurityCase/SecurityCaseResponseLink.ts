@@ -27,6 +27,12 @@ export enum ResponseLinkKind {
   OpenScrubRules = "OpenScrubRules",
   // The project's Blocklist, on the block of an address or a range (#10562).
   OpenBlocklist = "OpenBlocklist",
+  /*
+   * Cloud → Connect, on the form of the cloud connection a step's line
+   * means: the AWS connection to turn Security case checks on for - or
+   * the page itself, to connect one (#11039).
+   */
+  OpenCloudConnection = "OpenCloudConnection",
 }
 
 // The most traces a link carries.
@@ -40,6 +46,10 @@ const HTTPS_ADDRESS: RegExp = /^https:\/\/[^\s]+$/i;
 
 // An IPv4 or IPv6 address or range, as the Blocklist writes one: hex digits, dots, colons and a length.
 const BLOCK_VALUE: RegExp = /^[0-9a-f.:]+(\/\d{1,3})?$/i;
+
+// A record's id, as OneUptime writes one: a UUID.
+const RECORD_ID: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface ResponseTracesLink {
   kind: ResponseLinkKind.OpenTraces;
@@ -77,12 +87,19 @@ export interface ResponseBlocklistLink {
   value: string;
 }
 
+export interface ResponseCloudConnectionLink {
+  kind: ResponseLinkKind.OpenCloudConnection;
+  // The connection whose form opens on Cloud → Connect: none for the page itself.
+  connectionId?: string | undefined;
+}
+
 export type ResponseLink =
   | ResponseTracesLink
   | ResponseEventsLink
   | ResponseProviderLink
   | ResponseScrubRulesLink
-  | ResponseBlocklistLink;
+  | ResponseBlocklistLink
+  | ResponseCloudConnectionLink;
 
 function readText(value: JSONValue | undefined): string {
   return typeof value === "string"
@@ -169,6 +186,22 @@ export function readResponseLink(value: unknown): ResponseLink | null {
       return value && BLOCK_VALUE.test(value) && value.length <= 64
         ? { kind: ResponseLinkKind.OpenBlocklist, value }
         : null;
+    }
+
+    /*
+     * Cloud → Connect (#11039), on a connection by its id - and only an id:
+     * anything else stored there is the page itself, never a guess at a
+     * connection.
+     */
+    case ResponseLinkKind.OpenCloudConnection: {
+      const connectionId: string = readText(link["connectionId"]);
+
+      return RECORD_ID.test(connectionId)
+        ? {
+            kind: ResponseLinkKind.OpenCloudConnection,
+            connectionId: connectionId.toLowerCase(),
+          }
+        : { kind: ResponseLinkKind.OpenCloudConnection };
     }
 
     default:

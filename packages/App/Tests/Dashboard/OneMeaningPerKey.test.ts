@@ -665,6 +665,7 @@ describe("one meaning per key", () => {
       "packages/Common/Models/DatabaseModels/ManagedDevice.ts",
       "packages/Common/Models/DatabaseModels/NetworkDevice.ts",
       "packages/Common/Models/DatabaseModels/StorageArrayResource.ts",
+      "packages/Common/Types/StorageArray/Platforms/Dell/PowerScale/PowerScalePlatform.ts",
       // An ONTAP node's, disk's and shelf's model (#11001).
       "packages/Common/Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform.ts",
     ]);

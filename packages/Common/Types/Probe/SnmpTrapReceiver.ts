@@ -9,26 +9,44 @@ import SnmpPrivProtocol, {
 import SnmpSecurityLevel, {
   SnmpSecurityLevelUtil,
 } from "../Monitor/SnmpMonitor/SnmpSecurityLevel";
+import SnmpV3CredentialHolderUtil, {
+  SnmpV3CredentialHolders,
+} from "./SnmpV3CredentialHolders";
 import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
 
 /*
  * A PROBE'S SNMP TRAP RECEIVER, AS IT REPORTS ITSELF, AND THE SNMPv3 USERS IT
- * IS HANDED (OneUptime issue #11005).
+ * IS HANDED (OneUptime issues #11005, #11172, #11173, #11174).
  *
  * Every probe runs an SNMP trap receiver (Probe/Services/SnmpTrapReceiver).
  * v1 and v2c traps carry a community string and are taken as they come; an
  * SNMPv3 trap is authenticated, and usually encrypted, with a user's keys,
  * so the receiver can only take one from a user it knows. Every thirty
  * seconds the probe reports its receiver to OneUptime
- * (POST /probe/snmp-trap/receiver) and is handed back the SNMPv3 users of
- * the devices assigned to it: their own SNMPv3 credentials, their credential
- * profiles' and their sites' defaults. A credential changed, a profile
- * changed or a device moved to another probe is taken within a minute, and
- * the receiver keeps listening meanwhile.
+ * (POST /probe/snmp-trap/receiver) and is handed back the SNMPv3 users it
+ * may take traps from (Server/Utils/Monitor/SnmpTrapReceiverUsers):
+ *
+ *   - the users of the devices assigned to it: their own SNMPv3
+ *     credentials, their credential profiles' and their sites' defaults;
+ *   - the default credential profile of every site whose Default Probe it
+ *     is, so a device not added yet is taken as its neighbours are (#11174).
+ *
+ * Never another project's: a project's own probe is handed only its
+ * project's, and a global probe only those of the projects that assigned it
+ * a device or made it a site's Default Probe. Each user comes with the
+ * records that hold it (SnmpV3CredentialHolders), which the probe sends back
+ * with every trap that user signed. A credential changed, a profile changed
+ * or a device moved to another probe is taken within a minute, and the
+ * receiver keeps listening meanwhile.
  *
  * What the probe reports (SnmpTrapReceiverReport) is kept on the probe
  * (Probe.snmpTrapReceiver) for a project's own probes, and read by the
- * probe's page and, through the device's probe, by a device's page:
+ * probe's page and, through the device's probe, by a device's page. A
+ * global probe serves many projects, so its report is split as it arrives
+ * (#11173): what belongs to no project - whether it is on, its port and its
+ * engine ID - is kept on the probe, and each project's refused traps, those
+ * from its own devices' addresses, are kept for that project alone
+ * (GlobalProbeSnmpTrapReport, SnmpTrapRefusalShares). What it reports:
  *
  *   - its SNMPv3 engine ID, which a device sending informs needs (on Cisco
  *     IOS it is typed in: `snmp-server engineID remote <probe> <id>`);
@@ -123,7 +141,8 @@ export interface SnmpTrapReceiverReport {
  * already read with the parse() the poller uses, so a stored "SHA-256" is
  * SHA256 here and an unset protocol is the poller's default (MD5, DES).
  * `addresses` are the addresses of the devices the user belongs to: the
- * receiver tries a user on the devices it belongs to first.
+ * receiver tries a user on the devices it belongs to first. A site's
+ * default credential profile belongs to no device yet, and has none.
  */
 export interface SnmpTrapReceiverUser {
   userName: string;
@@ -133,6 +152,11 @@ export interface SnmpTrapReceiverUser {
   privProtocol?: SnmpPrivProtocol | undefined;
   privKey?: string | undefined;
   addresses: Array<string>;
+  /*
+   * The records that hold this credential, sent back with every trap it
+   * signs (SnmpTrap.signedBy). Absent from a server older than #11172.
+   */
+  heldBy?: SnmpV3CredentialHolders | undefined;
 }
 
 // RFC 3411: an SnmpEngineID is 5 to 32 octets.
@@ -276,6 +300,40 @@ export default class SnmpTrapReceiverUtil {
   }
 
   /*
+   * What a global probe's report says that belongs to no project, and is
+   * kept on the probe for every project that uses it to read (#11173):
+   * whether its receiver is on, its port, why it cannot listen, and its
+   * SNMPv3 engine ID - which a device sending it informs needs. Not its
+   * refusals, which name projects' addresses and user names (each project's
+   * are kept for it alone); not how many users it takes, which counts every
+   * project's credentials; not when it last took a trap, which says when
+   * some project's device last sent one.
+   */
+  public static toSharedReport(
+    report: SnmpTrapReceiverReport,
+  ): SnmpTrapReceiverReport {
+    if (!report.isEnabled) {
+      return { isEnabled: false, refusals: [] };
+    }
+
+    const shared: SnmpTrapReceiverReport = { isEnabled: true, refusals: [] };
+
+    if (report.port !== undefined) {
+      shared.port = report.port;
+    }
+
+    if (report.listenError !== undefined) {
+      shared.listenError = report.listenError;
+    }
+
+    if (report.engineId !== undefined) {
+      shared.engineId = report.engineId;
+    }
+
+    return shared;
+  }
+
+  /*
    * The refusals of a report whose source is one of a device's addresses:
    * its hostname, when that is an IP address, and its Other Addresses. A
    * device registered by DNS name is matched by its Other Addresses only -
@@ -347,6 +405,13 @@ export default class SnmpTrapReceiverUtil {
       securityLevel: securityLevel,
       addresses: SnmpTrapReceiverUtil.sanitizeAddresses(value["addresses"]),
     };
+
+    const heldBy: SnmpV3CredentialHolders | null =
+      SnmpV3CredentialHolderUtil.sanitize(value["heldBy"]);
+
+    if (heldBy) {
+      user.heldBy = heldBy;
+    }
 
     if (securityLevel === SnmpSecurityLevel.NoAuthNoPriv) {
       return user;

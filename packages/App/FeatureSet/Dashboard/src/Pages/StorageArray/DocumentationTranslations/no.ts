@@ -39,8 +39,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- om sertifikatet til arrayet skal verifiseres: svar **N**, med mindre arrayet har et sertifikat fra en CA du stoler på (arrayer leveres med et selvsignert)",
   "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the API token) and starts the agent with Docker Compose.":
     "Det installerer i `/opt/oneuptime-storage-array-agent`, skriver en `.env`-fil som bare du kan lese (den inneholder API-tokenet), og starter agenten med Docker Compose.",
-  "Download the compose file and the three collector configs from this OneUptime into a new folder:":
-    "Last ned compose-filen og de tre innsamlerkonfigurasjonene fra denne OneUptime til en ny mappe:",
+  "Download the compose file and the collector configs from this OneUptime into a new folder:":
+    "Last ned compose-filen og innsamlerkonfigurasjonene fra denne OneUptime til en ny mappe:",
   "Create a `.env` file next to them:":
     "Opprett en `.env`-fil ved siden av dem:",
   "- Replace `my-storage-array` with a name for this array, such as `fa-prod-01`. It is how the array appears in OneUptime, so keep it stable: a new name registers a new storage array.":
@@ -130,8 +130,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "**Oppgrader**: innsamlerimaget er låst i `docker-compose.yml`, og konfigurasjonene er filer ved siden av, så å hente imaget alene flytter ikke agenten videre. Kjør installasjonsskriptet på nytt. Det gjenbruker hver verdi i den eksisterende `.env` (ingenting spørres om igjen), laster ned de nyeste `docker-compose.yml` og innsamlerkonfigurasjonene (en fil du har redigert, beholdes ved siden av den nye som `<file>.bak.<timestamp>`) og gjenoppretter agenten med dem:",
   "An agent installed outside `/opt/oneuptime-storage-array-agent` (a second array's, say) needs its folder: `INSTALL_DIR=<folder> bash install.sh`.":
     "En agent som er installert utenfor `/opt/oneuptime-storage-array-agent` (for eksempel agenten for et andre array), trenger mappen sin: `INSTALL_DIR=<folder> bash install.sh`.",
-  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
-    "Installerte du den med Docker Compose i stedet? Last ned compose-filen og de tre innsamlerkonfigurasjonene på nytt i mappen til agenten; `.env` blir værende, og en endring du har gjort i noen av dem, må gjøres på nytt:",
+  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
+    "Installerte du den med Docker Compose i stedet? Last ned compose-filen og innsamlerkonfigurasjonene på nytt i mappen til agenten; `.env` blir værende, og en endring du har gjort i noen av dem, må gjøres på nytt:",
   "Then pull the images and recreate the agent, so the collector reads its new config:":
     "Hent deretter imagene, og gjenopprett agenten, så innsamleren leser den nye konfigurasjonen:",
   "The config reports the collector version it pins as the array's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.":
@@ -211,6 +211,76 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **Filsystemer** (`/metrics/filesystems`) | Plass, datareduksjon og ytelse per filsystem |",
   "| **Object store** (`/metrics/objectstore`) | Space, quota, object counts and performance per bucket |":
     "| **Objektlager** (`/metrics/objectstore`) | Plass, kvote, antall objekter og ytelse per bucket |",
+  "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that reaches every node of the cluster on UDP 161 (SNMP)":
+    "Docker Engine 20.10 eller nyere med Docker Compose v2-tillegget, på en maskin som når alle nodene i klyngen på UDP 161 (SNMP)",
+  "An administrator account on the cluster, to turn on SNMP and set the agent's read-only community or SNMPv3 user":
+    "En administratorkonto på klyngen, for å slå på SNMP og angi agentens skrivebeskyttede community eller SNMPv3-bruker",
+  "SSH to any node as an administrator: OneFS applies SNMP settings to the whole cluster. If the cluster already answers SNMP for another tool, give the agent the same community or user and skip this step. Otherwise, turn on SNMP v2c with a read-only community of your own, not OneFS's default `I$ilonpublic`:":
+    "Koble til en hvilken som helst node med SSH som administrator: OneFS bruker SNMP-innstillingene på hele klyngen. Hvis klyngen allerede svarer på SNMP for et annet verktøy, gir du agenten samme community eller bruker og hopper over dette trinnet. Ellers slår du på SNMP v2c med en egen skrivebeskyttet community, ikke OneFS' standard-community `I$ilonpublic`:",
+  "Or turn on SNMPv3, which authenticates and encrypts every poll. OneFS has one SNMPv3 read-only user, `general` until you rename it: give it passwords of at least eight characters, without spaces:":
+    "Eller slå på SNMPv3, som autentiserer og krypterer hver avspørring. OneFS har én skrivebeskyttet SNMPv3-bruker, `general`, til du gir den nytt navn: gi den passord på minst åtte tegn, uten mellomrom:",
+  "`isi snmp settings view` shows the settings, with the user's authentication and privacy protocols. Allow UDP 161 from the agent's machine to every node, and list the nodes' addresses with `isi network interfaces list`.":
+    "`isi snmp settings view` viser innstillingene, med autentiserings- og personvernprotokollene til brukeren. Tillat UDP 161 fra maskinen til agenten til hver node, og vis adressene til nodene med `isi network interfaces list`.",
+  "- **every node's address**, separated by commas: each node's own address, never the SmartConnect zone name, since a node answers only for its own drives, sensors and ports":
+    "- **adressene til alle nodene**, atskilt med komma: hver nodes egen adresse, aldri navnet på SmartConnect-sonen, siden en node bare svarer for sine egne stasjoner, sensorer og porter",
+  "- the **SNMP version**, then the read-only **community**, or the SNMPv3 **user** and its two passwords, each read without echo":
+    "- **SNMP-versjonen**, deretter den skrivebeskyttede **communityen**, eller SNMPv3-**brukeren** og de to passordene til den, som hvert leses uten å vises",
+  "A user whose protocols are not SHA and AES needs `POWERSCALE_SNMP_AUTH_PROTOCOL` and `POWERSCALE_SNMP_PRIVACY_PROTOCOL` in front of `bash install.sh`, and a user without privacy `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.":
+    "En bruker med andre protokoller enn SHA og AES trenger `POWERSCALE_SNMP_AUTH_PROTOCOL` og `POWERSCALE_SNMP_PRIVACY_PROTOCOL` foran `bash install.sh`, og en bruker uten personvern `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.",
+  "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the community or the SNMPv3 passwords), with one poll per node, and starts the agent with Docker Compose. When the cluster gains a node, add its address to `POWERSCALE_NODES` in that file and run `bash install.sh` again.":
+    "Det installerer i `/opt/oneuptime-storage-array-agent`, skriver en `.env`-fil som bare du kan lese (den inneholder communityen eller SNMPv3-passordene), med én avspørring per node, og starter agenten med Docker Compose. Når klyngen får en ny node, legger du adressen til i `POWERSCALE_NODES` i den filen og kjører `bash install.sh` på nytt.",
+  "- Replace `my-storage-array` with a name for this cluster, such as `ps-prod`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new storage array.":
+    "- Erstatt `my-storage-array` med et navn på denne klyngen, for eksempel `ps-prod`. Det er slik klyngen vises i OneUptime, så hold det stabilt: et nytt navn registrerer et nytt lagringsarray.",
+  "- List every node in `POWERSCALE_NODES` and give each its own `POWERSCALE_NODE_<n>` and `snmp/node-<n>` in `POWERSCALE_SNMP_RECEIVERS`, up to 252, after `snmp/cluster` and `snmp/quotas`. An IPv6 address goes in brackets, such as `[fd00::11]`.":
+    "- List opp hver node i `POWERSCALE_NODES`, og gi hver av dem sin egen `POWERSCALE_NODE_<n>` og sin egen `snmp/node-<n>` i `POWERSCALE_SNMP_RECEIVERS`, opptil 252, etter `snmp/cluster` og `snmp/quotas`. En IPv6-adresse står i hakeparenteser, for eksempel `[fd00::11]`.",
+  "- For SNMPv3, set `POWERSCALE_SNMP_VERSION=v3`, `POWERSCALE_SNMP_USER`, `POWERSCALE_SNMP_AUTH_PASSWORD` and `POWERSCALE_SNMP_PRIVACY_PASSWORD` instead of the community. Run `chmod 600 .env`: it holds the community or the passwords.":
+    "- For SNMPv3 setter du `POWERSCALE_SNMP_VERSION=v3`, `POWERSCALE_SNMP_USER`, `POWERSCALE_SNMP_AUTH_PASSWORD` og `POWERSCALE_SNMP_PRIVACY_PASSWORD` i stedet for communityen. Kjør `chmod 600 .env`: filen inneholder communityen eller passordene.",
+  "| `STORAGE_ARRAY_NAME` | Yes | The name this cluster registers under in OneUptime, stamped on every metric as `storage.array.name`. Keep it stable — changing it registers a new storage array |":
+    "| `STORAGE_ARRAY_NAME` | Ja | Navnet klyngen registreres under i OneUptime, satt på hver måling som `storage.array.name`. Hold det stabilt: endrer du det, registreres et nytt lagringsarray |",
+  "| `STORAGE_SYSTEM` | Yes | `dell.powerscale` |":
+    "| `STORAGE_SYSTEM` | Ja | `dell.powerscale` |",
+  "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Yes | `otel-collector-config.powerscale.yaml` |":
+    "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Ja | `otel-collector-config.powerscale.yaml` |",
+  "| `POWERSCALE_NODES` | Yes | Every node's address, separated by commas. The install script writes the polls below from it |":
+    "| `POWERSCALE_NODES` | Ja | Adressene til alle nodene, atskilt med komma. Installasjonsskriptet skriver avspørringene nedenfor ut fra den |",
+  "| `POWERSCALE_ENDPOINT` | Yes | The node the cluster's own health, capacity and quotas are read through: the first in `POWERSCALE_NODES` |":
+    "| `POWERSCALE_ENDPOINT` | Ja | Noden som klyngens egen helse, kapasitet og kvoter leses gjennom: den første i `POWERSCALE_NODES` |",
+  "| `POWERSCALE_SNMP_RECEIVERS` | Yes | The polls the collector runs: `snmp/cluster`, `snmp/quotas`, then `snmp/node-<n>` for each node |":
+    "| `POWERSCALE_SNMP_RECEIVERS` | Ja | Avspørringene innsamleren kjører: `snmp/cluster`, `snmp/quotas`, deretter `snmp/node-<n>` for hver node |",
+  "| `POWERSCALE_NODE_<n>` | Yes | Node `<n>`'s address, from 1 to 252 |":
+    "| `POWERSCALE_NODE_<n>` | Ja | Adressen til node `<n>`, fra 1 til 252 |",
+  "| `POWERSCALE_SNMP_VERSION` | No | `v2c` (default) or `v3` |":
+    "| `POWERSCALE_SNMP_VERSION` | Nei | `v2c` (standard) eller `v3` |",
+  "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | The cluster's read-only community |":
+    "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | Klyngens skrivebeskyttede community |",
+  "| `POWERSCALE_SNMP_USER` | SNMPv3 | The cluster's SNMPv3 read-only user |":
+    "| `POWERSCALE_SNMP_USER` | SNMPv3 | Klyngens skrivebeskyttede SNMPv3-bruker |",
+  "| `POWERSCALE_SNMP_SECURITY_LEVEL` | No | `auth_priv` (default), `auth_no_priv` or `no_auth_no_priv` |":
+    "| `POWERSCALE_SNMP_SECURITY_LEVEL` | Nei | `auth_priv` (standard), `auth_no_priv` eller `no_auth_no_priv` |",
+  "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | No | `SHA` (default), `MD5`, `SHA224`, `SHA256`, `SHA384` or `SHA512` |":
+    "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | Nei | `SHA` (standard), `MD5`, `SHA224`, `SHA256`, `SHA384` eller `SHA512` |",
+  "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | The SNMPv3 user's authentication password |":
+    "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | Autentiseringspassordet til SNMPv3-brukeren |",
+  "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | No | `AES` (default), `DES`, `AES192`, `AES256`, `AES192C` or `AES256C` |":
+    "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | Nei | `AES` (standard), `DES`, `AES192`, `AES256`, `AES192C` eller `AES256C` |",
+  "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | The SNMPv3 user's privacy password |":
+    "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | Personvernpassordet til SNMPv3-brukeren |",
+  "- **One collector, no exporter.** The collector's own SNMP receiver reads Dell's ISILON-MIB; nothing else runs beside it.":
+    "- **Én innsamler, ingen eksportør.** Innsamlerens egen SNMP-mottaker leser Dells ISILON-MIB; ingenting annet kjører ved siden av.",
+  "- **The cluster's objects once, through `POWERSCALE_ENDPOINT`:** its health, capacity, throughput and node counts every 60 seconds (`snmp/cluster`), and its SmartQuotas every 5 minutes (`snmp/quotas`).":
+    "- **Klyngens objekter én gang, gjennom `POWERSCALE_ENDPOINT`:** helse, kapasitet, gjennomstrømning og antall noder hvert 60. sekund (`snmp/cluster`), og SmartQuotas hvert 5. minutt (`snmp/quotas`).",
+  "- **Each node's from the node:** its health, CPU, protocol performance, drives, sensors and ports every 60 seconds (`snmp/node-<n>`).":
+    "- **Hver nodes objekter fra noden selv:** helse, CPU, protokollytelse, stasjoner, sensorer og porter hvert 60. sekund (`snmp/node-<n>`).",
+  "- **Every poll labels its series `scrape_endpoint: <poll>`**, so OneUptime knows which objects a batch is the complete list of — that is how a deleted quota leaves the inventory. Keep the labels as shipped.":
+    "- **Hver avspørring setter etiketten `scrape_endpoint: <poll>` på seriene sine**, så OneUptime vet hvilke objekter en batch er den fullstendige listen over: slik forsvinner en slettet kvote fra inventaret. Behold etikettene slik de leveres.",
+  "The full config, one SNMP receiver per node slot, is `otel-collector-config.powerscale.yaml` in the agent's folder:":
+    "Hele konfigurasjonen, med én SNMP-mottaker per nodeplass, er `otel-collector-config.powerscale.yaml` i mappen til agenten:",
+  "Then turn SNMP off on the cluster, or change the agent's community or SNMPv3 passwords, if nothing else polls it.":
+    "Slå deretter av SNMP på klyngen, eller endre agentens community eller SNMPv3-passord, hvis ingenting annet avspør klyngen.",
+  "`troubleshoot.sh` checks the whole chain — the container runtime, the node addresses and the community or SNMPv3 user in `.env`, each node with `snmpget` when the machine has it, array-name stamping, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key.":
+    "`troubleshoot.sh` sjekker hele kjeden (containerkjøretid, nodeadressene og communityen eller SNMPv3-brukeren i `.env`, hver node med `snmpget` når maskinen har det, påføringen av arraynavnet, innsamlerens egne målinger) og spør OneUptime direkte om den godtar inntaksnøkkelen din.",
+  "`Error scraping metrics` with `request timeout` in `docker logs oneuptime-storage-array-agent` names a node that does not answer SNMP from this machine: SNMP is off for the version the agent uses, the community or SNMPv3 user is not the cluster's, or UDP 161 is blocked on the way. A node that answers but is missing from the cluster's nodes is not in `POWERSCALE_NODES`: add it and run `bash install.sh` again.":
+    "`Error scraping metrics` med `request timeout` i `docker logs oneuptime-storage-array-agent` peker på en node som ikke svarer på SNMP fra denne maskinen: SNMP er slått av for versjonen agenten bruker, communityen eller SNMPv3-brukeren er ikke klyngens, eller UDP 161 er blokkert underveis. En node som svarer, men mangler blant klyngens noder, står ikke i `POWERSCALE_NODES`: legg den til og kjør `bash install.sh` på nytt.",
 };
 
 export default TRANSLATION;

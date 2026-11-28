@@ -2,6 +2,7 @@ import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
   SETUP_GUIDE_URL_PLACEHOLDER,
   SetupGuideContent,
+  SetupGuideLink,
   SetupGuideOption,
   SetupGuideStep,
   SetupGuideTopic,
@@ -23,6 +24,10 @@ import {
   StorageArrayAgentConfig,
   StorageArrayPlatform as StorageArrayPlatformDefinition,
 } from "Common/Types/StorageArray/StorageArrayPlatform";
+import {
+  getPowerScaleEnvFile,
+  getPowerScaleSetupGuide,
+} from "./PowerScaleSetupGuide";
 
 /*
  * The in-app install guide for the OneUptime Storage Array Agent
@@ -37,8 +42,9 @@ import {
  *
  * The guide's steps are Pure Storage's: how to make a read-only user on a
  * Purity array, the native endpoint check, Pure's exporters. A platform
- * that reads its arrays another way brings steps of its own (#11123 makes
- * them one guide per platform).
+ * that reads its arrays another way brings steps of its own, with the
+ * shared topics handed to it: a Dell PowerScale's are
+ * PowerScaleSetupGuide.ts (#11123 makes every platform's a guide of its own).
  *
  * Pure Storage renamed itself Everpure in February 2026; FlashArray,
  * FlashBlade, Purity and their metric namespaces kept their names.
@@ -54,13 +60,24 @@ import {
 export type StorageArrayPlatform =
   | "flasharray"
   | "flasharray-exporter"
-  | "flashblade";
+  | "flashblade"
+  | "powerscale";
 
 const GUIDE_PLATFORMS: ReadonlyArray<StorageArrayPlatform> = [
   "flasharray",
   "flasharray-exporter",
   "flashblade",
+  "powerscale",
 ];
+
+/*
+ * The options whose collector config the guide shows whole. A PowerScale's
+ * holds a receiver per node slot, so its guide names the file instead.
+ */
+export type StorageArrayWholeConfigPlatform = Exclude<
+  StorageArrayPlatform,
+  "powerscale"
+>;
 
 function isGuidePlatform(key: string): key is StorageArrayPlatform {
   return (GUIDE_PLATFORMS as ReadonlyArray<string>).includes(key);
@@ -918,7 +935,7 @@ service:
 `;
 
 export const STORAGE_ARRAY_COLLECTOR_CONFIGS: Record<
-  StorageArrayPlatform,
+  StorageArrayWholeConfigPlatform,
   string
 > = {
   flasharray: STORAGE_ARRAY_FLASHARRAY_COLLECTOR_CONFIG,
@@ -1057,6 +1074,10 @@ export function getStorageArrayEnvFile(data: {
   platform: StorageArrayPlatform;
   arrayName: string;
 }): string {
+  if (data.platform === "powerscale") {
+    return getPowerScaleEnvFile(data);
+  }
+
   const settings: PlatformSettings = getStorageArrayPlatformSettings(
     data.platform,
   );
@@ -1152,15 +1173,21 @@ A \`purefa_info{...} 1\` line means the array serves its metrics natively: carry
   };
 }
 
-function getArrayNameNote(context: GuideContext): string {
-  if (context.isArrayNameKnown) {
-    return `This installs the agent for **\`${context.arrayName}\`** — keep \`STORAGE_ARRAY_NAME\` exactly as it is, or the data registers as a new storage array.`;
-  }
-  return `Replace \`${context.arrayName}\` with a name for this array, such as \`fa-prod-01\`. It is how the array appears in OneUptime, so keep it stable: a new name registers a new storage array.`;
+// "The first line downloads the script as install.sh, ...": under every install command.
+const INSTALL_SCRIPT_NOTE: string =
+  "The first line downloads the script as `install.sh`, so you can read it before you run it.";
+
+// What the install script asks before a platform's own questions.
+function getInstallScriptIntro(prefilled: boolean): string {
+  return prefilled
+    ? "The command already carries your OneUptime URL, ingestion key and the platform you picked above. The script asks for:"
+    : "The command carries the platform you picked above. The script asks for:";
 }
 
-function getInstallScriptVariant(context: GuideContext): string {
-  const prefilled: boolean = isPrefilled(context);
+function getInstallScriptSharedAsks(
+  context: GuideContext,
+  prefilled: boolean,
+): Array<string> {
   const asks: Array<string> = [];
 
   if (!prefilled) {
@@ -1175,6 +1202,32 @@ function getInstallScriptVariant(context: GuideContext): string {
     );
   }
 
+  return asks;
+}
+
+function getKnownNameNote(context: GuideContext): string {
+  return `It registers the array as **\`${context.arrayName}\`** — the name this array already has in OneUptime.`;
+}
+
+const COMPOSE_DOWNLOAD_INTRO: string =
+  "Download the compose file and the collector configs from this OneUptime into a new folder:";
+const COMPOSE_ENV_INTRO: string = "Create a `.env` file next to them:";
+const COMPOSE_START_INTRO: string = "Start the agent:";
+const COMPOSE_KEY_NOTE: string = `Pick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`;
+const DIAGNOSTIC_VERDICT: string =
+  "It ends with a verdict naming the most likely cause.";
+
+function getArrayNameNote(context: GuideContext): string {
+  if (context.isArrayNameKnown) {
+    return `This installs the agent for **\`${context.arrayName}\`** — keep \`STORAGE_ARRAY_NAME\` exactly as it is, or the data registers as a new storage array.`;
+  }
+  return `Replace \`${context.arrayName}\` with a name for this array, such as \`fa-prod-01\`. It is how the array appears in OneUptime, so keep it stable: a new name registers a new storage array.`;
+}
+
+function getInstallScriptVariant(context: GuideContext): string {
+  const prefilled: boolean = isPrefilled(context);
+  const asks: Array<string> = getInstallScriptSharedAsks(context, prefilled);
+
   asks.push(
     `the ${context.settings.arrayNoun}'s **management address** (host name or IP, no \`https://\`) and the read-only user's **API token**, which it reads without echoing`,
   );
@@ -1185,12 +1238,10 @@ function getInstallScriptVariant(context: GuideContext): string {
     );
   }
 
-  const intro: string = prefilled
-    ? "The command already carries your OneUptime URL, ingestion key and the platform you picked above. The script asks for:"
-    : "The command carries the platform you picked above. The script asks for:";
+  const intro: string = getInstallScriptIntro(prefilled);
 
   const knownName: string = context.isArrayNameKnown
-    ? `\n\nIt registers the array as **\`${context.arrayName}\`** — the name this array already has in OneUptime.`
+    ? `\n\n${getKnownNameNote(context)}`
     : "";
 
   return `${codeBlock(
@@ -1204,7 +1255,7 @@ function getInstallScriptVariant(context: GuideContext): string {
     }),
   )}
 
-The first line downloads the script as \`install.sh\`, so you can read it before you run it.
+${INSTALL_SCRIPT_NOTE}
 
 ${intro}
 
@@ -1229,7 +1280,7 @@ function getDockerComposeVariant(context: GuideContext): string {
     );
   }
 
-  return `Download the compose file and the three collector configs from this OneUptime into a new folder:
+  return `${COMPOSE_DOWNLOAD_INTRO}
 
 ${codeBlock(
   "bash",
@@ -1239,7 +1290,7 @@ ${codeBlock(
   ].join("\n"),
 )}
 
-Create a \`.env\` file next to them:
+${COMPOSE_ENV_INTRO}
 
 ${codeBlock(
   "bash",
@@ -1257,13 +1308,13 @@ ${notes
   })
   .join("\n")}
 
-Start the agent:
+${COMPOSE_START_INTRO}
 
 ${codeBlock("bash", "docker compose up -d")}${
     context.apiKey === SETUP_GUIDE_API_KEY_PLACEHOLDER
       ? `
 
-Pick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`
+${COMPOSE_KEY_NOTE}`
       : ""
   }`;
 }
@@ -1310,11 +1361,13 @@ function inAgentFolder(commands: Array<string>): string {
   return [`cd ${STORAGE_ARRAY_AGENT_INSTALL_DIR}`, ...commands].join("\n");
 }
 
+const ENVIRONMENT_INTRO: string = `The install script writes these to \`${STORAGE_ARRAY_AGENT_INSTALL_DIR}/.env\`; a Docker Compose install reads them from the \`.env\` file next to \`docker-compose.yml\`. After changing one, apply it with \`docker compose up -d\` in the agent's folder.`;
+
 function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
   return {
     title: "Environment variables",
     summary: "Every setting the collector reads from its .env file.",
-    markdown: `The install script writes these to \`${STORAGE_ARRAY_AGENT_INSTALL_DIR}/.env\`; a Docker Compose install reads them from the \`.env\` file next to \`docker-compose.yml\`. After changing one, apply it with \`docker compose up -d\` in the agent's folder.
+    markdown: `${ENVIRONMENT_INTRO}
 
 | Variable | Required | Description |
 |----------|----------|-------------|
@@ -1359,7 +1412,12 @@ function getCollectorConfigTopic(context: GuideContext): SetupGuideTopic {
 
 This is the full \`${context.settings.collectorConfigFile}\` the agent runs; the \`.env\` file supplies the \`\${env:...}\` values:
 
-${codeBlock("yaml", STORAGE_ARRAY_COLLECTOR_CONFIGS[context.platform])}`,
+${codeBlock(
+  "yaml",
+  STORAGE_ARRAY_COLLECTOR_CONFIGS[
+    context.platform as StorageArrayWholeConfigPlatform
+  ],
+)}`,
   };
 }
 
@@ -1487,7 +1545,13 @@ ${codeBlock(
   };
 }
 
-function getUpgradeTopic(oneuptimeUrl: string): SetupGuideTopic {
+const PURE_UNINSTALL_NOTE: string =
+  "Then delete the read-only user and its API token on the array if you no longer need them.";
+
+function getUpgradeTopic(
+  oneuptimeUrl: string,
+  uninstallNote: string = PURE_UNINSTALL_NOTE,
+): SetupGuideTopic {
   return {
     title: "Upgrade or uninstall the agent",
     summary:
@@ -1498,7 +1562,7 @@ ${codeBlock("bash", getStorageArrayAgentUpgradeCommand(oneuptimeUrl))}
 
 An agent installed outside \`${STORAGE_ARRAY_AGENT_INSTALL_DIR}\` (a second array's, say) needs its folder: \`INSTALL_DIR=<folder> bash install.sh\`.
 
-Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again; your \`.env\` stays, and a change you made to any of them has to be made again:
+Installed it with Docker Compose instead? In the agent's folder, download the compose file and the collector configs again; your \`.env\` stays, and a change you made to any of them has to be made again:
 
 ${codeBlock("bash", getStorageArrayAgentDownloadCommand(oneuptimeUrl))}
 
@@ -1512,7 +1576,7 @@ The config reports the collector version it pins as the array's **Agent Version*
 
 ${codeBlock("bash", inAgentFolder(["docker compose down"]))}
 
-Then delete the read-only user and its API token on the array if you no longer need them.`,
+${uninstallNote}`,
   };
 }
 
@@ -1529,25 +1593,43 @@ function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
   ];
 }
 
-function getTroubleshootingTopics(
-  context: GuideContext,
-): Array<SetupGuideTopic> {
+function getTroubleshootCommand(oneuptimeUrl: string): string {
+  return `${getTroubleshootScriptDownloadCommand(oneuptimeUrl, STORAGE_ARRAY_AGENT_INSTALL_NAME)}
+bash troubleshoot.sh -d ${STORAGE_ARRAY_AGENT_INSTALL_DIR}    # or the folder with docker-compose.yml`;
+}
+
+function getDisconnectedTopic(): SetupGuideTopic {
+  return {
+    title: 'Array shows as "Disconnected"',
+    markdown: `1. Check that the agent is running: \`docker ps --filter name=${STORAGE_ARRAY_AGENT_CONTAINER}\`
+2. Check the agent logs for errors: \`docker logs ${STORAGE_ARRAY_AGENT_CONTAINER} 2>&1 | grep -i error\`
+3. Verify your OneUptime URL and ingestion key are correct.
+4. Ensure the agent machine can reach the OneUptime instance over the network.`,
+  };
+}
+
+function getWrongNameTopic(context: GuideContext): SetupGuideTopic {
   const knownName: string = context.isArrayNameKnown
     ? ` This array is **\`${context.arrayName}\`**.`
     : "";
 
+  return {
+    title: "Array appears under the wrong name",
+    markdown: `The array's identity comes from \`STORAGE_ARRAY_NAME\`, stamped on every metric as \`storage.array.name\`.${knownName} Fix it in \`.env\` and apply it with \`docker compose up -d\` in the agent's folder — note that a new name registers a new storage array.`,
+  };
+}
+
+function getTroubleshootingTopics(
+  context: GuideContext,
+): Array<SetupGuideTopic> {
   const topics: Array<SetupGuideTopic> = [
     {
       title: "Run the diagnostic script first",
       markdown: `\`troubleshoot.sh\` checks the whole chain — container runtime, the array endpoint exactly as the collector reaches it (the native endpoint or Pure's exporter, DNS, TLS, the API token), array-name stamping, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with \`401\` or \`422\`, which the collector logs as a single \`Exporting failed\` line per batch that is easy to miss, so the script asks \`GET /otlp/v1/validate\` for a direct 200/401 verdict.
 
-${codeBlock(
-  "bash",
-  `${getTroubleshootScriptDownloadCommand(context.oneuptimeUrl, STORAGE_ARRAY_AGENT_INSTALL_NAME)}
-bash troubleshoot.sh -d ${STORAGE_ARRAY_AGENT_INSTALL_DIR}    # or the folder with docker-compose.yml`,
-)}
+${codeBlock("bash", getTroubleshootCommand(context.oneuptimeUrl))}
 
-It ends with a verdict naming the most likely cause.`,
+${DIAGNOSTIC_VERDICT}`,
     },
     {
       title: "No array appears in OneUptime",
@@ -1578,17 +1660,8 @@ It ends with a verdict naming the most likely cause.`,
       title: "The exporter does not resolve",
       markdown: `\`${STORAGE_ARRAY_FA_EXPORTER_SERVICE}\` or \`${STORAGE_ARRAY_FB_EXPORTER_SERVICE}\` is not running: \`COMPOSE_PROFILES\` must match \`STORAGE_ARRAY_COLLECTOR_CONFIG\` — \`flasharray-exporter\` for the FlashArray exporter config, \`flashblade\` for the FlashBlade config. Fix \`.env\` and run \`docker compose up -d\`; \`docker compose ps\` then lists the exporter.`,
     },
-    {
-      title: 'Array shows as "Disconnected"',
-      markdown: `1. Check that the agent is running: \`docker ps --filter name=${STORAGE_ARRAY_AGENT_CONTAINER}\`
-2. Check the agent logs for errors: \`docker logs ${STORAGE_ARRAY_AGENT_CONTAINER} 2>&1 | grep -i error\`
-3. Verify your OneUptime URL and ingestion key are correct.
-4. Ensure the agent machine can reach the OneUptime instance over the network.`,
-    },
-    {
-      title: "Array appears under the wrong name",
-      markdown: `The array's identity comes from \`STORAGE_ARRAY_NAME\`, stamped on every metric as \`storage.array.name\`.${knownName} Fix it in \`.env\` and apply it with \`docker compose up -d\` in the agent's folder — note that a new name registers a new storage array.`,
-    },
+    getDisconnectedTopic(),
+    getWrongNameTopic(context),
   );
 
   return topics;
@@ -1613,6 +1686,63 @@ export function getStorageArraySetupGuide(
     isArrayNameKnown: Boolean(knownArrayName),
   };
 
+  const links: Array<SetupGuideLink> = [
+    {
+      title: "Storage Array Agent documentation",
+      url: "/docs/telemetry/storage-arrays",
+    },
+    {
+      title: "Storage array monitors and alerts",
+      url: "/docs/monitor/storage-array-monitor",
+    },
+  ];
+
+  if (options.platform === "powerscale") {
+    const prefilled: boolean = isPrefilled(context);
+    return getPowerScaleSetupGuide({
+      oneuptimeUrl: context.oneuptimeUrl,
+      apiKey: context.apiKey,
+      isPrefilled: prefilled,
+      arrayName: context.arrayName,
+      isArrayNameKnown: context.isArrayNameKnown,
+      installDirectory: STORAGE_ARRAY_AGENT_INSTALL_DIR,
+      agentContainer: STORAGE_ARRAY_AGENT_CONTAINER,
+      installCommand: getStorageArrayInstallScriptCommand({
+        oneuptimeUrl: context.oneuptimeUrl,
+        apiKey: context.apiKey,
+        hasApiKey: context.hasApiKey,
+        platform: context.platform,
+        arrayName: context.isArrayNameKnown ? context.arrayName : undefined,
+      }),
+      downloadCommand: getStorageArrayAgentDownloadCommand(
+        context.oneuptimeUrl,
+      ),
+      troubleshootCommand: getTroubleshootCommand(context.oneuptimeUrl),
+      installScriptNote: INSTALL_SCRIPT_NOTE,
+      installScriptIntro: getInstallScriptIntro(prefilled),
+      installScriptAsks: getInstallScriptSharedAsks(context, prefilled),
+      knownNameNote: getKnownNameNote(context),
+      composeDownloadIntro: COMPOSE_DOWNLOAD_INTRO,
+      composeEnvIntro: COMPOSE_ENV_INTRO,
+      composeStartIntro: COMPOSE_START_INTRO,
+      composeKeyNote: COMPOSE_KEY_NOTE,
+      arrayNameNote: getArrayNameNote(context),
+      verifyStep: getVerifyStep(context),
+      environmentIntro: ENVIRONMENT_INTRO,
+      sharedAdvanced: [getLabelsTopic(), getSystemdTopic(context.oneuptimeUrl)],
+      upgradeTopic: getUpgradeTopic(
+        context.oneuptimeUrl,
+        "Then turn SNMP off on the cluster, or change the agent's community or SNMPv3 passwords, if nothing else polls it.",
+      ),
+      sharedTroubleshooting: [
+        getDisconnectedTopic(),
+        getWrongNameTopic(context),
+      ],
+      diagnosticVerdict: DIAGNOSTIC_VERDICT,
+      links,
+    });
+  }
+
   const steps: Array<SetupGuideStep> = [getReadOnlyUserStep(context)];
 
   if (options.platform === "flasharray") {
@@ -1626,15 +1756,6 @@ export function getStorageArraySetupGuide(
     steps: steps,
     advanced: getAdvancedTopics(context),
     troubleshooting: getTroubleshootingTopics(context),
-    links: [
-      {
-        title: "Storage Array Agent documentation",
-        url: "/docs/telemetry/storage-arrays",
-      },
-      {
-        title: "Storage array monitors and alerts",
-        url: "/docs/monitor/storage-array-monitor",
-      },
-    ],
+    links,
   };
 }

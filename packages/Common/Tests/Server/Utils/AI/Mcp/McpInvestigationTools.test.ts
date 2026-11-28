@@ -3,6 +3,7 @@ import McpRunToolkit from "../../../../../Server/Utils/AI/Mcp/McpRunToolkit";
 import ExternalMcpServerConnection from "../../../../../Server/Utils/AI/Mcp/ExternalMcpServerConnection";
 import { clearMcpSignInCachesForTests } from "../../../../../Server/Utils/AI/Mcp/McpSignIn";
 import AiCommandKillSwitch from "../../../../../Server/Utils/AI/AiCommandKillSwitch";
+import ExternalMcpToolReadOnlyMarkService from "../../../../../Server/Services/ExternalMcpToolReadOnlyMarkService";
 import ToolOutputPager from "../../../../../Server/Utils/AI/Chat/ToolOutputPager";
 import { ObservabilityAssistantExtraTool } from "../../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import { ToolCallOutcome } from "../../../../../Server/Utils/AI/Toolbox/Index";
@@ -83,6 +84,10 @@ beforeEach(() => {
 
   // Enable AI, read before every connection and call (#10879): on.
   jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+  // No Project Admin has marked a tool read-only (#11081: McpRunToolkitMarks).
+  jest
+    .spyOn(ExternalMcpToolReadOnlyMarkService, "findMarksOfServer")
+    .mockResolvedValue([]);
 
   jest
     .spyOn(IncidentService, "findOneById")

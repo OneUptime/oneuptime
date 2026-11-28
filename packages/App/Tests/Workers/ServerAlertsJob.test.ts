@@ -12,6 +12,12 @@ import UserPushService from "Common/Server/Services/UserPushService";
 import UserService from "Common/Server/Services/UserService";
 import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
 import GlobalProbesBehind from "Common/Server/Utils/Probe/GlobalProbesBehind";
+import logger from "Common/Server/Utils/Logger";
+import {
+  PROBE_ALARM_ATTRIBUTE_KEY,
+  PROBE_ALARM_LOG_PREFIX,
+  ProbeAlarm,
+} from "Common/Server/Utils/Probe/ProbeAlarmLog";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import User from "Common/Models/DatabaseModels/User";
@@ -59,7 +65,10 @@ import {
  *   - with no channel that can carry it, nothing is sent and nothing is
  *     thrown; a channel that refuses does not keep the others from going;
  *   - OneUptime Cloud sends nothing until its operator chooses;
- *   - the pushes go to the master admins' own devices only.
+ *   - the pushes go to the master admins' own devices only;
+ *   - while a global probe has been behind for minutes, every run raises
+ *     an alarm in the server log, an error line, whatever master admins
+ *     are told - on OneUptime Cloud with no channel chosen too.
  *
  * The database, where the server stands, and the senders are stood in for.
  */
@@ -122,9 +131,28 @@ jest.mock("Common/Server/Utils/ServerSending/ServerSendingStatus", () => {
   return { __esModule: true, default: { getAnswer: jest.fn() } };
 });
 
-// Which global probes are behind, as OneUptime Health reads them.
+/*
+ * Which global probes are behind, as OneUptime Health reads them; the
+ * alarm's rules (getAlarmText) are the real ones.
+ */
 jest.mock("Common/Server/Utils/Probe/GlobalProbesBehind", () => {
-  return { __esModule: true, default: { read: jest.fn() } };
+  type AlarmRules = {
+    getAlarmEntries: (...args: Array<unknown>) => unknown;
+    getAlarmText: (...args: Array<unknown>) => unknown;
+  };
+
+  const actual: { default: AlarmRules } = jest.requireActual(
+    "Common/Server/Utils/Probe/GlobalProbesBehind",
+  ) as { default: AlarmRules };
+
+  return {
+    __esModule: true,
+    default: {
+      read: jest.fn(),
+      getAlarmEntries: actual.default.getAlarmEntries.bind(actual.default),
+      getAlarmText: actual.default.getAlarmText.bind(actual.default),
+    },
+  };
 });
 
 jest.mock("Common/Server/Services/UserService", () => {
@@ -577,6 +605,82 @@ describe("a global probe falling behind", () => {
     await behindAt(later(5), BEHIND);
 
     expect(sent).toEqual([]);
+  });
+});
+
+describe("the alarm in the server log", () => {
+  // Behind since ten minutes before NOW.
+  const BEHIND: Array<InstallationHealthProbeBehind> = [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      name: "Probe-1",
+      since: "2026-11-18T09:50:00.000Z",
+      work: ProbeBehindWork.MonitorChecks,
+    },
+  ];
+
+  function alarmLines(): Array<Array<unknown>> {
+    return (logger.error as unknown as jest.Mock).mock.calls.filter(
+      (call: Array<unknown>): boolean => {
+        return String(call[0]).startsWith(PROBE_ALARM_LOG_PREFIX);
+      },
+    );
+  }
+
+  test("a global probe behind for minutes raises it at every run, saying how master admins are told", async () => {
+    readBehind.mockResolvedValue(BEHIND as never);
+
+    await runAt(NOW, standing());
+    await runAt(later(5), standing());
+
+    const lines: Array<Array<unknown>> = alarmLines();
+    expect(lines).toHaveLength(2);
+    expect(String(lines[0]![0])).toContain(
+      "Probe alarm: a global probe has been behind for 5 minutes or more: Probe-1 on monitor checks since 2026-11-18T09:50:00.000Z.",
+    );
+    expect(String(lines[0]![0])).toContain(
+      "Master admins are told by push, SMS, the Admin Notification Email (Outage Notifications).",
+    );
+    expect(lines[0]![1]).toEqual({
+      [PROBE_ALARM_ATTRIBUTE_KEY]: ProbeAlarm.GlobalProbesBehind,
+    });
+  });
+
+  test("OneUptime Cloud with no channel chosen tells nobody, and the alarm says so", async () => {
+    flags.billingEnabled = true;
+    stored.serverAlertPhoneNumber = undefined;
+    readBehind.mockResolvedValue([] as never);
+    await runAt(NOW, standing());
+
+    readBehind.mockResolvedValue(BEHIND as never);
+    await runAt(later(5), standing());
+
+    expect(sent).toEqual([]);
+    const lines: Array<Array<unknown>> = alarmLines();
+    expect(lines).toHaveLength(1);
+    expect(String(lines[0]![0])).toContain(
+      "No master admin is told: no Outage Notifications channel can carry it. Turn one on in the Admin Dashboard, under Settings > Emails.",
+    );
+  });
+
+  test("behind for less than five minutes, or not at all, raises nothing", async () => {
+    readBehind.mockResolvedValue([
+      { ...BEHIND[0]!, since: "2026-11-18T09:56:00.000Z" },
+    ] as never);
+    await runAt(NOW, standing());
+
+    readBehind.mockResolvedValue([] as never);
+    await runAt(later(5), standing());
+
+    expect(alarmLines()).toEqual([]);
+  });
+
+  test("a read of the probes behind that fails raises nothing", async () => {
+    readBehind.mockRejectedValue(new Error("statement timeout") as never);
+
+    await runAt(NOW, standing());
+
+    expect(alarmLines()).toEqual([]);
   });
 });
 

@@ -62,6 +62,16 @@ An "Acme Storage" workspace with three arrays:
   `/inventory/<kind>/<externalId>`), and the Documentation tab
   (`View/Documentation.tsx`) is modelled for them.
 
+Dell PowerMax's Unisphere connections (#11004), in the product's own layout
+and side menu (`Pages/StorageArray/{Layout,Connections,ConnectionView}.tsx`):
+`unisphere-fra` collects a PowerMax 8500 on PowerMaxOS 10 (a storage group
+registered for real time), a PowerMax 2000 on 5978 whose performance
+Unisphere does not collect, and sees the SRDF partner in Amsterdam;
+`unisphere-ams` stopped two days ago when its certificate changed. Both run
+on the project's probe `probe-fra-dc1`. Test Connection and Trust this
+certificate are answered in memory (`ModelAPI.create` / `updateById`), and
+recorded in `createRequests` and `updateRequests`.
+
 Any route not listed above renders a "Not modelled" stub
 (`data-testid="stub-page"`).
 
@@ -76,6 +86,7 @@ Query parameters on any page:
 | `fail`      | `inventory`: every inventory read fails                                                                                                                                                                                                                                                                                       |
 | `lang`      | `de` reads the German locale file, `fa` the Persian one (right to left)                                                                                                                                                                                                                                                       |
 | `theme`     | `dark` adds `html.dark` (server.js)                                                                                                                                                                                                                                                                                           |
+| `test`      | What a Unisphere connection test finds: `ok` (default), `certificate` (self-signed, not trusted yet), `role` (the account has no role on the arrays), `unreachable` (nothing answers on 8443), `perfoff` (no performance collected for one array)                                                                             |
 
 ## What the fixture records
 

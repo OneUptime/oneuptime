@@ -257,6 +257,11 @@ const RESOURCE_SECTIONS: ReadonlyArray<ResourceSection> = [
     types: [AiResourceType.OpenStackCloud],
   },
   {
+    title: "XCP-ng pools",
+    fixesHeading: "### Fixes on XCP-ng pools",
+    types: [AiResourceType.XcpNgPool],
+  },
+  {
     title: "Database servers",
     fixesHeading: "### Fixes on database servers",
     types: [AiResourceType.DatabaseServer],
@@ -309,6 +314,7 @@ const TELEMETRY_PAGES: Readonly<Record<AiResourceType, string>> = {
   [AiResourceType.AzureSubscription]: "telemetry/cloud-accounts",
   [AiResourceType.GoogleCloudProject]: "telemetry/cloud-accounts",
   [AiResourceType.OpenStackCloud]: "telemetry/openstack",
+  [AiResourceType.XcpNgPool]: "telemetry/xcp-ng",
 };
 
 const CLOUD_ACCOUNTS_PAGE: string = TELEMETRY_PAGES[AiResourceType.AwsAccount];
@@ -333,6 +339,7 @@ const COMPOSE_FILES: Readonly<Record<AiResourceType, string | null>> = {
   [AiResourceType.AzureSubscription]: null,
   [AiResourceType.GoogleCloudProject]: null,
   [AiResourceType.OpenStackCloud]: "agents/OpenStackAgent/docker-compose.yml",
+  [AiResourceType.XcpNgPool]: "agents/XcpNgAgent/docker-compose.yml",
 };
 
 // The types whose agent a compose file runs: all but the cloud accounts.
@@ -1715,7 +1722,7 @@ describe("Infrastructure AI Agents docs", (): void => {
       }
 
       expect(page.replace(/\s+/g, " ")).toContain(
-        "The Proxmox, VMware, Ceph and Database AI agents run as UID 1000 with no capabilities. The OpenStack AI agent runs as the owner of `clouds.yaml` (`OPENSTACK_EXPORTER_USER`), with none either.",
+        "The Proxmox, VMware, Ceph, XCP-ng and Database AI agents run as UID 1000 with no capabilities. The OpenStack AI agent runs as the owner of `clouds.yaml` (`OPENSTACK_EXPORTER_USER`), with none either.",
       );
     });
 

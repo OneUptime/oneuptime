@@ -314,6 +314,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/DockerSwarmClusterService.ts": {
     "Service.attachLabels DockerSwarmCluster": Why.Reported,
   },
+  "packages/Common/Server/Services/GlobalProbeSnmpTrapReportService.ts": {
+    /*
+     * Each project's share of the SNMPv3 traps a global probe refused, as
+     * the probe reports every thirty seconds (#11173): nobody made it.
+     */
+    "Service.recordShares GlobalProbeSnmpTrapReport": Why.Reported,
+  },
   "packages/Common/Server/Services/HostService.ts": {
     "Service.attachLabels Host": Why.Reported,
   },
@@ -477,6 +484,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/StatusPageSubscriberService.ts": {
     "Service.unsubscribe StatusPageSubscriber": Why.Recorded,
+  },
+  /*
+   * A Unisphere connection's server-only columns (#11004) - whether a
+   * password is saved, its next collection, the settings version - written
+   * after the settings change the audit log records.
+   */
+  "packages/Common/Server/Services/StorageArrayConnectionService.ts": {
+    "Service.writeConnectionServerColumns StorageArrayConnection": Why.FollowOn,
   },
   "packages/Common/Server/Services/StorageArrayService.ts": {
     "Service.attachLabels StorageArray": Why.Reported,
@@ -936,6 +951,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SubscriberNotificationClaim.claim *": Why.Bookkeeping,
     "SubscriberNotificationClaim.failInterrupted *": Why.Bookkeeping,
   },
+  // What a probe found when it read a Unisphere (#11004), as VMware's.
+  "packages/Common/Server/Utils/StorageArray/StorageArrayProbeCollectionStore.ts":
+    {
+      "StorageArrayProbeCollectionStore.recordCollectionReport *": Why.Reported,
+    },
   "packages/Common/Server/Utils/Telemetry/EntityRegistry.ts": {
     "reconcileByNaturalKey *": Why.Reported,
   },
@@ -960,6 +980,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/VMware/VMwareProbeCollectionStore.ts": {
     "VMwareProbeCollectionStore.recordCollectionReport *": Why.Reported,
+  },
+  // Where reading a pool's alarms and backups stands, from a probe's read (#10997).
+  "packages/Common/Server/Utils/XcpNg/XcpNgPoolEventsIngest.ts": {
+    "(module) XcpNgPool": Why.Reported,
   },
   "packages/Common/Server/Utils/XcpNg/XcpNgProbeCollectionStore.ts": {
     "XcpNgProbeCollectionStore.recordCollectionReport *": Why.Reported,

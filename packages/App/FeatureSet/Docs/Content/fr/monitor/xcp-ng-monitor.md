@@ -99,7 +99,7 @@ Le pool lui-même est la ressource sur laquelle arrivent les séries : ses attri
 
 ## Modèles d'alerte prêts à l'emploi
 
-La liste **Sur quoi alerter** propose 10 modèles. Chacun construit un moniteur complet – requêtes, filtres d'attributs, un regroupement, un critère qui déclenche et un qui rétablit. La plupart regroupent par `xcp_ng.id`, si bien que chaque hôte, VM ou référentiel de stockage a son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
+La liste **Sur quoi alerter** propose 12 modèles. Chacun construit un moniteur complet – requêtes, filtres d'attributs, un regroupement, un critère qui déclenche et un qui rétablit. La plupart regroupent par `xcp_ng.id`, si bien que chaque hôte, VM ou référentiel de stockage a son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
 
 Un critère ne se déclenche que si la condition tient à chaque minute de sa fenêtre, et un critère à seuil ne se rétablit que 10 % au-delà de son seuil, pour qu'une valeur qui oscille autour de la ligne ne fasse pas basculer le moniteur sans cesse. Une série 0/1 se rétablit à l'autre valeur.
 
@@ -107,7 +107,9 @@ Un critère ne se déclenche que si la condition tient à chaque minute de sa fe
 | --- | --- | --- | --- | --- | --- |
 | Pool Disconnected | Disponibilité | Critique | `xcp_pool_connected`, Count sur tout le pool, 10 dernières minutes | Aucune donnée sur toute la fenêtre | Les données reviennent |
 | Host Offline | Disponibilité | Critique | `xcp_ng.host.running` pour `xcp_ng.scope = host`, Min par `xcp_ng.id`, 5 dernières minutes | Sous 1 | À 1 |
+| HA Cannot Tolerate a Host Failure | Disponibilité | Critique | `xcp_ng.pool.ha.can_tolerate_host_failure` pour `xcp_ng.scope = pool`, Max sur tout le pool, 5 dernières minutes | Sous 1 | À 1 |
 | VM Stopped | VM | Avertissement | `xcp_ng.vm.stopped_after_running` pour `xcp_ng.scope = vm`, Min par `xcp_ng.id`, 5 dernières minutes | Au-dessus de 0 | À 0 |
+| VM Not Backed Up | VM | Avertissement | `xcp_ng.vm.backup_overdue` pour `xcp_ng.scope = vm`, Min par `xcp_ng.id`, 10 dernières minutes | Au-dessus de 0 | À 0 |
 | Storage Repository Near Full | Stockage | Critique | `xcp_sr_physical_usage_bytes` ÷ `xcp_sr_physical_size_bytes` × 100 pour `xcp_ng.scope = sr` (les deux en Somme), par `xcp_ng.id`, 5 dernières minutes | Au-dessus de 90 % | 81 % ou moins |
 | Host Disabled | Hôte | Avertissement | `xcp_ng.host.enabled` pour `xcp_ng.scope = host`, Max par `xcp_ng.id`, 30 dernières minutes | Sous 1 | À 1 |
 | Host Restarted | Hôte | Avertissement | `xcp_host_uptime_seconds` et `xcp_ng.host.running` pour `xcp_ng.scope = host`, Min par `xcp_ng.id`, 5 dernières minutes | `xcp_host_uptime_seconds` est sous 900 (15 minutes) alors que `xcp_ng.host.running` vaut 1 | `xcp_host_uptime_seconds` atteint 990 ou plus, ou `xcp_ng.host.running` vaut 0 |
@@ -120,18 +122,20 @@ Un critère ne se déclenche que si la condition tient à chaque minute de sa fe
 
 - **Pool Disconnected** se déclenche quand `xcp_pool_connected` cesse d'arriver pendant dix minutes. Xen Orchestra l'envoie à chaque collecte tant qu'il est connecté au pool, et cesse de l'envoyer, plutôt que d'envoyer 0, quand il perd le maître du pool ; elle cesse aussi quand Xen Orchestra, son plugin ou l'agent XCP-ng s'arrête, ou que l'agent perd sa route vers OneUptime. Il se résout quand la série revient. Quand les données s'arrêtent, les autres modèles n'ont rien à comparer et gardent leur dernier statut : c'est donc celui-ci qui vous prévient.
 - **Host Offline** lit `xcp_ng.host.running`, que OneUptime dérive de `xcp_host_status` : 0 tant que Xen Orchestra rapporte l'hôte Halted, ou son état Unknown parce que le maître du pool a perdu le contact avec lui. Les VM qui tournaient sur l'hôte sont tombées elles aussi, sauf si HA les a redémarrées ailleurs.
+- **HA Cannot Tolerate a Host Failure** lit `xcp_ng.pool.ha.can_tolerate_host_failure`. Lu directement depuis XAPI, c'est le plan propre à HA : surengagé, ou couvrant moins de pannes d'hôtes qu'il ne doit en tolérer. Lu via Xen Orchestra, dont l'API REST ne rapporte pas le plan, il reste moins de deux hôtes en marche et activés où redémarrer des VM : désactiver un hôte d'un pool HA à deux hôtes suffit. Il ne se déclenche jamais tant que HA est désactivée.
 - **VM Stopped** lit `xcp_ng.vm.stopped_after_running` : 1 tant qu'une VM qui a tourné au cours des dernières 24 heures est Halted ou Paused. Une VM éteinte depuis plus d'un jour est considérée comme éteinte exprès et cesse d'alerter, une VM suspendue (Suspended) n'alerte jamais, et les domaines de contrôle et les modèles de VM sont laissés de côté.
+- **VM Not Backed Up** lit `xcp_ng.vm.backup_overdue`, d'après les journaux de sauvegarde de Xen Orchestra : 1 tant qu'une VM qu'inclut une tâche de sauvegarde planifiée n'a eu aucune sauvegarde réussie dans son intervalle, le plus long écart entre deux exécutions des planifications de ses tâches, plus un quart de celui-ci, une heure au moins. La VM d'une tâche nocturne le déclenche au bout de 30 heures, et une VM qu'aucune tâche planifiée n'inclut ne le déclenche jamais.
 - **Host Disabled** se déclenche pour un hôte qui reste désactivé pendant 30 minutes : en mode maintenance, ou laissé désactivé par une évacuation. XAPI ne démarre aucune VM dessus et HA ne peut pas basculer vers lui. Trente minutes laissent passer un redémarrage ou une mise à jour planifiés sans alerte.
 - **Host Restarted** se déclenche pour un hôte qui tourne mais n'est démarré que depuis moins de 15 minutes : il a redémarré, ou il a planté puis est revenu. Il se résout une fois l'hôte démarré depuis 16,5 minutes, 10 % au-delà du seuil ; un hôte arrêté déclenche plutôt **Host Offline**.
 - Les **formules de rapport** prennent la **Somme** des deux côtés. Les deux viennent de la même collecte, le résultat est donc un vrai pourcentage. Un référentiel de stockage qui rapporte une taille de 0, comme certaines bibliothèques ISO et certains supports amovibles, ne se déclenche jamais.
 - **VM Starved of CPU** lit la contention complète : la part du temps où tous les vCPU d'une VM étaient prêts à tourner mais attendaient un CPU physique. Son hôte a plus de vCPU exécutables que de threads de CPU, si bien que la VM tourne plus lentement que ne le laisse penser sa propre utilisation du CPU.
 - **Storage Repository Slow** regroupe par `sr`, l'identifiant court d'un référentiel de stockage chez Xen Orchestra, présent sur chaque série disque d'un hôte : chaque référentiel de stockage a donc un incident, sa latence étant la moyenne sur les hôtes qui y lisent et y écrivent.
 
-Le plugin ne rapporte aucune alarme hormis celles de XOSTOR, ni état HA, ni maître du pool, ni correctifs manquants, ni sauvegardes : aucun modèle ne les surveille donc encore. Voir [Ce que le plugin ne couvre pas encore](/docs/telemetry/xcp-ng#ce-que-le-plugin-ne-couvre-pas-encore).
+**HA Cannot Tolerate a Host Failure** et **VM Not Backed Up** lisent des séries qu'ajoute la lecture du pool par une sonde ; elles demandent donc un pool connecté depuis une sonde : le plugin que lit l'agent XCP-ng ne signale ni l'état de HA ni les sauvegardes. Un pool lu par une sonde peut aussi alerter sur ses messages et alarmes XAPI, comme une VM plantée ou un hôte que HA a perdu, et sur les tâches de sauvegarde en échec : activez ces modèles depuis les **Recommandations** du pool, comme l'explique [XCP-ng sans agent](/docs/telemetry/xcp-ng-agentless).
 
 ## Métriques collectées
 
-L'agent lit chaque série du plugin OpenMetrics de Xen Orchestra toutes les 60 secondes ; les séries ci-dessous sont le catalogue que propose le formulaire du moniteur. Xen Orchestra convertit déjà les Kio, Mio/s et microsecondes de XAPI en octets, octets par seconde et secondes. Huit séries qu'il nomme `_total` et type comme des compteurs contiennent des débits par seconde, et OneUptime les stocke comme les débits qu'ils sont, comme l'explique le [guide de l'agent XCP-ng](/docs/telemetry/xcp-ng#ce-que-collecte-lagent). Les quatre séries `xcp_ng.*` sont propres à OneUptime, dérivées des séries d'état de Xen Orchestra à leur arrivée.
+L'agent lit chaque série du plugin OpenMetrics de Xen Orchestra toutes les 60 secondes ; les séries ci-dessous sont le catalogue que propose le formulaire du moniteur. Xen Orchestra convertit déjà les Kio, Mio/s et microsecondes de XAPI en octets, octets par seconde et secondes. Huit séries qu'il nomme `_total` et type comme des compteurs contiennent des débits par seconde, et OneUptime les stocke comme les débits qu'ils sont, comme l'explique le [guide de l'agent XCP-ng](/docs/telemetry/xcp-ng#ce-que-collecte-lagent). Les séries `xcp_ng.*` sont propres à OneUptime : quatre dérivées des séries d'état de Xen Orchestra à leur arrivée, et six de ce qu'une sonde lit au-delà des métriques, qu'un pool lu par le seul agent XCP-ng n'a pas.
 
 ### Disponibilité
 
@@ -142,6 +146,10 @@ L'agent lit chaque série du plugin OpenMetrics de Xen Orchestra toutes les 60 s
 | `xcp_ng.host.enabled` | — | 1 tant qu'un hôte est activé, 0 tant qu'il est en mode maintenance ou en cours d'évacuation, quand XAPI ne démarre aucune VM dessus. Dérivée par OneUptime de l'état de l'hôte. |
 | `xcp_ng.vm.running` | — | 1 tant qu'une VM est Running, 0 tant qu'elle est Halted, Paused ou Suspended. Les domaines de contrôle sont laissés de côté. Dérivée par OneUptime de l'état de la VM. |
 | `xcp_ng.vm.stopped_after_running` | — | 1 tant qu'une VM qui a tourné au cours des dernières 24 heures est Halted ou Paused, sinon 0. Une VM que personne n'a vue tourner depuis un jour est considérée comme éteinte exprès, et une VM suspendue ne compte jamais. Dérivée par OneUptime. |
+| `xcp_ng.pool.ha.enabled` | — | 1 tant que la haute disponibilité du pool est activée, sinon 0. Lu par une sonde via l'API REST de Xen Orchestra ou directement depuis XAPI ; l'agent XCP-ng ne le lit pas. |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | — | Tant que la HA est activée : 1 tant qu'elle peut encore survivre à une panne d'hôte, 0 dès qu'elle ne le peut plus. Directement depuis XAPI, c'est le plan de la HA lui-même ; via Xen Orchestra, qui n'indique pas le plan, s'il reste un hôte en service et activé en plus de celui qui tombe en panne. Dérivé par OneUptime. |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | — | Combien de pannes d'hôtes la HA doit tolérer. Lu directement depuis XAPI uniquement : l'API REST de Xen Orchestra ne l'indique pas. |
+| `xcp_ng.pool.ha.plan_exists_for` | — | Combien de pannes d'hôtes le plan de HA peut encore supporter en redémarrant chaque VM protégée. Lu directement depuis XAPI uniquement. |
 | `xcp_host_status` | count | Toujours 1 pour chaque hôte, qu'il tourne ou non ; l'état de l'hôte figure dans les étiquettes `power_state` (Running, Halted, Unknown) et `enabled`. |
 | `xcp_vm_status` | count | Toujours 1 pour chaque VM sauf les domaines de contrôle et les modèles ; l'état de la VM figure dans l'étiquette `power_state` (Running, Halted, Paused, Suspended). |
 | `xcp_host_uptime_seconds` | seconds | Depuis combien de temps un hôte fonctionne depuis son démarrage. |
@@ -151,6 +159,7 @@ L'agent lit chaque série du plugin OpenMetrics de Xen Orchestra toutes les 60 s
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
+| `xcp_ng.host.missing_patches` | — | Combien de correctifs manquent à un hôte, tels que Xen Orchestra les a listés en dernier (vérifiés toutes les six heures). |
 | `xcp_host_cpu_average` | ratio | L'utilisation du CPU d'un hôte, moyennée sur ses cœurs, sous forme de ratio de 0 à 1. |
 | `xcp_host_cpu_core_usage` | ratio | L'utilisation d'un thread de CPU sur un hôte, sous forme de ratio de 0 à 1 ; l'étiquette `core` indique lequel. |
 | `xcp_host_load` | — | Les vCPU qui tournent ou attendent de tourner sur un hôte, par CPU physique. Au-dessus de 1, des VM attendent un CPU. |
@@ -166,6 +175,7 @@ L'agent lit chaque série du plugin OpenMetrics de Xen Orchestra toutes les 60 s
 
 | Métrique | Unité | Description |
 | --- | --- | --- |
+| `xcp_ng.vm.backup_overdue` | — | Pour une VM d'une tâche de sauvegarde planifiée de Xen Orchestra : 1 tant qu'elle n'a eu aucune sauvegarde réussie dans l'intervalle de ses tâches plus un quart de celui-ci (au moins une heure), sinon 0. Dérivé par OneUptime des journaux de sauvegarde. |
 | `xcp_vm_cpu_usage` | ratio | L'utilisation du CPU d'une VM, moyennée sur ses vCPU, sous forme de ratio de 0 à 1. |
 | `xcp_vm_cpu_core_usage` | ratio | L'utilisation d'un vCPU, sous forme de ratio de 0 à 1 ; l'étiquette `core` indique lequel. |
 | `xcp_vm_runstate_full_contention` | ratio | La part du temps où tous les vCPU d'une VM étaient prêts à tourner mais attendaient un CPU physique, de 0 à 1. Une valeur élevée signifie que ses voisines privent la VM de CPU. |

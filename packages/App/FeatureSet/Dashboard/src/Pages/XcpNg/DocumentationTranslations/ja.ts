@@ -62,6 +62,28 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_TLS_FINGERPRINT` | インストールスクリプト | エージェントがその証明書だけを信頼する場合の、Xen Orchestra 自身の証明書の SHA-256 フィンガープリント |",
   "| `XO_CA_FILE` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the script copies to `xo-ca.pem` |":
     "| `XO_CA_FILE` | インストールスクリプト | Xen Orchestra の証明書を発行した CA バンドル。スクリプトはこれを `xo-ca.pem` にコピーします |",
+  "| `ONEUPTIME_AI_XO_READ_TOKEN` | No | A token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else: the XCP-ng AI agent runs when it is set, and reads with it |":
+    "| `ONEUPTIME_AI_XO_READ_TOKEN` | いいえ | 組み込みの **Read only** ロールのコピーだけを持つ Xen Orchestra ユーザーのトークン。設定すると XCP-ng AI エージェントが動作し、これで読み取ります |",
+  "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Only for fixes: a token of another user, whose role allows them. The AI agent changes nothing without it |":
+    "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | いいえ | 修正専用: 修正を許可するロールを持つ別のユーザーのトークン。これがないと AI エージェントは何も変更しません |",
+  "| `XCP_NG_POOL_ID` | No | The XAPI UUID of the pool the AI agent serves (default: the one pool its read token can see) |":
+    "| `XCP_NG_POOL_ID` | いいえ | AI エージェントが担当するプールの XAPI UUID (既定: 読み取りトークンから見える唯一のプール) |",
+  "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | No | Overrides `XCP_NG_POOL_ID` as the pool the AI agent registers as |":
+    "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | いいえ | AI エージェントが登録に使うプールとして `XCP_NG_POOL_ID` を上書きします |",
+  "| `ONEUPTIME_AI_INVESTIGATION` | No | `true` or `false`: whether OneUptime AI may run the AI agent's read-only commands while it investigates (default: on) |":
+    "| `ONEUPTIME_AI_INVESTIGATION` | いいえ | `true` または `false`: OneUptime AI が調査中に AI エージェントの読み取り専用コマンドを実行してよいかどうか (既定: 有効) |",
+  "| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` or `bypass-approval`: how OneUptime AI may apply a fix |":
+    "| `ONEUPTIME_AI_FIXES` | いいえ | `off`、`ask-for-approval`、`automatic`、`bypass-approval` のいずれか: OneUptime AI が修正をどう適用してよいか |",
+  "| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes, with the token for changes. Anything else keeps it read-only |":
+    "| `ONEUPTIME_AI_ALLOW_WRITES` | いいえ | `true` にすると、AI エージェントは変更用のトークンで修正を適用できます。それ以外の値では読み取り専用のままです |",
+  "| `ONEUPTIME_AI_WRITE_TARGETS` | No | The `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` or `schedule/<uuid>` a fix may touch, comma-separated (default: all) |":
+    "| `ONEUPTIME_AI_WRITE_TARGETS` | いいえ | 修正が触れてよい `vm/<uuid>`、`host/<uuid>`、`pbd/<uuid>`、`schedule/<uuid>` をカンマ区切りで指定 (既定: すべて) |",
+  "| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |":
+    "| `ONEUPTIME_AI_PROTECTED_TARGETS` | いいえ | 同様に、OneUptime AI が決して変更してはならないもの: AI エージェントが動作する VM と、Xen Orchestra 自身の VM |",
+  "| `LOG_LEVEL` | No | The AI agent's log level: `debug`, `info` (default), `warn` or `error` |":
+    "| `LOG_LEVEL` | いいえ | AI エージェントのログレベル: `debug`、`info` (既定)、`warn`、`error` |",
+  "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
+    "| `COMPOSE_PROFILES` | いいえ | `xcp-ng-ai-agent` で AI エージェントが起動します。インストールスクリプトは読み取りトークンが設定されているとこれを書き込みます |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "エージェントは、`docker-compose.yml` の隣にある `xo-ca.pem` で Xen Orchestra の証明書を検証します。",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":
