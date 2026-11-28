@@ -1,10 +1,9 @@
 import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
 import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
-import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import { StorageArrayKindDefinition } from "../../../Types/StorageArray/StorageArrayPlatform";
-import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import { OntapKind } from "../../../Types/StorageArray/Platforms/NetApp/NetApp";
 import { describe, expect, test } from "@jest/globals";
 
@@ -134,7 +133,8 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
   });
 
   test("every known platform reports at least one kind, and every kind belongs to a platform", () => {
-    const covered: Set<StorageArrayResourceKind> = new Set();
+    // The shared kinds, and the ones a platform defines for itself, by name.
+    const covered: Set<string> = new Set();
     for (const system of StorageSystemUtil.getAllSystems()) {
       const kinds: Array<string> =
         StorageArrayResourceKindUtil.getKindsForSystem(system);
@@ -159,7 +159,8 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
     }
     /*
      * Every shared kind, and each kind a platform defines for itself (a
-     * PowerStore's appliances), which no other platform reports.
+     * PowerStore's appliances, a PowerMax's storage groups), which no other
+     * platform reports.
      */
     const own: Array<string> = StorageArrayPlatformRegistry.getPlatforms()
       .flatMap(
@@ -177,6 +178,25 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
     expect([...covered].sort()).toEqual(
       [...StorageArrayResourceKindUtil.getAllKinds(), ...own].sort(),
     );
+    // Every shared kind is some platform's...
+    const shared: Set<string> = new Set(
+      Object.values(StorageArrayResourceKind) as Array<string>,
+    );
+    expect(
+      [...covered]
+        .filter((kind: string): boolean => {
+          return shared.has(kind);
+        })
+        .sort(),
+    ).toEqual([...StorageArrayResourceKindUtil.getAllKinds()].sort());
+    // ... and a kind only a platform has comes with its words.
+    for (const kind of covered) {
+      if (!shared.has(kind)) {
+        expect(StorageArrayPlatformRegistry.getKindDefinition(kind)).not.toBe(
+          null,
+        );
+      }
+    }
   });
 
   test.each([

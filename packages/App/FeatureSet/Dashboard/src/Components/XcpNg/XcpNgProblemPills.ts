@@ -10,6 +10,7 @@ import {
 } from "../ResourcePart/ResourceAttention";
 import { ResourcePartTone } from "../ResourcePart/ResourcePartTypes";
 import { XcpNgProblem } from "../../Pages/XcpNg/Utils/XcpNgHealth";
+import { XCP_NG_METRIC_DESCRIPTIONS } from "../MetricDescriptions/XcpNgMetricDescriptions";
 
 /*
  * WHAT EACH COUNT OF WHAT IS WRONG ON AN XCP-NG POOL'S OVERVIEW OPENS.
@@ -107,6 +108,30 @@ export const XCP_NG_PROBLEM_WORDS: Record<XcpNgProblem["kind"], ProblemWords> =
       emptyMessage: translationKey(
         "No storage repository is allocated past its size now.",
       ),
+    },
+    /*
+     * A VM's backups (#10997), in the words the pool's Backups card counts
+     * them with, so both open the same list the same way.
+     */
+    vmsBackupFailed: {
+      label: { one: "{{count}} VM", other: "{{count}} VMs" },
+      title: {
+        one: "Last backup failed for {{count}} VM",
+        other: "Last backup failed for {{count}} VMs",
+      },
+      hint: translationKey("Show which VMs and why"),
+      description: XCP_NG_METRIC_DESCRIPTIONS.backupsLastFailed,
+      emptyMessage: translationKey("No VM's last backup failed now."),
+    },
+    vmsBackupLate: {
+      label: { one: "{{count}} VM", other: "{{count}} VMs" },
+      title: {
+        one: "{{count}} VM's backup is overdue",
+        other: "{{count}} VMs' backups are overdue",
+      },
+      hint: translationKey("Show which VMs and why"),
+      description: XCP_NG_METRIC_DESCRIPTIONS.backupsOverdue,
+      emptyMessage: translationKey("No VM's backup is overdue now."),
     },
   };
 

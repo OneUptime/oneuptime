@@ -1,3 +1,4 @@
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import XcpNgResource from "Common/Models/DatabaseModels/XcpNgResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -11,6 +12,15 @@ import {
   XcpNgVmPowerState,
 } from "Common/Types/XcpNg/XcpNgTelemetry";
 import { XCP_NG_SR_NEAR_FULL_PERCENT as SR_NEAR_FULL_ALERT_PERCENT } from "Common/Types/Monitor/XcpNgAlertTemplates";
+import {
+  XcpNgBackupStatus,
+  XcpNgEventLogAttribute,
+  XcpNgEventReadProblems,
+} from "Common/Types/XcpNg/XcpNgPoolEvents";
+import {
+  XcpNgEventSource,
+  XcpNgPoolBackupRunSummary,
+} from "Common/Types/XcpNg/XcpNgPoolEventState";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   StorageUsage,
@@ -35,6 +45,20 @@ import {
   toXcpNgDate,
   toXcpNgNumber,
 } from "./XcpNgResourceUtils";
+import {
+  XcpNgHaSummary,
+  getXcpNgBackupJobs,
+  getXcpNgBackupsWatchedSince,
+  getXcpNgEventReadProblems,
+  getXcpNgEventReadStatus,
+  getXcpNgNewestRun,
+  getXcpNgVmBackupStatus,
+  isXcpNgHaAtRisk,
+  isXcpNgJobFailing,
+  isXcpNgVmBackupLate,
+  isXcpNgVmLastBackupFailed,
+  summarizeXcpNgHa,
+} from "./XcpNgEventFacts";
 
 /*
  * WHAT IN AN XCP-NG POOL NEEDS SOMEONE, AND HOW BAD IT IS.
@@ -55,6 +79,14 @@ import {
  *     no VM on it); a VM Halted or Paused that ran in the last 24 hours; a
  *     storage repository more than 90% full (where its alert fires), or
  *     allocated past its size (thin provisioning that can fill it).
+ *
+ * And what a probe reads beyond the metrics (#10997), by the alerts' rules
+ * (XcpNgEventFacts): HA on but unable to survive one more host failure
+ * (Critical, as the HA alert); a VM whose last backup failed, or whose
+ * backup is overdue (Warning, as VM Not Backed Up); a backup job with none
+ * of the pool's VMs in it, a pool metadata backup, whose last run failed;
+ * and alarms or backups the probe could not read, which would leave their
+ * alerts silent.
  *
  * A VM someone suspended chose to: it is never "stopped". A VM nobody saw
  * running for a day was switched off on purpose, as the VM Stopped alert
@@ -125,16 +157,35 @@ const REASON_PERCENT_FULL: string = translationKey("{{percent}} full");
 const REASON_OVER_ALLOCATED: string = translationKey(
   "{{allocated}} allocated of {{size}}",
 );
+const REASON_BACKUP_FAILED: string = translationKey("Last backup failed");
+const REASON_BACKUP_INTERRUPTED: string = translationKey(
+  "Last backup interrupted",
+);
+const REASON_BACKUP_LATE: string = translationKey("Backup overdue");
+const REASON_HA_AT_RISK: string = translationKey(
+  "HA cannot tolerate a host failure",
+);
+const REASON_JOB_FAILED: string = translationKey("Last run failed");
+const REASON_ALARMS_NOT_READ: string = translationKey("Alarms not read");
+const REASON_BACKUPS_NOT_READ: string = translationKey("Backups not read");
 
 const KIND_HOST: string = translationKey("Host");
 const KIND_VM: string = translationKey("VM");
 const KIND_STORAGE_REPOSITORY: string = translationKey("Storage repository");
+const KIND_POOL: string = translationKey("Pool");
+const KIND_BACKUP_JOB: string = translationKey("Backup job");
+const KIND_XEN_ORCHESTRA: string = translationKey("Xen Orchestra");
+const KIND_XAPI: string = translationKey("XAPI");
 
 // The order Needs attention lists the kinds in, at one severity.
 export const XCP_NG_ATTENTION_KIND_ORDER: Array<string> = [
+  KIND_POOL,
   KIND_HOST,
   KIND_STORAGE_REPOSITORY,
   KIND_VM,
+  KIND_BACKUP_JOB,
+  KIND_XEN_ORCHESTRA,
+  KIND_XAPI,
 ];
 
 export const XCP_NG_PART_ICONS: Record<XcpNgPartKind, IconProp> = {
@@ -340,20 +391,59 @@ export function assessXcpNgHost(row: XcpNgResource): XcpNgAssessment {
   };
 }
 
-export function assessXcpNgVm(row: XcpNgResource, now: Date): XcpNgAssessment {
-  if (!isXcpNgVmStoppedAfterRunning(row, now)) {
-    return { severity: null, reasons: [] };
+/*
+ * What a VM's backup rules need of its pool: when its backups were first
+ * read, from which a VM with no good backup on record is counted overdue.
+ * Without it, only a VM whose last good backup is on record can be.
+ */
+export interface XcpNgBackupContext {
+  watchedSince: Date | null;
+}
+
+export function getXcpNgBackupContext(
+  pool: Pick<XcpNgPool, "eventReadStatus"> | null | undefined,
+): XcpNgBackupContext {
+  return { watchedSince: pool ? getXcpNgBackupsWatchedSince(pool) : null };
+}
+
+export function assessXcpNgVm(
+  row: XcpNgResource,
+  now: Date,
+  backups?: XcpNgBackupContext | undefined,
+): XcpNgAssessment {
+  const reasons: Array<ResourceAttentionText> = [];
+
+  if (isXcpNgVmStoppedAfterRunning(row, now)) {
+    reasons.push({
+      text:
+        row.powerState === XcpNgVmPowerState.Paused
+          ? REASON_PAUSED_AFTER_RUNNING
+          : REASON_HALTED_AFTER_RUNNING,
+    });
   }
+
+  if (isXcpNgVmLastBackupFailed(row)) {
+    reasons.push({
+      text:
+        getXcpNgVmBackupStatus(row) === XcpNgBackupStatus.Interrupted
+          ? REASON_BACKUP_INTERRUPTED
+          : REASON_BACKUP_FAILED,
+    });
+  }
+
+  if (
+    isXcpNgVmBackupLate({
+      row: row,
+      watchedSince: backups?.watchedSince || null,
+      now: now,
+    })
+  ) {
+    reasons.push({ text: REASON_BACKUP_LATE });
+  }
+
   return {
-    severity: ResourceAttentionSeverity.Warning,
-    reasons: [
-      {
-        text:
-          row.powerState === XcpNgVmPowerState.Paused
-            ? REASON_PAUSED_AFTER_RUNNING
-            : REASON_HALTED_AFTER_RUNNING,
-      },
-    ],
+    severity: reasons.length > 0 ? ResourceAttentionSeverity.Warning : null,
+    reasons: reasons,
   };
 }
 
@@ -396,13 +486,14 @@ export function assessXcpNgStorage(row: XcpNgResource): XcpNgAssessment {
 export function assessXcpNgResource(
   row: XcpNgResource,
   now: Date,
+  backups?: XcpNgBackupContext | undefined,
 ): XcpNgAssessment {
   const kind: XcpNgPartKind | null = getXcpNgPartKind(row);
   if (kind === "Host") {
     return assessXcpNgHost(row);
   }
   if (kind === "VM") {
-    return assessXcpNgVm(row, now);
+    return assessXcpNgVm(row, now, backups);
   }
   if (kind === "StorageRepository") {
     return assessXcpNgStorage(row);
@@ -422,23 +513,148 @@ function detailOf(kind: XcpNgPartKind, row: XcpNgResource): string | undefined {
   return undefined;
 }
 
+type AttentionPool = Pick<
+  XcpNgPool,
+  | "name"
+  | "xenOrchestraName"
+  | "isHaEnabled"
+  | "haHostFailuresToTolerate"
+  | "haPlanExistsFor"
+  | "isHaOvercommitted"
+  | "masterHostExternalId"
+  | "backupJobs"
+  | "eventReadStatus"
+>;
+
+const EXPLANATION_HA_AT_RISK: string = translationKey(
+  "If one more host fails, HA cannot restart every protected VM on the hosts left. Bring a host back or enable it, or free memory on the others.",
+);
+
 /*
- * Everything in the pool that needs attention, most urgent first: its
- * hosts, its storage repositories and its VMs, by their rules.
+ * What the pool itself needs, besides its parts: HA that cannot survive a
+ * host failure, a backup job with none of its VMs (a metadata backup)
+ * whose last run failed, and alarms or backups a probe could not read.
+ */
+export function getXcpNgPoolAttentionItems(data: {
+  pool: AttentionPool;
+  rows: Array<XcpNgResource>;
+  translator?: Translator | undefined;
+}): Array<ResourceAttentionItem> {
+  const items: Array<ResourceAttentionItem> = [];
+  const poolName: string = (data.pool.name || "").trim();
+
+  const ha: XcpNgHaSummary = summarizeXcpNgHa({
+    pool: data.pool,
+    rows: data.rows,
+  });
+  if (isXcpNgHaAtRisk(ha)) {
+    const item: ResourceAttentionItem = {
+      key: "Pool:ha",
+      kind: KIND_POOL,
+      icon: IconProp.XcpNg,
+      name: poolName || KIND_POOL,
+      severity: ResourceAttentionSeverity.Critical,
+      reasons: [{ text: REASON_HA_AT_RISK }],
+    };
+    if (data.translator) {
+      item.explanation =
+        data.translator.translateText(EXPLANATION_HA_AT_RISK) ||
+        EXPLANATION_HA_AT_RISK;
+    }
+    items.push(item);
+  }
+
+  for (const job of getXcpNgBackupJobs(data.pool)) {
+    if ((toXcpNgNumber(job.vmCount) || 0) > 0 || !isXcpNgJobFailing(job)) {
+      continue;
+    }
+    const run: XcpNgPoolBackupRunSummary | null = getXcpNgNewestRun(job);
+    const item: ResourceAttentionItem = {
+      key: `BackupJob:${job.jobId}`,
+      kind: KIND_BACKUP_JOB,
+      icon: IconProp.Archive,
+      name: job.name,
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [{ text: REASON_JOB_FAILED }],
+    };
+    if (run?.error) {
+      item.message = run.error;
+    }
+    items.push(item);
+  }
+
+  const problems: XcpNgEventReadProblems = getXcpNgEventReadProblems(data.pool);
+  const isXapi: boolean =
+    getXcpNgEventReadStatus(data.pool)?.source === XcpNgEventSource.Xapi;
+  const readerName: string = isXapi
+    ? poolName || KIND_POOL
+    : (data.pool.xenOrchestraName || "").trim() || KIND_XEN_ORCHESTRA;
+  const readerKind: string = isXapi ? KIND_XAPI : KIND_XEN_ORCHESTRA;
+
+  if (problems.messages) {
+    items.push({
+      key: "Reading:messages",
+      kind: readerKind,
+      icon: IconProp.Signal,
+      name: readerName,
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [{ text: REASON_ALARMS_NOT_READ }],
+      message: problems.messages,
+    });
+  }
+  // The same words as the alarms' say both: one item, not two.
+  if (problems.backups && problems.backups !== problems.messages) {
+    items.push({
+      key: "Reading:backups",
+      kind: readerKind,
+      icon: IconProp.Signal,
+      name: readerName,
+      severity: ResourceAttentionSeverity.Warning,
+      reasons: [{ text: REASON_BACKUPS_NOT_READ }],
+      message: problems.backups,
+    });
+  }
+
+  return items;
+}
+
+/*
+ * Everything in the pool that needs attention, most urgent first: the
+ * pool's own (with its row), its hosts, its storage repositories and its
+ * VMs, by their rules.
  */
 export function getXcpNgAttentionItems(data: {
   rows: Array<XcpNgResource>;
   routeFor: XcpNgRouteFor;
   now: Date;
+  pool?: AttentionPool | null | undefined;
+  translator?: Translator | undefined;
+  /*
+   * A part's page, which lists the part's own items, not the pool's: the
+   * pool's backups for its VMs' backup rules alone.
+   */
+  backups?: XcpNgBackupContext | undefined;
 }): Array<ResourceAttentionItem> {
-  const items: Array<ResourceAttentionItem> = [];
+  const items: Array<ResourceAttentionItem> = data.pool
+    ? getXcpNgPoolAttentionItems({
+        pool: data.pool,
+        rows: data.rows,
+        translator: data.translator,
+      })
+    : [];
+  const backups: XcpNgBackupContext =
+    data.backups || getXcpNgBackupContext(data.pool);
 
   for (const row of data.rows) {
     const kind: XcpNgPartKind | null = getXcpNgPartKind(row);
     if (!kind || isXcpNgControlDomain(row)) {
       continue;
     }
-    const assessment: XcpNgAssessment = assessXcpNgResource(row, data.now);
+    const assessment: XcpNgAssessment = assessXcpNgResource(
+      row,
+      data.now,
+      backups,
+    );
     if (!assessment.severity) {
       continue;
     }
@@ -482,10 +698,19 @@ export type XcpNgProblem =
   | { kind: "hostsDisabled" }
   | { kind: "vmsStopped" }
   | { kind: "storageFull" }
-  | { kind: "storageOverAllocated" };
+  | { kind: "storageOverAllocated" }
+  // A VM whose last backup failed or was interrupted.
+  | { kind: "vmsBackupFailed" }
+  // A VM whose backup is overdue: the VM Not Backed Up alert's.
+  | { kind: "vmsBackupLate"; watchedSince: Date | null };
 
 const FACT_HOST: string = translationKey("Host");
+const FACT_BACKUP_JOB: string = translationKey("Backup job");
 const SINCE_LAST_RUNNING: string = translationKey("Last running {{time}}");
+const SINCE_LAST_BACKUP: string = translationKey("Last backup {{time}}");
+const SINCE_LAST_GOOD_BACKUP: string = translationKey(
+  "Last good backup {{time}}",
+);
 
 /*
  * What each count's parts mean and what to do about them: whole sentences
@@ -505,6 +730,12 @@ const EXPLANATION_STORAGE_FULL: string = translationKey(
 );
 const EXPLANATION_OVER_ALLOCATED: string = translationKey(
   "Its disks are thin-provisioned past its size: they can fill it as they grow, though it is not full yet.",
+);
+const EXPLANATION_BACKUP_FAILED: string = translationKey(
+  "Its last backup did not complete. Xen Orchestra's words for why are under its name; run the job again from Xen Orchestra once it is fixed.",
+);
+const EXPLANATION_BACKUP_LATE: string = translationKey(
+  "It has not had a good backup since its jobs last should have run, and the grace past that. A VM a scheduled job backs up should never be here.",
 );
 
 /*
@@ -529,6 +760,14 @@ export function isXcpNgProblemRow(
     }
     case "storageOverAllocated":
       return isXcpNgStorageOverAllocated(row);
+    case "vmsBackupFailed":
+      return isXcpNgVmLastBackupFailed(row);
+    case "vmsBackupLate":
+      return isXcpNgVmBackupLate({
+        row: row,
+        watchedSince: problem.watchedSince,
+        now: now,
+      });
     default:
       return false;
   }
@@ -567,6 +806,15 @@ function problemReasonOf(
           return reason.text === REASON_OVER_ALLOCATED;
         }) || null
       );
+    case "vmsBackupFailed":
+      return {
+        text:
+          getXcpNgVmBackupStatus(row) === XcpNgBackupStatus.Interrupted
+            ? REASON_BACKUP_INTERRUPTED
+            : REASON_BACKUP_FAILED,
+      };
+    case "vmsBackupLate":
+      return { text: REASON_BACKUP_LATE };
     case "vmsStopped":
     default:
       return assessment.reasons[0] || null;
@@ -590,6 +838,10 @@ function explanationOf(
       return EXPLANATION_STORAGE_FULL;
     case "storageOverAllocated":
       return EXPLANATION_OVER_ALLOCATED;
+    case "vmsBackupFailed":
+      return EXPLANATION_BACKUP_FAILED;
+    case "vmsBackupLate":
+      return EXPLANATION_BACKUP_LATE;
     default:
       return null;
   }
@@ -608,6 +860,8 @@ export function getXcpNgProblemItems(data: {
    * draws no explanation leaves it out.
    */
   translator?: Translator | undefined;
+  // The pool's backups, for a VM's backup reasons beside the count's own.
+  backups?: XcpNgBackupContext | undefined;
 }): Array<ResourceAttentionItem> {
   const hostsById: Map<string, XcpNgResource> = new Map();
   for (const row of data.rows) {
@@ -628,7 +882,13 @@ export function getXcpNgProblemItems(data: {
       continue;
     }
 
-    const assessment: XcpNgAssessment = assessXcpNgResource(row, data.now);
+    const assessment: XcpNgAssessment = assessXcpNgResource(
+      row,
+      data.now,
+      data.problem.kind === "vmsBackupLate"
+        ? { watchedSince: data.problem.watchedSince }
+        : data.backups,
+    );
     const first: ResourceAttentionText | null = problemReasonOf(
       row,
       data.problem,
@@ -671,6 +931,31 @@ export function getXcpNgProblemItems(data: {
           : undefined,
       };
       item.facts = [fact];
+    }
+
+    // A VM's backup: which job, when it last ran, and Xen Orchestra's words.
+    if (
+      data.problem.kind === "vmsBackupFailed" ||
+      data.problem.kind === "vmsBackupLate"
+    ) {
+      const jobName: string = (row.lastBackupJobName || "").trim();
+      if (jobName) {
+        item.facts = [
+          ...(item.facts || []),
+          { key: "backup-job", label: FACT_BACKUP_JOB, value: jobName },
+        ];
+      }
+      const lastGoodAt: Date | null = toXcpNgDate(row.lastSuccessfulBackupAt);
+      const lastAt: Date | null = toXcpNgDate(row.lastBackupAt);
+      if (data.problem.kind === "vmsBackupLate" && lastGoodAt) {
+        item.since = { at: lastGoodAt, template: SINCE_LAST_GOOD_BACKUP };
+      } else if (lastAt) {
+        item.since = { at: lastAt, template: SINCE_LAST_BACKUP };
+      }
+      const error: string = (row.lastBackupError || "").trim();
+      if (error && data.problem.kind === "vmsBackupFailed") {
+        item.message = error;
+      }
     }
 
     // When a VM that stopped was last running.
@@ -721,6 +1006,11 @@ const ISSUE_ID_LABELS: ReadonlyArray<string> = [
   XCP_NG_ID_ATTRIBUTE,
   XcpNgLabel.Uuid,
   XcpNgLabel.SrUuid,
+  /*
+   * An alert on what XAPI said - a VM that crashed, storage that failed to
+   * plug (XcpNgEventAlertTemplates) - names the object it is about.
+   */
+  XcpNgEventLogAttribute.ObjectUuid,
 ];
 
 function readLabel(labels: JSONObject | null, key: string): string | null {

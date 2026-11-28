@@ -2678,6 +2678,9 @@ ${this.generateResponseMapping(resource, "readResponse", true)}
 
     return `
 func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+    // A name another record has is refused with what to import (see client.go's ForResource).
+    ctx = ForResource(ctx, "${this.providerName}_${resource.name}")
+
     var data ${resourceTypeName}ResourceModel
 
     // Read Terraform plan data into the model
@@ -2901,6 +2904,9 @@ ${this.generateResponseMapping(resource, "readResponse", false)}
 
     return `
 func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+    // A name another record has is refused with what to import (see client.go's ForResource).
+    ctx = ForResource(ctx, "${this.providerName}_${resource.name}")
+
     var data ${resourceTypeName}ResourceModel
     var state ${resourceTypeName}ResourceModel
 

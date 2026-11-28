@@ -63,7 +63,7 @@ Clique em **Próximo**. Nada nesta etapa é marcado como faltando até você cli
 
 ### Como os critérios são avaliados
 
-O resultado de cada verificação passa pelos critérios de cima para baixo, e o primeiro que corresponde decide o que acontece. Esse critério pode mudar o status do monitor, declarar um incidente, criar um alerta ou qualquer combinação dos três. Quando nenhum corresponde, o monitor mostra o seu **Status Padrão do Monitor**, definido em **Mais campos** abaixo dos critérios (**Operacional**, a menos que você escolha outro).
+O resultado de cada verificação passa pelos critérios de cima para baixo, e o primeiro que corresponde decide o que acontece. Esse critério pode mudar o status do monitor, declarar um incidente, criar um alerta ou qualquer combinação dos três. Um que não altera nenhum status não decide nenhum: o primeiro critério abaixo dele que corresponde e altera o status o define. Quando nenhum corresponde, o monitor mostra o seu **Status Padrão do Monitor**, definido em **Mais campos** abaixo dos critérios (**Operacional**, a menos que você escolha outro).
 
 ```mermaid title="De uma verificação a um status, um incidente ou um alerta"
 flowchart TB

@@ -297,6 +297,35 @@ describe("DataSourceHttpFetch.fetch - pinned socket lookup", () => {
     expect(first.httpsAgent).not.toBe(second.httpsAgent);
   });
 
+  /*
+   * How the target's certificate is checked, for this request alone (#11140):
+   * a self-managed search cluster's own CA, or none for one whose
+   * certificate no authority signed. The https agent carries it, and only
+   * that request's.
+   */
+  test("a request's TLS options reach its https agent, and the next request's agent keeps the defaults", async () => {
+    const ca: string =
+      "-----BEGIN CERTIFICATE-----\nMIIB-the-clusters-own-ca\n-----END CERTIFICATE-----";
+
+    await DataSourceHttpFetch.fetch(
+      makeRequest({ tls: { rejectUnauthorized: true, ca: ca } }),
+    );
+    await DataSourceHttpFetch.fetch(
+      makeRequest({ tls: { rejectUnauthorized: false } }),
+    );
+    await DataSourceHttpFetch.fetch(makeRequest());
+
+    const ownCa: https.Agent = getAxiosConfig(0).httpsAgent as https.Agent;
+    const unchecked: https.Agent = getAxiosConfig(1).httpsAgent as https.Agent;
+    const plain: https.Agent = getAxiosConfig(2).httpsAgent as https.Agent;
+
+    expect(ownCa.options.ca).toEqual(ca);
+    expect(ownCa.options.rejectUnauthorized).not.toBe(false);
+    expect(unchecked.options.rejectUnauthorized).toBe(false);
+    expect(plain.options.ca).toBeUndefined();
+    expect(plain.options.rejectUnauthorized).not.toBe(false);
+  });
+
   test("the agent lookup yields the pinned validated address for the URL's host, whatever DNS would say now", async () => {
     await DataSourceHttpFetch.fetch(makeRequest());
     const lookup: PinnedLookup = getPinnedLookup(getAxiosConfig().httpsAgent);

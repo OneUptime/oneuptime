@@ -14,7 +14,9 @@ import {
  *   - the published ranges of an edge the project connected, while it is
  *     connected (Cloudflare);
  *   - the project's own application load balancers, unless it turned that
- *     off (Project.securityTrustOwnLoadBalancers).
+ *     off (Project.securityTrustOwnLoadBalancers), and with them Google's
+ *     front ends, which its Google Cloud Application Load Balancers reach
+ *     its apps from (#11047).
  *
  * POST /security-trusted-proxies/automatic answers with the last two
  * (Server/API/SecurityTrustedProxiesAPI); the first needs no asking. Its
@@ -57,9 +59,34 @@ export interface AutomaticTrustedLoadBalancer {
   addresses: Array<string>;
 }
 
+// A load balancer named where Google's front ends are said.
+export interface AutomaticTrustedGoogleFrontEndLoadBalancer {
+  name: string;
+  // The cloud account it is in, by its connection's name: '' when not known.
+  where: string;
+}
+
+/*
+ * Google's front ends (#11047): the ranges the project's Google Cloud
+ * Application Load Balancers reach its apps from, with the load balancers
+ * that bring them, and what keeps them untrusted - a TCP or SSL proxy load
+ * balancer of the project's, which passes on what a client writes from the
+ * same ranges, or a read that may have left one out.
+ */
+export interface AutomaticTrustedGoogleFrontEnds {
+  ranges: Array<string>;
+  broughtBy: Array<AutomaticTrustedGoogleFrontEndLoadBalancer>;
+  withheldBy: Array<AutomaticTrustedGoogleFrontEndLoadBalancer>;
+  isWithheldForIncompleteRead: boolean;
+  // Trusted while Your Load Balancers is on: brought by one, withheld by none.
+  isTrusted: boolean;
+}
+
 export interface AutomaticTrustedProxies {
   edges: Array<AutomaticTrustedEdge>;
   loadBalancers: Array<AutomaticTrustedLoadBalancer>;
+  // Null when none of the project's load balancers reaches its apps from them.
+  googleFrontEnds: AutomaticTrustedGoogleFrontEnds | null;
   /*
    * False when the project's load balancers could not be listed: the reader
    * may not read cloud resources, or the read failed. Whatever the switch
@@ -73,6 +100,7 @@ export interface AutomaticTrustedProxies {
 export const NO_AUTOMATIC_TRUSTED_PROXIES: AutomaticTrustedProxies = {
   edges: [],
   loadBalancers: [],
+  googleFrontEnds: null,
   areLoadBalancersRead: true,
   areLoadBalancersComplete: true,
 };
@@ -108,8 +136,89 @@ export function automaticTrustedProxiesToJSON(
         };
       },
     ),
+    googleFrontEnds: proxies.googleFrontEnds
+      ? {
+          ranges: [...proxies.googleFrontEnds.ranges],
+          broughtBy: proxies.googleFrontEnds.broughtBy.map(
+            googleFrontEndLoadBalancerToJSON,
+          ),
+          withheldBy: proxies.googleFrontEnds.withheldBy.map(
+            googleFrontEndLoadBalancerToJSON,
+          ),
+          isWithheldForIncompleteRead:
+            proxies.googleFrontEnds.isWithheldForIncompleteRead,
+          isTrusted: proxies.googleFrontEnds.isTrusted,
+        }
+      : null,
     areLoadBalancersRead: proxies.areLoadBalancersRead,
     areLoadBalancersComplete: proxies.areLoadBalancersComplete,
+  };
+}
+
+function googleFrontEndLoadBalancerToJSON(
+  loadBalancer: AutomaticTrustedGoogleFrontEndLoadBalancer,
+): JSONObject {
+  return { name: loadBalancer.name, where: loadBalancer.where };
+}
+
+function readGoogleFrontEndLoadBalancers(
+  value: JSONValue | undefined,
+): Array<AutomaticTrustedGoogleFrontEndLoadBalancer> {
+  const loadBalancers: Array<AutomaticTrustedGoogleFrontEndLoadBalancer> = [];
+
+  for (const item of readArray(value)) {
+    const loadBalancer: JSONObject | null = readObject(item);
+
+    if (loadBalancer) {
+      loadBalancers.push({
+        name: readText(loadBalancer["name"]),
+        where: readText(loadBalancer["where"]),
+      });
+    }
+  }
+
+  return loadBalancers;
+}
+
+/*
+ * Google's front ends as the server said them, or null: none brought, no
+ * range, or nothing readable. Trusted only when the answer says so, and
+ * never while anything withholds them.
+ */
+function readGoogleFrontEnds(
+  value: JSONValue | undefined,
+): AutomaticTrustedGoogleFrontEnds | null {
+  const data: JSONObject | null = readObject(value);
+
+  if (!data) {
+    return null;
+  }
+
+  const ranges: Array<string> = readArray(data["ranges"])
+    .map((range: JSONValue): string => {
+      return readText(range);
+    })
+    .filter(Boolean);
+  const broughtBy: Array<AutomaticTrustedGoogleFrontEndLoadBalancer> =
+    readGoogleFrontEndLoadBalancers(data["broughtBy"]);
+  const withheldBy: Array<AutomaticTrustedGoogleFrontEndLoadBalancer> =
+    readGoogleFrontEndLoadBalancers(data["withheldBy"]);
+  const isWithheldForIncompleteRead: boolean =
+    data["isWithheldForIncompleteRead"] === true;
+
+  if (ranges.length === 0 || broughtBy.length === 0) {
+    return null;
+  }
+
+  return {
+    ranges,
+    broughtBy,
+    withheldBy,
+    isWithheldForIncompleteRead,
+    isTrusted:
+      data["isTrusted"] === true &&
+      withheldBy.length === 0 &&
+      !isWithheldForIncompleteRead,
   };
 }
 
@@ -164,6 +273,7 @@ export function readAutomaticTrustedProxies(
   return {
     edges,
     loadBalancers,
+    googleFrontEnds: readGoogleFrontEnds(data["googleFrontEnds"]),
     areLoadBalancersRead: data["areLoadBalancersRead"] === true,
     areLoadBalancersComplete: data["areLoadBalancersComplete"] !== false,
   };

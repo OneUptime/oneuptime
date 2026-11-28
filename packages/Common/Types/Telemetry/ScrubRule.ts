@@ -4,7 +4,16 @@ import LogScrubPatternType from "../Log/LogScrubPatternType";
 import TraceScrubAction from "../Trace/TraceScrubAction";
 import TraceScrubField from "../Trace/TraceScrubField";
 import TraceScrubPatternType from "../Trace/TraceScrubPatternType";
-import { hasDigitBeyondAscii } from "../../Utils/DataSecurity/DigitReadings";
+import {
+  foldDigits,
+  hasDigitBeyondAscii,
+} from "../../Utils/DataSecurity/DigitReadings";
+import {
+  foldFullwidthForms,
+  holdsFullwidthFormOfANumber,
+} from "../../Utils/DataSecurity/FullwidthForms";
+import PercentDecodedText from "../../Utils/DataSecurity/PercentDecodedText";
+import PlusAsSpaceText from "../../Utils/DataSecurity/PlusAsSpaceText";
 import {
   mergeRanges,
   ReadingNeeds,
@@ -96,6 +105,26 @@ export interface ScrubRegExp {
    * (Utils/Telemetry/ScrubJsonText.ts).
    */
   matchRanges(text: string): Array<[number, number]>;
+  /*
+   * A match as the reading it was found in reads it, for what Mask and
+   * Hash make of it (Server/Utils/Telemetry/ScrubAction): a custom
+   * pattern's, found only once a "+" is read as the space a URL's query
+   * string writes it for (#11199), as it reads so. None for a pattern
+   * whose every match reads as it is written (readScrubMatch).
+   */
+  readMatch?(matchedText: string): string;
+}
+
+/*
+ * A match of a rule's pattern as the reading it was found in reads it
+ * (ScrubRegExp.readMatch), or as it is written when the pattern says
+ * nothing of its readings.
+ */
+export function readScrubMatch(
+  regex: ScrubRegExp | null | undefined,
+  matchedText: string,
+): string {
+  return regex?.readMatch ? regex.readMatch(matchedText) : matchedText;
 }
 
 /*
@@ -495,10 +524,28 @@ export function getRegexSyntaxErrorReason(error: unknown): string {
 const CUSTOM_PATTERN_READINGS: ReadingNeeds = {
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
+  readsFullwidthForms: true,
 };
 
 /*
- * A CUSTOM PATTERN, IN EVERY READING OF A VALUE (#11031, #11033).
+ * Whether a text may read otherwise than as written, in a way a custom
+ * pattern reads it: an escape, a "+", a digit beyond ASCII, or a number's
+ * fullwidth sign or separator. Nearly no text does, and is read as
+ * written alone.
+ */
+export function mayReadOtherwise(text: string): boolean {
+  return (
+    text.indexOf("%") !== -1 ||
+    text.indexOf("+") !== -1 ||
+    hasDigitBeyondAscii(text) ||
+    holdsFullwidthFormOfANumber(text)
+  );
+}
+
+/*
+ * A CUSTOM PATTERN, IN EVERY READING OF A VALUE (#11031, #11033, #11199,
+ * #11115).
  *
  * A Custom Regex rule - one a person wrote, or the one "Scrub it" makes
  * from a data type's own patterns (TelemetryScrubCoverage's
@@ -506,15 +553,22 @@ const CUSTOM_PATTERN_READINGS: ReadingNeeds = {
  * written, and in the readings Data Security's detectors read it in
  * (Utils/DataSecurity/TextReadings): with its percent-escapes read, so a
  * redirect's token after an encoded "=" (%3Dghp_...) or an AWS secret
- * whose "/" is %2F is hidden; and with every script's digits read by their
- * values, so an IBAN or a national ID number in Arabic-Indic or fullwidth
- * digits is. Each match is placed on the characters the text writes it
- * with, escapes and all, and what two readings share is one match. So a
+ * whose "/" is %2F is hidden; as a URL's query string reads it, a "+"
+ * between two characters of a value the space a form writes it for, so an
+ * IBAN typed in its groups into a form - iban=DE44+5001+0517+5407+3249+31 -
+ * is hidden too, as one with %20 between its groups was; with every
+ * script's digits read by their values, so an IBAN or a national ID
+ * number in Arabic-Indic or fullwidth digits is; and with a number's
+ * fullwidth signs and separators read as ASCII, so a CPF typed wholly in
+ * fullwidth, ４７１．３９２．８６５－８２, is too (#11115). Each match is
+ * placed on the characters the text writes it with, escapes and "+"s and
+ * fullwidth forms and all, and what two readings share is one match. So a
  * finding the detectors make in a reading, the rule made from their
  * patterns hides there.
  *
- * A text with no escape and no digit beyond ASCII - nearly every one - has
- * no other reading, and is read exactly as before. A match of no text in
+ * A text with no escape, no "+", no digit beyond ASCII and no fullwidth
+ * form beside a digit - nearly every one - has no other reading, and is
+ * read exactly as before (mayReadOtherwise). A match of no text in
  * another reading hides nothing, and is left out.
  */
 class ReadingsScrubRegExp implements ScrubRegExp {
@@ -530,7 +584,7 @@ class ReadingsScrubRegExp implements ScrubRegExp {
 
   // The text's readings, the text as written first: one when it has no other.
   private static readingsOf(text: string): Array<TextReading> | null {
-    if (text.indexOf("%") === -1 && !hasDigitBeyondAscii(text)) {
+    if (!mayReadOtherwise(text)) {
       return null;
     }
 
@@ -595,6 +649,69 @@ class ReadingsScrubRegExp implements ScrubRegExp {
     }
 
     return mergeRanges(found);
+  }
+
+  // Whether the pattern, as written, finds the whole of a text as one match.
+  private matchesWhole(text: string): boolean {
+    return this.written
+      .matchRanges(text)
+      .some(([start, end]: [number, number]): boolean => {
+        return start === 0 && end === text.length;
+      });
+  }
+
+  /*
+   * A match as the reading it was found in reads it (#11199), for Mask and
+   * Hash: as written - ScrubAction reads its escapes and every script's
+   * digits, as it always has - unless the pattern finds it whole only with
+   * its "+"s read as the spaces a query string writes them for: then as it
+   * reads so, DE44+5001+0517+... as DE44 5001 0517 ..., so its mask is the
+   * value's and its token the one the value written plainly has. A "+" the
+   * pattern matches as written - a base64 key's, jane+news@example.com's -
+   * is the value's own, and stays. The match is read alone, so a pattern
+   * that needs the text around it (a look-behind's words) reads it as
+   * written. A match found only with its fullwidth forms read
+   * (４７１．３９２．８６５－８２) reads as written here: ScrubAction reads its
+   * forms as it reads its digits.
+   */
+  public readMatch(matchedText: string): string {
+    // A "+" written, or escaped as a URL inside a query string writes one (%2B).
+    const decoded: string = PercentDecodedText.readableOf(matchedText);
+
+    if (decoded.indexOf("+") === -1) {
+      return matchedText;
+    }
+
+    for (const reading of new Set<string>([
+      matchedText,
+      decoded,
+      foldDigits(matchedText),
+      foldDigits(decoded),
+      foldFullwidthForms(foldDigits(matchedText)),
+      foldFullwidthForms(foldDigits(decoded)),
+    ])) {
+      if (this.matchesWhole(reading)) {
+        return matchedText;
+      }
+    }
+
+    const spaced: string = PlusAsSpaceText.readableOf(matchedText);
+
+    if (spaced === decoded) {
+      return matchedText;
+    }
+
+    for (const reading of new Set<string>([
+      spaced,
+      foldDigits(spaced),
+      foldFullwidthForms(foldDigits(spaced)),
+    ])) {
+      if (this.matchesWhole(reading)) {
+        return spaced;
+      }
+    }
+
+    return matchedText;
   }
 }
 

@@ -43,7 +43,7 @@ const PODS_DESCRIPTION: string = translationKey(
   "What this array replicates and to where: how far each remote copy is behind, and the status of its link.",
 );
 const PODS_NO_ITEMS: string = translationKey(
-  "Nothing replicated in the inventory yet. It appears here a few minutes after the Storage Array Agent starts scraping the array, if the array replicates anything.",
+  "Nothing replicated in the inventory yet. Replication appears here a few minutes after the Storage Array Agent first reads an array that replicates.",
 );
 
 const StorageArrayReplication: FunctionComponent<

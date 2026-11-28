@@ -35,6 +35,7 @@ import {
   useSecuritySetupTest,
 } from "./SecuritySetupTest";
 import SecurityTurnOnProblems from "./SecurityTurnOnProblems";
+import SecurityRecommendedRules from "./SecurityRecommendedRules";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -258,8 +259,11 @@ export interface ComponentProps {
  * picked up, that nothing is being watched for threats yet (with Set up Security),
  * or that all is quiet (with Send a test attack, for whoever wants to see a
  * case open). Under it, the pipeline: sources, detections, cases and
- * playbooks, each with its figure and how it is doing. A SIEM the events go
- * to is named at the card's foot.
+ * playbooks, each with its figure and how it is doing. Under that, a
+ * recommended rule OneUptime turned on itself, and the recommended rules
+ * the project does not have, each with what it catches and Turn On
+ * (SecurityRecommendedRules, #11037). A SIEM the events go to is named at
+ * the card's foot.
  *
  * The test attack's state lives here, not in the band's quiet branch: the
  * case it opens turns the band to Needs attention, and the line that links
@@ -466,6 +470,20 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
             dataTestId={SECURITY_REFUSED_TELEMETRY_TEST_ID}
           />
         </div>
+      ) : (
+        <></>
+      )}
+
+      {/*
+       * The recommended rules (#11037): one OneUptime turned on itself, and
+       * those the project does not have - what each catches, with Turn On -
+       * under the pipeline whose Detections cell counts them.
+       */}
+      {props.showPipeline && props.status ? (
+        <SecurityRecommendedRules
+          status={props.status}
+          onChanged={props.onChanged}
+        />
       ) : (
         <></>
       )}

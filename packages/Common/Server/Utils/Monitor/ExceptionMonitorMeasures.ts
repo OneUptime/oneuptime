@@ -2,6 +2,7 @@ import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance
 import Span from "../../../Models/AnalyticsModels/Span";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import TelemetryCheckWindow from "../../../Types/Monitor/TelemetryCheckWindow";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import Search from "../../../Types/BaseDatabase/Search";
@@ -120,12 +121,17 @@ export default class ExceptionMonitorMeasureReader {
       data.config.lastXSecondsOfExceptions > 0
         ? data.config.lastXSecondsOfExceptions
         : 60;
-    const windowEnd: Date =
-      data.evaluateUntil || OneUptimeDate.getCurrentDate();
-    const windowStart: Date = OneUptimeDate.addRemoveSeconds(
-      windowEnd,
-      -windowSeconds,
+    /*
+     * The check's window, as its count reads it: its start and not its end
+     * (TelemetryCheckWindow), so a group first seen, or back, on the edge
+     * between two windows is new or regressed in one check, the later one.
+     */
+    const window: InBetween<Date> = TelemetryCheckWindow.ofSeconds(
+      windowSeconds,
+      data.evaluateUntil,
     );
+    const windowStart: Date = window.startValue;
+    const windowEnd: Date = window.endValue;
 
     const measures: ExceptionMonitorMeasures = {};
 
@@ -138,8 +144,7 @@ export default class ExceptionMonitorMeasureReader {
       MonitorStepExceptionMonitorUtil.hasEntityFilter(data.config)
         ? ExceptionMonitorMeasureReader.readOccurrenceFingerprints({
             countQuery: data.countQuery,
-            windowStart,
-            windowEnd,
+            window,
           })
         : Promise.resolve(undefined);
 
@@ -182,12 +187,16 @@ export default class ExceptionMonitorMeasureReader {
     ] = await Promise.all([
       needs.newExceptions
         ? countGroupsWhere({
-            firstSeenAt: QueryHelper.inBetween(windowStart, windowEnd),
+            firstSeenAt: QueryHelper.inBetween(windowStart, windowEnd, {
+              includesEnd: window.includesEnd,
+            }),
           })
         : Promise.resolve(undefined),
       needs.regressedExceptions
         ? countGroupsWhere({
-            regressedAt: QueryHelper.inBetween(windowStart, windowEnd),
+            regressedAt: QueryHelper.inBetween(windowStart, windowEnd, {
+              includesEnd: window.includesEnd,
+            }),
             // Came back and still open: resolved again since, it is fixed.
             isResolved: false,
           })
@@ -212,8 +221,7 @@ export default class ExceptionMonitorMeasureReader {
             projectId: data.projectId,
             config: data.config,
             countQuery: data.countQuery,
-            windowStart,
-            windowEnd,
+            window,
           })
         : Promise.resolve(undefined),
       needs.installs
@@ -221,8 +229,7 @@ export default class ExceptionMonitorMeasureReader {
             projectId: data.projectId,
             config: data.config,
             countQuery: data.countQuery,
-            windowStart,
-            windowEnd,
+            window,
           })
         : Promise.resolve(undefined),
     ]);
@@ -291,12 +298,11 @@ export default class ExceptionMonitorMeasureReader {
     projectId: ObjectID;
     config: MonitorStepExceptionMonitor;
     countQuery: AnalyticsQuery<ExceptionInstance>;
-    windowStart: Date;
-    windowEnd: Date;
+    window: InBetween<Date>;
   }): Promise<ExceptionMonitorInstalls> {
     const spanQuery: AnalyticsQuery<Span> = {
       projectId: data.projectId,
-      startTime: new InBetween(data.windowStart, data.windowEnd),
+      startTime: data.window,
     };
 
     if (data.config.telemetryServiceIds?.length > 0) {
@@ -317,7 +323,7 @@ export default class ExceptionMonitorMeasureReader {
         ExceptionInstanceService.countDistinctNonEmpty({
           query: {
             ...data.countQuery,
-            time: new InBetween(data.windowStart, data.windowEnd),
+            time: data.window,
           },
           expression: STORED_APP_INSTALL_SQL,
           props: { isRoot: true },
@@ -340,12 +346,11 @@ export default class ExceptionMonitorMeasureReader {
     projectId: ObjectID;
     config: MonitorStepExceptionMonitor;
     countQuery: AnalyticsQuery<ExceptionInstance>;
-    windowStart: Date;
-    windowEnd: Date;
+    window: InBetween<Date>;
   }): Promise<ExceptionMonitorSessions> {
     const spanQuery: AnalyticsQuery<Span> = {
       projectId: data.projectId,
-      startTime: new InBetween(data.windowStart, data.windowEnd),
+      startTime: data.window,
       sessionId: new NotEqual(""),
     };
 
@@ -369,7 +374,7 @@ export default class ExceptionMonitorMeasureReader {
         ExceptionInstanceService.countBy({
           query: {
             ...data.countQuery,
-            time: new InBetween(data.windowStart, data.windowEnd),
+            time: data.window,
             sessionId: new NotEqual(""),
           },
           groupBy: { sessionId: true },
@@ -512,14 +517,13 @@ export default class ExceptionMonitorMeasureReader {
    */
   public static async readOccurrenceFingerprints(data: {
     countQuery: AnalyticsQuery<ExceptionInstance>;
-    windowStart: Date;
-    windowEnd: Date;
+    window: InBetween<Date>;
   }): Promise<Array<string>> {
     const rows: Array<ExceptionInstance> =
       await ExceptionInstanceService.findBy({
         query: {
           ...data.countQuery,
-          time: new InBetween(data.windowStart, data.windowEnd),
+          time: data.window,
         },
         groupBy: { fingerprint: true },
         select: { fingerprint: true },
@@ -572,7 +576,8 @@ export default class ExceptionMonitorMeasureReader {
     const count: PositiveNumber = await ExceptionInstanceService.countBy({
       query: {
         ...data.countQuery,
-        time: new InBetween(previousStart, data.windowStart),
+        // Up to the window's start, which the window holds itself.
+        time: TelemetryCheckWindow.from(previousStart, data.windowStart),
       },
       // As the window's own count is read (MonitorTelemetryMonitor).
       skip: 0,

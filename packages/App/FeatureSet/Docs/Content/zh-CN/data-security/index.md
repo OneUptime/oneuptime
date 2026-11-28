@@ -6,7 +6,7 @@
 
 :::cards
 - [我们的敏感数据在哪里？](/docs/data-security/data-types): 143 种数据类型，从卡号、国民身份证号到 API 密钥，可在存储桶、表和遥测中找到。
-- [它是否暴露？](/docs/data-security/checks-and-issues): 对每个数据存储的 34 项检查：公开访问、加密、备份、日志记录、密钥和副本。
+- [它是否暴露？](/docs/data-security/checks-and-issues): 对每个数据存储的 35 项检查：公开访问、加密、备份、日志记录、密钥和副本。
 - [谁可以访问它，它又流向哪里？](/docs/data-security/flows-access-residency): 可以访问每个数据存储的每个身份（风险最高的排在前面）、哪些服务使用它，以及它的数据会到达哪些 AI 提供商和主机。
 - [它是否符合我们的规则？](/docs/data-security/compliance): 数据驻留规则，以及根据扫描结果评分的九个合规框架。
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## 开始之前
 
 - **能够设置它的角色。** 项目所有者、项目管理员和安全管理员可以更改数据安全的设置。安全成员处理问题并扫描数据存储，安全查看者读取它的发现。除非其团队被授予相应权限，否则其他角色什么都看不到：哪些存储桶保存着卡号，恰恰是攻击者想知道的。请参阅 [角色](/docs/permissions/reference#角色)。
-- **一个可供读取的云账户，或一个数据库。** 数据安全通过 [云连接](/docs/telemetry/cloud-accounts) 读取云账户，并通过只读连接字符串读取你运行的数据库。遥测无需任何设置：它每小时都会被扫描。
+- **一个可供读取的云账户，或一个你运行的数据存储。** 数据安全通过 [云连接](/docs/telemetry/cloud-accounts) 读取云账户，并通过只读连接字符串读取你运行的数据库或搜索集群。遥测无需任何设置：它每小时都会被扫描。
 
 ## 快速入门
 
@@ -69,10 +69,10 @@ flowchart TB
 | AWS | AWS S3 Bucket、AWS RDS Instance、AWS Aurora Cluster、AWS RDS Snapshot、AWS DynamoDB Table、AWS Redshift Cluster、AWS DocumentDB Cluster、AWS OpenSearch Domain、AWS ElastiCache Cluster、AWS EFS File System、Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
-| 你运行的数据库 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
+| 你运行的数据存储 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、OpenSearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server、Elasticsearch、OpenSearch |
 | OneUptime | 日志、追踪、异常、会话回放、AI 对话、指标、安全事件、Network Flows、安全地址保管库、安全用户保管库 | 日志、追踪、异常、会话回放、AI 对话、指标 |
 
-每个数据存储都会接受适用于其类型的检查。无法对内容抽样的数据存储仍会被检查：公开的存储桶或未加密的数据库，无论其中保存着什么，都是隐患。安全事件、Network Flows 和安全地址保管库是 OneUptime 为你的安全保留的自有数据存储：它们是声明的，从不扫描，也从不检查（参见 [OneUptime 为你的安全保留的数据存储](/docs/data-security/compliance#oneuptime-为你的安全保留的数据存储)）。
+每个数据存储都会根据 OneUptime 能从中读取到的内容，接受适用于其类型的检查。云账户中的数据存储从其所在云自身的设置中读取，因此无论能否对其内容抽样都会被检查：公开的存储桶或未加密的数据库，无论其中保存着什么，都是隐患。你运行的数据存储没有可供 OneUptime 读取的此类设置：对于 Elasticsearch 或 OpenSearch 集群，每次内容扫描时都会在其自身地址上询问它是否无需凭据即可应答，而其他类型如何被访问则不会检查（参见 [OneUptime 对你运行的数据存储检查的内容](/docs/data-security/setup#oneuptime-对你运行的数据存储检查的内容)）。每个数据存储的 **设置** 会在 **OneUptime 检查的内容** 下说明对它检查哪些内容、不检查哪些内容。安全事件、Network Flows 和安全地址保管库是 OneUptime 为你的安全保留的自有数据存储：它们是声明的，从不扫描，也从不检查（参见 [OneUptime 为你的安全保留的数据存储](/docs/data-security/compliance#oneuptime-为你的安全保留的数据存储)）。
 
 一旦来源不再列出某个数据存储，它就会连同其历史记录一起被归档，其未解决的问题也会被解决：数据安全菜单末尾的 **已归档的数据存储** 会保留它。如果来源再次列出它，它会自行恢复，检查仍然失败的问题会再次打开。
 
@@ -86,9 +86,10 @@ flowchart TB
 | 读取云连接的配置 | 每天一次；CloudTrail 记录到 AWS 数据存储的访问、加密、备份或共享发生更改后，还会在一小时内读取 |
 | 对数据存储的内容抽样 | 每 24 小时一次，或按 **扫描间隔（小时）** 设置的频率 |
 | 对每个服务的遥测抽样 | 每小时一次，抽取最近一小时的遥测 |
+| 询问你运行的搜索集群是否无需凭据即可应答 | 随其每次内容扫描 |
 | 重新检查每个数据存储 | 每次读取和扫描之后、你更改了检查所依赖的任何内容之后，以及每天一次 |
 
-数据存储上的 **立即扫描** 会立即对其内容抽样，**立即检查** 会重新读取其配置。
+数据存储上的 **立即扫描** 会立即对其内容抽样，并再次询问你运行的搜索集群是否无需凭据即可应答。**立即检查** 会重新读取云账户中数据存储的配置，并重新运行该数据存储的检查。
 
 ## 后续步骤
 

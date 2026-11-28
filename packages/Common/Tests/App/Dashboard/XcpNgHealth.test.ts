@@ -138,10 +138,15 @@ describe("the lines", () => {
   });
 
   test("the kinds are listed hosts, then storage repositories, then VMs", () => {
+    // The pool's own first, then its parts, then its jobs and readers (#10997).
     expect(XCP_NG_ATTENTION_KIND_ORDER).toEqual([
+      "Pool",
       "Host",
       "Storage repository",
       "VM",
+      "Backup job",
+      "Xen Orchestra",
+      "XAPI",
     ]);
   });
 

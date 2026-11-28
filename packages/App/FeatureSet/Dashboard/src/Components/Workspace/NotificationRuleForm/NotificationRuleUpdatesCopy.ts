@@ -401,7 +401,7 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       "The rule always posts when a maintenance event is created. Pick the updates it posts after that.",
     ),
     everyUpdateDescription: translationKey(
-      "State changes, notes and everything else.",
+      "State changes, notes, owners and everything else.",
     ),
     keyUpdatesDescription: translationKey("State changes and public notes."),
     nothingChosenNote: translationKey(
@@ -424,6 +424,11 @@ export const UPDATES_COPY: Readonly<Record<UpdatesEventType, UpdatesCopy>> = {
       [NotificationRuleUpdateKind.PrivateNotes]: {
         title: PRIVATE_NOTES,
         description: NOTES_OFF_STATUS_PAGES,
+      },
+      // Posted since #11223, as every other kind's owners are.
+      [NotificationRuleUpdateKind.Owners]: {
+        title: OWNERS,
+        description: OWNERS_ADDED_AND_REMOVED,
       },
       [NotificationRuleUpdateKind.Reminders]: {
         title: REMINDERS,

@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "IoT 플릿을 삭제하면 해당 장치 레지스트리도 삭제되어 등록된 장치가 더 이상 로그인할 수 없습니다.",
   "Deleting a database also deletes the endpoints it is reached at.": "데이터베이스를 삭제하면 해당 데이터베이스에 연결하는 엔드포인트도 삭제됩니다.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "클라우드 연결을 삭제하면 OneUptime이 해당 계정 읽기를 중지합니다. 리소스는 메트릭과 함께 유지됩니다.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "스토리지 어레이 연결을 삭제하면 OneUptime이 그 뒤의 어레이를 더 이상 읽지 않으며, 저장된 비밀번호와 연결 테스트도 삭제됩니다. 어레이와 해당 메트릭은 그대로 유지됩니다.",
   "True": "참",
   "False": "거짓",
   "Key": "키",
@@ -4631,5 +4632,10 @@
   "Only XCP-ng pools that match conditions": "조건과 일치하는 XCP-ng 풀만",
   "All savings": "모든 절감",
   "Only savings that match conditions": "조건과 일치하는 절감만",
-  "XCP-ng Pool": "XCP-ng 풀"
+  "XCP-ng Pool": "XCP-ng 풀",
+  "Same name as another {{kind}}": "다른 항목({{kind}})과 같은 이름",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "이 프로젝트에 이름이 같은 다른 항목({{kind}})이 있어 선택기에서 둘을 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kinds}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요."
 }

@@ -1,6 +1,14 @@
 import DataSecuritySetting from "../../../../Models/DatabaseModels/DataSecuritySetting";
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
 import {
+  actionAlwaysAsks,
+  AlwaysAskWrite,
+  DATA_STORE_FINDING_TABLE_NAME,
+  doCriticalIssuesPage,
+  writeAlwaysAsks,
+} from "../../../../Types/AI/AIAlwaysAskChanges";
+import { SCRUB_DATA_SECURITY_FINDING_TOOL_NAME } from "../../../../Types/AI/AIDataSecurityActions";
+import {
   AIChatCitationTarget,
   AIChatCitationTargetType,
 } from "../../../../Types/AI/AIChatTypes";
@@ -398,13 +406,17 @@ export const ScrubDataSecurityFindingTool: ObservabilityTool = {
   },
   /*
    * Asks in every mode when something reads what it hides, or that could
-   * not be checked: the card says why (asksBecause).
+   * not be checked: the card says why (asksBecause). A scrub asks only
+   * then (Types/AI/AIAlwaysAskChanges' SomethingReadsWhatItHides).
    */
   asksInEveryMode: (
     _args: JSONObject,
     prepared: PreparedMutation | undefined,
   ): boolean => {
-    return asksWhenItsCardSaysSo(false, prepared);
+    return asksWhenItsCardSaysSo(
+      actionAlwaysAsks(SCRUB_DATA_SECURITY_FINDING_TOOL_NAME),
+      prepared,
+    );
   },
   prepareMutation: async (
     args: JSONObject,
@@ -646,10 +658,7 @@ async function readPagesForCriticalIssues(
         props: ctx.props,
       });
 
-    return Boolean(
-      setting?.raiseAlertsForCriticalIssues ||
-        setting?.declareIncidentsForCriticalIssues,
-    );
+    return doCriticalIssuesPage(setting);
   } catch (error) {
     logger.debug(
       `Ask AI could not read whether Critical issues page anyone: ${
@@ -718,13 +727,26 @@ export const JudgeDataSecurityFindingTool: ObservabilityTool = {
   buildActionTitle: (args: JSONObject): AIActionSentence => {
     return buildJudgeTitle(readDecision(args), null);
   },
-  // Not Sensitive always asks; Confirm asks where a Critical issue pages someone.
+  /*
+   * Not Sensitive always asks; Confirm asks where a Critical issue pages
+   * someone, which the prepare reads. Decided by the write the decision
+   * makes, from the one list the MCP server holds every record's write to
+   * (Types/AI/AIAlwaysAskChanges), so update_data_store_finding is refused
+   * what this asks about (#11177).
+   */
   asksInEveryMode: (
     args: JSONObject,
     prepared: PreparedMutation | undefined,
   ): boolean => {
+    const decision: FindingDecision | null = readDecision(args);
+
     return asksWhenItsCardSaysSo(
-      readDecision(args) !== FindingDecision.Confirm,
+      decision === null ||
+        writeAlwaysAsks({
+          tableName: DATA_STORE_FINDING_TABLE_NAME,
+          write: AlwaysAskWrite.Update,
+          data: getFindingDecisionWrite(decision),
+        }),
       prepared,
     );
   },

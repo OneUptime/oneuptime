@@ -59,7 +59,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 /*
  * ONE AUTOMATIC RESPONSE POLICY (#10350): its name and what it does; beside
@@ -93,6 +93,12 @@ export interface ComponentProps {
   onTurnOnWithoutTrial: () => void;
   onEdit?: (() => void) | undefined;
   onDelete?: (() => void) | undefined;
+  /*
+   * The policy's name as the page draws it: with its mark, when another
+   * policy of the project has the name (TwinMarks, #11021). Left out, the
+   * name alone.
+   */
+  markName?: ((name: ReactNode) => ReactNode) | undefined;
 }
 
 const AutomaticResponsePolicyCard: FunctionComponent<ComponentProps> = (
@@ -188,9 +194,15 @@ const AutomaticResponsePolicyCard: FunctionComponent<ComponentProps> = (
         ]
       : [];
 
+  const title: ReactElement | string = isOwn ? (
+    <IsolatedText text={name} />
+  ) : (
+    name
+  );
+
   return (
     <Card
-      title={isOwn ? <IsolatedText text={name} /> : name}
+      title={props.markName ? <>{props.markName(title)}</> : title}
       titleText={policy.name}
       description={
         description ? (

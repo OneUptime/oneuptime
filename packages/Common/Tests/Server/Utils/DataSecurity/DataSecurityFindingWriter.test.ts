@@ -41,6 +41,10 @@ import DataCategory from "../../../../Types/DataSecurity/DataCategory";
 import DataConfidence from "../../../../Types/DataSecurity/DataConfidence";
 import DataSensitivity from "../../../../Types/DataSecurity/DataSensitivity";
 import {
+  DataStorePostureFacts,
+  DataStorePostureReadFrom,
+} from "../../../../Types/DataSecurity/DataStorePosture";
+import {
   FindingSampleRecord,
   MAX_FINDING_SAMPLE_RECORDS,
 } from "../../../../Types/DataSecurity/FindingSampleRecord";
@@ -964,6 +968,36 @@ describe("recordContentScan: the store", () => {
       tables: ["users"],
       plaintextPasswordFields: fields.slice(0, 50),
     });
+  });
+
+  /*
+   * A store you run, asked at its own address with its scan (#11140): what
+   * it answered is its posture, read now, so the evaluation the scan queues
+   * works out its exposure from it.
+   */
+  test("what a store you run answered without credentials is its posture, read now", async () => {
+    const posture: DataStorePostureFacts = {
+      readAt: "2026-11-27T08:00:00.000Z",
+      readFrom: DataStorePostureReadFrom.Network,
+      anonymousRead: false,
+      anonymousWrite: false,
+      publicNetworkAccess: null,
+      unknowableFacts: ["publicNetworkAccess"],
+    };
+
+    await record({ result: resultOf({ posture }) });
+
+    expect(storeWrite()["posture"]).toEqual(posture);
+    expect(storeWrite()["configurationReadAt"]).toEqual(NOW);
+    // Read before the evaluation that works its exposure out.
+    expect(queueSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a scan that asked nothing leaves the store's posture, and when it was read, as they were", async () => {
+    await record();
+
+    expect(Object.keys(storeWrite())).not.toContain("posture");
+    expect(Object.keys(storeWrite())).not.toContain("configurationReadAt");
   });
 
   test("a store that is gone is not written", async () => {

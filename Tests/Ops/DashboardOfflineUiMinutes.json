@@ -160,7 +160,7 @@
     "test-status-page-telemetry-guided-setups-ui": 4.7,
     "test-status-page-theme-ui": 5.1,
     "test-status-timeline-ui": 2.2,
-    "test-storage-array-pages-ui": 1.4,
+    "test-storage-array-pages-ui": 2.2,
     "test-suite-helpers-ui": 1.8,
     "test-test-page-ui": 0.6,
     "test-topology-ui": 4,

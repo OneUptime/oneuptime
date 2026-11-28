@@ -736,6 +736,32 @@ export default class DetectionRule extends BaseModel {
   })
   public lastError?: string = undefined;
 
+  /*
+   * When OneUptime added this rule itself, rather than a person, an API key
+   * or a workflow (#11037): a recommended rule that came out after the
+   * project had turned on every other recommended rule, added on upgrade
+   * (AddSensitiveFileServedToRecommendedRules). The Overview says so for a
+   * while, with a way to turn it off. Only OneUptime writes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    title: "Added By OneUptime At",
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    description:
+      "When OneUptime added this rule on its own: a new recommended rule, added on upgrade to a project that had every other recommended rule on. Empty for a rule a person, an API key or a workflow added.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public addedByOneUptimeAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: readPermissions,

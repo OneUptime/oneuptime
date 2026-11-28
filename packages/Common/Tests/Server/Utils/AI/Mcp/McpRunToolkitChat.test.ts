@@ -8,6 +8,7 @@ import McpRunToolkit, {
 import ExternalMcpServerConnection from "../../../../../Server/Utils/AI/Mcp/ExternalMcpServerConnection";
 import ExternalMcpServerCheck from "../../../../../Server/Utils/AI/Mcp/ExternalMcpServerCheck";
 import AiCommandKillSwitch from "../../../../../Server/Utils/AI/AiCommandKillSwitch";
+import ExternalMcpToolReadOnlyMarkService from "../../../../../Server/Services/ExternalMcpToolReadOnlyMarkService";
 import { clearMcpSignInCachesForTests } from "../../../../../Server/Utils/AI/Mcp/McpSignIn";
 import {
   ChatExtraTool,
@@ -113,6 +114,10 @@ beforeEach(() => {
   aiOffSpy = jest
     .spyOn(AiCommandKillSwitch, "isAiOff")
     .mockResolvedValue(false);
+  // No Project Admin has marked a tool read-only (#11081: McpRunToolkitMarks).
+  jest
+    .spyOn(ExternalMcpToolReadOnlyMarkService, "findMarksOfServer")
+    .mockResolvedValue([]);
 });
 
 afterEach(async () => {
@@ -480,7 +485,7 @@ describe("call_mcp_tool_with_approval: before its card", () => {
     await kit.close();
 
     expect(english(preparation.description![0]!)).toBe(
-      "Kubernetes does not say whether k8s_get_resources changes anything, so OneUptime asks first.",
+      "Kubernetes does not say whether k8s_get_resources changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.",
     );
   });
 

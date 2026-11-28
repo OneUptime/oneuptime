@@ -3675,6 +3675,9 @@ export default class OneUptimeDate {
    *
    * `style` "short" is the time range button's shape (no zone, the year
    * only with showYear); "long" a sentence's (the year and the zone).
+   * `includeSeconds` writes a short window's times to the second: the window
+   * of telemetry a check judged (EvaluationLogList), whose ends fall on any
+   * second of the minute.
    */
   public static getLocalDateTimeRangeEnds(data: {
     start: Date | string;
@@ -3682,6 +3685,7 @@ export default class OneUptimeDate {
     style: "short" | "long";
     showYear?: boolean | undefined;
     use12HourFormat?: boolean | undefined;
+    includeSeconds?: boolean | undefined;
   }): { start: string; end: string; isWithinOneDay: boolean } {
     const start: Date = this.fromString(data.start);
     const end: Date = this.fromString(data.end);
@@ -3710,6 +3714,7 @@ export default class OneUptimeDate {
         : this.getDateAsLocalShortDateTimeString(date, {
             use12HourFormat: use12HourFormat,
             showYear: data.showYear,
+            includeSeconds: Boolean(data.includeSeconds),
           });
     };
 
@@ -3725,6 +3730,7 @@ export default class OneUptimeDate {
     const endTime: () => string = (): string => {
       return this.getLocalTimeString(end, {
         use12HourFormat: use12HourFormat,
+        includeSeconds: !isLong && Boolean(data.includeSeconds),
       });
     };
 

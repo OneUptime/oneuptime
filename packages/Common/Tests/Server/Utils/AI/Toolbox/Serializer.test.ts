@@ -297,6 +297,74 @@ describe("ToolResultSerializer.redact - personal data", () => {
     },
   );
 
+  // #11199: in a URL a tool result holds, its groups apart by %20 or a form's "+".
+  test.each([
+    [
+      "GET /pay?card=4111%201111%201111%201111&step=2",
+      "GET /pay?card=[redacted-card]&step=2",
+    ],
+    [
+      "GET /pay?card=4111+1111+1111+1111&step=2",
+      "GET /pay?card=[redacted-card]&step=2",
+    ],
+    [
+      "GET /login?next=%2Fpay%3Fcard%3D4111%2B1111%2B1111%2B1111",
+      "GET /login?next=%2Fpay%3Fcard%3D[redacted-card]",
+    ],
+  ])(
+    "a grouped card in a URL is removed, the rest of it kept: %s",
+    (line: string, expected: string) => {
+      expect(redactionOf(line)).toBe(expected);
+    },
+  );
+
+  test("a sum of four numbers a form wrote that is no card's shape stays", () => {
+    expect(redactionOf("GET /calc?q=1234+5678")).toBe("GET /calc?q=1234+5678");
+  });
+
+  // #11115: typed wholly in fullwidth, as Japanese text writes one, its separators too.
+  test.each([
+    [
+      "its groups apart by fullwidth hyphens",
+      "カード ４１１１－１１１１－１１１１－１１１１ で決済",
+    ],
+    [
+      "its groups apart by ideographic spaces",
+      "カード ４１１１　１１１１　１１１１　１１１１ で決済",
+    ],
+    [
+      "its digits in ASCII, its hyphens in fullwidth",
+      "カード 4111－1111－1111－1111 で決済",
+    ],
+    [
+      "in a URL, each character's UTF-8 bytes escaped",
+      `GET /pay?card=${encodeURIComponent("４１１１－１１１１－１１１１－１１１１")} で決済`,
+    ],
+  ])(
+    "a grouped card typed in fullwidth is removed, the rest kept: %s",
+    (_label: string, line: string) => {
+      const out: string = redactionOf(line);
+
+      expect(
+        out.startsWith("カード ") || out.startsWith("GET /pay?card="),
+      ).toBe(true);
+      expect(out).toContain("[redacted-card]");
+      expect(out).not.toMatch(/[1１]{4}/);
+      expect(out.endsWith(" で決済")).toBe(true);
+      expect(countOf(line)).toBe(1);
+    },
+  );
+
+  test("fullwidth numbers that are no card's shape, and CJK prose, stay", () => {
+    for (const line of [
+      "注文番号 ４１１１－１１１１ を確認",
+      "（注）設定を確認してください。　以上",
+      "2026年11月27日（金）",
+    ]) {
+      expect(redactionOf(line)).toBe(line);
+    }
+  });
+
   test('an excluded attribute keeps its "-@", encoded or not, and an ASCII address after a dash is found from its first letter', () => {
     expect(redactionOf("-@http.route:/health")).toBe("-@http.route:/health");
     expect(redactionOf("-alice@example.com")).toBe("-[redacted-email]");

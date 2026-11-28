@@ -15,6 +15,7 @@ import {
   readScrubbedAddress,
   readScrubbedValue,
 } from "./ScrubbedAddress";
+import type { AccessLogFormat } from "./LogParsers/AccessLogFormat";
 
 /*
  * WHICH ADDRESS A REQUEST CAME FROM, AND WHETHER ITS SENDER COULD HAVE
@@ -149,6 +150,49 @@ export const MAX_TRUSTED_PROXIES: number = 500;
 // The longest Trusted Proxies text saved: each entry is at most 100 characters.
 export const MAX_TRUSTED_PROXIES_TEXT_LENGTH: number = 64 * 1024;
 
+/*
+ * The broadest range listed as a proxy (#11049): a /8 of IPv4, a /16 of
+ * IPv6. Anything wider is most of the internet, never one proxy's: listed,
+ * every hop of an X-Forwarded-For would be trusted, its leftmost - what the
+ * sender wrote - would be the client, and anyone could choose the address
+ * an attack is blamed on. The widest ranges a CDN or a cloud's front ends
+ * publish are far narrower (Cloudflare's /13, Google's front ends' /16).
+ */
+export const MIN_TRUSTED_PROXY_PREFIX_LENGTH: Readonly<Record<4 | 6, number>> =
+  {
+    4: 8,
+    6: 16,
+  };
+
+/*
+ * The ranges wider than that which are nobody's on the internet - IPv6's
+ * unique local and link-local addresses - and so never too broad to list:
+ * their addresses are trusted unlisted anyway.
+ */
+const PRIVATE_RANGES_WIDER_THAN_A_PROXY: ReadonlyArray<NetworkAddressBlock> = [
+  "fc00::/7",
+  "fe80::/10",
+]
+  .map((range: string): NetworkAddressBlock | null => {
+    return NetworkAddressBlockUtil.parse(range);
+  })
+  .filter((block: NetworkAddressBlock | null): block is NetworkAddressBlock => {
+    return block !== null;
+  });
+
+// Whether a listed range is too broad to be a proxy's (MIN_TRUSTED_PROXY_PREFIX_LENGTH).
+export function isTooBroadToTrust(block: NetworkAddressBlock): boolean {
+  if (block.prefixLength >= MIN_TRUSTED_PROXY_PREFIX_LENGTH[block.family]) {
+    return false;
+  }
+
+  return !PRIVATE_RANGES_WIDER_THAN_A_PROXY.some(
+    (privateRange: NetworkAddressBlock): boolean => {
+      return NetworkAddressBlockUtil.containsBlock(privateRange, block);
+    },
+  );
+}
+
 const IPV4_MAPPED_PREFIX: string = "::ffff:";
 
 /*
@@ -172,6 +216,14 @@ export interface TrustedProxies {
    * say what its fields are, so it is never read unless the project says so.
    */
   readsAccessLogForwardedFor?: boolean | undefined;
+  /*
+   * The project's own access log format, when it gave one (#11048,
+   * Project.securityAccessLogFormat): a line in it is read field by field,
+   * X-Forwarded-For from wherever the format puts it
+   * (LogParsers/AccessLogFormat). Absent: lines are read as the combined
+   * format, the switch above deciding their last field.
+   */
+  accessLogFormat?: AccessLogFormat | null | undefined;
 }
 
 // Only what every project trusts: addresses that are nobody's on the internet.
@@ -242,6 +294,8 @@ export enum TrustedProxyListProblemKind {
   TooLong = "too-long",
   // An entry that is neither an address nor a range.
   NotAnAddress = "not-an-address",
+  // A range wider than any proxy's (MIN_TRUSTED_PROXY_PREFIX_LENGTH).
+  TooBroad = "too-broad",
   // More than MAX_TRUSTED_PROXIES addresses and ranges.
   TooMany = "too-many",
 }
@@ -251,6 +305,11 @@ export type TrustedProxyListProblem =
   | {
       kind: TrustedProxyListProblemKind.NotAnAddress;
       // The first such entry, cut to 60 characters.
+      entry: string;
+    }
+  | {
+      kind: TrustedProxyListProblemKind.TooBroad;
+      // The first such range, as it is kept.
       entry: string;
     }
   | { kind: TrustedProxyListProblemKind.TooMany; max: number };
@@ -284,6 +343,16 @@ export function getTrustedProxyListProblem(
     };
   }
 
+  const tooBroad: NetworkAddressBlock | undefined =
+    list.blocks.find(isTooBroadToTrust);
+
+  if (tooBroad) {
+    return {
+      kind: TrustedProxyListProblemKind.TooBroad,
+      entry: tooBroad.text,
+    };
+  }
+
   if (list.blocks.length > MAX_TRUSTED_PROXIES) {
     return {
       kind: TrustedProxyListProblemKind.TooMany,
@@ -313,16 +382,28 @@ export function getTrustedProxyListError(
       return "Trusted Proxies is too long. Use ranges, such as 203.0.113.0/24, for a block of addresses.";
     case TrustedProxyListProblemKind.NotAnAddress:
       return `"${problem.entry}" is not an IP address or a range. Write an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24.`;
+    case TrustedProxyListProblemKind.TooBroad:
+      return `${problem.entry} covers too much of the internet to be a proxy. List your proxy's own addresses or ranges, such as 203.0.113.0/24.`;
     case TrustedProxyListProblemKind.TooMany:
       return `Trusted Proxies can hold ${problem.max} addresses and ranges. Use ranges, such as 203.0.113.0/24, for a block of addresses.`;
   }
 }
 
+/*
+ * A saved list as the scans trust it: each address and range, at most
+ * MAX_TRUSTED_PROXIES, and never one too broad to be a proxy's - a list
+ * saved before such ranges were refused trusts the rest of it, toward
+ * trusting less (#11049).
+ */
 export function toTrustedProxies(
   text: string | undefined | null,
 ): TrustedProxies {
   return {
-    blocks: readTrustedProxyList(text).blocks.slice(0, MAX_TRUSTED_PROXIES),
+    blocks: readTrustedProxyList(text)
+      .blocks.filter((block: NetworkAddressBlock): boolean => {
+        return !isTooBroadToTrust(block);
+      })
+      .slice(0, MAX_TRUSTED_PROXIES),
   };
 }
 
@@ -658,7 +739,18 @@ export interface ClientAddressReading {
   // An address the request claimed that is not the verified one, and where it was read.
   claimed: AddressSlot | null;
   claimedFrom: string;
+  /*
+   * With TrustedProxy, the proxies the project trusts that the verified
+   * address came through (#11046): in the order X-Forwarded-For lists them,
+   * the connection's own address last - at most MAX_FORWARDED_BY, the ones
+   * nearest the server. What tells a person why the event names the client
+   * a proxy forwarded and not the proxy. Absent otherwise.
+   */
+  forwardedBy?: Array<string> | undefined;
 }
+
+// The most proxies a reading says it came through: the ones nearest the server.
+export const MAX_FORWARDED_BY: number = 10;
 
 export const NO_CLIENT_ADDRESS: ClientAddressReading = {
   address: "",
@@ -687,24 +779,34 @@ function firstSlot(
  * client (the trusted proxy right of it wrote it). A hop that names no
  * address ends the walk with none. Every hop trusted: the leftmost is the
  * client, a host inside the network.
+ *
+ * With it, the trusted hops the walk passed on the way, in the order the
+ * header lists them (#11046).
  */
 function readThroughTrustedProxies(
   hops: ReadonlyArray<AddressSlot | null>,
   proxies: TrustedProxies | undefined,
-): AddressSlot | null {
+): { hop: AddressSlot | null; through: Array<string> } {
+  const through: Array<string> = [];
+
   for (let index: number = hops.length - 1; index >= 0; index--) {
     const hop: AddressSlot | null = hops[index] || null;
 
     if (!hop) {
-      return null;
+      return { hop: null, through: [] };
     }
 
     if (hop.scrubbed || !isTrustedProxy(hop.address, proxies)) {
-      return hop;
+      return { hop, through };
+    }
+
+    // The leftmost hop of a header of trusted hops is the client, not a proxy.
+    if (index > 0) {
+      through.unshift(hop.address);
     }
   }
 
-  return hops[0] || null;
+  return { hop: hops[0] || null, through };
 }
 
 /*
@@ -744,13 +846,20 @@ export function resolveClientAddress(
 
   let verified: AddressSlot | null = null;
   let trust: ClientAddressTrust | null = null;
+  let forwardedBy: Array<string> = [];
 
   if (peer && peer.address && !isTrustedProxy(peer.address, proxies)) {
     verified = peer;
     trust = ClientAddressTrust.Peer;
   } else if (peer && peer.address && forwardedFor.length > 0) {
-    verified = readThroughTrustedProxies(forwardedFor, proxies);
+    const walk: { hop: AddressSlot | null; through: Array<string> } =
+      readThroughTrustedProxies(forwardedFor, proxies);
+
+    verified = walk.hop;
     trust = verified ? ClientAddressTrust.TrustedProxy : null;
+    forwardedBy = verified
+      ? [...walk.through, peer.address].slice(-MAX_FORWARDED_BY)
+      : [];
   } else if (peer && !forwardedSomething) {
     verified = peer;
     trust = ClientAddressTrust.Peer;
@@ -792,6 +901,7 @@ export function resolveClientAddress(
     trust,
     claimed,
     claimedFrom: claimed ? claimedFrom : "",
+    ...(forwardedBy.length > 0 ? { forwardedBy } : {}),
   };
 }
 
@@ -873,6 +983,7 @@ const TRUST_ATTRIBUTES: ReadonlyArray<string> = [
   SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust,
   SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress,
   SECURITY_REQUEST_ATTRIBUTES.claimedClientAddressFrom,
+  SECURITY_REQUEST_ATTRIBUTES.forwardedBy,
 ];
 
 export const CLIENT_ADDRESS_TRUST_ATTRIBUTES: ReadonlyArray<string> =
@@ -891,6 +1002,8 @@ export function markClientAddressTrust(
     attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust] = reading.trust;
   }
 
+  markForwardedBy(attributes, reading);
+
   if (reading.claimed) {
     attributes[SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress] =
       getAddressSlotText(reading.claimed);
@@ -906,6 +1019,62 @@ export function clearClientAddressTrust(attributes: JSONObject): void {
   for (const key of TRUST_ATTRIBUTES) {
     delete attributes[key];
   }
+}
+
+/*
+ * The proxies a verified address came through (#11046), as the event says
+ * them: one line of addresses, in the order X-Forwarded-For lists them.
+ * Only for an address a trusted proxy forwarded; anything else says none.
+ */
+export function markForwardedBy(
+  attributes: JSONObject,
+  reading: ClientAddressReading,
+): void {
+  const forwardedBy: Array<string> = (reading.forwardedBy || []).filter(
+    (address: string): boolean => {
+      return Boolean(readAddressText(address));
+    },
+  );
+
+  if (
+    reading.trust !== ClientAddressTrust.TrustedProxy ||
+    forwardedBy.length === 0
+  ) {
+    delete attributes[SECURITY_REQUEST_ATTRIBUTES.forwardedBy];
+    return;
+  }
+
+  attributes[SECURITY_REQUEST_ATTRIBUTES.forwardedBy] = forwardedBy
+    .slice(-MAX_FORWARDED_BY)
+    .join(", ");
+}
+
+/*
+ * The proxies an event says its address came through (#11046), each an
+ * address, in the order it says them: none for an event whose address no
+ * trusted proxy forwarded.
+ */
+export function readForwardedBy(event: {
+  attributes?: unknown;
+}): Array<string> {
+  if (readClientAddressTrust(event) !== ClientAddressTrust.TrustedProxy) {
+    return [];
+  }
+
+  const addresses: Array<string> = [];
+
+  for (const hop of readAttribute(
+    event.attributes,
+    SECURITY_REQUEST_ATTRIBUTES.forwardedBy,
+  ).split(",")) {
+    const address: string = readAddressText(hop);
+
+    if (address && addresses.length < MAX_FORWARDED_BY) {
+      addresses.push(address);
+    }
+  }
+
+  return addresses;
 }
 
 function readAttribute(attributes: unknown, key: string): string {

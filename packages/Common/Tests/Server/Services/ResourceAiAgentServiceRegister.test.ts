@@ -27,6 +27,8 @@ import ResourceAiAgentService, {
 } from "../../../Server/Services/ResourceAiAgentService";
 import VMwareVCenterFeedService from "../../../Server/Services/VMwareVCenterFeedService";
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
+import XcpNgPoolFeedService from "../../../Server/Services/XcpNgPoolFeedService";
+import XcpNgPoolService from "../../../Server/Services/XcpNgPoolService";
 import logger from "../../../Server/Utils/Logger";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import { DatabaseEndpoint } from "../../../Types/DatabaseServer/DatabaseEndpoint";
@@ -181,6 +183,18 @@ const NAMED_TYPES: Array<TypeFixture> = [
     feedService: CephClusterFeedService as unknown as AnyObject,
     feedMethod: "createCephClusterFeedItem",
     feedIdKey: "cephClusterId",
+  },
+  {
+    resourceType: AiResourceType.XcpNgPool,
+    alias: "xcp-ng",
+    // A pool is matched on its XAPI UUID, as its telemetry carries it.
+    identity: "b7569d99-30f8-178a-7d94-801de3e29b5b",
+    service: XcpNgPoolService as unknown as AnyObject,
+    findOrCreateMethod: "findOrCreateByIdentifier",
+    findOrCreateIdentityKey: "poolIdentifier",
+    feedService: XcpNgPoolFeedService as unknown as AnyObject,
+    feedMethod: "createXcpNgPoolFeedItem",
+    feedIdKey: "xcpNgPoolId",
   },
   {
     resourceType: AiResourceType.Host,
@@ -819,6 +833,65 @@ describe("register: resource_identifier_invalid", () => {
     });
 
     expect(harness.agentCreate.mock.calls).toHaveLength(1);
+  });
+
+  /*
+   * An XCP-ng pool is matched on its XAPI UUID: an identity of any other
+   * shape would make a pool no telemetry ever reaches.
+   */
+  const XCP_NG: TypeFixture = NAMED_TYPES.find((fixture: TypeFixture) => {
+    return fixture.resourceType === AiResourceType.XcpNgPool;
+  })!;
+
+  test.each([
+    ["a pool's name", "Production"],
+    ["a UUID with a block missing", "b7569d99-30f8-178a-7d94"],
+    [
+      "a UUID with a letter that is not hex",
+      "g7569d99-30f8-178a-7d94-801de3e29b5b",
+    ],
+    ["a UUID and more", "b7569d99-30f8-178a-7d94-801de3e29b5b/vms"],
+    [
+      "two UUIDs",
+      "b7569d99-30f8-178a-7d94-801de3e29b5b,2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",
+    ],
+  ])(
+    "an XCP-ng pool's identity that is %s is refused before anything is read or written, naming XCP_NG_POOL_ID",
+    async (_label: string, resourceIdentifier: string) => {
+      const harness: Harness = setUp({ fixture: XCP_NG });
+
+      const refusal: ResourceAiAgentRegistrationRefusedException =
+        await refusalOf(
+          register({
+            resourceType: AiResourceType.XcpNgPool,
+            resourceIdentifier,
+          }),
+        );
+
+      expect(refusal.reason).toBe("resource_identifier_invalid");
+      expect(refusal.message).toContain("is not a pool's UUID");
+      expect(refusal.message).toContain("XCP_NG_POOL_ID");
+      expect(refusal.message).toContain("ONEUPTIME_AI_AGENT_RESOURCE_NAME");
+      expect(harness.findOrCreate.mock.calls).toHaveLength(0);
+      nothingWrittenToTheAgentTable(harness);
+    },
+  );
+
+  test("an XCP-ng pool's UUID in capitals is found, and kept, as its telemetry carries it: in lower case", async () => {
+    const harness: Harness = setUp({ fixture: XCP_NG });
+
+    await register({
+      resourceType: AiResourceType.XcpNgPool,
+      resourceIdentifier: " B7569D99-30F8-178A-7D94-801DE3E29B5B ",
+    });
+
+    expect(harness.findOrCreate.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      poolIdentifier: "b7569d99-30f8-178a-7d94-801de3e29b5b",
+    });
+    expect(createdRow(harness).resourceIdentifier).toBe(
+      "b7569d99-30f8-178a-7d94-801de3e29b5b",
+    );
   });
 });
 

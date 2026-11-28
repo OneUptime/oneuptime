@@ -359,7 +359,7 @@ Google approved this product on 6 November 2026 (its solution validation,
 case 77153319) and sent its onboarding email the same day. Producer Portal
 has been on since 17 November 2026, a few hours after we answered the Partner
 Support Desk case that asked for the project info form and the roles (step
-1). **Where it stands** (25 November 2026): all three reviews were approved:
+1). **Where it stands** (28 November 2026): all three reviews were approved:
 the listing (step 7) on 18 November, the pricing (step 6) and release `15.0`
 on the Container images page (step 8) on 20 November, the last after three
 validations (step 8 says what the first two found). The usage
@@ -373,21 +373,27 @@ for the listing's icon in `application.yaml`. The screenshots went back on
 the case the same evening. Release `15.0` was pushed again with the icon
 (step 8) and saved at its new digest, which cancelled the Container images
 approval. Its validation then failed Google's vulnerability scan on three
-CVEs published after the approval (step 8). The one in nginx was fixed in
-the release's own nginx image on 25 November, and the validation, run
-again, found only the two in Go. Those have no fixed build yet: Google
-offered on the case to request an exception for them, and the list of
-blocking CVEs went back on 25 November, then the rerun's result. **Left**:
-the exception and a validation that passes, then the release submitted for
-review, then **Publish** again (step 10); Google's answer on the evidence
-and the listing made public; then the test cluster deleted and the test
-order cancelled (step 9).
+findings published after the approval (step 8), and on 25 November Google's
+security notice asked for the same three to be fixed in the published
+listing by 23 December 2026. The one in nginx was fixed in the release's
+own nginx image on 25 November. The other two, one Go CVE in the runner's
+and the deployer's kubectl, had no fixed build, and Google raised an
+exception for them with its engineering team the same day.
+Kubernetes then published kubectl builds with the fixed Go, and the
+release's runner and deployer got them on 27 November. On 28 November the
+release, saved at the new deployer, passed its validation and went for
+review again, and the case was told that the exception is no longer
+needed. **Left**: the review, then **Publish** again (step 10), which also
+answers the security notice; Google's answer on the evidence and the
+listing made public; then the test cluster deleted and the test order
+cancelled (step 9).
 Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
 `oneuptime-marketplace` project, never in `oneuptime-k8s`. OneUptime Cloud
-has its own product there, `oneuptime-cloud`, in Google's review since 19
-November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
+has its own product there, `oneuptime-cloud`, whose product details and
+pricing Google has approved; its technical integration goes in next
+([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
 
 1. **Partner account** (maintainer):
 
@@ -600,12 +606,22 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    checks every image again, not just the changed one.
 
    - **CVE-2026-97040** (Go standard library 1.26.10, fixed in 1.26.11) in
-     the deployer. It comes from Google's own `deployer_helm`: 13.0.18, the
-     newest, is built with Go 1.26.10.
+     the deployer. It comes from the kubectl in Google's own
+     `deployer_helm`: 13.0.18, the newest, ships kubectl v1.37.2, built with
+     Go 1.26.10 (its Helm, built with a newer Go, is not flagged). The
+     deployer now puts v1.37.3, built with Go 1.26.11, in its place
+     ([#11336](https://github.com/OneUptime/oneuptime/pull/11336)), and
+     release 15.0's deployer got the same by hand on 27 November, from
+     `sha256:46c27f860ab1` to `sha256:4799a031bfeb`.
    - **The same CVE** in the runner image's kubectl v1.36.6. Kubernetes'
-     newest releases (1.36.6 and 1.37.2) are both built with Go 1.26.10, so
-     there is no fixed kubectl yet
-     ([#11042](https://github.com/OneUptime/oneuptime/issues/11042)).
+     newest releases (1.36.6 and 1.37.2) were both built with Go 1.26.10, so
+     there was no fixed kubectl yet
+     ([#11042](https://github.com/OneUptime/oneuptime/issues/11042)). The
+     image now pins v1.36.7, built with Go 1.26.11, which Kubernetes
+     published on 25 November
+     ([#11350](https://github.com/OneUptime/oneuptime/pull/11350)), and
+     release 15.0's runner got it by hand on 27 November, from
+     `sha256:fd491c217a66` to `sha256:b4f69645d98c`.
    - **CVE-2026-97205** in nginx 1.30.5 (fixed in 1.30.6). The releases from
      17.1.0 on run nginx 1.30.7, and release 15.0's own nginx image got it on
      25 November: a layer over the released image, pushed by hand over its
@@ -621,9 +637,22 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    for the list, which went back on 25 November: CVE-2026-97040 in the
    deployer and in the runner, each with its image's digest, and the nginx
    one fixed. A follow-up the same day gave the rerun's operation
-   (`15730a2a5351c280`), whose report lists only those two. Once the
-   exception is in place, the release goes for review
-   again; both images move to Go 1.26.11 builds once there are some.
+   (`15730a2a5351c280`), whose report lists only those two. Google raised
+   the exception with its engineering team that day. It was not needed:
+   once both images had a kubectl built with Go 1.26.11, release 15.0 was
+   saved at the new deployer on 28 November, its validation passed, and it
+   was submitted for review with the maintainer's go-ahead. The case was
+   told the same morning, with each image's old and new digest.
+
+   **Google's security notice** (25 November 2026, "[Action required] Fix
+   security vulnerability in Marketplace listing by 2026-12-23", by email to
+   OneUptime's support address) names the same three findings in the
+   published images, Marketplace's copies under
+   `gcr.io/cloud-marketplace/oneuptime-marketplace/oneuptime-enterprise`:
+   the deployer at `sha256:43774306fe8c`, the runner at
+   `sha256:fd491c217a66` and nginx at `sha256:7f416a6eaa9e`. Images that fix
+   them must be resubmitted by 23 December 2026, or the listing may be
+   removed. Publishing release 15.0 again (step 10) replaces all three.
 
 9. **Usage verification** (before **Publish**; Google's Partner Support
    Desk, case 77498377): Google checks that the hours the app reports reach
@@ -977,6 +1006,14 @@ docker buildx build --platform linux/amd64 --provenance=false \
   --push "$OUT"
 ```
 
+The deployer replaces the kubectl in Google's `deployer_helm` with one
+pinned by version and sha256 (`KUBECTL_VERSION` and `KUBECTL_SHA256` in
+`google-cloud/deployer.Dockerfile`): `deployer_helm` 13.0.18 ships a kubectl
+built with a Go that Google's scan refuses. The build stops if
+`deployer_helm` moves to another Kubernetes minor, since the swap would then
+replace nothing: move the pin to that minor. Drop the swap once
+`deployer_helm`'s own kubectl passes the scan.
+
 **Testing is Google's**: its review installs and tests each version we
 submit. We keep no GKE test cluster: it would cost money (the usage
 verification's, step 9 of the setup, goes once Google is done). Only to
@@ -1069,6 +1106,16 @@ container's environment from a test installation: `nginx -t` fails on the
 image alone. **Retry** takes the image at its new tag: the run of 25
 November, three minutes after the push, no longer flagged nginx. The report
 lists only the images with findings, each by digest.
+
+Release 15.0's runner and deployer got a kubectl built with Go 1.26.11 the
+same way on 27 November 2026 (CVE-2026-97040), each a single layer over the
+released digest: `COPY --chmod=0755 kubectl /usr/local/bin/kubectl` in the
+runner, and the same over `/opt/kubectl/v1.37/kubectl` (where
+`/opt/kubectl/default` points) in the deployer, each binary checked against
+the `.sha256` file dl.k8s.io publishes next to it. **Retry** runs the
+validation again with the deployer at the digest the release was saved
+with, and takes the other images by tag: a new deployer needs the release
+saved again at its new digest (**Pushing a version again**, above).
 
 ## Checking an installation
 
@@ -1675,6 +1722,12 @@ rejection, go-live and price change.
 | 2026-11-25 | Google      | Blocking CVEs sent on case 77498377: CVE-2026-97040 in the deployer and the runner; nginx fixed     | Agent      |
 | 2026-11-25 | Google      | Validation run again: nginx cleared; only CVE-2026-97040 left, in the deployer and the runner       | Google     |
 | 2026-11-25 | Google      | The rerun's result sent on case 77498377 as a follow-up (operation 15730a2a5351c280)                | Agent      |
+| 2026-11-25 | Google      | Google raised the exception for CVE-2026-97040 with its engineering team (case 77498377)            | Google     |
+| 2026-11-25 | Google      | Security notice: fix CVE-2026-97040 and CVE-2026-97205 in the published images by 2026-12-23        | Google     |
+| 2026-11-27 | Google      | The deployer swaps deployer_helm's kubectl for v1.37.3 (#11336); the runner pins v1.36.7 (#11350)   | Agent      |
+| 2026-11-27 | Google      | 15.0.0's runner and deployer given kubectl built with Go 1.26.11 by hand (CVE-2026-97040)           | Agent      |
+| 2026-11-28 | Google      | Release 15.0 saved at the new deployer: validation passed; submitted, with the go-ahead             | Agent      |
+| 2026-11-28 | Google      | Told on case 77498377: no exception needed; release 15.0 answers the security notice                | Agent      |
 
 ## Notes for agents driving the browser
 

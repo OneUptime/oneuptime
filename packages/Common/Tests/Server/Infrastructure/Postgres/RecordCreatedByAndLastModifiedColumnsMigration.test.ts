@@ -186,6 +186,31 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
       };
     },
   ),
+  // XCP-ng connections and their tests, read by a probe (#10996, #10999).
+  ...["XcpNgConnection", "XcpNgConnectionTest"].map(
+    (table: string): { table: string; migration: string } => {
+      return { table, migration: "1809187730000-AddXcpNgConnections.ts" };
+    },
+  ),
+  // Scheduled cloud cost reports (#11009).
+  {
+    table: "CloudCostReport",
+    migration: "1809187761009-AddCloudCostReports.ts",
+  },
+  // Storage array connections (a PowerMax's Unisphere) and their tests, read by a probe (#11004).
+  ...["StorageArrayConnection", "StorageArrayConnectionTest"].map(
+    (table: string): { table: string; migration: string } => {
+      return {
+        table,
+        migration: "1809187781104-AddStorageArrayConnections.ts",
+      };
+    },
+  ),
+  // An external MCP server's tools a Project Admin marked read-only (#11081).
+  {
+    table: "ExternalMcpToolReadOnlyMark",
+    migration: "1809187791081-AddExternalMcpToolReadOnlyMarks.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(

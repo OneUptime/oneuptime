@@ -35,6 +35,9 @@ import "./Jobs/TelemetryException/SendAssignedNotification";
 // An exception's former fingerprint, once no occurrence carries it: deleted.
 import "./Jobs/TelemetryException/RetireFormerFingerprints";
 
+// The duplicates a failed lookup made before #11027: merged back, once.
+import "./Jobs/TelemetryException/MergeBackExceptionsSplitByFailedLookups";
+
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
 import "./Jobs/Monitor/ClearStoredLogScreenshots";
@@ -398,6 +401,7 @@ import "./Jobs/OpenStack/ExpireConnectionTests";
 import "./Jobs/VMware/CleanupStaleResources";
 // vCenter connection tests no probe will answer: failed, password wiped.
 import "./Jobs/VMware/ExpireConnectionTests";
+import "./Jobs/StorageArray/ExpireConnectionTests";
 
 // Ceph cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Ceph/CleanupStaleResources";

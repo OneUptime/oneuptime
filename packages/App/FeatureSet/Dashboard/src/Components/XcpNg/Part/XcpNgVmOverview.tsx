@@ -6,7 +6,11 @@ import OneUptimeDate from "Common/Types/Date";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { formatStorageBytes } from "Common/Utils/Storage/StorageUsage";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { formatRelativeTime } from "../../Home/HomeRelativeTime";
@@ -44,6 +48,17 @@ import {
   toXcpNgNumber,
 } from "../../../Pages/XcpNg/Utils/XcpNgResourceUtils";
 import { XcpNgPartRoutes } from "./XcpNgPartRoutes";
+import { XcpNgBackupStatus } from "Common/Types/XcpNg/XcpNgPoolEvents";
+import { getXcpNgVmBackupStatus } from "../../../Pages/XcpNg/Utils/XcpNgEventFacts";
+import { formatXcpNgInterval } from "../XcpNgBackupsCard";
+
+// How the VM's last backup ended, and when: Xen Orchestra's four words.
+const LAST_BACKUP_WORDS: Record<XcpNgBackupStatus, string> = {
+  [XcpNgBackupStatus.Success]: translationKey("Succeeded {{time}}"),
+  [XcpNgBackupStatus.Failure]: translationKey("Failed {{time}}"),
+  [XcpNgBackupStatus.Interrupted]: translationKey("Interrupted {{time}}"),
+  [XcpNgBackupStatus.Skipped]: translationKey("Skipped {{time}}"),
+};
 
 /*
  * An XCP-ng VM's Overview: what about it needs attention, how busy it is,
@@ -265,6 +280,65 @@ const XcpNgVmOverview: FunctionComponent<ComponentProps> = (
     mono: true,
     copyText: props.externalId,
   });
+  /*
+   * Its backups, as a probe read them from Xen Orchestra (#10997): how the
+   * last one ended and when, by which job, the last good one, and how often
+   * its scheduled jobs run. A VM no probe reads backups for has none.
+   */
+  const backupStatus: XcpNgBackupStatus | null = getXcpNgVmBackupStatus(row);
+  const lastBackupAt: Date | null = toXcpNgDate(row.lastBackupAt);
+  if (backupStatus && lastBackupAt) {
+    detailRows.push({
+      key: "last-backup",
+      label: "Last backup",
+      value: translator.translateTemplate(LAST_BACKUP_WORDS[backupStatus], {
+        time: when(lastBackupAt),
+      }),
+      description: XCP_NG_METRIC_DESCRIPTIONS.vmLastBackup,
+    });
+    const jobName: string = (row.lastBackupJobName || "").trim();
+    if (jobName) {
+      detailRows.push({
+        key: "backup-job",
+        label: "Backup job",
+        value: jobName,
+      });
+    }
+    const error: string = (row.lastBackupError || "").trim();
+    if (error && backupStatus !== XcpNgBackupStatus.Success) {
+      detailRows.push({
+        key: "backup-error",
+        label: "Why it did not back up",
+        value: error,
+      });
+    }
+    const lastGoodAt: Date | null = toXcpNgDate(row.lastSuccessfulBackupAt);
+    detailRows.push({
+      key: "last-good-backup",
+      label: "Last good backup",
+      value: lastGoodAt
+        ? OneUptimeDate.getDateAsLocalFormattedString(lastGoodAt)
+        : tx("None on record"),
+    });
+  }
+  const backupInterval: number | null = toXcpNgNumber(
+    row.backupIntervalSeconds,
+  );
+  const intervalWords: string | null =
+    backupInterval !== null
+      ? formatXcpNgInterval(backupInterval, translator.language)
+      : null;
+  if (intervalWords) {
+    detailRows.push({
+      key: "backup-interval",
+      label: "Backed up",
+      value: translator.translateTemplate("At least every {{interval}}", {
+        interval: intervalWords,
+      }),
+      description: XCP_NG_METRIC_DESCRIPTIONS.backupsOverdue,
+    });
+  }
+
   const lastReport: Date | null = toXcpNgDate(row.lastSeenAt);
   if (lastReport) {
     detailRows.push({

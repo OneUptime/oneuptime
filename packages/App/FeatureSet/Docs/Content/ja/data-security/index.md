@@ -6,7 +6,7 @@
 
 :::cards
 - [機密データはどこにあるか？](/docs/data-security/data-types): カード番号や国民 ID から API キーまで、143 のデータタイプを、バケット、テーブル、テレメトリの中から見つけます。
-- [露出していないか？](/docs/data-security/checks-and-issues): 各データストアに対する 34 のチェック。パブリックアクセス、暗号化、バックアップ、ログ記録、シークレット、コピー。
+- [露出していないか？](/docs/data-security/checks-and-issues): 各データストアに対する 35 のチェック。パブリックアクセス、暗号化、バックアップ、ログ記録、シークレット、コピー。
 - [誰がアクセスでき、データはどこへ流れるか？](/docs/data-security/flows-access-residency): 各データストアにアクセスできるすべての ID (リスクの高い順)、どのサービスが使っているか、そのデータがどの AI プロバイダーとホストに届くか。
 - [ルールを満たしているか？](/docs/data-security/compliance): データ所在地ルールと、スキャンで見つかったものからスコアを付ける 9 つのフレームワーク。
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## 始める前に
 
 - **設定できるロール。** データセキュリティの設定を変更できるのはプロジェクト所有者、プロジェクト管理者、セキュリティ管理者です。セキュリティメンバーは問題に対応してデータストアをスキャンし、セキュリティ閲覧者は見つかったものを閲覧します。それ以外のロールには、チームにその権限が与えられない限り何も表示されません: どのバケットにカード番号があるかは、まさに攻撃者が知りたい情報だからです。 [ロール](/docs/permissions/reference#ロール) を参照してください。
-- **読み取るクラウドアカウント、またはデータベース。** データセキュリティは、クラウドアカウントを [クラウド接続](/docs/telemetry/cloud-accounts) を通じて、自分で運用しているデータベースを読み取り専用の接続文字列を通じて読み取ります。テレメトリには何も必要ありません: 1 時間ごとにスキャンされます。
+- **読み取るクラウドアカウント、または自分で運用しているデータストア。** データセキュリティは、クラウドアカウントを [クラウド接続](/docs/telemetry/cloud-accounts) を通じて、自分で運用しているデータベースや検索クラスターを読み取り専用の接続文字列を通じて読み取ります。テレメトリには何も必要ありません: 1 時間ごとにスキャンされます。
 
 ## クイックスタート
 
@@ -69,10 +69,10 @@ flowchart TB
 | AWS | AWS S3 Bucket、AWS RDS Instance、AWS Aurora Cluster、AWS RDS Snapshot、AWS DynamoDB Table、AWS Redshift Cluster、AWS DocumentDB Cluster、AWS OpenSearch Domain、AWS ElastiCache Cluster、AWS EFS File System、Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
-| 自分で運用するデータベース | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
+| 自分で運用するデータストア | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、OpenSearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server、Elasticsearch、OpenSearch |
 | OneUptime | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス、セキュリティイベント、ネットワークフロー、セキュリティアドレス保管庫、セキュリティユーザー保管庫 | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス |
 
-すべてのデータストアに、その種類に当てはまるチェックが行われます。コンテンツをサンプリングできないデータストアもチェックされます: 公開されたバケットや暗号化されていないデータベースは、何を保持していても問題だからです。セキュリティイベント、ネットワークフロー、セキュリティアドレス保管庫は、OneUptime がセキュリティのために保持する独自のデータストアです: 宣言されたもので、スキャンもチェックもされません ( [OneUptime がセキュリティのために保持するデータストア](/docs/data-security/compliance#oneuptime-がセキュリティのために保持するデータストア) を参照)。
+すべてのデータストアに、OneUptime が読み取れる内容をもとに、その種類に当てはまるチェックが行われます。クラウドアカウントのデータストアはクラウド自体の設定から読み取られるため、コンテンツをサンプリングできるかどうかにかかわらずチェックされます: 公開されたバケットや暗号化されていないデータベースは、何を保持していても問題だからです。自分で運用しているデータストアには、OneUptime が読み取れるそのような設定がありません: Elasticsearch や OpenSearch のクラスターには、コンテンツスキャンのたびに、そのアドレスで認証情報なしに応答するかどうかを問い合わせます。ほかの種類にどう到達できるかはチェックしません ( [自分で運用するデータストアで OneUptime が確認する内容](/docs/data-security/setup#自分で運用するデータストアで-oneuptime-が確認する内容) を参照)。各データストアの **設定** の **OneUptime が確認する内容** に、何がチェックされ、何がされないかが示されます。セキュリティイベント、ネットワークフロー、セキュリティアドレス保管庫は、OneUptime がセキュリティのために保持する独自のデータストアです: 宣言されたもので、スキャンもチェックもされません ( [OneUptime がセキュリティのために保持するデータストア](/docs/data-security/compliance#oneuptime-がセキュリティのために保持するデータストア) を参照)。
 
 ソースに載らなくなったデータストアは、履歴とともにアーカイブされ、そのオープンの問題は解決済みになります: データセキュリティのメニューの最後にある **アーカイブ済みのデータストア** に残ります。ソースに再び載ると、自動で戻ってきて、チェックがまだ不合格の問題は再びオープンになります。
 
@@ -86,9 +86,10 @@ flowchart TB
 | クラウド接続の設定を読み取る | 1 日 1 回。また、AWS のデータストアのアクセス、暗号化、バックアップ、共有への変更を CloudTrail が記録してから 1 時間以内 |
 | データストアのコンテンツをサンプリングする | 24 時間ごと、または **スキャン間隔 (時間)** で指定した頻度 |
 | 各サービスのテレメトリをサンプリングする | 1 時間ごと、直近 1 時間分 |
+| 自分で運用している検索クラスターに、認証情報なしで応答するかを問い合わせる | そのコンテンツスキャンのたびに |
 | すべてのデータストアを再チェックする | 読み取りとスキャンのたび、チェックが依存するものを変更したとき、そして 1 日 1 回 |
 
-データストアの **今すぐスキャン** はすぐにコンテンツをサンプリングし、 **今すぐチェック** は設定を再度読み取ります。
+データストアの **今すぐスキャン** はすぐにコンテンツをサンプリングし、自分で運用している検索クラスターには、認証情報なしで応答するかを改めて問い合わせます。 **今すぐチェック** は、クラウドアカウントのデータストアの設定を再度読み取り、データストアのチェックを再実行します。
 
 ## 次のステップ
 

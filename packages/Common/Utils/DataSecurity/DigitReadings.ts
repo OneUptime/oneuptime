@@ -56,6 +56,25 @@ export const DIGIT_ZEROS: ReadonlyArray<number> = [
 
 const ASCII_ZERO: number = 0x30;
 
+/*
+ * The digits of every script but ASCII, as a regular expression's class
+ * holds them (without its brackets): what a code of letters and digits -
+ * a BIC - is never cut at, written in another script's digits, since such
+ * a digit is as much a part of it as an ASCII one (#11200).
+ */
+export const DIGITS_BEYOND_ASCII_CLASS: string = DIGIT_ZEROS.filter(
+  (zero: number): boolean => {
+    return zero !== ASCII_ZERO;
+  },
+)
+  .map((zero: number): string => {
+    const first: string = zero.toString(16).toUpperCase().padStart(4, "0");
+    const last: string = (zero + 9).toString(16).toUpperCase().padStart(4, "0");
+
+    return `\\u${first}-\\u${last}`;
+  })
+  .join("");
+
 // What a digit of another script reads as in one script's reading: no digit, no letter, no separator.
 const NOT_A_DIGIT: string = "\u0000";
 

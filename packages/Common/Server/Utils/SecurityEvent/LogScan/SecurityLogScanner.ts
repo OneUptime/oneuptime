@@ -44,6 +44,9 @@ import SecurityUserVaultLookup from "../UserVault/SecurityUserVaultLookup";
 import SecurityEventStoreOnce, {
   SharedRecordGroup,
 } from "../SecurityEventStoreOnce";
+import SensitiveFileSiteMemoryStore, {
+  SensitiveFileMemoryScan,
+} from "../SensitiveFileSiteMemoryStore";
 import OpenStackAuditJoin from "./OpenStackAuditJoin";
 import OneUptimeAwsSessions from "../../CloudConnection/Aws/OneUptimeAwsSessions";
 import SecurityLogCases, {
@@ -382,6 +385,17 @@ export default class SecurityLogScanner {
     let stopped: boolean = false;
     // What is left of this scan's threats the case queue takes.
     let threatDetectionsLeft: number = LOG_THREATS_PER_SCAN_LIMIT;
+    /*
+     * What each site answered the requests for sensitive files of the last
+     * day (#11036): read once, when a page first needs it, and kept at the
+     * end with what this scan's pages added.
+     */
+    const siteMemory: SensitiveFileSiteMemoryStore =
+      SensitiveFileSiteMemoryStore.forScan({
+        projectId,
+        scan: SensitiveFileMemoryScan.Logs,
+        now,
+      });
 
     while (OneUptimeDate.isBefore(cursor, until)) {
       const windowEnd: Date = OneUptimeDate.isBefore(
@@ -477,6 +491,7 @@ export default class SecurityLogScanner {
             projectId,
             events,
             serviceMetadata,
+            siteMemory,
           });
           const stored: Array<NormalizedSecurityEvent> = storedEvents.events;
 
@@ -540,6 +555,9 @@ export default class SecurityLogScanner {
       );
     }
 
+    // What the scan learned of each site, for the next (never throws).
+    await siteMemory.save();
+
     await SecurityLogSourceService.updateOneById({
       id: source.id!,
       data: {
@@ -563,16 +581,19 @@ export default class SecurityLogScanner {
     projectId: ObjectID;
     events: Array<NormalizedSecurityEvent>;
     serviceMetadata: TelemetryServiceMetadata;
+    // The scan's memory of what each site answered (#11036); the page alone without it.
+    siteMemory?: SensitiveFileSiteMemoryStore | undefined;
   }): Promise<SecurityLogStoredEvents> {
     /*
      * A request for a file that holds secrets that the site answered with
      * what no record says - the file, or the site's own page - is decided
-     * by what the same site answered the page's other requests, or is no
-     * event (#10912, SensitiveFileAnswers).
+     * by what the same site answered the page's other requests (#10912) and,
+     * for a day, the pages and scans before it (#11036), or is no event
+     * (SensitiveFileAnswers).
      */
-    const events: Array<NormalizedSecurityEvent> = judgeSensitiveFileAnswers(
-      data.events,
-    );
+    const events: Array<NormalizedSecurityEvent> = data.siteMemory
+      ? await data.siteMemory.judge(data.events)
+      : judgeSensitiveFileAnswers(data.events);
 
     if (events.length === 0) {
       return { events: [], rows: [] };

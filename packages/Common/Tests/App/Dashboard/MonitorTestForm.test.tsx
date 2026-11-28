@@ -132,7 +132,10 @@ import MonitorTestForm, {
   MONITOR_TEST_POLL_INTERVAL_IN_MS,
   toProbeIds,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorTest";
-import { getMonitorTestJudgement } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorTestVerdict";
+import {
+  getMonitorTestJudgement,
+  getStatusCriteriaAfterMatch,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorTestVerdict";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import { MonitorEvaluationCriteriaResult } from "../../../Types/Monitor/MonitorEvaluationSummary";
 import {
@@ -1180,5 +1183,289 @@ describe("what the result says would follow", () => {
         ]!,
       ]),
     ).toEqual({ matched: null });
+  });
+});
+
+/*
+ * #11238: a criteria that changes no status decides none. The first
+ * criteria met after it that changes the status sets it, and with none the
+ * monitor shows its default status. Test Monitor says so after what the
+ * first match opens, the status from the criteria that sets it.
+ */
+const SLOW_CRITERIA: WhoIsToldCriteria = {
+  id: "slow",
+  name: "Check if Acme is slow",
+  events: [
+    {
+      kind: OnCallTestPageRecordKind.Alert,
+      title: "Acme is slow",
+      severityName: "Warning",
+      owners: {
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: ["Ana Lopez"],
+        teamNames: [],
+      },
+      ownerRules: [],
+      rules: [],
+      policies: [],
+      statusPages: [],
+    },
+  ],
+};
+
+const DEGRADED_CRITERIA: WhoIsToldCriteria = {
+  id: "degraded",
+  name: "Check if Acme is degraded",
+  statusName: "Degraded",
+  events: [],
+};
+
+function slowFirst(
+  after: Array<MonitorEvaluationCriteriaResult>,
+): Array<MonitorEvaluationCriteriaResult> {
+  return [
+    criteriaResult({
+      criteriaId: "slow",
+      criteriaName: "Check if Acme is slow",
+      met: true,
+    }),
+    ...after,
+  ];
+}
+
+describe("what the result says when the criteria it matches changes no status", () => {
+  test("a criteria after it that sets the status: named, with the status it sets", async () => {
+    getForDraftMock.mockResolvedValue(
+      whoIsTold([SLOW_CRITERIA, OFFLINE_CRITERIA]),
+    );
+
+    renderForm();
+    await runJudgedTest(judgedRow(slowFirst([criteriaResult({ met: true })])));
+
+    const verdict: HTMLElement = screen.getByTestId("monitor-test-verdict");
+    const follows: HTMLElement = within(verdict).getByTestId(
+      "monitor-test-verdict-follows",
+    );
+
+    expect(verdict).toHaveAttribute("data-matched", "true");
+    // The criteria that acts is still the first match.
+    expect(
+      within(verdict).getByTestId("monitor-test-verdict-criteria"),
+    ).toHaveTextContent("This result matches Check if Acme is slow.");
+    expect(follows).toHaveTextContent(
+      "Check if Acme is offline matches too, so OneUptime marks it Offline.",
+    );
+    // What the first match opens, and whom it tells, come first.
+    expect(follows.textContent!.indexOf("Ana Lopez")).toBeGreaterThanOrEqual(0);
+    expect(follows.textContent!.indexOf("Ana Lopez")).toBeLessThan(
+      follows.textContent!.indexOf("matches too"),
+    );
+    // The criteria that sets the status opens nothing on this check.
+    expect(follows).not.toHaveTextContent("Critical Incident");
+    expect(follows).not.toHaveTextContent("default status");
+  });
+
+  test("the first criteria after it that sets a status sets it, not a later one", async () => {
+    getForDraftMock.mockResolvedValue(
+      whoIsTold([SLOW_CRITERIA, DEGRADED_CRITERIA, OFFLINE_CRITERIA]),
+    );
+
+    renderForm();
+    await runJudgedTest(
+      judgedRow(
+        slowFirst([
+          criteriaResult({
+            criteriaId: "degraded",
+            criteriaName: "Check if Acme is degraded",
+            met: true,
+          }),
+          criteriaResult({ met: true }),
+        ]),
+      ),
+    );
+
+    const follows: HTMLElement = screen.getByTestId(
+      "monitor-test-verdict-follows",
+    );
+
+    expect(follows).toHaveTextContent(
+      "Check if Acme is degraded matches too, so OneUptime marks it Degraded.",
+    );
+    expect(follows).not.toHaveTextContent("Offline");
+  });
+
+  test("no criteria after it sets the status: the monitor shows its default status, by name", async () => {
+    getForDraftMock.mockResolvedValue(
+      whoIsTold([SLOW_CRITERIA, OFFLINE_CRITERIA]),
+    );
+    const tested: MonitorSteps = steps();
+    tested.data!.defaultMonitorStatusId = new ObjectID(
+      "77777777-7777-4777-8777-777777777777",
+    );
+
+    renderForm({ monitorSteps: tested });
+    await runJudgedTest(judgedRow(slowFirst([criteriaResult({ met: false })])));
+
+    const follows: HTMLElement = screen.getByTestId(
+      "monitor-test-verdict-follows",
+    );
+
+    expect(follows).toHaveTextContent(
+      "The monitor shows its default status, Operational.",
+    );
+    // What the alert opens is said before it, so not "and nothing opens".
+    expect(follows).not.toHaveTextContent("nothing opens");
+    expect(follows).not.toHaveTextContent("matches too");
+  });
+
+  test("a criteria met after it that the resolver says sets no status does not set one", async () => {
+    // The resolver leaves out a criteria that sets no status and opens nothing.
+    getForDraftMock.mockResolvedValue(whoIsTold([SLOW_CRITERIA]));
+    const tested: MonitorSteps = steps();
+    tested.data!.defaultMonitorStatusId = new ObjectID(
+      "77777777-7777-4777-8777-777777777777",
+    );
+
+    renderForm({ monitorSteps: tested });
+    await runJudgedTest(
+      judgedRow(
+        slowFirst([
+          criteriaResult({
+            criteriaId: "notes",
+            criteriaName: "Note slow pages",
+            met: true,
+          }),
+        ]),
+      ),
+    );
+
+    expect(
+      screen.getByTestId("monitor-test-verdict-follows"),
+    ).toHaveTextContent("The monitor shows its default status, Operational.");
+  });
+
+  test("a match that sets nothing off and a default status that cannot be read: the default status, unnamed", async () => {
+    getForDraftMock.mockResolvedValue(whoIsTold([]));
+
+    renderForm();
+    await runJudgedTest(judgedRow([criteriaResult({ met: true })]));
+
+    const follows: HTMLElement = screen.getByTestId(
+      "monitor-test-verdict-follows",
+    );
+
+    expect(follows).toHaveTextContent(
+      "It changes no status and opens nothing.",
+    );
+    expect(follows).toHaveTextContent("The monitor shows its default status.");
+    expect(follows).not.toHaveTextContent("Operational");
+  });
+
+  test("a first match that sets the status says what it always said", async () => {
+    getForDraftMock.mockResolvedValue(
+      whoIsTold([OFFLINE_CRITERIA, DEGRADED_CRITERIA]),
+    );
+
+    renderForm();
+    await runJudgedTest(
+      judgedRow([
+        criteriaResult({ met: true }),
+        criteriaResult({
+          criteriaId: "degraded",
+          criteriaName: "Check if Acme is degraded",
+          met: true,
+        }),
+      ]),
+    );
+
+    const follows: HTMLElement = screen.getByTestId(
+      "monitor-test-verdict-follows",
+    );
+
+    expect(follows).toHaveTextContent(
+      "OneUptime marks it Offline and opens an incident (Critical Incident). It emails the Project Owners (Ana Lopez). Nobody is paged.",
+    );
+    expect(follows).not.toHaveTextContent("matches too");
+    expect(follows).not.toHaveTextContent("default status");
+  });
+
+  test("the criteria met after the first match are kept in order, for the status", () => {
+    const judged: MonitorTest = judgedRow([
+      criteriaResult({ criteriaId: "a", met: false }),
+      criteriaResult({ criteriaId: "b", met: true }),
+      criteriaResult({ criteriaId: "c", met: false }),
+      criteriaResult({ criteriaId: "d", met: true, skipped: true }),
+      criteriaResult({ criteriaId: "e", met: true }),
+      criteriaResult({ criteriaId: "f", met: true }),
+    ]);
+
+    const judgement: ReturnType<typeof getMonitorTestJudgement> =
+      getMonitorTestJudgement([judged.monitorStepProbeResponse!["step-1"]!]);
+
+    expect(judgement?.matched?.criteriaId).toBe("b");
+    expect(
+      (judgement?.matchedAfter || []).map(
+        (result: MonitorEvaluationCriteriaResult) => {
+          return result.criteriaId;
+        },
+      ),
+    ).toEqual(["e", "f"]);
+
+    // A first match with nothing met after it keeps the shape it had.
+    expect(
+      getMonitorTestJudgement([
+        judgedRow([criteriaResult({ criteriaId: "a", met: true })])
+          .monitorStepProbeResponse!["step-1"]!,
+      ]),
+    ).toEqual({ matched: expect.objectContaining({ criteriaId: "a" }) });
+  });
+
+  test("the criteria that sets the status is the first met after the match that the resolver says sets one", () => {
+    const matched: MonitorEvaluationCriteriaResult = criteriaResult({
+      criteriaId: "slow",
+      met: true,
+    });
+
+    expect(
+      getStatusCriteriaAfterMatch({
+        judgement: {
+          matched: matched,
+          matchedAfter: [
+            criteriaResult({ criteriaId: "notes", met: true }),
+            criteriaResult({ criteriaId: "degraded", met: true }),
+            criteriaResult({ criteriaId: "offline", met: true }),
+          ],
+        },
+        criteria: [SLOW_CRITERIA, OFFLINE_CRITERIA, DEGRADED_CRITERIA],
+      })?.id,
+    ).toBe("degraded");
+
+    // None met after it, or none the resolver knows to set a status.
+    expect(
+      getStatusCriteriaAfterMatch({
+        judgement: { matched: matched },
+        criteria: [SLOW_CRITERIA, OFFLINE_CRITERIA],
+      }),
+    ).toBeUndefined();
+    expect(
+      getStatusCriteriaAfterMatch({
+        judgement: {
+          matched: matched,
+          matchedAfter: [criteriaResult({ criteriaId: "notes", met: true })],
+        },
+        criteria: [SLOW_CRITERIA, OFFLINE_CRITERIA],
+      }),
+    ).toBeUndefined();
+
+    // A result with no criteria id names no criteria.
+    expect(
+      getStatusCriteriaAfterMatch({
+        judgement: {
+          matched: matched,
+          matchedAfter: [criteriaResult({ criteriaId: "", met: true })],
+        },
+        criteria: [{ ...OFFLINE_CRITERIA, id: "" }],
+      }),
+    ).toBeUndefined();
   });
 });

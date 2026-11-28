@@ -1,4 +1,9 @@
-import { AppReplicaMessage, AppReplicaStats } from "./ProbeDispatchAppReplica";
+import {
+  AppReplicaMessage,
+  AppReplicaSample,
+  AppReplicaStats,
+} from "./ProbeDispatchAppReplica";
+import ConnectionBalancer from "./ProbeDispatchConnectionBalancer";
 import {
   ProbeDispatchFleetOptions,
   RunSql,
@@ -15,6 +20,7 @@ import SimulatedProbeFleet, {
   TestHandOut,
 } from "./ProbeDispatchProbes";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { ChildProcess, fork } from "child_process";
 import path from "path";
 import { IntervalHistogram, monitorEventLoopDelay } from "perf_hooks";
@@ -67,6 +73,29 @@ export interface ProbeDispatchBenchmarkOptions {
    */
   statementLatencyMs: number;
   busyPercent: number;
+  /*
+   * How the probes' requests reach the App replicas (issue #11121):
+   * "request", each to a replica picked at random on a connection of its
+   * own, as the benchmark always did; or "connection", over kept-alive
+   * connections to one Service address that sends each new connection to
+   * a replica picked at random, as kube-proxy does (ConnectionBalancer).
+   */
+  balance?: "request" | "connection" | undefined;
+  // The balancer's port (0: any), for a front origin configured to it.
+  balancerPort?: number | undefined;
+  /*
+   * Where the probes send instead of the balancer: an nginx in front of it,
+   * as probes outside the cluster reach the App; null: the balancer.
+   */
+  frontOrigin?: string | null | undefined;
+  /*
+   * Replicas started with the others but sent connections only from
+   * `laterAtMs` into the run: the pods KEDA adds, once Ready.
+   */
+  laterAppReplicas?: number | undefined;
+  laterAtMs?: number | undefined;
+  // Whether each check sends its result, on the probe's connections.
+  postResults?: boolean | undefined;
 }
 
 export interface Distribution {
@@ -105,6 +134,21 @@ export interface MinuteDispatch {
   peakDue: number;
   // Seconds until no more than 1% of that was still due; null: not by the end.
   handedOutWithinSeconds: number | null;
+}
+
+// A few seconds of each replica's work (issue #11121).
+export interface ReplicaTimelinePoint {
+  atSecond: number;
+  replicas: Array<{
+    replica: number;
+    answeredPerSecond: number;
+    // Averages over the window's samples.
+    running: number;
+    waiting: number;
+    connectionsOpen: number;
+    connectionsAcceptedInWindow: number;
+    closingAnswersInWindow: number;
+  }>;
 }
 
 export interface ProbeDispatchRun {
@@ -154,6 +198,19 @@ export interface ProbeDispatchRun {
     fetchOutcomes: Record<string, number>;
   };
   replicas: Array<AppReplicaStats>;
+  /*
+   * Each App replica, every few seconds (issue #11121): its fetches
+   * answered a second, its scheduling requests running and waiting, its
+   * connections. Empty unless sampled.
+   */
+  replicaTimeline: Array<ReplicaTimelinePoint>;
+  // Connections the balancer sent to each replica.
+  connectionsSentToReplicas: Record<string, number>;
+  // When the later replicas were sent connections from, into the run.
+  laterAtSecond: number | null;
+  laterReplicas: Array<number>;
+  resultsPosted: number;
+  resultsFailed: number;
   harnessEventLoopDelayP99Ms: number;
   topStatements: Array<{
     statement: string;
@@ -224,6 +281,8 @@ class AppReplica {
     number,
     (stats: AppReplicaStats) => void
   >();
+  private pendingSamples: Map<number, (sample: AppReplicaSample) => void> =
+    new Map<number, (sample: AppReplicaSample) => void>();
   private nextId: number = 1;
   private waiters: Map<string, Array<() => void>> = new Map<
     string,
@@ -289,6 +348,14 @@ class AppReplica {
             return;
           }
 
+          if (typed.type === "sample" && typed.id !== undefined) {
+            this.pendingSamples.get(typed.id)?.(
+              (message as { sample: AppReplicaSample }).sample,
+            );
+            this.pendingSamples.delete(typed.id);
+            return;
+          }
+
           for (const done of this.waiters.get(typed.type || "") || []) {
             done();
           }
@@ -334,6 +401,17 @@ class AppReplica {
       (resolve: (stats: AppReplicaStats) => void): void => {
         this.pending.set(id, resolve);
         this.send({ type: "stats", id });
+      },
+    );
+  }
+
+  public sample(): Promise<AppReplicaSample> {
+    const id: number = this.nextId++;
+
+    return new Promise<AppReplicaSample>(
+      (resolve: (sample: AppReplicaSample) => void): void => {
+        this.pendingSamples.set(id, resolve);
+        this.send({ type: "sample", id });
       },
     );
   }
@@ -398,6 +476,8 @@ export async function runProbeDispatchBenchmark(
   const sql: RunSql = sqlRunner();
   const schema: string = benchmarkSchemaName();
   const replicas: Array<AppReplica> = [];
+  const laterAppReplicas: number = Math.max(0, options.laterAppReplicas || 0);
+  let balancer: ConnectionBalancer | null = null;
   let fleet: SimulatedProbeFleet | null = null;
   const timers: Array<ReturnType<typeof setInterval>> = [];
 
@@ -436,7 +516,11 @@ export async function runProbeDispatchBenchmark(
 
     const replicasStartingAt: number = Date.now();
 
-    for (let index: number = 0; index < options.appReplicas; index++) {
+    for (
+      let index: number = 0;
+      index < options.appReplicas + laterAppReplicas;
+      index++
+    ) {
       replicas.push(new AppReplica(index, environment));
     }
 
@@ -499,6 +583,29 @@ export async function runProbeDispatchBenchmark(
       )[0]?.["due"] || 0,
     );
 
+    /*
+     * Connections balanced as kube-proxy does: the first replicas are the
+     * Service's endpoints from the start, the later ones once Ready.
+     */
+    let keepAliveOrigin: string | null = null;
+
+    if (options.balance === "connection") {
+      balancer = new ConnectionBalancer(seededRandom(options.seed + 1));
+
+      for (let index: number = 0; index < options.appReplicas; index++) {
+        balancer.addEndpoint({
+          replica: index,
+          port: replicas[index]!.port,
+        });
+      }
+
+      const balancerPort: number = await balancer.start(
+        options.balancerPort || 0,
+      );
+      keepAliveOrigin =
+        options.frontOrigin || `http://127.0.0.1:${balancerPort}`;
+    }
+
     fleet = new SimulatedProbeFleet({
       probeIds: seeded.probeIds,
       replicasPerProbe: options.probeReplicas,
@@ -506,9 +613,13 @@ export async function runProbeDispatchBenchmark(
       fetchLimit: options.fetchLimit,
       checkMs: options.checkMs,
       staggerMaxMs: options.staggerMaxMs,
-      appOrigins: replicas.map((replica: AppReplica): string => {
-        return replica.origin;
-      }),
+      appOrigins: replicas
+        .slice(0, options.appReplicas)
+        .map((replica: AppReplica): string => {
+          return replica.origin;
+        }),
+      keepAliveOrigin: keepAliveOrigin,
+      postResults: Boolean(options.postResults),
       requestTimeoutMs: 45_000,
       testPollEveryMs: 10_000,
       seed: options.seed,
@@ -569,6 +680,63 @@ export async function runProbeDispatchBenchmark(
       }, 1000),
     );
 
+    const samples: Array<{ atMs: number; samples: Array<AppReplicaSample> }> =
+      [];
+    let sampling: boolean = false;
+
+    timers.push(
+      setInterval((): void => {
+        if (sampling) {
+          return;
+        }
+
+        sampling = true;
+        const atMs: number = Date.now() - startedAt;
+
+        Promise.all(
+          replicas.map((replica: AppReplica): Promise<AppReplicaSample> => {
+            return replica.sample();
+          }),
+        )
+          .then((replicaSamples: Array<AppReplicaSample>): void => {
+            samples.push({ atMs: atMs, samples: replicaSamples });
+          })
+          .catch((): void => {
+            // A missed sample.
+          })
+          .finally((): void => {
+            sampling = false;
+          });
+      }, 1000),
+    );
+
+    let laterAtMs: number | null = null;
+
+    if (laterAppReplicas > 0) {
+      const later: number = Math.max(0, options.laterAtMs || 0);
+
+      timers.push(
+        setTimeout((): void => {
+          laterAtMs = Date.now() - startedAt;
+
+          for (
+            let index: number = options.appReplicas;
+            index < replicas.length;
+            index++
+          ) {
+            if (balancer) {
+              balancer.addEndpoint({
+                replica: index,
+                port: replicas[index]!.port,
+              });
+            } else {
+              fleet!.options.appOrigins.push(replicas[index]!.origin);
+            }
+          }
+        }, later) as unknown as ReturnType<typeof setInterval>,
+      );
+    }
+
     fleet.start();
 
     await new Promise<void>((resolve: () => void): void => {
@@ -587,6 +755,8 @@ export async function runProbeDispatchBenchmark(
     await new Promise<void>((resolve: () => void): void => {
       setTimeout(resolve, 2000);
     });
+
+    fleet.destroyConnections();
 
     if (options.profileDirectory) {
       await Promise.all(
@@ -790,7 +960,116 @@ export async function runProbeDispatchBenchmark(
       });
     }
 
+    const replicaTimeline: Array<ReplicaTimelinePoint> = [];
+
+    for (let atMs: number = 0; atMs < durationMs; atMs += 5000) {
+      const window: Array<{
+        atMs: number;
+        samples: Array<AppReplicaSample>;
+      }> = samples.filter((sample: { atMs: number }): boolean => {
+        return sample.atMs >= atMs && sample.atMs < atMs + 5000;
+      });
+      const before: { atMs: number; samples: Array<AppReplicaSample> } | null =
+        samples
+          .filter((sample: { atMs: number }): boolean => {
+            return sample.atMs < atMs;
+          })
+          .pop() || null;
+      const last: { atMs: number; samples: Array<AppReplicaSample> } | null =
+        window[window.length - 1] || null;
+
+      if (!last) {
+        continue;
+      }
+
+      const seconds: number = Math.max(
+        1,
+        (last.atMs - (before ? before.atMs : 0)) / 1000,
+      );
+
+      replicaTimeline.push({
+        atSecond: Math.round(atMs / 1000),
+        replicas: last.samples.map((sample: AppReplicaSample) => {
+          const earlier: AppReplicaSample | undefined = before?.samples.find(
+            (candidate: AppReplicaSample): boolean => {
+              return candidate.replica === sample.replica;
+            },
+          );
+          const mean: (pick: (one: AppReplicaSample) => number) => number = (
+            pick: (one: AppReplicaSample) => number,
+          ): number => {
+            const values: Array<number> = window
+              .map((entry: { samples: Array<AppReplicaSample> }) => {
+                return entry.samples.find(
+                  (candidate: AppReplicaSample): boolean => {
+                    return candidate.replica === sample.replica;
+                  },
+                );
+              })
+              .filter(Boolean)
+              .map((one: AppReplicaSample | undefined): number => {
+                return pick(one!);
+              });
+
+            return values.length === 0
+              ? 0
+              : Math.round(
+                  (values.reduce((sum: number, value: number): number => {
+                    return sum + value;
+                  }, 0) /
+                    values.length) *
+                    10,
+                ) / 10;
+          };
+
+          return {
+            replica: sample.replica,
+            answeredPerSecond:
+              Math.round(
+                ((sample.monitorListAnswered -
+                  (earlier?.monitorListAnswered || 0)) /
+                  seconds) *
+                  10,
+              ) / 10,
+            running: mean((one: AppReplicaSample): number => {
+              return one.running;
+            }),
+            waiting: mean((one: AppReplicaSample): number => {
+              return one.waiting;
+            }),
+            connectionsOpen: mean((one: AppReplicaSample): number => {
+              return one.connectionsOpen;
+            }),
+            connectionsAcceptedInWindow:
+              sample.connectionsAccepted - (earlier?.connectionsAccepted || 0),
+            closingAnswersInWindow:
+              sample.closingAnswers - (earlier?.closingAnswers || 0),
+          };
+        }),
+      });
+    }
+
     return {
+      replicaTimeline: replicaTimeline,
+      connectionsSentToReplicas: balancer
+        ? Object.fromEntries(
+            Array.from(balancer.connectionsSent.entries()).map(
+              ([replica, count]: [number, number]): [string, number] => {
+                return [String(replica), count];
+              },
+            ),
+          )
+        : {},
+      laterAtSecond:
+        laterAtMs === null ? null : Math.round((laterAtMs as number) / 1000),
+      laterReplicas: Array.from(
+        { length: laterAppReplicas },
+        (_value: unknown, index: number): number => {
+          return options.appReplicas + index;
+        },
+      ),
+      resultsPosted: fleet.resultsPosted,
+      resultsFailed: fleet.resultsFailed,
       assignments: seeded.assignments,
       replicasStartedInMs: replicasStartedInMs,
       timeline: timeline,
@@ -851,6 +1130,11 @@ export async function runProbeDispatchBenchmark(
     }
 
     fleet?.stop();
+    fleet?.destroyConnections();
+
+    await balancer?.stop().catch((): void => {
+      // Already stopped.
+    });
 
     await Promise.all(
       replicas.map((replica: AppReplica): Promise<void> => {

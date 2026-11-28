@@ -381,6 +381,15 @@ describe("which columns record a person doing something", () => {
        * no request chooses it.
        */
       "modeChanged",
+      /*
+       * CloudCostReport.outsideRecipientsSetByUserId: the Cloud admin who
+       * last set a cost report's addresses outside the project and its
+       * channels (#11009), whose read of the costs they are sent. The report
+       * service stamps it from the caller once they may send outside the
+       * project, and clears it when the last of them is gone; no request
+       * chooses it, and an API key cannot set them.
+       */
+      "outsideRecipientsSet",
       "overrided",
       "pinned",
       "previewSeen",

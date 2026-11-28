@@ -157,6 +157,14 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
       charted.push([id, "its overview"]);
     }
   }
+  for (const chart of platform.overview.charts || []) {
+    if (chart.lines.length === 0) {
+      return `its overview's ${chart.title} chart draws no line`;
+    }
+    for (const line of chart.lines) {
+      charted.push([line.metricId, "its overview"]);
+    }
+  }
   for (const [kind, page] of Object.entries(platform.kindPages || {})) {
     for (const chart of page?.part?.charts || []) {
       charted.push([chart.metricId, `its ${kind} part page`]);

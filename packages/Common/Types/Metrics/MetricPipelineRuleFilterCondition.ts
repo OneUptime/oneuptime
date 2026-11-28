@@ -16,10 +16,11 @@ export enum MetricPipelineRuleFilterConditionType {
   DoesNotMatchRegex = "Does Not Match Regex",
   /*
    * The value holds what a log or trace scrub rule's built-in Pattern Type
-   * finds - an IP address, an email address, a card number - matched by
-   * the very pattern those rules run (Utils/Telemetry/ScrubBuiltInPatterns):
-   * the filter Scrub It gives a metric rule for those types (#10934). Its
-   * value is the pattern type (METRIC_FILTER_PATTERN_TYPES).
+   * finds - an IP address, an email address, a card number, a phone number,
+   * a Social Security number - matched by the very pattern those rules run
+   * (Utils/Telemetry/ScrubBuiltInPatterns): the filter Scrub It gives a
+   * metric rule for those types (#10934, #11112). Its value is the pattern
+   * type (METRIC_FILTER_PATTERN_TYPES).
    */
   MatchesPatternType = "Matches Pattern Type",
   IsPresent = "Is Present",

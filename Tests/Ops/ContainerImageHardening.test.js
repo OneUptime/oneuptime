@@ -2440,41 +2440,75 @@ describe("the OpenTelemetry collector pin", () => {
     expect(isFilesVersionOf("0.161", "0.161.0")).toBe(false);
   });
 
+  /*
+   * Each file's collector services, by name, so a new one is named here, and each
+   * runs the pin. The Storage Array Agent runs two: the agent, and PowerStore's
+   * syslog receiver (powerstore-syslog), which runs the agent's own image through
+   * the *collector-image alias so the two cannot drift apart. The Docker Swarm
+   * agent runs two too: the agent, and the check of its config with your log
+   * operators (#11225), the collector's own validate, which runs once first.
+   */
   test("the Swarm, VMware, Database, Proxmox, Ceph, OpenStack, Storage Array and XCP-ng compose files run the pinned collector", () => {
-    for (const file of [
-      "agents/DockerSwarmAgent/docker-compose.yml",
-      "agents/VMwareAgent/docker-compose.yml",
-      "agents/DatabaseAgent/docker-compose.yml",
-      "agents/ProxmoxAgent/docker-compose.yml",
-      "agents/CephAgent/docker-compose.yml",
-      "agents/OpenStackAgent/docker-compose.yml",
-      "agents/OpenStackAgent/docker-compose.traces.yml",
-      "agents/OpenStackAgent/docker-compose.logs.yml",
-      "agents/StorageArrayAgent/docker-compose.yml",
-      "agents/XcpNgAgent/docker-compose.yml",
-    ]) {
+    const pinned = `otel/opentelemetry-collector-contrib:${pinsIn("agents/DockerAgent/Dockerfile.tpl")[0]}`;
+    const collectorServicesOf = {
+      "agents/DockerSwarmAgent/docker-compose.yml": [
+        "oneuptime-docker-swarm-agent",
+        "oneuptime-docker-swarm-agent-config-check",
+      ],
+      "agents/VMwareAgent/docker-compose.yml": ["oneuptime-vmware-agent"],
+      "agents/DatabaseAgent/docker-compose.yml": ["oneuptime-database-agent"],
+      "agents/ProxmoxAgent/docker-compose.yml": ["oneuptime-proxmox-agent"],
+      "agents/CephAgent/docker-compose.yml": ["oneuptime-ceph-agent"],
+      "agents/OpenStackAgent/docker-compose.yml": ["oneuptime-openstack-agent"],
+      "agents/OpenStackAgent/docker-compose.traces.yml": [
+        "oneuptime-openstack-traces",
+      ],
+      "agents/OpenStackAgent/docker-compose.logs.yml": [
+        "oneuptime-openstack-logs",
+      ],
+      "agents/StorageArrayAgent/docker-compose.yml": [
+        "oneuptime-storage-array-agent",
+        "powerstore-syslog",
+      ],
+      "agents/XcpNgAgent/docker-compose.yml": ["oneuptime-xcp-ng-agent"],
+    };
+    for (const [file, services] of Object.entries(collectorServicesOf)) {
       const compose = yaml.load(read(file));
-      const images = Object.values(compose.services)
-        .map((service) => {
-          return service.image;
-        })
-        .filter((image) => {
-          return /opentelemetry-collector-contrib/.test(image || "");
-        });
-      // Every service that runs the collector runs the pin: the agent, and
-      // a check of its config (the Swarm agent's log operators, #11225) or a
-      // second collector of the same agent (the Storage Array agent's).
-      expect({ file, collectors: images.length > 0 }).toEqual({
+      const collectors = Object.entries(compose.services).filter(
+        ([, service]) => {
+          return /opentelemetry-collector-contrib/.test(service.image || "");
+        },
+      );
+      expect({
         file,
-        collectors: true,
-      });
-      expect({ file, images: [...new Set(images)] }).toEqual({
+        collectors: Object.fromEntries(
+          collectors.map(([name, service]) => {
+            return [name, service.image];
+          }),
+        ),
+      }).toEqual({
         file,
-        images: [
-          `otel/opentelemetry-collector-contrib:${pinsIn("agents/DockerAgent/Dockerfile.tpl")[0]}`,
-        ],
+        collectors: Object.fromEntries(
+          services.map((name) => {
+            return [name, pinned];
+          }),
+        ),
       });
     }
+  });
+
+  test("PowerStore's syslog receiver runs the Storage Array Agent's own collector image, through the alias", () => {
+    const text = read("agents/StorageArrayAgent/docker-compose.yml");
+    const compose = yaml.load(text);
+    expect(compose.services["powerstore-syslog"].image).toBe(
+      compose.services["oneuptime-storage-array-agent"].image,
+    );
+    // Written once: the agent anchors it and the syslog receiver aliases it.
+    expect(text.match(/opentelemetry-collector-contrib:/g)).toHaveLength(1);
+    expect(text).toMatch(
+      /\n {4}image: &collector-image otel\/opentelemetry-collector-contrib:/,
+    );
+    expect(text).toMatch(/\n {2}powerstore-syslog:\n {4}image: \*collector-image\n/);
   });
 
   /*
