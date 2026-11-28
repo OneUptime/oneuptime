@@ -63,7 +63,11 @@ import {
   WORTH_FIXING_MIN_MS,
   WORTH_FIXING_MIN_PERCENT_OF_TRACE,
 } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  MetricPipelineRuleFilterCheckOn,
+  MetricPipelineRuleFilterConditionType,
+} from "Common/Types/Metrics/MetricPipelineRuleFilterCondition";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import ProductKey from "Common/Types/Product/ProductKey";
 import { withoutProductLevels } from "./DocsProductLevels";
@@ -1825,12 +1829,15 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
       '["credit-card-number", LogScrubPatternType.CreditCard]',
       '["phone-number", LogScrubPatternType.PhoneNumber]',
       '["us-ssn", LogScrubPatternType.SSN]',
+      // #11502: a postal code's and a precise location's too.
+      '["postal-code", LogScrubPatternType.PostalCode]',
+      '["geolocation", LogScrubPatternType.Coordinates]',
     ]) {
       expect(coverage).toContain(mapping);
     }
 
     expect(page).toContain(
-      "The **Redact Attribute** rule [Data Security](/docs/data-security/telemetry) makes for an IP address, an email address, a card number, a phone number or a Social Security number in an attribute uses it.",
+      "The **Redact Attribute** rule [Data Security](/docs/data-security/telemetry) makes for an IP address, an email address, a card number, a phone number, a Social Security number, a postal code or a precise location in an attribute uses it.",
     );
   });
 
@@ -1842,22 +1849,30 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
    */
   it("says a Matches Pattern Type filter reads a value under the attribute's key", () => {
     expect(page).toContain(
-      "found as a log or trace scrub rule of that **Pattern Type** finds one, under the attribute's key: a national phone number alone under `user.phone` is one.",
+      "found as a log or trace scrub rule of that **Pattern Type** finds one, under the attribute's key: a national phone number alone under `user.phone` is one, and so is a US ZIP code alone under `address.zip`.",
     );
 
-    const leftUnder: (key: string) => unknown = (key: string): unknown => {
+    const leftUnder: (
+      key: string,
+      dataTypeId?: string,
+      value?: JSONValue,
+    ) => unknown = (
+      key: string,
+      dataTypeId: string = "phone-number",
+      value: JSONValue = "02012345678",
+    ): unknown => {
       const rule: MetricPipelineRule = new MetricPipelineRule();
 
       rule.id = ObjectID.generate();
       rule.ruleType = MetricPipelineRuleType.RedactAttribute;
       rule.addAttributeKey = key;
       // The filter Data Security's Scrub It gives the rule: Matches Pattern Type, on its key.
-      rule.filters = buildMetricScrubFilters("phone-number", key);
+      rule.filters = buildMetricScrubFilters(dataTypeId, key);
 
       const row: MutableMetricRow | null = MetricPipelineEngine.applyRules(
         {
           name: "signups",
-          attributes: { [key]: "02012345678" },
+          attributes: { [key]: value },
           attributeKeys: [key],
         },
         [rule],
@@ -1869,6 +1884,61 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
 
     expect(leftUnder("user.phone")).toBe(METRIC_REDACT_REPLACEMENT);
     expect(leftUnder("order.id")).toBe("02012345678");
+    // A US ZIP code alone under its key, and not under one that names nothing (#11502).
+    expect(leftUnder("address.zip", "postal-code", "94107")).toBe(
+      METRIC_REDACT_REPLACEMENT,
+    );
+    expect(leftUnder("order.id", "postal-code", "94107")).toBe("94107");
+  });
+
+  /*
+   * #11500: a filter of a pattern reads a list's or a map's value as the
+   * JSON text it is stored as, so a phone number sent as a number beside
+   * the word another of its texts writes is one.
+   */
+  it("says a pattern filter reads a list or a map as its JSON text", () => {
+    expect(page).toContain(
+      'An attribute that holds a list or a map is read as the JSON text it is stored as, by **Matches Pattern Type** and by a regular expression, so a phone number sent as a number in `[{"system": "phone", "value": 2012345678}]` is one.',
+    );
+
+    const redacted: (filters: MetricPipelineRule["filters"]) => unknown = (
+      filters: MetricPipelineRule["filters"],
+    ): unknown => {
+      const rule: MetricPipelineRule = new MetricPipelineRule();
+
+      rule.id = ObjectID.generate();
+      rule.ruleType = MetricPipelineRuleType.RedactAttribute;
+      rule.addAttributeKey = "contacts";
+      rule.filters = filters;
+
+      const row: MutableMetricRow | null = MetricPipelineEngine.applyRules(
+        {
+          name: "signups",
+          attributes: {
+            contacts: JSON.parse('[{"system": "phone", "value": 2012345678}]'),
+          },
+          attributeKeys: ["contacts"],
+        },
+        [rule],
+        [],
+      );
+
+      return (row?.attributes as JSONObject | undefined)?.["contacts"];
+    };
+
+    expect(redacted(buildMetricScrubFilters("phone-number", "contacts"))).toBe(
+      METRIC_REDACT_REPLACEMENT,
+    );
+    expect(
+      redacted([
+        {
+          checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+          attributeKey: "contacts",
+          conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+          value: '"value":[0-9]{10}',
+        },
+      ]),
+    ).toBe(METRIC_REDACT_REPLACEMENT);
   });
 
   it("opens the metric list on the past hour", () => {

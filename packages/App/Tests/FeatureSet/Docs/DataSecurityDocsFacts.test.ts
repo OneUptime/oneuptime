@@ -27,8 +27,14 @@ import {
   EXPOSING_CHANGE_LOOKBACK_IN_DAYS,
 } from "Common/Types/DataSecurity/ExposureAssessment";
 import {
+  buildMetricScrubFilters,
+  buildScrubPatternForDataType,
+  CoveringScrubRule,
+  findCoveringScrubRule,
+  getMetricDropUnavailableReason,
   METRIC_PATTERN_TYPE_OF_DATA_TYPE,
   nameScrubItRule,
+  TelemetryFindingReference,
 } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import {
   ModelBudget,
@@ -142,7 +148,10 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "Common/Types/Permission";
-import { DATA_SECURITY_API_ROUTES } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import {
+  DATA_SECURITY_API_ROUTES,
+  DataSecurityDropMetricUnavailableReason,
+} from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
   DATA_SECURITY_AI_VERDICT_TITLES,
   DATA_SECURITY_AI_VERDICTS,
@@ -246,6 +255,8 @@ import {
   DataTypeDetector,
 } from "Common/Utils/DataSecurity/Detector";
 import {
+  classifyField,
+  FieldClassification,
   MAX_FIELD_VALUES,
   MAX_FIELD_VALUE_LENGTH,
 } from "Common/Utils/DataSecurity/FieldClassifier";
@@ -2700,8 +2711,12 @@ describe("Sensitive Data in Telemetry", () => {
     expect(section(page, "## Scrub It")).toContain(
       '"Data Security: Email address in log attributes of checkout"',
     );
+    // Masked, as the first row says: a postal code and a precise location too (#11502).
     expect(scrub).toContain(
-      "LogScrubPatternType.CreditCard,\n  LogScrubPatternType.SSN,\n  LogScrubPatternType.PhoneNumber,\n]);",
+      "LogScrubPatternType.CreditCard,\n  LogScrubPatternType.SSN,\n  LogScrubPatternType.PhoneNumber,\n  LogScrubPatternType.PostalCode,\n  LogScrubPatternType.Coordinates,\n]);",
+    );
+    expect(page).toContain(
+      "| Email address, card number, US Social Security number, phone number, IP address, postal code or precise location | The built-in pattern of that type, masked.",
     );
   });
 });
@@ -4443,16 +4458,35 @@ describe("What a value is read as, and what a leak's template keeps", () => {
     expect(Array.from(METRIC_PATTERN_TYPE_OF_DATA_TYPE.keys()).sort()).toEqual([
       "credit-card-number",
       "email-address",
+      "geolocation",
       "ip-address",
       "phone-number",
+      "postal-code",
       "us-ssn",
     ]);
     expect(row).toContain(
-      "For an IP address, an email address, a card number, a phone number or a US Social Security number, its filter is **Matches Pattern Type** of that type",
+      "For an IP address, an email address, a card number, a phone number, a US Social Security number, a postal code or a precise location, its filter is **Matches Pattern Type** of that type",
+    );
+    expect(row).toContain(
+      "where no pattern finds the data type, or some of the finding's values were found only beside their words, the rule replaces every value of the attribute",
     );
     expect(item).toContain(
-      "A rule **Scrub It** made for an IP address, an email address, a card number, a phone number or a US Social Security number before its filter was **Matches Pattern Type** is moved to that filter when you upgrade",
+      "A rule **Scrub It** made for an IP address, an email address, a card number, a phone number, a US Social Security number, a postal code or a precise location before its filter was **Matches Pattern Type** is moved to that filter when you upgrade",
     );
+
+    // A type found by its words or its key, beside them: every value under the key (#11502).
+    expect(
+      buildMetricScrubFilters("us-itin", "tax.ref", {
+        isFoundByContext: true,
+        isFoundByModel: false,
+      }),
+    ).toEqual([]);
+    expect(
+      buildMetricScrubFilters("us-itin", "tax.ref", {
+        isFoundByContext: false,
+        isFoundByModel: false,
+      }),
+    ).toHaveLength(1);
 
     const migrations: string = source(
       "App/FeatureSet/Workers/DataMigrations/Index.ts",
@@ -4461,9 +4495,177 @@ describe("What a value is read as, and what a leak's template keeps", () => {
     for (const migration of [
       "MetricScrubRulesMatchTheirPatternType",
       "MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType",
+      "ScrubRulesOfPostalCodesAndCoordinatesUseTheirPatternType",
     ]) {
       expect(migrations).toContain(`new ${migration}()`);
     }
+  });
+
+  /*
+   * #11502: a Custom Regex of a type's patterns is made of its detectors
+   * that need no word, so it keeps a value found only beside the words
+   * that name its type or under a key that names it: it covers a finding
+   * only when those patterns found every value of it, and Scrub It makes
+   * the rule that names the attribute where they did not.
+   */
+  it("says a Custom Regex of a type's patterns covers only a finding they found every value of, and what Scrub It makes instead", () => {
+    const row: string = lineOf(
+      TELEMETRY,
+      "| Any other data type a pattern finds on its own, such as a GitHub token |",
+    );
+    const item: string = lineOf(
+      TELEMETRY,
+      "- **Your own custom patterns otherwise never count.**",
+    );
+    const custom: CoveringScrubRule = {
+      id: "11502",
+      name: "ITINs",
+      signal: "log",
+      patternType: "custom",
+      customRegex: buildScrubPatternForDataType("us-itin")!,
+      fieldsToScrub: "both",
+    };
+    const covers: (
+      foundBy: Pick<
+        TelemetryFindingReference,
+        "isFoundByContext" | "isFoundByModel"
+      >,
+      dataTypeId?: string,
+    ) => boolean = (
+      foundBy: Pick<
+        TelemetryFindingReference,
+        "isFoundByContext" | "isFoundByModel"
+      >,
+      dataTypeId: string = "us-itin",
+    ): boolean => {
+      return (
+        findCoveringScrubRule(
+          {
+            rules: [
+              dataTypeId === "us-itin"
+                ? custom
+                : {
+                    ...custom,
+                    customRegex: buildScrubPatternForDataType(dataTypeId)!,
+                  },
+            ],
+          },
+          {
+            kind: DataStoreKind.TelemetryLogs,
+            dataTypeId,
+            location: "body",
+            ...foundBy,
+          },
+        ) !== null
+      );
+    };
+
+    expect(row).toContain(
+      "Where some of the finding's values were found only beside the words that name its type, or under a key that names it, such as nine digits beside ITIN, those patterns keep them: the rule that names the attribute is made instead",
+    );
+    expect(item).toContain(
+      "and only when that pattern found every value of the finding: one with values found only beside the words that name its type, or under a key that names it, such as nine digits beside ITIN or a `123` under `cvv`, or by the names-and-addresses model, holds values the pattern keeps.",
+    );
+    // Its patterns found every value: covered.
+    expect(covers({ isFoundByContext: false, isFoundByModel: false })).toBe(
+      true,
+    );
+    // Beside its word, or by the model: not.
+    expect(covers({ isFoundByContext: true, isFoundByModel: false })).toBe(
+      false,
+    );
+    expect(covers({ isFoundByContext: false, isFoundByModel: true })).toBe(
+      false,
+    );
+    // Found before OneUptime kept how: as found so, where its type can be.
+    expect(item).toContain(
+      "A finding found before OneUptime kept how it was found counts as found so, where its type can be, until its next scan.",
+    );
+    expect(covers({ isFoundByContext: null })).toBe(false);
+    expect(covers({ isFoundByContext: null }, "iban")).toBe(true);
+    // The pattern keeps them: nine digits beside ITIN, and a 123 under cvv.
+    expect(
+      findSensitiveValues("ITIN 912701234").map((match: TextMatch) => {
+        return [match.dataTypeId, match.fromContext === true];
+      }),
+    ).toEqual([["us-itin", true]]);
+    expect(
+      classifyField("payment.cvv", ["123", "456"]).find(
+        (classification: FieldClassification): boolean => {
+          return classification.dataTypeId === "card-verification-code";
+        },
+      )?.foundByContext,
+    ).toBe(true);
+    // And a rule Scrub It made for a postal code or a precise location is moved.
+    expect(item).toContain(
+      "A **Custom Regex** rule **Scrub It** made for a postal code or a precise location is moved to the **Postal Code** or **Coordinates** pattern type when you upgrade",
+    );
+  });
+
+  /*
+   * #11493, #11496: a national phone number counts beside the word that
+   * names it, in one run or in its country's groups, and call, cell and
+   * contact name one only in a phrase or before its trunk prefix.
+   */
+  it("finds a national number in its groups beside its word, and no Unix time after call, as the Context step says", () => {
+    const paragraph: string = lineOf(DATA_TYPES, "3. **Context.**");
+    const phonesIn: (text: string) => Array<string> = (
+      text: string,
+    ): Array<string> => {
+      return findSensitiveValues(text)
+        .filter((match: TextMatch): boolean => {
+          return match.dataTypeId === "phone-number";
+        })
+        .map((match: TextMatch): string => {
+          return text.slice(match.start, match.end);
+        });
+    };
+
+    expect(paragraph).toContain(
+      "A national phone number does too, in one run or in the groups its country writes, such as `tel 03-1234-5678` or `phone 020 3123 4567`.",
+    );
+    expect(phonesIn("tel 03-1234-5678")).toEqual(["03-1234-5678"]);
+    expect(phonesIn("phone 020 3123 4567")).toEqual(["020 3123 4567"]);
+    // Beside no word that names it, the same groups are no phone number.
+    expect(phonesIn("order 03-1234-5678")).toEqual([]);
+    expect(paragraph).toContain(
+      "Call, cell and contact name one only in a phrase such as call me on, cell number or contact number, or before a number with its trunk prefix, so a Unix time after call, such as `call 1732752000`, is not one.",
+    );
+    expect(phonesIn("call 1732752000")).toEqual([]);
+    expect(phonesIn("call me on 612345678")).toEqual(["612345678"]);
+    expect(phonesIn("contact number: 612345678")).toEqual(["612345678"]);
+    expect(phonesIn("call 02031234567")).toEqual(["02031234567"]);
+  });
+
+  /*
+   * #11502: Drop This Metric's filter is the type's pattern on the name,
+   * which tells no metric apart whose name holds the type only beside its
+   * words: such a finding cannot be dropped.
+   */
+  it("says a finding found only beside its type's words cannot be dropped, as the code refuses it", () => {
+    expect(section(english(TELEMETRY), "## Drop This Metric")).toContain(
+      "so a type no pattern can find, such as a person's name, or a finding found only beside the words that name its type, cannot be dropped, and the dialog says why.",
+    );
+    expect(
+      getMetricDropUnavailableReason({
+        kind: DataStoreKind.TelemetryMetrics,
+        location: "name",
+        dataTypeId: "us-itin",
+        serviceId: ObjectID.generate(),
+        isFoundByContext: true,
+        isFoundByModel: false,
+      }),
+    ).toBe(DataSecurityDropMetricUnavailableReason.NoPattern);
+    expect(
+      getMetricDropUnavailableReason({
+        kind: DataStoreKind.TelemetryMetrics,
+        location: "name",
+        dataTypeId: "us-itin",
+        serviceId: ObjectID.generate(),
+        isFoundByContext: false,
+        isFoundByModel: false,
+      }),
+    ).toBeNull();
   });
 
   it("finds a person's name under a URL's query parameter named for one, High, and leaves one named name to the model (#11034)", () => {
