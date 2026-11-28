@@ -68360,5 +68360,11 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "Die Stimme, mit der die Anrufe Ihres Projekts sprechen, wenn sie über das Twilio-Konto dieses Servers laufen. Eine eigene Twilio-Konfiguration hat eine eigene Stimme.",
   "This server's voice": "Stimme dieses Servers",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio berechnet für diese Stimmen einen Aufpreis: weniger als {{cents}} US-Cent pro Anruf einer Alarmierung, in jeder Sprache.",
-  "Voice": "Stimme"
+  "Voice": "Stimme",
+  "Found By Context": "Durch Kontext gefunden",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "Paare aus Breiten- und Längengrad und einzelne Koordinaten neben einem Wort wie lat oder unter einem Schlüssel wie location.lat.",
+  "Postal Code": "Postleitzahl",
+  "Scrub coordinates": "Koordinaten bereinigen",
+  "Scrub postal codes": "Postleitzahlen bereinigen",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "Britische und kanadische Postleitzahlen sowie US-ZIP-Codes neben einem Wort wie zip oder unter einem Schlüssel wie address.zip."
 }

@@ -36,6 +36,8 @@ export const METRIC_FILTER_PATTERN_TYPE_OPTIONS: Array<DropdownOption> = [
   { label: "SSN (Social Security Number)", value: LogScrubPatternType.SSN },
   { label: "Phone Number", value: LogScrubPatternType.PhoneNumber },
   { label: "IP Address", value: LogScrubPatternType.IPAddress },
+  { label: "Postal Code", value: LogScrubPatternType.PostalCode },
+  { label: "Coordinates", value: LogScrubPatternType.Coordinates },
 ];
 
 export interface ComponentProps {

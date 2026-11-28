@@ -68360,5 +68360,11 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "De stem waarmee de oproepen van uw project spreken wanneer ze via het Twilio-account van deze server gaan. Een eigen Twilio-configuratie heeft een eigen stem.",
   "This server's voice": "Stem van deze server",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio rekent extra kosten voor deze stemmen: minder dan {{cents}} dollarcent per oproep voor dienst, in elke taal.",
-  "Voice": "Stem"
+  "Voice": "Stem",
+  "Found By Context": "Gevonden door de context",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "Paren van breedte- en lengtegraad, en één coördinaat naast een woord zoals lat of onder een sleutel zoals location.lat.",
+  "Postal Code": "Postcode",
+  "Scrub coordinates": "Coördinaten opschonen",
+  "Scrub postal codes": "Postcodes opschonen",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "Britse en Canadese postcodes, en Amerikaanse ZIP-codes naast een woord zoals zip of onder een sleutel zoals address.zip."
 }

@@ -247,7 +247,7 @@ export default class TraceScrubRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Pattern Type",
     description:
-      "The type of sensitive data to detect: email, creditCard, ssn, phoneNumber, ipAddress, sensitiveKeys (the whole value of every attribute whose key looks sensitive, such as password or token), or custom (the regular expression in customRegex). Any other value is refused: it would scrub nothing.",
+      "The type of sensitive data to detect: email, creditCard, ssn, phoneNumber, ipAddress, postalCode (UK and Canadian postcodes, and US ZIP codes beside a word or under a key that names them), coordinates (latitude and longitude pairs, and a lone coordinate beside a word or under a key that names it), sensitiveKeys (the whole value of every attribute whose key looks sensitive, such as password or token), namedKeys (the whole value of the attributes in attributeKeys), or custom (the regular expression in customRegex). Any other value is refused: it would scrub nothing.",
   })
   @Column({
     nullable: false,

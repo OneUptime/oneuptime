@@ -68360,5 +68360,11 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.",
   "This server's voice": "This server's voice",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.",
-  "Voice": "Voice"
+  "Voice": "Voice",
+  "Found By Context": "Found By Context",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.",
+  "Postal Code": "Postal Code",
+  "Scrub coordinates": "Scrub coordinates",
+  "Scrub postal codes": "Scrub postal codes",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip."
 }

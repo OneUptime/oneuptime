@@ -68360,5 +68360,11 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "您的專案的通話經由此伺服器的 Twilio 帳戶撥出時所用的語音。您自己的 Twilio 設定有其自己的語音。",
   "This server's voice": "此伺服器的語音",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio 對這些語音額外收費：無論哪種語言，每通呼叫電話都不到 {{cents}} 美分。",
-  "Voice": "語音"
+  "Voice": "語音",
+  "Found By Context": "由上下文找到",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "緯度與經度組，以及 lat 等字詞旁或 location.lat 等鍵下的單一座標。",
+  "Postal Code": "郵遞區號",
+  "Scrub coordinates": "清除座標",
+  "Scrub postal codes": "清除郵遞區號",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "英國與加拿大的郵遞區號，以及 zip 等字詞旁或 address.zip 等鍵下的美國 ZIP 碼。"
 }

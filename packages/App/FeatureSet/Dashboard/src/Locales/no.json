@@ -68360,5 +68360,11 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "Stemmen prosjektets anrop snakker med når de går gjennom Twilio-kontoen til denne serveren. En egen Twilio-konfigurasjon har sin egen stemme.",
   "This server's voice": "Stemmen til denne serveren",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio tar ekstra betalt for disse stemmene: under {{cents}} amerikanske cent per vaktanrop, på alle språk.",
-  "Voice": "Stemme"
+  "Voice": "Stemme",
+  "Found By Context": "Funnet ut fra konteksten",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "Par av bredde- og lengdegrad, og én koordinat ved siden av et ord som lat eller under en nøkkel som location.lat.",
+  "Postal Code": "Postnummer",
+  "Scrub coordinates": "Masker koordinater",
+  "Scrub postal codes": "Masker postnumre",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "Britiske og kanadiske postnumre og amerikanske ZIP-koder ved siden av et ord som zip eller under en nøkkel som address.zip."
 }

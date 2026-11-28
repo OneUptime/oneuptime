@@ -106,6 +106,8 @@ export const SCRUB_RULE_DEFAULT_NAMES: Record<string, string> = {
   [LogScrubPatternType.SSN]: translationKey("Scrub Social Security numbers"),
   [LogScrubPatternType.PhoneNumber]: translationKey("Scrub phone numbers"),
   [LogScrubPatternType.IPAddress]: translationKey("Scrub IP addresses"),
+  [LogScrubPatternType.PostalCode]: translationKey("Scrub postal codes"),
+  [LogScrubPatternType.Coordinates]: translationKey("Scrub coordinates"),
   [LogScrubPatternType.SensitiveKeys]: translationKey(
     "Scrub sensitive attributes",
   ),
@@ -226,6 +228,20 @@ export const SCRUB_ACTION_CHOICES: Array<RadioButton> = [
  */
 export const SCRUB_RULE_IP_ADDRESS_HELP: string = translationKey(
   "Public IPv4 and IPv6 addresses, not private, loopback or link-local ones.",
+);
+
+/*
+ * What the Postal Code and Coordinates patterns hide, under their choices
+ * (#11502): what Data Security calls a postal code and a precise location,
+ * a ZIP code and a lone coordinate beside their words or under their keys
+ * among them (Common/Utils/Telemetry/ScrubBuiltInPatterns).
+ */
+export const SCRUB_RULE_POSTAL_CODE_HELP: string = translationKey(
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.",
+);
+
+export const SCRUB_RULE_COORDINATES_HELP: string = translationKey(
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.",
 );
 
 /*
@@ -719,6 +735,16 @@ const getScrubRuleFormFields: (
           label: "IP Address",
           value: LogScrubPatternType.IPAddress,
           description: SCRUB_RULE_IP_ADDRESS_HELP,
+        },
+        {
+          label: "Postal Code",
+          value: LogScrubPatternType.PostalCode,
+          description: SCRUB_RULE_POSTAL_CODE_HELP,
+        },
+        {
+          label: "Coordinates",
+          value: LogScrubPatternType.Coordinates,
+          description: SCRUB_RULE_COORDINATES_HELP,
         },
         {
           label: "Sensitive Attribute Keys",

@@ -68360,5 +68360,11 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "이 서버의 Twilio 계정을 통해 나갈 때 프로젝트의 통화가 말하는 음성입니다. 자체 Twilio 구성에는 자체 음성이 있습니다.",
   "This server's voice": "이 서버의 음성",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio는 이 음성들에 추가 요금을 청구합니다. 어떤 언어든 호출 전화 1건당 미화 {{cents}}센트 미만입니다.",
-  "Voice": "음성"
+  "Voice": "음성",
+  "Found By Context": "문맥으로 찾음",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "위도와 경도 쌍, 그리고 lat 같은 단어 옆이나 location.lat 같은 키 아래에 있는 좌표 하나.",
+  "Postal Code": "우편번호",
+  "Scrub coordinates": "좌표 스크럽",
+  "Scrub postal codes": "우편번호 스크럽",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "영국과 캐나다의 우편번호, 그리고 zip 같은 단어 옆이나 address.zip 같은 키 아래에 있는 미국 ZIP 코드."
 }

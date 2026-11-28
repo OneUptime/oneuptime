@@ -68360,5 +68360,11 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "صدایی که تماس‌های پروژهٔ شما هنگام برقراری از طریق حساب Twilio این سرور با آن صحبت می‌کنند. پیکربندی Twilio خود شما صدای خودش را دارد.",
   "This server's voice": "صدای این سرور",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio برای این صداها هزینهٔ اضافه می‌گیرد: کمتر از {{cents}} سنت دلار آمریکا برای تماس هر فراخوان، به هر زبانی.",
-  "Voice": "صدا"
+  "Voice": "صدا",
+  "Found By Context": "پیداشده با زمینه",
+  "Latitude and longitude pairs, and one coordinate beside a word such as lat or under a key such as location.lat.": "جفت‌های عرض و طول جغرافیایی، و یک مختصات تنها کنار واژه‌ای مانند lat یا زیر کلیدی مانند location.lat.",
+  "Postal Code": "کد پستی",
+  "Scrub coordinates": "پالایش مختصات",
+  "Scrub postal codes": "پالایش کدهای پستی",
+  "UK and Canadian postcodes, and US ZIP codes beside a word such as zip or under a key such as address.zip.": "کدهای پستی بریتانیا و کانادا، و کدهای ZIP آمریکا کنار واژه‌ای مانند zip یا زیر کلیدی مانند address.zip."
 }
