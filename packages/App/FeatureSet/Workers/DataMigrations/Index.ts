@@ -164,6 +164,7 @@ import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopi
 import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
 import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
 import MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType from "./MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType";
+import RepairScheduleLayerRestrictionTypes from "./RepairScheduleLayerRestrictionTypes";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1746,6 +1747,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * ordering requirement of its own; before the two slots kept last.
    */
   new LeaveTimeOfMonitorsPausedForMaintenanceOutOfUptime(),
+  /*
+   * The on-call schedule layers stored with no restriction type the engine
+   * read - written with restrictionType, the key's natural spelling, or
+   * another key - which put nobody on call, are stored with the type they
+   * hold, and rotations written as "Weekly" with the interval they name
+   * (#11269); each schedule whose paging changes is told the change and has
+   * who is on call worked out again. After the schema migration that adds
+   * OnCallDutyPolicySchedule.rosterTurnKey, which the refresh writes.
+   * Postgres only, paged and idempotent; before the two slots kept last.
+   */
+  new RepairScheduleLayerRestrictionTypes(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

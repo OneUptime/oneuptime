@@ -1,3 +1,4 @@
+import { CALL_VOICE_VALUES, toCallVoiceValue } from "../Call/CallVoice";
 import { JSONObject } from "../JSON";
 import Phone from "../Phone";
 import { refusedValue } from "../../Utils/RefusedValue";
@@ -48,6 +49,45 @@ export enum ServerTwilioEnvironmentVariable {
   SecondaryPhoneNumbers = "GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS",
   SmsPhoneNumbers = "GLOBAL_TWILIO_SMS_PHONE_NUMBERS",
 }
+
+/*
+ * THE VOICE THE SERVER'S CALLS SPEAK WITH, SET BY AN ENVIRONMENT VARIABLE
+ * (#11064).
+ *
+ * The voice is a setting of its own, not one of the account's (#10948): it
+ * is chosen in Admin Dashboard > Settings > Call and SMS > Call Voice
+ * whoever sets the account. GLOBAL_TWILIO_CALL_VOICE sets it from code
+ * instead - twilio.callVoice in the Helm chart's values, config.env with
+ * Docker Compose - with or without the account's variables: once it is set,
+ * the voice is the one it names, the Admin Dashboard shows it without its
+ * Choose Voice button, and the server refuses a write to the saved one
+ * (GlobalConfigService). Unset or empty, the voice saved in the Admin
+ * Dashboard applies again.
+ *
+ * It names one of OneUptime's voices as the list writes it (Types/Call/
+ * CallVoice). Any other value is a problem the server names - when it
+ * starts, on the Call Voice card and on /admin/setup - by the variable's
+ * name, and the calls go out in the account's default voice meanwhile,
+ * never in the saved voice nobody set it to: a voice never stops a call.
+ */
+export const SERVER_TWILIO_CALL_VOICE_VARIABLE: string =
+  "GLOBAL_TWILIO_CALL_VOICE";
+
+// What the variable says, read.
+export interface ServerTwilioCallVoiceReading {
+  // Whether GLOBAL_TWILIO_CALL_VOICE is set: the voice is then the variable's.
+  isSet: boolean;
+  // The voice it names, as OneUptime's list writes it; none for anything else.
+  voice: string | undefined;
+  // What is wrong with it, by the variable's name; null when it names a voice, or is not set.
+  problem: string | null;
+}
+
+/*
+ * Said when someone tries to change a voice the variable sets: the server
+ * refuses the write (GlobalConfigService), and says where it is changed.
+ */
+export const SERVER_TWILIO_CALL_VOICE_SET_BY_ENVIRONMENT_MESSAGE: string = `This server's call voice is set by the ${SERVER_TWILIO_CALL_VOICE_VARIABLE} environment variable, so it cannot be changed in the Admin Dashboard. Change it - twilio.callVoice in the Helm chart's values, or config.env with Docker Compose - and restart OneUptime.`;
 
 // Every variable, the one that turns them on first.
 export const SERVER_TWILIO_ENVIRONMENT_VARIABLES: ReadonlyArray<ServerTwilioEnvironmentVariable> =
@@ -130,6 +170,15 @@ export interface ServerTwilioEnvironmentAnswer {
   secondaryPhoneNumbers: string | null;
   smsPhoneNumbers: string | null;
   problems: Array<string>;
+  /*
+   * GLOBAL_TWILIO_CALL_VOICE (#11064), set apart from the account's: whether
+   * it sets the voice, the voice it names - none for one OneUptime does not
+   * offer - and what is wrong with it. Left out by a server of the release
+   * before, and read then as not set.
+   */
+  isCallVoiceSetByEnvironment: boolean;
+  callVoice: string | null;
+  callVoiceProblem: string | null;
 }
 
 export type ServerTwilioEnvironmentValues = Readonly<
@@ -161,6 +210,35 @@ const NO_ACCOUNT_ANSWER: ServerTwilioEnvironmentAnswer = {
   secondaryPhoneNumbers: null,
   smsPhoneNumbers: null,
   problems: [],
+  isCallVoiceSetByEnvironment: false,
+  callVoice: null,
+  callVoiceProblem: null,
+};
+
+// GLOBAL_TWILIO_CALL_VOICE not set: the voice saved in the Admin Dashboard applies.
+const NO_CALL_VOICE: ServerTwilioCallVoiceReading = {
+  isSet: false,
+  voice: undefined,
+  problem: null,
+};
+
+// The call voice's part of the answer.
+const callVoiceAnswer: (
+  reading: ServerTwilioCallVoiceReading,
+) => Pick<
+  ServerTwilioEnvironmentAnswer,
+  "isCallVoiceSetByEnvironment" | "callVoice" | "callVoiceProblem"
+> = (
+  reading: ServerTwilioCallVoiceReading,
+): Pick<
+  ServerTwilioEnvironmentAnswer,
+  "isCallVoiceSetByEnvironment" | "callVoice" | "callVoiceProblem"
+> => {
+  return {
+    isCallVoiceSetByEnvironment: reading.isSet,
+    callVoice: reading.voice || null,
+    callVoiceProblem: reading.problem,
+  };
 };
 
 export default class ServerTwilioEnvironment {
@@ -313,6 +391,53 @@ export default class ServerTwilioEnvironment {
     };
   }
 
+  /*
+   * The voice GLOBAL_TWILIO_CALL_VOICE sets (#11064) - process.env on the
+   * server, read again on every call - without the whitespace around it.
+   * Empty is not set. A value that names none of OneUptime's voices, as the
+   * list writes them, is a problem, and no voice.
+   */
+  public static readCallVoice(
+    environment: ServerTwilioEnvironmentValues,
+  ): ServerTwilioCallVoiceReading {
+    const raw: unknown = environment[SERVER_TWILIO_CALL_VOICE_VARIABLE];
+    const written: string = typeof raw === "string" ? raw.trim() : "";
+
+    if (!written) {
+      return { ...NO_CALL_VOICE };
+    }
+
+    const voice: string | undefined = toCallVoiceValue(written);
+
+    if (voice) {
+      return { isSet: true, voice: voice, problem: null };
+    }
+
+    return {
+      isSet: true,
+      voice: undefined,
+      problem: `${SERVER_TWILIO_CALL_VOICE_VARIABLE}: "${refusedValue(written)}" is not a voice OneUptime offers, so calls speak with your Twilio account's default voice. Set it to one of ${CALL_VOICE_VALUES.join(", ")}, or leave it empty to choose the voice in the Admin Dashboard.`,
+    };
+  }
+
+  // What the server says as it starts when GLOBAL_TWILIO_CALL_VOICE sets the voice; null when it does not.
+  public static getCallVoiceStartupNotice(
+    reading: ServerTwilioCallVoiceReading,
+  ): string | null {
+    if (!reading.isSet || !reading.voice) {
+      return null;
+    }
+
+    return `The voice of the server's calls is set by ${SERVER_TWILIO_CALL_VOICE_VARIABLE}: ${reading.voice}. The voice chosen in the Admin Dashboard is not used.`;
+  }
+
+  // What is wrong with GLOBAL_TWILIO_CALL_VOICE, as the server says it when it starts.
+  public static getCallVoiceStartupWarning(
+    reading: ServerTwilioCallVoiceReading,
+  ): string | null {
+    return reading.problem;
+  }
+
   // Whether the account the variables set can send: set, with nothing wrong.
   public static isUsable(reading: ServerTwilioEnvironmentReading): boolean {
     return (
@@ -320,14 +445,20 @@ export default class ServerTwilioEnvironment {
     );
   }
 
-  // What the Admin Dashboard is told: never the auth token.
+  /*
+   * What the Admin Dashboard is told: never the auth token. With the voice
+   * GLOBAL_TWILIO_CALL_VOICE sets, read on its own (readCallVoice): it sets
+   * the voice whoever sets the account.
+   */
   public static toAnswer(
     reading: ServerTwilioEnvironmentReading,
+    callVoice: ServerTwilioCallVoiceReading = NO_CALL_VOICE,
   ): ServerTwilioEnvironmentAnswer {
     if (!reading.isSet || !reading.account) {
       return {
         ...NO_ACCOUNT_ANSWER,
         problems: [...reading.problems],
+        ...callVoiceAnswer(callVoice),
       };
     }
 
@@ -344,6 +475,7 @@ export default class ServerTwilioEnvironment {
       secondaryPhoneNumbers: account.twilioSecondaryPhoneNumbers || null,
       smsPhoneNumbers: account.twilioSmsPhoneNumbers || null,
       problems: [...reading.problems],
+      ...callVoiceAnswer(callVoice),
     };
   }
 
@@ -387,6 +519,10 @@ export default class ServerTwilioEnvironment {
             },
           )
         : [],
+      // Only a voice of OneUptime's list: anything else reads as none.
+      isCallVoiceSetByEnvironment: data["isCallVoiceSetByEnvironment"] === true,
+      callVoice: toCallVoiceValue(data["callVoice"]) || null,
+      callVoiceProblem: text("callVoiceProblem"),
     };
   }
 

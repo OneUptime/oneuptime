@@ -84,6 +84,21 @@ import SecurityUserErasureFindings, {
   FindingsCursor,
   FindingsScanStep,
 } from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureFindings";
+import SecurityUserErasureThreatStamps from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureThreatStamps";
+import {
+  ENRICHMENT_FEED_ATTRIBUTE,
+  ENRICHMENT_FEED_ID_ATTRIBUTE,
+  ENRICHMENT_INDICATOR_ID_ATTRIBUTE,
+  ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE,
+  ENRICHMENT_MATCHED_ATTRIBUTE,
+  THREAT_CONFIDENCE_ATTRIBUTE,
+  THREAT_FEED_ID_ATTRIBUTE,
+  THREAT_FEED_NAME_ATTRIBUTE,
+  THREAT_INDICATOR_ID_ATTRIBUTE,
+  THREAT_INDICATOR_TYPE_ATTRIBUTE,
+  THREAT_INDICATOR_VALUE_ATTRIBUTE,
+  THREAT_MATCH_COUNT_ATTRIBUTE,
+} from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import DetectionFingerprint, {
   DetectionFingerprintKind,
 } from "Common/Server/Utils/SecurityEvent/DetectionFingerprint";
@@ -758,6 +773,231 @@ integration("an erasure on a replicated cluster", () => {
       for (const fingerprint of fingerprintsOfNames) {
         expect(command).not.toContain(fingerprint);
       }
+    }
+  });
+
+  /*
+   * #11230: a threat intel feed lists the person's address. The finding
+   * about the match named the feed's indicator, and the enricher stamped
+   * the person's event with the address and the indicator. Both are
+   * rewritten ON CLUSTER, and both replicas end up with neither.
+   */
+  test("the feed's indicator comes out of the person's finding and the event it stamped, on both replicas; somebody else's stays", async () => {
+    const aliceToken: string = tokenOf(ALICE);
+    const bobToken: string = tokenOf(BOB);
+    const feedId: string = "11230000-0000-4000-8000-0000000000f4";
+    const stixId: string = "indicator--8e2e2d2b-17d4-4cbf-938f-98ee46b3cd3f";
+    const bobStixId: string = "indicator--0b0b0b0b-0000-4000-8000-00000000b0b0";
+    const feedName: string = "Acme Phishing Senders";
+    const indicatorName: string = `Phishing sender ${ALICE}`;
+    const erasedId: string = `[INDICATOR:${DetectionFingerprint.of({
+      projectId: PROJECT_ID,
+      kind: DetectionFingerprintKind.ThreatIntel,
+      value: aliceToken,
+    })}]`;
+    const time: Date = OneUptimeDate.addRemoveMinutes(new Date(), -2);
+
+    // The finding the matcher writes about the person's address.
+    const findingAttributes: Record<string, string> = {
+      [THREAT_FEED_ID_ATTRIBUTE]: feedId,
+      [THREAT_FEED_NAME_ATTRIBUTE]: feedName,
+      [THREAT_INDICATOR_ID_ATTRIBUTE]: stixId,
+      [THREAT_INDICATOR_TYPE_ATTRIBUTE]: "email-addr",
+      [THREAT_INDICATOR_VALUE_ATTRIBUTE]: ALICE,
+      [THREAT_CONFIDENCE_ATTRIBUTE]: "80",
+      [THREAT_MATCH_COUNT_ATTRIBUTE]: "2",
+    };
+    const finding: JSONObject = {
+      _id: ObjectID.generate().toString(),
+      projectId: PROJECT_ID.toString(),
+      primaryEntityId: SOURCE_ID.toString(),
+      primaryEntityType: ServiceType.OpenTelemetry,
+      time: OneUptimeDate.toClickhouseDateTime64(time),
+      createdAt: OneUptimeDate.toClickhouseDateTime(time),
+      eventUid: `threat-intel:${feedId}:threat-intel:${feedId}:${DetectionFingerprint.of(
+        {
+          projectId: PROJECT_ID,
+          kind: DetectionFingerprintKind.ThreatIntel,
+          value: ALICE,
+        },
+      )}:1764000000123456789`,
+      classUid: DETECTION_FINDING_CLASS_UID,
+      className: DETECTION_FINDING_CLASS_NAME,
+      severityId: 4,
+      severityName: "High",
+      statusName: "New",
+      vendorName: "OneUptime",
+      productName: "OneUptime Threat Intel",
+      ruleId: stixId,
+      ruleName: indicatorName,
+      message: `Threat intel: ${feedName} — ${ALICE} (2 events)`,
+      observables: [ALICE, "203.0.113.7"],
+      attributes: findingAttributes,
+      attributeKeys: Object.keys(findingAttributes),
+      retentionDate: OneUptimeDate.toClickhouseDateTime(
+        OneUptimeDate.addRemoveDays(new Date(), 30),
+      ),
+    };
+
+    // The person's event and somebody else's, as a scan stores them once the enricher stamped them.
+    function stampedEvent(data: {
+      uid: string;
+      named: string;
+      token: string;
+      stixId: string;
+    }): JSONObject {
+      const row: JSONObject = namedEventRow({
+        uid: data.uid,
+        named: data.named,
+        token: data.token,
+      });
+      const attributes: Record<string, string> = {
+        ...(row["attributes"] as Record<string, string>),
+        [ENRICHMENT_MATCHED_ATTRIBUTE]: "true",
+        [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: data.named,
+        [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: data.stixId,
+        [ENRICHMENT_FEED_ATTRIBUTE]: feedName,
+        [ENRICHMENT_FEED_ID_ATTRIBUTE]: feedId,
+      };
+
+      return {
+        ...row,
+        attributes,
+        attributeKeys: Object.keys(attributes),
+      };
+    }
+
+    await (
+      SecurityEventService as AnalyticsDatabaseService<SecurityEvent>
+    ).insertJsonRows(
+      [
+        finding,
+        stampedEvent({
+          uid: "stamped-alice",
+          named: ALICE,
+          token: aliceToken,
+          stixId,
+        }),
+        stampedEvent({
+          uid: "stamped-bob",
+          named: BOB,
+          token: bobToken,
+          stixId: bobStixId,
+        }),
+      ],
+      {
+        clickhouseSettings: {
+          wait_for_async_insert: 1,
+          insert_distributed_sync: 1,
+        },
+      },
+    );
+
+    const stampedQuery: string = `SELECT hostName() AS replica, eventUid, ruleId, ruleName, attributes, attributeKeys FROM clusterAllReplicas('${CLUSTER}', ${database}.${EVENTS_LOCAL}) WHERE eventUid IN ('stamped-alice', 'stamped-bob') OR ruleId IN ('${stixId}', '${erasedId}') ORDER BY replica, eventUid`;
+
+    await waitUntil(
+      "both replicas hold the finding and the events",
+      async () => {
+        return (await rows(stampedQuery)).length === REPLICAS.length * 3;
+      },
+    );
+
+    const names: Array<ErasedName> = [{ named: ALICE, hashed: aliceToken }];
+
+    // Read through the Distributed table, and changed ON CLUSTER: the stamps, then the events, as the worker tells them.
+    expect(
+      await SecurityUserErasureThreatStamps.rewriteStamps({
+        projectId: PROJECT_ID,
+        tokens: [aliceToken],
+        names,
+      }),
+    ).toBe(1);
+    await SecurityUserErasureEvents.unnameEvents({
+      projectId: PROJECT_ID,
+      tokens: [aliceToken],
+    });
+    expect(
+      (
+        await SecurityUserErasureFindings.scanFindings({
+          projectId: PROJECT_ID,
+          names,
+          tokens: [aliceToken],
+          after: null,
+          onProgress: async (): Promise<void> => {},
+        })
+      ).changed,
+    ).toBe(1);
+
+    await waitUntil("both replicas apply the indicator's rewrite", async () => {
+      const held: Array<JSONObject> = await rows(stampedQuery);
+
+      return (
+        held.length === REPLICAS.length * 3 &&
+        held
+          .filter((row: JSONObject): boolean => {
+            return row["eventUid"] !== "stamped-bob";
+          })
+          .every((row: JSONObject): boolean => {
+            return (
+              !JSON.stringify(row).includes(stixId) &&
+              !JSON.stringify(row).includes(ALICE)
+            );
+          })
+      );
+    });
+
+    for (const row of await rows(stampedQuery)) {
+      const attributes: Record<string, string> = row["attributes"] as Record<
+        string,
+        string
+      >;
+
+      expect((row["attributeKeys"] as Array<string>).sort()).toEqual(
+        Object.keys(attributes).sort(),
+      );
+
+      if (row["eventUid"] === "stamped-bob") {
+        expect(attributes[ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]).toBe(BOB);
+        expect(attributes[ENRICHMENT_INDICATOR_ID_ATTRIBUTE]).toBe(bobStixId);
+        continue;
+      }
+
+      if (row["eventUid"] === "stamped-alice") {
+        expect(attributes[ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]).toBe(
+          aliceToken,
+        );
+        expect(attributes[ENRICHMENT_INDICATOR_ID_ATTRIBUTE]).toBe(erasedId);
+        expect(attributes[ENRICHMENT_FEED_ID_ATTRIBUTE]).toBe(feedId);
+        continue;
+      }
+
+      // The finding: the feed, and that one of its indicators matched.
+      expect(row["ruleId"]).toBe(erasedId);
+      expect(row["ruleName"]).toBe(feedName);
+      expect(attributes[THREAT_INDICATOR_ID_ATTRIBUTE]).toBe(erasedId);
+      expect(attributes[THREAT_INDICATOR_VALUE_ATTRIBUTE]).toBe(aliceToken);
+      expect(attributes[THREAT_FEED_ID_ATTRIBUTE]).toBe(feedId);
+      expect(attributes[THREAT_INDICATOR_TYPE_ATTRIBUTE]).toBe("email-addr");
+    }
+
+    // Done again: nothing left to change on either replica.
+    expect(
+      await SecurityUserErasureThreatStamps.rewriteStamps({
+        projectId: PROJECT_ID,
+        tokens: [aliceToken],
+        names,
+      }),
+    ).toBe(0);
+
+    // What both replicas keep of the mutations: never the indicator, its name, or the person.
+    for (const row of await rows(
+      `SELECT hostName() AS replica, command FROM clusterAllReplicas('${CLUSTER}', system.mutations) WHERE database = '${database}'`,
+    )) {
+      const command: string = String(row["command"]).toLowerCase();
+
+      expect(command).not.toContain(stixId.slice("indicator--".length));
+      expect(command).not.toContain("alice");
+      expect(command).not.toContain("phishing sender");
     }
   });
 });

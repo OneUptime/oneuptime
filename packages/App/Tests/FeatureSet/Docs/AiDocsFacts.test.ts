@@ -3529,6 +3529,82 @@ describe("Production review of pull requests", () => {
       );
     });
 
+    /*
+     * A recorded session's user is telemetry too (#11395): each session
+     * recorder and product analytics tool the docs name is one the rules
+     * read, an opaque id is no point, and a front end's points are told
+     * what its RUM application's session replays held.
+     */
+    it("reads who a recorded session's user is, by each tool it names, and tells a front end's code apart", () => {
+      const rules: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules.ts",
+        ),
+      );
+      const scope: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewScope.ts",
+        ),
+      );
+      const sensitiveData: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewSensitiveData.ts",
+        ),
+      );
+      const row: string = flat(kinds[0]!.join(" "));
+
+      expect(Object.values(SensitiveDataSink)).toContain("Session");
+      expect(row).toContain(
+        "OneUptime's [session recorder](/docs/telemetry/session-replay#identify-your-users), LogRocket, FullStory, PostHog, Datadog RUM, OpenReplay, Hotjar, Smartlook, Mixpanel, Amplitude and Heap, each called as its own documentation calls it (`identify()`, `setUser()`, `setUserId()`)",
+      );
+
+      // Each tool the docs name is a receiver the rules read.
+      for (const receiver of [
+        "oneuptimereplay",
+        "logrocket",
+        "fs",
+        "posthog",
+        "datadogrum",
+        "tracker",
+        "hotjar",
+        "smartlook",
+        "mixpanel",
+        "amplitude",
+        "heap",
+      ]) {
+        expect(rules).toContain(`"${receiver}",`);
+      }
+
+      for (const method of ["identify", "setuser", "setuserid"]) {
+        expect(rules).toContain(`"${method}",`);
+      }
+
+      expect(row).toContain(
+        "Nor does a session identified by an opaque id, such as the user's id or a hash of their email.",
+      );
+
+      // A front end's points: its RUM application's session replays.
+      expect(sensitiveData).toContain(
+        "[SensitiveDataSink.Session]: [DataStoreKind.TelemetrySessionReplays],",
+      );
+      expect(sensitive).toContain(
+        "For a web or mobile app's code it is where the app's [RUM application](/docs/data-security/telemetry) held it in its session replays: in its browser logs for a log, its browser spans for a span, and its sessions' users for who a session is.",
+      );
+      // How the repository's application is found, and its code told apart.
+      expect(scope).toContain("export async function findRumApplicationsOfRepository(");
+      expect(sensitive).toContain(
+        `A RUM application's code is in the repository when its ${bold("App Identifier")} names the repository or a service the repository serves, or when the repository is the project's only one.`,
+      );
+
+      for (const extension of ["go", "py", "rb"]) {
+        expect(scope).toContain(`"${extension}",`);
+      }
+
+      expect(sensitive).toContain(
+        "A changed file is taken for that code unless OneUptime knows it is not: it is outside the application's folder, when OneUptime knows where its code is, or written in a language only a server runs, such as Go, Python or Ruby.",
+      );
+    });
+
     // A migration's table (#10779): only in a private repository.
     it("says what Data Security knows of a migration's table in a private repository alone", () => {
       const runner: string = flat(

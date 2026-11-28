@@ -417,6 +417,7 @@ describe("the reads the answer is made from", () => {
       disableUserProjectCreation: false,
       disablePushNotifications: true,
       canSendEmail: true,
+      canProjectsChooseCallVoice: false,
     });
   });
 

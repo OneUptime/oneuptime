@@ -4002,10 +4002,18 @@ describe("Data Security Integrations", () => {
     expect(pullRequests).toContain(
       "For a migration, in a private repository only, it names the store the table is in, what that store holds",
     );
-    // An exception's message is telemetry too (#10778).
+    // An exception's message is telemetry too (#10778), and so is a recorded session's user (#11395).
     expect(types).toContain('Exception = "Exception",');
+    expect(types).toContain('Session = "Session",');
     expect(pullRequests).toContain(
-      "in a log, a span, a metric, an exception's message or an error tracker's report",
+      "in a log, a span, a metric, an exception's message, an error tracker's report or a recorded session's user",
+    );
+    // A web or mobile app's code: its RUM application's session replays (#11395).
+    expect(sensitiveData).toContain(
+      "[SensitiveDataSink.Session]: [DataStoreKind.TelemetrySessionReplays],",
+    );
+    expect(pullRequests).toContain(
+      "or, for a web or mobile app's code, its RUM application's session replays",
     );
   });
 

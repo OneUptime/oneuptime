@@ -820,4 +820,37 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     type: ColumnType.Date,
   })
   public rosterRefreshDueAt?: Date = undefined;
+
+  /*
+   * The rotation turn the roster is in (ScheduleRoster.getRosterTurnKey,
+   * #11270): the person, layer and rotation period - or override - of the
+   * shift on call, kept through the hours between two windows of a layer's
+   * active hours while the next shift is of the same turn. So the person
+   * whose turn it is hears "You are now on-call" when it starts and "You
+   * are no longer on-call" when it ends, not at every window of it. Written
+   * with the roster by its refresh, and empty when nobody's turn is under
+   * way.
+   *
+   * The server's alone: nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.LongText,
+    title: "Roster Turn Key",
+    description:
+      "Internal: the rotation turn the roster is in - the person, layer and rotation period, or override, of the shift on call - kept between the windows of a layer's active hours so a turn is announced once.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public rosterTurnKey?: string = undefined;
 }
