@@ -1362,7 +1362,7 @@ describe("LogsViewer wiring (source-pinned)", () => {
 
   test("the props-sync effect keeps the applied chips compiled into the rebuilt list query", () => {
     expect(logsViewerCode).toMatch(
-      /setFilterOptions\(\s*applyLogsFacetFiltersToQuery\(\s*base,\s*appliedFacetFilters,?\s*\),?\s*\)/,
+      /const (\w+): Query<Log> = applyLogsFacetFiltersToQuery\(\s*base,\s*appliedFacetFilters,?\s*\);[\s\S]*?setFilterOptions\(\1\); setPage\(1\); \}, \[scopeKey, pinnedTimeRangeKey\]\);/,
     );
   });
 
