@@ -49,6 +49,8 @@ import { initReactI18next } from "react-i18next";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
+import { answerCloudHostLinks } from "../../SuiteHelpers/CloudHostLinkAnswers";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import CloudResourceRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/CloudResourceRoutes";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -69,6 +71,7 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import { Red, Yellow } from "Common/Types/BrandColors";
 import {
+  CLOUD_COST_DEFAULT_CURRENCY,
   CloudCostState,
   CloudSavingKind,
   addUtcDays,
@@ -81,6 +84,7 @@ import {
   toCloudCostDay,
 } from "Common/Types/Cloud/CloudCost";
 import { CloudCommitmentKind } from "Common/Types/Cloud/CloudCommitments";
+import { CLOUD_SAVINGS_API_ROUTES } from "Common/Types/Cloud/CloudSavingsApiTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import API from "Common/UI/Utils/API/API";
@@ -1338,11 +1342,17 @@ const EMPTY_TABLES = [
   "MetricType",
   /*
    * An account's side menu counts the monitors it recommends for its
-   * resources still to set up (CloudAccountRecommendationData): none is
-   * set up or dismissed in this workspace.
+   * resources still to set up (CloudAccountRecommendationData), weighing
+   * the ones the server says a monitor covers (handleApi): none is set up
+   * or dismissed in this workspace.
    */
   "Monitor",
   "RecommendationDismissal",
+  /*
+   * The Cloud pages open on the project's cost basis (Cloud > Settings >
+   * Costs, #11092): this project has no cost settings yet, so amortized.
+   */
+  "CloudCostSetting",
   /*
    * A resource's side menu counts the scheduled maintenance holding it,
    * by the states that are not ended: none holds one here.
@@ -1810,6 +1820,26 @@ function answerApi(method, url, body) {
     };
   }
 
+  /*
+   * The Savings page's strip (#11010), as CloudSavingsSummaryReader sums it
+   * for a project that never applied, asked for or scheduled a saving: no
+   * savings action, so nothing saved, read or waiting, in the default
+   * currency - and the strip is not drawn.
+   */
+  if (method === "POST" && url.endsWith(CLOUD_SAVINGS_API_ROUTES.summary)) {
+    return {
+      currency: CLOUD_COST_DEFAULT_CURRENCY,
+      savedThisMonth: 0,
+      realisedCount: 0,
+      measuringCount: 0,
+      promisedMonthly: 0,
+      scheduledHoursThisMonth: 0,
+      changesCount: 0,
+      waitingCount: 0,
+      waitingForYouCount: 0,
+    };
+  }
+
   return null;
 }
 
@@ -1827,6 +1857,29 @@ async function handleApi(method, options) {
   const answer = answerApi(method, url.pathname, options.data || {});
   if (answer) {
     return new HTTPResponse(200, answer, {});
+  }
+  /*
+   * The host a VM is, for its Host card and its right-sizing (#11013): none,
+   * as the server answers in a project with no host collector on its VMs.
+   */
+  const cloudLink = answerCloudHostLinks({
+    method,
+    url,
+    hosts: [],
+    cloudResources: TABLES.CloudResource,
+  });
+  if (cloudLink) {
+    return cloudLink;
+  }
+  // Which recommended monitors are set up already: none, in this workspace.
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body: options.data,
+    monitors: [],
+  });
+  if (coverage) {
+    return coverage;
   }
   fixture.unhandled.push({ kind: "api", method, url: url.pathname });
   return new HTTPErrorResponse(404, { message: "Not modelled." }, {});
