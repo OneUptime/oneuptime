@@ -83,6 +83,7 @@ const {
   writesToGitHub,
 } = require("./Utils/ProviderPublishWorld");
 const { stepCommand } = require("./Utils/WorkflowStep");
+const { parsePins } = require("../../Scripts/Release/ReleaseToolchain");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const SCRIPT = "Scripts/TerraformProvider/publish-terraform-provider.sh";
@@ -918,6 +919,61 @@ describe(`${SCRIPT}, end to end`, () => {
         expect(result.summary).toContain(`## Terraform provider v${VERSION}`);
         expect(result.summary).toContain(
           "- `oneuptime_monitor`: new `timeout`.",
+        );
+      },
+      RUN_TIMEOUT,
+    );
+
+    /*
+     * The Go and GoReleaser it was built with, read from the tools that
+     * built it, so anyone can build the tag again the same way (#11464).
+     * Release runs install the pinned ones
+     * (.github/actions/setup-release-toolchain/versions.env).
+     */
+    test(
+      "whose notes name the pinned Go and GoReleaser it was built with",
+      async () => {
+        const pins = parsePins(
+          read(".github/actions/setup-release-toolchain/versions.env"),
+        );
+        const result = await world.run(["--version", VERSION], {
+          env: {
+            ...AS_A_RELEASE_RUN,
+            FAKE_GO_VERSION: pins.go,
+            FAKE_GORELEASER_VERSION: pins.goreleaser.slice(1),
+          },
+        });
+        expectRan(result);
+
+        const body = world.releasesOf(`v${VERSION}`)[0].body;
+        expect(body).toContain(
+          `**Built with:** Go ${pins.go} and GoReleaser ${pins.goreleaser}. The zips, built from this tag with them, are the same bytes.`,
+        );
+        expect(result.output).not.toContain("release builds use");
+      },
+      RUN_TIMEOUT,
+    );
+
+    test(
+      "and a build with another toolchain says that a release run's build is other bytes, and names the one it used",
+      async () => {
+        const pins = parsePins(
+          read(".github/actions/setup-release-toolchain/versions.env"),
+        );
+        const result = await world.run(["--version", VERSION], {
+          env: {
+            ...AS_A_RELEASE_RUN,
+            FAKE_GO_VERSION: "1.25.4",
+            FAKE_GORELEASER_VERSION: "2.19.0",
+          },
+        });
+        expectRan(result);
+
+        expect(result.output).toContain(
+          `v${VERSION} is built with Go 1.25.4 and GoReleaser v2.19.0, and release builds use Go ${pins.go} and GoReleaser ${pins.goreleaser} (.github/actions/setup-release-toolchain/versions.env): a release run's build of it is other bytes`,
+        );
+        expect(world.releasesOf(`v${VERSION}`)[0].body).toContain(
+          "**Built with:** Go 1.25.4 and GoReleaser v2.19.0.",
         );
       },
       RUN_TIMEOUT,
