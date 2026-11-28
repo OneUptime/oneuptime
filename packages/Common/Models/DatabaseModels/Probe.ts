@@ -42,9 +42,11 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 /*
  * Who reads a project's probes: the project's members who see its monitors or
  * its settings, and Read Project Probe. They read all of a probe but its key
- * (its owners' and admins') and who created it (its owners').
+ * (its owners' and admins') and who created it (its owners'). A project's
+ * share of a global probe's SNMP trap receiver report is read by them too
+ * (GlobalProbeSnmpTrapReport), as a project probe's own report is.
  */
-const PROBE_READERS: Array<Permission> = [
+export const PROBE_READERS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.ProjectMember,

@@ -121,6 +121,12 @@ export interface NetworkEventRow {
   sourceIp?: string | undefined;
   // The probe that heard it.
   probeId?: string | undefined;
+  /*
+   * From an address that is not a device yet: the site whose default SNMPv3
+   * credentials signed it, when one did (#11174) - where Add as device
+   * files it.
+   */
+  siteId?: string | undefined;
   // From an address that is not a device yet.
   isFromUnknownSource: boolean;
   // Reported as an SNMP trap rather than as syslog.
@@ -291,6 +297,7 @@ export function toNetworkEventRow(
       attributes["snmpTrap.sourceIp"] ||
       undefined,
     probeId: attributes["probe.id"] || undefined,
+    siteId: attributes["networkSite.id"] || undefined,
     isFromUnknownSource:
       isOn(attributes[SyslogAttribute.Unmatched]) ||
       isOn(attributes["snmpTrap.unmatched"]),
