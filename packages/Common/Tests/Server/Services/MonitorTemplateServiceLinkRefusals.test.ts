@@ -108,8 +108,8 @@ async function refusalOf(run: () => Promise<void>): Promise<Error> {
   return refusal as Error;
 }
 
-const link: () => Promise<void> = (): Promise<void> => {
-  return MonitorTemplateService.linkMonitor({
+const link: () => Promise<void> = async (): Promise<void> => {
+  await MonitorTemplateService.linkMonitor({
     monitorTemplateId: TEMPLATE_ID,
     monitorId: MONITOR_ID,
     props: { isRoot: true },
@@ -125,8 +125,8 @@ const sync: () => Promise<void> = (): Promise<void> => {
   });
 };
 
-const unlink: () => Promise<void> = (): Promise<void> => {
-  return MonitorTemplateService.unlinkMonitor({
+const unlink: () => Promise<void> = async (): Promise<void> => {
+  await MonitorTemplateService.unlinkMonitor({
     monitorTemplateId: TEMPLATE_ID,
     monitorId: MONITOR_ID,
     props: { isRoot: true },

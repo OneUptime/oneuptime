@@ -98,7 +98,7 @@ jest.mock("../../../../Server/Services/MonitorService", () => {
 jest.mock("../../../../Server/Infrastructure/Queue", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../../Server/Infrastructure/Queue",
-  );
+  ) as Record<string, unknown>;
   return {
     ...actual,
     __esModule: true,
@@ -116,7 +116,7 @@ jest.mock("../../../../Server/Infrastructure/Semaphore", () => {
 jest.mock("../../../../Server/Utils/Billing/CallerPlan", () => {
   const actual: { default: Record<string, unknown> } = jest.requireActual(
     "../../../../Server/Utils/Billing/CallerPlan",
-  );
+  ) as { default: Record<string, unknown> };
 
   // The props a test builds carry their plan already.
   const CallerPlanWithTestProps: Record<string, unknown> = Object.create(

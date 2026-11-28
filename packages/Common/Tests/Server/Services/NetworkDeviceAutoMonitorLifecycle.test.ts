@@ -1099,8 +1099,10 @@ describe("what a move to another template keeps", () => {
     return { tenantId: PROJECT_ID, userId: ObjectID.generate() };
   }
 
-  function rowsTheWriteMoves(monitors: Array<Monitor>): SpyInstance {
-    const findBySpy: SpyInstance = jest
+  function rowsTheWriteMoves(
+    monitors: Array<Monitor>,
+  ): SpyInstance<typeof MonitorService.findBy> {
+    const findBySpy: SpyInstance<typeof MonitorService.findBy> = jest
       .spyOn(MonitorService, "findBy")
       .mockResolvedValue(monitors as never);
     stubRowsCallerMayWriteLikeFindBy(MonitorService, findBySpy as never);
@@ -1138,7 +1140,9 @@ describe("what a move to another template keeps", () => {
     const monitor: Monitor = automaticMonitor();
     monitor.networkAlertPolicyId = POLICY_ID;
     rowsTheWriteMoves([monitor]);
-    const hookFree: SpyInstance = jest
+    const hookFree: SpyInstance<
+      typeof MonitorService.updateColumnsByIdWithoutHooks
+    > = jest
       .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined as never);
 
@@ -1217,7 +1221,9 @@ describe("what a move to another template keeps", () => {
     second.monitorTemplateId = OTHER_TEMPLATE_ID;
     second.networkAlertPolicyId = POLICY_ID;
     rowsTheWriteMoves([first, second]);
-    const hookFree: SpyInstance = jest
+    const hookFree: SpyInstance<
+      typeof MonitorService.updateColumnsByIdWithoutHooks
+    > = jest
       .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined as never);
 
@@ -1262,7 +1268,9 @@ describe("what a move to another template keeps", () => {
   it("keeps the same for several monitors in the one write, when they share it", async () => {
     const pair: Array<Monitor> = [automaticMonitor(), automaticMonitor()];
     rowsTheWriteMoves(pair);
-    const hookFree: SpyInstance = jest
+    const hookFree: SpyInstance<
+      typeof MonitorService.updateColumnsByIdWithoutHooks
+    > = jest
       .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined as never);
 
@@ -1282,7 +1290,8 @@ describe("what a move to another template keeps", () => {
 
   it("reads nothing for a write that names no template", async () => {
     const monitor: Monitor = automaticMonitor();
-    const findBySpy: SpyInstance = rowsTheWriteMoves([monitor]);
+    const findBySpy: SpyInstance<typeof MonitorService.findBy> =
+      rowsTheWriteMoves([monitor]);
 
     const updateBy: ReturnType<typeof updateOf> = updateOf(
       { name: "core-sw-01" },

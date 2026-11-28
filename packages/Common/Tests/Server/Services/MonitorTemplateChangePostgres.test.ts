@@ -44,6 +44,7 @@ import {
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { AutoImportRuleRunResult } from "../../../Types/NetworkAutomation/RuleRunResult";
 import ObjectID from "../../../Types/ObjectID";
+import { CriteriaIncident } from "../../../Types/Monitor/CriteriaIncident";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -375,10 +376,7 @@ describePostgres(
       instances.forEach((instance: MonitorCriteriaInstance, index: number) => {
         instance.data!.id = `${data.prefix}-criteria-${index + 1}`;
         (instance.data!.incidents || []).forEach(
-          (
-            incident: { id: string; autoResolveIncident?: boolean },
-            incidentIndex: number,
-          ) => {
+          (incident: CriteriaIncident, incidentIndex: number) => {
             incident.id = `${data.prefix}-incident-${index + 1}-${incidentIndex + 1}`;
             incident.autoResolveIncident = true;
           },

@@ -324,7 +324,7 @@ describe("Link Existing Monitors", () => {
   it("never fails the link it wrote because a resolve did", async () => {
     reads(automaticMonitor());
     resolveSpy.mockRejectedValue(new Error("Postgres went away"));
-    const errorSpy: SpyInstance = jest
+    const errorSpy: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation((() => {
         return undefined;
@@ -478,7 +478,7 @@ describe("Unlink from Template", () => {
 
   it("naming no template, leaves a monitor linked to none as it is", async () => {
     const monitor: Monitor = automaticMonitor();
-    monitor.monitorTemplateId = undefined;
+    monitor.monitorTemplateId = undefined as unknown as ObjectID;
     jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
 
     const result: Awaited<
