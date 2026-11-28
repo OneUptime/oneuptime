@@ -142,7 +142,7 @@ import http from "http";
 import { AddressInfo } from "net";
 import Twilio from "twilio";
 
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_SMS_DELIVERY_CALLBACK_TESTS"] === "true"
     ? describe
     : describe.skip;
