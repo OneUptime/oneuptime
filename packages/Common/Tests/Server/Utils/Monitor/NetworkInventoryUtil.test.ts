@@ -361,7 +361,27 @@ describe("NetworkInventoryUtil.updateFromWalk — system group enrichment", () =
     );
   });
 
-  test("a poll that read no engine ID (v1, v2c, an older probe) leaves the last one as it was", async () => {
+  /*
+   * A device polled over v1 or v2c reads its agent's engine ID too
+   * (#11405): over its own community, or by SNMPv3 discovery at its polling
+   * address. The walk says it the same way, and it is kept the same way.
+   */
+  test("the engine ID a v1 or v2c poll read is kept as an SNMPv3 poll's is", async () => {
+    mockServices();
+
+    await runWalk({
+      systemInfo: {
+        sysName: "branch-sw-01",
+        snmpEngineId: "800000090300aabbcc000003",
+      },
+    });
+
+    expect(deviceUpdatePayload()["snmpEngineId"]).toBe(
+      "800000090300AABBCC000003",
+    );
+  });
+
+  test("a poll that read no engine ID (an agent that says none, an older probe) leaves the last one as it was", async () => {
     mockServices();
 
     await runWalk({ systemInfo: { sysName: "core-sw-01" } });

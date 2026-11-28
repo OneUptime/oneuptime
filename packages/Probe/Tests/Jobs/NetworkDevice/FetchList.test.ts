@@ -773,6 +773,18 @@ describe("pollDevice — a successful poll's report", () => {
     expect(options["transceiverCacheKey"]).toBe("device-1@10.0.0.5");
   });
 
+  /*
+   * A device's poll is where its SNMP engine ID is kept, whatever version it
+   * is polled with (#11405): every walk of a device asks for it.
+   */
+  test("every device's walk reads its SNMP engine ID, polled over v1 or v2c too", async () => {
+    await pollDevice(makeDevice({}));
+
+    expect((querySpy.mock.calls[0]![1] as JSONObject)["readEngineId"]).toBe(
+      true,
+    );
+  });
+
   test("the optics the walk read travel to the server with it, a failed read too", async () => {
     const walk: SnmpMonitorResponse = makeSnmpResponse({
       transceiverResults: [

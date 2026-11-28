@@ -76,6 +76,7 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import SnmpTrapReceiverUtil from "Common/Types/Probe/SnmpTrapReceiver";
 
 type AnyMock = Mock<(...args: Array<any>) => any>;
 type DnsCache = { resolve: (hostname: string) => Promise<Array<string>> };
@@ -390,6 +391,44 @@ describe("four recorded SNMPv3 traps from one address", () => {
       ["chassis-1 blade 2"],
       ["branch switch 1", "branch switch 2"],
       ["branch switch 1", "branch switch 2"],
+    ]);
+  });
+
+  /*
+   * #11405: a v1 or v2c poll reads its device's engine ID too - over its
+   * own community, or by SNMPv3 discovery at its polling address - so the
+   * switches above, still polled over v2c, are told apart once their polls
+   * have run. The probe's SnmpMonitorCommunityEngineId shows a v2c walk of
+   * each reads the engine its recorded traps were sent as; the poll's
+   * result keeps it on the device (NetworkInventoryUtil.updateFromWalk).
+   */
+  it("polled over v2c, the switches' own polls read their engines (#11405): each trap on its own switch", async () => {
+    const fleet: Array<NetworkDevice> = theFleet({ isPolledOverSnmpV3: false });
+
+    for (const key of ["siteSwitch1", "siteSwitch2"] as Array<
+      SharedAddressDeviceKey
+    >) {
+      // As a v2c poll's walk reports it, and the inventory keeps it.
+      const polled: string | null = SnmpTrapReceiverUtil.normalizeEngineId(
+        SHARED_ADDRESS_DEVICES[key].engineId.toLowerCase(),
+      );
+
+      fleet.find((device: NetworkDevice) => {
+        return device.id!.toString() === SHARED_ADDRESS_DEVICES[key].id;
+      })!.snmpEngineId = polled!;
+    }
+
+    theProbeHas(fleet);
+
+    for (const key of KEYS) {
+      await processSnmpTrapFromQueue(trapJob(recordedTrapOf(key)));
+    }
+
+    expect(keptOn()).toEqual([
+      ["chassis-1 blade 1"],
+      ["chassis-1 blade 2"],
+      ["branch switch 1"],
+      ["branch switch 2"],
     ]);
   });
 
