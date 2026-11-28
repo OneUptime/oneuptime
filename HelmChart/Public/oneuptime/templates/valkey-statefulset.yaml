@@ -95,13 +95,19 @@ spec:
               key: valkey-password
               {{- end }}
         {{- if $valkey.livenessProbe.enabled }}
+        {{- /*
+          A TCP connect, not a PING. A PING waits its turn behind every command
+          queued before it, so a server that is busy - draining a deep queue,
+          loading its AOF - misses the timeout while it is doing its job, and
+          killing it then throws away everything it holds (the 2026-11-27
+          restart). The kernel completes the connect as long as the process is
+          listening, which is the one thing a restart fixes. Readiness keeps the
+          PING: a busy server can stop taking new connections without losing a
+          byte.
+        */}}
         livenessProbe:
-          exec:
-            command:
-            - valkey-cli
-            - -a
-            - $(VALKEY_PASSWORD)
-            - ping
+          tcpSocket:
+            port: valkey
           initialDelaySeconds: {{ $valkey.livenessProbe.initialDelaySeconds }}
           timeoutSeconds: {{ $valkey.livenessProbe.timeoutSeconds }}
           periodSeconds: {{ $valkey.livenessProbe.periodSeconds }}
@@ -120,7 +126,7 @@ spec:
           periodSeconds: {{ $valkey.readinessProbe.periodSeconds }}
           failureThreshold: {{ $valkey.readinessProbe.failureThreshold }}
         {{- end }}
-        {{- with $valkey.master.resources }}
+        {{- with (include "oneuptime.valkey.resources" . | fromYaml) }}
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
