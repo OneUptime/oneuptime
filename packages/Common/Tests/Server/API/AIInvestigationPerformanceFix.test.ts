@@ -883,3 +883,86 @@ describe("POST /ai-investigation/create-performance-fix-task holds the repositor
     ).toBe(SuggestionOffer.None);
   });
 });
+
+/*
+ * A request across the caller's projects (the is-multi-tenant-query
+ * header) has the span store answer from every project the person belongs
+ * to. Both routes make the fix in the request's own project, in one of its
+ * repositories, so they read the trace in that project only - else a trace
+ * of another project the person can read would become a fix here: its
+ * spans in the run and the pull request, read by everyone with access to
+ * this project's repository. Every other Fix with AI route reads so
+ * (pinPropsToTenant).
+ */
+describe("a request across the caller's projects reads the trace in the request's own project only", () => {
+  type PropsOf = { props: DatabaseCommonInteractionProps };
+
+  function acrossProjects(): DatabaseCommonInteractionProps {
+    return { ...memberProps(), isMultiTenantRequest: true };
+  }
+
+  function pinned(): DatabaseCommonInteractionProps {
+    return { ...memberProps(), isMultiTenantRequest: false };
+  }
+
+  test("the suggestion reads the trace's spans in the request's project", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(acrossProjects());
+    const findBy: jest.SpyInstance = jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+
+    const call: Call = await post(SUGGESTION_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect((findBy.mock.calls[0]![0] as PropsOf).props).toEqual(pinned());
+  });
+
+  test("a trace only another of the caller's projects has is not found, and nothing is made", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(acrossProjects());
+    // The span store as it answers: across projects only when asked to.
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockImplementation(async (data: unknown): Promise<Array<Span>> => {
+        return (data as PropsOf).props.isMultiTenantRequest
+          ? storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE)
+          : [];
+      });
+    const create: jest.SpyInstance = jest
+      .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromTrace")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(create).not.toHaveBeenCalled();
+    expect((call.thrown as Error).message).toBe(
+      "Trace not found (or you do not have access to it).",
+    );
+  });
+
+  test("the fix reads the spans in the request's project, and weighs the repository under the same props", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(acrossProjects());
+    const findBy: jest.SpyInstance = jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    const runId: ObjectID = ObjectID.generate();
+    const create: jest.SpyInstance = jest
+      .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromTrace")
+      .mockResolvedValue({ id: runId } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(call.json).toEqual({ aiRunId: runId.toString() });
+    expect((findBy.mock.calls[0]![0] as PropsOf).props).toEqual(pinned());
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: PROJECT_ID, props: pinned() }),
+    );
+  });
+});
