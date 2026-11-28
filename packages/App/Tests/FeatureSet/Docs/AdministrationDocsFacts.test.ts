@@ -57,6 +57,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import { getNameKey, getNumberedName } from "Common/Types/Database/UniqueName";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import { getUniqueNameWhenRequiredColumn } from "Common/Types/Database/UniqueNameWhenRequired";
 import { getProjectNameRule } from "Common/Types/Database/ProjectNameRule";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
@@ -2113,7 +2114,26 @@ describe("Project Settings", () => {
       },
     );
 
+    /*
+     * The Call and Push tabs are named by keys that name their meaning, a
+     * phone call and a push notification (#11418), which English reads as
+     * the bare word.
+     */
     expect(names).toEqual([
+      "Email",
+      "SMS",
+      "WhatsApp",
+      "Telegram",
+      "Webhook",
+      "Call (phone call)",
+      "Push (push notification)",
+      "Workspace",
+    ]);
+    expect(
+      names.map((name: string): string => {
+        return withMeaningKeyAsItsWord(name);
+      }),
+    ).toEqual([
       "Email",
       "SMS",
       "WhatsApp",
