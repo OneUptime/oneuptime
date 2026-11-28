@@ -176,23 +176,27 @@ export const DOCKER_SWARM_AGENT_VERSION: string = "0.165.1";
  * number raised when the files change on the same collector: 0.161.1, the
  * PostgreSQL config's own SQL checks (a restart, transaction ID wraparound,
  * long transactions, lock waits); 0.161.2, the MySQL config's own readings of
- * Galera. So an agent still running the old files reports its older number and
- * is told to upgrade. AgentKind.test.ts and AgentFilesVersion.test.ts fail when
- * the agent's files move on without this.
+ * Galera. Then collector 0.165.0 started it again at the collector's, and
+ * the files changed on it once more - 0.165.1, the compose file passing
+ * Data Observability's seven settings to the AI agent (#11251). So an agent
+ * still running the old files reports its older number and is told to
+ * upgrade. AgentKind.test.ts and AgentFilesVersion.test.ts fail when the
+ * agent's files move on without this.
  */
-export const DATABASE_AGENT_VERSION: string = "0.165.0";
+export const DATABASE_AGENT_VERSION: string = "0.165.1";
 
 // The collector the Database agent runs: the image its docker-compose.yml pins.
 export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 
 /*
- * The collector versions the Proxmox, Ceph, VMware, Storage Array and XCP-ng
- * agents report: the oneuptime.agent.version each
+ * The versions the Proxmox, Ceph, VMware, Storage Array and XCP-ng agents
+ * report: the oneuptime.agent.version each
  * agents/<Agent>/otel-collector-config.yaml stamps (each of the Storage
- * Array agent's three configs does), kept equal to the collector image its
- * docker-compose.yml pins (and to the Dashboard's embedded copy of that
- * config). AgentKind.test.ts fails when an agent's files move on without
- * its constant.
+ * Array agent's configs does), and the Dashboard's embedded copy of that
+ * config. The collector image its docker-compose.yml pins, until the files
+ * change on that collector (PROXMOX_AGENT_COLLECTOR_VERSION,
+ * STORAGE_ARRAY_AGENT_COLLECTOR_VERSION). AgentKind.test.ts fails when an
+ * agent's files move on without its constant.
  */
 export const PROXMOX_AGENT_VERSION: string = "0.165.0";
 
@@ -219,7 +223,16 @@ export const OPENSTACK_AGENT_VERSION: string = "0.165.0";
 export const OPENSTACK_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 export const CEPH_AGENT_VERSION: string = "0.165.0";
 export const VMWARE_AGENT_VERSION: string = "0.165.0";
-export const STORAGE_ARRAY_AGENT_VERSION: string = "0.165.0";
+/*
+ * The version the Storage Array agent reports. Its files changed on
+ * collector 0.165.0 - 0.165.1, NetApp ONTAP read through Harvest (#11189),
+ * Dell PowerStore through Dell's exporter and its syslog (#11227) and Dell
+ * PowerScale over SNMP (#11233) - so an agent still running the Pure
+ * Storage files reports 0.165.0 and is told to upgrade.
+ */
+export const STORAGE_ARRAY_AGENT_VERSION: string = "0.165.1";
+// The collector the Storage Array agent runs: the image its docker-compose.yml pins.
+export const STORAGE_ARRAY_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 /*
  * The version the XCP-ng agent reports, on every pool it reads: the
  * collector its docker-compose.yml pins, until its files change on that
@@ -282,7 +295,8 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
   },
   /*
    * The Proxmox, Ceph, VMware and Storage Array agents run the collector
-   * their compose file pins, and their config stamps that pin. A Proxmox
+   * their compose file pins, and their config stamps the version of their
+   * files: that pin, until the files change on it. A Proxmox
    * cluster that pushes its own metrics (Proxmox VE 9's metric server) runs
    * no agent and reports no version.
    */
@@ -314,7 +328,7 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     name: "OneUptime Storage Array Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: STORAGE_ARRAY_AGENT_VERSION,
-    collectorVersion: STORAGE_ARRAY_AGENT_VERSION,
+    collectorVersion: STORAGE_ARRAY_AGENT_COLLECTOR_VERSION,
   },
   /*
    * The XCP-ng agent, too: the collector its compose file pins, with a

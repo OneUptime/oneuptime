@@ -44,6 +44,7 @@
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
+const { agentKindVersion } = require("./Utils/AgentKindVersion");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT_DIR = "agents/StorageArrayAgent";
@@ -332,6 +333,14 @@ function compose() {
 
 const COLLECTOR = /otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/g;
 
+/*
+ * The version the agent's files report as oneuptime.agent.version: the
+ * collector docker-compose.yml pins, its last number raised each time the
+ * files change on that collector - 0.165.1 on 0.165.0, with NetApp ONTAP,
+ * Dell PowerStore and Dell PowerScale (AgentFilesVersion.test.ts).
+ */
+const AGENT_VERSION = agentKindVersion("STORAGE_ARRAY_AGENT_VERSION");
+
 /* The collector image docker-compose.yml pins — the one collector it runs. */
 function composePin() {
   const pins = [...read(`${AGENT_DIR}/docker-compose.yml`).matchAll(COLLECTOR)];
@@ -560,7 +569,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
           },
           {
             key: "oneuptime.agent.version",
-            value: composePin(),
+            value: AGENT_VERSION,
             action: "upsert",
           },
           { key: "service.name", action: "delete" },
@@ -569,7 +578,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
       });
       // Quoted, so YAML keeps it the version string the page compares.
       expect(configText(name)).toContain(
-        `      - key: oneuptime.agent.version\n        value: "${composePin()}"\n        action: upsert\n`,
+        `      - key: oneuptime.agent.version\n        value: "${AGENT_VERSION}"\n        action: upsert\n`,
       );
     });
 
@@ -711,6 +720,13 @@ describe("agents/StorageArrayAgent collector configs", () => {
 });
 
 describe("agents/StorageArrayAgent/docker-compose.yml", () => {
+  test("runs the collector release the agent's version is on: its major and minor number, and a patch number no lower", () => {
+    const [pinMajor, pinMinor, pinPatch] = composePin().split(".").map(Number);
+    const [major, minor, patch] = AGENT_VERSION.split(".").map(Number);
+    expect({ major, minor }).toEqual({ major: pinMajor, minor: pinMinor });
+    expect(patch).toBeGreaterThanOrEqual(pinPatch);
+  });
+
   test("runs the collector, Pure's two exporters, Dell's exporter with PowerStore's syslog collector, and NetApp Harvest, nothing else", () => {
     expect(Object.keys(compose().services)).toEqual([
       COLLECTOR_SERVICE,
