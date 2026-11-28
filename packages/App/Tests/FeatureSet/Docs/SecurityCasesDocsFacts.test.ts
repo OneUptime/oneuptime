@@ -311,6 +311,7 @@ import {
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { JSONObject } from "Common/Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1196,8 +1197,38 @@ describe("Security Cases and Playbooks docs", () => {
 
     // What is marked, by the claims the docs name for each provider.
     expect(checks).toContain(
-      "A way in open to anyone is marked: a trust policy that trusts every AWS account, one that lets in GitHub Actions or another provider every organization shares without limiting the claim that tells organizations apart (`sub` for GitHub Actions, `aud` for Amazon Cognito and Google), even with a wildcard where the organization goes, and one that lets in a provider of your own without limiting `sub`.",
+      "A way in open to anyone is marked: a trust policy that trusts every AWS account, one that lets in GitHub Actions or another provider every organization shares without limiting the claim that tells organizations apart (`sub` for GitHub Actions, `aud` for Amazon Cognito and Google), even with a wildcard where the organization goes, and one that lets in a provider of your own without limiting `sub` or `aud`.",
     );
+
+    // A provider of your own: `sub` or `aud` holds it, AWS STS's own audience does not.
+    const ownProvider: (condition: JSONObject) => string = (
+      condition: JSONObject,
+    ): string => {
+      return getAwsTrustedIdentityProviders({
+        Version: "2012-10-17",
+        Statement: {
+          Effect: "Allow",
+          Principal: {
+            Federated:
+              "arn:aws:iam::123456789012:oidc-provider/oidc.example.com",
+          },
+          Action: "sts:AssumeRoleWithWebIdentity",
+          Condition: condition,
+        },
+      })[0]!.reach;
+    };
+
+    expect(
+      ownProvider({ StringEquals: { "oidc.example.com:sub": "deploy" } }),
+    ).toBe(AwsIdentityProviderReach.Limited);
+    expect(
+      ownProvider({ StringEquals: { "oidc.example.com:aud": "my-app" } }),
+    ).toBe(AwsIdentityProviderReach.Limited);
+    expect(
+      ownProvider({
+        StringEquals: { "oidc.example.com:aud": "sts.amazonaws.com" },
+      }),
+    ).toBe(AwsIdentityProviderReach.Anyone);
     expect(
       AWS_SHARED_IDENTITY_PROVIDERS["token.actions.githubusercontent.com"]![0],
     ).toBe("sub");
