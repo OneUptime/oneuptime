@@ -347,7 +347,7 @@ describe("while the server lets projects choose", () => {
   });
 
   test("a project that chose none speaks with the server's voice, and the switch is not even read", async () => {
-    project.callVoice = undefined;
+    delete project.callVoice;
 
     expect(voicesOf(await placePage())).toEqual([SERVER_VOICE]);
     expect(globalConfigReads).not.toHaveBeenCalled();
@@ -488,7 +488,7 @@ describe("getServerAccountCallVoice", () => {
   });
 
   test("a server voice the list does not hold is none", async () => {
-    project.callVoice = undefined;
+    delete project.callVoice;
 
     await expect(
       CallService.getServerAccountCallVoice({

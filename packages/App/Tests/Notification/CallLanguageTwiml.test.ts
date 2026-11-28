@@ -352,8 +352,8 @@ describe.each(
     expect(prompt).toContain("1");
     expect(prompt).toContain("2");
     expect(
-      (keypad as { answers: { "1": { sayMessage: string } } }).answers["1"]
-        .sayMessage,
+      (keypad as unknown as { answers: { "1": { sayMessage: string } } })
+        .answers["1"].sayMessage,
     ).not.toContain("You have acknowledged");
   });
 
