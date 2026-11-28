@@ -63,7 +63,7 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 | **Ejere**                            | **Detaljer om vedligeholdelse**     | Ingen                           | Personer og teams, der ejer begivenheden og får besked om den.                   |
 | **Etiketter**                        | **Detaljer om vedligeholdelse**     | Ingen                           | Etiketter, som regler og filtre kan matche på.                                   |
 | **Monitorer**                        | **Berørte ressourcer** | Ingen                       | De monitorer, der ikke kontrolleres, mens begivenheden står på.                  |
-| **Skift monitorstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden. Spørges om, så snart en monitor er valgt. |
+| **Skift monitorstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden, og som deres oppetid tæller. Uden en beholder de deres status, og deres oppetid udelader tiden. Spørges om, så snart en monitor er valgt. |
 | **Andre berørte ressourcer**         | **Berørte ressourcer** | Ingen                       | Værter, klynger, databaser, netværkslokationer, tjenester og mere.               |
 | **Vis begivenhed på disse statussider** | **Berørte ressourcer** | Ingen                    | De eneste statussider, der kan vise begivenheden eller give deres abonnenter besked. |
 | **Notifikationer til abonnenter**    | **Berørte ressourcer** | Offentliggjort med det samme, alle tre tidspunkter slået til, ingen påmindelser | Hvornår begivenheden vises på de sider, og hvornår deres abonnenter får besked. |

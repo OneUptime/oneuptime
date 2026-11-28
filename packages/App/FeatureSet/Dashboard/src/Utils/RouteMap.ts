@@ -503,6 +503,7 @@ export const VMwareRoutePath: Dictionary<string> = {
   [PageMap.VMWARE_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.VMWARE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
+  [PageMap.VMWARE_SETTINGS_HEALTH_RULES]: "settings/health-rules",
   [PageMap.VMWARE_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.VMWARE_ARCHIVED]: `archived`,
 };
@@ -5837,6 +5838,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/vmware/${
       VMwareRoutePath[PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_SETTINGS_HEALTH_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_SETTINGS_HEALTH_RULES]
     }`,
   ),
 

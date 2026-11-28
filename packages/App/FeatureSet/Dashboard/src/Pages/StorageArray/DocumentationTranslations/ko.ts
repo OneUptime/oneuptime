@@ -76,6 +76,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `PURE_FB_API_TOKEN` | FlashBlade | readonly 역할을 가진 FlashBlade 사용자의 API 토큰 |",
   "| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | No | `true` accepts the array's self-signed certificate on the native endpoint; `false` verifies it (default: `true`). Pure's exporters never verify the array's certificate, so it does not apply to them |":
     "| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 아니요 | `true`는 기본 엔드포인트에서 어레이의 자체 서명 인증서를 허용하고, `false`는 검증합니다(기본값: `true`). Pure의 익스포터는 어레이 인증서를 검증하지 않으므로 익스포터에는 적용되지 않습니다 |",
+  "| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | No | The agent's container name (default: `oneuptime-storage-array-agent`). A second array's agent on the same machine needs one of its own: the install script names a new agent after its folder unless you set it, and keeps it when you run the script again |":
+    "| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | 아니요 | 에이전트의 컨테이너 이름(기본값: `oneuptime-storage-array-agent`). 같은 머신에 있는 두 번째 어레이의 에이전트에는 고유한 이름이 필요합니다. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다 |",
   "- The collector reads the FlashArray's own OpenMetrics endpoint over HTTPS with the token as a Bearer credential — no exporter runs.":
     "- 컬렉터는 토큰을 Bearer 자격 증명으로 사용해 HTTPS로 FlashArray 자체의 OpenMetrics 엔드포인트를 읽습니다. 익스포터는 실행되지 않습니다.",
   "- **One scrape job per endpoint**, each read as often as it is worth: `/metrics/array` every 60 seconds; `/metrics/volumes`, `/metrics/hosts` and `/metrics/pods` every 2 minutes; `/metrics/directories` every 30 minutes — directory space is expensive for the array to compute.":
@@ -116,8 +118,10 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **Pod** (`/metrics/pods`) | ActiveCluster와 ActiveDR 복제본 링크 지연, 미디에이터 상태, 성능, 용량 |",
   "| **Directories** (`/metrics/directories`) | Space and performance of FlashArray file services' managed directories |":
     "| **디렉터리** (`/metrics/directories`) | FlashArray 파일 서비스의 관리 디렉터리 용량과 성능 |",
-  "One agent reads one array. To monitor several from the same machine, install each into its own folder with its own `.env`, and give each its own `container_name` in its `docker-compose.yml` (for example `oneuptime-storage-array-agent-fa02`) — two containers cannot share a name:":
-    "에이전트 하나는 어레이 하나를 읽습니다. 같은 머신에서 여러 어레이를 모니터링하려면 각각을 자체 `.env`가 있는 별도 폴더에 설치하고, 각자의 `docker-compose.yml`에서 고유한 `container_name`(예: `oneuptime-storage-array-agent-fa02`)을 지정하세요. 두 컨테이너가 같은 이름을 쓸 수는 없습니다:",
+  "One agent reads one array. To monitor several from the same machine, install each into its own folder with its own `.env` and its own container name — two containers cannot share one:":
+    "에이전트 하나는 어레이 하나를 읽습니다. 같은 머신에서 여러 어레이를 모니터링하려면 각각을 자체 `.env`와 고유한 컨테이너 이름을 가진 별도 폴더에 설치하세요. 두 컨테이너가 같은 이름을 쓸 수는 없습니다:",
+  "Without `STORAGE_ARRAY_AGENT_CONTAINER_NAME`, the script names the container after the folder. It keeps the name in that agent's `.env`, so running the script again to upgrade the agent keeps it, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. With Docker Compose, set `STORAGE_ARRAY_AGENT_CONTAINER_NAME` in each agent's `.env` instead.":
+    "`STORAGE_ARRAY_AGENT_CONTAINER_NAME`을 지정하지 않으면 스크립트가 폴더 이름을 따서 컨테이너 이름을 짓습니다. 스크립트는 그 이름을 해당 에이전트의 `.env`에 보관하므로, 에이전트를 업그레이드하려고 스크립트를 다시 실행해도 이름이 유지되며, `docker-compose.yml`에서 `container_name`을 직접 수정한 적이 있는 에이전트도 그 이름을 유지합니다. Docker Compose로 설치했다면 대신 각 에이전트의 `.env`에 `STORAGE_ARRAY_AGENT_CONTAINER_NAME`을 설정하세요.",
   "The agent ships a systemd unit that assumes the install script's folder, `/opt/oneuptime-storage-array-agent`. The install script does not download it, so fetch it:":
     "에이전트에는 설치 스크립트의 폴더인 `/opt/oneuptime-storage-array-agent`를 전제로 하는 systemd 유닛이 들어 있습니다. 설치 스크립트는 이 유닛을 내려받지 않으므로 직접 가져오세요:",
   "**Upgrade** — the collector image is pinned in `docker-compose.yml` and its configs are files beside it, so pulling alone does not move the agent forward. Re-run the install script. It reuses every value in your existing `.env` (nothing is prompted for again), downloads the latest `docker-compose.yml` and collector configs — a file you edited is kept next to the new one as `<file>.bak.<timestamp>` — and recreates the agent with them:":

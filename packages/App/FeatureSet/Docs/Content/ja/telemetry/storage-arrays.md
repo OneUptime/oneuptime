@@ -160,6 +160,7 @@ POWERSTORE_BULK_METRICS=
 POWERSTORE_API_VERSION=
 POWERSTORE_REQUEST_LIMIT=
 POWERSTORE_SYSLOG_PORT=
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 Dell PowerStore の場合は、`otel-collector-config.powerstore.yaml`、`powerstore-exporter.Dockerfile`、`powerstore-syslog.yaml` もダウンロードし、`STORAGE_SYSTEM=dell.powerstore`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml`、`COMPOSE_PROFILES=powerstore` を設定して、`POWERSTORE_ENDPOINT`、`POWERSTORE_USERNAME`、`POWERSTORE_PASSWORD` を入力します。パスワードは単一引用符で囲みます。
@@ -189,6 +190,7 @@ NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
 NETAPP_ONTAP_USERNAME=oneuptime
 NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 エージェントを起動します:
@@ -265,6 +267,7 @@ Dell のエクスポーターはホストもレプリケーションセッショ
 | `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | いいえ | `DES`、`AES`、`AES192`、`AES256`、`AES192C`、または `AES256C`。既定は `AES` です。 |
 | `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 ユーザーのプライバシーパスワード。`auth_priv` レベルで使います。 |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | いいえ | `true` はネイティブエンドポイントと Harvest でアレイの自己署名証明書を受け入れ、`false` は検証します。既定は `true` です。Pure のエクスポーターはアレイの証明書を検証しないため、エクスポーターには関係しません。 |
+| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | いいえ | エージェントのコンテナー名。既定は `oneuptime-storage-array-agent` です。同じマシン上で別のアレイを読み取るエージェントには専用の名前が必要です ([複数のアレイを監視する](#複数のアレイを監視する) を参照)。設定しない場合、インストールスクリプトは新しいエージェントにそのフォルダーにちなんだ名前を付け、スクリプトを再実行してもその名前を維持します。 |
 
 ## エージェントのスクレイプ方法
 
@@ -364,7 +367,7 @@ Collector は起動時にしか設定を読み込みません。`docker compose 
 
 ## 複数のアレイを監視する
 
-1 つのエージェントが読み取るのは 1 つのアレイです。同じマシンから複数を監視するには、それぞれを専用の `.env` を持つ専用のフォルダーにインストールし (例: `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`)、それぞれに専用の `container_name` を与えます (`docker-compose.yml` 内。例: `oneuptime-storage-array-agent-fa02`)。2 つのコンテナーが同じ名前を持つことはできません。フォルダーは `-d` で診断スクリプトに渡します。
+1 つのエージェントが読み取るのは 1 つのアレイです。同じマシンから複数を監視するには、2 つのコンテナーが同じ名前を持つことはできないため、それぞれを専用の `.env` と専用のコンテナー名を持つ専用のフォルダーにインストールします (例: `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`)。`STORAGE_ARRAY_AGENT_CONTAINER_NAME` を指定しない場合、スクリプトはフォルダーにちなんでコンテナーに名前を付けます。この例では同じ名前になります。スクリプトはその名前をそのエージェントの `.env` に保存するため、エージェントをアップグレードするためにスクリプトを再実行しても名前は維持されます。また、`container_name` を以前 `docker-compose.yml` で編集したエージェントも、その名前を維持します。Docker Compose の場合は、代わりに `STORAGE_ARRAY_AGENT_CONTAINER_NAME` を各エージェントの `.env` で設定します。フォルダーは `-d` で診断スクリプトに渡します。
 
 2 台目の PowerStore エージェントにも専用の syslog ポートが必要です。`POWERSTORE_SYSLOG_PORT` を、たとえば `5515` に、その `.env` で設定してください。
 
@@ -382,7 +385,7 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 エージェントは、そのファイルが固定している Collector のバージョンを **エージェントバージョン** として報告します。それがこの OneUptime のリリースが固定しているバージョンより古い場合、アレイの **概要** ページで、その横に警告マークが表示されます。マークを選択すると、これらのコマンドが表示されます。ファイルがバージョンを報告するようになる前にインストールしたエージェントは、この方法でアップグレードするまでバージョンが表示されません。
 
-Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml`、すべての Collector 設定、Harvest のファイルを更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、エージェントを作り直すため、Collector は新しい設定を読み込みます。`/opt/oneuptime-storage-array-agent` 以外にインストールしたエージェントには、そのフォルダーの指定が必要です: `INSTALL_DIR=<folder> bash install.sh`。
+Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml`、すべての Collector 設定、Harvest のファイルを更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、エージェントを作り直すため、Collector は新しい設定を読み込みます。`/opt/oneuptime-storage-array-agent` 以外にインストールしたエージェントには、そのフォルダーの指定が必要です: `INSTALL_DIR=<folder> bash install.sh`。コンテナー名はそのまま維持されます。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh

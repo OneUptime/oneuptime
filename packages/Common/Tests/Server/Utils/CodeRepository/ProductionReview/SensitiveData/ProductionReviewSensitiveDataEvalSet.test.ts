@@ -10,6 +10,7 @@ import {
   TELEMETRY_LEAK_EVAL_SET,
   TelemetryLeakEvalCase,
 } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/TelemetryLeakEvalSet";
+import { DataStoreKind } from "../../../../../../Types/DataSecurity/DataStoreKind";
 import { SensitiveDataCandidate } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataCandidate";
 import SensitiveDataRules, {
   SensitiveDataRulesResult,
@@ -23,10 +24,6 @@ import {
 } from "../../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import { getDataSecurityCheck } from "../../../../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSensitivity from "../../../../../../Types/DataSecurity/DataSensitivity";
-import {
-  TelemetryLeakSignal,
-  getTelemetryLeakSignalOf,
-} from "../../../../../../Types/DataSecurity/TelemetryLeakFix";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -403,51 +400,49 @@ describe("what the rules read, and how much", () => {
  * (#10778, with #10367): each leak of the eval set of recorded findings -
  * a span's and a log line's email, an email in twenty handlers, a key in
  * an exception's message, an email on a metric, a log line found by its
- * template - leads from its records to the line of code that writes it.
+ * template, and a web application's browser log and session identified
+ * by an email (#11395) - leads from its records to the line of code that
+ * writes it.
  * Had that code come in a pull request, its review's rules would have
  * given a point on that line (or the lines of the call it starts), under
  * the same check and for the same kind of telemetry.
- *
- * A RUM application's leaks joined the set with its fix (#10933): a
- * browser's log and span are written by the same calls a service's are,
- * so a review catches them too. A session's details are not: identify()
- * writes no log, span, metric, exception or prompt, the calls a review
- * reads, so a session identified by an email is found once it ships.
  */
-describe("every leak Data Security locates in code, the review of the pull request that added it catches, if it writes a log, a span, a metric, an exception or a prompt", () => {
-  // The kind of telemetry a review's point is for, by where the finding was seen.
-  const SINK_OF_SIGNAL: Partial<
-    Record<TelemetryLeakSignal, SensitiveDataSink>
-  > = {
-    [TelemetryLeakSignal.Logs]: SensitiveDataSink.Log,
-    [TelemetryLeakSignal.Spans]: SensitiveDataSink.Span,
-    [TelemetryLeakSignal.Exceptions]: SensitiveDataSink.Exception,
-    [TelemetryLeakSignal.Metrics]: SensitiveDataSink.Metric,
-    [TelemetryLeakSignal.AiCalls]: SensitiveDataSink.AiPrompt,
-    [TelemetryLeakSignal.RumLogs]: SensitiveDataSink.Log,
-    [TelemetryLeakSignal.RumSpans]: SensitiveDataSink.Span,
+describe("every leak Data Security locates in a service's code, the review of the pull request that added it catches", () => {
+  const SINK_OF_STORE: Partial<Record<DataStoreKind, SensitiveDataSink>> = {
+    [DataStoreKind.TelemetryLogs]: SensitiveDataSink.Log,
+    [DataStoreKind.TelemetryTraces]: SensitiveDataSink.Span,
+    [DataStoreKind.TelemetryExceptions]: SensitiveDataSink.Exception,
+    [DataStoreKind.TelemetryMetrics]: SensitiveDataSink.Metric,
+    [DataStoreKind.TelemetryAiConversations]: SensitiveDataSink.AiPrompt,
   };
+
+  /*
+   * A RUM application's session replays (#11395) hold its browser logs,
+   * its browser spans and its sessions' details: a finding there is a
+   * point of the sink its place is - a browser log's attribute a Log
+   * point, a session's user a Session point - never of the store alone.
+   */
+  const SINK_OF_SESSION_REPLAY_PLACE: ReadonlyArray<
+    [string, SensitiveDataSink]
+  > = [
+    ["logs.", SensitiveDataSink.Log],
+    ["spans.", SensitiveDataSink.Span],
+    ["sessions.", SensitiveDataSink.Session],
+  ];
 
   function sinkOf(
     finding: RecordedTelemetryLeakFinding,
   ): SensitiveDataSink | undefined {
-    const signal: TelemetryLeakSignal | null = getTelemetryLeakSignalOf(
-      finding.storeKind,
-      finding.location,
-    );
-
-    return signal ? SINK_OF_SIGNAL[signal] : undefined;
-  }
-
-  // The cases whose every leak is written by a call a review reads.
-  const REVIEWED_CASES: Array<TelemetryLeakEvalCase> =
-    TELEMETRY_LEAK_EVAL_SET.filter((evalCase: TelemetryLeakEvalCase) => {
-      return evalCase.findings.every(
-        (finding: RecordedTelemetryLeakFinding): boolean => {
-          return sinkOf(finding) !== undefined;
+    if (finding.storeKind === DataStoreKind.TelemetrySessionReplays) {
+      return SINK_OF_SESSION_REPLAY_PLACE.find(
+        ([prefix]: [string, SensitiveDataSink]): boolean => {
+          return finding.location.startsWith(prefix);
         },
-      );
-    });
+      )?.[1];
+    }
+
+    return SINK_OF_STORE[finding.storeKind];
+  }
 
   // The pull request that added the service's code: every file, every line.
   function addedFiles(evalCase: TelemetryLeakEvalCase): Array<EvalDiffFile> {
@@ -470,13 +465,14 @@ describe("every leak Data Security locates in code, the review of the pull reque
         candidate.line >= place.line &&
         candidate.line <= place.line + 3 &&
         candidate.checkId === finding.checkId &&
+        candidate.sink !== undefined &&
         candidate.sink === sinkOf(finding)
       );
     });
   }
 
   test.each(
-    REVIEWED_CASES.map(
+    TELEMETRY_LEAK_EVAL_SET.map(
       (evalCase: TelemetryLeakEvalCase): [string, TelemetryLeakEvalCase] => {
         return [evalCase.id, evalCase];
       },
@@ -524,37 +520,6 @@ describe("every leak Data Security locates in code, the review of the pull reque
     );
   });
 
-  /*
-   * Every case but one is held to the review: a new case that writes none
-   * of what a review reads is a decision here, never a case left out
-   * unseen.
-   */
-  test("every case is held to it, a browser's log too, but a session identified by an email: identify() is no call a review reads", () => {
-    expect(
-      REVIEWED_CASES.map((evalCase: TelemetryLeakEvalCase): string => {
-        return evalCase.id;
-      }),
-    ).toContain("browser-log-email-found-through-a-source-map");
-
-    const unreviewed: Array<TelemetryLeakEvalCase> =
-      TELEMETRY_LEAK_EVAL_SET.filter((evalCase: TelemetryLeakEvalCase) => {
-        return !REVIEWED_CASES.includes(evalCase);
-      });
-
-    expect(
-      unreviewed.map((evalCase: TelemetryLeakEvalCase): string => {
-        return evalCase.id;
-      }),
-    ).toEqual(["session-identified-by-the-customers-email"]);
-    // Its leak is a session's user, which identify() gave it.
-    expect(
-      getTelemetryLeakSignalOf(
-        unreviewed[0]!.findings[0]!.storeKind,
-        unreviewed[0]!.findings[0]!.location,
-      ),
-    ).toBe(TelemetryLeakSignal.RumSessions);
-  });
-
   test("a key in an exception's message: a secret, which can fail the check - the shape only the exceptions sink reads", () => {
     const evalCase: TelemetryLeakEvalCase = TELEMETRY_LEAK_EVAL_SET.find(
       (each: TelemetryLeakEvalCase): boolean => {
@@ -575,5 +540,96 @@ describe("every leak Data Security locates in code, the review of the pull reque
       isBlocking: true,
       location: "message",
     });
+  });
+
+  function evalCaseOf(id: string): TelemetryLeakEvalCase {
+    return TELEMETRY_LEAK_EVAL_SET.find(
+      (each: TelemetryLeakEvalCase): boolean => {
+        return each.id === id;
+      },
+    )!;
+  }
+
+  /*
+   * A web application's front end (#11395): the two leaks Data Security
+   * finds in a RUM application's session replays - a browser log's
+   * attribute and a session identified by the customer's email - are a
+   * Log point and a Session point on the very line, at the place the
+   * session replays keep them.
+   */
+  test("a browser log's email: a Log point at the logger's line, under the key its browser log keeps it at", () => {
+    const evalCase: TelemetryLeakEvalCase = evalCaseOf(
+      "browser-log-email-found-through-a-source-map",
+    );
+    const finding: RecordedTelemetryLeakFinding = evalCase.findings[0]!;
+    const result: SensitiveDataRulesResult = SensitiveDataRules.find({
+      files: addedFiles(evalCase),
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toMatchObject({
+      path: "src/checkout/payment.js",
+      line: finding.leadsTo[0]!.line,
+      sink: SensitiveDataSink.Log,
+      checkId: "sensitive-data-in-telemetry",
+      subject: "user.email",
+      where: "logger.warn",
+      isBlocking: false,
+      location: "attributes.user.email",
+    });
+    // The browser log's attribute, as the session replay store's finding names it.
+    expect(finding.location).toBe(`logs.${result.candidates[0]!.location}`);
+  });
+
+  test("a session identified by the customer's email: a Session point at the recorder's call, where the sessions keep their user", () => {
+    const evalCase: TelemetryLeakEvalCase = evalCaseOf(
+      "session-identified-by-the-customers-email",
+    );
+    const finding: RecordedTelemetryLeakFinding = evalCase.findings[0]!;
+    const result: SensitiveDataRulesResult = SensitiveDataRules.find({
+      files: addedFiles(evalCase),
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toMatchObject({
+      path: "src/session.js",
+      line: finding.leadsTo[0]!.line,
+      sink: SensitiveDataSink.Session,
+      checkId: "sensitive-data-in-telemetry",
+      subject: "customer.email",
+      where: "recorder.identify",
+      isBlocking: false,
+      location: finding.location,
+      text: "Identifies a recorded session by an email address: `customer.email`, in `recorder.identify`.",
+      fix: "Identify the session by an opaque id, such as the user's id, never by `customer.email`.",
+    });
+    // The recorder's own module, which only defines identify(), is no point.
+    expect(
+      result.candidates.filter((candidate: SensitiveDataCandidate): boolean => {
+        return candidate.path === "src/recorder.js";
+      }),
+    ).toEqual([]);
+  });
+
+  /*
+   * No false point: the fix a person would make - the case's solution,
+   * which the code agent's benchmark checks - leaves the RUM cases with
+   * none. The session is identified by the customer's id, and the browser
+   * log keeps only the cart's total.
+   */
+  test.each([
+    "browser-log-email-found-through-a-source-map",
+    "session-identified-by-the-customers-email",
+  ])("%s, fixed as a person would fix it, has no point", (id: string) => {
+    const evalCase: TelemetryLeakEvalCase = evalCaseOf(id);
+
+    expect(
+      SensitiveDataRules.find({
+        files: addedFiles({
+          ...evalCase,
+          files: { ...evalCase.files, ...evalCase.solution },
+        }),
+      }).candidates,
+    ).toEqual([]);
   });
 });

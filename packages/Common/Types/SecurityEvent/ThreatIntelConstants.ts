@@ -80,6 +80,46 @@ export function isStixIndicatorId(id: string | undefined): boolean {
 }
 
 /*
+ * WHAT STANDS IN PLACE OF A FEED'S INDICATOR ONCE THE PERSON IT MATCHED IS
+ * ERASED (#11230).
+ *
+ * A feed can list a person's email address. The finding about the match,
+ * the events the ingest-time enricher stamped, the case detection and the
+ * case it opened, and the alert or incident it opened, each named the
+ * feed's indicator: by its id (a STIX indicator's "indicator--<uuid>"), and
+ * by the indicator's own name. The feed keeps the address in clear beside
+ * both for as long as it lists it - and a public feed lists it for anyone -
+ * so following either named the person an erasure had taken out, with
+ * nothing to guess.
+ *
+ * So an erasure puts this in the indicator id's place: "[INDICATOR:", the
+ * keyed fingerprint of the match once the person is out of it - the one
+ * the feed's alert and case detection are deduped by, a key of the
+ * project's own over the token (Server/Utils/SecurityEvent/
+ * DetectionFingerprint) - and "]". It says that one of the feed's
+ * indicators matched, and the feed is still named beside it, but not which
+ * indicator. The same match says the same token in each place, so the
+ * finding, its events, its case detection and its alert still point at
+ * each other. It never holds sixteen digits, a card number's shape.
+ */
+export const ERASED_INDICATOR_ID_PREFIX: string = "[INDICATOR:";
+export const ERASED_INDICATOR_ID_SUFFIX: string = "]";
+
+// "[INDICATOR:" and 16 lowercase hex characters: a detection fingerprint's.
+export const ERASED_INDICATOR_ID_PATTERN: RegExp =
+  /^\[INDICATOR:[0-9a-f]{16}\]$/;
+
+// The id that takes a feed indicator's place, made of the match's keyed fingerprint.
+export function toErasedIndicatorId(fingerprint: string): string {
+  return `${ERASED_INDICATOR_ID_PREFIX}${fingerprint}${ERASED_INDICATOR_ID_SUFFIX}`;
+}
+
+// Whether an indicator id is one an erasure put in place of the feed's own.
+export function isErasedIndicatorId(id: string | undefined | null): boolean {
+  return typeof id === "string" && ERASED_INDICATOR_ID_PATTERN.test(id);
+}
+
+/*
  * STIX confidence (0-100, 0 meaning "not specified") -> OCSF severity for
  * finding rows and for alert-severity name matching. Unknown confidence
  * reads as Medium: an indicator a feed did not score is still an

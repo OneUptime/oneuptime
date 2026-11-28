@@ -103,16 +103,20 @@ export default class SnmpTrapLogWriter {
   }
 
   /*
-   * A trap whose source matched no device still gets recorded when the
-   * receiving probe is project-scoped — attributed to the shared
+   * A trap whose source matched no device still gets recorded, in the
+   * project it can be told is theirs (SnmpTrapUnmatchedHome): the receiving
+   * probe's own project, or on a global probe the one project whose SNMPv3
+   * credential signed it (#11174). Attributed to the shared
    * "network-devices" service with snmpTrap.unmatched=true, so operators
-   * can see traps arriving from gear they have not registered yet. Global
-   * probes have no project to attribute to; those traps stay dropped.
+   * can see traps arriving from gear they have not registered yet, and add
+   * it - into the site whose default credential signed it, when one did
+   * (networkSite.id).
    */
   public static async writeUnmatchedTrapLogRow(data: {
     snmpTrap: SnmpTrap;
     probeId: ObjectID;
     projectId: ObjectID;
+    siteId?: ObjectID | undefined;
   }): Promise<void> {
     try {
       const row: JSONObject | null = await SnmpTrapLogWriter.buildTrapLogRow({
@@ -121,6 +125,7 @@ export default class SnmpTrapLogWriter {
         projectId: data.projectId,
         device: null,
         serviceCache: {},
+        siteId: data.siteId,
       });
 
       if (row) {
@@ -186,6 +191,8 @@ export default class SnmpTrapLogWriter {
     projectId: ObjectID;
     device: NetworkDevice | null;
     serviceCache: Dictionary<TelemetryServiceMetadata>;
+    // An unknown source's site: the site whose default credential signed it.
+    siteId?: ObjectID | undefined;
   }): Promise<JSONObject | null> {
     const snmpTrap: SnmpTrap = data.snmpTrap;
 
@@ -242,6 +249,10 @@ export default class SnmpTrapLogWriter {
 
     if (!data.device) {
       attributes["snmpTrap.unmatched"] = true;
+
+      if (data.siteId) {
+        attributes["networkSite.id"] = data.siteId.toString();
+      }
     }
 
     if (data.device?.id) {

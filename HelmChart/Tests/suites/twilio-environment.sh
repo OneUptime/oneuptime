@@ -27,6 +27,9 @@
 #   5. The schema refuses a block of the wrong shape: a use the app does not
 #      know, a phone number YAML read as a number, a key the block does not
 #      have.
+#   6. twilio.callVoice, the voice the server's calls speak with (#11064),
+#      reaches exactly the same workloads, with the account or without it,
+#      and the schema takes only a voice OneUptime offers.
 #
 # Everything here is `helm template`: no cluster, no images, no API server.
 
@@ -370,6 +373,36 @@ for index in "${!WRONG_SHAPE_LABELS[@]}"; do
     fi
     assert_present "the refusal of ${label} names twilio" "$refusal" "twilio"
     assert_present "the refusal of ${label} names ${WRONG_SHAPE_PROPERTIES[$index]}" "$refusal" "${WRONG_SHAPE_PROPERTIES[$index]}"
+done
+
+# ---------------------------------------------------------------------------
+# 6. twilio.callVoice: a setting of its own, with the account or without it.
+# ---------------------------------------------------------------------------
+VOICE="Polly.Matthew-Neural"
+expected_workloads="$(printf '%s\n' "${EXPECTED_WORKLOADS[@]}" | sort)"
+
+render_all_on "${WORK_DIR}/voice-only.yaml" --set "twilio.callVoice=${VOICE}"
+split_workloads "${WORK_DIR}/voice-only.yaml" "${WORK_DIR}/voice-only.d"
+assert_eq "the call voice alone reaches every workload that runs the server's env helper, and no other" "$expected_workloads" "$(workloads_with "${WORK_DIR}/voice-only.d" GLOBAL_TWILIO_CALL_VOICE)"
+assert_eq "every GLOBAL_TWILIO_CALL_VOICE entry holds the voice" "" "$(entries_other_than "${WORK_DIR}/voice-only.d" GLOBAL_TWILIO_CALL_VOICE "value=${VOICE}")"
+assert_eq "the call voice alone renders none of the account's variables" "" "$(workloads_with "${WORK_DIR}/voice-only.d" GLOBAL_TWILIO_ACCOUNT_SID)"
+
+render_all_on "${WORK_DIR}/voice-and-account.yaml" "${ACCOUNT_SETTINGS[@]}" --set "twilio.authToken=${TOKEN}" --set "twilio.callVoice=${VOICE}"
+split_workloads "${WORK_DIR}/voice-and-account.yaml" "${WORK_DIR}/voice-and-account.d"
+assert_eq "beside the account, every workload that gets the account gets the call voice" "$expected_workloads" "$(workloads_with "${WORK_DIR}/voice-and-account.d" GLOBAL_TWILIO_CALL_VOICE)"
+assert_eq "beside the account, every GLOBAL_TWILIO_CALL_VOICE entry holds the voice" "" "$(entries_other_than "${WORK_DIR}/voice-and-account.d" GLOBAL_TWILIO_CALL_VOICE "value=${VOICE}")"
+
+# Not a voice OneUptime offers: misspelt, in another case, a Basic voice, or
+# another language's, which calls choose for themselves.
+for voice in "Polly.Joanna" "polly.joanna-neural" "alice" "Polly.Vicki-Neural"; do
+    refusal="$(render_refused "${WORK_DIR}/voice-refused.yaml" --set "twilio.callVoice=${voice}")"
+    if [ -n "$refusal" ]; then
+        pass "the schema refuses the call voice ${voice}"
+    else
+        fail "the chart rendered the call voice ${voice}"
+    fi
+    assert_present "the refusal of the call voice ${voice} names twilio" "$refusal" "twilio"
+    assert_present "the refusal of the call voice ${voice} names callVoice" "$refusal" "callVoice"
 done
 
 harness_report

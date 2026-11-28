@@ -181,6 +181,7 @@ describe("Notification Methods, opened from a link", () => {
       disableUserProjectCreation: false,
       disablePushNotifications: false,
       canSendEmail: true,
+      canProjectsChooseCallVoice: false,
     });
   });
 

@@ -40,6 +40,20 @@ export interface CheckPermissionBaseInterface<TBaseModel extends BaseModel> {
   query: Query<TBaseModel>;
 }
 
+// How a read's record rule treats what the read selects.
+export interface RecordScopeOptions {
+  /*
+   * The columns of the select the reader leaves out of the rows their own
+   * grants do not reach, rather than narrowing the read by them
+   * (AccessControlPermission.getColumnsKeptToLabels, #11259): a read by
+   * DatabaseService, which withholds them per row. Every other read - and a
+   * read across projects, each project's query worked out on its own
+   * (TenantPermission) - narrows by them as before. A column the query
+   * filters on narrows the read whatever this says.
+   */
+  columnsWithheldPerRecord?: ReadonlyArray<string> | undefined;
+}
+
 export default class BasePermission {
   /*
    * `updateData` is what an update writes, handed on to the table-level
@@ -47,6 +61,8 @@ export default class BasePermission {
    * records off passes, and only the data shows that (BillingPermission).
    * `sort` is the order a read asked for, held to the caller's read of each
    * column it names, beside the select (SortValidator.checkSortPermission).
+   * `options` says how a read's record rule treats its select
+   * (RecordScopeOptions).
    */
   @CaptureSpan()
   public static async checkPermissions<TBaseModel extends BaseModel>(
@@ -57,6 +73,7 @@ export default class BasePermission {
     type: DatabaseRequestType,
     updateData?: unknown,
     sort?: unknown,
+    options?: RecordScopeOptions,
   ): Promise<CheckPermissionBaseInterface<TBaseModel>> {
     /*
      * Permission checks add predicates and QueryUtil serializes values in
@@ -133,6 +150,7 @@ export default class BasePermission {
           select,
           props,
           type,
+          options,
         );
 
         if (select) {
@@ -238,6 +256,7 @@ export default class BasePermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
+    options?: RecordScopeOptions,
   ): Promise<Query<TBaseModel>> {
     if (
       props.isRoot ||
@@ -310,14 +329,29 @@ export default class BasePermission {
      * .getLabelGrantsForQuery) - a column read on fewer records than the
      * table narrows the read, never widens it. Grants scoped to Owned beside
      * those limited to labels reach the records the caller owns as well.
+     *
+     * A read that leaves such a column out of the rows its grant does not
+     * reach (RecordScopeOptions.columnsWithheldPerRecord, #11259) is not
+     * narrowed by selecting it: the reader reads every record their grants
+     * of the table reach, and the column on the ones it is read on. A filter
+     * on it narrows the read all the same.
      */
     if (new modelType().getAccessControlColumn()) {
+      const narrowingSelect: Select<TBaseModel> | null =
+        type === DatabaseRequestType.Read
+          ? AccessControlPermission.getSelectNarrowingRead(
+              select,
+              query,
+              options?.columnsWithheldPerRecord,
+            )
+          : select;
+
       const grantsByOperation: Array<LabelGrant> = operations.flatMap(
         (operation: RecordOperation): Array<LabelGrant> => {
           return AccessControlPermission.getLabelGrantsForQuery(
             modelType,
             query,
-            operation === type ? select : null,
+            operation === type ? narrowingSelect : null,
             props,
             operation,
           );

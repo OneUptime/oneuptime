@@ -301,6 +301,16 @@ isVisibleOnStatusPage must be true or false.
 
 Una actualización que escribe los valores de un registro tal como ya están no cambia nada: no inicia los workflows **On Update** del registro, no envía actualizaciones en vivo ni añade una entrada al registro de auditoría. `false` escrito sobre `false` cuenta como el mismo valor, igual que `"false"` escrito sobre `false`, un número escrito como texto, una hora escrita como el mismo instante en otro formato y unas etiquetas escritas como las mismas etiquetas en cualquier orden. Cuando una actualización cambia unos valores y vuelve a escribir otros tal como están, su entrada del registro de auditoría solo enumera los valores que cambiaron, y el **Campos que vigilar** de un workflow solo oye esos.
 
+### Valores escritos como JSON
+
+Algunos campos contienen un valor JSON con una forma propia, como `rotation` y `restrictionTimes` de una capa de una programación de guardia; la referencia de la API muestra cada forma en sus tipos de datos. OneUptime solo lee las claves de esa forma, así que un valor que omite la clave que dice lo que significa, escribe esa clave de otra manera o le da un valor que OneUptime no conoce se rechaza con un `400` que nombra la clave, en lugar de guardarse como un valor que no hace nada:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+Una clave que se renombra se sigue leyendo con su nombre antiguo: el tipo de restricción de una capa se escribe en `restrictionType` o en su grafía antigua `restictionType`, y una respuesta lleva ambas.
+
 ### Dónde se compró un proyecto
 
 El revendedor, el plan del revendedor y la licencia del revendedor de un proyecto (`resellerId`, `resellerPlanId`, `resellerLicenseId`, y las relaciones `reseller` y `resellerPlan`) los pone solo OneUptime: cuando se crea un proyecto con el código promocional de un revendedor, y cuando el revendedor cambia el plan. Una creación o un cambio de un proyecto que envía uno de ellos se rechaza con un `400` que nombra el campo, lo envíe quien lo envíe:
@@ -412,6 +422,44 @@ Incident not found.
 ```
 
 Antes respondía `200` con un cuerpo vacío. Una lista (`get-list`) y un recuento siguen respondiendo `200` con los registros que puedes leer, ninguno si no hay. El proveedor de Terraform interpreta un `404` al refrescar como un recurso que ya no existe y lo quita del estado, así que el siguiente plan lo vuelve a crear: da a la clave de API que usa los permisos, y las etiquetas, para leer cada recurso que gestiona. Las herramientas MCP responden a un `404` con un error que remite a la herramienta de lista correspondiente, y la CLI termina con el código `3`.
+
+### Imágenes en el Markdown de un registro
+
+Una imagen pegada en Markdown, como una captura de pantalla en la descripción de un incidente, en un campo personalizado de Markdown o en una nota, es un archivo privado. Su dirección (`/file/image/access-token/...`) solo la abre para una persona que ha iniciado sesión en el proyecto, así que una clave de API la lee a través del registro que la muestra:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+El registro se lee como la clave, igual que lo lee `get-item`: la clave necesita el permiso para leerlo, y sus etiquetas. La respuesta contiene cada imagen que muestra el Markdown del registro, en el orden en que las muestra: su `name`, `mimeType`, `sizeInBytes`, sus datos en `base64`, un `contentId` para un adjunto incrustado en un correo, las `urls` con las que la muestra el Markdown y los `fields` en los que está. En `leftOut` están los archivos que muestra el Markdown y que no se entregan, cada uno con un `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+Solo se entregan imágenes subidas al proyecto del propio registro, hasta 20 y 10 MB en total, y nunca un SVG. Cada tipo de registro con Markdown tiene la misma solicitud, como `/api/incident-public-note/<id>/markdown-files` o `/api/alert/<id>/markdown-files`. Un registro que no existe, o que la clave no puede leer, responde `404` como hace `get-item`, y `422` cuando la clave no puede leer ese tipo de registro en absoluto. Un flujo de trabajo lee las mismas imágenes con [Obtener archivos del Markdown](/docs/workflows/components#get-files-from-markdown).
 
 ## La referencia completa de endpoints
 

@@ -2924,9 +2924,12 @@ describe("the agents the pages describe", () => {
     expect(englishPage(SWARM)).toContain("version 0.161.2");
     expect(englishPage(SWARM)).toContain("version 0.161.3");
     /*
-     * The second files on collector 0.165.0 (#9828, #10972), which carry
-     * everything before them: 0.161.4's size of each local volume and its
-     * disk (#9648) too.
+     * The files on collector 0.165.0 (#9828), which carry everything before
+     * them: 0.161.4's size of each local volume and its disk (#9648) too,
+     * and since 0.165.1 each container line's level read in the formats
+     * programs write it in (#10972), each log line's level as OneUptime's
+     * ingest stores its word, and log operators of your own (#11228,
+     * #11226, #11225).
      */
     expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.165.1}");
     // The swarm's own state, every minute, from the poller on a manager.

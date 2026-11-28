@@ -80,6 +80,8 @@ interface AnswerState {
  */
 export const getRecordAccessScope: (data: {
   kind: RecordAccessKind;
+  // The record the page is open on; its kind's record id, in any case.
+  recordId?: string | undefined;
   tableNames: ReadonlyArray<string>;
   result: RecordAccessResult | null;
   isRead: boolean;
@@ -87,6 +89,7 @@ export const getRecordAccessScope: (data: {
   translator: Translator;
 }) => RecordAccessScope = (data: {
   kind: RecordAccessKind;
+  recordId?: string | undefined;
   tableNames: ReadonlyArray<string>;
   result: RecordAccessResult | null;
   isRead: boolean;
@@ -125,6 +128,9 @@ export const getRecordAccessScope: (data: {
     tables: tables,
     tableNames: tableNames,
     isHeldBack: !data.isRead && data.mayReachSomeRecordsOnly,
+    // The record's own table, first of its kind's (RECORD_ACCESS_TABLES).
+    recordTableName: data.tableNames[0],
+    recordId: (data.recordId || data.result?.recordId || "").toLowerCase(),
   };
 };
 
@@ -195,6 +201,7 @@ const RecordAccessScopeProvider: FunctionComponent<ComponentProps> = (
   const scope: RecordAccessScope = useMemo(() => {
     return getRecordAccessScope({
       kind: props.kind,
+      recordId: recordId,
       // Known before the answer lands, so their locks wait for it.
       tableNames: RECORD_ACCESS_TABLES[props.kind],
       result: current?.result || null,

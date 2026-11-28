@@ -39,6 +39,9 @@ import RelationListPermission, {
 import UpdatePermission from "../Types/Database/Permissions/UpdatePermission";
 import UpdateScopePermission from "../Types/Database/Permissions/UpdateScopePermission";
 import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
+import AccessControlPermission, {
+  ColumnKeptToLabels,
+} from "../Types/Database/Permissions/AccessControlPermission";
 import SortValidator from "../Types/Database/Permissions/SortValidator";
 import RuleOwningTeams from "../Utils/Rules/RuleOwningTeams";
 import RuleSetCache from "../Utils/Rules/RuleSetCache";
@@ -261,6 +264,9 @@ import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
 import WorkflowListeners from "../Utils/Workflow/WorkflowListeners";
+import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+// A type only: WorkspaceRecordPeople reads through services that extend this one.
+import type { WorkspaceRecord } from "../Utils/Workspace/WorkspaceRecordPeople";
 import CallerPlan from "../Utils/Billing/CallerPlan";
 import QueryIdCondition from "../Utils/Database/QueryIdCondition";
 import {
@@ -7884,6 +7890,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // Whether open pages were told of the record (its realtime event).
     let isRealtimeEventSent: boolean = false;
 
+    /*
+     * The record whose workspace messages this create held as it wrote it,
+     * for it to let go should no create chain take the hold. See
+     * holdAsWritten, below.
+     */
+    let heldAsWritten: WorkspaceRecord | null = null;
+
     try {
       /*
        * The INSERT itself, in save()'s own transaction - or, held to a
@@ -7922,6 +7935,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       // Seed telemetry context with projectId + <model>Id for this create.
       this.setTelemetryContextFromItem(createBy.data);
+
+      /*
+       * Its Slack, Microsoft Teams and Mattermost messages wait for its
+       * Created message from here on, on every App server, when its kind's
+       * create chain posts one: before anything else is written about it,
+       * and before the create returns. Its creator, made its owner just
+       * below, was announced first - "Added Ana Lee to the Incident INC-42
+       * as the owner" before "Incident Created" (#11352). The create chain
+       * takes the hold over (onCreateSuccess) and lets it go once that
+       * message is out; a create that ends before the chain began lets it
+       * go as it ends (finally, below). With ignoreHooks there is no chain,
+       * and no Created message to wait for. See holdAsWritten.
+       */
+      if (!createBy.props.ignoreHooks) {
+        heldAsWritten = await WorkspaceCreatedMessageFirst.holdAsWritten({
+          tableName: this.model.tableName,
+          id: createBy.data.id,
+        });
+      }
 
       // Its creator's own, before anything else. See the helper.
       if (isOwnedByCreatorFirst) {
@@ -8050,6 +8082,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       throw this.getException(error as Exception);
     } finally {
       finishCreate?.();
+
+      /*
+       * A hold no create chain took - the create failed before its chain
+       * began, or took the record out again - goes with the create, rather
+       * than once it has lasted its longest. One the chain took is the
+       * chain's to let go. See holdAsWritten.
+       */
+      if (heldAsWritten) {
+        void WorkspaceCreatedMessageFirst.letGoIfNotTaken(heldAsWritten);
+      }
 
       /*
        * A rule created - with its lists, and whatever its hooks wrote - is
@@ -11576,6 +11618,33 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return ids;
   }
 
+  /*
+   * The ids, in lower case, of the rows `query` finds, read as OneUptime with
+   * no hook: for a read that has decided already which rows its caller
+   * reads, and asks only which of them a grant's condition keeps
+   * (AccessControlPermission.withholdColumnsKeptToLabels). Deleted rows are
+   * read when the read they are asked for reads them.
+   */
+  private async findIdsAsOneUptime(
+    query: Query<TBaseModel>,
+    withDeleted: boolean,
+  ): Promise<Array<string>> {
+    const rows: Array<TBaseModel> = await this._findBy(
+      {
+        query: query,
+        select: { _id: true } as Select<TBaseModel>,
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true, ignoreHooks: true },
+      },
+      withDeleted,
+    );
+
+    return DatabaseService.getRowIds(rows).map((id: string): string => {
+      return id.toLowerCase();
+    });
+  }
+
   @CaptureSpan()
   public async findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
     return await this._findBy(findBy);
@@ -11606,6 +11675,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     relationSelect: RelationSelect<TBaseModel> | null;
     fileReader: RelatedFileReader | null;
     asker: DatabaseCommonInteractionProps;
+    // The columns the rows are read with only where their grants reach.
+    columnsKeptToLabels: Array<ColumnKeptToLabels>;
   }> {
     findBy.props = await this.checkCallerBeforeHooks(
       findBy.props,
@@ -11645,6 +11716,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       onBeforeFind.props,
     );
 
+    /*
+     * Nor by a column they read only on the records carrying some labels
+     * (AccessControlPermission.getColumnsKeptToLabels, #11259).
+     */
+    AccessControlPermission.checkSortOnColumnsKeptToLabels(
+      this.modelType,
+      onBeforeFind.sort,
+      onBeforeFind.props,
+    );
+
     if (!onBeforeFind.select || Object.keys(onBeforeFind.select).length === 0) {
       onBeforeFind.select = {} as any;
     }
@@ -11656,6 +11737,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     onBeforeFind.query = this.getRuleCriteriaEffectiveEnabledQuery(
       onBeforeFind.query,
     );
+
+    /*
+     * A column the caller reads on fewer of the records than the read
+     * reaches - a monitor's secret keys, for a Viewer over the project who
+     * is a Project Member on one label - is read with every record and left
+     * out of the ones its grant does not reach (_findBy), rather than
+     * narrowing the read to the records it is read on: a permission never
+     * takes away what the reader read without it (#11259).
+     */
+    const columnsKeptToLabels: Array<ColumnKeptToLabels> =
+      AccessControlPermission.getColumnsKeptToLabels(
+        this.modelType,
+        onBeforeFind.select,
+        onBeforeFind.props,
+      );
 
     /*
      * The order the caller asked for is held to their read of each column
@@ -11671,6 +11767,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       onBeforeFind.select || null,
       onBeforeFind.props,
       askedSort,
+      {
+        columnsWithheldPerRecord: columnsKeptToLabels.map(
+          (kept: ColumnKeptToLabels): string => {
+            return kept.column;
+          },
+        ),
+      },
     );
 
     onBeforeFind.query = result.query;
@@ -11696,6 +11799,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       relationSelect: result.relationSelect,
       fileReader: fileReader,
       asker: asker,
+      columnsKeptToLabels: columnsKeptToLabels,
     };
   }
 
@@ -11799,6 +11903,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         relationSelect: RelationSelect<TBaseModel> | null;
         fileReader: RelatedFileReader | null;
         asker: DatabaseCommonInteractionProps;
+        columnsKeptToLabels: Array<ColumnKeptToLabels>;
       } = await this.narrowRead(findBy);
 
       const onBeforeFind: FindBy<TBaseModel> = narrowed.findBy;
@@ -11926,6 +12031,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         select: onBeforeFind.select,
         props: onBeforeFind.props,
       });
+
+      /*
+       * A column the caller reads only on the records carrying some labels -
+       * a monitor's secret keys, for a Viewer who is a Project Member on one
+       * label - only on those; the others are read without it, before any
+       * hook sees them (#11259). See AccessControlPermission
+       * .getColumnsKeptToLabels.
+       */
+      decryptedItems =
+        await AccessControlPermission.withholdColumnsKeptToLabels({
+          modelType: this.modelType,
+          rows: decryptedItems,
+          kept: narrowed.columnsKeptToLabels,
+          props: onBeforeFind.props,
+          findIds: async (query: Query<TBaseModel>): Promise<Array<string>> => {
+            return await this.findIdsAsOneUptime(query, withDeleted || false);
+          },
+        });
 
       /*
        * A record's files only for someone who may see them; anyone else

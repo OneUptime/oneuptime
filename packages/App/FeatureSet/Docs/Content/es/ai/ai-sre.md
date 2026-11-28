@@ -427,6 +427,8 @@ Una decisión se toma una vez, con los ajustes del proyecto en ese momento: un i
 
 Cuando la investigación encuentra la causa en el código, el paso dice qué fue de ella: el pull request de corrección que OneUptime AI está escribiendo o abrió, con un enlace a él en Code; el único paso de configuración que lo impide, como **Conectar un repositorio**; o **Abrir pull request de corrección**, con el motivo por el que OneUptime AI no lo abrió por sí mismo (consulta [Correcciones de código automáticas](#correcciones-de-código-automáticas)).
 
+**Abrir pull request de corrección** solo trabaja en un repositorio que puedes usar en Code: uno que puedes leer y en el que puedes pedirle a OneUptime AI que trabaje, lo que requiere permiso para editarlo. Con varios de los tuyos conectados y ninguno con el nombre del monitor del incidente o de la alerta, el paso pregunta primero qué repositorio contiene el código, y ofrece solo los tuyos. Si no puedes usar ninguno de los repositorios conectados, el paso no lo ofrece. Consulta [Dónde empiezan las tareas de corrección](/docs/ai/ai-agent#dónde-empiezan-las-tareas-de-corrección).
+
 La cronología del incidente o la alerta guarda un registro de cada cambio. Una vez que un plan aprobado se ha ejecutado, su entrada enumera cada comando en el orden en que se ejecutó, con dónde se ejecutó y cómo terminó, y la entrada de una reversión enumera cada acción de deshacer de la misma forma, con el comando que deshizo. La lista está bajo **Mostrar detalles** de la entrada, solo en la cronología: los canales de Slack y Microsoft Teams del incidente o la alerta reciben como mucho la línea de la entrada, nunca la lista.
 
 ### Por qué OneUptime AI no encontró ninguna corrección, o se detuvo

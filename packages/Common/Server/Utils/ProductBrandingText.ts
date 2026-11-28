@@ -71,9 +71,12 @@ export default class ProductBrandingText {
       return { ...say, sayMessage: brand(say.sayMessage) };
     };
 
-    return {
-      ...callRequest,
-      data: callRequest.data.map((item: CallRequestMessage["data"][number]) => {
+    const brandData: (
+      data: CallRequestMessage["data"],
+    ) => CallRequestMessage["data"] = (
+      data: CallRequestMessage["data"],
+    ): CallRequestMessage["data"] => {
+      return data.map((item: CallRequestMessage["data"][number]) => {
         if (!item || typeof item !== "object") {
           return item;
         }
@@ -105,7 +108,21 @@ export default class ProductBrandingText {
         }
 
         return item;
-      }),
+      });
+    };
+
+    return {
+      ...callRequest,
+      data: brandData(callRequest.data),
+      // The call in its person's language too (#11066), branded the same way.
+      ...(callRequest.inLanguage && Array.isArray(callRequest.inLanguage.data)
+        ? {
+            inLanguage: {
+              ...callRequest.inLanguage,
+              data: brandData(callRequest.inLanguage.data),
+            },
+          }
+        : {}),
     };
   }
 

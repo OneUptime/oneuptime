@@ -69,7 +69,7 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "inventory-snapshot.sh",
     ],
     version: "0.165.1",
-    digest: "5d6f32065d8deea61c0a9985b7e51890d3574589dca5d165c5468da6b44a3b43",
+    digest: "f755745b739b42b607f26468e7845875241f78b173f75bb6ca0f78026262182f",
   },
   {
     kind: AgentKind.DatabaseAgent,
@@ -106,6 +106,19 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     version: "0.165.0",
     digest: "b46cd85d6dd36b0f33a2387094b9f2b065978db1b56e83c4ac8778e0c0ae11db",
   },
+  /*
+   * The Storage Array and XCP-ng agents' docker-compose.yml read the
+   * collector's container name from .env since 0.165.0 shipped, so that a
+   * second agent on the same machine keeps a name of its own when it is
+   * upgraded (#11168), the XCP-ng AI agent's included; the Storage Array
+   * agent's gained the PowerStore and NetApp ONTAP services, which only those
+   * platforms' agents start, and the XCP-ng agent's gained the XCP-ng AI
+   * agent, which only its profile starts, and stopped warning about
+   * XO_ADDRESS. Pinned again on 0.165.0:
+   * an installed agent still runs the same collector with the same config
+   * and reports the same data, so there is nothing to tell it to upgrade
+   * for, and whenever it next is, the upgrade keeps a second agent's name.
+   */
   {
     kind: AgentKind.StorageArrayAgent,
     directory: "StorageArrayAgent",
@@ -128,7 +141,7 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "otel-collector-config.powerscale.yaml",
     ],
     version: "0.165.1",
-    digest: "6cad6e2619b35b985a72a3390a2060369ae3c489d76f92f750e7ebac12a5cebd",
+    digest: "bb81c6b9720516d41dd1f72cbb53ef71504c2e26791bd68c289abbfdcda896cc",
   },
   /*
    * Its files first ship in 18.0.0 (17.3.0 has no XCP-ng agent), so a change
@@ -142,7 +155,7 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     directory: "XcpNgAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
     version: "0.165.0",
-    digest: "408bc99bdc5f93bc09e2a0c1ac3bea3b1811d501999dd1f862a40e503096b73c",
+    digest: "9dd74fde038db1905332bad77727731fa9dea223de6e95911fa357aa3c9d5440",
   },
 ];
 
@@ -296,9 +309,12 @@ describe("a pinned-collector agent's files report the version they shipped as", 
  */
 /*
  * Then each container line's level read in the formats programs write it
- * in, and a stderr line nothing reads left Unspecified (0.165.1, #10972): a
- * Swarm on 0.165.0 still calls its INFO and WARN lines Errors, and must show
- * a sign.
+ * in, and a stderr line nothing reads left Unspecified (#10972); and each
+ * log line's level stored as OneUptime's ingest stores its word (#11228),
+ * the levels of more programs read (#11226), and log operators of your
+ * own, checked before the agent starts (#11225) - 0.165.1 for both. A
+ * Swarm on 0.165.0 still calls its INFO and WARN lines Errors and reads
+ * none of those programs' levels, so it must show a sign.
  */
 describe("the Docker Swarm agent after #5076's config change, the task labels and the swarm's state", () => {
   test("its files report 0.165.1 and run collector 0.165.0", () => {

@@ -85,6 +85,8 @@ const HTML_VARIABLES: ReadonlyArray<string> = [
   // OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones.
   "rosterStartsAt",
   "rosterEndsAt",
+  // When a turn of active hours ends (#11270).
+  "rosterTurnEndsAt",
   "callStartedAt",
 ];
 

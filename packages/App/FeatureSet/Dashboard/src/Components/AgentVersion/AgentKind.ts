@@ -163,7 +163,10 @@ export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.165.0";
  * Then collector 0.165.0 (#9828) started it again at the collector's, and
  * the files changed on it once more - 0.165.1, each container line's level
  * read in the formats programs write it in, and a stderr line nothing reads
- * left Unspecified rather than called an Error (#10972).
+ * left Unspecified rather than called an Error (#10972); each log line's
+ * level stored as OneUptime's ingest stores its word, the levels of more
+ * programs read, and log operators of your own, checked before the agent
+ * starts (#11228, #11226, #11225).
  * AgentKind.test.ts and AgentFilesVersion.test.ts fail when the agent's
  * files move on without this.
  */

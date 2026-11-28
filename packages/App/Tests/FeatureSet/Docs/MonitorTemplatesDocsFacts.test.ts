@@ -2,10 +2,16 @@ import {
   SyncResultSummary,
   buildSyncResultSummary,
 } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateSyncResultUtil";
+import { SYNC_TO_LINKED_MONITORS_TITLES } from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
 import {
-  SYNC_TO_LINKED_MONITORS_TITLES,
-  UNLINK_MONITOR_CONFIRMATION,
-} from "../../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateLinkedMonitorsWords";
+  APPLY_SETTINGS_TITLE,
+  DELETE_CHOICE_TITLES,
+  DeleteChoice,
+  UNLINK_CHOICE_DESCRIPTIONS,
+  UNLINK_CHOICE_TITLES,
+  UnlinkChoice,
+} from "../../../FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeModel";
+import { MAX_MONITORS_PER_TEMPLATE_CHANGE } from "Common/Types/Monitor/MonitorTemplateChange";
 import { readPage } from "./DocsContentSupport";
 import { dashboardTranslator } from "./DocsDashboardLabels";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
@@ -572,14 +578,78 @@ describe("the template's page", () => {
       expect(page).toContain(`**${title}**`);
     }
 
-    // Unlinking leaves the monitor's settings as they are: the unlink dialog says so.
-    expect(view).toContain("template={UNLINK_MONITOR_CONFIRMATION}");
-    expect(UNLINK_MONITOR_CONFIRMATION).toContain(
-      "keeps its settings but no longer gets updates from this template",
-    );
+    // Unlinking is its own section now, with its two choices (#11266).
     expect(page).toContain(
-      "**Unlink from Template** disconnects a monitor; it keeps its settings.",
+      "To disconnect a monitor, see [Unlink monitors from a template](#unlink-monitors-from-a-template).",
     );
+  });
+
+  /*
+   * #11260, #11266: a template's monitors move to another template, or are
+   * unlinked with a choice of what they keep, and its Delete asks the same
+   * - each named on the page as the Dashboard draws it.
+   */
+  const BULK_ACTIONS_FILE: string =
+    "App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/useMonitorTemplateBulkActions.tsx";
+
+  it("moves monitors to another template from Linked Monitors or the Monitors list, as the bulk actions are titled", () => {
+    const bulkActions: string = readRepoFile(BULK_ACTIONS_FILE);
+    const move: string = section(page, "## Move monitors to another template");
+
+    for (const title of [
+      "Move to Another Template",
+      "Link to Template",
+      "Unlink from Template",
+    ]) {
+      expect({ title, inSource: bulkActions.includes(`"${title}"`) }).toEqual({
+        title,
+        inSource: true,
+      });
+    }
+
+    expect(move).toContain("**Move to Another Template**");
+    expect(move).toContain("**Link to Template**");
+    expect(move).toContain(`**${APPLY_SETTINGS_TITLE}**`);
+    expect(move).toContain(
+      `up to ${MAX_MONITORS_PER_TEMPLATE_CHANGE.toLocaleString("en-US")} monitors at a time`,
+    );
+    expect(move).toContain("never makes it again");
+  });
+
+  it("offers the unlink's two choices, as the dialog words them", () => {
+    const unlink: string = section(page, "## Unlink monitors from a template");
+
+    for (const choice of [
+      UnlinkChoice.KeepSettings,
+      UnlinkChoice.ClearCriteria,
+    ]) {
+      expect(unlink).toContain(`**${UNLINK_CHOICE_TITLES[choice].other}**`);
+    }
+
+    // What each choice says it does, the page says too.
+    expect(
+      UNLINK_CHOICE_DESCRIPTIONS[UnlinkChoice.KeepSettings].other,
+    ).toContain("keep checking and alerting with the criteria they have now");
+    expect(unlink).toContain(
+      "keep checking and alerting with the criteria they have now",
+    );
+    expect(
+      UNLINK_CHOICE_DESCRIPTIONS[UnlinkChoice.ClearCriteria].other,
+    ).toContain("raise no incidents or alerts and set no status");
+    expect(unlink).toContain("raise no incidents or alerts and set no status");
+  });
+
+  it("says what a template's delete does to its monitors, with the delete's two choices", () => {
+    const remove: string = section(page, "## Delete a template");
+
+    for (const choice of [
+      DeleteChoice.KeepSettings,
+      DeleteChoice.ClearCriteria,
+    ]) {
+      expect(remove).toContain(`**${DELETE_CHOICE_TITLES[choice]}**`);
+    }
+
+    expect(view).toContain("<MonitorTemplateDeleteChoice");
   });
 });
 

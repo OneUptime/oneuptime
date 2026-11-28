@@ -18,6 +18,14 @@ export interface GlobalConfigVars {
    * was refused - so nothing claims the server cannot send when it may.
    */
   canSendEmail: boolean;
+  /*
+   * Whether a project chooses the voice of its calls through the server's
+   * Twilio account (#11065, Types/Call/ProjectCallVoice): only once the
+   * server's master admin let projects, and never on OneUptime Cloud. Read
+   * as false from an answer that does not say true - an older server's - so
+   * no page offers a choice the server would refuse.
+   */
+  canProjectsChooseCallVoice: boolean;
 }
 
 export default class GlobalConfigUtil {
@@ -66,6 +74,7 @@ export default class GlobalConfigUtil {
       disableUserProjectCreation: Boolean(data?.["disableUserProjectCreation"]),
       disablePushNotifications: Boolean(data?.["disablePushNotifications"]),
       canSendEmail: data?.["canSendEmail"] !== false,
+      canProjectsChooseCallVoice: data?.["canProjectsChooseCallVoice"] === true,
     };
   }
 

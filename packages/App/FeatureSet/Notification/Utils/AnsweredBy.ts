@@ -7,6 +7,9 @@ import {
   CALL_VOICEMAIL_MESSAGE_LEFT_MESSAGE,
   CALL_VOICEMAIL_NO_MESSAGE_MESSAGE,
 } from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
+import { translationKey } from "Common/Types/Translator";
+import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
+import { getCallTranslator } from "Common/Server/Utils/ServerTranslation";
 
 /*
  * WHO ANSWERED AN ON-CALL CALL, AS TWILIO'S ANSWERING MACHINE DETECTION
@@ -151,8 +154,9 @@ export function getMachineAnsweredCallOutcome(data: {
  * written "One Uptime", it was left out of that, and said "One Uptime" on
  * every installation. The call says it as two words (CallSpeech).
  */
-export const VOICEMAIL_MESSAGE_CLOSING: string =
-  "Open OneUptime to respond. Good bye.";
+export const VOICEMAIL_MESSAGE_CLOSING: string = translationKey(
+  "Open OneUptime to respond. Good bye.",
+);
 
 /*
  * What is left on voicemail when the call's own words were not kept - a
@@ -163,13 +167,27 @@ export const VOICEMAIL_MESSAGE_WITHOUT_WORDS: string = `This is a call from OneU
 
 /*
  * The message left on voicemail: what the call said - its sentences, never
- * the keypad prompt, as a gateway is told them - and what to do. Without
- * the call's words, who called and what to do.
+ * the keypad prompt, as a gateway is told them - and what to do, in the
+ * language the call's words are in (#11066): the message is left in the
+ * call's voice, which speaks that language. Without the call's words, who
+ * called and what to do, in English.
  */
-export function getVoicemailMessage(callWords: string | null): string {
+export function getVoicemailMessage(
+  callWords: string | null,
+  // The language of the call's words, as OneUptime names it; English without one.
+  language?: string | undefined,
+): string {
   const words: string = (callWords || "").trim();
 
-  return words
-    ? `${words} ${VOICEMAIL_MESSAGE_CLOSING}`
-    : VOICEMAIL_MESSAGE_WITHOUT_WORDS;
+  if (!words) {
+    return VOICEMAIL_MESSAGE_WITHOUT_WORDS;
+  }
+
+  const closing: string =
+    language && language !== DEFAULT_READER_LANGUAGE
+      ? getCallTranslator(language).translateText(VOICEMAIL_MESSAGE_CLOSING) ||
+        VOICEMAIL_MESSAGE_CLOSING
+      : VOICEMAIL_MESSAGE_CLOSING;
+
+  return `${words} ${closing}`;
 }

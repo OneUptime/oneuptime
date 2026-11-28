@@ -123,7 +123,7 @@ OneUptime 為常見的 VMware 問題提供 25 個範本，**告警內容** 清�
 | VM CPU Ready Contention | 虛擬機器 | 警告 | `vcenter.vm.cpu.readiness`，依 VM 取 Avg | 高於 10%：VM 已準備好執行，但主機沒有實體核心分配給它。在客體內部看不到 | 達到或低於 9% |
 | VM Memory Saturation | 虛擬機器 | 警告 | `vcenter.vm.memory.utilization`，依 VM 取 Avg | 高於其記憶體的 90%：客體即將開始分頁 | 達到或低於 81% |
 | VM Memory Ballooning | 虛擬機器 | 警告 | `vcenter.vm.memory.ballooned`，依 VM 取 Max | 高於 0：主機記憶體不足，正在從這個客體收回記憶體 | 恢復為 0 |
-| VM Memory Swapping | 虛擬機器 | 嚴重 | `vcenter.vm.memory.swapped`，依 VM 取 Max | 高於 0：主機正在置換 VM 的記憶體，這是在氣球回收和壓縮之後的最後手段 | 恢復為 0 |
+| VM Memory Swapping | 虛擬機器 | 嚴重 | `vcenter.vm.memory.swapped`，依 VM 取 Max | 高於 0：VM 的部分記憶體位於主機置換檔中，可能是目前置換出的，也可能是先前記憶體壓力遺留的，ESXi 會一直保留它，直到 VM 存取它。vCenter 的概覽會區分這兩種情況：請參閱 [已置換出的記憶體不等於正在置換](/docs/telemetry/vmware#已置換出的記憶體不等於正在置換) | 恢復為 0 |
 | VM Disk Latency High | 虛擬機器 | 警告 | `vcenter.vm.disk.latency.max`，依 VM 取 Max | 高於 50 ms：客體中的應用程式 I/O 逾時 | 達到或低於 45 ms |
 | VM Disk Usage High | 虛擬機器 | 警告 | `vcenter.vm.disk.utilization`，依 VM 取 Avg | 已佔用其佈建儲存的 90% 以上：精簡佈建的 VM 即將佔滿其全部大小 | 達到或低於 81% |
 | Datastore Capacity Warning | 資料存放區 | 警告 | `vcenter.datastore.disk.utilization`，依 `resource.vcenter.datastore.name` 取 Avg | 高於 80%：一個提前的警告，因為精簡磁碟和快照會很快用完剩餘空間 | 達到或低於 72% |
@@ -214,7 +214,7 @@ OneUptime 為常見的 VMware 問題提供 25 個範本，**告警內容** 清�
 | `vcenter.vm.disk.utilization` | `%` | VM 的佈建儲存中已在資料存放區上佔用的百分比(0–100)——接近 100% 的精簡佈建 VM 即將佔滿其全部大小 |
 | `vcenter.vm.memory.ballooned` | `MiBy` | 氣球驅動程式(VMware Tools)從 VM 回收的客體記憶體。高於 0 表示 ESXi 主機記憶體不足 |
 | `vcenter.vm.memory.granted` | `MiBy` | 主機分配給 VM 的機器記憶體。_預設關閉_——開啟 `vcenter.vm.memory.granted` |
-| `vcenter.vm.memory.swapped` | `MiBy` | 從主機置換檔分配給 VM 的記憶體——氣球回收和壓縮之後的最後手段；任何高於 0 的值都表示 VM 正在以磁碟延遲換取 RAM |
+| `vcenter.vm.memory.swapped` | `MiBy` | 從主機置換檔分配給 VM 的記憶體——氣球回收和壓縮之後的最後手段。ESXi 會保留已置換出的分頁，直到 VM 存取它，因此高於 0 的值可能是先前記憶體壓力遺留的 |
 | `vcenter.vm.memory.swapped_ssd` | `KiBy` | VM 被置換到主機快閃置換快取中的記憶體——比置換檔的影響小，但仍然是記憶體壓力 |
 | `vcenter.vm.memory.usage` | `MiBy` | VM 的客體正在使用中的記憶體。已開機和已關機的 VM 都會傳送(關機時為 0) |
 | `vcenter.vm.memory.utilization` | `%` | VM 的記憶體使用率，佔其設定之記憶體的百分比(0–100) |
@@ -241,7 +241,7 @@ OneUptime 為常見的 VMware 問題提供 25 個範本，**告警內容** 清�
 | `vcenter.resource_pool.memory.ballooned` | `MiBy` | 氣球驅動程式從資源集區中所有 VM 回收的記憶體 |
 | `vcenter.resource_pool.memory.granted` | `MiBy` | 分配給資源集區 VM 的主機記憶體，依 `type`(`private` / `shared`——共用頁面由透明頁面共用去除重複)細分 |
 | `vcenter.resource_pool.memory.shares` | `{shares}` | 資源集區上設定的記憶體配額 |
-| `vcenter.resource_pool.memory.swapped` | `MiBy` | 從 ESXi 主機置換空間分配給資源集區 VM 的記憶體——任何高於 0 的值都表示資源集區中至少有一個 VM 正在被主機置換 |
+| `vcenter.resource_pool.memory.swapped` | `MiBy` | 從 ESXi 主機置換空間分配給資源集區 VM 的記憶體——高於 0 的值表示資源集區中至少有一個 VM 在主機置換空間中有記憶體，可能是目前的，也可能是先前遺留的 |
 | `vcenter.resource_pool.memory.usage` | `MiBy` | 資源集區使用的記憶體，在較新的收集器組建中依 `type`(`guest` / `host` / `overhead`)細分；較舊的組建傳送一個不帶類型的序列。篩選 `type = guest` |
 
 ### vSAN
@@ -288,7 +288,7 @@ OneUptime 為常見的 VMware 問題提供 25 個範本，**告警內容** 清�
 - **某個資料存放區即將寫滿：** `vcenter.datastore.disk.utilization`，平均，依 `resource.vcenter.datastore.name` 分組，**大於** `80`。
 - **某個叢集失去了一台主機：** `vcenter.cluster.host.count` 篩選到 `effective = false`，最大值，依 `resource.vcenter.cluster.name` 分組，**大於** `0`。
 - **執行中的 VM 少於預期：** `vcenter.cluster.vm.count` 篩選到 `power_state = on` 和 `resource.vcenter.cluster.name = Production`，總和，**小於** 你預期的數量。
-- **某個 VM 正被主機置換：** `vcenter.vm.memory.swapped`，最大值，依 `resource.vcenter.vm.name` 分組，**大於** `0`。
+- **某個 VM 在主機置換空間中保留了大量記憶體：** `vcenter.vm.memory.swapped`，最大值，依 `resource.vcenter.vm.name` 分組，**大於** `1024`。記憶體壓力消失很久之後，幾 MiB 仍可能留在那裡，因此高於 0 的閾值可以避免先前遺留的記憶體觸發該條件。
 
 ### 預設條件
 

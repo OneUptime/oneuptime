@@ -44,6 +44,7 @@ import {
   InventoryAssetField,
   getInventoryAssetValue,
 } from "Common/Utils/Inventory/InventoryAssetDetails";
+import { getInventoryItemPlacement } from "Common/Utils/Inventory/InventoryItemPlacement";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import useCustomFieldFacets, {
   CustomFieldFacetsResult,
@@ -570,14 +571,17 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
           },
         ]}
         /*
-         * The Name cell renders the description as a subtitle and the Status
-         * cell is derived from source + lastSeenAt, so all three have to be
-         * fetched even when their own columns are hidden.
+         * The Name cell renders where the item sits and its description under
+         * its name, and the Status cell is derived from source + lastSeenAt,
+         * so all of them have to be fetched even when their own columns are
+         * hidden.
          */
         selectMoreFields={{
           description: true,
           source: true,
           lastSeenAt: true,
+          identifyingAttributes: true,
+          descriptiveAttributes: true,
         }}
         columns={[
           {
@@ -586,6 +590,19 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             isNotCustomizable: true,
             getElement: (item: InventoryItem): ReactElement => {
+              /*
+               * Where it sits tells two items of one name apart: two VMs
+               * called web-01 on two ESXi hosts (#11254).
+               */
+              const placement: string | null = getInventoryItemPlacement({
+                entityType: item.entityType,
+                identifyingAttributes: item.identifyingAttributes as
+                  | Record<string, unknown>
+                  | undefined,
+                descriptiveAttributes: item.descriptiveAttributes as
+                  | Record<string, unknown>
+                  | undefined,
+              });
               return (
                 <div className="flex flex-col">
                   <span className="font-medium text-gray-900">
@@ -593,6 +610,14 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
                       item.entityKey ||
                       translator.translateText("Unnamed")}
                   </span>
+                  {placement ? (
+                    <span
+                      className="text-xs text-gray-500 line-clamp-1"
+                      data-testid="inventory-item-placement"
+                    >
+                      {placement}
+                    </span>
+                  ) : null}
                   {item.description ? (
                     <span className="text-xs text-gray-500 line-clamp-1">
                       {item.description}

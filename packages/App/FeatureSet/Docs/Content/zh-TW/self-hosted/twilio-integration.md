@@ -66,6 +66,7 @@
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | 撥出電話所用的號碼，包含國碼。`sms-only` 不需要 |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | 選填，以逗號分隔：對其所在國家的收件者，用這些號碼代替主要號碼 |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | 傳送每則簡訊所用的號碼，以逗號分隔。`sms-only` 必填 |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | 選填：通話使用的語音，為 [通話使用的語音](#通話使用的語音) 中的語音之一。無論是否設定了 `GLOBAL_TWILIO_ACCOUNT_SID` 都會讀取它；只要設定了它，Admin Dashboard 中的 **通話語音** 就會以唯讀方式顯示它 |
 
 使用 Helm 時，在 values 的 `twilio` 下設定它們。為了不讓 auth token 出現在 Helm 隨每個 release 儲存的 values 中，請把它放進您自己的 Secret，並在 `twilio.existingSecret.name` 中指定該 Secret：
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-在 values 檔案中為電話號碼加上引號，並用 `--set-string` 而不是 `--set` 傳入：不加引號時，`+14155550100` 是一個數字，Chart 會拒絕它。Chart 也會拒絕沒有 `twilio.accountSid` 的其他 `twilio` 值、沒有 auth token 的 Account SID，以及同時在 `twilio.authToken` 和 Secret 中提供的 auth token。使用 Terraform 時，在 `helm_release` 上設定相同的值，並將 auth token 設為敏感值。
+在 values 檔案中為電話號碼加上引號，並用 `--set-string` 而不是 `--set` 傳入：不加引號時，`+14155550100` 是一個數字，Chart 會拒絕它。Chart 也會拒絕沒有 `twilio.accountSid` 的其他 `twilio` 值（`twilio.callVoice` 除外，無論由誰設定帳戶，它都會設定語音）、沒有 auth token 的 Account SID、同時在 `twilio.authToken` 和 Secret 中提供的 auth token，以及不是這些語音之一的 `twilio.callVoice`。使用 Terraform 時，在 `helm_release` 上設定相同的值，並將 auth token 設為敏感值。
 
 使用 Docker Compose 時，在 `config.env` 中填寫以 `GLOBAL_TWILIO_` 開頭的設定，然後執行 `npm run start` 重新建立容器。
 
-OneUptime 在啟動時讀取這些變數。如果其中有錯誤，例如 OneUptime 無法識別的電話號碼或缺少 auth token，在修正之前該帳戶不會傳送簡訊，也不會撥打電話；伺服器記錄、**Admin Dashboard > 設定 > 通話和簡訊** 和 `/admin/setup` 上的檢查清單會指出是哪個變數。auth token 永遠不會顯示。若要變更帳戶，請修改這些變數並重新啟動 OneUptime：Admin Dashboard 不會變更它。
+OneUptime 在啟動時讀取這些變數。如果其中有錯誤，例如 OneUptime 無法識別的電話號碼或缺少 auth token，在修正之前該帳戶不會傳送簡訊，也不會撥打電話；伺服器記錄、**Admin Dashboard > 設定 > 通話和簡訊** 和 `/admin/setup` 上的檢查清單會指出是哪個變數。如果 `GLOBAL_TWILIO_CALL_VOICE` 指定的不是 OneUptime 提供的語音，也不會阻止任何電話：在修正之前，通話使用帳戶的預設語音，上述三處也會指出它。auth token 永遠不會顯示。若要變更帳戶，請修改這些變數並重新啟動 OneUptime：Admin Dashboard 不會變更它。
 
 ### 使用 Terraform 管理專案設定
 
@@ -149,7 +150,7 @@ Twilio 號碼可以同時撥打電話和傳送簡訊，也可以只支援其中�
 
 ### 通話使用的語音
 
-通話使用您的 Twilio 帳戶預設的語音：Twilio 免費的 Basic 語音，除非您在 Twilio Console 中選擇了其他語音。Twilio 表示其 Basic 語音不適合用於正式環境，因此每個帳戶都可以改用下列神經語音之一。整個安裝的帳戶在 **Admin Dashboard > 設定 > 通話和簡訊** 中的 **通話語音** 卡片裡選擇，專案的設定則在 **更多欄位** 中的 **通話語音** 裡選擇。
+通話使用您的 Twilio 帳戶預設的語音：Twilio 免費的 Basic 語音，除非您在 Twilio Console 中選擇了其他語音。Twilio 表示其 Basic 語音不適合用於正式環境，因此每個帳戶都可以改用下列神經語音之一。整個安裝的帳戶在 **Admin Dashboard > 設定 > 通話和簡訊** 中的 **通話語音** 卡片裡選擇，專案的設定則在 **更多欄位** 中的 **通話語音** 裡選擇。若要透過程式碼設定整個安裝的帳戶的語音，請使用 `GLOBAL_TWILIO_CALL_VOICE`（使用 Helm 時為 `twilio.callVoice`）：請參閱 [透過環境變數設定整個安裝的帳戶](#透過環境變數設定整個安裝的帳戶)。
 
 | 語音 | 供應商 | 聽起來 |
 | --- | --- | --- |
@@ -160,7 +161,37 @@ Twilio 號碼可以同時撥打電話和傳送簡訊，也可以只支援其中�
 | `Google.en-US-Neural2-F` | Google | 美式英文，女聲 |
 | `Google.en-US-Neural2-J` | Google | 美式英文，男聲 |
 
-透過該帳戶撥出的每通電話都使用這個語音：待命呼叫和對您所按按鍵的回應、留在語音信箱中的留言、驗證碼、**發送測試通話**，以及來電原則的問候語。使用這些語音時，像 `INC-42` 這樣的編號會透過 SSML 逐一拼讀，比其他語音讀出的以空格分隔的字母聽起來更自然。Twilio 會向撥打電話的帳戶收取這些語音的費用：2026 年 11 月為每 100 個字元 $0.0032，一通呼叫電話不到 2 美分。請參閱 [Twilio 語音價格](https://www.twilio.com/en-us/voice/pricing/us)。將 **通話語音** 留空即可保留帳戶的預設語音。在 API 和 Terraform 中，語音是 `twilioCallVoice` 欄位，不在表中的語音會被拒絕。
+透過該帳戶撥出的每通電話都使用這個語音：待命呼叫和對您所按按鍵的回應、留在語音信箱中的留言、驗證碼、**發送測試通話**，以及來電原則的問候語。使用這些語音時，像 `INC-42` 這樣的編號會透過 SSML 逐一拼讀，比其他語音讀出的以空格分隔的字母聽起來更自然。Twilio 會向撥打電話的帳戶收取這些語音的費用：2026 年 11 月為每 100 個字元 $0.0032，無論哪種語言，一通呼叫電話都不到 3 美分。請參閱 [Twilio 語音價格](https://www.twilio.com/en-us/voice/pricing/us)。將 **通話語音** 留空即可保留帳戶的預設語音。在 API 和 Terraform 中，語音是 `twilioCallVoice` 欄位，不在表中的語音會被拒絕。
+
+#### 其他語言的電話
+
+當帳戶使用上面的某個語音時，打給以其他語言使用 OneUptime 的人的待命呼叫電話會使用該語言：電話的內容以該語言撰寫，並由該語言的語音說出；帳戶的語音是女聲時用女聲，是男聲時用男聲。提示按鍵的語句、未按任何鍵時重複的詳情、對按錯鍵的回應以及對各按鍵的回應都使用該語言，按鍵仍為 1 和 2。所用語音如下，選自 Twilio 的神經語音清單，於 2026 年 11 月 27 日核對；費用與上面的語音相同：
+
+| 語言 | 女聲 | 男聲 |
+| --- | --- | --- |
+| 德文 | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| 法文 | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| 西班牙文 | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| 義大利文 | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| 葡萄牙文 | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| 荷蘭文 | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| 丹麥文 | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| 挪威文 | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| 瑞典文 | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| 俄文 | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| 日文 | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| 韓文 | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| 簡體中文 | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| 繁體中文 | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| 印地文 | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| 阿拉伯文 | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| 波斯文 | 無：通話使用英文 | 無：通話使用英文 |
+
+Amazon Polly 和 Google 都沒有波斯文語音，因此打給以波斯文使用 OneUptime 的人的電話使用英文；透過保留預設語音的帳戶撥出的每通電話也是如此，因為預設語音只會說英文。通話記錄會以電話所用的語言保留電話所說的內容。驗證碼、**發送測試通話** 和來電原則的問候語使用英文。
+
+#### 自選語音的專案
+
+在自行託管的安裝中，主管理員可以讓每個專案自行選擇經由整個安裝的帳戶撥出的通話的語音：在 **Admin Dashboard > 設定 > 通話和簡訊** 的 **專案通話語音** 卡片中開啟 **允許專案選擇其通話語音**。之後，**專案擁有者** 或 **專案管理員** 在 **專案設定 > 通知 > 通知管道** 的 **更多設定** 中的 **通話語音** 卡片裡選擇語音，未選擇語音的專案使用安裝的語音。Twilio 會向整個安裝的帳戶收取每個專案的語音費用，因此該開關預設關閉，關閉它會讓所有專案重新使用安裝的語音。OneUptime Cloud 不提供此功能：請使用您自己的專案設定選擇語音。在 API 中，語音是專案的 `callVoice` 欄位，開關關閉時會被拒絕。
 
 ### 待命電話的語音信箱
 
@@ -241,7 +272,7 @@ Twilio 一般 webhook 的來源位址會變化，因此不要把 SIP 或媒體 I
 1. 在公司網路和 VPN 之外，確認回呼主機名稱解析到公開閘道並提供有效的 TLS 憑證。瀏覽器發出的 GET 無法測試這些 POST 回呼。
 2. 在專案的 Twilio 設定上使用 **發送測試簡訊** 和 **發送測試通話**，並在目的地電話上確認收到。兩者都需要新增 Twilio 設定的權限：**專案擁有者**、**專案管理員**，或自訂角色中的 **Create Call and SMS** 和 **Read Call and SMS**。
 3. 為使用者設定已驗證的簡訊或電話聯絡方式和通知規則，然後觸發一次受控的值班警示。按 1，並在 OneUptime 中確認已被確認。如果您使用來電原則，請撥打設定的號碼，並檢查其路由和通話記錄。
-4. 在 OneUptime 和 Twilio 的訊息記錄中確認簡訊的傳送狀態。傳送被接受並不代表已送達；[Twilio 會透過回呼回報之後的狀態變化](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
+4. 在 OneUptime 的[通知日誌](/docs/notifications/notification-logs)和 Twilio 的訊息記錄中確認簡訊的傳送狀態。傳送被接受並不代表已送達；[Twilio 會透過回呼回報之後的狀態變化](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
 :::
 
 | 症狀 | 排查位置 |

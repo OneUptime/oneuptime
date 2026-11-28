@@ -1,3 +1,4 @@
+import SnmpEngineIdValue from "./SnmpEngineIdValue";
 import SnmpTrapRefusalList from "./SnmpTrapRefusalList";
 import {
   SNMP_TRAPS_CARD_DESCRIPTION,
@@ -25,7 +26,6 @@ import SnmpTrapReceiverUtil, {
 } from "Common/Types/Probe/SnmpTrapReceiver";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import API from "Common/UI/Utils/API/API";
@@ -162,19 +162,10 @@ const ProbeSnmpTraps: FunctionComponent<ComponentProps> = (
       label: SNMP_TRAPS_FACT_LABELS.engineId,
       value: (
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <code
-              className="break-all rounded bg-gray-50 px-1.5 py-0.5 font-mono text-sm text-gray-900"
-              data-testid="probe-snmp-engine-id"
-            >
-              {report.engineId}
-            </code>
-            <CopyTextButton
-              textToBeCopied={report.engineId}
-              size="xs"
-              variant="ghost"
-            />
-          </div>
+          <SnmpEngineIdValue
+            engineId={report.engineId}
+            dataTestId="probe-snmp-engine-id"
+          />
           <p className="mt-1 text-xs text-gray-500">
             {translator.translateText(SNMP_TRAPS_ENGINE_ID_HINT)}
           </p>

@@ -561,6 +561,13 @@ export interface ServerSetupFacts {
   hasAiProvider: boolean;
   hasSingleSignOn: boolean;
   choices: ServerSetupChoices;
+  /*
+   * What is wrong with GLOBAL_TWILIO_CALL_VOICE (#11064), by the variable's
+   * name: a voice OneUptime does not offer. Calls still go out, in the
+   * account's default voice, so it leaves SMS and calls as they stand, and
+   * is said beside them. None from an older server.
+   */
+  callVoiceProblem?: string | null | undefined;
 }
 
 // One check's answer.
@@ -594,6 +601,13 @@ export interface ServerSetupCheckResult {
   installKind?: ServerInstallKind | undefined;
   // What made the last backup the check read, when it read one (Backups only).
   backupMadeBy?: ServerSetupBackupMadeBy | undefined;
+  /*
+   * What else the check says, as the server wrote it: what is wrong with a
+   * setting that leaves the check as it stands - GLOBAL_TWILIO_CALL_VOICE's
+   * voice, for SMS and calls (#11064). Left out when there is none, and by
+   * an older server.
+   */
+  notes?: Array<string> | undefined;
 }
 
 // The body of GET /global-config/setup-checklist (master admins only).
@@ -825,6 +839,8 @@ export default class ServerSetupChecklistUtil {
     reasonWords?: ServerSetUpProblemWords | null | undefined;
     channels?: ServerSetupCheckResult["channels"] | undefined;
     tests?: Array<ServerSendingChannel> | undefined;
+    // What else the check says (ServerSetupCheckResult.notes).
+    notes?: Array<string> | undefined;
     /*
      * False when the check's choice would change nothing now: SMS and calls
      * once one of them is set up, backups once the server has made one.
@@ -872,6 +888,7 @@ export default class ServerSetupChecklistUtil {
           ? definition.choice
           : null,
       tests: data.tests || [],
+      ...(data.notes && data.notes.length > 0 ? { notes: data.notes } : {}),
     };
   }
 
@@ -923,6 +940,14 @@ export default class ServerSetupChecklistUtil {
   private static evaluateSmsAndCalls(
     facts: ServerSetupFacts,
   ): ServerSetupCheckResult {
+    /*
+     * A voice GLOBAL_TWILIO_CALL_VOICE names that OneUptime does not offer
+     * (#11064): said beside SMS and calls whatever they stand at.
+     */
+    const notes: Array<string> = facts.callVoiceProblem
+      ? [facts.callVoiceProblem]
+      : [];
+
     const channels: ServerSetupCheckResult["channels"] = [
       { ...facts.sms, sentThrough: facts.smsSentThrough },
       { ...facts.call, sentThrough: facts.callSentThrough },
@@ -948,6 +973,7 @@ export default class ServerSetupChecklistUtil {
           : ServerSetupStatus.NotSetUp,
         facts: facts,
         channels: channels,
+        notes: notes,
       });
     }
 
@@ -969,6 +995,7 @@ export default class ServerSetupChecklistUtil {
         reason: first.lastFailure,
         channels: channels,
         tests: tests,
+        notes: notes,
         isChoiceApplicable: false,
       });
     }
@@ -985,6 +1012,7 @@ export default class ServerSetupChecklistUtil {
       facts: facts,
       channels: channels,
       tests: tests,
+      notes: notes,
       isChoiceApplicable: false,
     });
   }
