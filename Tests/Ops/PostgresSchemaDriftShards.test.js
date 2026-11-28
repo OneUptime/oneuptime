@@ -13,9 +13,12 @@
  * What would quietly undo that: a suite step with no shard (it would run in
  * every shard, its time spent once in each), one naming a shard the matrix
  * does not have (it would run nowhere), a set-up step given a shard (the
- * other shards would test an empty database), or a suite separated from the
+ * other shards would test an empty database), a suite separated from the
  * install it needs (App's and ee's installs, and the PostgreSQL client
- * tools, are run only by the shard whose suites need them).
+ * tools, are run only by the shard whose suites need them), or a test of a
+ * suite the shards share out by name (jest's -t) that no shard's name
+ * matches - it would run nowhere, and jest passes a file whose every test
+ * it skipped - or that two shards run.
  */
 
 const fs = require("fs");
@@ -30,6 +33,12 @@ const WORKFLOW = path.join(
 const JOB = "postgres-schema-drift";
 const DRIFT_STEP = "Check for Postgres schema drift";
 const SHARD_CONDITION = /^matrix\.shard == (\d+)$/;
+const TEST_FILE = /\.test\.[jt]sx?$/;
+// The tests a step runs of its suite, by name: jest's -t (--testNamePattern).
+const TEST_NAME_PATTERN = /(?:^|\s)(?:-t|--testNamePattern)(?:=|\s+)"([^"]*)"/;
+// A describe block's name, and a test's, as a suite's source writes them.
+const DESCRIBE_NAME = /\bdescribe\w*\(\s*"((?:[^"\\]|\\.)*)"/g;
+const TEST_NAME = /\b(?:test|it)\(\s*"((?:[^"\\]|\\.)*)"/g;
 
 const workflow = yaml.load(fs.readFileSync(WORKFLOW, "utf8"));
 const job = workflow.jobs[JOB];
@@ -53,6 +62,39 @@ function nameOf(step) {
 // Where an install step installs: the working directory its suites run in.
 function installDirectory(step) {
   return ((step.with || {})["working-directory"] || ".").replace(/\/+$/, "");
+}
+
+// The suite files a step runs, from the repository's root.
+function suiteFilesOf(step) {
+  return String(step.run || "")
+    .split(/\s+/)
+    .filter((token) => {
+      return TEST_FILE.test(token);
+    })
+    .map((file) => {
+      return path.posix.join(step["working-directory"] || ".", file);
+    });
+}
+
+/*
+ * Each test of a suite by its whole name, which -t is matched against: its
+ * describe block's name, a space, then its own. For a suite whose tests are
+ * all in one describe block, as those the shards share out are.
+ */
+function wholeTestNamesOf(file) {
+  const source = fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
+  const describes = [...source.matchAll(DESCRIBE_NAME)].map((match) => {
+    return match[1];
+  });
+
+  expect({ file, describes: describes.length }).toEqual({
+    file,
+    describes: 1,
+  });
+
+  return [...source.matchAll(TEST_NAME)].map((match) => {
+    return `${describes[0]} ${match[1]}`;
+  });
 }
 
 describe("Postgres Schema Drift's shards", () => {
@@ -143,5 +185,65 @@ describe("Postgres Schema Drift's shards", () => {
     expect(backup).toBeDefined();
     expect(suites.indexOf(backup)).toBeGreaterThan(toolsAt);
     expect(shardOf(suites[toolsAt])).toBe(shardOf(backup));
+  });
+
+  test("a suite the shards share out by name runs each of its tests in exactly one shard", () => {
+    // Each suite file, with the steps that run it.
+    const stepsRunning = new Map();
+
+    for (const step of suites) {
+      for (const file of suiteFilesOf(step)) {
+        stepsRunning.set(file, [...(stepsRunning.get(file) || []), step]);
+      }
+    }
+
+    // Shared out: a step runs only the tests its -t names.
+    const shared = [...stepsRunning].filter(([, steps]) => {
+      return steps.some((step) => {
+        return TEST_NAME_PATTERN.test(String(step.run));
+      });
+    });
+
+    // The probe results burst suite's nine runs take three shards.
+    expect(
+      shared.map(([file, steps]) => {
+        return [file, steps.map(shardOf)];
+      }),
+    ).toContainEqual([
+      "packages/Common/Tests/Server/Utils/Monitor/ProbeResultsBurstPostgres.test.ts",
+      [6, 7, 8],
+    ]);
+
+    const misplaced = [];
+
+    for (const [file, steps] of shared) {
+      // jest matches -t against each test's whole name, in any case; no -t runs them all.
+      const shards = steps.map((step) => {
+        const pattern = TEST_NAME_PATTERN.exec(String(step.run));
+
+        return {
+          shard: shardOf(step),
+          runs: (name) => {
+            return !pattern || new RegExp(pattern[1], "i").test(name);
+          },
+        };
+      });
+
+      for (const name of wholeTestNamesOf(file)) {
+        const runIn = shards
+          .filter((shard) => {
+            return shard.runs(name);
+          })
+          .map((shard) => {
+            return shard.shard;
+          });
+
+        if (runIn.length !== 1) {
+          misplaced.push(`${file}: "${name}" runs in shards [${runIn}]`);
+        }
+      }
+    }
+
+    expect(misplaced).toEqual([]);
   });
 });

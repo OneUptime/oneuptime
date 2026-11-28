@@ -58,7 +58,7 @@ export const loadColorPicker: () => Promise<typeof ColorPicker> = (): Promise<
 export const COLOR_PLACEHOLDER_NO_COLOR_LABEL: string = "No color";
 export const COLOR_PLACEHOLDER_CUSTOM_COLOR_LABEL: string = "Custom color";
 export const COLOR_PLACEHOLDER_PILL_CLASS: string =
-  "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border text-xs font-medium border-gray-300 bg-white text-gray-400";
+  "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border text-xs font-medium border-gray-300 bg-white text-gray-500";
 export const COLOR_PLACEHOLDER_SWATCH_CLASS: string =
   "inline-flex h-7 w-7 shrink-0 items-center rounded-full";
 
@@ -82,7 +82,9 @@ export interface ColorPickerPlaceholderProps extends ComponentProps {
 /*
  * The field's place: in a form, its row of choices - "No color" (ticked while
  * nothing is picked) for a field that may be left empty, a round swatch for
- * each ready color, and "Custom color" - with their words, dimmed, and the
+ * each ready color, and "Custom color" - with their words in the lightest
+ * gray still read at 4.5:1 (gray-500: the field's are darker, and
+ * Tests/UI/ReadableTextContrastGuard.test.ts holds words to it), and the
  * swatches as skeleton circles; as a compact field, its box with its words.
  * The words wrap the same way at any width, and nothing moves when the field
  * arrives.
@@ -108,7 +110,7 @@ export const ColorPickerPlaceholder: FunctionComponent<
   const shape: ReactElement =
     props.layout === "compact" ? (
       <div className="w-full">
-        <div className="flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white py-2 pl-3 pr-2 text-left text-sm text-gray-400">
+        <div className="flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white py-2 pl-3 pr-2 text-left text-sm text-gray-500">
           <span
             className={`h-5 w-5 shrink-0 rounded-full ${skeletonClassName}`}
           />

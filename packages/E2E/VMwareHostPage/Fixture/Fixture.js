@@ -736,6 +736,12 @@ const store = {
   AlertSeverity: [warningAlert],
   OnCallDutyPolicy: [],
   Label: [],
+  /*
+   * The project's VMware health rules (#11157): none, as the server answers
+   * for a project that has not opened VMware > Settings > Health Rules (it
+   * makes the row there), so the host's page judges by the defaults.
+   */
+  VMwareHealthSetting: [],
 };
 
 /*
