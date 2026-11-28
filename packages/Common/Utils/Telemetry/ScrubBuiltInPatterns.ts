@@ -55,16 +55,19 @@ import {
  *    (#10936), and in a percent-encoded URL (#10467);
  *  - Email Address: its own pattern's matches, in the text as written and
  *    with its percent-escapes read - jane.doe%40acmecorp.io in a URL's
- *    query string (#10935) - and every address the email detectors find:
- *    one in any script, 张伟@acmecorp.io or почта@пример.рф (#10960);
+ *    query string (#10935) - and with its fullwidth letters read, an
+ *    address typed in fullwidth, ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ (#11385), and
+ *    every address the email detectors find: one in any script,
+ *    张伟@acmecorp.io or почта@пример.рф (#10960);
  *  - Credit Card Number: its own pattern's matches, in the text as written,
  *    with every script's digits read by their values - a card in
  *    fullwidth, Arabic-Indic or Persian digits (#10960) - in a URL, its
  *    groups apart by %20 or by a "+" as a query string writes a space
  *    (card=4539+1488+0343+6467, #11199), and typed wholly in fullwidth,
  *    its groups apart by fullwidth hyphens or ideographic spaces
- *    (４１１１－１１１１－１１１１－１１１１, #11115), and every card the card
- *    detectors find, an American Express number's 15 digits among them;
+ *    (４１１１－１１１１－１１１１－１１１１, #11115) or by another dash
+ *    (4111–1111–1111–1111, #11385), and every card the card detectors
+ *    find, an American Express number's 15 digits among them;
  *  - Phone Number: its own pattern's matches - North American numbers -
  *    and every phone number the detectors find (#11025, #11030): an
  *    international one, +44 20 7946 0958 or +49 30 123456, in the groups
@@ -76,18 +79,21 @@ import {
  *    it (phone=%2B44+20+7946+0958, #11199), with every script's digits
  *    read, and typed wholly in fullwidth, its plus sign, hyphens,
  *    parentheses and ideographic spaces too (＋８１ ３－１２３４－５６７８,
- *    #11115). What only looks like one is left: an order number, a
- *    timestamp or a time zone's offset, a version, a decimal or a
- *    coordinate (ContactDetectors, isWrittenAsPhoneNumber), and a national
- *    number no word names, "order 02012345678";
+ *    #11115), its groups apart by another dash and the words beside it
+ *    typed in fullwidth (ＴＥＬ ＋８１ ３ー１２３４ー５６７８, #11385). What
+ *    only looks like one is left: an order number, a timestamp or a time
+ *    zone's offset, a version, a decimal or a coordinate (ContactDetectors,
+ *    isWrittenAsPhoneNumber), and a national number no word names, "order
+ *    02012345678";
  *  - SSN: its own pattern's matches, 123-45-6789, and every Social
  *    Security number the detectors find - in its groups set apart by dots
  *    or spaces too, by the SSA's rules, on its own, and as nine digits in a
  *    row beside a word that says SSN, "SSN 536221234" (#11114) - each in
  *    the text as written, with every script's digits read (#11030), in a
  *    URL, ssn=123+45+6789 (#11199), and typed wholly in fullwidth,
- *    ５３６－２２－８７３１ (#11115). Nine digits no word names, "ref
- *    536221234", are left.
+ *    ５３６－２２－８７３１ (#11115), or with another dash between its groups,
+ *    536–22–8731 (#11385). Nine digits no word names, "ref 536221234",
+ *    are left.
  *
  * Each pattern's own matches are kept, so a rule hides everything it hid
  * before. What two readings or the pattern and a detector share is one
@@ -122,14 +128,33 @@ const PHONE_NUMBER_PATTERN: RegExp =
 const SSN_PATTERN: RegExp =
   SCRUB_RULE_BUILT_IN_PATTERNS[LogScrubPatternType.SSN]!;
 
+// The fullwidth commercial at, which an address typed in fullwidth is written with (#11385).
+const FULLWIDTH_AT_SIGN: string = "\uFF20";
+
 /*
- * Where an Email Address rule's matches are: its pattern's, as written and
- * with the text's percent-escapes read, and every address the email
+ * Every reading an email address is read in: as written, with its
+ * percent-escapes read, and with its fullwidth letters read (#11385), as
+ * the email detectors read one.
+ */
+const EVERY_READING_OF_AN_ADDRESS: ReadingNeeds = {
+  readsPercentEncoded: true,
+  readsFullwidthLetters: true,
+};
+
+/*
+ * Where an Email Address rule's matches are: its pattern's, as written,
+ * with the text's percent-escapes read and with its fullwidth letters read
+ * (ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ, #11385), and every address the email
  * detectors find, ranges two of them share made one.
  */
 export function findEmailAddressRanges(text: string): Array<TextRange> {
-  // No "@", and no escape one could be written as (%40): no address.
-  if (!text || (text.indexOf("@") === -1 && text.indexOf("%") === -1)) {
+  // No "@", no escape one could be written as (%40) and no fullwidth one: no address.
+  if (
+    !text ||
+    (text.indexOf("@") === -1 &&
+      text.indexOf("%") === -1 &&
+      text.indexOf(FULLWIDTH_AT_SIGN) === -1)
+  ) {
     return [];
   }
 
@@ -138,7 +163,7 @@ export function findEmailAddressRanges(text: string): Array<TextRange> {
   return mergeRanges([
     ...findInEveryReading({
       text,
-      needs: { readsPercentEncoded: true },
+      needs: EVERY_READING_OF_AN_ADDRESS,
       findIn: (reading: string): Array<TextRange> => {
         return patternRanges(EMAIL_PATTERN, reading);
       },
@@ -151,15 +176,18 @@ export function findEmailAddressRanges(text: string): Array<TextRange> {
 /*
  * Every reading a number is read in: as written, with its percent-escapes
  * read, as a URL's query string reads it (a "+" for a space, #11199), with
- * every script's digits read by their values, and with its fullwidth signs
- * and separators read as ASCII (#11115) - as the card, phone and Social
- * Security number detectors read one (withEveryReading).
+ * every script's digits read by their values, with its fullwidth signs and
+ * separators read as ASCII (#11115) and the other dashes between its
+ * digits as hyphens, and with the fullwidth ASCII block read as ASCII
+ * (#11385) - as the card, phone and Social Security number detectors read
+ * one (withEveryReading).
  */
 const EVERY_READING_OF_A_NUMBER: ReadingNeeds = {
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
   readsPlusAsSpace: true,
   readsFullwidthForms: true,
+  readsFullwidthLetters: true,
 };
 
 /*

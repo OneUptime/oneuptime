@@ -95,21 +95,24 @@ export function readHashedUserPair(data: {
 
   /*
    * As written, or as an Email Address Hash rule reads what it hides: an
-   * address in a percent-encoded URL is the address it reads as, and its
-   * token that address's (ScrubAction.asItReads, #10935) - or as a Custom
-   * Regex Hash rule reads a match it found only with its "+"s read as the
-   * spaces a query string writes them for (readScrubMatch, #11199). Or as
+   * address in a percent-encoded URL, or typed in fullwidth, is the address
+   * it reads as, and its token that address's (ScrubAction.asItReads,
+   * #10935, #11385) - or as a Custom Regex Hash rule reads a match it
+   * found only with its "+"s read as the spaces a query string writes them
+   * for (readScrubMatch, #11199). Or as
    * a Phone Number, SSN or Credit Card Hash rule reads a number, and a
    * Custom Regex one its match: in another script's digits, or typed wholly
-   * in fullwidth, its signs and separators too (#11033, #11115) - a user
-   * signed in by the phone number ＋８１ ３－１２３４－５６７８ has the token of
-   * +81 3-1234-5678. The user kept is the value the token was made of.
+   * in fullwidth, its signs and separators too (#11033, #11115), or with
+   * another dash between its groups (#11385) - a user signed in by the
+   * phone number ＋８１ ３－１２３４－５６７８ has the token of +81 3-1234-5678.
+   * The user kept is the value the token was made of.
    */
   const spaced: string = PlusAsSpaceText.readableOf(hidden);
 
   for (const value of new Set<string>([
     hidden,
     PercentDecodedText.readableOf(hidden),
+    ScrubAction.asItReads(hidden, LogScrubPatternType.Email),
     spaced,
     ScrubAction.asItReads(hidden, LogScrubPatternType.PhoneNumber),
     ScrubAction.asItReads(hidden, LogScrubPatternType.Custom),

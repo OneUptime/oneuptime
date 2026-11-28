@@ -6,7 +6,7 @@ import {
   matchesFieldShape,
 } from "./Detector";
 import { readDigitsOfEveryScript } from "./DigitReadings";
-import { readFullwidthForms } from "./FullwidthForms";
+import { readFullwidthForms, readFullwidthLetters } from "./FullwidthForms";
 import PercentDecodedText from "./PercentDecodedText";
 import PlusAsSpaceText from "./PlusAsSpaceText";
 
@@ -28,9 +28,14 @@ import PlusAsSpaceText from "./PlusAsSpaceText";
  * each of those with a number's fullwidth signs and separators read as
  * their ASCII characters, as Japanese and Chinese text types one
  * (readsFullwidthForms, #11115: ＋８１ ３－１２３４－５６７８,
- * FullwidthForms) - with every script's digits read in that too. A match
- * found in a reading is placed on the characters the text writes it with,
- * so what it finds - and what a scrub rule hides - is the value as
+ * FullwidthForms), and the other dashes between two of its digits read as
+ * hyphens (#11385: ０３ー１２３４ー５６７８, 536–22–8731) - with every
+ * script's digits read in that too. A detector of a value with letters,
+ * and of a number typed in fullwidth for its words, also reads each of
+ * those with the fullwidth ASCII block read as ASCII (readsFullwidthLetters,
+ * #11385: ＤＥ８９　３７０４…, ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ, ＴＥＬ). A
+ * match found in a reading is placed on the characters the text writes it
+ * with, so what it finds - and what a scrub rule hides - is the value as
  * written, escapes and "+"s and fullwidth forms and all.
  *
  * Data Security's scanner (TextScanner.ts) reads each window so, for the
@@ -69,6 +74,7 @@ export interface ReadingNeeds {
   readsDigitsOfEveryScript?: boolean | undefined;
   readsPlusAsSpace?: boolean | undefined;
   readsFullwidthForms?: boolean | undefined;
+  readsFullwidthLetters?: boolean | undefined;
 }
 
 function samePosition(position: number): number {
@@ -99,6 +105,9 @@ export class TextReadings {
   // The digit readings of each fullwidth reading.
   private readonly fullwidthDigitsOf: Map<TextReading, Array<TextReading>> =
     new Map<TextReading, Array<TextReading>>();
+  // Each reading's fullwidth letters' reading (FullwidthForms), or null for none.
+  private readonly fullwidthLettersOf: Map<TextReading, TextReading | null> =
+    new Map<TextReading, TextReading | null>();
   // Each reading in lower case, made the first time its words are read.
   private readonly lowerCase: Map<TextReading, string> = new Map<
     TextReading,
@@ -148,6 +157,28 @@ export class TextReadings {
   // The text as written with its fullwidth forms read, or null (getFullwidthFormsOf).
   public getFullwidthForms(): TextReading | null {
     return this.getFullwidthFormsOf(this.written);
+  }
+
+  /*
+   * A reading of the text - as written, with its escapes read, or as a
+   * query string reads it - with the fullwidth ASCII block read as ASCII,
+   * as NFKC folds it (FullwidthForms, #11385): ＤＥ８９　３７０４ as
+   * DE89 3704, ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ as jane@example.com, ＴＥＬ as
+   * TEL. Null when the reading holds no value typed in fullwidth letters.
+   * As long as the reading it folds, so placed as that one places it.
+   */
+  public getFullwidthLettersOf(base: TextReading): TextReading | null {
+    let folded: TextReading | null | undefined =
+      this.fullwidthLettersOf.get(base);
+
+    if (folded === undefined) {
+      const text: string | null = readFullwidthLetters(base.text);
+
+      folded = text === null ? null : { text, toWritten: base.toWritten };
+      this.fullwidthLettersOf.set(base, folded);
+    }
+
+    return folded;
   }
 
   /*
@@ -333,14 +364,41 @@ export class TextReadings {
     return readings;
   }
 
+  // The fullwidth letters' readings of the base readings, for a detector that asks (#11385).
+  private fullwidthLettersReadingsFor(
+    needs: ReadingNeeds,
+    bases: ReadonlyArray<TextReading>,
+  ): Array<TextReading> {
+    const readings: Array<TextReading> = [];
+
+    if (!needs.readsFullwidthLetters) {
+      return readings;
+    }
+
+    for (const base of bases) {
+      const folded: TextReading | null = this.getFullwidthLettersOf(base);
+
+      if (folded) {
+        readings.push(folded);
+      }
+    }
+
+    return readings;
+  }
+
   /*
    * Every reading a detector reads, the text as written first, and the
-   * fullwidth ones last, so a detector that does not read them reads what
-   * it always has, in the order it always has.
+   * fullwidth ones last - the fullwidth letters' last of all - so a
+   * detector that does not read them reads what it always has, in the
+   * order it always has.
    */
   public readingsFor(needs: ReadingNeeds): Array<TextReading> {
     const readings: Array<TextReading> = this.baseReadingsFor(needs);
     const folded: Array<TextReading> = this.fullwidthReadingsFor(
+      needs,
+      readings,
+    );
+    const lettersFolded: Array<TextReading> = this.fullwidthLettersReadingsFor(
       needs,
       readings,
     );
@@ -373,6 +431,10 @@ export class TextReadings {
           readings.push(digits);
         }
       }
+    }
+
+    for (const reading of lettersFolded) {
+      readings.push(reading);
     }
 
     return readings;
@@ -412,11 +474,15 @@ export class TextReadings {
     const decodedFoldedDigits: Array<TextReading> = decodedFolded
       ? this.fullwidthDigitsOf.get(decodedFolded) || []
       : [];
+    const decodedLetters: TextReading | null = decoded
+      ? this.fullwidthLettersOf.get(decoded) ?? null
+      : null;
 
     return readings.filter((reading: TextReading): boolean => {
       return (
         reading !== decoded &&
         reading !== decodedFolded &&
+        reading !== decodedLetters &&
         !decodedDigits.includes(reading) &&
         !decodedFoldedDigits.includes(reading)
       );
@@ -427,7 +493,8 @@ export class TextReadings {
    * The readings that read a text's words differently, of those a
    * detector reads: as written, with its escapes read, as a query string
    * reads it, and each of those with its fullwidth forms read - an
-   * ideographic space between two words is a space (#11115) - for a
+   * ideographic space between two words is a space (#11115) - and with
+   * its fullwidth letters read - ＴＥＬ is the word tel (#11385) - for a
    * detector that reads them; every script's digits change no word. Where
    * the words a candidate needs around it are looked for: date%20of%20birth
    * and date+of+birth are the words date of birth (#11199).
@@ -437,6 +504,7 @@ export class TextReadings {
       readsPercentEncoded: needs.readsPercentEncoded,
       readsPlusAsSpace: needs.readsPlusAsSpace,
       readsFullwidthForms: needs.readsFullwidthForms,
+      readsFullwidthLetters: needs.readsFullwidthLetters,
     });
   }
 }

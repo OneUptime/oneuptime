@@ -11,6 +11,7 @@ import {
 import {
   foldFullwidthForms,
   holdsFullwidthFormOfANumber,
+  holdsFullwidthLettersOfAValue,
 } from "../../Utils/DataSecurity/FullwidthForms";
 import PercentDecodedText from "../../Utils/DataSecurity/PercentDecodedText";
 import PlusAsSpaceText from "../../Utils/DataSecurity/PlusAsSpaceText";
@@ -577,26 +578,34 @@ export function getRegexSyntaxErrorReason(error: unknown): string {
   return message.replace(REGEX_SYNTAX_ERROR_PREFIX, "").trim() || message;
 }
 
-// The readings a custom pattern runs in beside the text as written.
-const CUSTOM_PATTERN_READINGS: ReadingNeeds = {
+/*
+ * The readings a custom pattern runs in beside the text as written - and
+ * a metric pipeline rule's Matches Regex filter, where the rule hides what
+ * it matches (Server/Utils/Telemetry/MetricPipelineEngine): every reading
+ * Data Security's detectors read a value in.
+ */
+export const CUSTOM_PATTERN_READINGS: ReadingNeeds = {
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
   readsPlusAsSpace: true,
   readsFullwidthForms: true,
+  readsFullwidthLetters: true,
 };
 
 /*
  * Whether a text may read otherwise than as written, in a way a custom
- * pattern reads it: an escape, a "+", a digit beyond ASCII, or a number's
- * fullwidth sign or separator. Nearly no text does, and is read as
- * written alone.
+ * pattern reads it: an escape, a "+", a digit beyond ASCII, a number's
+ * fullwidth sign or separator or another dash between two digits, or some
+ * of a value typed in fullwidth letters. Nearly no text does, and is read
+ * as written alone.
  */
 export function mayReadOtherwise(text: string): boolean {
   return (
     text.indexOf("%") !== -1 ||
     text.indexOf("+") !== -1 ||
     hasDigitBeyondAscii(text) ||
-    holdsFullwidthFormOfANumber(text)
+    holdsFullwidthFormOfANumber(text) ||
+    holdsFullwidthLettersOfAValue(text)
   );
 }
 
@@ -617,16 +626,20 @@ export function mayReadOtherwise(text: string): boolean {
  * script's digits read by their values, so an IBAN or a national ID
  * number in Arabic-Indic or fullwidth digits is; and with a number's
  * fullwidth signs and separators read as ASCII, so a CPF typed wholly in
- * fullwidth, ４７１．３９２．８６５－８２, is too (#11115). Each match is
- * placed on the characters the text writes it with, escapes and "+"s and
- * fullwidth forms and all, and what two readings share is one match. So a
- * finding the detectors make in a reading, the rule made from their
- * patterns hides there.
+ * fullwidth, ４７１．３９２．８６５－８２, is too (#11115), and one whose
+ * groups are set apart by another dash, 471.392.865–82; and with the
+ * fullwidth ASCII block read as ASCII, so an IBAN typed in fullwidth
+ * letters, ＧＢ８２　ＷＥＳＴ　…, is too (#11385). Each match is placed on the
+ * characters the text writes it with, escapes and "+"s and fullwidth forms
+ * and all, and what two readings share is one match. So a finding the
+ * detectors make in a reading, the rule made from their patterns hides
+ * there.
  *
- * A text with no escape, no "+", no digit beyond ASCII and no fullwidth
- * form beside a digit - nearly every one - has no other reading, and is
- * read exactly as before (mayReadOtherwise). A match of no text in
- * another reading hides nothing, and is left out.
+ * A text with no escape, no "+", no digit beyond ASCII, no fullwidth form
+ * beside a digit, no other dash between two and no value typed in
+ * fullwidth letters - nearly every one - has no other reading, and is read
+ * exactly as before (mayReadOtherwise). A match of no text in another
+ * reading hides nothing, and is left out.
  */
 class ReadingsScrubRegExp implements ScrubRegExp {
   public readonly source: string;

@@ -165,8 +165,10 @@ function replaceRanges(
  * one: in a percent-encoded URL too, its escapes read
  * (jane.doe%40acmecorp.io, #10935), and in any script (张伟@acmecorp.io,
  * почта@пример.рф, #10960), as the email detectors find it - each hidden
- * as written, and the rest of the URL kept. An address written in ASCII
- * alone is this pattern's, so the search syntax keeps its "-@".
+ * as written, and the rest of the URL kept - and typed in fullwidth
+ * (ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ, #11385), its fullwidth letters read as
+ * ASCII. An address written in ASCII alone is this pattern's, so the
+ * search syntax keeps its "-@".
  */
 const SERIALIZER_EMAIL_PATTERN: RegExp =
   /[A-Za-z0-9_%+][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}/g;
@@ -189,7 +191,11 @@ const redactEmailAddresses: (
   text: string,
   placeholder: string,
 ): { text: string; count: number } => {
-  if (text.indexOf("@") === -1 && text.indexOf("%") === -1) {
+  if (
+    text.indexOf("@") === -1 &&
+    text.indexOf("%") === -1 &&
+    text.indexOf("\uFF20") === -1
+  ) {
     return { text, count: 0 };
   }
 
@@ -205,7 +211,7 @@ const redactEmailAddresses: (
     mergeRanges([
       ...findInEveryReading({
         text,
-        needs: { readsPercentEncoded: true },
+        needs: { readsPercentEncoded: true, readsFullwidthLetters: true },
         findIn: (reading: string): Array<TextRange> => {
           return scrubRegExpFromBuiltIn(SERIALIZER_EMAIL_PATTERN).matchRanges(
             reading,
@@ -229,7 +235,8 @@ const redactEmailAddresses: (
  * card=4111+1111+1111+1111 as a query string writes its spaces. And typed
  * wholly in fullwidth, as Data Security reads one too (#11115): its groups
  * apart by fullwidth hyphens or ideographic spaces,
- * ４１１１－１１１１－１１１１－１１１１.
+ * ４１１１－１１１１－１１１１－１１１１ - or by another dash, as Data Security
+ * reads one since #11385: 4111–1111–1111–1111, ４１１１ー１１１１ー….
  */
 const SERIALIZER_CARD_PATTERN: RegExp = /\b\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{4}\b/g;
 
@@ -249,6 +256,7 @@ const redactCardNumbers: (
         readsPercentEncoded: true,
         readsPlusAsSpace: true,
         readsFullwidthForms: true,
+        readsFullwidthLetters: true,
       },
       findIn: (reading: string): Array<TextRange> => {
         return scrubRegExpFromBuiltIn(SERIALIZER_CARD_PATTERN).matchRanges(
