@@ -68150,5 +68150,11 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "이 기준보다 앞에 있는 \"{{criteria}}\"가 같은 항목을 검사하며 이 시리즈({{series}})에도 일치했으므로 이 시리즈의 경고 생성을 건너뛰었습니다. 같은 검사의 두 단계에 든 시리즈는 첫 번째 단계에서 경고를 하나만 받습니다.",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "이 기준보다 앞에 있는 \"{{criteria}}\"가 같은 항목을 검사하며 함께 일치했으므로 인시던트 생성을 건너뛰었습니다. 같은 검사의 두 단계는 첫 번째 단계에서 인시던트를 하나만 엽니다.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "이 기준보다 앞에 있는 \"{{criteria}}\"가 같은 항목을 검사하며 이 시리즈({{series}})에도 일치했으므로 이 시리즈의 인시던트 생성을 건너뛰었습니다. 같은 검사의 두 단계에 든 시리즈는 첫 번째 단계에서 인시던트를 하나만 받습니다.",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}}이(가) 이 모니터를 해당 상태로 설정하므로 이제부터 가동률, 상태 페이지, SLO가 모니터의 시간을 다시 계산합니다."
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}}이(가) 이 모니터를 해당 상태로 설정하므로 이제부터 가동률, 상태 페이지, SLO가 모니터의 시간을 다시 계산합니다.",
+  "Monitoring several clouds": "여러 클라우드 모니터링",
+  "Monitoring several clusters": "여러 클러스터 모니터링",
+  "Monitoring several vCenters": "여러 vCenter 모니터링",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "클라우드당 에이전트 하나를 사용하며, 각 에이전트는 전용 폴더에 고유한 컨테이너 이름을 가집니다.",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "클러스터당 에이전트 하나를 사용하며, 각 에이전트는 전용 폴더에 고유한 컨테이너 이름을 가집니다.",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "vCenter당 에이전트 하나를 사용하며, 각 에이전트는 전용 폴더에 고유한 컨테이너 이름을 가집니다."
 }

@@ -68150,5 +68150,11 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "Hoppade över att skapa ett larm för den här serien ({{series}}) eftersom ”{{criteria}}”, som står före det här kriteriet, kontrollerar samma sak och också träffade den. En serie i två nivåer av samma kontroll får ett larm, från den första.",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "Hoppade över att skapa en incident eftersom ”{{criteria}}”, som står före det här kriteriet, kontrollerar samma sak och också träffade. Två nivåer av samma kontroll öppnar en incident, från den första.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "Hoppade över att skapa en incident för den här serien ({{series}}) eftersom ”{{criteria}}”, som står före det här kriteriet, kontrollerar samma sak och också träffade den. En serie i två nivåer av samma kontroll får en incident, från den första.",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} sätter den här monitorn i sin status, så drifttid, statussidor och SLO:er räknar in monitorns tid igen härifrån."
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} sätter den här monitorn i sin status, så drifttid, statussidor och SLO:er räknar in monitorns tid igen härifrån.",
+  "Monitoring several clouds": "Övervaka flera moln",
+  "Monitoring several clusters": "Övervaka flera kluster",
+  "Monitoring several vCenters": "Övervaka flera vCenter",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "En agent per moln, var och en i en egen mapp med egna containernamn.",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "En agent per kluster, var och en i en egen mapp med egna containernamn.",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "En agent per vCenter, var och en i en egen mapp med egna containernamn."
 }

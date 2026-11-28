@@ -68150,5 +68150,11 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "已跳过为此序列（{{series}}）创建警报，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也与它匹配。处于同一检查两个级别的序列只会收到一条警报，来自第一个级别。",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "已跳过创建事件，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也同样匹配。同一检查的两个级别只会打开一个事件，来自第一个级别。",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "已跳过为此序列（{{series}}）创建事件，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也与它匹配。处于同一检查两个级别的序列只会收到一个事件，来自第一个级别。",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 将此监视器置于其状态，因此从此时起，正常运行时间、状态页和 SLO 重新计入此监视器的时间。"
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 将此监视器置于其状态，因此从此时起，正常运行时间、状态页和 SLO 重新计入此监视器的时间。",
+  "Monitoring several clouds": "监控多个云",
+  "Monitoring several clusters": "监控多个集群",
+  "Monitoring several vCenters": "监控多个 vCenter",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "每个云一个代理，各自使用独立的文件夹和容器名称。",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "每个集群一个代理，各自使用独立的文件夹和容器名称。",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "每个 vCenter 一个代理，各自使用独立的文件夹和容器名称。"
 }

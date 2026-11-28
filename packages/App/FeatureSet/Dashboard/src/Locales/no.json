@@ -68150,5 +68150,11 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "Hoppet over oppretting av varsel for denne serien ({{series}}) fordi «{{criteria}}», som står før dette kriteriet, sjekker det samme og også traff den. En serie i to nivåer av samme sjekk får ett varsel, fra det første.",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "Hoppet over oppretting av hendelse fordi «{{criteria}}», som står før dette kriteriet, sjekker det samme og også traff. To nivåer av samme sjekk åpner én hendelse, fra det første.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "Hoppet over oppretting av hendelse for denne serien ({{series}}) fordi «{{criteria}}», som står før dette kriteriet, sjekker det samme og også traff den. En serie i to nivåer av samme sjekk får én hendelse, fra det første.",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} setter denne monitoren i sin status, så oppetid, statussider og SLO-er tar med monitorens tid igjen herfra."
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} setter denne monitoren i sin status, så oppetid, statussider og SLO-er tar med monitorens tid igjen herfra.",
+  "Monitoring several clouds": "Overvåke flere skyer",
+  "Monitoring several clusters": "Overvåke flere klynger",
+  "Monitoring several vCenters": "Overvåke flere vCenter",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "Én agent per sky, hver i sin egen mappe med sine egne containernavn.",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "Én agent per klynge, hver i sin egen mappe med sine egne containernavn.",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "Én agent per vCenter, hver i sin egen mappe med sine egne containernavn."
 }

@@ -68150,5 +68150,11 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "この系列（{{series}}）のアラートは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、この系列にも一致したためです。同じチェックの 2 つの段階に入った系列には、最初の段階からアラートが 1 件だけ作成されます。",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "インシデントは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、これにも一致したためです。同じチェックの 2 つの段階では、最初の段階からインシデントが 1 件だけ作成されます。",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "この系列（{{series}}）のインシデントは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、この系列にも一致したためです。同じチェックの 2 つの段階に入った系列には、最初の段階からインシデントが 1 件だけ作成されます。",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} がこのモニターをそのステータスにしているため、ここから、モニターの時間は再び稼働率、ステータスページ、SLO の計算に含まれます。"
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} がこのモニターをそのステータスにしているため、ここから、モニターの時間は再び稼働率、ステータスページ、SLO の計算に含まれます。",
+  "Monitoring several clouds": "複数のクラウドを監視する",
+  "Monitoring several clusters": "複数のクラスターを監視する",
+  "Monitoring several vCenters": "複数の vCenter を監視する",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "クラウドごとに 1 つのエージェントを使い、それぞれを専用のフォルダーに専用のコンテナー名で置きます。",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "クラスターごとに 1 つのエージェントを使い、それぞれを専用のフォルダーに専用のコンテナー名で置きます。",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "vCenter ごとに 1 つのエージェントを使い、それぞれを専用のフォルダーに専用のコンテナー名で置きます。"
 }
