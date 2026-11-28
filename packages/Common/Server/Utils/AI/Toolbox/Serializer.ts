@@ -1,7 +1,13 @@
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import { scrubRegExpFromBuiltIn } from "../../../../Types/Telemetry/ScrubRule";
 import PromptText from "../../../../Utils/AI/PromptText";
-import { EMAIL_ADDRESS_DETECTORS } from "../../../../Utils/DataSecurity/Detectors/ContactDetectors";
+import { DataTypeDetector } from "../../../../Utils/DataSecurity/Detector";
+import {
+  EMAIL_ADDRESS_DETECTORS,
+  PHONE_NUMBER_DETECTORS,
+} from "../../../../Utils/DataSecurity/Detectors/ContactDetectors";
+import { US_SSN_DETECTORS } from "../../../../Utils/DataSecurity/Detectors/GovernmentIdDetectors";
+import { digitZeroOf } from "../../../../Utils/DataSecurity/DigitReadings";
 import PercentDecodedText from "../../../../Utils/DataSecurity/PercentDecodedText";
 import {
   findDetectorRanges,
@@ -10,6 +16,7 @@ import {
   TextRange,
 } from "../../../../Utils/DataSecurity/TextReadings";
 import { replacePrivateKeyBlocks } from "../../../../Utils/PrivateKeyBlocks";
+import { getHintsOfKey } from "../../../../Utils/Telemetry/ScrubBuiltInPatterns";
 import ScrubIpAddress, {
   ScrubIpAddressRange,
 } from "../../../../Utils/Telemetry/ScrubIpAddress";
@@ -63,9 +70,14 @@ type RedactionRule =
   | {
       name: string;
       placeholder: string;
+      /*
+       * `field`: the name of the field the text is the value of, when it
+       * is one - a row's column (RedactionOptions.field).
+       */
       redact: (
         text: string,
         placeholder: string,
+        field?: string | undefined,
       ) => { text: string; count: number };
     };
 
@@ -249,6 +261,74 @@ const redactCardNumbers: (
 };
 
 /*
+ * THE PHONE NUMBERS AND SOCIAL SECURITY NUMBERS A MODEL IS NEVER SHOWN:
+ * WHAT DATA SECURITY'S OWN DETECTORS FIND (#11384).
+ *
+ * A tool result is a log line, a span's attributes, a row of a query, and
+ * a customer's phone number or Social Security number in one reached the
+ * model's provider and AI Logs as it was - though Data Security calls the
+ * SSN Restricted. Both are found here as Data Security finds them, by its
+ * own detectors (PHONE_NUMBER_DETECTORS, US_SSN_DETECTORS) through the one
+ * function every rule built on them finds with (findDetectorRanges):
+ *
+ *  - hidden: an international number in the groups people write it in
+ *    (+44 20 7946 0958), a North American one as people write it
+ *    ((415) 555-2671), a UK mobile (07700 900123), and a national number of
+ *    9 to 12 digits beside a word that names it ("tel 02012345678"); an SSN
+ *    in its groups (536-22-8731), and as nine digits in a row beside a word
+ *    that says SSN ("SSN 536221234"). In every reading Data Security reads
+ *    them in - a URL's escapes and "+"s, every script's digits, typed in
+ *    fullwidth - and in a row's field with the field's name for the word
+ *    they need (`phone`, `ssn`), as a scrub rule reads a value under its
+ *    key (#11383);
+ *  - kept: what Data Security calls neither - a run of digits no word
+ *    names, which a tool result is full of and a model needs: a Unix time
+ *    (1732752000), a span or trace id, an order number, a duration, a port.
+ *    Not the Phone Number rule's own pattern, which takes any ten digits:
+ *    it would hide those too, as the card rule below leaves a span id's
+ *    sixteen digits alone.
+ *
+ * In time in line with the text's length: each detector is bounded, and
+ * one that needs its words looks for them only around its candidates.
+ */
+function redactFoundBy(
+  detectors: ReadonlyArray<DataTypeDetector>,
+): (
+  text: string,
+  placeholder: string,
+  field?: string | undefined,
+) => { text: string; count: number } {
+  return (
+    text: string,
+    placeholder: string,
+    field?: string | undefined,
+  ): { text: string; count: number } => {
+    if (!hasAnyDigit(text)) {
+      return { text, count: 0 };
+    }
+
+    return replaceRanges(
+      text,
+      findDetectorRanges(detectors, text, undefined, {
+        hintedDataTypeIds: field ? getHintsOfKey(field) : undefined,
+      }),
+      placeholder,
+    );
+  };
+}
+
+// Whether a text holds a digit of any script: what every phone and SSN detector needs.
+function hasAnyDigit(text: string): boolean {
+  for (let index: number = 0; index < text.length; index++) {
+    if (digitZeroOf(text.charCodeAt(index)) >= 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/*
  * These are security redactions, not the fingerprint-normalization regexes
  * (those normalize numbers/uuids for grouping and do not cover credentials).
  */
@@ -341,6 +421,18 @@ const REDACTION_RULES: Array<RedactionRule> = [
     redact: redactCardNumbers,
   },
   {
+    // Phone numbers, as Data Security's phone detectors find them: see redactFoundBy.
+    name: "phone-number",
+    placeholder: "[redacted-phone]",
+    redact: redactFoundBy(PHONE_NUMBER_DETECTORS),
+  },
+  {
+    // US Social Security numbers, as Data Security's SSN detectors find them.
+    name: "us-ssn",
+    placeholder: "[redacted-ssn]",
+    redact: redactFoundBy(US_SSN_DETECTORS),
+  },
+  {
     /*
      * Long hex blobs are usually secrets (SHA-256 digests, 40+ char API
      * keys). But W3C/OTel trace IDs are exactly 32 hex chars and span IDs
@@ -393,34 +485,53 @@ export interface SerializedResult {
  * security work is about. A triage cannot judge "a sign-in from
  * 203.0.113.7" when it reads "a sign-in from [redacted-ip]", nor look a
  * file's SHA-256 up in threat intel when the digest reads [redacted-hex].
- * An IPv6 address is kept as an IPv4 one is (#10417). Secrets - tokens,
- * keys, private keys, card numbers, "password=..." - are redacted in a
- * security result as in every other.
+ * An IPv6 address is kept as an IPv4 one is (#10417). A phone number is
+ * kept as an email address is (#11384): an account signs in by one, a
+ * one-time code is sent to one, and a burst of texts to one country's
+ * numbers is the attack - Confidential data that names the account or the
+ * target a security question is about. Secrets - tokens, keys, private
+ * keys, card numbers, "password=..." - and a Social Security number,
+ * which is Restricted and names no account a sign-in uses, are redacted in
+ * a security result as in every other.
  */
 export const SECURITY_OBSERVABLE_RULE_NAMES: ReadonlyArray<string> = [
   "email",
   "ip-address",
+  "phone-number",
   "hex-secret",
 ];
 
 export interface RedactionOptions {
   /*
-   * Keep IP addresses (IPv4 and IPv6), email addresses and long hex
-   * digests (file hashes): for the security tools, whose results are those
-   * observables (SecurityEventTools, SecurityCaseTools) and the security
-   * case triage's context.
+   * Keep IP addresses (IPv4 and IPv6), email addresses, phone numbers and
+   * long hex digests (file hashes): for the security tools, whose results
+   * are those observables (SecurityEventTools, SecurityCaseTools) and the
+   * security case triage's context.
    */
   keepSecurityObservables?: boolean | undefined;
+  /*
+   * The name of the field the text is the value of: a row's column
+   * (serializeRows). A phone number or a Social Security number needs no
+   * word beside it under a name that names it - 02012345678 as a row's
+   * `phone`, 536221234 as its `ssn` - as Data Security reads a field and a
+   * scrub rule reads a value under its key (#11383, #11384).
+   */
+  field?: string | undefined;
 }
 
 export default class ToolResultSerializer {
-  // Single pass per rule: count and substitute ($1/$2 groups) together.
+  /*
+   * Single pass per rule: count and substitute ($1/$2 groups) together.
+   * `field`: the name of the field the text is the value of
+   * (RedactionOptions.field).
+   */
   private static applyRedactionRule(
     text: string,
     rule: RedactionRule,
+    field?: string | undefined,
   ): { text: string; count: number } {
     if ("redact" in rule) {
-      return rule.redact(text, rule.placeholder);
+      return rule.redact(text, rule.placeholder, field);
     }
 
     let count: number = 0;
@@ -505,6 +616,7 @@ export default class ToolResultSerializer {
       const applied: { text: string; count: number } = this.applyRedactionRule(
         redacted,
         rule,
+        options?.field,
       );
       redacted = applied.text;
       count += applied.count;
@@ -602,8 +714,9 @@ export default class ToolResultSerializer {
           continue;
         }
 
+        // Read as the row's field it is: its name is the words a value may need (#11384).
         const redacted: { text: string; count: number } =
-          this.redactAndOmitEmbeddedData(rawValue, options);
+          this.redactAndOmitEmbeddedData(rawValue, { ...options, field: key });
         redactionCount += redacted.count;
 
         const truncated: { value: string; truncated: boolean } =
