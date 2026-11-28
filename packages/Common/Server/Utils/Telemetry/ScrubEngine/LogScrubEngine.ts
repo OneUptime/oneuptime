@@ -55,6 +55,13 @@ export interface LogScrubOptions {
   // Count the values each rule changed: ingest does, a proof does not.
   countValues?: boolean | undefined;
   /*
+   * The version the values are counted under, for a record that keeps its
+   * version outside its attributes: a session's tags are counted under the
+   * session's app version (#11458), the version a fix watch reads sessions
+   * in. Read from the record's attributes otherwise.
+   */
+  serviceVersion?: string | undefined;
+  /*
    * Told what the rules did to a line, for Security Events' user vault
    * (#10632): passed by ingest only for a batch whose logs Security Events
    * reads and whose rules hash (SecurityUserVaultWriter.startBatch).
@@ -547,6 +554,7 @@ export default class LogScrubEngine {
         signal: "log",
         projectId: compiledRules[0]?.rule.projectId,
         record: logRow,
+        serviceVersion: options?.serviceVersion,
       });
     }
 
