@@ -143,6 +143,8 @@ const HELD_TO_THEIR_OWN_READ_THROUGH_RELATIONS: ReadonlyArray<string> = [
   "DataStore.tableHealthCollectedAt",
   "DataStore.tableHealthStatus",
   "NetworkDevice.snmpV3ContextName",
+  // An on-call policy's incident role, read through what names the policy.
+  "OnCallDutyPolicy.incidentRoleId",
   "Probe.snmpTrapReceiver",
 ];
 
