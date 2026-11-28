@@ -1,5 +1,10 @@
 import { anyWordIn, anyWordNear } from "./ContextWords";
-import { CONTEXT_AFTER, CONTEXT_BEFORE, DataTypeDetector } from "./Detector";
+import {
+  CONTEXT_AFTER,
+  CONTEXT_BEFORE,
+  DataTypeDetector,
+  matchesFieldShape,
+} from "./Detector";
 import { readDigitsOfEveryScript } from "./DigitReadings";
 import { readFullwidthForms } from "./FullwidthForms";
 import PercentDecodedText from "./PercentDecodedText";
@@ -37,9 +42,11 @@ import PlusAsSpaceText from "./PlusAsSpaceText";
  * those (Server/Utils/Telemetry/MetricPipelineEngine.ts). A detector whose
  * type is one only beside its words (requiresContext: a national phone
  * number, nine digits beside "SSN", #11114) finds a value there only with
- * one of its words near it, as the scanner judges it (isWordNear). So a
- * finding and the rule that covers it read a text the same ways, in every
- * place a rule runs.
+ * one of its words near it, as the scanner judges it (isWordNear) - or, in
+ * a value under a key whose name hints the type (user.phone, customer.ssn,
+ * #11383), with the key's name for that word, as the scanner counts a
+ * field's name. So a finding and the rule that covers it read a text the
+ * same ways, in every place a rule runs.
  *
  * Each reading is made the first time a detector asks for it, once a text,
  * in one pass (PercentDecodedText, PlusAsSpaceText, DigitReadings,
@@ -697,6 +704,30 @@ export function isWordNear(data: {
   );
 }
 
+// How a rule built on the detectors reads the text it is handed.
+export interface DetectorRangeOptions {
+  /*
+   * The data types the name of the field the text is the value of hints
+   * at (FieldNameHints.getHintedDataTypeIds): an attribute's key, user.phone
+   * or customer.ssn, as Data Security's scan counts a field's name
+   * (TextScanOptions.hintedDataTypeIds, #11383). None when the text is no
+   * field's value: a log's body, a span's name.
+   */
+  hintedDataTypeIds?: ReadonlySet<string> | undefined;
+}
+
+/*
+ * Where a text's value starts and ends without the white space around it,
+ * as a field's value is read whole (FieldClassifier's toScannableValue
+ * trims it) - or null for a text of white space alone.
+ */
+function trimmedRange(text: string): TextRange | null {
+  const start: number = text.length - text.trimStart().length;
+  const end: number = text.trimEnd().length;
+
+  return end > start ? [start, end] : null;
+}
+
 /*
  * THE ONE FUNCTION A RULE BUILT ON THE DETECTORS FINDS ITS MATCHES WITH.
  *
@@ -710,25 +741,47 @@ export function isWordNear(data: {
  * the scanner judges it (isWordNear, #11114): a national phone number of
  * no other shape beside "tel", nine digits in a row beside "SSN". So a rule
  * hides what Data Security finds in the value it reads, words and all, and
- * never a run of digits no word names. The field's name the scanner also
- * counts as a word (hintedDataTypeIds) is not the value's, and a rule
- * reads the value alone.
+ * never a run of digits no word names.
+ *
+ * And a text that is a field's value is read as Data Security reads that
+ * field (#11383): where the field's name hints the type
+ * (options.hintedDataTypeIds) - a national number alone under
+ * `user.phone`, nine digits under `customer.ssn` - the name is the word
+ * every candidate of the type needs, as the scanner counts it
+ * (TextScanner.scanWindow); and when no detector of the type finds
+ * anything in it, the whole value - its white space around it aside - is
+ * the type's when it has the shape the type takes in such a field and
+ * passes its validator (fieldValuePattern, matchesFieldShape, as
+ * FieldClassifier judges it): "020 1234 5678" under `user.phone`.
  */
 export function findDetectorRanges(
   detectors: ReadonlyArray<DataTypeDetector>,
   text: string,
   // The text's readings, when another finder reads them too.
   readingsOfText?: TextReadings | undefined,
+  options?: DetectorRangeOptions | undefined,
 ): Array<TextRange> {
   if (!text) {
     return [];
   }
 
   const readings: TextReadings = readingsOfText || new TextReadings(text);
+  const hintedDataTypeIds: ReadonlySet<string> | undefined =
+    options?.hintedDataTypeIds;
   const found: Array<TextRange> = [];
+  // The types a detector found a value of in the text.
+  const typesFound: Set<string> = new Set<string>();
 
   for (const detector of detectors) {
-    if (detector.requiresContext && !holdsWordsOf(readings, detector)) {
+    const hinted: boolean = Boolean(
+      hintedDataTypeIds?.has(detector.dataTypeId),
+    );
+
+    if (
+      detector.requiresContext &&
+      !hinted &&
+      !holdsWordsOf(readings, detector)
+    ) {
       continue;
     }
 
@@ -742,6 +795,7 @@ export function findDetectorRanges(
         if (
           isGluedToAnEscape(detector, text, writtenStart, writtenEnd) ||
           (detector.requiresContext &&
+            !hinted &&
             !isWordNear({
               readings,
               reading,
@@ -756,7 +810,27 @@ export function findDetectorRanges(
         }
 
         found.push([writtenStart, writtenEnd]);
+        typesFound.add(detector.dataTypeId);
       }
+    }
+  }
+
+  if (hintedDataTypeIds && hintedDataTypeIds.size > 0) {
+    const whole: TextRange | null = trimmedRange(text);
+
+    for (const detector of detectors) {
+      if (
+        whole === null ||
+        !detector.fieldValuePattern ||
+        !hintedDataTypeIds.has(detector.dataTypeId) ||
+        typesFound.has(detector.dataTypeId) ||
+        matchesFieldShape(detector, text.slice(whole[0], whole[1])) === null
+      ) {
+        continue;
+      }
+
+      found.push([whole[0], whole[1]]);
+      typesFound.add(detector.dataTypeId);
     }
   }
 

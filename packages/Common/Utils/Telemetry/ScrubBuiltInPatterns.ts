@@ -1,16 +1,22 @@
 import LogScrubPatternType from "../../Types/Log/LogScrubPatternType";
 import {
+  FindRangesUnderKey,
   SCRUB_RULE_BUILT_IN_PATTERNS,
   ScrubRegExp,
   scrubRegExpFromBuiltIn,
   scrubRegExpFromRanges,
 } from "../../Types/Telemetry/ScrubRule";
+import { DataTypeDetector } from "../DataSecurity/Detector";
 import {
   EMAIL_ADDRESS_DETECTORS,
   PHONE_NUMBER_DETECTORS,
 } from "../DataSecurity/Detectors/ContactDetectors";
 import { CARD_NUMBER_DETECTORS } from "../DataSecurity/Detectors/FinancialDetectors";
 import { US_SSN_DETECTORS } from "../DataSecurity/Detectors/GovernmentIdDetectors";
+import {
+  getHintedDataTypeIds,
+  MAX_FIELD_PATH_LENGTH,
+} from "../DataSecurity/FieldNameHints";
 import {
   findDetectorRanges,
   findInEveryReading,
@@ -21,6 +27,11 @@ import {
 } from "../DataSecurity/TextReadings";
 import { readOwnValue } from "../LookupTable";
 import ScrubIpAddress from "./ScrubIpAddress";
+import {
+  placeRangesOnStrings,
+  readStoredText,
+  StoredText,
+} from "./ScrubStoredText";
 
 /*
  * WHAT A BUILT-IN SCRUB PATTERN FINDS IN A VALUE, FOR EVERY PLACE A RULE
@@ -86,8 +97,11 @@ import ScrubIpAddress from "./ScrubIpAddress";
  * word that names it is hidden where one of those words is near it in the
  * value the rule reads, as the scanner judges it
  * (TextReadings.findDetectorRanges): a log body's "phone=0201234567", an
- * attribute's "ssn: 536221234". The attribute's key, which the scanner
- * also counts as such a word, is not the value's: a rule reads the value.
+ * attribute's "ssn: 536221234" - or, in a value an engine hands with the
+ * key it is held under, where the key's name names it, as the scanner
+ * counts a field's name: 02012345678 under `user.phone`, 536221234 under
+ * `customer.ssn`, and inside a list or a map as Data Security reads its
+ * JSON text (readsUnderKey, #11383).
  *
  * In time in line with the text's length: each pattern and detector is
  * bounded, each reading of a text is made once, and a detector that needs
@@ -180,9 +194,15 @@ export function findCardNumberRanges(text: string): Array<TextRange> {
  * query string writes it, with every script's digits read by their values
  * and its fullwidth forms read - and every phone number the detectors
  * find, a national one beside a word that names it, ranges two of them
- * share made one.
+ * share made one. `hintedDataTypeIds`: the types the name of the field the
+ * text is the value of hints at, for a text under a key (#11383): under
+ * `user.phone` a national number needs no word, and a whole value of a
+ * phone's shape is one (TextReadings.findDetectorRanges).
  */
-export function findPhoneNumberRanges(text: string): Array<TextRange> {
+export function findPhoneNumberRanges(
+  text: string,
+  hintedDataTypeIds?: ReadonlySet<string> | undefined,
+): Array<TextRange> {
   if (!text) {
     return [];
   }
@@ -198,7 +218,9 @@ export function findPhoneNumberRanges(text: string): Array<TextRange> {
       },
       readings,
     }),
-    ...findDetectorRanges(PHONE_NUMBER_DETECTORS, text, readings),
+    ...findDetectorRanges(PHONE_NUMBER_DETECTORS, text, readings, {
+      hintedDataTypeIds,
+    }),
   ]);
 }
 
@@ -207,8 +229,13 @@ export function findPhoneNumberRanges(text: string): Array<TextRange> {
  * number - as written, in a URL, in every script's digits, in fullwidth -
  * and every Social Security number the detectors find, nine digits in a
  * row beside a word that says SSN, ranges two of them share made one.
+ * `hintedDataTypeIds`: as findPhoneNumberRanges' - under `customer.ssn`
+ * nine digits in a row need no word (#11383).
  */
-export function findSsnRanges(text: string): Array<TextRange> {
+export function findSsnRanges(
+  text: string,
+  hintedDataTypeIds?: ReadonlySet<string> | undefined,
+): Array<TextRange> {
   if (!text) {
     return [];
   }
@@ -224,9 +251,141 @@ export function findSsnRanges(text: string): Array<TextRange> {
       },
       readings,
     }),
-    ...findDetectorRanges(US_SSN_DETECTORS, text, readings),
+    ...findDetectorRanges(US_SSN_DETECTORS, text, readings, {
+      hintedDataTypeIds,
+    }),
   ]);
 }
+
+// The most keys whose hints are remembered: a project's attributes are a few hundred.
+const MAX_REMEMBERED_KEYS: number = 4_096;
+
+// What a key's name hints at, by its first characters, which are all a name is read by.
+const hintsOfKeys: Map<string, ReadonlySet<string>> = new Map<
+  string,
+  ReadonlySet<string>
+>();
+
+/*
+ * The data types a key's name hints at, as Data Security reads a field's
+ * name (FieldNameHints.getHintedDataTypeIds): the same few keys are read
+ * on every record, so each is read once.
+ */
+export function getHintsOfKey(key: string): ReadonlySet<string> {
+  const read: string = key.slice(0, MAX_FIELD_PATH_LENGTH);
+  let hints: ReadonlySet<string> | undefined = hintsOfKeys.get(read);
+
+  if (hints === undefined) {
+    if (hintsOfKeys.size >= MAX_REMEMBERED_KEYS) {
+      hintsOfKeys.clear();
+    }
+
+    hints = getHintedDataTypeIds(read);
+    hintsOfKeys.set(read, hints);
+  }
+
+  return hints;
+}
+
+/*
+ * A PHONE NUMBER OR SSN RULE READS A VALUE UNDER ITS KEY AS DATA SECURITY
+ * READS IT (#11383).
+ *
+ * Data Security finds a national number of 9 to 12 digits, or an SSN as
+ * nine digits in a row, beside a word that names it - and in a field whose
+ * name names it: `user.phone` holding 02012345678, `customer.ssn` holding
+ * 536221234 (TextScanner's hintedDataTypeIds), and a whole value of a
+ * phone's shape there, "020 1234 5678" (FieldClassifier). A rule handed
+ * the value alone kept those values, while Data Security's coverage said
+ * the rule hid them. So an engine hands a rule the key a value is held
+ * under (ScrubRegExp.underKey), and the rule reads the value as Data
+ * Security reads it:
+ *
+ *  - a text under a key whose name hints the type is read with the name
+ *    for the word every candidate needs, and whole by the type's shape
+ *    (TextReadings.findDetectorRanges);
+ *  - a list or a map is read as the JSON text the table stores it as
+ *    (ScrubStoredText), with its key's name for that word when it hints the
+ *    type, as Data Security reads it there: a map's key is a word right
+ *    beside its value, and a word another of its texts writes is near it,
+ *    [{"system":"phone","value":"02012345678"}]. What the detectors that
+ *    need words find there is hidden in the texts that hold it, and each
+ *    text is read as itself as well, as before.
+ *
+ * A key that hints nothing, over a text, changes nothing: the rule reads
+ * the value alone, as it always has.
+ */
+function readsUnderKey(data: {
+  dataTypeId: string;
+  detectors: ReadonlyArray<DataTypeDetector>;
+  findRanges: (
+    text: string,
+    hintedDataTypeIds?: ReadonlySet<string> | undefined,
+  ) => Array<TextRange>;
+}): FindRangesUnderKey {
+  // The detectors whose finds depend on the words around a value.
+  const wordDetectors: ReadonlyArray<DataTypeDetector> = data.detectors.filter(
+    (detector: DataTypeDetector): boolean => {
+      return Boolean(detector.requiresContext);
+    },
+  );
+
+  return (
+    key: string,
+    value: unknown,
+  ): ((text: string) => Array<TextRange>) | null => {
+    const hints: ReadonlySet<string> = getHintsOfKey(key);
+    const hinted: ReadonlySet<string> | undefined = hints.has(data.dataTypeId)
+      ? hints
+      : undefined;
+
+    if (typeof value === "string") {
+      return hinted
+        ? (text: string): Array<TextRange> => {
+            return data.findRanges(text, hinted);
+          }
+        : null;
+    }
+
+    const stored: StoredText | null = readStoredText(value);
+
+    if (!stored) {
+      return null;
+    }
+
+    const found: Array<TextRange> = findDetectorRanges(
+      wordDetectors,
+      stored.text,
+      undefined,
+      { hintedDataTypeIds: hinted },
+    );
+    const placed: Map<string, Array<TextRange>> =
+      found.length > 0 ? placeRangesOnStrings(stored, found) : new Map();
+
+    if (placed.size === 0) {
+      return null;
+    }
+
+    return (text: string): Array<TextRange> => {
+      const own: Array<TextRange> = data.findRanges(text);
+      const inStoredText: Array<TextRange> | undefined = placed.get(text);
+
+      return inStoredText ? mergeRanges([...own, ...inStoredText]) : own;
+    };
+  };
+}
+
+const PHONE_NUMBER_UNDER_KEY: FindRangesUnderKey = readsUnderKey({
+  dataTypeId: "phone-number",
+  detectors: PHONE_NUMBER_DETECTORS,
+  findRanges: findPhoneNumberRanges,
+});
+
+const SSN_UNDER_KEY: FindRangesUnderKey = readsUnderKey({
+  dataTypeId: "us-ssn",
+  detectors: US_SSN_DETECTORS,
+  findRanges: findSsnRanges,
+});
 
 /*
  * A built-in pattern as a rule runs it - or null for a pattern type no
@@ -255,13 +414,19 @@ export function compileBuiltInScrubPattern(
       return scrubRegExpFromRanges({
         source: PHONE_NUMBER_PATTERN.source,
         flags: PHONE_NUMBER_PATTERN.flags,
-        findRanges: findPhoneNumberRanges,
+        findRanges: (text: string): Array<TextRange> => {
+          return findPhoneNumberRanges(text);
+        },
+        findRangesUnderKey: PHONE_NUMBER_UNDER_KEY,
       });
     case LogScrubPatternType.SSN:
       return scrubRegExpFromRanges({
         source: SSN_PATTERN.source,
         flags: SSN_PATTERN.flags,
-        findRanges: findSsnRanges,
+        findRanges: (text: string): Array<TextRange> => {
+          return findSsnRanges(text);
+        },
+        findRangesUnderKey: SSN_UNDER_KEY,
       });
     default: {
       /*

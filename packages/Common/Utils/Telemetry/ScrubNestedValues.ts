@@ -417,11 +417,30 @@ export default class ScrubNestedValuesUtil {
     attributes: Record<string, unknown>,
     scrubText: (text: string) => string,
   ): void {
+    ScrubNestedValuesUtil.scrubAttributeTextsUnderKeys(
+      attributes,
+      (): ((text: string) => string) => {
+        return scrubText;
+      },
+    );
+  }
+
+  /*
+   * As scrubAttributeTexts, each value's texts scrubbed by what
+   * `scrubTextOf` gives for its key and the value it holds: a rule that
+   * reads a value as the key it is held under says (#11383) - a national
+   * number alone under `user.phone` is a phone number, and a list or a map
+   * is read as its JSON text too (ScrubRegExp.underKey).
+   */
+  public static scrubAttributeTextsUnderKeys(
+    attributes: Record<string, unknown>,
+    scrubTextOf: (key: string, value: unknown) => (text: string) => string,
+  ): void {
     for (const key of Object.keys(attributes)) {
       const value: unknown = attributes[key];
 
       if (typeof value === "string" || isNested(value)) {
-        attributes[key] = scrubTextsAt(value, scrubText, 0);
+        attributes[key] = scrubTextsAt(value, scrubTextOf(key, value), 0);
       }
     }
   }

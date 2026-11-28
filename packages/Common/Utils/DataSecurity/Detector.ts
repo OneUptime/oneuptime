@@ -189,6 +189,39 @@ export function withEveryReading(detector: DataTypeDetector): DataTypeDetector {
   };
 }
 
+/*
+ * WHETHER A FIELD'S WHOLE VALUE HAS THE SHAPE ITS TYPE TAKES THERE.
+ *
+ * For a field whose name hints a type and is all the context its values
+ * have (fieldValuePattern): a `cvv` column of "123", a `user.phone`
+ * attribute of "020 1234 5678". The value as its detector normalizes it
+ * when it has the shape and passes the detector's validator, and null
+ * when not. The one judgement of it: what a field's classification counts
+ * (FieldClassifier) and what a rule that reads a value under such a key
+ * hides (TextReadings.findDetectorRanges, #11383).
+ */
+export function matchesFieldShape(
+  detector: Pick<
+    DataTypeDetector,
+    "fieldValuePattern" | "normalize" | "validate"
+  >,
+  value: string,
+): string | null {
+  if (!detector.fieldValuePattern || !detector.fieldValuePattern.test(value)) {
+    return null;
+  }
+
+  const normalized: string = detector.normalize
+    ? detector.normalize(value)
+    : value;
+
+  if (detector.validate && !detector.validate(normalized, value)) {
+    return null;
+  }
+
+  return normalized;
+}
+
 // How far around a candidate its context words are looked for.
 export const CONTEXT_BEFORE: number = 64;
 export const CONTEXT_AFTER: number = 32;

@@ -10,6 +10,7 @@ import MetricPipelineRuleType from "../../../Types/Metrics/MetricPipelineRuleTyp
 import {
   mayReadOtherwise,
   ScrubRegExp,
+  scrubRegExpUnderKey,
 } from "../../../Types/Telemetry/ScrubRule";
 import {
   ReadingNeeds,
@@ -451,17 +452,23 @@ export default class MetricPipelineEngine {
         filter.conditionType,
         filter.value,
         rule,
+        key,
       );
     }
 
     return false;
   }
 
+  /*
+   * `key`: the attribute the value is of, when it is one - a Matches
+   * Pattern Type filter reads the value as that key says (#11383).
+   */
   private static compareStringValue(
     actual: string,
     conditionType: MetricPipelineRuleFilterConditionType,
     expected: string | undefined,
     rule: MetricPipelineRule,
+    key?: string | undefined,
   ): boolean {
     const expectedValue: string = expected ?? "";
 
@@ -527,7 +534,11 @@ export default class MetricPipelineEngine {
           : !matched;
       }
       case MetricPipelineRuleFilterConditionType.MatchesPatternType:
-        return MetricPipelineEngine.holdsPatternType(actual, expectedValue);
+        return MetricPipelineEngine.holdsPatternType(
+          actual,
+          expectedValue,
+          key,
+        );
       default:
         return false;
     }
@@ -541,13 +552,16 @@ export default class MetricPipelineEngine {
    * Social Security number, found by its own detectors in every reading
    * they read (#10934, #10935, #10936, #10960, #11112) - a national number
    * or nine digits beside the word that names them in the value (#11114),
-   * a number typed in fullwidth (#11115). A value that names no pattern
-   * type matches nothing, as an invalid regex does. OneUptime's own
-   * patterns, each bounded: no work allowance is asked.
+   * or under an attribute whose key names them, as a log or trace rule
+   * reads one (`key`, ScrubRegExp.underKey, #11383): 02012345678 under
+   * `user.phone` - and a number typed in fullwidth (#11115). A value that
+   * names no pattern type matches nothing, as an invalid regex does.
+   * OneUptime's own patterns, each bounded: no work allowance is asked.
    */
   private static holdsPatternType(
     actual: string,
     patternType: string,
+    key?: string | undefined,
   ): boolean {
     if (!actual || !isMetricFilterPatternType(patternType)) {
       return false;
@@ -561,7 +575,10 @@ export default class MetricPipelineEngine {
       compiledPatternTypes.set(patternType, pattern);
     }
 
-    return pattern !== null && pattern.test(actual);
+    return (
+      pattern !== null &&
+      scrubRegExpUnderKey(pattern, key, actual).test(actual)
+    );
   }
 
   public static getAttributes(row: MutableMetricRow): JSONObject {

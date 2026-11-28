@@ -113,6 +113,33 @@ export interface ScrubRegExp {
    * whose every match reads as it is written (readScrubMatch).
    */
   readMatch?(matchedText: string): string;
+  /*
+   * The pattern as it reads the texts of a value held under a key (#11383):
+   * a Phone Number or SSN rule's, whose type Data Security also finds by a
+   * field's name - a national number alone under `user.phone`, nine digits
+   * under `customer.ssn` - and inside a list or a map as the JSON text the
+   * table stores it as. `key`: the field's name, an attribute's key as
+   * Data Security names its location; `value`: what the key holds - a text,
+   * or a list or a map whose texts the engine reads one by one. The pattern
+   * itself when the key and the value change nothing it finds. None for a
+   * pattern that reads a text alone, whatever holds it (scrubRegExpUnderKey).
+   */
+  underKey?(key: string, value: unknown): ScrubRegExp;
+}
+
+/*
+ * A rule's pattern as it reads the texts of a value held under `key`
+ * (ScrubRegExp.underKey, #11383): what an engine reads an attribute's texts
+ * with - a log's, a span's, an event's, an exception's, a session
+ * replay's, a metric point's - and the pattern itself for a text no key
+ * holds, or a pattern that reads a text alone.
+ */
+export function scrubRegExpUnderKey(
+  regex: ScrubRegExp,
+  key: string | null | undefined,
+  value: unknown,
+): ScrubRegExp {
+  return regex.underKey && key ? regex.underKey(key, value) : regex;
 }
 
 /*
@@ -319,15 +346,32 @@ class RangesScrubRegExp implements ScrubRegExp {
   public readonly source: string;
   public readonly flags: string;
   private readonly findRanges: (text: string) => Array<[number, number]>;
+  private readonly findRangesUnderKey: FindRangesUnderKey | undefined;
 
   public constructor(data: {
     source: string;
     flags: string;
     findRanges: (text: string) => Array<[number, number]>;
+    findRangesUnderKey?: FindRangesUnderKey | undefined;
   }) {
     this.source = data.source;
     this.flags = data.flags;
     this.findRanges = data.findRanges;
+    this.findRangesUnderKey = data.findRangesUnderKey;
+  }
+
+  // See ScrubRegExp.underKey: this, when the key and the value change nothing.
+  public underKey(key: string, value: unknown): ScrubRegExp {
+    const findRanges: ((text: string) => Array<[number, number]>) | null =
+      this.findRangesUnderKey ? this.findRangesUnderKey(key, value) : null;
+
+    return findRanges
+      ? new RangesScrubRegExp({
+          source: this.source,
+          flags: this.flags,
+          findRanges,
+        })
+      : this;
   }
 
   public test(text: string): boolean {
@@ -375,15 +419,28 @@ export function scrubRegExpFromBuiltIn(regex: RegExp): ScrubRegExp {
 }
 
 /*
+ * How a built-in pattern finds its matches in the texts of a value held
+ * under a key (ScrubRegExp.underKey, #11383): a finder of its own for
+ * them, or null when the key and the value change nothing it finds.
+ */
+export type FindRangesUnderKey = (
+  key: string,
+  value: unknown,
+) => ((text: string) => Array<[number, number]>) | null;
+
+/*
  * A built-in pattern whose matches `findRanges` finds: [start, end) pairs,
  * left to right, none overlapping. `source` and `flags` say what it finds,
- * as a RegExp's would. OneUptime's own code only: like
- * scrubRegExpFromBuiltIn, never for a pattern a project wrote.
+ * as a RegExp's would. `findRangesUnderKey`: how it finds them in a value
+ * held under a key, for a pattern that reads the key too (#11383).
+ * OneUptime's own code only: like scrubRegExpFromBuiltIn, never for a
+ * pattern a project wrote.
  */
 export function scrubRegExpFromRanges(data: {
   source: string;
   flags: string;
   findRanges: (text: string) => Array<[number, number]>;
+  findRangesUnderKey?: FindRangesUnderKey | undefined;
 }): ScrubRegExp {
   return new RangesScrubRegExp(data);
 }
