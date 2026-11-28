@@ -523,6 +523,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                    "activeHours": {
 	                      "_type": "RestrictionTimes",
 	                      "value": {
+	                        "restrictionType": "Weekly",
 	                        "restictionType": "Weekly",
 	                        "dayRestrictionTimes": null,
 	                        "weeklyRestrictionTimes": [
