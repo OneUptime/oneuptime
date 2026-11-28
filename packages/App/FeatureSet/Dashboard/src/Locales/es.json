@@ -67590,6 +67590,7 @@
   "In {{edge}}'s published ranges": "En los rangos publicados de {{edge}}",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Sigue en marcha: solo sus etiquetas de OneUptime indican que no es de producción. Etiquétalo con environment=dev en tu nube o marca su cuenta como no productiva.",
   "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.": "Permite a un caso de seguridad volver a leer lo que un ataque cambió en un usuario o un rol de IAM: claves, contraseña, políticas, grupos y MFA de un usuario, y las políticas de un rol y en quién confía. El comando cambia según la opción.",
+  "Lets a security case read back what an attack changed on an IAM user or role. The command changes with it.": "Permite a un caso de seguridad volver a leer lo que un ataque cambió en un usuario o un rol de IAM. El comando cambia según la opción.",
   "Log Format": "Formato de registro",
   "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "El estado del monitor volvió a \"{{status}}\" porque no se cumplió ningún criterio que cambie el estado.",
   "Monitor status reverted to its default state because no criteria that changes the status was met.": "El estado del monitor volvió a su estado predeterminado porque no se cumplió ningún criterio que cambie el estado.",

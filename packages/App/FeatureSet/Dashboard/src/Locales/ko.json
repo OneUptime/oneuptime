@@ -67590,6 +67590,7 @@
   "In {{edge}}'s published ranges": "{{edge}}의 게시된 범위에 있음",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "계속 실행: 프로덕션이 아니라고 알려 주는 것은 레이블뿐입니다. 클라우드에서 environment=dev 태그를 지정하거나 계정을 비프로덕션으로 표시하세요.",
   "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.": "공격이 IAM 사용자나 역할에서 바꾼 것(사용자의 키, 비밀번호, 정책, 그룹, MFA와 역할의 정책 및 신뢰 대상)을 보안 케이스가 다시 읽을 수 있게 합니다. 명령도 이에 맞게 바뀝니다.",
+  "Lets a security case read back what an attack changed on an IAM user or role. The command changes with it.": "공격이 IAM 사용자나 역할에서 바꾼 것을 보안 케이스가 다시 읽을 수 있게 합니다. 명령도 이에 맞게 바뀝니다.",
   "Log Format": "로그 형식",
   "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "상태를 바꾸는 기준이 충족되지 않아 모니터 상태가 \"{{status}}\"(으)로 되돌아갔습니다.",
   "Monitor status reverted to its default state because no criteria that changes the status was met.": "상태를 바꾸는 기준이 충족되지 않아 모니터 상태가 기본 상태로 되돌아갔습니다.",

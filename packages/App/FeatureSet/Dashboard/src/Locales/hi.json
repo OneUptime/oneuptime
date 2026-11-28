@@ -67590,6 +67590,7 @@
   "In {{edge}}'s published ranges": "{{edge}} की प्रकाशित रेंज में",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "चलता छोड़ा गया: केवल इसके लेबल बताते हैं कि यह प्रोडक्शन नहीं है। इसे अपने क्लाउड में environment=dev से टैग करें, या इसके खाते को गैर-प्रोडक्शन चिह्नित करें।",
   "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.": "सुरक्षा केस को वापस पढ़ने देता है कि हमले ने किसी IAM उपयोगकर्ता या भूमिका में क्या बदला: उपयोगकर्ता की कुंजियाँ, पासवर्ड, नीतियाँ, समूह और MFA, और भूमिका की नीतियाँ और वह किस पर भरोसा करती है। कमांड भी इसके साथ बदलता है।",
+  "Lets a security case read back what an attack changed on an IAM user or role. The command changes with it.": "सुरक्षा केस को वापस पढ़ने देता है कि हमले ने किसी IAM उपयोगकर्ता या भूमिका में क्या बदला। कमांड भी इसके साथ बदलता है।",
   "Log Format": "लॉग फ़ॉर्मैट",
   "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "स्थिति बदलने वाला कोई भी मानदंड पूरा न होने के कारण मॉनिटर की स्थिति वापस “{{status}}” की गई।",
   "Monitor status reverted to its default state because no criteria that changes the status was met.": "स्थिति बदलने वाला कोई भी मानदंड पूरा न होने के कारण मॉनिटर की स्थिति वापस डिफ़ॉल्ट की गई।",

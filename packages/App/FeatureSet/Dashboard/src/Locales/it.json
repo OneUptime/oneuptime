@@ -67590,6 +67590,7 @@
   "In {{edge}}'s published ranges": "Negli intervalli pubblicati di {{edge}}",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Lasciata in esecuzione: solo le sue etichette indicano che non è di produzione. Aggiungi il tag environment=dev nel tuo cloud oppure segna il suo account come non di produzione.",
   "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.": "Consente a un caso di sicurezza di rileggere cosa ha cambiato un attacco su un utente o un ruolo IAM: chiavi, password, policy, gruppi e MFA di un utente, e le policy di un ruolo e chi considera attendibile. Il comando cambia di conseguenza.",
+  "Lets a security case read back what an attack changed on an IAM user or role. The command changes with it.": "Consente a un caso di sicurezza di rileggere cosa ha cambiato un attacco su un utente o un ruolo IAM. Il comando cambia di conseguenza.",
   "Log Format": "Formato di log",
   "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "Lo stato del monitor è tornato a \"{{status}}\" perché nessun criterio che cambia lo stato è stato soddisfatto.",
   "Monitor status reverted to its default state because no criteria that changes the status was met.": "Lo stato del monitor è tornato allo stato predefinito perché nessun criterio che cambia lo stato è stato soddisfatto.",

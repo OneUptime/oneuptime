@@ -67590,6 +67590,7 @@
   "In {{edge}}'s published ranges": "В опубликованных диапазонах {{edge}}",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Оставлен работающим: только его метки говорят, что это не продакшен. Добавьте тег environment=dev в вашем облаке или отметьте его аккаунт как непродакшен.",
   "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.": "Позволяет кейсу безопасности проверять, что атака изменила у пользователя или роли IAM: у пользователя — ключи, пароль, политики, группы и MFA, у роли — политики и то, кому она доверяет. Команда меняется в зависимости от выбора.",
+  "Lets a security case read back what an attack changed on an IAM user or role. The command changes with it.": "Позволяет кейсу безопасности проверять, что атака изменила у пользователя или роли IAM. Команда меняется в зависимости от выбора.",
   "Log Format": "Формат журнала",
   "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "Статус монитора возвращён к «{{status}}», так как не выполнен ни один критерий, меняющий статус.",
   "Monitor status reverted to its default state because no criteria that changes the status was met.": "Статус монитора возвращён к состоянию по умолчанию, так как не выполнен ни один критерий, меняющий статус.",

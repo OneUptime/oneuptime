@@ -67590,6 +67590,7 @@
   "In {{edge}}'s published ranges": "In de gepubliceerde bereiken van {{edge}}",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Blijft draaien: alleen de labels zeggen dat het geen productie is. Tag het in je cloud met environment=dev of markeer het account als niet-productie.",
   "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.": "Hiermee kan een beveiligingszaak teruglezen wat een aanval aan een IAM-gebruiker of -rol wijzigde: bij een gebruiker sleutels, wachtwoord, beleid, groepen en MFA, bij een rol het beleid en wie de rol vertrouwt. De opdracht verandert mee.",
+  "Lets a security case read back what an attack changed on an IAM user or role. The command changes with it.": "Hiermee kan een beveiligingszaak teruglezen wat een aanval aan een IAM-gebruiker of -rol wijzigde. De opdracht verandert mee.",
   "Log Format": "Logformaat",
   "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "Monitorstatus teruggezet naar \"{{status}}\" omdat aan geen enkel criterium dat de status wijzigt is voldaan.",
   "Monitor status reverted to its default state because no criteria that changes the status was met.": "Monitorstatus teruggezet naar de standaardstatus omdat aan geen enkel criterium dat de status wijzigt is voldaan.",

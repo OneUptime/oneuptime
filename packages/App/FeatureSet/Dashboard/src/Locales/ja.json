@@ -67590,6 +67590,7 @@
   "In {{edge}}'s published ranges": "{{edge}} の公開範囲内",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "稼働したまま: 本番ではないと示すのはラベルだけです。クラウドで environment=dev のタグを付けるか、アカウントを本番以外に設定してください。",
   "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.": "攻撃が IAM ユーザーまたはロールに加えた変更（ユーザーのキー、パスワード、ポリシー、グループ、MFA、およびロールのポリシーと信頼する相手）をセキュリティケースが読み戻せるようにします。コマンドもこれに合わせて変わります。",
+  "Lets a security case read back what an attack changed on an IAM user or role. The command changes with it.": "攻撃が IAM ユーザーまたはロールに加えた変更をセキュリティケースが読み戻せるようにします。コマンドもこれに合わせて変わります。",
   "Log Format": "ログ形式",
   "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "ステータスを変える条件がどれも満たされなかったため、モニターのステータスが「{{status}}」に戻りました。",
   "Monitor status reverted to its default state because no criteria that changes the status was met.": "ステータスを変える条件がどれも満たされなかったため、モニターのステータスがデフォルトの状態に戻りました。",
