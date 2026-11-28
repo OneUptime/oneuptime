@@ -9,7 +9,10 @@ import {
 } from "../../../Types/Telemetry/ScrubRule";
 import { digitsOnly } from "../../../Utils/DataSecurity/Detector";
 import { foldDigits } from "../../../Utils/DataSecurity/DigitReadings";
-import { foldFullwidthForms } from "../../../Utils/DataSecurity/FullwidthForms";
+import {
+  foldFullwidthForms,
+  foldFullwidthLetters,
+} from "../../../Utils/DataSecurity/FullwidthForms";
 import PercentDecodedText from "../../../Utils/DataSecurity/PercentDecodedText";
 import PlusAsSpaceText from "../../../Utils/DataSecurity/PlusAsSpaceText";
 import ScrubIpAddress from "../../../Utils/Telemetry/ScrubIpAddress";
@@ -208,13 +211,16 @@ export default class ScrubAction {
    * none holds a "+" of its own between two of its digits, nor an escape.
    * And one typed wholly in fullwidth, its signs and separators read as
    * ASCII too (#11115): ＋８１ ３－１２３４－５６７８ is +81 3-1234-5678, and
-   * ５３６－２２－８７３１ is 536-22-8731. Anything else, and a value written
-   * plainly, as it is.
+   * ５３６－２２－８７３１ is 536-22-8731 - and one whose groups are set apart
+   * by another dash (#11385): ０３ー１２３４ー５６７８ is 03-1234-5678,
+   * 536–22–8731 is 536-22-8731. An email address typed in fullwidth reads
+   * as ASCII (#11385): ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ is jane@example.com.
+   * Anything else, and a value written plainly, as it is.
    */
   public static asItReads(match: string, patternType: string): string {
     switch (patternType) {
       case LogScrubPatternType.Email:
-        return PercentDecodedText.readableOf(match);
+        return foldFullwidthLetters(PercentDecodedText.readableOf(match));
       case LogScrubPatternType.CreditCard:
       case LogScrubPatternType.SSN:
       case LogScrubPatternType.PhoneNumber:
@@ -224,15 +230,16 @@ export default class ScrubAction {
       /*
        * A Custom Regex rule finds its pattern with a value's escapes read,
        * in every script's digits and with its fullwidth forms read too
-       * (ScrubRule's ReadingsScrubRegExp, #11031, #11033, #11115): a token
-       * after %3D, an IBAN in Arabic-Indic digits, a CPF typed in fullwidth
-       * has the token of the one written plainly. Its match found only
-       * with its "+"s read as spaces reaches here read so already
+       * (ScrubRule's ReadingsScrubRegExp, #11031, #11033, #11115), and with
+       * its fullwidth letters read (#11385): a token after %3D, an IBAN in
+       * Arabic-Indic digits or typed in fullwidth letters, a CPF typed in
+       * fullwidth has the token of the one written plainly. Its match found
+       * only with its "+"s read as spaces reaches here read so already
        * (readScrubMatch, #11199): a "+" in a custom pattern's match may be
        * the value's own (jane+news@example.com), so it is not read here.
        */
       case LogScrubPatternType.Custom:
-        return foldFullwidthForms(
+        return foldFullwidthLetters(
           foldDigits(PercentDecodedText.readableOf(match)),
         );
       default:
