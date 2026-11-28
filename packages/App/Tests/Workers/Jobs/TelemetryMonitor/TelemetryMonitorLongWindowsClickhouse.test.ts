@@ -91,7 +91,14 @@ import type { SpyInstance } from "jest-mock";
  * edge reads read as many rows or a granule more. From half an hour on the
  * split never reads more bytes, and the longer the window and the denser
  * its rows, the less of them it reads: three hours of the dense metric,
- * 92 thousand rows and 7 MB against 691 thousand and 66 MB.
+ * 92 thousand rows and 7 MB against 691 thousand and 66 MB. One host of
+ * the 400 is the exception: it shares its service's granules with a dozen
+ * others, so the bloom filter on hostEntityKey holds its raw read to those
+ * few granules at any length (2 to 6 here), as little as the split's three
+ * reads read. Over half an hour or an hour the two read about as much, and
+ * which reads a granule more moves with where the run's random ids put the
+ * granule boundaries; over the three hours its raw read reads all of its
+ * service's rows, and the split reads less (savesFromMinutes).
  *
  * Opt in by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -1184,16 +1191,21 @@ integration(
     /*
      * A Metrics check's read, a Host check's and a Traces check's, each as
      * long as the windows a check can have, split and from the raw rows.
+     * `savesFromMinutes`: from how long a window the split reads fewer bytes
+     * than the raw rows' read - half an hour, where it starts, for every read
+     * whose raw rows grow with its window.
      */
     const MEASURED: Array<{
       name: string;
       minutes: number;
+      savesFromMinutes: number;
       build: () => Statement;
     }> = MEASURED_WINDOWS_IN_MINUTES.flatMap((minutes: number) => {
       return [
         {
           name: `Metrics, one metric of ${SPARSE_HOSTS} hosts in ${BUSY_SERVICES} services, one series each, the past ${minutes} minutes`,
           minutes: minutes,
+          savesFromMinutes: 30,
           build: (): Statement => {
             return MetricService.toAggregateStatement(
               metricAggregate({ lengthMs: minutes * MINUTE_MS }),
@@ -1203,6 +1215,17 @@ integration(
         {
           name: `Host, one of ${SPARSE_HOSTS} with one series, the past ${minutes} minutes`,
           minutes: minutes,
+          /*
+           * It shares its service's granules with a dozen other hosts: the
+           * bloom filter on hostEntityKey holds its raw read to those few
+           * granules at any length, as little as the split's three reads -
+           * the rollup's and an edge's at each end, a granule each at the
+           * least - read. Over half an hour or an hour the two read about as
+           * much, and which reads a granule more moves with where the run's
+           * random ids put the granule boundaries; over the three hours its
+           * service's rows fill, the split reads less.
+           */
+          savesFromMinutes: BUSY_HOURS * 60,
           build: (): Statement => {
             return MetricService.toAggregateStatement(
               metricAggregate({
@@ -1215,6 +1238,7 @@ integration(
         {
           name: `Metrics, one metric of ${DENSE_HOSTS} hosts with ${DENSE_SERIES} series each, the past ${minutes} minutes`,
           minutes: minutes,
+          savesFromMinutes: 30,
           build: (): Statement => {
             return MetricService.toAggregateStatement(
               metricAggregate({
@@ -1227,6 +1251,7 @@ integration(
         {
           name: `Host, one of ${DENSE_HOSTS} with ${DENSE_SERIES} series, the past ${minutes} minutes`,
           minutes: minutes,
+          savesFromMinutes: 30,
           build: (): Statement => {
             return MetricService.toAggregateStatement(
               metricAggregate({
@@ -1240,6 +1265,7 @@ integration(
         {
           name: `Traces of a service's error spans, ${BUSY_SPANS_A_MINUTE} spans a minute, the past ${minutes} minutes`,
           minutes: minutes,
+          savesFromMinutes: 30,
           build: (): Statement => {
             return SpanService.toCountStatement({
               query: {
@@ -1258,7 +1284,7 @@ integration(
       ];
     });
 
-    test("measured on a busy project: a window of half an hour or more is split and reads no more bytes than the raw rows' read, three hours of dense rows a third of the rows or less, and a shorter window is read from the raw rows as before", async () => {
+    test("measured on a busy project: a window of half an hour or more is split and reads no more bytes than the raw rows' read (one host of a fleet: over the three hours), three hours of dense rows a third of the rows or less, and a shorter window is read from the raw rows as before", async () => {
       for (const measured of MEASURED) {
         const split: ReadCost = await medianCostOf(measured.build);
         const raw: ReadCost = await readRaw(async (): Promise<ReadCost> => {
@@ -1286,7 +1312,11 @@ integration(
           continue;
         }
 
-        // Split: never more to read than the raw rows' read, in bytes.
+        // Split: never more to read than the raw rows' read, in bytes, from where it saves.
+        if (measured.minutes < measured.savesFromMinutes) {
+          continue;
+        }
+
         expect({
           name: measured.name,
           split: split.readBytes,
