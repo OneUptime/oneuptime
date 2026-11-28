@@ -22,8 +22,10 @@ import Twilio from "twilio";
 /*
  * EVERY CALL ASKS TWILIO TO SAY HOW IT ENDED (#6586).
  *
- * A call is logged Success the moment Twilio accepts it - nobody has picked
- * up yet. So each call a project places through Twilio names a status
+ * A call is logged the moment Twilio accepts it - nobody has picked up yet:
+ * Calling, until Twilio says how it ended (#11138), and Success at once on
+ * a server Twilio cannot call back. So each call a project places through
+ * Twilio names a status
  * callback: POST, once the call is over, to this server's public host, at
  * /notification/call/status-callback/<the call log's id>/<a token only that
  * log holds>. The log is given its id before the call is placed, as it is
@@ -240,7 +242,11 @@ describe("a project's call through Twilio", () => {
     expect(callLogs).toHaveLength(1);
     expect(callLogs[0]!.id?.toString()).toBe(logId);
     expect(callLogs[0]!.statusCallbackToken).toBe(token);
-    expect(callLogs[0]!.status).toBe(CallStatus.Success);
+    /*
+     * Placed and ringing: Calling, until the callback says how it ended
+     * (#11138) - never Success while nobody has picked up.
+     */
+    expect(callLogs[0]!.status).toBe(CallStatus.Calling);
   });
 
   test("the token is unguessable, each call's its own, and never in the log's message", async () => {
@@ -277,6 +283,9 @@ describe("a project's call through Twilio", () => {
       projectId: PROJECT_ID,
       userOnCallLogTimelineId: NOTIFICATION_ID,
     });
+
+    // A call that is Calling went out: its page says Sent, never Error (#11138).
+    expect(callLogs[0]!.status).toBe(CallStatus.Calling);
 
     expect(UserOnCallLogTimelineService.updateOneBy).toHaveBeenCalledWith({
       query: {
@@ -450,6 +459,21 @@ describe("no callback is asked for", () => {
     expect(request).not.toHaveProperty("statusCallbackEvent");
     expect(request).not.toHaveProperty("statusCallbackMethod");
     expect(callLogs[0]!.statusCallbackToken).toBeUndefined();
+    // Nothing will say how it ended: Success already, never Calling for good.
+    expect(callLogs[0]!.status).toBe(CallStatus.Success);
+  });
+
+  test("a call placed with no callback still tells its on-call notification it was sent", async () => {
+    setHost("");
+
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    });
+
+    expect(timeline.get(NOTIFICATION_ID)!.status).toBe(
+      UserNotificationStatus.Sent,
+    );
   });
 
   test("for a call of no project, which keeps no log to tell", async () => {

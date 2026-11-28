@@ -642,6 +642,14 @@ work out, starts from a default for everything else, and folds what most people 
   descending, where its first click goes (as the dashboard's list widgets sort it); anything else by
   the name it shows. A column of many records (labels, owners) does not sort (#8134). Enforced by
   [RelationColumnSort](../../packages/Common/Tests/UI/Components/ModelTable/RelationColumnSort.test.tsx).
+- **A list marks the records that share a name.** Two monitors called "API Health Check", from before
+  the project required unique names, read alike in a list and a picker. Each carries a pill beside
+  its name, "Same name as another monitor", with the day it was made, and a note above the list
+  counts them. The shared table does it for every kind Require Unique Names holds
+  (`@UniqueNameWhenRequired`), so a new kind is marked without a line of its own; a list drawn by hand
+  marks them with `useTwinMarks`. A mark never says that a record the reader may not read has the
+  name (#11021). Enforced by
+  [ListsMarkTwinNamesGuard](../../packages/Common/Tests/App/Dashboard/ListsMarkTwinNamesGuard.test.ts).
 - **A column earns its place.** A column that tells the reader nothing they act on goes, as the Type
   column of workflow variables did. Enforced by
   [WorkflowVariableListsGuard](../../packages/Common/Tests/App/Dashboard/WorkflowVariableListsGuard.test.ts).

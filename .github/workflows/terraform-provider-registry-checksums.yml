@@ -1,0 +1,109 @@
+name: Terraform Provider Registry Checksums
+
+# What the Terraform and OpenTofu registries read for each version of the
+# OneUptime provider, against what its GitHub release serves now: the checks
+# `terraform init` and `tofu init` make before they install it, for every
+# platform (Scripts/TerraformProvider/RegistryChecksums.js, #11016).
+#
+# A registry reads a version once, about a minute after its release is
+# published, keeps each zip's SHA-256, and never reads them again. A release
+# whose assets change after that fails init for everyone, on every platform,
+# with "checksum list has unexpected SHA-256 hash": 14.3.0, 16.0.0, 17.0.0,
+# 17.1.0 and 17.2.0 did, when a second release run built them again and
+# uploaded them over the published ones. So this runs:
+#
+#   - after release.yml publishes the provider (check-terraform-provider-
+#     registries), waiting up to half an hour for registry.terraform.io to
+#     list the new version, which also says when its webhook did not;
+#   - after Republish a Terraform provider version publishes one again;
+#   - every day, for every version published whole since 17.3.0, the first
+#     version that run made as a draft and checked before publishing: one
+#     that matched when it was published and does not now had its assets
+#     changed since, by hand or by an old release run run again;
+#   - by hand, for the versions you name.
+#
+# The broken versions above, and older ones, fail it for good: a registry
+# keeps what it read. RELEASING.md says how to publish each one's provider
+# again as the next patch version.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "The version to check, as 17.3.0"
+        type: string
+        required: true
+      wait:
+        description: "Seconds to wait for registry.terraform.io to list it"
+        type: number
+        required: false
+        default: 1800
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: "The versions to check, as 17.2.0,17.3.0; none checks every version since 17.3.0"
+        type: string
+        required: false
+        default: ""
+  schedule:
+    - cron: "37 6 * * *"
+
+permissions:
+  contents: read
+
+# Each run in a group of its own, cancelling none: a check only reads, so
+# two at once do no harm, and the check of one release must not be cancelled
+# by the next's. In a call github.run_id is the caller's run, and the group
+# names this workflow, not github.workflow, which in a call is the caller's
+# name, as the other workflows release.yml calls have theirs
+# (Tests/Ops/ReleaseE2ePipeline.test.js).
+concurrency:
+  group: terraform-provider-registry-checksums-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  check-registry-checksums:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # GitHub's API, for each release's assets, with the run's own token:
+      # without one it answers 60 requests an hour. The registries and the
+      # release downloads are public, and are sent none.
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      # The check is plain Node.js: these two folders are all it reads.
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Scripts/TerraformProvider
+            Scripts/Release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
+      # The inputs reach the script through env, never written into it: an
+      # input is text a person typed.
+      - name: Compare registry.terraform.io's checksums with the release's
+        if: ${{ inputs.version || inputs.versions }}
+        env:
+          VERSIONS: ${{ inputs.version || inputs.versions }}
+          WAIT: ${{ inputs.wait || 0 }}
+        run: node Scripts/TerraformProvider/RegistryChecksums.js --version "$VERSIONS" --registry registry.terraform.io --wait "$WAIT" --summary "$GITHUB_STEP_SUMMARY"
+
+      # OpenTofu's registry reads new versions on a schedule of its own, so
+      # a version it does not list yet is passed over; the daily run checks
+      # it later.
+      - name: And registry.opentofu.org's, once it lists the version
+        if: ${{ !cancelled() && (inputs.version || inputs.versions) }}
+        env:
+          VERSIONS: ${{ inputs.version || inputs.versions }}
+        run: node Scripts/TerraformProvider/RegistryChecksums.js --version "$VERSIONS" --registry registry.opentofu.org --if-listed --summary "$GITHUB_STEP_SUMMARY"
+
+      # 17.3.0 is the first version published whole, as a draft checked
+      # before it was published. The newest 25 are a few minutes of requests.
+      - name: Compare both registries' checksums with every version since 17.3.0
+        if: ${{ !inputs.version && !inputs.versions }}
+        run: node Scripts/TerraformProvider/RegistryChecksums.js --since 17.3.0 --latest 25 --if-listed --summary "$GITHUB_STEP_SUMMARY"

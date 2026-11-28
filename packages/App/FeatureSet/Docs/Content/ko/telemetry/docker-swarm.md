@@ -116,6 +116,7 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 | `DOCKER_SWARM_NODE_NAME` | 아니요 | 노드의 이름으로, 그 노드에 있는 컨테이너의 메트릭과 로그에 `docker.swarm.node.name` 리소스 속성으로 붙으며, [Docker Swarm 모니터](/docs/monitor/docker-swarm-monitor#모니터-설정)는 이것으로 필터링합니다. 설치 스크립트는 `docker node ls`에 표시되는 노드의 호스트 이름으로 설정합니다. 비어 있으면 노드 이름을 붙이지 않습니다. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | 아니요 | 인벤토리 폴러가 스냅샷을 찍는 간격(초). 기본값은 `300`입니다. |
 | `DOCKER_API_VERSION` | 아니요 | Collector와 인벤토리 폴러가 사용하는 Docker Engine API 버전. 기본값은 비어 있으며, 이때는 데몬 자체의 버전을 사용하므로 Docker Engine 20.10 이상이면 모두 작동합니다. 버전을 고정할 때만 설정하세요([문제 해결](#문제-해결) 참고). AI 에이전트는 지정하지 않는 한 협상합니다. |
+| `ONEUPTIME_LOG_OPERATOR_1`~`ONEUPTIME_LOG_OPERATOR_5` | 아니요 | 에이전트가 읽지 못하는 로그 형식을 위해 직접 만든 Collector 오퍼레이터로, 하나씩 JSON으로 씁니다. [자체 로그 형식 읽기](#자체-로그-형식-읽기)를 참고하세요. |
 
 AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있습니다.
 
@@ -162,6 +163,23 @@ processors:
 
 Collector는 시작할 때만 구성을 읽습니다. `docker compose restart oneuptime-docker-swarm-agent`를 실행하세요. 그러면 클러스터에 `team:platform`과 `env:production` 레이블이 표시됩니다. 레이블은 대소문자를 구분하지 않고 비교되므로 기존 `Production` 레이블은 중복되지 않고 재사용되며, 에이전트는 누군가 OneUptime에서 추가한 레이블을 절대 제거하지 않습니다.
 
+## 자체 로그 형식 읽기
+
+에이전트는 대부분의 프로그램이 쓰는 형식의 레벨을 읽습니다. 사내 형식처럼 에이전트가 읽지 못하는 형식에는 직접 만든 Collector 오퍼레이터를 최대 다섯 개까지 줄 수 있으며, 각각 JSON으로 `ONEUPTIME_LOG_OPERATOR_1`~`ONEUPTIME_LOG_OPERATOR_5`에 넣습니다. 이 오퍼레이터는 에이전트가 컨테이너와 스트림을 읽은 뒤, 줄의 레벨을 읽기 전에 모든 컨테이너 로그 줄에 대해 실행됩니다. 줄의 레벨을 정하려면 `attributes.severity_text`에 에이전트가 읽는 단어(예: `ERROR`, `warn`, `critical`)로 쓰고, 줄을 에이전트의 첫 단계인 `severity-router`로 넘기세요. `severity_parser`처럼 심각도를 직접 정하는 오퍼레이터는 덮어쓰입니다: 에이전트는 직접 만든 오퍼레이터가 실행된 뒤 모든 줄의 레벨을 읽습니다.
+
+`<<E>> payment failed`처럼 문자가 곧 레벨인 줄의 경우, 오퍼레이터를 설정한 채 설치 스크립트를 실행하세요:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+sh install.sh
+```
+
+스크립트는 각 오퍼레이터를 작은따옴표로 감싸 `.env`에 쓰고, Collector 자체의 `validate`로 검사한 뒤에야 기존 `.env`를 바꿉니다. Collector가 거부하면 스크립트는 Collector의 메시지와 함께 멈추고, 에이전트는 이전 설정으로 계속 실행됩니다. `.env`에 있는 오퍼레이터는 그 변수 없이 스크립트를 다시 실행해도 그대로 남으며, 작은따옴표가 들어 있는 오퍼레이터는 `.env`가 담을 수 없으므로 거부됩니다.
+
+Docker Compose에서는 `docker-compose.yml` 옆의 `.env`에 각 값을 작은따옴표로 감싸 넣고 `docker compose up -d`를 실행하세요. `oneuptime-docker-swarm-agent-config-check` 서비스가 먼저 같은 검사를 실행하며, 검사를 통과해야만 에이전트가 시작됩니다.
+
+[Kubernetes 에이전트](/docs/telemetry/kubernetes-agent#자체-로그-형식-읽기)에서 이 예시의 오퍼레이터를 설명하며, Kubernetes 에이전트도 같은 오퍼레이터를 받습니다.
+
 ## systemd 서비스로 실행
 
 노드와 함께 에이전트를 시작하고 실패하면 다시 시작하려면 systemd 유닛을 설치하세요. 설치 스크립트가 에이전트를 두는 `/opt/oneuptime-docker-swarm-agent`에 에이전트가 있다고 가정합니다:
@@ -183,7 +201,7 @@ curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
-스크립트는 답변을 바탕으로 `.env`를 다시 씁니다. 유지되는 것은 AI 에이전트의 대상 목록과 AI가 할 수 있는 작업(`ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`)뿐입니다. `DOCKER_API_VERSION`처럼 직접 설정한 변수는 다시 추가하세요. AI 수정을 켰나요? 계속 켜 두려면 `ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh`로 실행하세요. AI 에이전트를 뺐나요? `--no-ai-agent`를 다시 전달하세요.
+스크립트는 답변을 바탕으로 `.env`를 다시 씁니다. 유지되는 것은 AI 에이전트의 대상 목록, AI가 할 수 있는 작업(`ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`), 그리고 직접 만든 로그 오퍼레이터(`ONEUPTIME_LOG_OPERATOR_1`~`ONEUPTIME_LOG_OPERATOR_5`)뿐입니다. `DOCKER_API_VERSION`처럼 직접 설정한 변수는 다시 추가하세요. AI 수정을 켰나요? 계속 켜 두려면 `ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh`로 실행하세요. AI 에이전트를 뺐나요? `--no-ai-agent`를 다시 전달하세요.
 
 Docker Compose를 사용한다면 에이전트의 폴더에서 세 파일을 다시 내려받고(`docker-compose.yml`에 가한 변경이 있으면 다시 적용), 이미지를 가져와 다시 시작하세요:
 

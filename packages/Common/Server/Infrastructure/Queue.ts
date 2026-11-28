@@ -1072,6 +1072,14 @@ export default class Queue {
   @CaptureSpan()
   public static async getQueueBacklogSize(
     queueName: QueueName,
+    options?: {
+      /*
+       * Leave out the jobs waiting with a priority: the Telemetry queue's
+       * bulk telemetry, which the autoscaler must not scale on while
+       * ClickHouse is refusing its inserts (TelemetryInsertBackpressure).
+       */
+      withoutPrioritized?: boolean | undefined;
+    },
   ): Promise<number> {
     const queue: BullQueue = this.getQueue(queueName);
     const [waitingCount, prioritizedCount, delayedCount, schedulerCount]: [
@@ -1082,7 +1090,9 @@ export default class Queue {
     ] = await Promise.all([
       queue.getWaitingCount(),
       // Jobs waiting with a priority are backlog too (getPrioritizedJobCount).
-      this.getPrioritizedJobCount(queue),
+      options?.withoutPrioritized
+        ? Promise.resolve(0)
+        : this.getPrioritizedJobCount(queue),
       queue.getDelayedCount(),
       this.getJobSchedulerCount(queue),
     ]);

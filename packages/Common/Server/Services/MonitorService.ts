@@ -3406,7 +3406,10 @@ export class Service extends ProjectReferencesService<Model> {
      * the owner", its first probe result - waits for "Monitor Created" until
      * then, on every App server, and follows it in the order it was made
      * (WorkspaceCreatedMessageFirst): its channels hear of the monitor first,
-     * then of what happened to it.
+     * then of what happened to it. Held since the monitor was written
+     * (DatabaseService.create, before even a creator whose role creates only
+     * what they own is made its owner, #11352): this chain takes the hold
+     * over here, and lets it go below.
      */
     await WorkspaceCreatedMessageFirst.hold({ monitorId: createdItem.id });
 

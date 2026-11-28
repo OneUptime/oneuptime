@@ -2,6 +2,7 @@ import {
   DEFAULT_SYSLOG_FACILITY,
   DEFAULT_SYSLOG_SEVERITY,
   SYSLOG_FACILITY_LABELS,
+  SYSLOG_SEVERITY_KEYWORDS,
   SYSLOG_SEVERITY_LABELS,
   SYSLOG_TO_OTEL_SEVERITY,
   getSyslogFacilityLabel,
@@ -9,7 +10,10 @@ import {
   isSyslogSeverity,
   mapSyslogSeverity,
 } from "../../../Utils/Syslog/SyslogSeverity";
-import LogSeverity from "../../../Types/Log/LogSeverity";
+import LogSeverity, {
+  LOG_SEVERITY_NUMBER_BY_TEXT,
+  logSeverityNumberFromText,
+} from "../../../Types/Log/LogSeverity";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -99,24 +103,65 @@ describe("the severities", () => {
     }
   });
 
-  test("become log severities: 0-1 fatal, 2-3 error, 4 warning, 5-6 information, 7 debug", () => {
+  /*
+   * Appendix B's syslog column of the OpenTelemetry Logs Data Model, as the
+   * Collector's syslog parser and the host collector's journald mapping
+   * number them (issue #11228). Alert (1) used to be Fatal (23) here alone,
+   * while the word `alert` and a collector's syslog record were Error (19).
+   */
+  test("become log severities: 0 fatal, 1-3 error, 4 warning, 5-6 information, 7 debug", () => {
     expect(
       [0, 1, 2, 3, 4, 5, 6, 7].map((code: number) => {
         return mapSyslogSeverity(code);
       }),
     ).toEqual([
-      { number: 23, text: LogSeverity.Fatal },
-      { number: 23, text: LogSeverity.Fatal },
+      { number: 21, text: LogSeverity.Fatal },
       { number: 19, text: LogSeverity.Error },
-      { number: 19, text: LogSeverity.Error },
+      { number: 18, text: LogSeverity.Error },
+      { number: 17, text: LogSeverity.Error },
       { number: 13, text: LogSeverity.Warning },
-      { number: 9, text: LogSeverity.Information },
+      { number: 10, text: LogSeverity.Information },
       { number: 9, text: LogSeverity.Information },
       { number: 5, text: LogSeverity.Debug },
     ]);
   });
 
-  test("the table has exactly the eight, and a worse syslog severity is never a milder log severity", () => {
+  test("are stored by their RFC 5424 keywords, as the one table of level words stores them", () => {
+    expect(SYSLOG_SEVERITY_KEYWORDS).toEqual([
+      "emerg",
+      "alert",
+      "crit",
+      "err",
+      "warning",
+      "notice",
+      "info",
+      "debug",
+    ]);
+
+    SYSLOG_SEVERITY_KEYWORDS.forEach((keyword: string, code: number) => {
+      expect({ keyword, number: mapSyslogSeverity(code).number }).toEqual({
+        keyword,
+        number: logSeverityNumberFromText(keyword),
+      });
+      expect(LOG_SEVERITY_NUMBER_BY_TEXT.has(keyword.toUpperCase())).toBe(true);
+    });
+  });
+
+  /*
+   * The names a person reads are RFC 5424's too, but not every one is the
+   * keyword: the table reads `critical` in full as an application logger's
+   * top level (Fatal), syslog's Critical is its keyword `crit` (Error).
+   */
+  test("a severity's name is not what it is stored by: critical is the keyword crit", () => {
+    expect(getSyslogSeverityLabel(2)).toBe("critical");
+    expect(mapSyslogSeverity(2)).toEqual({
+      number: logSeverityNumberFromText("crit"),
+      text: LogSeverity.Error,
+    });
+    expect(logSeverityNumberFromText("critical")).toBe(21);
+  });
+
+  test("the table has exactly the eight, and a worse syslog severity is always a more severe log severity", () => {
     expect(Object.keys(SYSLOG_TO_OTEL_SEVERITY).sort()).toEqual([
       "0",
       "1",
@@ -129,7 +174,7 @@ describe("the severities", () => {
     ]);
 
     for (let code: number = 1; code <= 7; code++) {
-      expect(mapSyslogSeverity(code).number).toBeLessThanOrEqual(
+      expect(mapSyslogSeverity(code).number).toBeLessThan(
         mapSyslogSeverity(code - 1).number,
       );
     }

@@ -1,0 +1,1347 @@
+suite: logs.extraOperators, collector operators of your own (issue #11225)
+# logs.extraOperators adds stanza operators to the DaemonSet collector's pod
+# log receiver, for a log format the agent does not read: after a line is put
+# back together and its pod and stream are read, before its level is. A level
+# one of them writes to attributes.severity_text is read before any reader of
+# the agent's own (pod-log-severity_test.yaml holds that route).
+#
+# The chart checks the value at install time (the
+# kubernetes-agent.validateExtraLogOperators helper), so that a value the
+# collector would refuse fails `helm install` with a message naming the
+# operator, instead of a DaemonSet that restarts forever. What it refuses is
+# what collector 0.165.0's validate and a start of 0.96.0 were seen to refuse,
+# and what each test here refuses, a passing case beside it shows the line.
+#
+# A refusal is read at templates/extra-log-operators-check.yaml, the template
+# the check runs in, and held to its whole message with errorMessage.
+# helm-unittest 0.5.1, the version CI pins, has no errorPattern: it reads one
+# as no assertion at all, so a test written with one passes whatever the
+# message says. Nor does it find a failed document at a template the error did
+# not come from. A refusal by values.schema.json is no template's, as the
+# render stops before any, so for those the suite holds only that the install
+# fails (failedTemplate: {}), and Tests/Ops/validate-collector-configs.sh
+# holds Helm's own messages for them.
+#
+# The patterns are single-quoted YAML, so a backslash is the regex's own. In
+# the collector's config an operator of the list is at 6 spaces, its keys at 8.
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-daemonset.yaml
+  - templates/extra-log-operators-check.yaml
+set:
+  clusterName: prod-us
+tests:
+  # ----- What it renders, and where ----------------------------------------
+  - it: adds nothing when none is set
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'logs\.extraOperators'
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        to: resource\["k8s\.pod\.uid"\]\n(?:[ ]*#[^\n]*\n)*      - type: router\n        id: severity-router\n'
+
+  - it: runs the documented example after the pod and stream are read, in its order, and hands on to the agent's severity router
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          id: inhouse-level
+          if: 'body matches "^<<[DIWEF]>> "'
+          regex: '^<<(?P<severity_text>[DIWEF])>> '
+        - type: router
+          id: sev-route
+          routes:
+            - output: sev-fatal
+              expr: 'body matches "^SEV1 "'
+            - output: sev-error
+              expr: 'body matches "^SEV2 "'
+          default: severity-router
+        - type: add
+          id: sev-fatal
+          field: attributes.severity_text
+          value: FATAL
+          output: severity-router
+        - type: add
+          id: sev-error
+          field: attributes.severity_text
+          value: ERROR
+          output: severity-router
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        to: resource\["k8s\.pod\.uid"\]\n(?:[ ]*#[^\n]*\n)*      - id: inhouse-level\n        if: body matches "\^<<\[DIWEF\]>> "\n        regex: ''\^<<\(\?P<severity_text>\[DIWEF\]\)>> ''\n        type: regex_parser\n      - default: severity-router\n        id: sev-route\n        routes:\n        - expr: body matches "\^SEV1 "\n          output: sev-fatal\n        - expr: body matches "\^SEV2 "\n          output: sev-error\n        type: router\n      - field: attributes\.severity_text\n        id: sev-fatal\n        output: severity-router\n        type: add\n        value: FATAL\n      - field: attributes\.severity_text\n        id: sev-error\n        output: severity-router\n        type: add\n        value: ERROR\n(?:[ ]*#[^\n]*\n)*      - type: router\n        id: severity-router\n'
+
+  - it: runs them after the stream is read and the OpenStack lines are put back together, when that is on
+    set:
+      logs.openStack.cloudName: prod-cloud
+      logs.extraOperators:
+        - type: noop
+          id: mine
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'id: openstack-recombine\n(?:[^\n]*\n)*?        id: openstack-cloud-name\n(?:[^\n]*\n)*?        id: move-stream\n(?:[^\n]*\n)*?        to: resource\["k8s\.pod\.uid"\]\n(?:[ ]*#[^\n]*\n)*      - id: mine\n        type: noop\n(?:[ ]*#[^\n]*\n)*      - type: router\n        id: severity-router\n'
+
+  - it: keeps an operator's values as written, braces and quotes and backslashes too
+    set:
+      logs.extraOperators:
+        - type: add
+          field: attributes["team.name"]
+          value: '{{ payments }} "quoted" \ back'
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      - field: attributes\["team\.name"\]\n        type: add\n        value: ''\{\{ payments \}\} "quoted" \\ back''\n'
+
+  - it: takes an operator without an id, which the collector names for its type
+    set:
+      logs.extraOperators:
+        - type: json_parser
+          parse_from: body
+          parse_to: attributes
+          if: 'body startsWith "{"'
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      - if: body startsWith "\{"\n        parse_from: body\n        parse_to: attributes\n        type: json_parser\n'
+
+  - it: with pod logs off, renders none of them, and checks them still
+    set:
+      logs.enabled: false
+      logs.extraOperators:
+        - type: noop
+          id: mine
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'id: mine'
+
+  - it: with pod logs off, still refuses a value the collector would
+    set:
+      logs.enabled: false
+      logs.extraOperators:
+        - type: noop
+          id: severity-router
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s id is "severity-router", which is the id of one of the agent''s own operators: choose another.'
+
+  # ----- Where it runs ---------------------------------------------------------
+  - it: refuses the setting when the API log tailer reads the pod logs, as it runs no collector operators
+    set:
+      logs.mode: api
+      logs.extraOperators:
+        - type: noop
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators runs in the DaemonSet collector''s pod log receiver, and this install reads pod logs with the API log tailer (logs.mode resolves to api on preset "standard"), which runs no collector operators. Remove logs.extraOperators, or set logs.mode=daemonset.'
+
+  - it: refuses it on GKE Autopilot, whose preset reads pod logs with the tailer
+    set:
+      preset: gke-autopilot
+      logs.extraOperators:
+        - type: noop
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators runs in the DaemonSet collector''s pod log receiver, and this install reads pod logs with the API log tailer (logs.mode resolves to api on preset "gke-autopilot"), which runs no collector operators. Remove logs.extraOperators, or set logs.mode=daemonset.'
+
+  # ----- The value's shape (values.schema.json) -------------------------------
+  - it: refuses a value that is not a list
+    set:
+      logs.extraOperators: inhouse
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate: {}
+
+  - it: refuses an item that is not an operator
+    set:
+      logs.extraOperators:
+        - regex_parser
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate: {}
+
+  - it: refuses an operator without a type
+    set:
+      logs.extraOperators:
+        - id: inhouse-level
+          regex: '^(?P<severity_text>\w+)'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate: {}
+
+  - it: refuses a type the collector has no operator for
+    set:
+      logs.extraOperators:
+        - type: regex_parse
+          regex: '^(?P<severity_text>\w+)'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate: {}
+
+  - it: refuses an input operator, which has no place in a receiver's chain
+    set:
+      logs.extraOperators:
+        - type: file_input
+          include: [/var/log/app.log]
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate: {}
+
+  - it: refuses an output operator, which would end the chain before the agent's
+    set:
+      logs.extraOperators:
+        - type: stdout
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate: {}
+
+  - it: refuses an id that is not a string
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: 7
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate: {}
+
+  - it: refuses an empty id
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: ""
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate: {}
+
+  # ----- Operators that set the level themselves ------------------------------
+  - it: refuses a severity_parser, whose level the agent would overwrite, and says where a level goes
+    set:
+      logs.extraOperators:
+        - type: severity_parser
+          parse_from: attributes.lvl
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a severity_parser. The agent reads every line''s level after your operators, and would overwrite the one it sets: write the level to attributes.severity_text instead (an add, or a regex_parser''s severity_text group), as a word the agent reads (ERROR, warn, critical, ...), and the agent reads that before anything else.'
+
+  - it: refuses a syslog_parser, which sets the level from the priority
+    set:
+      logs.extraOperators:
+        - type: syslog_parser
+          protocol: rfc3164
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a syslog_parser, which sets the line''s severity itself, and the agent, reading every line''s level after your operators, would overwrite it. Lift the level into attributes.severity_text instead (a regex_parser''s severity_text group), and the agent reads that before anything else.'
+
+  - it: refuses an otelcol parser, which sets the level of the collector's own lines
+    set:
+      logs.extraOperators:
+        - type: otelcol
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is an otelcol parser, which sets the line''s severity itself, and the agent, reading every line''s level after your operators, would overwrite it. Lift the level into attributes.severity_text instead (a regex_parser''s severity_text group), and the agent reads that before anything else.'
+
+  - it: refuses a parser's severity block
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?P<lvl>\w+) '
+          severity:
+            parse_from: attributes.lvl
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has a severity block, and the agent, reading every line''s level after your operators, would overwrite what it sets: write the level to attributes.severity_text instead (a regex_parser''s severity_text group does), and the agent reads that before anything else.'
+
+  - it: takes a parser's timestamp block
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?P<t>\d+) '
+          timestamp:
+            parse_from: attributes.t
+            layout_type: epoch
+            layout: s
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '        timestamp:\n          layout: s\n          layout_type: epoch\n          parse_from: attributes\.t\n'
+
+  - it: refuses the container parser, as the agent has read the runtime's format
+    set:
+      logs.extraOperators:
+        - type: container
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a container parser, but the agent has read the container runtime''s format already: the body your operators see is the program''s own line.'
+
+  # ----- Operators newer than the collector of image.tag ----------------------
+  - it: refuses a regex_replace on a collector before 0.122.0
+    set:
+      image.tag: 0.121.0
+      logs.extraOperators:
+        - type: regex_replace
+          regex_name: ansi_control_sequences
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is an operator of type regex_replace, which came in collector 0.122.0, and image.tag runs 0.121.0. Use operators that collector has, or a newer image.tag.'
+
+  - it: takes a regex_replace on 0.122.0
+    set:
+      image.tag: 0.122.0
+      logs.extraOperators:
+        - type: regex_replace
+          regex_name: ansi_control_sequences
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - regex_name: ansi_control_sequences\n        type: regex_replace\n'
+
+  - it: refuses a json_array_parser before 0.105.0, where it was behind a feature gate
+    set:
+      image.tag: 0.104.0
+      logs.extraOperators:
+        - type: json_array_parser
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is an operator of type json_array_parser, which came in collector 0.105.0, and image.tag runs 0.104.0. Use operators that collector has, or a newer image.tag.'
+
+  - it: takes a json_array_parser on 0.105.0
+    set:
+      image.tag: 0.105.0
+      logs.extraOperators:
+        - type: json_array_parser
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - type: json_array_parser\n'
+
+  - it: refuses an assign_keys before 0.105.0
+    set:
+      image.tag: 0.104.0
+      logs.extraOperators:
+        - type: assign_keys
+          field: body
+          keys: [a, b]
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is an operator of type assign_keys, which came in collector 0.105.0, and image.tag runs 0.104.0. Use operators that collector has, or a newer image.tag.'
+
+  - it: refuses a sanitize_utf8 before 0.134.0, and takes it on 0.134.0
+    set:
+      image.tag: 0.133.0
+      logs.extraOperators:
+        - type: sanitize_utf8
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is an operator of type sanitize_utf8, which came in collector 0.134.0, and image.tag runs 0.133.0. Use operators that collector has, or a newer image.tag.'
+
+  - it: takes a sanitize_utf8 on 0.134.0
+    set:
+      image.tag: 0.134.0
+      logs.extraOperators:
+        - type: sanitize_utf8
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - type: sanitize_utf8\n'
+
+  - it: reads the version from a tag with a v and a digest
+    set:
+      image.tag: v0.121.0@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      logs.extraOperators:
+        - type: regex_replace
+          regex_name: ansi_control_sequences
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is an operator of type regex_replace, which came in collector 0.122.0, and image.tag runs v0.121.0@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef. Use operators that collector has, or a newer image.tag.'
+
+  # ----- What each type cannot do without --------------------------------------
+  - it: refuses a move with no to
+    set:
+      logs.extraOperators:
+        - type: move
+          from: attributes.lvl
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (move) has no to, which the collector refuses to start with.'
+
+  - it: refuses a copy with no from
+    set:
+      logs.extraOperators:
+        - type: copy
+          to: attributes.lvl
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (copy) has no from, which the collector refuses to start with.'
+
+  - it: refuses a remove with no field
+    set:
+      logs.extraOperators:
+        - type: remove
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (remove) has no field, which the collector refuses to start with.'
+
+  - it: refuses a retain with no fields, or an empty list of them
+    set:
+      logs.extraOperators:
+        - type: retain
+          fields: []
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (retain) has no fields, which the collector refuses to start with.'
+
+  - it: refuses a flatten with no field
+    set:
+      logs.extraOperators:
+        - type: flatten
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (flatten) has no field, which the collector refuses to start with.'
+
+  - it: refuses an assign_keys with no keys
+    set:
+      logs.extraOperators:
+        - type: assign_keys
+          field: body
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (assign_keys) has no keys, which the collector refuses to start with.'
+
+  - it: refuses a filter with no expr
+    set:
+      logs.extraOperators:
+        - type: filter
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (filter) has no expr, which the collector refuses to start with.'
+
+  - it: refuses a recombine with no combine_field
+    set:
+      logs.extraOperators:
+        - type: recombine
+          is_first_entry: 'body matches "^\\d{4}-"'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (recombine) has no combine_field, which the collector refuses to start with.'
+
+  - it: refuses a recombine with neither is_first_entry nor is_last_entry
+    set:
+      logs.extraOperators:
+        - type: recombine
+          combine_field: body
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a recombine, which takes one of is_first_entry and is_last_entry: the expression that marks where a record starts, or where it ends.'
+
+  - it: refuses a recombine with both
+    set:
+      logs.extraOperators:
+        - type: recombine
+          combine_field: body
+          is_first_entry: 'body matches "^\\d{4}-"'
+          is_last_entry: 'body matches ";$"'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a recombine, which takes one of is_first_entry and is_last_entry: the expression that marks where a record starts, or where it ends.'
+
+  - it: takes a recombine with one of them
+    set:
+      logs.extraOperators:
+        - type: recombine
+          id: inhouse-recombine
+          combine_field: body
+          is_first_entry: 'body matches "^\\d{4}-"'
+          source_identifier: attributes["log.file.path"]
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - combine_field: body\n        id: inhouse-recombine\n        is_first_entry: body matches "\^\\\\d\{4\}-"\n'
+
+  - it: refuses a regex_parser with no regex
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has no regex, which the collector refuses to start with.'
+
+  - it: refuses a regex_replace with neither a regex nor a regex_name
+    set:
+      logs.extraOperators:
+        - type: regex_replace
+          field: body
+          replace_with: ""
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a regex_replace, which takes a regex or a regex_name, one of them.'
+
+  - it: refuses a regex_replace with both
+    set:
+      logs.extraOperators:
+        - type: regex_replace
+          regex: '\x1b'
+          regex_name: ansi_control_sequences
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a regex_replace, which takes a regex or a regex_name, one of them.'
+
+  - it: refuses a regex_name the collector does not know
+    set:
+      logs.extraOperators:
+        - type: regex_replace
+          regex_name: ansi
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a regex_replace whose regex_name is "ansi": the collector knows ansi_control_sequences only.'
+
+  - it: refuses a csv_parser with no header and no header_attribute
+    set:
+      logs.extraOperators:
+        - type: csv_parser
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a csv_parser with no header and no header_attribute, which the collector refuses to start with.'
+
+  - it: takes a csv_parser with a header_attribute
+    set:
+      logs.extraOperators:
+        - type: csv_parser
+          header_attribute: columns
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - header_attribute: columns\n        type: csv_parser\n'
+
+  - it: refuses a time_parser with no layout
+    set:
+      logs.extraOperators:
+        - type: time_parser
+          parse_from: attributes.t
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (time_parser) has no layout, which the collector refuses to start with.'
+
+  - it: refuses a layout_type the collector does not have
+    set:
+      logs.extraOperators:
+        - type: time_parser
+          parse_from: attributes.t
+          layout_type: go
+          layout: '2006-01-02'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a time_parser whose layout_type is "go": the collector takes strptime, gotime or epoch.'
+
+  - it: takes an add with no value, which the collector does too
+    set:
+      logs.extraOperators:
+        - type: add
+          field: attributes.marker
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - field: attributes\.marker\n        type: add\n'
+
+  # ----- Fields -----------------------------------------------------------------
+  - it: refuses a field that is not body, attributes or resource
+    set:
+      logs.extraOperators:
+        - type: add
+          field: attribute.severity_text
+          value: ERROR
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s field is ''attribute.severity_text'', which is no field the collector knows: a field is body, attributes or resource, then .name or ["name"] steps, such as attributes.level or attributes["log.level"].'
+
+  - it: refuses a bare name, as where the level goes is attributes.severity_text
+    set:
+      logs.extraOperators:
+        - type: move
+          from: attributes.lvl
+          to: severity_text
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s to is ''severity_text'', which is no field the collector knows: a field is body, attributes or resource, then .name or ["name"] steps, such as attributes.level or attributes["log.level"].'
+
+  - it: refuses a bracket without a quoted name
+    set:
+      logs.extraOperators:
+        - type: json_parser
+          parse_to: attributes.app[level]
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s parse_to is ''attributes.app[level]'', which is no field the collector knows: a field is body, attributes or resource, then .name or ["name"] steps, such as attributes.level or attributes["log.level"].'
+
+  - it: refuses a capitalised one, and checks each of a retain's fields
+    set:
+      logs.extraOperators:
+        - type: retain
+          fields: [attributes.level, ATTRIBUTES.team]
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s fields[1] is ''ATTRIBUTES.team'', which is no field the collector knows: a field is body, attributes or resource, then .name or ["name"] steps, such as attributes.level or attributes["log.level"].'
+
+  - it: refuses a field that is not a string
+    set:
+      logs.extraOperators:
+        - type: remove
+          field: 3
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s field is ''3'', which is no field the collector knows: a field is body, attributes or resource, then .name or ["name"] steps, such as attributes.level or attributes["log.level"].'
+
+  - it: takes every field spelling the collector does
+    set:
+      logs.extraOperators:
+        - type: copy
+          from: body.app.level
+          to: attributes["app.level"]
+        - type: copy
+          from: attributes['app.level']
+          to: resource["k8s.app.level"]
+        - type: move
+          from: attributes["app"].team
+          to: attributes.team.name
+        - type: retain
+          fields: [body, attributes., attributes.level]
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - from: body\.app\.level\n        to: attributes\["app\.level"\]\n        type: copy\n'
+
+  - it: takes the whole attributes or resource map where the collector does, as a remove's field and a parser's parse_to
+    set:
+      logs.extraOperators:
+        - type: remove
+          field: resource
+        - type: json_parser
+          parse_to: attributes
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - field: resource\n        type: remove\n      - parse_to: attributes\n        type: json_parser\n'
+
+  - it: refuses the whole map anywhere else, as the collector does
+    set:
+      logs.extraOperators:
+        - type: retain
+          fields: [attributes]
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s fields[0] is ''attributes'', the whole map, which the collector takes only as a remove''s field or a parser''s parse_to: name a key under it, such as attributes.level.'
+
+  - it: refuses it as a move's to
+    set:
+      logs.extraOperators:
+        - type: move
+          from: body
+          to: resource
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s to is ''resource'', the whole map, which the collector takes only as a remove''s field or a parser''s parse_to: name a key under it, such as resource.level.'
+
+  # ----- on_error ---------------------------------------------------------------
+  - it: refuses an on_error that is no mode
+    set:
+      logs.extraOperators:
+        - type: json_parser
+          on_error: sendd
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s on_error is ''sendd'': the collector of image.tag takes send, drop, send_quiet, drop_quiet.'
+
+  - it: refuses the quiet modes before collector 0.99.0, which came then
+    set:
+      image.tag: 0.98.0
+      logs.extraOperators:
+        - type: json_parser
+          on_error: drop_quiet
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s on_error is ''drop_quiet'': the collector of image.tag takes send, drop.'
+
+  - it: takes the quiet modes from 0.99.0
+    set:
+      image.tag: 0.99.0
+      logs.extraOperators:
+        - type: json_parser
+          on_error: send_quiet
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - on_error: send_quiet\n        type: json_parser\n'
+
+  # ----- ids ----------------------------------------------------------------------
+  - it: refuses the id of one of the agent's own operators
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: move-stream
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s id is "move-stream", which is the id of one of the agent''s own operators: choose another.'
+
+  - it: refuses the agent's severity parser's id too
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: severity-parser
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s id is "severity-parser", which is the id of one of the agent''s own operators: choose another.'
+
+  - it: refuses a reader's id
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: parse-klog-severity
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s id is "parse-klog-severity", which is the id of one of the agent''s own operators: choose another.'
+
+  # The collector names an operator that has no id after its type, the first
+  # of a type by the bare name, and refuses that name given as an id too. The
+  # agent's moves have no id.
+  - it: refuses move, the name the collector gives the first of the agent's moves
+    set:
+      logs.extraOperators:
+        - type: router
+          id: move
+          routes:
+            - expr: 'true'
+              output: severity-router
+          default: severity-router
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s id is "move", the name the collector gives the first of the agent''s own move operators, which have no id: choose another.'
+
+  - it: refuses a type's name that one of yours with no id gets, wherever that one is
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: json_parser
+        - type: json_parser
+          if: 'body startsWith "{"'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s id is "json_parser", the name the collector gives logs.extraOperators[1], an operator of type json_parser with no id: choose another, or give that one an id.'
+
+  - it: takes a type's name with a number, which the collector steps around
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: move3
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - id: move3\n        type: noop\n'
+
+  - it: takes a type's bare name that no operator without an id has
+    set:
+      logs.extraOperators:
+        - type: router
+          id: router
+          routes:
+            - expr: 'body matches "^SEV1 "'
+              output: severity-router
+          default: severity-router
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '        id: router\n'
+
+  - it: refuses two of yours with one id
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: inhouse
+        - type: noop
+          id: inhouse
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[1]''s id "inhouse" is another of yours already: each needs its own.'
+
+  - it: takes an id with a type's name inside it
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: inhouse-move
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - id: inhouse-move\n        type: noop\n'
+
+  # ----- Where an operator hands lines on --------------------------------------
+  - it: refuses an output that names none of yours, and not the agent's severity router
+    set:
+      logs.extraOperators:
+        - type: noop
+          output: inhouse
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (noop) hands lines to "inhouse", which is none of your operators, and not severity-router, where the agent takes a line on.'
+
+  - it: refuses one to the agent's severity parser, which would skip its readers and its cleanup
+    set:
+      logs.extraOperators:
+        - type: noop
+          output: severity-parser
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (noop) hands lines to "severity-parser", which is none of your operators, and not severity-router, where the agent takes a line on.'
+
+  - it: refuses one to the operator itself
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: inhouse
+          output: inhouse
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (noop) hands lines to "inhouse", which is itself, a loop the collector refuses: hand them on to an operator of yours after it, or to severity-router.'
+
+  - it: refuses one to an operator before it, a loop the collector refuses
+    set:
+      logs.extraOperators:
+        - type: noop
+          id: first
+        - type: noop
+          id: second
+          output: first
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[1] (noop) hands lines to "first", which is an operator before it, a loop the collector refuses: hand them on to an operator of yours after it, or to severity-router.'
+
+  - it: refuses a list of outputs with one that names nothing
+    set:
+      logs.extraOperators:
+        - type: noop
+          output: [second, third]
+        - type: noop
+          id: second
+          output: severity-router
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (noop) hands lines to "third", which is none of your operators, and not severity-router, where the agent takes a line on.'
+
+  - it: takes a list of outputs to later ones of yours
+    set:
+      logs.extraOperators:
+        - type: noop
+          output: [second, third]
+        - type: noop
+          id: second
+          output: severity-router
+        - type: noop
+          id: third
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - output:\n        - second\n        - third\n        type: noop\n'
+
+  # ----- Routers ------------------------------------------------------------------
+  - it: refuses a router with no routes, which drops every line
+    set:
+      logs.extraOperators:
+        - type: router
+          default: severity-router
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a router with no routes, which drops every line.'
+
+  - it: refuses an empty list of routes
+    set:
+      logs.extraOperators:
+        - type: router
+          routes: []
+          default: severity-router
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a router with no routes, which drops every line.'
+
+  - it: refuses a route with no output, which drops the lines it matches
+    set:
+      logs.extraOperators:
+        - type: router
+          routes:
+            - expr: 'body matches "^SEV1 "'
+          default: severity-router
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a router whose routes[0] has no expr or no output: each route needs both, and one with no output drops the lines it matches.'
+
+  - it: refuses a route with no expr
+    set:
+      logs.extraOperators:
+        - type: router
+          routes:
+            - output: severity-router
+          default: severity-router
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a router whose routes[0] has no expr or no output: each route needs both, and one with no output drops the lines it matches.'
+
+  - it: refuses a router with no default, which drops every line no route matches
+    set:
+      logs.extraOperators:
+        - type: router
+          routes:
+            - expr: 'body matches "^SEV1 "'
+              output: severity-router
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] is a router with no default, and would drop every line none of its routes match: give it default: severity-router, which hands the line to the agent.'
+
+  - it: refuses a default that names nothing
+    set:
+      logs.extraOperators:
+        - type: router
+          routes:
+            - expr: 'body matches "^SEV1 "'
+              output: severity-router
+          default: inhouse
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (router) hands lines to "inhouse", which is none of your operators, and not severity-router, where the agent takes a line on.'
+
+  - it: refuses a route to an operator that comes before the router
+    set:
+      logs.extraOperators:
+        - type: add
+          id: sev-fatal
+          field: attributes.severity_text
+          value: FATAL
+          output: severity-router
+        - type: router
+          routes:
+            - expr: 'body matches "^SEV1 "'
+              output: sev-fatal
+          default: severity-router
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[1] (router) hands lines to "sev-fatal", which is an operator before it, a loop the collector refuses: hand them on to an operator of yours after it, or to severity-router.'
+
+  # ----- Regexes --------------------------------------------------------------------
+  - it: refuses a regex with a character class left open, and quotes it as written
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^<<(?P<severity_text>[A-Z'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has a regex the collector cannot compile: ''^<<(?P<severity_text>[A-Z''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: refuses a group left open
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?P<severity_text>\w+'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has a regex the collector cannot compile: ''^(?P<severity_text>\w+''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: refuses a backslash at the end
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?P<severity_text>\w+)\'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has a regex the collector cannot compile: ''^(?P<severity_text>\w+)\''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: refuses a lookahead, which RE2 does not have
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?P<severity_text>\w+)(?= )'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has a regex the collector cannot compile: ''^(?P<severity_text>\w+)(?= )''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: refuses a backreference
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?P<q>["''])(?P<severity_text>\w+)\1'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has a regex the collector cannot compile: ''^(?P<q>["''])(?P<severity_text>\w+)\1''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: refuses a possessive quantifier
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?P<severity_text>\w++)'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has a regex the collector cannot compile: ''^(?P<severity_text>\w++)''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: refuses a repeat count past RE2's thousand
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?P<severity_text>\w{1,1001})'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has a regex the collector cannot compile: ''^(?P<severity_text>\w{1,1001})''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: takes an unended \Q, which RE2 reads as text to the end
+    set:
+      logs.extraOperators:
+        - type: regex_replace
+          field: body
+          regex: '\Q[[ignore]]'
+          replace_with: ""
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'regex: \\Q\[\[ignore\]\]\n'
+
+  - it: takes a brace that RE2 reads as text, flags, and a hex escape
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '(?i)^(?P<severity_text>\x{57}arn) a{2,'
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'regex: \(\?i\)\^\(\?P<severity_text>\\x\{57\}arn\) a\{2,\n'
+
+  - it: refuses a (?<name>...) group on a collector built with Go 1.21, and says how to write it
+    set:
+      image.tag: 0.96.0
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?<severity_text>\w+) '
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has a regex with a (?<name>...) group, ''^(?<severity_text>\w+) '', which the collector of image.tag (0.96.0, built with Go 1.21) cannot compile: write the group (?P<name>...), which every collector takes.'
+
+  - it: takes a (?<name>...) group from collector 0.97.0
+    set:
+      image.tag: 0.97.0
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?<severity_text>\w+) '
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'regex: ''\^\(\?<severity_text>\\w\+\) '''
+
+  - it: takes a (?P<name>...) group and a lookbehind's look-alike on 0.96.0
+    set:
+      image.tag: 0.96.0
+      logs.extraOperators:
+        - type: regex_parser
+          regex: '^(?P<severity_text>\w+) \(?<x>'
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - regex: \^\(\?P<severity_text>\\w\+\) \\\(\?<x>\n'
+
+  - it: refuses a regex that is not a string
+    set:
+      logs.extraOperators:
+        - type: regex_parser
+          regex: 42
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0] (regex_parser) has a regex that is not a pattern.'
+
+  # ----- Expressions ----------------------------------------------------------------
+  - it: refuses a regex's backslash written once in an expression's string, and shows how to write it
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches "^\d+ "'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s if holds \d in the string "^\d+ ", an escape expr-lang refuses, so the collector would not start. A regex''s backslash is written twice in an expression''s string, as in ''body matches "^\\d+ "'', or the regex goes in a raw string, as in ''body matches `^\d+ `''.'
+
+  - it: takes it written twice
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches "^\\d+ "'
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - if: body matches "\^\\\\d\+ "\n'
+
+  - it: takes a regex in a raw string, with its backslash once
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches `^\d+ `'
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - if: body matches `\^\\d\+ `\n'
+
+  - it: refuses an escape of the other quote, which expr-lang takes only in its own kind of string
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: "body matches \"it\\'s\""
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s if holds \'' in the string "it\''s", an escape expr-lang refuses, so the collector would not start. A regex''s backslash is written twice in an expression''s string, as in ''body matches "^\\d+ "'', or the regex goes in a raw string, as in ''body matches `^\d+ `''.'
+
+  - it: takes an escape of a string's own quote
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: "body matches 'it\\'s' or body contains \"say \\\"hi\\\"\""
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - if: body matches ''it\\''s'' or body contains "say \\"hi\\""\n'
+
+  - it: refuses escapes Go's strings do not have, in any string of an expression
+    set:
+      logs.extraOperators:
+        - type: filter
+          expr: 'attributes["app"] == "a\?"'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s expr holds \? in the string "a\?", an escape expr-lang refuses, so the collector would not start. A regex''s backslash is written twice in an expression''s string, as in ''body matches "^\\d+ "'', or the regex goes in a raw string, as in ''body matches `^\d+ `''.'
+
+  - it: takes Go's escapes, octal and hex and unicode too
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches "\x41\101\u00e9\U0001F600[\t\n\r]\a\b\f\v"'
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - if: body matches "\\x41\\101\\u00e9\\U0001F600\[\\t\\n\\r\]\\a\\b\\f\\v"\n'
+
+  - it: refuses an octal escape past \377
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches "\401"'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s if holds \4 in the string "\401", an escape expr-lang refuses, so the collector would not start. A regex''s backslash is written twice in an expression''s string, as in ''body matches "^\\d+ "'', or the regex goes in a raw string, as in ''body matches `^\d+ `''.'
+
+  - it: refuses a regex after matches that the collector cannot compile
+    set:
+      logs.extraOperators:
+        - type: router
+          routes:
+            - expr: 'body matches "^SEV[12"'
+              output: severity-router
+          default: severity-router
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s routes[0].expr matches a regex the collector cannot compile: ''^SEV[12''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: refuses one in a raw string too
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches `(?=SEV)`'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s if matches a regex the collector cannot compile: ''(?=SEV)''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: reads the regex as the string's value, so a doubled backslash before a bracket is an escaped bracket
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches "^\\[ERROR\\] "'
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - if: body matches "\^\\\\\[ERROR\\\\\] "\n'
+
+  - it: refuses a regex whose value ends in a backslash
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches "a\\"'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s if matches a regex the collector cannot compile: ''a\''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: refuses a (?<name>...) group after matches on a collector built with Go 1.21
+    set:
+      image.tag: 0.96.0
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches "(?<lvl>\\w+)"'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s if matches a regex with a (?<name>...) group, ''(?<lvl>\w+)'', which the collector of image.tag (0.96.0, built with Go 1.21) cannot compile: write the group (?P<name>...), which every collector takes.'
+
+  - it: drops comments before it reads strings, and keeps a // inside one
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches "https?://[^ ]+" // a quote " and a \d in a comment /* too'
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - if: body matches "https\?://\[\^ \]\+" // a quote " and a \\d in a comment /\* too\n'
+
+  - it: drops a block comment, and reads the string after it
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches /* the "[x" is not a regex */ "[x"'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s if matches a regex the collector cannot compile: ''[x''. Its regular expressions are RE2''s (Go''s): look for a group or a character class left open, or a \ at the end, and for what RE2 does not have: lookahead and lookbehind ((?=, (?!, (?<=, (?<!), backreferences (\1) and possessive quantifiers (a++). Name a group (?P<name>...).'
+
+  - it: does not read matches inside a string as the operator
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: "body == 'a matches \"[x\"'"
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - if: body == ''a matches "\[x"''\n'
+
+  - it: takes a regex built from strings, which only the collector compiles
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: 'body matches ("^" + "\\d")'
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '      - if: body matches \("\^" \+ "\\\\d"\)\n'
+
+  - it: refuses an if that is not a string
+    set:
+      logs.extraOperators:
+        - type: noop
+          if: true
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s if is not an expression: write one as a string, such as ''body matches "^SEV1 "''.'
+
+  - it: checks a filter's expr and a recombine's is_last_entry
+    set:
+      logs.extraOperators:
+        - type: recombine
+          combine_field: body
+          is_last_entry: 'body matches "\.$"'
+    asserts:
+      - template: templates/extra-log-operators-check.yaml
+        failedTemplate:
+          errorMessage: 'logs.extraOperators[0]''s is_last_entry holds \. in the string "\.$", an escape expr-lang refuses, so the collector would not start. A regex''s backslash is written twice in an expression''s string, as in ''body matches "^\\d+ "'', or the regex goes in a raw string, as in ''body matches `^\d+ `''.'

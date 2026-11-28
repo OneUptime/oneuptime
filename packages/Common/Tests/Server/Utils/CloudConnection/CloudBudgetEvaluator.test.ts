@@ -33,6 +33,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { readStatusChangeNote } from "../../../../Utils/Monitor/StatusChangeNotes";
 import {
   afterEach,
   beforeEach,
@@ -1071,6 +1072,43 @@ describe("a budget's check", () => {
       (updates[0]!["alertState"] as unknown as CloudBudgetAlertState).month,
     ).toBe("2026-11");
   });
+
+  /*
+   * A quarterly or yearly budget's alert is resolved when its quarter or
+   * year is over, and its timeline says which. Each is a whole sentence
+   * (StatusChangeNotes): the noun put into one sentence was read in
+   * English on every page, whatever the reader's language.
+   */
+  test.each([
+    ["2026-10", "month"],
+    ["2026-11/1", "month"],
+    ["2026-07/3", "quarter"],
+    ["2026-04/12", "year"],
+    ["", "month"],
+  ])(
+    "an alert raised in the window %p is resolved saying its %s is over, in a note every language reads",
+    async (windowKey: string, noun: string) => {
+      await (
+        CloudBudgetEvaluator as unknown as {
+          resolveAlert: (data: {
+            projectId: ObjectID;
+            alertId: ObjectID;
+            previousWindowKey?: string | undefined;
+          }) => Promise<void>;
+        }
+      ).resolveAlert({
+        projectId: PROJECT,
+        alertId: new ObjectID(OLD_ALERT),
+        previousWindowKey: windowKey,
+      });
+
+      expect(timelines).toHaveLength(1);
+      expect(timelines[0]!.rootCause).toBe(
+        `Resolved by OneUptime: the ${noun} this cloud budget alert was raised in is over.`,
+      );
+      expect(readStatusChangeNote(timelines[0]!.rootCause!)).not.toBeNull();
+    },
+  );
 
   test("an account's unusual day is an alert of its own, once, kept apart by its account and day", async () => {
     accounts = [

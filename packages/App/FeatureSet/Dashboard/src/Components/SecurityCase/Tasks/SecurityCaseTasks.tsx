@@ -15,12 +15,22 @@ import {
   SECURITY_CASE_ASSIGNEE_KEY,
   getSecurityCaseAssigneePickerConfig,
 } from "../SecurityCaseAssigneePicker";
+import {
+  isExposureAnswerShown,
+  useCaseExposureAnswer,
+} from "../Exposure/CaseExposureRead";
+import ExposureTaskAnswer from "../Exposure/ExposureTaskAnswer";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
+import { DataSecurityExposureAssessmentResponse } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import {
+  ExposureChecklistItem,
+  getExposureChecklistItemOfTask,
+} from "Common/Types/DataSecurity/ExposureChecklist";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
@@ -78,6 +88,11 @@ import React, {
 
 export interface ComponentProps {
   caseId: ObjectID;
+  /*
+   * The case's entities: for a case about a data store, each task of the
+   * Close a Data Exposure checklist draws the exposure assessment's answer.
+   */
+  entities?: JSONArray | undefined;
   // Bumped when the case changes: the list is read again.
   refreshToken?: string | undefined;
 }
@@ -185,6 +200,13 @@ export const SecurityCaseTaskAssignee: FunctionComponent<{
  * Read with the person's own permissions: a Security Viewer sees the list,
  * its boxes and actions locked with the reason on hover. A colleague's
  * change shows at once (the task model's live events).
+ *
+ * On a case about a data store, each task of the Close a Data Exposure
+ * checklist - matched by its key, else by its title as the playbook wrote
+ * it (getExposureChecklistItemOfTask) - draws the exposure assessment's
+ * answer under it, with a link to the Was It a Breach? card (#10954). The
+ * assessment is read once for the page, again when the case changes, and
+ * only drawn for a reader the server lets read it.
  */
 const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -193,6 +215,14 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
   const { translateString } = useTranslateValue();
   const addInputId: string = useId();
   const caseIdText: string = props.caseId.toString();
+  const exposureRead: DataSecurityExposureAssessmentResponse | null =
+    useCaseExposureAnswer({
+      caseId: props.caseId,
+      entities: props.entities,
+      refreshToken: props.refreshToken,
+    });
+  const exposure: DataSecurityExposureAssessmentResponse | null =
+    isExposureAnswerShown(exposureRead) ? exposureRead : null;
 
   const createGate: PermissionGateResult = PermissionGate.check(
     new SecurityCaseTask(),
@@ -392,6 +422,10 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
     const doneTime: string = task.doneAt
       ? OneUptimeDate.fromNow(task.doneAt)
       : "";
+    // The line of the exposure checklist the task is, when the case has an assessment to answer it.
+    const checklistItem: ExposureChecklistItem | null = exposure
+      ? getExposureChecklistItemOfTask(task)
+      : null;
 
     return (
       <li
@@ -433,6 +467,19 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
           >
             <IsolatedText text={task.title || ""} />
           </p>
+          {/*
+           * What the exposure assessment says of it, quieter than the task:
+           * the card's answer, and a link to the card.
+           */}
+          {exposure && checklistItem ? (
+            <ExposureTaskAnswer
+              caseId={props.caseId}
+              item={checklistItem}
+              answer={exposure}
+            />
+          ) : (
+            <></>
+          )}
           {/*
            * In a narrow list, who has it: under what it is, where a wide list
            * draws the column beside it.

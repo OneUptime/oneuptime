@@ -160,6 +160,7 @@ POWERSTORE_BULK_METRICS=
 POWERSTORE_API_VERSION=
 POWERSTORE_REQUEST_LIMIT=
 POWERSTORE_SYSLOG_PORT=
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 若是 Dell PowerStore，還要下載 `otel-collector-config.powerstore.yaml`、`powerstore-exporter.Dockerfile` 和 `powerstore-syslog.yaml`，設定 `STORAGE_SYSTEM=dell.powerstore`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` 和 `COMPOSE_PROFILES=powerstore`，並填入 `POWERSTORE_ENDPOINT`、`POWERSTORE_USERNAME` 和 `POWERSTORE_PASSWORD`，密碼放在單引號中。
@@ -189,6 +190,7 @@ NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
 NETAPP_ONTAP_USERNAME=oneuptime
 NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent
 ```
 
 啟動代理程式：
@@ -265,6 +267,7 @@ Dell 的匯出器不回報主機和複寫工作階段，因此此版本兩者都
 | `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | 否 | `DES`、`AES`、`AES192`、`AES256`、`AES192C` 或 `AES256C`。預設為 `AES`。 |
 | `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 使用者的隱私密碼，用於 `auth_priv` 層級。 |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 否 | `true` 會在原生端點上和 Harvest 中接受陣列的自我簽署憑證；`false` 則會驗證它。預設為 `true`。Pure 的匯出器從不驗證陣列的憑證，因此它不適用於匯出器。 |
+| `STORAGE_ARRAY_AGENT_CONTAINER_NAME` | 否 | 代理程式的容器名稱。預設為 `oneuptime-storage-array-agent`。同一台機器上第二個陣列的代理程式需要自己的容器名稱：請參閱 [監控多個陣列](#監控多個陣列)。除非你自行設定，否則安裝指令碼會依新代理程式的資料夾為它命名，並在你再次執行指令碼時保留該名稱。 |
 
 ## 代理程式如何抓取
 
@@ -364,7 +367,7 @@ Collector 只在啟動時讀取其設定：請執行 `docker compose restart one
 
 ## 監控多個陣列
 
-一個代理程式讀取一個陣列。要從同一台機器監控多個陣列，請把每個代理程式安裝到各自的資料夾中，並使用各自的 `.env`，例如 `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`，並為每個代理程式設定各自的 `container_name`（位於其 `docker-compose.yml` 中，例如 `oneuptime-storage-array-agent-fa02`）：兩個容器不能同名。用 `-d` 把資料夾傳給診斷指令碼。
+一個代理程式讀取一個陣列。要從同一台機器監控多個陣列，請把每個代理程式安裝到各自的資料夾中，並使用各自的 `.env` 和各自的容器名稱，因為兩個容器不能同名：`INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`。若未設定 `STORAGE_ARRAY_AGENT_CONTAINER_NAME`，指令碼會依資料夾為容器命名，在此例中就是同一個名稱。它會把名稱保存在該代理程式的 `.env` 中，所以再次執行指令碼來升級代理程式時也會保留它；而若代理程式的 `container_name` 曾由你在 `docker-compose.yml` 中編輯過，它也會保留那個名稱。使用 Docker Compose 時，請改為將 `STORAGE_ARRAY_AGENT_CONTAINER_NAME` 設定在每個代理程式的 `.env` 中。用 `-d` 把資料夾傳給診斷指令碼。
 
 第二個 PowerStore 代理程式也需要自己的 syslog 連接埠：將 `POWERSTORE_SYSLOG_PORT` 設為例如 `5515`，寫在其 `.env` 中。
 
@@ -382,7 +385,7 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 代理程式會把其檔案固定的 Collector 版本回報為它的 **代理程式版本**。當該版本早於此 OneUptime 版本固定的版本時，陣列的 **概覽** 頁面上會在它旁邊出現一個警告標誌。選取它即可查看這些命令。在其檔案開始回報版本之前安裝的代理程式不會顯示版本，直到以這種方式升級為止。
 
-Collector 映像檔固定在 `docker-compose.yml` 中，其設定是旁邊的檔案，因此只提取映像檔並不能讓代理程式升級。請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml`、所有 Collector 設定和 Harvest 的檔案（你編輯過的檔案會保存為 `<file>.bak.<timestamp>`），並重新建立代理程式，讓 Collector 讀取新的設定。安裝在 `/opt/oneuptime-storage-array-agent` 之外的代理程式需要指定其資料夾：`INSTALL_DIR=<folder> bash install.sh`。
+Collector 映像檔固定在 `docker-compose.yml` 中，其設定是旁邊的檔案，因此只提取映像檔並不能讓代理程式升級。請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml`、所有 Collector 設定和 Harvest 的檔案（你編輯過的檔案會保存為 `<file>.bak.<timestamp>`），並重新建立代理程式，讓 Collector 讀取新的設定。安裝在 `/opt/oneuptime-storage-array-agent` 之外的代理程式需要指定其資料夾：`INSTALL_DIR=<folder> bash install.sh`。它會保留自己的容器名稱。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh

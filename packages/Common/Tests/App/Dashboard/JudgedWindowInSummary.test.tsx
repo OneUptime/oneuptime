@@ -242,6 +242,100 @@ describe("getJudgedWindowEnds", () => {
   });
 });
 
+/*
+ * A check's window holds its start and not its end since #11334: a record
+ * stamped on its end was the next check's, and the summary says so.
+ */
+describe("a check's window that leaves out its end, in its summary", () => {
+  const LEFT_OUT: MonitorEvaluationSummary["judgedWindow"] = {
+    startsAt: STARTS_AT,
+    endsAt: ENDS_AT,
+    includesEnd: false,
+  };
+
+  test("says the end is not included, to the second, the day once", () => {
+    const facts: Array<string> = factsOf(
+      summary({ durationInMs: 640, judgedWindow: LEFT_OUT }),
+    );
+    const ends: { start: string; end: string } = getJudgedWindowEnds({
+      judgedWindow: LEFT_OUT,
+    })!;
+
+    expect(facts).toHaveLength(3);
+    expect(facts[2]).toBe(
+      `Data from ${ends.start} up to, but not including, ${ends.end}`,
+    );
+    expect(facts[2]).toMatch(/10:00:07/);
+    expect(facts[2]).toMatch(/not including, .*10:01:07/);
+    expect(facts[2]!.split("Nov 27").length).toBe(2);
+  });
+
+  test("read back from its log, its dates as text, says the same", () => {
+    const stored: MonitorEvaluationSummary = JSON.parse(
+      JSON.stringify(summary({ judgedWindow: LEFT_OUT })),
+    );
+
+    expect(stored.judgedWindow!.includesEnd).toBe(false);
+    expect(factsOf(stored)[1]).toMatch(
+      /^Data from .*10:00:07.* up to, but not including, .*10:01:07/,
+    );
+  });
+
+  test("a window logged before #11334, which held both ends, keeps saying so", () => {
+    for (const includesEnd of [undefined, true]) {
+      expect(
+        factsOf(
+          summary({
+            judgedWindow: {
+              startsAt: STARTS_AT,
+              endsAt: ENDS_AT,
+              includesEnd: includesEnd,
+            },
+          }),
+        )[1],
+      ).toMatch(/^Data from .*10:00:07.* to .*10:01:07/);
+      cleanup();
+    }
+  });
+
+  test("getJudgedWindowEnds says which end the window held", () => {
+    expect(getJudgedWindowEnds({ judgedWindow: LEFT_OUT })!.includesEnd).toBe(
+      false,
+    );
+    expect(
+      getJudgedWindowEnds({
+        judgedWindow: { startsAt: STARTS_AT, endsAt: ENDS_AT },
+      })!.includesEnd,
+    ).toBe(true);
+  });
+
+  test("every Dashboard language has the sentence, with both its ends", () => {
+    const english: string =
+      readLocale("en")[
+        "Data from {{start}} up to, but not including, {{end}}"
+      ]!;
+
+    expect(english).toBe(
+      "Data from {{start}} up to, but not including, {{end}}",
+    );
+
+    for (const language of LANGUAGES) {
+      const words: string | undefined =
+        readLocale(language)[
+          "Data from {{start}} up to, but not including, {{end}}"
+        ];
+
+      expect(words).toBeDefined();
+      expect(words).toContain("{{start}}");
+      expect(words).toContain("{{end}}");
+      // Its own sentence, not the one that holds both ends.
+      expect(words).not.toBe(
+        readLocale(language)["Data from {{start}} to {{end}}"],
+      );
+    }
+  });
+});
+
 describe.each(LANGUAGES)(
   "a telemetry check's summary in %s",
   (language: string) => {
@@ -256,6 +350,31 @@ describe.each(LANGUAGES)(
       expect(facts[1]).not.toMatch(/^Data from /);
       // Its seconds, 07, in the language's digits.
       expect(facts[1]).toMatch(/[0۰٠][7۷٧]/u);
+    });
+
+    test("words a window that leaves out its end in the language, as its own sentence", async () => {
+      await readIn(language);
+
+      const leftOut: string = factsOf(
+        summary({
+          judgedWindow: {
+            startsAt: STARTS_AT,
+            endsAt: ENDS_AT,
+            includesEnd: false,
+          },
+        }),
+      )[1]!;
+      cleanup();
+      const bothEnds: string = factsOf(
+        summary({ judgedWindow: { startsAt: STARTS_AT, endsAt: ENDS_AT } }),
+      )[1]!;
+
+      expect(leftOut).not.toMatch(/^Data from /);
+      expect(leftOut).not.toMatch(/not including/);
+      expect(leftOut).not.toBe(bothEnds);
+      // Both ends, to the second, in the language's digits.
+      expect(leftOut).toMatch(/[0۰٠][7۷٧]/u);
+      expect(leftOut).toMatch(/[1١۱]/u);
     });
   },
 );

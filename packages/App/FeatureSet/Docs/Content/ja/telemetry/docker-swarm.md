@@ -116,6 +116,7 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 | `DOCKER_SWARM_NODE_NAME` | いいえ | ノードの名前。`docker.swarm.node.name` リソース属性として、そのノードのコンテナーのメトリクスとログに付与され、[Docker Swarm モニター](/docs/monitor/docker-swarm-monitor#モニター設定) はこれで絞り込みます。インストールスクリプトは、`docker node ls` に表示されるとおりのノードのホスト名を設定します。空の場合、ノード名は付与されません。 |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | いいえ | インベントリポーラーがスナップショットを取る間隔 (秒)。既定は `300` です。 |
 | `DOCKER_API_VERSION` | いいえ | Collector とインベントリポーラーが使う Docker Engine API のバージョン。既定は空で、デーモン自身のバージョンを使うため、20.10 以降のすべての Docker Engine で動作します。バージョンを固定する場合にのみ設定します ([トラブルシューティング](#トラブルシューティング) を参照)。AI エージェントは、指定しない限りネゴシエートします。 |
+| `ONEUPTIME_LOG_OPERATOR_1`～`ONEUPTIME_LOG_OPERATOR_5` | いいえ | エージェントが読み取らないログ形式のための、独自の Collector の operators。それぞれ JSON で指定します。[独自のログ形式を読み取る](#独自のログ形式を読み取る) を参照してください。 |
 
 AI エージェント自身の設定は [AI エージェント](#ai-エージェント) にあります。
 
@@ -162,6 +163,23 @@ processors:
 
 Collector は起動時にしか設定を読み込みません。`docker compose restart oneuptime-docker-swarm-agent` を実行してください。すると、クラスターに `team:platform` と `env:production` のラベルが表示されます。ラベルは大文字と小文字を区別せずに照合されるため、既存の `Production` ラベルは重複せずに再利用されます。また、OneUptime で誰かが追加したラベルをエージェントが削除することはありません。
 
+## 独自のログ形式を読み取る
+
+エージェントは、ほとんどのプログラムが書き出す形式のレベルを読み取ります。社内独自の形式など、エージェントが読み取らない形式には、独自の Collector の operators を最大 5 つ、それぞれ JSON として `ONEUPTIME_LOG_OPERATOR_1`～`ONEUPTIME_LOG_OPERATOR_5` に指定します。operators は、エージェントがコンテナとストリームを読み取った後、行のレベルを読み取る前に、コンテナのすべてのログ行に対して実行されます。行のレベルを設定するには、`ERROR`、`warn`、`critical` など、エージェントが読み取る単語として `attributes.severity_text` に書き込み、エージェントの最初のステップである `severity-router` に行を渡します。`severity_parser` など、重大度を自分で設定する operator の結果は上書きされます。エージェントは operators の後ですべての行のレベルを読み取るためです。
+
+`<<E>> payment failed` のように、文字がレベルを表す行の場合は、operator を設定してインストールスクリプトを実行します:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+sh install.sh
+```
+
+スクリプトは各 operator を単一引用符で囲んで `.env` に書き込み、今ある `.env` を置き換える前に、Collector 自身の `validate` でチェックします。Collector が拒否した場合、スクリプトは Collector のメッセージを表示して停止し、エージェントはそれまでの設定で動き続けます。`.env` にある operator は、それを指定せずにスクリプトを再実行してもそのまま残ります。単一引用符を含む operator は、`.env` に保持できないため拒否されます。
+
+Docker Compose では、`docker-compose.yml` の横にある `.env` に各値を単一引用符で囲んで記述し、`docker compose up -d` を実行します。`oneuptime-docker-swarm-agent-config-check` サービスが先に同じチェックを実行し、合格した場合にのみエージェントが起動します。
+
+[Kubernetes エージェント](/docs/telemetry/kubernetes-agent#独自のログ形式を読み取る) で、この例の operators について説明しています。Kubernetes エージェントもこれらを受け付けます。
+
 ## systemd サービスとして実行する
 
 ノードの起動時にエージェントを起動し、失敗したときに再起動するには、その systemd ユニットをインストールします。インストールスクリプトが配置する `/opt/oneuptime-docker-swarm-agent` にエージェントがあることを前提としています:
@@ -183,7 +201,7 @@ curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
-スクリプトは回答から `.env` を書き直します。保持されるのは、AI エージェントの対象リストと AI に許可する操作 (`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`) だけです。`DOCKER_API_VERSION` など、自分で設定した変数は追加し直してください。AI による修正をオンにしていた場合は、`ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh` として実行すればオンのままになります。AI エージェントを入れていなかった場合は、もう一度 `--no-ai-agent` を渡します。
+スクリプトは回答から `.env` を書き直します。保持されるのは、AI エージェントの対象リスト、AI に許可する操作 (`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`)、ログの operators (`ONEUPTIME_LOG_OPERATOR_1`～`ONEUPTIME_LOG_OPERATOR_5`) だけです。`DOCKER_API_VERSION` など、自分で設定した変数は追加し直してください。AI による修正をオンにしていた場合は、`ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh` として実行すればオンのままになります。AI エージェントを入れていなかった場合は、もう一度 `--no-ai-agent` を渡します。
 
 Docker Compose の場合は、エージェントのフォルダーで 3 つのファイルを再度ダウンロードし (`docker-compose.yml` に加えた変更があれば、もう一度行います)、プルして再起動します:
 

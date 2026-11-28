@@ -13,15 +13,22 @@ import {
   UNIQUE_NAME_DUPLICATES_ROUTE,
   UniqueNameCheckAnswer,
 } from "../../Types/Database/RequiredUniqueNames";
+import {
+  SharedNamesAnswer,
+  getSharedNamesRouteOfTable,
+  readSharedNamesAnswer,
+} from "../../Types/Database/SharedNames";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 
 /*
  * WHAT THE SERVER SAYS OF NAMES THAT REPEAT IN THE CURRENT PROJECT (#10761,
  * Types/Database/RequiredUniqueNames): whether a name a form holds is
- * another record's, and the names the project holds more than once. A
- * refusal or a failure is thrown, for the caller to say nothing: a form's
- * warning only helps, and the form works without it.
+ * another record's, the names the project holds more than once, and - for
+ * a list of a kind Require Unique Names holds - which of its records share
+ * a name (#11021, Types/Database/SharedNames). A refusal or a failure is
+ * thrown, for the caller to say nothing: a form's warning and a list's
+ * marks only help, and both work without them.
  */
 export default class UniqueNamesApi {
   public static async check(data: {
@@ -71,5 +78,28 @@ export default class UniqueNamesApi {
     }
 
     return readDuplicateNamesAnswer(response.data);
+  }
+
+  /*
+   * The records of a kind Require Unique Names holds, by its table's name
+   * ("Monitor"), that share a name with another the reader may read, and
+   * when each was made: GET /shared-names/Monitor.
+   */
+  public static async readSharedNames(
+    tableName: string,
+  ): Promise<SharedNamesAnswer> {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.get<JSONObject>({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          getSharedNamesRouteOfTable(tableName),
+        ),
+        headers: ModelAPI.getCommonHeaders(),
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    return readSharedNamesAnswer(response.data);
   }
 }

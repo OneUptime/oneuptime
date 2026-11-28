@@ -3833,9 +3833,12 @@ export class Service extends ProjectReferencesService<Model> {
      * the owner" - waits for "Incident Created" until then, and follows it
      * in the order it was made (WorkspaceCreatedMessageFirst): its channels
      * hear of the incident first, then of what happened to it, then its
-     * pages. Held on every App server before the create returns, so a
-     * message made on another one waits too: the Incident Commander role
-     * the Dashboard gives the declarer as the incident's page opens (#11198).
+     * pages. Held on every App server since the incident was written
+     * (DatabaseService.create, before even its creator is made its owner,
+     * #11352), so before the create returns, and a message made on another
+     * one waits too: the Incident Commander role the Dashboard gives the
+     * declarer as the incident's page opens (#11198). This chain takes the
+     * hold over here, and lets it go below.
      */
     await WorkspaceCreatedMessageFirst.hold({ incidentId: createdItem.id });
 
@@ -7241,6 +7244,8 @@ ${incidentSeverity.name}
    *
    *   - one that another open incident declared by hand still pauses stays
    *     paused, in the status it holds;
+   *   - one a scheduled maintenance event in progress still holds, in a
+   *     status of its own, goes back to that status (#11301);
    *   - any other is resumed, and returned to operational unless another
    *     incident is still open on it - its checks then set its status.
    *
@@ -7251,7 +7256,9 @@ ${incidentSeverity.name}
    * resolve giving back nothing (issue #11141).
    *
    * The time a monitor's pause left out of uptime is counted again from
-   * when it resumes, or from its operational status when that is written.
+   * when it resumes, or from its operational status when that is written -
+   * unless maintenance that sets no status still pauses it, which leaves it
+   * out until the event ends (MonitorIncidentPause).
    */
   @CaptureSpan()
   public async markMonitorsActiveForMonitoring(
@@ -7316,6 +7323,35 @@ ${incidentSeverity.name}
 
         if (pause.isPaused) {
           // Still held: its time counts as what the incidents left holding it say.
+          await MonitorIncidentPause.markUptime(pause);
+          continue;
+        }
+
+        /*
+         * A scheduled maintenance event in progress still holds it, and puts
+         * it in a status of its own: it goes back to that status, not to
+         * operational, which showed it up for the rest of the event (#11301).
+         */
+        const maintenanceStatus: {
+          monitorStatusId: ObjectID;
+          rootCause: string;
+        } | null =
+          await MonitorIncidentPause.getStatusOfMaintenanceStillHolding(pause);
+
+        if (maintenanceStatus) {
+          await MonitorService.changeMonitorStatus(
+            projectId,
+            [monitor.id!],
+            maintenanceStatus.monitorStatusId,
+            true, // notifyOwners, as the move to operational below does.
+            maintenanceStatus.rootCause,
+            undefined,
+            {
+              isRoot: true,
+            },
+            startsAt,
+          );
+
           await MonitorIncidentPause.markUptime(pause);
           continue;
         }

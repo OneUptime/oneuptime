@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "Supprimer une flotte IoT supprime aussi son registre des appareils : les appareils enregistrés ne peuvent plus se connecter.",
   "Deleting a database also deletes the endpoints it is reached at.": "Supprimer une base de données supprime aussi les points de terminaison par lesquels on la joint.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Supprimer une connexion cloud arrête la lecture du compte par OneUptime. Ses ressources restent, avec leurs métriques.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "Supprimer une connexion de baie de stockage empêche OneUptime de lire les baies qu'elle dessert, et supprime son mot de passe enregistré et ses tests de connexion. Ses baies restent, avec leurs métriques.",
   "True": "Vrai",
   "False": "Faux",
   "Key": "Clé",
@@ -4631,5 +4632,10 @@
   "Only XCP-ng pools that match conditions": "Uniquement les pools XCP-ng qui correspondent aux conditions",
   "All savings": "Toutes les économies",
   "Only savings that match conditions": "Uniquement les économies qui correspondent aux conditions",
-  "XCP-ng Pool": "Pool XCP-ng"
+  "XCP-ng Pool": "Pool XCP-ng",
+  "Same name as another {{kind}}": "Même nom qu'un autre élément de type {{kind}}",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Un autre élément de type {{kind}} de ce projet porte ce nom, si bien que les sélecteurs ne permettent pas de les distinguer. Ouvrez chacun d'eux pour voir lequel est lequel, puis renommez-en un.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} porte le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} portent le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} porte le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un."
 }

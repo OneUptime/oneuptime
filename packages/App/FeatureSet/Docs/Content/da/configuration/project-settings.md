@@ -63,7 +63,9 @@ flowchart LR
 
 Den er slået til i et nyt projekt. Et projekt, der fandtes i forvejen, beholder den slået fra, fordi projektets API-klienter og Terraform-konfigurationer kan regne med navne, der gentager sig: slå den til, når du er klar.
 
-Under kontakten viser kortet hvert navn, projektet allerede har mere end én gang, slags for slags, med et link til hver post og den dag, den blev oprettet. At slå kontakten til afviser intet, der allerede findes: de poster virker fortsat, indtil nogen omdøber dem, og kun en ny post eller en omdøbning skal have sit eget navn. At gemme en post med dens eget navn igen, uanset store og små bogstaver, er ingen omdøbning.
+Under kontakten viser kortet hvert navn, projektet allerede har mere end én gang, slags for slags, med et link til hver post og den dag, den blev oprettet. Et OpenStack-budget åbner på sin clouds side **Forbrug**, og en opsummering for et arbejdsområde på fanen **Oversigt** på dens Slack-, Microsoft Teams- eller Mattermost-side. AI-agenter har ingen side i dashboardet, så kortet nævner dem uden et link og siger det. At slå kontakten til afviser intet, der allerede findes: de poster virker fortsat, indtil nogen omdøber dem, og kun en ny post eller en omdøbning skal have sit eget navn. At gemme en post med dens eget navn igen, uanset store og små bogstaver, er ingen omdøbning.
+
+Listen for hver slags markerer også de poster, med **Samme navn som en anden post af typen monitor** (eller skabelon, nøgle og så videre) og den dag, hver blev oprettet, og siger over listen, hvor mange der er. En liste markerer kun de poster, du kan åbne.
 
 Uanset hvad kontakten siger, advarer en formular, mens du skriver et navn, som en anden post af samme slags allerede har, og linker til den post. Så længe kontakten er slået til, siger advarslen også, at det ville blive afvist at gemme.
 
@@ -118,7 +120,7 @@ En etiket, der har samme navn som en anden etiket fra dengang, navne ikke behøv
 **Projektindstillinger → Notifikationer** rummer, hvordan projektet sender notifikationer:
 
 - **Notifikationskanaler**: kortet **Notifikationskanaler** slår SMS, telefonopkald, WhatsApp og Telegram til eller fra for projektet. Alle fire er slået fra fra start. En Projektejer, en **Faktureringsadministrator** eller en med **Manage Billing** slår dem til. Siden rummer også, sammenklappet under **Yderligere indstillinger**, hvordan medlemmer tilkaldes som standard, i **Standardrækkefølge for nye medlemmer** og **Telefon for folk på vagt** (se [Standardrækkefølgen](/docs/notifications/on-call-rules#standardrækkefølgen)), om vagtopkald skelner telefonsvareren fra en person, i **Telefonsvarer ved vagtopkald** (se [Telefonsvarer ved vagtopkald](/docs/self-hosted/twilio-integration#telefonsvarer-ved-vagtopkald)), projektets egne mailservere i **Brugerdefinerede SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud rummer den saldoen, som disse beskeder betales fra: se [Forudbetalte saldi](/docs/configuration/billing#forudbetalte-saldi).
-- **Notifikationslogs**: hver notifikation, projektet har sendt, med én fane pr. kanal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Kald**, **Push** og **Arbejdsområde**. Fanen **Webhook** beholder kun skemaet og værten i hver adresse: resten er webhookens hemmelighed.
+- **Notifikationslogs**: hver notifikation, projektet har sendt, med én fane pr. kanal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Kald**, **Push** og **Arbejdsområde**. Fanen **Webhook** beholder kun skemaet og værten i hver adresse: resten er webhookens hemmelighed. Hvad hver status betyder: [Notifikationslogs](/docs/notifications/notification-logs).
 - **Mobilapps**: hvor du får apps til iOS og Android. Se [Apps – Oversigt](/docs/mobile-desktop-apps/index).
 
 ## Slet projektet

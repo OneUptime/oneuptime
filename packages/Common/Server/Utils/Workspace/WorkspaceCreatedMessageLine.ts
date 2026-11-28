@@ -19,7 +19,10 @@ import logger from "../Logger";
  *     three counters - "tickets" handed out, tickets "served", and whether
  *     the line is "released" yet - which lives as long as a hold lasts
  *     (WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS) and
- *     RELEASED_FOR_AT_MOST_MS more: its lifetime (PTTL), set once.
+ *     RELEASED_FOR_AT_MOST_MS more: its lifetime (PTTL), set once. It names
+ *     its holder, the server running the chain (heldBy), which says it
+ *     still holds it every KEPT_EVERY_MS until it lets it go (heldSince,
+ *     keepHeld, #11314).
  *   - take: a message about the record, on any server, takes the next
  *     ticket while the line is open (one atomic step: is there a line, and
  *     the next number in it). Tickets are handed out in the order the
@@ -76,13 +79,25 @@ import logger from "../Logger";
  *   - Every App server looks after the lines whose turn could have stalled
  *     (lookAfterStoppedServers), whether or not it has a message waiting in
  *     them: each line is in an index, a sorted set, under the time it is
- *     next to be looked at - when its hold runs out, when its turn could
- *     stall, at once when its next ticket's server has stopped. So a line
- *     nobody else waits in is found, and a server finds the lines to look
- *     at without reading every line.
+ *     next to be looked at - when its holder could have stopped (pushed on
+ *     each time it says it still holds it) or its hold runs out, when its
+ *     turn could stall, at once when its next ticket's server has stopped.
+ *     So a line nobody else waits in is found, and a server finds the lines
+ *     to look at without reading every line - none whose holder is alive.
  *
  * NOTHING WAITS FOR GOOD:
  *
+ *   - a holder killed outright before its Created message - an OOM kill, a
+ *     lost node - says nothing more: once its line has gone STALLED_AFTER_MS
+ *     without its holder saying it still holds it, the line moves on
+ *     without its Created message, in the same order, and the holder is
+ *     known to have stopped in it, so what it stored is taken over at once
+ *     (#11314). A holder that is only slow - its chain waits on a database,
+ *     or for its owners - keeps saying it holds the line on a timer of its
+ *     own, and is never cut short; one frozen for longer than that - a long
+ *     pause - comes back to find its line moved on, and its Created message
+ *     goes out after the rest, as it would once its hold had lasted its
+ *     longest;
  *   - a chain that never says its Created message is out: once the line
  *     has waited as long as a hold lasts it moves on by itself (its PTTL is
  *     down to RELEASED_FOR_AT_MOST_MS), in the same order, and once it has
@@ -147,6 +162,19 @@ export interface LineAnswer {
  *     the tickets right after them that were posted out of turn (gone:<n>) -
  *     and the turn of the next one starts now. A released line with every
  *     ticket served is over and deleted (answers -1).
+ *   - holderStopped(stalledMs, asker): the line's holder (heldBy) - the
+ *     server running its record's create chain, which says it still holds
+ *     it every KEPT_EVERY_MS (heldSince, #11314) - has not said so for
+ *     stalledMs: it stopped. Never `asker`, the server asking, which has
+ *     not; and never for a line a server running the code from before
+ *     opened (no heldSince), which is held as long as a hold lasts.
+ *   - untilHolderStops(stalledMs): how long until its holder could have
+ *     stopped, as holderStopped reads it; false for a line with no
+ *     heldSince.
+ *   - moveOnUnannounced(stalledMs, holderHasStopped): the line moves on
+ *     without its Created message - released, its next ticket's turn
+ *     starting now - and a holder that stopped is known to have, in that
+ *     line (dead:<server>), so what it stored is taken over at once.
  */
 const LINE_SCRIPT_HELPERS: string = [
   "local line = KEYS[1]",
@@ -203,22 +231,83 @@ const LINE_SCRIPT_HELPERS: string = [
   "  end",
   "  return served",
   "end",
+  "local function holderStopped(stalledMs, asker)",
+  "  local since = redis.call('HGET', line, 'heldSince')",
+  "  if not since or redis.call('HGET', line, 'heldBy') == asker then",
+  "    return false",
+  "  end",
+  "  return tonumber(since) - redis.call('PTTL', line) >= stalledMs",
+  "end",
+  "local function untilHolderStops(stalledMs)",
+  "  local since = redis.call('HGET', line, 'heldSince')",
+  "  if not since then",
+  "    return false",
+  "  end",
+  "  return stalledMs - (tonumber(since) - redis.call('PTTL', line))",
+  "end",
+  "local function moveOnUnannounced(stalledMs, holderHasStopped)",
+  "  redis.call('HSET', line, 'released', 1)",
+  "  if holderHasStopped then",
+  "    local by = redis.call('HGET', line, 'heldBy')",
+  "    if by then",
+  "      redis.call('HSET', line, 'dead:' .. by, 1)",
+  "    end",
+  "  end",
+  "  return moveTo(tonumber(redis.call('HGET', line, 'served')), stalledMs)",
+  "end",
 ].join("\n");
 
 /*
  * KEYS: the record's line, the index. ARGV: how long the line lives; how
- * long its hold lasts, after which it is looked at should nobody let it go.
- * Opens it: 1, or 0 when it is open already.
+ * long its hold lasts; how long its holder may go without saying it still
+ * holds it (STALLED_AFTER_MS); this server, its holder. Opens it, held by
+ * this server as of now, and looked at once its holder could have stopped
+ * or its hold run out, should nobody let it go: 1, or 0 when it is open
+ * already.
  */
 const START_SCRIPT: string = [
   LINE_SCRIPT_HELPERS,
   "if redis.call('EXISTS', line) == 1 then",
   "  return 0",
   "end",
-  "redis.call('HSET', line, 'tickets', 0, 'served', 0, 'released', 0)",
+  "redis.call('HSET', line, 'tickets', 0, 'served', 0, 'released', 0, 'heldBy', ARGV[4])",
   "redis.call('PEXPIRE', line, ARGV[1])",
-  "lookIn(tonumber(ARGV[2]))",
+  "redis.call('HSET', line, 'heldSince', redis.call('PTTL', line))",
+  "lookIn(math.min(tonumber(ARGV[2]), tonumber(ARGV[3])))",
   "return 1",
+].join("\n");
+
+/*
+ * KEYS: the index, then each line this server holds (keepHeld). ARGV: how
+ * long a holder may go without saying it still holds its line
+ * (STALLED_AFTER_MS); the lifetime left at which an unreleased line moves
+ * on by itself (RELEASED_FOR_AT_MOST_MS); this server. Each line still this
+ * server's to hold - there, not released, opened by it - is held as of now
+ * (heldSince), and looked at next once its holder could have stopped or
+ * its hold run out. For each line in turn: 1, or 0 for one no longer this
+ * server's to hold, which it says it holds no more.
+ *
+ * The helpers read the line and the index through `line` and `index`:
+ * each is set here in turn, as one line's script sets them from its KEYS.
+ */
+const KEEP_HELD_SCRIPT: string = [
+  LINE_SCRIPT_HELPERS,
+  "index = KEYS[1]",
+  "local stalledMs = tonumber(ARGV[1])",
+  "local releasedFor = tonumber(ARGV[2])",
+  "local kept = {}",
+  "for i = 2, #KEYS do",
+  "  line = KEYS[i]",
+  "  if redis.call('EXISTS', line) == 1 and redis.call('HGET', line, 'released') ~= '1' and redis.call('HGET', line, 'heldBy') == ARGV[3] then",
+  "    local left = redis.call('PTTL', line)",
+  "    redis.call('HSET', line, 'heldSince', left)",
+  "    lookIn(math.min(stalledMs, left - releasedFor))",
+  "    kept[i - 1] = 1",
+  "  else",
+  "    kept[i - 1] = 0",
+  "  end",
+  "end",
+  "return kept",
 ].join("\n");
 
 /*
@@ -285,6 +374,12 @@ const RELEASE_SCRIPT: string = [
  * {LineTurn}, or {Stalled, the stalled ticket, its message's id}. Yours and
  * NoLine come only with the message claimed for this server, and a ticket
  * claimed for another server is TakenOver.
+ *
+ * A line not released yet moves on without its Created message once its
+ * hold has lasted its longest, once its holder has stopped saying it holds
+ * it (holderStopped, #11314) - its stored messages are then taken over at
+ * once - or when its holder asks: it asks about its own message only once
+ * it has let its hold go, whether or not Valkey heard it do so.
  */
 const TURN_SCRIPT: string = [
   LINE_SCRIPT_HELPERS,
@@ -319,12 +414,17 @@ const TURN_SCRIPT: string = [
   "redis.call('HDEL', line, 'dead:' .. ARGV[4])",
   "if redis.call('HGET', line, 'released') ~= '1' then",
   "  local left = redis.call('PTTL', line)",
-  "  if left < 0 or left > tonumber(ARGV[3]) then",
+  "  if left < 0 then",
   "    return {0}",
   "  end",
-  // Held as long as a hold lasts: the line moves on without its Created message.
-  "  redis.call('HSET', line, 'released', 1)",
-  "  if moveTo(tonumber(redis.call('HGET', line, 'served')), stalledMs) < 0 then",
+  "  local stopped = holderStopped(stalledMs, ARGV[4])",
+  // Its holder asks about its own message only once it has let its hold go.
+  "  local isLetGo = redis.call('HGET', line, 'heldBy') == ARGV[4]",
+  "  if left > tonumber(ARGV[3]) and not stopped and not isLetGo then",
+  "    return {0}",
+  "  end",
+  // Held as long as a hold lasts, let go, or held by a server that stopped: the line moves on without its Created message.
+  "  if moveOnUnannounced(stalledMs, stopped) < 0 then",
   "    return postNow()",
   "  end",
   "end",
@@ -498,14 +598,20 @@ const CLAIM_SCRIPT: string = [
 
 /*
  * KEYS: the line, the index. ARGV: how long a turn may last unposted and
- * unkept; the lifetime left at which an unreleased line moves on by itself.
- * A server that looks after lines asks what one needs.
+ * unkept; the lifetime left at which an unreleased line moves on by itself;
+ * this server. A server that looks after lines asks what one needs.
  *
  * {0}: nothing, for now - the line is gone (and out of the index), or waits
  * on a server that is posting or has not stalled; it is looked at again
  * when it could need something. {1}: a stalled ticket nothing was stored of
  * was passed over: ask again. {2, the stalled ticket, its message's id}:
  * take it over.
+ *
+ * A line not released yet moves on without its Created message once its
+ * hold has lasted its longest, or once its holder has stopped saying it
+ * holds it (holderStopped, #11314): what that server stored is then taken
+ * over at once. Its holder looking at it has not stopped: the line is left
+ * for the next server that looks, should its holder still say nothing.
  */
 const LOOK_SCRIPT: string = [
   LINE_SCRIPT_HELPERS,
@@ -517,12 +623,17 @@ const LOOK_SCRIPT: string = [
   "if redis.call('HGET', line, 'released') ~= '1' then",
   "  local left = redis.call('PTTL', line)",
   "  local releasedFor = tonumber(ARGV[2])",
-  "  if left > releasedFor then",
-  "    lookIn(left - releasedFor)",
+  "  local stopped = holderStopped(stalledMs, ARGV[3])",
+  "  if left > releasedFor and not stopped then",
+  "    local lookAgainIn = left - releasedFor",
+  "    local untilStops = untilHolderStops(stalledMs)",
+  "    if untilStops and untilStops < lookAgainIn then",
+  "      lookAgainIn = untilStops",
+  "    end",
+  "    lookIn(lookAgainIn)",
   "    return {0}",
   "  end",
-  "  redis.call('HSET', line, 'released', 1)",
-  "  if moveTo(tonumber(redis.call('HGET', line, 'served')), stalledMs) < 0 then",
+  "  if moveOnUnannounced(stalledMs, stopped) < 0 then",
   "    return {0}",
   "  end",
   "end",
@@ -783,6 +894,15 @@ let takingOver: {
 let lookTimer: ReturnType<typeof setTimeout> | null = null;
 let lookingAfterLines: Promise<void> | null = null;
 
+/*
+ * The lines this server holds - for its create chains - by record, which it
+ * says it still holds every KEPT_EVERY_MS until it lets each go (#11314);
+ * the next time it says so, and the time under way.
+ */
+const HELD_HERE: Set<string> = new Set<string>();
+let keepHeldTimer: ReturnType<typeof setTimeout> | null = null;
+let keepingHeld: Promise<void> | null = null;
+
 export default class WorkspaceCreatedMessageLine {
   // Where the lines are kept in Valkey: this, then the record (incidentId:<id>).
   public static readonly KEY_PREFIX: string =
@@ -809,12 +929,25 @@ export default class WorkspaceCreatedMessageLine {
 
   /*
    * How long a turn may last without its message being posted, or its
-   * server saying it is posting it: longer, and the server stopped.
+   * server saying it is posting it - and how long a line may be held
+   * without its holder saying it still holds it (#11314): longer, and the
+   * server stopped.
    */
   public static readonly STALLED_AFTER_MS: number = 15 * 1000;
 
-  // How often a server posting a message says it still is.
+  /*
+   * How often a server posting a message says it still is, and how often a
+   * server holding lines says it still holds them (keepHeld).
+   */
   public static readonly KEPT_EVERY_MS: number = 5 * 1000;
+
+  /*
+   * How many of its lines a server says it still holds in one ask
+   * (keepHeld): one ask for each hundred, every KEPT_EVERY_MS, so a server
+   * holding many - a storm of new alerts - asks Valkey a few times, not once
+   * for each.
+   */
+  public static readonly LINES_KEPT_AT_A_TIME: number = 100;
 
   /*
    * How often a server looks after the lines that may need it
@@ -873,9 +1006,12 @@ export default class WorkspaceCreatedMessageLine {
   }
 
   /*
-   * Opens the record's line, for its create chain: true once Valkey holds
-   * it (or held it already), false when Valkey cannot be asked - the hold
-   * is then this server's alone. Never throws.
+   * Opens the record's line, for its create chain, held by this server:
+   * true once Valkey holds it (or held it already), false when Valkey
+   * cannot be asked - the hold is then this server's alone. From then on
+   * this server says it still holds the line every KEPT_EVERY_MS, until it
+   * lets it go (release), so another server can tell once it has stopped
+   * (#11314). Never throws.
    */
   public static async start(data: {
     recordKey: string;
@@ -888,9 +1024,20 @@ export default class WorkspaceCreatedMessageLine {
       [
         String(this.livesAtMostMs(data.heldForAtMostMs)),
         String(data.heldForAtMostMs),
+        String(this.STALLED_AFTER_MS),
+        this.SERVER_ID,
       ],
       [0, 1],
     );
+
+    /*
+     * Said held from now on, even when Valkey's answer was lost on its way
+     * back: the line may be open all the same, and its holder alive. A line
+     * that is not there is said held no more the first time Valkey answers
+     * (keepHeld); one that is goes with the hold (release).
+     */
+    HELD_HERE.add(data.recordKey);
+    this.scheduleKeepHeld();
 
     return answer !== null;
   }
@@ -935,10 +1082,15 @@ export default class WorkspaceCreatedMessageLine {
   }
 
   /*
-   * The record's Created message is out - or will not be: its line moves.
-   * Never throws.
+   * The record's Created message is out - or will not be: its line moves,
+   * and this server no longer says it holds it. Should Valkey not hear the
+   * release, the line moves on all the same once its holder has said
+   * nothing for STALLED_AFTER_MS, or once this server asks about a message
+   * of its own in it. Never throws.
    */
   public static async release(recordKey: string): Promise<void> {
+    this.stopKeepingHeld(recordKey);
+
     await this.run(
       RELEASE_SCRIPT,
       this.lineKeys(recordKey),
@@ -1256,6 +1408,45 @@ export default class WorkspaceCreatedMessageLine {
   }
 
   /*
+   * THE HOLDER'S HEARTBEAT (#11314). This server says it still holds each
+   * line it holds (start, until release): every KEPT_EVERY_MS, on a timer
+   * of its own - never a step of the create chains, so a chain that is
+   * slow, waiting on a database or for its owners, is never taken for one
+   * that stopped. A server killed outright says nothing more, and once its
+   * line has gone STALLED_AFTER_MS without a word, the next server to ask
+   * about it, or to look after it, moves it on without its Created message,
+   * in order, and posts what it stored as the dead server would have, once.
+   *
+   * What it costs Valkey is bounded: one ask for every LINES_KEPT_AT_A_TIME
+   * lines held - not one for each - and never a second round while the
+   * last is unanswered, so a server that cannot be answered piles nothing
+   * up; none at all while it holds none. A line Valkey says is no longer
+   * this server's - released by another server, which found it stopped, or
+   * gone - is said held no more. Settles once the round under way is done;
+   * never throws.
+   */
+  public static async keepHeld(): Promise<void> {
+    if (!keepingHeld) {
+      keepingHeld = this.keepHeldLines()
+        .catch((error: unknown) => {
+          logger.error(
+            `Saying this server still holds the lines new records' messages wait in failed: ${error}`,
+          );
+        })
+        .finally(() => {
+          keepingHeld = null;
+        });
+    }
+
+    await keepingHeld;
+  }
+
+  // How many lines this server holds, and says it still holds (keepHeld).
+  public static linesHeldHere(): number {
+    return HELD_HERE.size;
+  }
+
+  /*
    * Posts a message whose turn came - saying it still is while it posts, and
    * that it is posted once it is - or that goes out of turn. Never throws:
    * a message that fails is logged, and the line moves on.
@@ -1308,6 +1499,79 @@ export default class WorkspaceCreatedMessageLine {
         [String(this.STALLED_AFTER_MS), String(data.ticket)],
         [0, 1],
       );
+    }
+  }
+
+  /*
+   * The next time this server says it still holds its lines, KEPT_EVERY_MS
+   * after the last time was answered - while it holds any.
+   */
+  private static scheduleKeepHeld(): void {
+    if (keepHeldTimer || HELD_HERE.size === 0) {
+      return;
+    }
+
+    keepHeldTimer = setTimeout(() => {
+      keepHeldTimer = null;
+
+      void this.keepHeld().finally(() => {
+        this.scheduleKeepHeld();
+      });
+    }, this.KEPT_EVERY_MS);
+
+    // Never what keeps a server running.
+    keepHeldTimer.unref?.();
+  }
+
+  // This server no longer holds the record's line: it says so no more.
+  private static stopKeepingHeld(recordKey: string): void {
+    HELD_HERE.delete(recordKey);
+
+    if (HELD_HERE.size === 0 && keepHeldTimer) {
+      clearTimeout(keepHeldTimer);
+      keepHeldTimer = null;
+    }
+  }
+
+  // One round of keepHeld: every line this server holds, a hundred an ask.
+  private static async keepHeldLines(): Promise<void> {
+    const recordKeys: Array<string> = Array.from(HELD_HERE);
+
+    for (
+      let start: number = 0;
+      start < recordKeys.length;
+      start += this.LINES_KEPT_AT_A_TIME
+    ) {
+      const batch: Array<string> = recordKeys.slice(
+        start,
+        start + this.LINES_KEPT_AT_A_TIME,
+      );
+
+      const kept: Array<unknown> | null = await this.runForList(
+        KEEP_HELD_SCRIPT,
+        [
+          this.indexKey(),
+          ...batch.map((recordKey: string): string => {
+            return this.lineKeyOf(recordKey);
+          }),
+        ],
+        [
+          String(this.STALLED_AFTER_MS),
+          String(this.RELEASED_FOR_AT_MOST_MS),
+          this.SERVER_ID,
+        ],
+      );
+
+      // Valkey cannot be asked: asked again the next time.
+      if (!kept) {
+        continue;
+      }
+
+      batch.forEach((recordKey: string, index: number): void => {
+        if (kept[index] === 0) {
+          this.stopKeepingHeld(recordKey);
+        }
+      });
     }
   }
 
@@ -1364,7 +1628,11 @@ export default class WorkspaceCreatedMessageLine {
       const look: Array<unknown> | null = await this.runForList(
         LOOK_SCRIPT,
         this.lineKeys(recordKey),
-        [String(this.STALLED_AFTER_MS), String(this.RELEASED_FOR_AT_MOST_MS)],
+        [
+          String(this.STALLED_AFTER_MS),
+          String(this.RELEASED_FOR_AT_MOST_MS),
+          this.SERVER_ID,
+        ],
       );
 
       if (look?.[0] === 1) {

@@ -355,6 +355,132 @@ describe("FixFromIncident task-details investigation snapshot", () => {
 
       expect(resolve.mock.calls[0]![0].allowance).toEqual(NO_CODE_REPOSITORY);
     });
+
+    /*
+     * A fix a person opened with Open fix pull request (#11209): queued in
+     * the repository decided for them - their pick, or the one the
+     * monitor's name resolved to among those they may use - and started
+     * there alone, however the repositories changed since.
+     */
+    test("a fix a person opened: in the repository decided for them alone", async () => {
+      const resolve: SpyInstance<
+        typeof CodeRepositoryService.resolveRepositoryForException
+      > = await startWith({
+        ...snapshot(ObjectID.generate()),
+        pickedCodeRepositoryId: CHECKOUT_REPO,
+      });
+
+      expect(resolve.mock.calls[0]![0]).toEqual({
+        projectId,
+        stackTrace: null,
+        serviceName: "checkout-api",
+        allowance: {
+          isEveryRepository: false,
+          repositoryIds: [CHECKOUT_REPO],
+        },
+      });
+    });
+
+    test("the person's repository is held to, whatever list a rule wrote beside it", async () => {
+      const resolve: SpyInstance<
+        typeof CodeRepositoryService.resolveRepositoryForException
+      > = await startWith({
+        ...snapshot(ObjectID.generate()),
+        pickedCodeRepositoryId: CHECKOUT_REPO.toUpperCase(),
+        allowedCodeRepositoryIds: [ObjectID.generate().toString()],
+      });
+
+      expect(resolve.mock.calls[0]![0].allowance).toEqual({
+        isEveryRepository: false,
+        repositoryIds: [CHECKOUT_REPO],
+      });
+    });
+  });
+
+  /*
+   * IMPROVE LOGGING / TRACING (#11209): the run a person asked for from a
+   * service's page is queued in the repository decided for them, and starts
+   * there alone - the service's name is matched against that one repository
+   * only. It used to be resolved among every connected repository again
+   * when it started.
+   */
+  describe("an improvement's repository when it starts", () => {
+    const LEDGER_REPO: string = "c2222222-2222-4222-8222-222222222222";
+
+    async function startImprovement(
+      taskType: CodeFixTaskType,
+      taskContext: CodeFixTaskContext,
+    ): Promise<
+      SpyInstance<typeof CodeRepositoryService.resolveRepositoryForException>
+    > {
+      jest
+        .spyOn(AIRunService, "findOneById")
+        .mockResolvedValue(fixRun({ taskType, taskContext }));
+      const resolve: SpyInstance<
+        typeof CodeRepositoryService.resolveRepositoryForException
+      > = jest
+        .spyOn(CodeRepositoryService, "resolveRepositoryForException")
+        .mockResolvedValue(null);
+
+      await callRoute();
+
+      return resolve;
+    }
+
+    test.each([CodeFixTaskType.ImproveLogging, CodeFixTaskType.ImproveTracing])(
+      "%s a person asked for: matched against the repository decided for them alone",
+      async (taskType: CodeFixTaskType) => {
+        const resolve: SpyInstance<
+          typeof CodeRepositoryService.resolveRepositoryForException
+        > = await startImprovement(taskType, {
+          telemetryServiceId: ObjectID.generate().toString(),
+          serviceName: "checkout",
+          pickedCodeRepositoryId: LEDGER_REPO,
+        });
+
+        expect(resolve).toHaveBeenCalledTimes(1);
+        expect(resolve.mock.calls[0]![0]).toEqual({
+          projectId,
+          stackTrace: null,
+          serviceName: "checkout",
+          allowance: {
+            isEveryRepository: false,
+            repositoryIds: [LEDGER_REPO],
+          },
+        });
+      },
+    );
+
+    test("one queued before the rule: any connected repository, as it was", async () => {
+      const resolve: SpyInstance<
+        typeof CodeRepositoryService.resolveRepositoryForException
+      > = await startImprovement(CodeFixTaskType.ImproveLogging, {
+        telemetryServiceId: ObjectID.generate().toString(),
+        serviceName: "checkout",
+      });
+
+      expect(resolve.mock.calls[0]![0].allowance).toEqual(
+        EVERY_CODE_REPOSITORY,
+      );
+    });
+
+    test("nothing resolves there: the run is told why, with no repository", async () => {
+      await startImprovement(CodeFixTaskType.ImproveTracing, {
+        telemetryServiceId: ObjectID.generate().toString(),
+        serviceName: "checkout",
+        pickedCodeRepositoryId: LEDGER_REPO,
+      });
+
+      expect(jsonResponse()).toEqual(
+        expect.objectContaining({
+          subjectType: "service",
+          repositories: [],
+        }),
+      );
+      expect(String(jsonResponse()?.["resolutionError"])).toMatch(
+        /^Could not resolve a repository for this task/,
+      );
+    });
   });
 
   /*

@@ -63,7 +63,7 @@ Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un évén
 | **Propriétaires**                    | **Détails de la maintenance**      | Personne                        | Les personnes et équipes à qui appartient l'événement et qui en sont informées. |
 | **Étiquettes**                       | **Détails de la maintenance**      | Aucune                          | Des étiquettes que les règles et les filtres peuvent cibler.                     |
 | **Moniteurs**                        | **Ressources affectées** | Aucun                     | Les moniteurs qui ne sont pas vérifiés pendant que l'événement est en cours.     |
-| **Changer le statut du moniteur en** | **Ressources affectées** | Aucun changement          | Le statut que ces moniteurs affichent pendant l'événement. Demandé dès qu'un moniteur est choisi. |
+| **Changer le statut du moniteur en** | **Ressources affectées** | Aucun changement          | Le statut que ces moniteurs affichent pendant l'événement, et que leur disponibilité compte. Si aucun n'est choisi, ils gardent leur statut et leur disponibilité exclut ce temps. Demandé dès qu'un moniteur est choisi. |
 | **Autres ressources affectées**      | **Ressources affectées** | Aucune                    | Hôtes, clusters, bases de données, sites réseau, services et plus.               |
 | **Afficher l'événement sur ces pages de statut** | **Ressources affectées** | Aucune    | Les seules pages de statut qui peuvent afficher l'événement ou prévenir leurs abonnés. |
 | **Notifications aux abonnés**        | **Ressources affectées** | Publié immédiatement, les trois moments activés, aucun rappel | Quand l'événement s'affiche sur ces pages, et quand leurs abonnés sont prévenus. |

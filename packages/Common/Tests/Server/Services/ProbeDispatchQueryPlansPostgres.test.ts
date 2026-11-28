@@ -2,9 +2,11 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import MonitorProbeService from "../../../Server/Services/MonitorProbeService";
 import MonitorTestService from "../../../Server/Services/MonitorTestService";
+import ClaimedMonitor from "../../../Server/Utils/Probe/ClaimedMonitor";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import logger from "../../../Server/Utils/Logger";
 import ObjectID from "../../../Types/ObjectID";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import {
   afterAll,
   afterEach,
@@ -30,8 +32,13 @@ import { DataSource, QueryRunner } from "typeorm";
  *     isEnabled, nextPingAt) index in its order, locks what it claims and
  *     reads a few hundred pages for a batch, never a table - also while
  *     other claims hold the oldest rows, which its check for stepped-over
- *     rows reads by index lookups, not by a scan of Monitor;
- *   - the read of the claimed monitors that follows goes by primary key;
+ *     rows reads by index lookups, not by a scan of Monitor. It hands back
+ *     each claimed monitor with its row, so nothing reads them again
+ *     (#11120);
+ *   - a probe's pending count, which its KEDA autoscaler reads, joins its
+ *     thousands of due rows to the monitors a probe may check by their own
+ *     partial index - the ids alone - not by reading the whole of Monitor,
+ *     as it did before that index (#11119);
  *   - the Test Monitor claim reads the probe's unanswered tests by their
  *     own partial index, not every answered test the probe has had for two
  *     days.
@@ -66,6 +73,15 @@ const ANSWERED_TESTS: number = 20_000;
 
 // What a batch of 10 may read, with room to spare (measured: about 300).
 const CLAIM_BUFFER_BOUND: number = 2000;
+
+/*
+ * What a probe's pending count may read with 9,925 of its rows due: its
+ * due rows (about 770 pages) and the ids of the monitors a probe may check
+ * (155), with room to spare. Without that index, as main had it, it read
+ * every page of Monitor as well: 10,695 here, 10,689 on the copy of the
+ * issue's install (#11119).
+ */
+const COUNT_BUFFER_BOUND: number = 1500;
 
 interface PlanNode {
   "Node Type": string;
@@ -215,7 +231,11 @@ describePostgres(
         [PROJECTS],
       );
 
-      // A Website monitor's steps take a few kilobytes, stored out of line.
+      /*
+       * A Website monitor's steps take a kilobyte or two that compress
+       * little: four monitors a page, 9,925 pages for the issue's 39,700, as
+       * on the copy of its install the issue was measured on (#11119).
+       */
       await database.query(
         `INSERT INTO "${schema}"."Monitor"
          ("_id", "projectId", "name", "monitorType", "monitoringInterval",
@@ -228,7 +248,9 @@ describePostgres(
          CASE WHEN n < $3 THEN '* * * * *' ELSE '*/5 * * * *' END,
          jsonb_build_object('_type', 'MonitorSteps', 'value',
            jsonb_build_object('monitorStepsInstanceArray',
-             jsonb_build_array(jsonb_build_object('step', md5(n::text) || repeat('x', 3000))))),
+             jsonb_build_array(jsonb_build_object('step',
+               (SELECT string_agg(md5(n::text || '-' || part::text), '')
+                FROM generate_series(1, 55) AS part))))),
          false, false, false, false, 1
        FROM generate_series(0, $1 - 1) AS n`,
         [
@@ -462,13 +484,36 @@ describePostgres(
       expect(buffersOf(plan)).toBeLessThan(50);
     });
 
-    test("the read of the claimed monitors that follows goes by primary key", async () => {
-      const claimed: Array<{ _id: string }> = await database.query(
-        `SELECT "_id" FROM "${schema}"."MonitorProbe"
-       WHERE "probeId" = $1 ORDER BY "nextPingAt" ASC LIMIT 50`,
-        [probeIds[0]],
-      );
+    /*
+     * The claim's statement as main had it before #11120: the same, without
+     * the claimed monitors' columns.
+     */
+    function withoutClaimedMonitors(
+      statement: CapturedStatement,
+    ): CapturedStatement {
+      let sql: string = statement.sql;
 
+      for (const columns of [
+        ClaimedMonitor.COLUMNS,
+        ClaimedMonitor.COLUMNS_OF_CLAIMED,
+      ]) {
+        sql = sql.replace(
+          new RegExp(`,\\s*${escapeRegExp(columns.join(", "))}`, "g"),
+          "",
+        );
+      }
+
+      expect(sql).not.toContain('"monitorSteps"');
+      return { sql, parameters: statement.parameters };
+    }
+
+    /*
+     * The read main ran after the claim, for the answer: the claimed
+     * monitor probes again with their monitor, by primary key.
+     */
+    async function readOfClaimedAsMainHadIt(
+      monitorProbeIds: Array<string>,
+    ): Promise<CapturedStatement> {
       const statements: Array<CapturedStatement> = [];
       const original: () => QueryRunner = database.createQueryRunner.bind(
         database,
@@ -502,8 +547,8 @@ describePostgres(
       await MonitorProbeService.findBy({
         query: {
           _id: QueryHelper.any(
-            claimed.map((row: { _id: string }): ObjectID => {
-              return new ObjectID(row._id);
+            monitorProbeIds.map((id: string): ObjectID => {
+              return new ObjectID(id);
             }),
           ),
         },
@@ -518,17 +563,169 @@ describePostgres(
             projectId: true,
           },
         },
-        limit: claimed.length,
+        limit: monitorProbeIds.length,
         skip: 0,
         props: { isRoot: true },
       });
 
       spy.mockRestore();
       expect(statements.length).toBeGreaterThanOrEqual(1);
+      return statements[0]!;
+    }
 
-      const plan: ExplainedPlan = await explain(statements[0]!);
+    // A statement's rows, as it answers them, rolled back: the claims write.
+    async function rowsOf(
+      statement: CapturedStatement,
+    ): Promise<Array<Record<string, unknown>>> {
+      const runner: QueryRunner = database.createQueryRunner();
+      await runner.connect();
+
+      try {
+        await runner.query("BEGIN");
+        return (await runner.query(
+          statement.sql,
+          statement.parameters,
+        )) as Array<Record<string, unknown>>;
+      } finally {
+        await runner.query("ROLLBACK");
+        await runner.release();
+      }
+    }
+
+    test("the claim hands each claimed monitor out with its row, so nothing reads them again (#11120)", async () => {
+      const statement: CapturedStatement = await claimStatement(
+        probeIds[0]!,
+        50,
+      );
+      const rows: Array<Record<string, unknown>> = await rowsOf(statement);
+      const claimed: Array<Record<string, unknown>> = rows.filter(
+        (row: Record<string, unknown>): boolean => {
+          return Boolean(row["_id"]);
+        },
+      );
+
+      expect(claimed).toHaveLength(50);
+
+      for (const row of claimed) {
+        expect(typeof row["monitorId"]).toBe("string");
+        expect(typeof row["monitorProjectId"]).toBe("string");
+        expect(row["monitorType"]).toBe("Website");
+        expect(row["monitorSteps"]).toEqual(
+          expect.objectContaining({ _type: "MonitorSteps" }),
+        );
+      }
+
+      const plan: ExplainedPlan = await explain(statement);
       expectNoTableReadWhole(plan);
       expect(buffersOf(plan)).toBeLessThan(CLAIM_BUFFER_BOUND);
+    });
+
+    test("that one statement reads no more than the claim and the read after it did, as main had them", async () => {
+      const statement: CapturedStatement = await claimStatement(
+        probeIds[0]!,
+        50,
+      );
+      const claimedIds: Array<string> = (await rowsOf(statement))
+        .map((row: Record<string, unknown>): string => {
+          return String(row["_id"] || "");
+        })
+        .filter(Boolean);
+
+      const now: number = buffersOf(await explain(statement));
+      const mainClaim: number = buffersOf(
+        await explain(withoutClaimedMonitors(statement)),
+      );
+      const mainRead: ExplainedPlan = await explain(
+        await readOfClaimedAsMainHadIt(claimedIds),
+      );
+
+      // The read main ran after it went by primary key, never a table.
+      expectNoTableReadWhole(mainRead);
+      // The monitors' columns come from the rows the claim reads anyway.
+      expect(now).toBeLessThanOrEqual(mainClaim + 20);
+      expect(now).toBeLessThan(mainClaim + buffersOf(mainRead));
+    });
+
+    // The pending count's statement, as the service sends it.
+    async function countStatement(probeId: string): Promise<CapturedStatement> {
+      const captured: {
+        statements: Array<CapturedStatement>;
+        restore: () => void;
+      } = captureStatements(
+        MonitorProbeService as unknown as { getRepository: () => unknown },
+        [{ count: 0 }],
+      );
+
+      await MonitorProbeService.countMonitorProbesDueForProbing({
+        probeId: new ObjectID(probeId),
+        dueAt: new Date(),
+      });
+
+      captured.restore();
+      return captured.statements[0]!;
+    }
+
+    /*
+     * This schema's copy of the index of the monitors a probe may check
+     * (IDX_35665422ae411fa9290bc619e9 on the migrated table).
+     */
+    async function probeableIndexName(): Promise<string> {
+      const rows: Array<{ indexname: string }> = await database.query(
+        `SELECT indexname FROM pg_indexes
+         WHERE schemaname = $1 AND tablename = 'Monitor'
+           AND indexdef LIKE '%disableActiveMonitoringBecauseOfManualIncident%'
+           AND indexdef LIKE '%(_id)%'`,
+        [schema],
+      );
+      expect(rows).toHaveLength(1);
+      return rows[0]!.indexname;
+    }
+
+    test("a probe's pending count joins its due rows to the monitors it may check by their own index, not the whole Monitor table (#11119)", async () => {
+      const statement: CapturedStatement = await countStatement(probeIds[1]!);
+      const plan: ExplainedPlan = await explain(statement);
+
+      expectNoTableReadWhole(plan);
+      expect(indexesOf(plan)).toContain(
+        `Monitor:${await probeableIndexName()}`,
+      );
+      expect(buffersOf(plan)).toBeLessThan(COUNT_BUFFER_BOUND);
+
+      // And it counts every due row of the probe: all of them may be probed.
+      const rows: Array<Record<string, unknown>> = await rowsOf(statement);
+      expect(rows[0]!["count"]).toBe(
+        (ONE_MINUTE_ASSIGNMENTS + FIVE_MINUTE_ASSIGNMENTS) / PROBES,
+      );
+    });
+
+    test("as main had it, without that index, the same count read every page of Monitor (#11119)", async () => {
+      const statement: CapturedStatement = await countStatement(probeIds[1]!);
+      const index: string = await probeableIndexName();
+      const runner: QueryRunner = database.createQueryRunner();
+      await runner.connect();
+
+      try {
+        await runner.query("BEGIN");
+        await runner.query(`DROP INDEX "${schema}"."${index}"`);
+
+        const rows: Array<{ "QUERY PLAN": Array<ExplainedPlan> }> =
+          await runner.query(
+            `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${statement.sql}`,
+            statement.parameters,
+          );
+        const plan: ExplainedPlan = rows[0]!["QUERY PLAN"][0]!;
+        const pages: Array<{ relpages: number }> = await runner.query(
+          `SELECT relpages FROM pg_class WHERE oid = $1::regclass`,
+          [`"${schema}"."Monitor"`],
+        );
+
+        expect(seqScansOf(plan)).toContain("Monitor");
+        expect(buffersOf(plan)).toBeGreaterThanOrEqual(pages[0]!.relpages);
+        expect(buffersOf(plan)).toBeGreaterThan(COUNT_BUFFER_BOUND * 5);
+      } finally {
+        await runner.query("ROLLBACK");
+        await runner.release();
+      }
     });
 
     test("the Test Monitor claim reads the probe's unanswered tests by their own index, not two days of answered ones", async () => {

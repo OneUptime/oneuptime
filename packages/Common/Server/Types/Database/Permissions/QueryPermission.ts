@@ -466,7 +466,11 @@ export default class QueryPermission {
        * but the operator carries the list of fields it will ILIKE against
        * (QueryUtil.serializeQuery expands it into an OR over those fields).
        * Validate each inner field the same way we validate any other queried
-       * column so a client can't search across columns the user can't read.
+       * column so a client can't search across columns the user can't read -
+       * a marked one only on a read pinned to the caller
+       * (OwnerOnlyColumnPermission, #11381): which rows a search of
+       * somebody's phone matches confirms or denies a guess at it, as
+       * `{ phone: "+1555..." }` does.
        */
       if (query[key] instanceof MultiSearch) {
         const multiSearch: MultiSearch = query[key] as unknown as MultiSearch;
@@ -492,6 +496,13 @@ export default class QueryPermission {
           }
         }
 
+        OwnerOnlyColumnPermission.checkColumnsFilteredWithin({
+          modelType: modelType,
+          query: query,
+          columns: multiSearch.fields,
+          props: props,
+        });
+
         continue;
       }
 
@@ -514,7 +525,11 @@ export default class QueryPermission {
        * THE RECORDS LINKED TO SOME RECORDS (LinkedTo, under "linkedTo",
        * #11073) is no column either: it filters through each relation it
        * names, so each is held to what a filter on that column itself is -
-       * a column of the record, which the caller may read.
+       * a column of the record, which the caller may read, a marked one
+       * only on a read pinned to the caller (OwnerOnlyColumnPermission,
+       * #11381). No marked column is one it can name today - it names ids
+       * and lists of linked records, and every marked column is text - so
+       * that last check holds for the day an id is marked.
        */
       if (query[key] instanceof LinkedTo) {
         if (key !== LINKED_TO_QUERY_KEY) {
@@ -523,9 +538,11 @@ export default class QueryPermission {
           );
         }
 
-        for (const relation of Object.keys(
+        const linkedRelations: Array<string> = Object.keys(
           (query[key] as unknown as LinkedTo).relations,
-        )) {
+        );
+
+        for (const relation of linkedRelations) {
           /*
            * A relation kept in a table of its own (a team's members,
            * LinkedToLinkTables, #11211) reads that table: held to its read.
@@ -566,6 +583,13 @@ export default class QueryPermission {
             );
           }
         }
+
+        OwnerOnlyColumnPermission.checkColumnsFilteredWithin({
+          modelType: modelType,
+          query: query,
+          columns: linkedRelations,
+          props: props,
+        });
 
         continue;
       }

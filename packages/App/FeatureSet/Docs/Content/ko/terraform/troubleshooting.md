@@ -37,6 +37,7 @@ Terraform이 출력한 메시지나 겪은 일을 아래 표에서 찾으세요.
 | `Not an ID` | 이름 대신 레코드를 참조하세요: [ID 자리에 이름을 쓴 경우](#id-자리에-이름을-쓴-경우) 참고 |
 | `.tf` 파일 안의 대시보드 JSON | HCL로 작성하세요: [대시보드의 JSON](#대시보드의-json) 참고 |
 | `no available releases match the given constraints` | 정확한 버전 하나가 아니라 버전 범위를 사용하세요: [게시된 적 없는 버전](#게시된-적-없는-버전) 참고 |
+| `checksum list has unexpected SHA-256 hash` | 프로바이더의 다른 버전을 사용하세요: [체크섬이 맞지 않는 버전](#체크섬이-맞지-않는-버전) 참고 |
 | `x509: certificate signed by unknown authority` | 인증 기관을 신뢰하도록 설정하세요: [인증서](#인증서) 참고 |
 | `invalid character '<' looking for beginning of value` | `oneuptime_url`이 OneUptime 자체를 가리키게 하세요: [API 대신 웹 페이지](#api-대신-웹-페이지) 참고 |
 | `connection refused` 또는 `Client.Timeout exceeded` | 주소, 네트워크, 프록시를 확인하세요: [실패하는 연결](#실패하는-연결) 참고 |
@@ -111,9 +112,9 @@ This network device references records that are not in this project: Network Sit
 
 팀, 레이블, 온콜 정책, 온콜 일정은 프로젝트 안에서 각각 고유한 이름을 가지며, 대소문자나 공백은 구분하지 않습니다. 인시던트 심각도, 모니터 상태, 상태 페이지 같은 다른 많은 종류도 마찬가지입니다. 같은 종류의 다른 레코드가 이미 가진 이름으로 만들거나 이름을 바꾸면 `400`이 반환됩니다. 예: `There is already an on-call policy called Primary in this project. Pick another name.` 또는 `Incident Severity with the same name already exists.` 전부터 이름을 공유하던 레코드는 그 이름을 유지하며, 대시보드의 팀, 레이블, 온콜 정책, 온콜 일정 목록에 표시됩니다.
 
-고유한 이름을 요구하는 프로젝트(**프로젝트 설정 → 기본 → 프로젝트 → 고유한 이름**, 새 프로젝트는 그렇습니다)에서는 모니터, 템플릿, API 키 등 이름을 붙이는 대부분의 종류에 같은 규칙이 적용됩니다: `Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` 프로젝트가 이를 요구하기 전부터 이름을 공유하던 레코드는 이름이 바뀔 때까지 그 이름을 유지하며, 그 카드에 나열됩니다.
+고유한 이름을 요구하는 프로젝트(**프로젝트 설정 → 기본 → 프로젝트 → 고유한 이름**, 새 프로젝트는 그렇습니다)에서는 모니터, 템플릿, API 키 등 이름을 붙이는 대부분의 종류에 같은 규칙이 적용됩니다: `Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` 프로젝트가 이를 요구하기 전부터 이름을 공유하던 레코드는 이름이 바뀔 때까지 그 이름을 유지하며, 그 카드에 나열되고 각자의 목록에도 표시됩니다.
 
-Terraform은 한 번의 apply에서 변경을 나란히 수행하므로, 같은 apply에서 다른 리소스가 이름 바꾸기나 삭제로 내려놓는 이름으로 만들거나 이름을 바꾸면 그 리소스가 아직 그 이름을 가진 동안에는 거부될 수 있습니다. 그러면 프로바이더가 최대 30초 동안 다시 요청하므로, B를 C로 바꾸는 동안 A를 B로 바꾸는 것 같은 이름 바꾸기 연쇄는 한 번의 apply로 끝나며, apply가 삭제하는 리소스의 이름을 가져가는 리소스도 마찬가지입니다. A를 B로, B를 A로 바꾸는 맞바꾸기나 처음 이름으로 돌아오는 이름 바꾸기 연쇄는 끝나지 않으며, OneUptime이 프로젝트와 함께 만든 심각도처럼 구성 밖의 레코드가 가진 이름도 마찬가지입니다. 30초 뒤에 apply가 실패하고 `The name was still taken after asking again for 30 seconds.` 메시지가 나옵니다. 리소스에 아무도 쓰지 않는 이름을 붙이거나, 그 이름을 가진 레코드를 `terraform import`로 가져오세요. 맞바꾸기라면 그중 하나의 이름을 아무도 쓰지 않는 이름으로 바꾸고 적용한 다음, 나머지 변경을 하세요.
+Terraform은 한 번의 apply에서 변경을 나란히 수행하므로, 같은 apply에서 다른 리소스가 이름 바꾸기나 삭제로 내려놓는 이름으로 만들거나 이름을 바꾸면 그 리소스가 아직 그 이름을 가진 동안에는 거부될 수 있습니다. 그러면 프로바이더가 최대 30초 동안 다시 요청하므로, B를 C로 바꾸는 동안 A를 B로 바꾸는 것 같은 이름 바꾸기 연쇄는 한 번의 apply로 끝나며, apply가 삭제하는 리소스의 이름을 가져가는 리소스도 마찬가지입니다. A를 B로, B를 A로 바꾸는 맞바꾸기나 처음 이름으로 돌아오는 이름 바꾸기 연쇄는 끝나지 않으며, OneUptime이 프로젝트와 함께 만든 심각도처럼 구성 밖의 레코드가 가진 이름도 마찬가지입니다. 30초 뒤에 apply가 실패하고 `The name was still taken after asking again for 30 seconds.` 메시지가 나옵니다. 리소스에 아무도 쓰지 않는 이름을 붙이거나, 그 이름을 가진 레코드를 `terraform import`로 가져오세요. API 키가 그 레코드를 읽을 수 있으면 오류가 그 레코드를 알려 주고 실행할 줄도 제시합니다(예: `terraform import oneuptime_monitor.<name> <id>`). apply가 만들던 리소스로 가져오거나, apply가 리소스 이름을 바꾸던 중이었다면 별도의 리소스로 가져오세요. 맞바꾸기라면 그중 하나의 이름을 아무도 쓰지 않는 이름으로 바꾸고 적용한 다음, 나머지 변경을 하세요.
 
 보관된 레코드는 이름을 유지하며, apply가 운영 중인 레코드에 무엇을 하든 그 이름은 풀리지 않습니다. 그 이름으로 만들거나 이름을 바꾸면 바로 실패하며, 그 레코드의 보관을 어디서 취소할 수 있는지 알려 줍니다. 보관을 취소하거나 다른 이름을 고르세요.
 
@@ -238,6 +239,14 @@ terraform {
 ```
 
 자체 호스팅 OneUptime에서는 [자체 호스팅 설정](/docs/terraform/self-hosted#프로바이더-버전-고르기)에 나온 것처럼 범위의 상한을 OneUptime의 버전으로 정하세요. 버전 번호를 매기는 방식은 [레지스트리 사용](/docs/terraform/registry#버전-번호를-매기는-방식)에서 설명합니다.
+
+### 체크섬이 맞지 않는 버전
+
+`checksum list has unexpected SHA-256 hash`는 그 버전에 대해 릴리스가 제공하는 파일이 버전이 게시될 때 레지스트리가 읽은 파일이 아니라는 뜻입니다. 레지스트리는 그때 읽은 체크섬을 보관하고, `init`은 모든 다운로드를 그것과 대조합니다. 14.3.0, 16.0.0, 17.0.0, 17.1.0, 17.2.0과 11.x부터 14.0.x까지의 일부 이전 버전의 파일은 레지스트리가 읽은 뒤에 한 번 더 빌드되고 업로드되었으므로, `init`은 Terraform에서든 OpenTofu에서든 모든 플랫폼에서 그 버전들을 거부합니다. 잠금 파일로는 이를 우회할 수 없습니다: `init`은 잠금 파일을 읽기 전에 레지스트리의 체크섬을 릴리스의 체크섬과 비교합니다.
+
+다른 버전을 사용하세요: 17.3.0 이상, 또는 15.0.0입니다. 더 새로운 버전을 허용하는 범위는 `terraform init -upgrade`로 그 버전을 받습니다. 그런 버전이 다시 게시될 때는 다음 패치 버전으로 게시되며, 예를 들어 17.2.0에는 17.2.1이고 같은 프로바이더가 들어 있습니다. 그 패치를 허용하는 범위는 그 버전을 받습니다.
+
+사용하기 전에 버전을 확인하려면 [버전의 체크섬 확인하기](/docs/terraform/registry#버전의-체크섬-확인하기)를 참고하세요.
 
 ## 자체 호스팅 OneUptime에 연결하기
 

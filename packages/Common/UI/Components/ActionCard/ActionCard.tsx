@@ -12,6 +12,15 @@ export interface ConfirmAction {
   onConfirmAction: () => void;
   actionButtonStyle?: ButtonStyleType;
   isLoading?: boolean;
+  /*
+   * What the confirmation also asks, under its question - the repository a
+   * fix is made in, when none was found for certain. Read from the card's
+   * props of now while the confirmation is open, so it follows what the
+   * person picks there.
+   */
+  confirmContent?: ReactElement | undefined;
+  // The confirmation's button waits for that answer.
+  isConfirmDisabled?: boolean | undefined;
 }
 
 export interface ComponentProps {
@@ -30,9 +39,25 @@ const ActionCard: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [currentAction, setCurrentAction] = useState<ConfirmAction | undefined>(
-    undefined,
-  );
+  /*
+   * Which action is being confirmed, by its place: the action itself is
+   * read from the props of now, so what its confirmation asks follows the
+   * answers given there (confirmContent, isConfirmDisabled).
+   */
+  const [currentActionIndex, setCurrentActionIndex] = useState<
+    number | undefined
+  >(undefined);
+  const currentAction: ConfirmAction | undefined =
+    currentActionIndex === undefined
+      ? undefined
+      : props.actions[currentActionIndex];
+  const setCurrentAction: (action: ConfirmAction | undefined) => void = (
+    action: ConfirmAction | undefined,
+  ): void => {
+    setCurrentActionIndex(
+      action === undefined ? undefined : props.actions.indexOf(action),
+    );
+  };
 
   return (
     <>
@@ -85,10 +110,13 @@ const ActionCard: (props: ComponentProps) => ReactElement = (
               ? ButtonStyleType.DANGER
               : ButtonStyleType.PRIMARY
           }
+          disableSubmitButton={Boolean(currentAction.isConfirmDisabled)}
           onClose={() => {
             setCurrentAction(undefined);
           }}
-        />
+        >
+          {currentAction.confirmContent}
+        </ConfirmModal>
       ) : (
         <></>
       )}
