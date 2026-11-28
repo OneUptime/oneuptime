@@ -3591,7 +3591,9 @@ describe("Production review of pull requests", () => {
         "For a web or mobile app's code it is where the app's [RUM application](/docs/data-security/telemetry) held it in its session replays: in its browser logs for a log, its browser spans for a span, and its sessions' users for who a session is.",
       );
       // How the repository's application is found, and its code told apart.
-      expect(scope).toContain("export async function findRumApplicationsOfRepository(");
+      expect(scope).toContain(
+        "export async function findRumApplicationsOfRepository(",
+      );
       expect(sensitive).toContain(
         `A RUM application's code is in the repository when its ${bold("App Identifier")} names the repository or a service the repository serves, or when the repository is the project's only one.`,
       );
