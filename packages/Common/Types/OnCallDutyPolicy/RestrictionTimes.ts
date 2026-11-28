@@ -58,11 +58,11 @@ export const LEGACY_RESTRICTION_TYPE_KEY: string = "restictionType";
  *      restrictionType alone, and the provider reads a configuration's
  *      restictionType as restrictionType when it compares what it sent with
  *      what it reads back, so a configuration written with either applies
- *      against an answer with one.
+ *      against an answer with one (#11514).
  *   3. The first major version released on or after 1 June 2027, once step
  *      2 has shipped in an earlier release: answers stop carrying
  *      restictionType. Writes keep reading it for good, so old
- *      configurations still apply.
+ *      configurations still apply (#11515).
  *
  * Step 3 is taking LEGACY_RESTRICTION_TYPE_KEY out of this list: nothing
  * else writes it into an answer. RestrictionTypeSpellingsGuard (Common
