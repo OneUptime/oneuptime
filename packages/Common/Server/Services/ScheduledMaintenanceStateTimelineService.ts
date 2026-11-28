@@ -682,8 +682,18 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
      * starts do the same: probing of the event's monitors stops, and they
      * change to its Change Monitor Status to.
      */
+    /*
+     * A row filled in between two others, back in the event's timeline, is
+     * no state the event is in now: it starts and ends nothing, whatever its
+     * state, as a state of the project's own filled in so never did. A
+     * filled-in Ongoing row used to pause the event's monitors - for good,
+     * in an event that was over - and a filled-in Ended row to release
+     * them, back to operational over the status their checks had set.
+     */
+    const isCurrentState: boolean = !createdItem.endsAt;
+
     const isStart: boolean =
-      inProgressByFlags === true ||
+      (inProgressByFlags === true && isCurrentState) ||
       (inProgressByFlags === null &&
         isMovingIntoProgress &&
         (await this.isStartIntoStateOfItsOwn({
@@ -691,7 +701,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           stateIdBeforeThis:
             onCreate.carryForward.statusTimelineBeforeThisStatus
               ?.scheduledMaintenanceStateId,
-          isCurrentState: !createdItem.endsAt,
+          isCurrentState: isCurrentState,
           getStates: getProjectStates,
         })));
 
@@ -704,14 +714,15 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
      * monitors paused in its status for good.
      */
     const isEnd: boolean =
-      ScheduledMaintenanceStartUtil.hasEndedByFlags(
+      (ScheduledMaintenanceStartUtil.hasEndedByFlags(
         scheduledMaintenanceState,
-      ) === true ||
+      ) === true &&
+        isCurrentState) ||
       (inProgressByFlags === null &&
         !isMovingIntoProgress &&
         (await this.isEndIntoStateOfItsOwn({
           createdItem: createdItem,
-          isCurrentState: !createdItem.endsAt,
+          isCurrentState: isCurrentState,
           getStates: getProjectStates,
         })));
 
@@ -735,7 +746,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
 
         await this.applyMonitorStatusWhenStarting({
           scheduledMaintenanceEvent: scheduledMaintenanceEvent,
-          isCurrentState: !createdItem.endsAt,
+          isCurrentState: isCurrentState,
         });
 
         /*

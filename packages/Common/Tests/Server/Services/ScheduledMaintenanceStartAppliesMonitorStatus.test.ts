@@ -421,6 +421,39 @@ describe("the move into an event's ongoing state", () => {
     await moveInto("ongoing", { filledInBetween: true });
 
     expect(changeMonitorStatus).not.toHaveBeenCalled();
+    /*
+     * Nor pauses the monitors: the event is not in that state now. It used
+     * to - for good, in an event that was over.
+     */
+    expect(monitorUpdateOneById).not.toHaveBeenCalled();
+    expect(uptimeMarks).not.toHaveBeenCalled();
+  });
+
+  test("an Ended row filled in back in the timeline lets go of nothing: the event is not over now", async () => {
+    storeEvent({
+      monitorStatusId: STATUS_PICKED_WHEN_SCHEDULED,
+      monitors: [MONITOR_A],
+    });
+
+    await moveInto("ended", { filledInBetween: true });
+
+    expect(
+      ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors,
+    ).not.toHaveBeenCalled();
+    expect(monitorUpdateOneById).not.toHaveBeenCalled();
+  });
+
+  test("the event's own move into Ended lets go of its monitors, as before", async () => {
+    storeEvent({
+      monitorStatusId: STATUS_PICKED_WHEN_SCHEDULED,
+      monitors: [MONITOR_A],
+    });
+
+    await moveInto("ended");
+
+    expect(
+      ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors,
+    ).toHaveBeenCalledTimes(1);
   });
 
   test("a failure to change the monitors is logged, never turned into an error: the state change stands", async () => {
