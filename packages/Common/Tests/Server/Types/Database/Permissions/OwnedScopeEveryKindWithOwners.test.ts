@@ -1150,7 +1150,7 @@ const NAMES_A_KIND_AS_IT_IS: Record<string, string> = {
     "picks the Runner AI works in the repository on: Runners are read in full, so they can be picked",
   "EmailLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
   "GlobalProbeSnmpTrapReport.probe":
-    "a project's share of the SNMPv3 traps a global probe refused, written by OneUptime alone: probes are read in full",
+    "one project's share of a global probe's SNMP trap report, written by OneUptime alone as the probe reports and read as a project probe's own report is: no member picks or changes the probe it names",
   "NetworkDeviceDiagnostic.probe": PICKS_A_PROBE,
   "NetworkDeviceDiscoveryScan.probe": PICKS_A_PROBE,
   "DataSecurityScan.probe": PICKS_A_PROBE,
