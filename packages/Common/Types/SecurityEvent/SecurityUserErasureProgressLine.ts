@@ -142,14 +142,14 @@ export function readProgressLines(
       continue;
     }
 
-    const pass: number = Number(record["pass"]);
+    const pass: unknown = record["pass"];
     const line: SecurityUserErasureProgressLine = {
       requestId,
       status: record["status"],
       stage: isStage(record["stage"]) ? record["stage"] : null,
     };
 
-    if (Number.isInteger(pass) && pass > 0) {
+    if (typeof pass === "number" && Number.isInteger(pass) && pass > 0) {
       line.pass = pass;
     }
 

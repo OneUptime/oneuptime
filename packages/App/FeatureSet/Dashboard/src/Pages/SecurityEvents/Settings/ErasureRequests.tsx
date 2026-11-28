@@ -96,8 +96,14 @@ const SecurityErasureRequestsPage: FunctionComponent<
   > = useRef<Map<string, SecurityUserErasureRequestStatus>>(new Map());
   const [isAnyOpen, setIsAnyOpen] = useState<boolean>(false);
 
-  const loadProgress: () => Promise<void> =
-    useCallback(async (): Promise<void> => {
+  /*
+   * The lines, read again. Only the timer's read may read the list again
+   * (`mayReadListAgain`): a list read again reads the lines again, so a
+   * request the server and the list disagree on for good - a state the page
+   * does not know - is read again at most once a tick, never in a loop.
+   */
+  const loadProgress: (data: { mayReadListAgain: boolean }) => Promise<void> =
+    useCallback(async (data: { mayReadListAgain: boolean }): Promise<void> => {
       let lines: Array<SecurityUserErasureProgressLine> = [];
 
       try {
@@ -112,7 +118,10 @@ const SecurityErasureRequestsPage: FunctionComponent<
 
       setProgress(byId);
 
-      if (hasShownRequestMovedOn(shownOpen.current, byId)) {
+      if (
+        data.mayReadListAgain &&
+        hasShownRequestMovedOn(shownOpen.current, byId)
+      ) {
         setRefreshToggle(String(Date.now()));
       }
     }, []);
@@ -124,7 +133,7 @@ const SecurityErasureRequestsPage: FunctionComponent<
 
     const timer: ReturnType<typeof setInterval> = setInterval((): void => {
       if (document.visibilityState !== "hidden") {
-        void loadProgress();
+        void loadProgress({ mayReadListAgain: true });
       }
     }, ERASURE_PROGRESS_REFRESH_IN_MS);
 
@@ -226,7 +235,7 @@ const SecurityErasureRequestsPage: FunctionComponent<
         setIsAnyOpen(open.size > 0);
 
         if (open.size > 0) {
-          void loadProgress();
+          void loadProgress({ mayReadListAgain: false });
         }
       }}
       filters={[]}
