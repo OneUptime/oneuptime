@@ -1297,6 +1297,89 @@ describe("Code", () => {
     );
   });
 
+  /*
+   * #11075, #11209: the buttons that start a code task in the person's name
+   * outside Code are held to the repositories they may use there - read,
+   * and ask OneUptime AI to work in - by one rule on the server
+   * (CodeFixPersonRepository), which asks for a pick when several are
+   * theirs and none matched, pins the run to the repository decided, and
+   * leaves the fixes OneUptime AI opens on its own to their AI rules.
+   */
+  it("says the buttons that start a task in your name work only in a repository you may use in Code, as the server holds them", () => {
+    const section: string = flat(
+      englishSection(CODE_PAGE, "## Where fix tasks start"),
+    );
+    const rule: string = readRepoFile(
+      "Common/Server/Utils/AI/CodeFix/CodeFixPersonRepository.ts",
+    );
+    const routes: string = readRepoFile("Common/Server/API/AIInvestigationAPI.ts");
+
+    // One rule, for each of the four buttons' triggers.
+    for (const trigger of [
+      "FixPerformanceTaskTrigger",
+      "FixFromIncidentTaskTrigger",
+      "TelemetryImprovementTaskTrigger",
+    ]) {
+      expect(
+        readRepoFile(`Common/Server/Utils/AI/SRE/${trigger}.ts`),
+      ).toContain("CodeFixPersonRepository.decideRepository({");
+    }
+
+    // Read it, and ask AI in it; none theirs, a pick to make, the pin.
+    expect(rule).toContain("CodeTaskAccess.listReadableRepositoriesByIds({");
+    expect(rule).toContain("CodeTaskAccess.keepAskableRepositories<");
+    expect(rule).toContain(
+      "refusal = new NotAuthorizedException(NO_REPOSITORY_YOU_MAY_USE_MESSAGE);",
+    );
+    expect(rule).toContain(
+      "throw new BadDataException(data.refusals.pickARepository);",
+    );
+    expect(rule).toContain(
+      "data.taskContext.pickedCodeRepositoryId = repositoryId;",
+    );
+    // And held to it when the run starts, the improvements' included.
+    expect(
+      readRepoFile("Common/Server/API/AIAgentDataAPI.ts").split(
+        "allowance: getRunRepositoryAllowance(run.taskContext),",
+      ).length - 1,
+    ).toBeGreaterThanOrEqual(3);
+
+    // The three create routes take the pick the page asks for.
+    for (const route of [
+      '"/ai-investigation/create-performance-fix-task"',
+      '"/ai-investigation/create-fix-task"',
+      '"/ai-investigation/create-telemetry-improvement-task"',
+    ]) {
+      const handler: string = routes.slice(routes.indexOf(route));
+      expect(
+        handler.slice(0, handler.indexOf("router.post(", 1)),
+      ).toContain("readPickedRepositoryId(");
+    }
+
+    // Each page asks which repository holds the code, in one question.
+    for (const page of [
+      "Components/Traces/TraceDetail/TracePerformanceSuggestion.tsx",
+      "Components/AutoRemediation/RemediationCodeFix.tsx",
+      "Components/AI/TelemetryImprovementCard.tsx",
+    ]) {
+      const source: string = dashboardSource(page);
+      expect(source).toContain("TELEMETRY_AI_FIX_COPY.pickRepository");
+      expect(source).toContain("isAskableOnly={true}");
+    }
+
+    expect(section).toContain(
+      `${bold("Open fix pull request")}, ${bold("Fix performance with AI")}, ${bold("Improve Logging")} and ${bold("Improve Tracing")} start a task in your name, so each works only in a repository you may use in Code: one you can read and may ask OneUptime AI to work in, which takes permission to edit it. If you may use none of the connected repositories, you are not offered them. With several of yours connected and none matched to the incident's or alert's monitor, the trace's service or code, or the service, the button first asks which repository holds the code, and offers only yours. The task stays in that repository, even if the repositories change before it starts. The fix pull requests OneUptime AI opens on its own (see below) work in the repositories their AI rules allow instead.`,
+    );
+    expect(
+      flat(englishSection(CODE_PAGE, "## Automatic code fixes from investigations")),
+    ).toContain(
+      `A fix that opens on its own works in the repositories the matching rules name, or any connected one when they name none. ${bold("Open fix pull request")} works only in a repository the person who presses it may use in Code, and asks which one first when several are theirs and none is named like the monitor (see [Where fix tasks start](#where-fix-tasks-start)).`,
+    );
+    expect(flat(englishPage(AI_SRE))).toContain(
+      `${bold("Open fix pull request")} works only in a repository you may use in Code: one you can read and may ask OneUptime AI to work in, which takes permission to edit it. With several of yours connected and none named like the incident's or alert's monitor, the step first asks which repository holds the code, and offers only yours. If you may use none of the connected repositories, the step does not offer it. See [Where fix tasks start](/docs/ai/ai-agent#where-fix-tasks-start).`,
+    );
+  });
+
   it("opens an exception's Fix with AI page from its side menu, under Resolve", () => {
     const menu: string = flat(
       dashboardSource("Pages/Exceptions/View/SideMenu.tsx"),
