@@ -279,38 +279,36 @@ function offsetInText(
   return null;
 }
 
-// The last text whose characters start at or before a position, by its start.
-function stringAt(
+// The first text whose characters end after a position, by its end.
+function firstStringEndingAfter(
   strings: ReadonlyArray<StoredTextString>,
   position: number,
-): StoredTextString | null {
+): number {
   let low: number = 0;
-  let high: number = strings.length - 1;
-  let found: StoredTextString | null = null;
+  let high: number = strings.length;
 
-  while (low <= high) {
+  while (low < high) {
     const middle: number = (low + high) >> 1;
-    const candidate: StoredTextString = strings[middle]!;
 
-    if (candidate.start <= position) {
-      found = candidate;
+    if (strings[middle]!.end <= position) {
       low = middle + 1;
     } else {
-      high = middle - 1;
+      high = middle;
     }
   }
 
-  return found;
+  return low;
 }
 
 /*
- * Ranges of the JSON text placed on the texts of the value that hold them,
- * by each text: [start, end) of the text as the list or the map holds it.
- * A range in a key, in a number or across two texts is left out - a rule
- * changes no key of a list or a map, a number's ranges are placed on it
- * apart (placeRangesOnNumbers, #11500), and no pattern of a number matches
- * across a text's quotes - and so is one that starts or ends inside an
- * escape.
+ * Ranges of the JSON text placed on the texts of the value they cover, by
+ * each text: [start, end) of the text as the list or the map holds it. A
+ * range across a key and its value - a pattern written against the JSON
+ * text, `"api_key":"..."`, or one whose words sit in the key, `"cvv":"123"`
+ * (#11502) - is placed on the part of each value's text it covers: a rule
+ * changes no key of a list or a map. A number's ranges are placed on it
+ * apart (placeRangesOnNumbers, #11500). A part that starts or ends inside
+ * an escape is left out.
  */
 export function placeRangesOnStrings(
   stored: StoredText,
@@ -326,42 +324,56 @@ export function placeRangesOnStrings(
   >();
 
   for (const [start, end] of ranges) {
-    const holder: StoredTextString | null = stringAt(stored.strings, start);
-
-    if (!holder || holder.isKey || end > holder.end || end <= start) {
+    if (end <= start) {
       continue;
     }
 
-    let textStart: number = start - holder.start;
-    let textEnd: number = end - holder.start;
+    for (
+      let index: number = firstStringEndingAfter(stored.strings, start);
+      index < stored.strings.length && stored.strings[index]!.start < end;
+      index++
+    ) {
+      const holder: StoredTextString = stored.strings[index]!;
 
-    // Written with an escape: its positions are read one character at a time.
-    if (holder.end - holder.start !== holder.text.length) {
-      if (!writtenStarts.has(holder)) {
-        writtenStarts.set(holder, writtenStartsOf(holder.text));
-      }
-
-      const starts: Array<number> | null | undefined =
-        writtenStarts.get(holder);
-      const readStart: number | null = starts
-        ? offsetInText(starts, textStart)
-        : null;
-      const readEnd: number | null = starts
-        ? offsetInText(starts, textEnd)
-        : null;
-
-      if (readStart === null || readEnd === null || readEnd <= readStart) {
+      if (holder.isKey) {
         continue;
       }
 
-      textStart = readStart;
-      textEnd = readEnd;
+      let textStart: number = Math.max(start, holder.start) - holder.start;
+      let textEnd: number = Math.min(end, holder.end) - holder.start;
+
+      if (textEnd <= textStart) {
+        continue;
+      }
+
+      // Written with an escape: its positions are read one character at a time.
+      if (holder.end - holder.start !== holder.text.length) {
+        if (!writtenStarts.has(holder)) {
+          writtenStarts.set(holder, writtenStartsOf(holder.text));
+        }
+
+        const starts: Array<number> | null | undefined =
+          writtenStarts.get(holder);
+        const readStart: number | null = starts
+          ? offsetInText(starts, textStart)
+          : null;
+        const readEnd: number | null = starts
+          ? offsetInText(starts, textEnd)
+          : null;
+
+        if (readStart === null || readEnd === null || readEnd <= readStart) {
+          continue;
+        }
+
+        textStart = readStart;
+        textEnd = readEnd;
+      }
+
+      const known: Array<TextRange> = placed.get(holder.text) || [];
+
+      known.push([textStart, textEnd]);
+      placed.set(holder.text, known);
     }
-
-    const known: Array<TextRange> = placed.get(holder.text) || [];
-
-    known.push([textStart, textEnd]);
-    placed.set(holder.text, known);
   }
 
   return placed;

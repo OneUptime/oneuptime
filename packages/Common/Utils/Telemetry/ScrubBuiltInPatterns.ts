@@ -404,13 +404,14 @@ export function getHintsOfKey(key: string): ReadonlySet<string> {
  *    (ScrubStoredText), with its key's name for that word when it hints the
  *    type, as Data Security reads it there: a map's key is a word right
  *    beside its value, and a word another of its texts writes is near it,
- *    [{"system":"phone","value":"02012345678"}]. What the detectors that
- *    need words find there is hidden in the texts that hold it, and each
- *    text is read as itself as well, as before - and in the numbers that
- *    hold it (#11500): [{"system":"phone","value":2012345678}], or
- *    [536221234] under `customer.ssn`, has its number written as the rule's
- *    text, as a number alone under its key is. A number nothing found
- *    there, under no word and no such key, stays the number it is.
+ *    [{"system":"phone","value":"02012345678"}]. What the type's detectors
+ *    find there is hidden in the texts that hold it, and each text is read
+ *    as itself as well, as before - and in the numbers that hold it
+ *    (#11500): [{"system":"phone","value":2012345678}], [536221234] under
+ *    `customer.ssn`, and a pair of coordinates sent as two numbers,
+ *    [51.50722,-0.12750], have their numbers written as the rule's text, as
+ *    a number alone under its key is. A number nothing found there stays
+ *    the number it is.
  *
  * A key that hints nothing, over a text, changes nothing: the rule reads
  * the value alone, as it always has.
@@ -423,13 +424,6 @@ function readsUnderKey(data: {
     hintedDataTypeIds?: ReadonlySet<string> | undefined,
   ) => Array<TextRange>;
 }): FindRangesUnderKey {
-  // The detectors whose finds depend on the words around a value.
-  const wordDetectors: ReadonlyArray<DataTypeDetector> = data.detectors.filter(
-    (detector: DataTypeDetector): boolean => {
-      return Boolean(detector.requiresContext);
-    },
-  );
-
   return (key: string, value: unknown): FoundUnderKey | null => {
     const hints: ReadonlySet<string> = getHintsOfKey(key);
     const hinted: ReadonlySet<string> | undefined = hints.has(data.dataTypeId)
@@ -447,11 +441,6 @@ function readsUnderKey(data: {
         : null;
     }
 
-    // A type no word finds: a list or a map reads as its texts do.
-    if (wordDetectors.length === 0) {
-      return null;
-    }
-
     const stored: StoredText | null = readStoredText(value);
 
     if (!stored) {
@@ -459,7 +448,7 @@ function readsUnderKey(data: {
     }
 
     const found: Array<TextRange> = findDetectorRanges(
-      wordDetectors,
+      data.detectors,
       stored.text,
       undefined,
       { hintedDataTypeIds: hinted },
