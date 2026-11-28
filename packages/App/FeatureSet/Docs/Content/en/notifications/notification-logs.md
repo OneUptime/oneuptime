@@ -25,6 +25,8 @@ Each status is a pill whose colour says where the message is:
 
 Point at a status, tap it, or move to it with the Tab key, and it says what it means and what comes next. **View Status Message**, in the row's menu, shows what the provider said, such as the message's ID or why it failed. Each tab's **Status** filter lists every status the tab can show, in the order a message moves through them.
 
+**Who Was Told**, on an incident's or an alert's overview, and a test page's result show each message's status the same way, in the same colours: a call that is still ringing reads **Calling** there too, never **Sent**.
+
 ## SMS
 
 ```mermaid title="An SMS's statuses, from OneUptime to the phone"
@@ -40,7 +42,7 @@ flowchart TB
 | **Sending** | OneUptime handed the SMS to Twilio, which is passing it to the carrier. |
 | **Sent** | The carrier accepted the SMS. It moves to **Delivered** or **Undelivered** once the carrier reports back. |
 | **Delivered** | The carrier confirmed the SMS reached the phone. This is the last status of an SMS that arrived. |
-| **Undelivered** | The carrier could not deliver it. **Error Code** says why: `30003` is a phone that is off or out of reach, `30005` a number that does not exist, `30006` a landline, and `30007` a message the carrier filtered. |
+| **Undelivered** | The carrier could not deliver it. **Error Code** says why, and what the code means. |
 | **Failed** | Twilio could not send it. **Error Code** says why. |
 | **Error** | It was not sent, for example because SMS are off for the project, or Twilio refused the number. **View Status Message** says why. |
 | **Low Balance** | It was not sent: the project's balance was too low to pay for it. |
@@ -49,6 +51,33 @@ flowchart TB
 An SMS that the server's own SMS and call gateway took stays **Sent**, in green: the gateway does not report delivery, so that is its last status.
 
 Twilio reports each change to OneUptime as it happens, signed with the auth token of the account the SMS went out on, and OneUptime refuses any report that is not Twilio's. For that, Twilio must be able to reach your server: see [Twilio Integration](/docs/self-hosted/twilio-integration).
+
+### Error codes
+
+Each code under **Error Code** opens Twilio's page for it, which lists what can cause it. Under the codes an SMS most often fails with, the log says in one line what they mean:
+
+| Code | What it means |
+| --- | --- |
+| `20003` | Twilio did not accept the account's credentials. |
+| `21211` | The number is not a valid phone number. |
+| `21408` | The Twilio account is not allowed to send SMS to this country. |
+| `21606` | The sending number cannot send SMS for this Twilio account. |
+| `21608` | A trial Twilio account can send only to numbers verified in it. |
+| `21610` | The recipient replied STOP, so Twilio no longer sends them SMS from this number. |
+| `21612` | The sending number cannot reach this number. |
+| `21614` | The number is not a mobile number, for example a landline. |
+| `30001` | Too many SMS were sent at once, and Twilio's queue overflowed. |
+| `30002` | The Twilio account was suspended before the SMS went out. |
+| `30003` | The phone is off or out of reach. |
+| `30004` | The number is blocked from receiving the SMS. |
+| `30005` | The number is unknown and may no longer exist. |
+| `30006` | The number cannot receive SMS, for example a landline. |
+| `30007` | Twilio or the carrier filtered the SMS as spam. |
+| `30008` | The carrier could not deliver the SMS and did not say why. |
+| `30032` | The toll-free sending number is not verified yet. |
+| `30034` | The sending number is not registered for A2P 10DLC, which US carriers require. |
+
+A code that is not Twilio's, such as the HTTP status your SMS and call gateway answered, is shown as it is.
 
 ## Calls
 
