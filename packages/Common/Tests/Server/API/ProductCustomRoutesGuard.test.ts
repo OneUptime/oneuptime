@@ -1576,9 +1576,9 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read.",
+      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read, the pictures a record's Markdown shows among them, by GET or POST (#11256).",
       {
-        "packages/Common/Server/API/BaseAPI.ts": 9,
+        "packages/Common/Server/API/BaseAPI.ts": 10,
         "packages/Common/Server/API/BaseAnalyticsAPI.ts": 7,
       },
     ),
