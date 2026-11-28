@@ -290,6 +290,7 @@ import { readSecurityCaseAiLimits } from "Common/Types/SecurityCase/SecurityCase
 import { SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES } from "Common/Types/SecurityCase/SecurityCaseAiWords";
 import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
 import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
+import { answerSharedNames } from "../../SuiteHelpers/SharedNameAnswers";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -5090,6 +5091,28 @@ async function handleApi(method, options) {
     const names = answerUniqueNames({ url });
     if (names) {
       return new HTTPResponse(200, names, {});
+    }
+
+    /*
+     * Which records of a list share a name (#11021): every list of a kind a
+     * project can require unique names for - hunts, playbooks, threat intel
+     * feeds, note templates and the rest - asks with every read of its rows,
+     * to mark them. Answered from the fixture's own tables, as they hold
+     * the records now.
+     */
+    const twins = answerSharedNames({
+      url,
+      kinds: [...tables.values()].map((entry) => {
+        return {
+          modelType: entry.modelType,
+          records: () => {
+            return entry.records;
+          },
+        };
+      }),
+    });
+    if (twins) {
+      return new HTTPResponse(200, twins, {});
     }
   }
   if (

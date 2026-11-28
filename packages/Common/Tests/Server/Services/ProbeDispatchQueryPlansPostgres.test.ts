@@ -756,11 +756,25 @@ describePostgres(
       return rows[0]!.indexname;
     }
 
+    /*
+     * A quarter of MonitorProbe is the probe's, all of it due, and some of
+     * its rows are on every page: Postgres reads them by the claim's index
+     * range and then every page they are on, or by reading the table,
+     * whichever it costs less. Here the two are within 2% of each other in
+     * its costs, so which it takes changes from one seed to the next, and
+     * either reads every page of MonitorProbe once (the table itself, the
+     * fewer pages). What #11119 was about is the other side of the join:
+     * the monitors, read by their ids alone, never the whole of Monitor -
+     * as ProbeDispatchTwoProbesAtScalePostgres holds at half the table.
+     */
     test("a probe's pending count joins its due rows to the monitors it may check by their own index, not the whole Monitor table (#11119)", async () => {
       const statement: CapturedStatement = await countStatement(probeIds[1]!);
       const plan: ExplainedPlan = await explain(statement);
 
-      expectNoTableReadWhole(plan);
+      expect({
+        monitorReadWhole: seqScansOf(plan).includes("Monitor"),
+        plan: summaryOf(plan),
+      }).toEqual({ monitorReadWhole: false, plan: summaryOf(plan) });
       expect(indexesOf(plan)).toContain(
         `Monitor:${await probeableIndexName()}`,
       );
