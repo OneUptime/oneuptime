@@ -1,5 +1,6 @@
 import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 import { ProviderLogoMarkShapes } from "../../../Types/ProviderLogo/ProviderLogoMark";
+import { getIconBrandMark } from "../Icon/IconBrandMarks";
 
 /*
  * Where each mark's shapes are: one module per mark in
@@ -7,6 +8,11 @@ import { ProviderLogoMarkShapes } from "../../../Types/ProviderLogo/ProviderLogo
  * draws the mark (the bundler makes a small file of every module the
  * loaders name), so a page carries only the marks it shows. A mark loaded
  * once is drawn at once after that.
+ *
+ * But for the marks the icon set draws (Icon/IconBrandMarks: Slack's,
+ * GitHub's, Kubernetes' and the rest), which every page holds already: those
+ * are drawn at once, from the icon set's own, and have no loader - a loader
+ * would make a file of each, one more of every page's first load.
  *
  * Every mark is part of the installation: nothing is fetched from another
  * address, so an installation without the internet draws every one.
@@ -18,9 +24,10 @@ type ProviderLogoMarkModule = { default: ProviderLogoMarkShapes };
 type ProviderLogoMarkLoader = () => Promise<ProviderLogoMarkModule>;
 
 /*
- * One loader per mark, each naming its module in full: the bundler can only
- * split out a module whose name it can read. Kept in step with the Marks
- * folder by Tests/UI/Components/ProviderLogo/ProviderLogoMarkLoader.test.ts.
+ * One loader per mark the icon set does not draw, each naming its module in
+ * full: the bundler can only split out a module whose name it can read.
+ * Kept in step with the Marks folder and the icon set's marks by
+ * Tests/UI/Components/ProviderLogo/ProviderLogoMarkLoader.test.ts.
  */
 export const PROVIDER_LOGO_MARK_LOADERS: Readonly<
   Partial<Record<ProviderLogo, ProviderLogoMarkLoader>>
@@ -91,21 +98,6 @@ export const PROVIDER_LOGO_MARK_LOADERS: Readonly<
   [ProviderLogo.GoogleMeet]: () => {
     return import("../../../Types/ProviderLogo/Marks/google-meet");
   },
-  [ProviderLogo.MicrosoftTeams]: () => {
-    return import("../../../Types/ProviderLogo/Marks/microsoft-teams");
-  },
-  [ProviderLogo.Slack]: () => {
-    return import("../../../Types/ProviderLogo/Marks/slack");
-  },
-  [ProviderLogo.Discord]: () => {
-    return import("../../../Types/ProviderLogo/Marks/discord");
-  },
-  [ProviderLogo.Telegram]: () => {
-    return import("../../../Types/ProviderLogo/Marks/telegram");
-  },
-  [ProviderLogo.Mattermost]: () => {
-    return import("../../../Types/ProviderLogo/Marks/mattermost");
-  },
   [ProviderLogo.Opsgenie]: () => {
     return import("../../../Types/ProviderLogo/Marks/opsgenie");
   },
@@ -144,12 +136,6 @@ export const PROVIDER_LOGO_MARK_LOADERS: Readonly<
   },
   [ProviderLogo.Fluentd]: () => {
     return import("../../../Types/ProviderLogo/Marks/fluentd");
-  },
-  [ProviderLogo.Kubernetes]: () => {
-    return import("../../../Types/ProviderLogo/Marks/kubernetes");
-  },
-  [ProviderLogo.Android]: () => {
-    return import("../../../Types/ProviderLogo/Marks/android");
   },
   [ProviderLogo.NodeJs]: () => {
     return import("../../../Types/ProviderLogo/Marks/nodejs");
@@ -277,27 +263,6 @@ export const PROVIDER_LOGO_MARK_LOADERS: Readonly<
   [ProviderLogo.Prometheus]: () => {
     return import("../../../Types/ProviderLogo/Marks/prometheus");
   },
-  [ProviderLogo.WhatsApp]: () => {
-    return import("../../../Types/ProviderLogo/Marks/whatsapp");
-  },
-  [ProviderLogo.Docker]: () => {
-    return import("../../../Types/ProviderLogo/Marks/docker");
-  },
-  [ProviderLogo.Terraform]: () => {
-    return import("../../../Types/ProviderLogo/Marks/terraform");
-  },
-  [ProviderLogo.Crossplane]: () => {
-    return import("../../../Types/ProviderLogo/Marks/crossplane");
-  },
-  [ProviderLogo.Proxmox]: () => {
-    return import("../../../Types/ProviderLogo/Marks/proxmox");
-  },
-  [ProviderLogo.Ceph]: () => {
-    return import("../../../Types/ProviderLogo/Marks/ceph");
-  },
-  [ProviderLogo.GitHub]: () => {
-    return import("../../../Types/ProviderLogo/Marks/github");
-  },
   [ProviderLogo.GitLab]: () => {
     return import("../../../Types/ProviderLogo/Marks/gitlab");
   },
@@ -318,11 +283,11 @@ const loadingMarks: Map<
   Promise<ProviderLogoMarkShapes | undefined>
 > = new Map();
 
-// A mark's shapes, when they have been loaded already.
+// A mark's shapes, when they have been loaded already or the icon set has them.
 export function getLoadedProviderLogoMark(
   mark: ProviderLogo,
 ): ProviderLogoMarkShapes | undefined {
-  return loadedMarks.get(mark);
+  return getIconBrandMark(mark) || loadedMarks.get(mark);
 }
 
 function isMarkShapes(value: unknown): value is ProviderLogoMarkShapes {
@@ -347,7 +312,8 @@ function isMarkShapes(value: unknown): value is ProviderLogoMarkShapes {
 export function loadProviderLogoMark(
   mark: ProviderLogo,
 ): Promise<ProviderLogoMarkShapes | undefined> {
-  const loaded: ProviderLogoMarkShapes | undefined = loadedMarks.get(mark);
+  const loaded: ProviderLogoMarkShapes | undefined =
+    getLoadedProviderLogoMark(mark);
 
   if (loaded) {
     return Promise.resolve(loaded);
