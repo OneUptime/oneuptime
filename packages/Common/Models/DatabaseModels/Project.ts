@@ -121,7 +121,8 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
    * (securityAutomaticResponseMaxBlocksPerHour, #10746) and Security
    * Events' Trusted Proxies: the list (securityTrustedProxies, #11049),
    * whether the project's own load balancers are trusted
-   * (securityTrustOwnLoadBalancers, #10546), whether its access logs end
+   * (securityTrustOwnLoadBalancers, #10546), whether private addresses are
+   * (securityTrustPrivateAddresses, #11389), whether its access logs end
    * with X-Forwarded-For (securityReadAccessLogForwardedFor, #10548) and
    * the format they are written in (securityAccessLogFormat, #11048).
    */
@@ -3288,6 +3289,60 @@ export default class Project extends TenantModel {
     default: true,
   })
   public securityTrustOwnLoadBalancers?: boolean = undefined;
+
+  /*
+   * Whether Security Events trusts an address that is nobody's on the
+   * internet - private, loopback, link-local - as a proxy without its being
+   * listed (#11389). A proxy that works at the TCP level (HAProxy in mode
+   * tcp, nginx's stream module, a Kubernetes Service with
+   * externalTrafficPolicy: Cluster) passes on the X-Forwarded-For a client
+   * wrote, and at a private address it was trusted, so a client could
+   * choose the address an attack is blamed on. Off, a private address is
+   * trusted only when it is listed under Trusted Proxies or is one of the
+   * project's own load balancers'.
+   *
+   * Off for a new project, the safe start; on for every project from before
+   * the switch, so none of them names its HTTP proxies as attackers
+   * overnight (the migration sets them on, then makes off the default). An
+   * address forwarded through a private address nothing vouches for is
+   * never blocked automatically, either way
+   * (Utils/SecurityEvent/ClientAddressTrust.readUnvouchedForwarding). Set
+   * as the switches beside it are, by a Project Owner, a Project Admin or a
+   * Security Admin.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Trust Private Addresses",
+    description:
+      "Whether Security Events trusts private, loopback and link-local addresses as proxies without your listing them. Off for a new project.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public securityTrustPrivateAddresses?: boolean = undefined;
 
   /*
    * Whether the project's web servers' access logs end with the

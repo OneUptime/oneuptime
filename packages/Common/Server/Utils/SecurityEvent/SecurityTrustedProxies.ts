@@ -4,7 +4,6 @@ import NetworkAddressBlockUtil, {
   NetworkAddressBlock,
 } from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
 import {
-  NO_TRUSTED_PROXIES,
   TrustedProxies,
   toTrustedProxies,
 } from "../../../Utils/SecurityEvent/ClientAddressTrust";
@@ -13,6 +12,7 @@ import {
   NO_TRUSTED_PROXY_SOURCES,
   TrustedEdgeRanges,
   TrustedProxySources,
+  UNREAD_TRUSTED_PROXY_SOURCES,
   trustedProxiesOf,
 } from "../../../Utils/SecurityEvent/TrustedProxySources";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
@@ -46,20 +46,30 @@ import SecurityOwnLoadBalancers, {
  *     project's global external Application Load Balancer reaches the app
  *     from, unless something of the project's that passes a client's
  *     request on as sent connects from them too (#11047,
- *     SecurityOwnLoadBalancers.readGoogleFrontEnds).
+ *     SecurityOwnLoadBalancers.readGoogleFrontEnds);
+ *   - private addresses, unlisted, unless the project turned that off
+ *     (Project.securityTrustPrivateAddresses, #11389): on for every project
+ *     from before the switch, off for a new one.
+ *
+ * Never trusted, whatever lists them: where the project's load balancers
+ * that pass on what a client wrote connect from (#11389,
+ * SecurityOwnLoadBalancers, Utils/SecurityEvent/PassOnLoadBalancers) - a
+ * Google Cloud proxy Network Load Balancer's proxy-only subnet, an AWS
+ * Network Load Balancer's subnets while it does not keep the client's
+ * address, Google's front ends while a TCP or SSL proxy load balancer
+ * connects from them. Read whether or not the project trusts its own load
+ * balancers.
  *
  * With them, whether its access logs end with X-Forwarded-For
  * (Project.securityReadAccessLogForwardedFor, #10548), and the format they
  * are written in, when it gave it (Project.securityAccessLogFormat,
  * #11048), which only the project can say.
  *
- * The private addresses every project trusts need no reading
- * (Utils/SecurityEvent/ClientAddressTrust.isTrustedProxy).
- *
  * Read as OneUptime, once a minute a project - a person's change reaches
  * the scans within a minute - and failure-tolerant toward trusting less: a
- * read that fails is logged, the scan trusts what could be read (the
- * private addresses at least), and the next scan reads again. So an
+ * read that fails is logged, the scan trusts what could be read, and the
+ * next scan reads again; a project that cannot be read at all trusts no
+ * proxy, not even a private one (UNREAD_TRUSTED_PROXY_SOURCES). So an
  * address a proxy forwarded is claimed rather than verified: nothing a
  * sender wrote is blamed because a read failed.
  *
@@ -99,8 +109,9 @@ export default class SecurityTrustedProxies {
     const read: TrustedProxySourcesRead | null =
       await SecurityTrustedProxies.readSources(projectId);
 
+    // A project that cannot be read trusts no proxy, not even a private one (#11389).
     if (!read) {
-      return NO_TRUSTED_PROXIES;
+      return trustedProxiesOf(UNREAD_TRUSTED_PROXY_SOURCES);
     }
 
     const proxies: TrustedProxies = trustedProxiesOf(read.sources);
@@ -130,6 +141,7 @@ export default class SecurityTrustedProxies {
         select: {
           securityTrustedProxies: true,
           securityTrustOwnLoadBalancers: true,
+          securityTrustPrivateAddresses: true,
           securityReadAccessLogForwardedFor: true,
           securityAccessLogFormat: true,
         },
@@ -151,6 +163,13 @@ export default class SecurityTrustedProxies {
     const listed: TrustedProxySources = {
       ...NO_TRUSTED_PROXY_SOURCES,
       listed: toTrustedProxies(project?.securityTrustedProxies).blocks,
+      /*
+       * Private addresses are trusted unlisted unless the project turned
+       * that off (#11389): a project that never said - one from before the
+       * switch, which the migration left on - trusts them as it did. A new
+       * project starts with it off.
+       */
+      trustsPrivateAddresses: project?.securityTrustPrivateAddresses !== false,
       readsAccessLogForwardedFor:
         project?.securityReadAccessLogForwardedFor === true,
       accessLogFormat: readAccessLogFormat(project?.securityAccessLogFormat)
@@ -173,25 +192,25 @@ export default class SecurityTrustedProxies {
 
     const withEdges: TrustedProxySources = { ...listed, edges };
 
-    // On unless the project turned it off: a project that never said is on.
-    if (project?.securityTrustOwnLoadBalancers === false) {
-      return { sources: withEdges, isComplete: true };
-    }
-
     try {
       /*
        * Their own addresses, and Google's front ends when a Google Cloud
        * Application Load Balancer of the project's brings them (#11047):
-       * the same switch turns both off.
+       * the same switch turns both off - on unless the project turned it
+       * off, so a project that never said is on. Where the ones that pass
+       * on what a client wrote connect from is never trusted, whatever the
+       * switch says (#11389): read either way.
        */
       const own: SecurityOwnLoadBalancerBlocks =
         await SecurityOwnLoadBalancers.getTrusted(projectId);
+      const trustsOwn: boolean = project?.securityTrustOwnLoadBalancers !== false;
 
       return {
         sources: {
           ...withEdges,
-          ownLoadBalancers: own.loadBalancers,
-          googleFrontEnds: own.googleFrontEnds,
+          ownLoadBalancers: trustsOwn ? own.loadBalancers : [],
+          googleFrontEnds: trustsOwn ? own.googleFrontEnds : [],
+          untrusted: own.untrusted,
         },
         isComplete: true,
       };

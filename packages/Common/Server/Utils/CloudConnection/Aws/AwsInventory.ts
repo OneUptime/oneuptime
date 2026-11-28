@@ -27,8 +27,14 @@ import {
   ELASTIC_IP,
   addAwsLoadBalancerEdges,
   addAwsNatGatewayAddresses,
+  addAwsPassOnLoadBalancerFacts,
   buildAwsInventoryItem,
 } from "./AwsInventoryCatalog";
+import { addTargetGroupAttributes } from "./AwsTargetGroupAttributes";
+
+// The Region's target groups and subnets, which load balancers' facts are read from.
+const AWS_TARGET_GROUP_TYPE: string = "AWS::ElasticLoadBalancingV2::TargetGroup";
+const AWS_SUBNET_TYPE: string = "AWS::EC2::Subnet";
 
 /*
  * ONE AWS ACCOUNT'S INVENTORY: every resource of AwsInventoryCatalog's
@@ -283,10 +289,33 @@ async function listRegion(data: {
     }
   }
 
+  const targetGroups: Array<AwsListedResource> =
+    listedByType.get(AWS_TARGET_GROUP_TYPE) || [];
+
+  /*
+   * Whether each Network Load Balancer's target groups keep the client's
+   * address (#11389): Cloud Control lists none of their attributes. A read
+   * the budget stops leaves the rest without them, and their load
+   * balancers not known to keep it; the listing itself is whole.
+   */
+  if (!outcome.budgetSpent && targetGroups.length > 0) {
+    await addTargetGroupAttributes({
+      options: {
+        transport: data.options.transport,
+        credentials: data.credentials,
+        region: data.region,
+        now: data.options.now,
+        timeoutInMs: data.options.requestTimeoutInMs,
+        sleep: data.options.sleep,
+        budget: data.budget,
+      },
+      targetGroups,
+    });
+  }
+
   addAwsLoadBalancerEdges({
     items: outcome.items,
-    targetGroups:
-      listedByType.get("AWS::ElasticLoadBalancingV2::TargetGroup") || [],
+    targetGroups,
     listedByItem,
     context,
   });
@@ -296,6 +325,18 @@ async function listRegion(data: {
     items: outcome.items,
     elasticIps: listedByType.get(ELASTIC_IP) || [],
     listedByItem,
+  });
+
+  /*
+   * Whether a Network or Classic Load Balancer passes on what a client
+   * wrote from its own addresses, and its subnets' ranges (#11389).
+   */
+  addAwsPassOnLoadBalancerFacts({
+    items: outcome.items,
+    listedByItem,
+    targetGroups,
+    areTargetGroupsListed: outcome.listedTypes.includes(AWS_TARGET_GROUP_TYPE),
+    subnets: listedByType.get(AWS_SUBNET_TYPE) || [],
   });
 
   return outcome;

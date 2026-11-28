@@ -73,7 +73,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import {
-  ALWAYS_TRUSTED_PROXY_RANGES,
+  PRIVATE_PROXY_RANGES,
   AUTOMATIC_TRUSTED_PROXIES_PATH,
   AutomaticTrustedProxies,
   automaticTrustedProxiesToJSON,
@@ -926,7 +926,7 @@ describe("Trusted Automatically", () => {
 
     expect(always).toHaveTextContent(ALWAYS_TRUSTED_TITLE);
     expect(always).toHaveTextContent(ALWAYS_TRUSTED_DESCRIPTION);
-    for (const range of ALWAYS_TRUSTED_PROXY_RANGES) {
+    for (const range of PRIVATE_PROXY_RANGES) {
       expect(within(always).getByText(range)).toBeInTheDocument();
     }
 

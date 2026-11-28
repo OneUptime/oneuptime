@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
-  ALWAYS_TRUSTED_PROXY_RANGES,
+  PRIVATE_PROXY_RANGES,
   AUTOMATIC_TRUSTED_PROXIES_PATH,
   AutomaticTrustedProxies,
   NO_AUTOMATIC_TRUSTED_PROXIES,
@@ -189,7 +189,7 @@ describe("Google's front ends in the answer", () => {
 
 describe("the ranges every project trusts", () => {
   test("each is a range, and every address at either end of it is trusted with nothing listed", () => {
-    for (const range of ALWAYS_TRUSTED_PROXY_RANGES) {
+    for (const range of PRIVATE_PROXY_RANGES) {
       const block: NetworkAddressBlock | null =
         NetworkAddressBlockUtil.parse(range);
 
@@ -214,7 +214,7 @@ describe("the ranges every project trusts", () => {
     ]) {
       expect(isTrustedProxy(address, NO_TRUSTED_PROXIES)).toBe(true);
       expect(
-        ALWAYS_TRUSTED_PROXY_RANGES.some((range: string): boolean => {
+        PRIVATE_PROXY_RANGES.some((range: string): boolean => {
           return NetworkAddressBlockUtil.contains(
             NetworkAddressBlockUtil.parse(range)!,
             address,
@@ -242,7 +242,7 @@ describe("the ranges every project trusts", () => {
     ]) {
       expect(isTrustedProxy(address, NO_TRUSTED_PROXIES)).toBe(false);
       expect(
-        ALWAYS_TRUSTED_PROXY_RANGES.some((range: string): boolean => {
+        PRIVATE_PROXY_RANGES.some((range: string): boolean => {
           return NetworkAddressBlockUtil.contains(
             NetworkAddressBlockUtil.parse(range)!,
             address,
