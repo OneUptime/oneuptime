@@ -234,6 +234,8 @@ Count and capacity metrics fan out over **datapoint attributes**, which are exac
 
 Units are the receiver's own OTLP units, which OneUptime scales for display: `MHz` for CPU usage and capacity, `%` for utilization and CPU readiness, `MiBy` for host, VM and resource pool memory, `By` for cluster and datacenter memory and all disk space, `ms` for host and VM disk latency, and `us` (microseconds) for vSAN latency. In monitor criteria the identity attributes take a `resource.` prefix (`resource.vcenter.host.name`, `resource.vmware.vcenter.name`), while datapoint attributes stay bare (`disk_state`, `power_state`, `status`).
 
+OneUptime also writes the swap rates it judges each VM and resource pool by, `oneuptime.vmware.vm.memory.swap_out.rate` / `.swap_in.rate` and `oneuptime.vmware.resource_pool.memory.swap_out.rate` / `.swap_in.rate`, from what the receiver sends: see [Swapped memory is not swapping](#swapped-memory-is-not-swapping).
+
 `vcenter.host.memory.capacity` is off by default upstream; the shipped config turns it on, because OneUptime divides by it for host memory utilization. A comment in `otel-collector-config.yaml` lists the other optional metrics (`vcenter.vm.cpu.time`, `vcenter.vm.memory.granted`, `vcenter.host.memory.active`, `vcenter.host.memory.ballooned`, `vcenter.host.memory.granted`, `vcenter.vm.network.broadcast.packet.rate`, `vcenter.vm.network.multicast.packet.rate`): turn any of them on the same way.
 
 ### VM power state
@@ -268,20 +270,22 @@ vCenter reports a host's CPU and memory use only while the host is connected and
 
 `vcenter.vm.memory.swapped` is how much of a VM's memory sits in its host's swap file. ESXi leaves a swapped page there until the VM touches it again, so a VM can keep a few MiB swapped for weeks after the memory pressure that put them there has gone. Memory left from earlier is not a problem by itself: the host swapping memory out now is.
 
-Neither the agent's `vcenter` receiver nor a probe sends a swap rate, so OneUptime works it out from how a VM's swapped memory changes between two reports. A VM's page says which way it moves, under **Swapping Now**. With the default rules:
+Where a probe collects the vCenter, it reads vSphere's own swap rates, `mem.swapoutRate` and `mem.swapinRate`, averaged since the previous collection: they also catch memory swapped out and read back between two reports. The agent's `vcenter` receiver sends no swap rate, so for a vCenter the agent collects, OneUptime works the rate out from how a VM's swapped memory changes between two reports. A VM's page says which way its memory moves, under **Swapping Now**, and where the rate came from: **Measured by vSphere** or **Worked out from the last two reports**. With the default rules:
 
 | A VM's swapped memory | Needs attention says |
 | --- | --- |
-| Grows: the host is swapping it out now | Critical |
-| Shrinks faster than 1 MiB/s: the VM reads swapped memory back | Needs a look |
+| The host is swapping it out now | Critical |
+| The VM reads swapped memory back faster than 1 MiB/s | Needs a look |
 | Stays the same, more than 1 GiB of it | Needs a look, as swapped earlier |
 | Stays the same, 1 GiB or less | Nothing |
 
-A rate needs two reports less than 15 minutes apart, so a VM's first report, or one after a gap, says only how much is swapped. A resource pool needs a look only while its memory is swapped out.
+A rate worked out needs two reports less than 15 minutes apart, so a VM's first report, or one after a gap, says only how much is swapped. A resource pool needs a look only while its memory is swapped out; vSphere has no swap rate of its own for a pool, so its rate is always worked out.
+
+OneUptime writes the rate it judges by as metrics of its own, `oneuptime.vmware.vm.memory.swap_out.rate` and `oneuptime.vmware.resource_pool.memory.swap_out.rate` (and their `swap_in` pairs), whichever collects the vCenter. The **VM Memory Swapping** and **Resource Pool Memory Swapping** [alert templates](/docs/monitor/vmware-monitor#pre-built-alert-templates) read them.
 
 ### Health rules
 
-Every level above is a rule your project can change: open **Products → Infrastructure → VMware**, then **Settings → Health Rules**. The rules apply to every vCenter of the project: **Needs attention**, each part's page, the lists' Status column and bars, and the Topology. The Overview's tiles that average across hosts or VMs keep levels of their own. Leave a threshold empty to turn its rule off. What has no threshold is always shown: a host vCenter cannot reach, a cluster without the memory to lose a host, and the alarms vCenter counts.
+Every level above is a rule your project can change: open **Products → Infrastructure → VMware**, then **Settings → Health Rules**. The rules apply to every vCenter of the project, unless one has [rules of its own](#rules-for-one-vcenter-cluster-host-or-vm): **Needs attention**, each part's page, the lists' Status column and bars, and the Topology. The Overview's tiles that average across hosts or VMs keep levels of their own. Leave a threshold empty to turn its rule off. What has no threshold is always shown: a host vCenter cannot reach, a cluster without the memory to lose a host, and the alarms vCenter counts.
 
 | Card | Rule | Default |
 | --- | --- | --- |
@@ -293,7 +297,15 @@ Every level above is a rule your project can change: open **Products → Infrast
 | **VM Ballooning and CPU Ready** | Ballooned memory, CPU ready | A warning above 0 MiB (any), above 10% |
 | **Resource Pool Swapping** | Swapping out now | A warning above 0 KiB/s: any |
 
-The defaults are the levels the [alert templates](/docs/monitor/vmware-monitor#pre-built-alert-templates) fire at, except swapping: the VM Memory Swapping template fires on any swapped memory. Changing a rule changes what the pages mark, not your monitors, which keep their own criteria.
+The defaults are the levels the [alert templates](/docs/monitor/vmware-monitor#pre-built-alert-templates) fire at: VM Memory Swapping fires while the host swaps a VM's memory out, and VM Swapped Memory High on more than 1 GiB left in the swap file. Changing a rule changes what the pages mark, not your monitors, which keep their own criteria.
+
+**For at least.** Each card can wait before it marks a part: open **More fields** on the card and set **For At Least (Minutes)**. A part is then marked only once every report for that long was past the line, so a host busy for one report is not flagged as one busy all along. 0, the default, judges the latest report; the longest wait is 30 minutes. **Needs attention** says when a rule that waited began to hold.
+
+#### Rules for one vCenter, cluster, host or VM
+
+Under **Overrides**, at the foot of the same page, **Add Override** gives one vCenter, cluster, ESXi host or VM rules of its own: a lab vCenter that should never page, or a cluster of batch hosts meant to run hot. Choose where they apply, then the rules they change; each rule says what it replaces. Rules an override does not hold stay as they are.
+
+Rule by rule, the most specific override wins: a VM's over its host's, a host's over its cluster's, a cluster's over its vCenter's, and a vCenter's over the project's. A cluster's rules also judge its hosts, their VMs and its resource pools, and a host's rules judge its VMs; a datastore follows its vCenter's. Each row of **Overrides** says what it applies to, in which vCenter, and what it changes. Delete one to give the part back to the broader rules.
 
 ### ESXi hosts
 
@@ -316,7 +328,7 @@ The six host alerts (a host not responding, CPU and memory saturation, high disk
 
 Powered-off virtual machines and templates are listed too. vCenter reports CPU counters only for powered-on VMs, so their CPU columns read N/A rather than a misleading zero.
 
-A VM's page says what it is doing (**Running**, **Powered off**, **Template**, or **Disconnected** while vCenter cannot reach its host) and where it runs, its host and cluster one step away. Its **Overview** has **Needs attention** for the VM, its CPU, CPU ready, memory and disk, the incidents and alerts open on it, which of the seven VM alerts are on, and its details, with how much of its memory is swapped and whether the host is moving it now (**Swapping Now**). **Metrics** has its charts.
+A VM's page says what it is doing (**Running**, **Powered off**, **Template**, or **Disconnected** while vCenter cannot reach its host) and where it runs, its host and cluster one step away. Its **Overview** has **Needs attention** for the VM, its CPU, CPU ready, memory and disk, the incidents and alerts open on it, which of the eight VM alerts are on, and its details, with how much of its memory is swapped and whether the host is moving it now (**Swapping Now**). **Metrics** has its charts.
 
 ### Datastores
 

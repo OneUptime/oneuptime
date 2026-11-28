@@ -57,9 +57,7 @@ import VMwareHostOverviewTab from "../../../Components/VMware/Host/VMwareHostOve
 import VMwareHostVirtualMachinesTab from "../../../Components/VMware/Host/VMwareHostVirtualMachinesTab";
 import VMwareHostMetricsTab from "../../../Components/VMware/Host/VMwareHostMetricsTab";
 import VMwareHostLogsTab from "../../../Components/VMware/Host/VMwareHostLogsTab";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * An ESXi host inside its vCenter: as deep as a host's page outside VMware,

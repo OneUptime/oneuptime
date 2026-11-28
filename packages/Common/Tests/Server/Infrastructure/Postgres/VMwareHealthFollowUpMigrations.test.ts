@@ -190,7 +190,10 @@ describe("AddVMwareHealthRuleOverridesAndEvaluationPeriods1809187811469", () => 
         );
       }
       // Indexes only on the new, empty table.
-      if (/^CREATE (UNIQUE )?INDEX/.test(statement)) {
+      if (
+        statement.startsWith("CREATE INDEX") ||
+        statement.startsWith("CREATE UNIQUE INDEX")
+      ) {
         expect(statement).toContain(`ON "VMwareHealthRuleOverride"`);
       }
     }

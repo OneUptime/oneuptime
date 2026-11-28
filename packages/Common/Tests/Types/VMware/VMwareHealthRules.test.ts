@@ -250,9 +250,9 @@ describe("for at least N minutes (#11469)", () => {
       hostEvaluationMinutes: 10,
       vmSwapEvaluationMinutes: 5,
     };
-    expect(getVMwareHealthEvaluationMinutes(rules, "hostCpuWarningPercent")).toBe(
-      10,
-    );
+    expect(
+      getVMwareHealthEvaluationMinutes(rules, "hostCpuWarningPercent"),
+    ).toBe(10);
     expect(
       getVMwareHealthEvaluationMinutes(rules, "hostMemoryWarningPercent"),
     ).toBe(10);
@@ -263,9 +263,9 @@ describe("for at least N minutes (#11469)", () => {
       getVMwareHealthEvaluationMinutes(rules, "datastoreWarningPercent"),
     ).toBe(0);
     // A period has no period of its own.
-    expect(getVMwareHealthEvaluationMinutes(rules, "hostEvaluationMinutes")).toBe(
-      0,
-    );
+    expect(
+      getVMwareHealthEvaluationMinutes(rules, "hostEvaluationMinutes"),
+    ).toBe(0);
   });
 
   test("a period of nothing, below 0 or not a number waits for nothing; past 30 waits 30", () => {

@@ -53,9 +53,7 @@ import {
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
 import { useVMwareHealthRuleBook } from "../Utils/VMwareHealthRulesStore";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * Window for the client-side linear growth fit — same 24 h window as

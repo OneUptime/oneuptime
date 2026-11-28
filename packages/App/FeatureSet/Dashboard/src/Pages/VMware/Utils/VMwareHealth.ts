@@ -1050,10 +1050,7 @@ export function assessVMwareDatastore(data: {
   now: Date;
   rules?: VMwareHealthRulesInput | undefined;
 }): VMwareAssessment {
-  const rules: VMwareHealthRules = getVMwareRulesOf(
-    data.rules,
-    data.datastore,
-  );
+  const rules: VMwareHealthRules = getVMwareRulesOf(data.rules, data.datastore);
   if (!hasFreshVMwareReadings(data.datastore, data.now)) {
     return { severity: null, reasons: [] };
   }

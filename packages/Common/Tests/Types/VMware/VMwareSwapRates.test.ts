@@ -71,7 +71,9 @@ describe("OneUptime's swap rate metrics", () => {
       ),
     ).toContain("mem.swapoutRate");
     expect(
-      getVMwareSwapRateMetricDescription(VMwareSwapRateMetric.ResourcePoolSwapOut),
+      getVMwareSwapRateMetricDescription(
+        VMwareSwapRateMetric.ResourcePoolSwapOut,
+      ),
     ).not.toContain("mem.swapoutRate");
   });
 

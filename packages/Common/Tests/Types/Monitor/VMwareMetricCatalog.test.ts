@@ -122,9 +122,10 @@ describe("VMwareMetricCatalog", () => {
 
     for (const metric of allMetrics) {
       // oneuptime.vmware.<object>.* names its object one segment later.
-      const segment: string = metric.metricName.split(".")[
-        isOneUptimeMetricName(metric.metricName) ? 2 : 1
-      ]!;
+      const segment: string =
+        metric.metricName.split(".")[
+          isOneUptimeMetricName(metric.metricName) ? 2 : 1
+        ]!;
       expect(metric.defaultResourceScope).toBe(scopeBySegment[segment]);
     }
   });

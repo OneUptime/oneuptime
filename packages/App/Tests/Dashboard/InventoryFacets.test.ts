@@ -296,9 +296,11 @@ describe("Cluster, Host and Datacenter facets (#11470)", () => {
       PROJECT_ID,
       "",
     );
-    expect(options.map((option: FilterChipDropdownOption) => {
-      return { value: option.value, label: option.label };
-    })).toEqual([
+    expect(
+      options.map((option: FilterChipDropdownOption) => {
+        return { value: option.value, label: option.label };
+      }),
+    ).toEqual([
       { value: "esx-node-07.acme.lan", label: "esx-node-07.acme.lan" },
       { value: "esx-node-08.acme.lan", label: "esx-node-08.acme.lan" },
     ]);

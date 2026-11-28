@@ -838,9 +838,9 @@ describePostgres(
           }) || metrics[0]!;
         const series: JSONObject = (reference["sum"] ||
           reference["gauge"]) as JSONObject;
-        const time: string = (
-          series["dataPoints"] as Array<JSONObject>
-        )[0]!["timeUnixNano"] as string;
+        const time: string = (series["dataPoints"] as Array<JSONObject>)[0]![
+          "timeUnixNano"
+        ] as string;
         for (const [name, value] of [
           ["vcenter.vm.memory.swap_out.rate", rates.out],
           ["vcenter.vm.memory.swap_in.rate", rates.in],
@@ -850,7 +850,11 @@ describePostgres(
             unit: "By/s",
             gauge: {
               dataPoints: [
-                { startTimeUnixNano: time, timeUnixNano: time, asDouble: value },
+                {
+                  startTimeUnixNano: time,
+                  timeUnixNano: time,
+                  asDouble: value,
+                },
               ],
             },
           });
@@ -948,9 +952,11 @@ describePostgres(
       expect(Number(residual["value"])).toBe(0);
       expect(
         Number(
-          rowFor(rows, VMwareSwapRateMetric.VirtualMachineSwapIn, "DC0_H0_VM0")![
-            "value"
-          ],
+          rowFor(
+            rows,
+            VMwareSwapRateMetric.VirtualMachineSwapIn,
+            "DC0_H0_VM0",
+          )!["value"],
         ),
       ).toBe(0);
     });
@@ -993,9 +999,11 @@ describePostgres(
       expect((written["attributes"] as JSONObject)["source"]).toBe("vsphere");
       expect(
         Number(
-          rowFor(rows, VMwareSwapRateMetric.VirtualMachineSwapIn, "DC0_H0_VM1")![
-            "value"
-          ],
+          rowFor(
+            rows,
+            VMwareSwapRateMetric.VirtualMachineSwapIn,
+            "DC0_H0_VM1",
+          )!["value"],
         ),
       ).toBe(2048);
 
@@ -1010,7 +1018,8 @@ describePostgres(
       });
       expect(verdict.severity).toBe(ResourceAttentionSeverity.Critical);
       expect(
-        assessVMwareVirtualMachine({ vm: vms.get("DC0_H0_VM0")!, now }).severity,
+        assessVMwareVirtualMachine({ vm: vms.get("DC0_H0_VM0")!, now })
+          .severity,
       ).toBeNull();
     });
 
@@ -1038,7 +1047,8 @@ describePostgres(
         VMwareSwapRateSource.Derived,
       );
       expect(
-        (await virtualMachines()).get("DC0_H0_VM1")!.memorySwapOutBytesPerSecond,
+        (await virtualMachines()).get("DC0_H0_VM1")!
+          .memorySwapOutBytesPerSecond,
       ).toBeCloseTo((8 * 1024 * 1024) / 120, 3);
     });
 

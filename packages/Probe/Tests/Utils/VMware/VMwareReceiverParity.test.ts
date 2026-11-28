@@ -543,7 +543,11 @@ describe.each([
           continue;
         }
 
-        isHost ? hosts++ : vms++;
+        if (isHost) {
+          hosts++;
+        } else {
+          vms++;
+        }
         expect({ identity, added }).toEqual({
           identity,
           added: [
@@ -581,7 +585,9 @@ describe.each([
       expect(vms).toBeGreaterThan(0);
 
       // The agent's collector sends none of them.
-      for (const resource of agentCollection(data.agentFixture) as Array<JSONObject>) {
+      for (const resource of agentCollection(
+        data.agentFixture,
+      ) as Array<JSONObject>) {
         for (const name of shapesOf(resource).keys()) {
           expect(ONEUPTIME_VCENTER_METRICS[name]).toBeUndefined();
         }

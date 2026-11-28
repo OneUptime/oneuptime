@@ -285,7 +285,10 @@ describe("making an override", () => {
       vmwareVCenterId: VCENTER_ID,
       scope: VMwareHealthRuleScope.Host,
       resourceExternalId: "host/DC-NORTH/esx-07.acme.lan",
-      rules: { hostCpuWarningPercent: 95, vmSwapInWarningKibPerSecond: undefined },
+      rules: {
+        hostCpuWarningPercent: 95,
+        vmSwapInWarningKibPerSecond: undefined,
+      },
     });
     await run;
     expect(model.rules).toEqual({ hostCpuWarningPercent: 95 });
@@ -443,13 +446,13 @@ describe("what is refused, in words the person can act on", () => {
 
 describe("changing an override's rules", () => {
   function onBeforeUpdate(data: Record<string, unknown>): Promise<unknown> {
-    return (service as unknown as { onBeforeUpdate: UpdateHook }).onBeforeUpdate(
-      {
-        query: { _id: ObjectID.generate().toString() },
-        data,
-        props: CALLER,
-      } as unknown as UpdateBy<VMwareHealthRuleOverride>,
-    );
+    return (
+      service as unknown as { onBeforeUpdate: UpdateHook }
+    ).onBeforeUpdate({
+      query: { _id: ObjectID.generate().toString() },
+      data,
+      props: CALLER,
+    } as unknown as UpdateBy<VMwareHealthRuleOverride>);
   }
 
   function held(scope: VMwareHealthRuleScope): void {
@@ -470,7 +473,10 @@ describe("changing an override's rules", () => {
   test("checked against the scope of the rows it writes, and kept clean", async () => {
     held(VMwareHealthRuleScope.Cluster);
     const data: Record<string, unknown> = {
-      rules: { hostCpuWarningPercent: 99, vmBalloonedWarningMebibytes: undefined },
+      rules: {
+        hostCpuWarningPercent: 99,
+        vmBalloonedWarningMebibytes: undefined,
+      },
     };
     await onBeforeUpdate(data);
     expect(data["rules"]).toEqual({ hostCpuWarningPercent: 99 });

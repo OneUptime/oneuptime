@@ -579,8 +579,12 @@ describe("VMware metric descriptions: thresholds match the code", () => {
   });
 
   test("the overview and a datastore's page read the project's levels; the chart's text names the alert templates'", () => {
+    // The vCenter's own levels, its overrides applied (#11469).
     expect(squash(OVERVIEW)).toContain(
-      "warn: getVMwareThresholdLine(rules.datastoreWarningPercent), danger: getVMwareThresholdLine(rules.datastoreCriticalPercent),",
+      "warn: getVMwareThresholdLine(vcenterRules.datastoreWarningPercent), danger: getVMwareThresholdLine( vcenterRules.datastoreCriticalPercent, ),",
+    );
+    expect(squash(OVERVIEW)).toContain(
+      "const vcenterRules: VMwareHealthRules = resolveVMwareHealthRules(",
     );
     // A datastore's Used tile.
     expect(squash(DATASTORE_OVERVIEW)).toContain(

@@ -1,4 +1,5 @@
 import { VMwareResourceKind } from "../Monitor/MonitorStepVMwareMonitor";
+import { translationKey } from "../Translator";
 import {
   DEFAULT_VMWARE_HEALTH_RULES,
   VMWARE_HEALTH_PERIOD_RULE_KEYS,
@@ -221,7 +222,10 @@ export function doesVMwareHealthRuleOverrideCover(
   override: VMwareHealthRuleOverrideEntry,
   part: VMwareHealthRulePart,
 ): boolean {
-  if (!override.vmwareVCenterId || override.vmwareVCenterId !== idOf(part.vmwareVCenterId)) {
+  if (
+    !override.vmwareVCenterId ||
+    override.vmwareVCenterId !== idOf(part.vmwareVCenterId)
+  ) {
     return false;
   }
 
@@ -432,8 +436,27 @@ export function cleanVMwareHealthRuleOverrideRules(
 }
 
 /*
- * Why an override's rules cannot be kept, in words the person can act on,
- * or null: a rule its scope does not judge, a value no rule can be.
+ * Why an override's rules are refused, in words the person can act on: the
+ * Health Rules page says them in the reader's language, and the API as
+ * they are.
+ */
+export const VMWARE_HEALTH_RULE_OVERRIDE_RULES_SHAPE_ERROR: string =
+  translationKey("An override's rules are a list of rules and their values.");
+export const VMWARE_HEALTH_RULE_OVERRIDE_RULE_SCOPE_ERROR: string =
+  translationKey(
+    "That rule judges nothing an override of this kind covers. Set it on a vCenter, a cluster or a host that holds what it judges.",
+  );
+export const VMWARE_HEALTH_RULE_OVERRIDE_WAIT_ERROR: string = translationKey(
+  "A wait is a whole number of minutes from 0 to 30.",
+);
+export const VMWARE_HEALTH_RULE_OVERRIDE_THRESHOLD_ERROR: string =
+  translationKey(
+    "A threshold is a whole number from 0 (a percent up to 100), or Off to turn its rule off.",
+  );
+
+/*
+ * Why an override's rules cannot be kept, or null: a rule its scope does
+ * not judge, a value no rule can be.
  */
 export function getVMwareHealthRuleOverrideRulesRefusal(
   scope: VMwareHealthRuleScope,
@@ -443,7 +466,7 @@ export function getVMwareHealthRuleOverrideRulesRefusal(
     return null;
   }
   if (typeof rules !== "object" || Array.isArray(rules)) {
-    return "An override's rules are a list of rules and their values.";
+    return VMWARE_HEALTH_RULE_OVERRIDE_RULES_SHAPE_ERROR;
   }
 
   const allowed: ReadonlyArray<VMwareHealthRuleKey> =
@@ -457,11 +480,11 @@ export function getVMwareHealthRuleOverrideRulesRefusal(
       return `"${key}" is not a VMware health rule.`;
     }
     if (!allowed.includes(key as VMwareHealthRuleKey)) {
-      return "That rule judges nothing an override of this kind covers. Set it on a vCenter, a cluster or a host that holds what it judges.";
+      return VMWARE_HEALTH_RULE_OVERRIDE_RULE_SCOPE_ERROR;
     }
     if (value === null) {
       if (isVMwareHealthPeriodRuleKey(key as VMwareHealthRuleKey)) {
-        return "A wait is a whole number of minutes from 0 to 30.";
+        return VMWARE_HEALTH_RULE_OVERRIDE_WAIT_ERROR;
       }
       continue;
     }
@@ -471,8 +494,8 @@ export function getVMwareHealthRuleOverrideRulesRefusal(
       !isVMwareHealthThreshold(key as VMwareHealthRuleKey, number)
     ) {
       return isVMwareHealthPeriodRuleKey(key as VMwareHealthRuleKey)
-        ? "A wait is a whole number of minutes from 0 to 30."
-        : "A threshold is a whole number from 0 (a percent up to 100), or Off to turn its rule off.";
+        ? VMWARE_HEALTH_RULE_OVERRIDE_WAIT_ERROR
+        : VMWARE_HEALTH_RULE_OVERRIDE_THRESHOLD_ERROR;
     }
   }
 

@@ -107,7 +107,9 @@ export const VMWARE_SWAP_RATE_SOURCE_VALUES: Readonly<
   [VMwareSwapRateSource.Derived]: "derived",
 };
 
-export function isVMwareSwapRateMetricName(name: string | null | undefined): boolean {
+export function isVMwareSwapRateMetricName(
+  name: string | null | undefined,
+): boolean {
   return (
     typeof name === "string" &&
     name.trim().toLowerCase().startsWith(VMWARE_SWAP_RATE_METRIC_NAME_PREFIX)

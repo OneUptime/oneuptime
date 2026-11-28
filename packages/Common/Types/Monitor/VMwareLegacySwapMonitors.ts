@@ -94,7 +94,9 @@ function legacyQueryOf(metricName: unknown): VMwareLegacySwapQuery | null {
   );
 }
 
-function criteriaInstancesOf(step: MonitorStep): Array<MonitorCriteriaInstance> {
+function criteriaInstancesOf(
+  step: MonitorStep,
+): Array<MonitorCriteriaInstance> {
   return step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || [];
 }
 

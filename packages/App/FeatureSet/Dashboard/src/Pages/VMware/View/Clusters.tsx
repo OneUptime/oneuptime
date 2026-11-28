@@ -32,9 +32,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 const VMwareVCenterClusters: FunctionComponent<
   PageComponentProps

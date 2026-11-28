@@ -516,7 +516,7 @@ describe("a virtual machine's page", () => {
     expect(row).toHaveTextContent(/Host swapping memory out at 2\.0\sMiB\/s/);
   });
 
-  test("the VM alerts: all seven, the ones that mean trouble first, and one step to turn them on", async () => {
+  test("the VM alerts: all eight, the ones that mean trouble first, and one step to turn them on", async () => {
     mockRowsByKind["VirtualMachine"] = [vm("web-01")];
     await openVm("web-01");
 
@@ -524,16 +524,18 @@ describe("a virtual machine's page", () => {
     const items: Array<HTMLElement> = within(card).getAllByTestId(
       "vmware-vm-alerts-item",
     );
-    expect(items).toHaveLength(7);
+    expect(items).toHaveLength(8);
     expect(items[0]).toHaveTextContent("VM Memory Swapping");
     const turnOn: HTMLElement = within(card).getByTestId(
       "vmware-vm-alerts-turn-on",
     );
-    expect(turnOn).toHaveTextContent("Turn on 7 alerts");
+    expect(turnOn).toHaveTextContent("Turn on 8 alerts");
     expect(selectionOf(turnOn)).toEqual([
       "VMware:vmware-vm-memory-swapping",
       "VMware:vmware-vm-memory-ballooning",
       "VMware:vmware-vm-cpu-ready-contention",
+      // Memory left in the swap file past 1 GiB (#11468).
+      "VMware:vmware-vm-swapped-memory-high",
       "VMware:vmware-vm-cpu-saturation",
       "VMware:vmware-vm-memory-saturation",
       "VMware:vmware-vm-disk-latency-high",
@@ -607,6 +609,45 @@ describe("a virtual machine's page", () => {
         text: expect.stringContaining("Not responding"),
       },
     ]);
+  });
+
+  test.each([
+    ["vSphere", "Measured by vSphere"],
+    ["Derived", "Worked out from the last two reports"],
+  ])(
+    "Swapping Now says where its rate came from: %s (#11468)",
+    async (source: string, words: string) => {
+      mockRowsByKind["VirtualMachine"] = [
+        vm("web-07", {
+          memorySwappedBytes: 64 * 1024 * 1024,
+          memorySwapOutBytesPerSecond: 524288,
+          memorySwapInBytesPerSecond: 0,
+          memorySwapRateSource: source,
+        }),
+      ];
+      await openVm("web-07");
+
+      const swapping: HTMLElement = await screen.findByTestId(
+        "vmware-vm-details-swapping",
+      );
+      expect(
+        within(swapping).getByTestId("vmware-vm-swap-rate-source"),
+      ).toHaveTextContent(words);
+    },
+  );
+
+  test("Swapping Now names no source for a row from before #11468", async () => {
+    mockRowsByKind["VirtualMachine"] = [
+      vm("web-08", {
+        memorySwappedBytes: 64 * 1024 * 1024,
+        memorySwapOutBytesPerSecond: 0,
+        memorySwapInBytesPerSecond: 0,
+      }),
+    ];
+    await openVm("web-08");
+
+    await screen.findByTestId("vmware-vm-details-swapping");
+    expect(screen.queryByTestId("vmware-vm-swap-rate-source")).toBeNull();
   });
 
   test("a VM in a pool someone made names it, in its hero and its details", async () => {
@@ -1018,6 +1059,7 @@ describe("a cluster's page", () => {
         return (
           request.query["kind"] === "VirtualMachine" &&
           request.query["memorySwappedBytes"] === undefined &&
+          request.query["memorySwapOutBytesPerSecond"] === undefined &&
           request.query["memorySwapInBytesPerSecond"] === undefined &&
           request.query["memoryBalloonedBytes"] === undefined &&
           request.query["cpuReadinessPercent"] === undefined

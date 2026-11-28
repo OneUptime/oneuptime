@@ -44,9 +44,7 @@ import {
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
 import { useVMwareHealthRuleBook } from "../Utils/VMwareHealthRulesStore";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 const MIB: number = 1024 * 1024;
 const KIB: number = 1024;

@@ -10,6 +10,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import {
   VMWARE_LEGACY_SWAP_QUERIES,
   VMwareLegacySwapMatch,
+  VMwareLegacySwapQuery,
   getVMwareLegacySwapMatches,
   hasVMwareLegacySwapMonitorSteps,
   updateVMwareLegacySwapMonitorSteps,
@@ -77,7 +78,11 @@ function firstStep(steps: MonitorSteps): MonitorStep {
 describe("the old versions", () => {
   test("read the swapped amount above 0, as #11419 shipped them", () => {
     for (const [id, metricName, alias] of [
-      ["vmware-vm-memory-swapping", "vcenter.vm.memory.swapped", "vm_memory_swapped"],
+      [
+        "vmware-vm-memory-swapping",
+        "vcenter.vm.memory.swapped",
+        "vm_memory_swapped",
+      ],
       [
         "vmware-resource-pool-memory-swapped",
         "vcenter.resource_pool.memory.swapped",
@@ -97,8 +102,12 @@ describe("the old versions", () => {
 
   test("are listed once each, with what the new version reads instead", () => {
     expect(
-      VMWARE_LEGACY_SWAP_QUERIES.map((query) => {
-        return [query.templateId, query.swappedMetricName, query.rateMetricName];
+      VMWARE_LEGACY_SWAP_QUERIES.map((query: VMwareLegacySwapQuery) => {
+        return [
+          query.templateId,
+          query.swappedMetricName,
+          query.rateMetricName,
+        ];
       }),
     ).toEqual([
       [
@@ -159,9 +168,11 @@ describe("which monitors fire on any swapped memory", () => {
     const matches: Array<VMwareLegacySwapMatch> = getVMwareLegacySwapMatches(
       stepsOf([step]),
     );
-    expect(matches.map((match: VMwareLegacySwapMatch) => {
-      return match.alias;
-    })).toEqual(["swap"]);
+    expect(
+      matches.map((match: VMwareLegacySwapMatch) => {
+        return match.alias;
+      }),
+    ).toEqual(["swap"]);
   });
 
   test("not one whose owner chose an amount: above 512 MiB is a choice, not the bug", () => {
@@ -232,9 +243,7 @@ describe("the update", () => {
         instancesOf(shipped)[0]!.data!.description,
       );
       // And no longer one to update.
-      expect(
-        hasVMwareLegacySwapMonitorSteps(stepsOf([updated])),
-      ).toBe(false);
+      expect(hasVMwareLegacySwapMonitorSteps(stepsOf([updated]))).toBe(false);
     }
   });
 
@@ -252,9 +261,11 @@ describe("the update", () => {
           changeMonitorStatus: instance.data!.changeMonitorStatus,
           createIncidents: instance.data!.createIncidents,
           createAlerts: instance.data!.createAlerts,
-          values: (instance.data!.filters || []).map((filter: CriteriaFilter) => {
-            return [filter.filterType, filter.value];
-          }),
+          values: (instance.data!.filters || []).map(
+            (filter: CriteriaFilter) => {
+              return [filter.filterType, filter.value];
+            },
+          ),
         };
       }),
     );
@@ -329,7 +340,9 @@ describe("the update", () => {
     );
 
     const owned: MonitorStep = legacyStep("vmware-vm-memory-swapping");
-    instancesOf(owned)[1]!.data!.filters[0]!.metricMonitorOptions!.onNoDataPolicy =
+    instancesOf(
+      owned,
+    )[1]!.data!.filters[0]!.metricMonitorOptions!.onNoDataPolicy =
       NoDataPolicy.Ignore;
     expect(
       instancesOf(
@@ -348,9 +361,9 @@ describe("the update", () => {
   });
 
   test("leaves every other step, and a monitor with nothing to update, as it was", () => {
-    const cpu: MonitorStep = template("vmware-host-cpu-saturation").getMonitorStep(
-      ARGS,
-    );
+    const cpu: MonitorStep = template(
+      "vmware-host-cpu-saturation",
+    ).getMonitorStep(ARGS);
     const steps: MonitorSteps = stepsOf([
       cpu,
       legacyStep("vmware-vm-memory-swapping"),
@@ -376,9 +389,7 @@ describe("the Recommendations count an old monitor as the template", () => {
       const equivalents: Array<MonitorStep> =
         template(id).getEquivalentMonitorSteps!(ARGS);
       expect(equivalents).toHaveLength(1);
-      expect(
-        hasVMwareLegacySwapMonitorSteps(stepsOf(equivalents)),
-      ).toBe(true);
+      expect(hasVMwareLegacySwapMonitorSteps(stepsOf(equivalents))).toBe(true);
     }
     // VM Swapped Memory High is new: nothing was made from it before.
     expect(

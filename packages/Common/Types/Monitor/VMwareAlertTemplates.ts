@@ -820,30 +820,30 @@ const legacyVmMemorySwappingTemplate: VMwareAlertTemplate =
 
 const vmMemorySwappingTemplate: VMwareAlertTemplate = {
   ...buildThresholdTemplate({
-  id: "vmware-vm-memory-swapping",
-  name: "VM Memory Swapping",
-  summary: "The host swaps a VM's memory out to disk for 5 minutes.",
-  description:
-    "Alert when the ESXi host keeps swapping a virtual machine's memory out to disk for 5 minutes (oneuptime.vmware.vm.memory.swap_out.rate > 0, one incident per VM). Memory ESXi left in the swap file from earlier pressure is not swapping and does not fire it. The rate is vSphere's own mem.swapoutRate where a probe collects the vCenter; for a vCenter the VMware Agent collects it is worked out from the growth of swapped memory between two reports, which can miss memory swapped out and read back in between. Host-level swapping is the last resort after ballooning and compression: the guest is paying disk latency for RAM and does not know it.",
-  category: "Virtual Machine",
-  severity: "Critical",
-  metricName: VMwareSwapRateMetric.VirtualMachineSwapOut,
-  metricAlias: legacyVmMemorySwappingQuery.rateAlias,
-  // Max - any report in the minute of the host swapping memory out trips it.
-  aggregationType: MetricsAggregationType.Max,
-  rollingTime: RollingTime.Past5Minutes,
-  groupByAttributeKey: VMwareGroupByKey.VirtualMachine,
-  fireFilterType: FilterType.GreaterThan,
-  fireValue: 0,
-  recoverFilterType: FilterType.EqualTo,
-  recoverWhenAbsent: true,
-  incidentTitle: (args: VMwareAlertTemplateArgs): string => {
-    return `[VMware] CRITICAL: VM Memory Swapping - ${args.monitorName}`;
-  },
-  incidentDescription:
-    "The ESXi host has been swapping a virtual machine's memory out to disk for the whole evaluation window. Host swapping only happens once ballooning and memory compression are exhausted — the host is severely overcommitted, and this VM's memory accesses are now hitting disk latency without the guest OS knowing. Performance inside the guest collapses. See the affected resource on this alert for the VM name, then relieve the host immediately: migrate VMs off it with vMotion, power off non-essential VMs, or add memory capacity. Consider a memory reservation for this VM if it is latency-sensitive.",
-  criteriaName: legacyVmMemorySwappingQuery.criteriaName,
-  criteriaDescription: legacyVmMemorySwappingQuery.criteriaDescription,
+    id: "vmware-vm-memory-swapping",
+    name: "VM Memory Swapping",
+    summary: "The host swaps a VM's memory out to disk for 5 minutes.",
+    description:
+      "Alert when the ESXi host keeps swapping a virtual machine's memory out to disk for 5 minutes (oneuptime.vmware.vm.memory.swap_out.rate > 0, one incident per VM). Memory ESXi left in the swap file from earlier pressure is not swapping and does not fire it. The rate is vSphere's own mem.swapoutRate where a probe collects the vCenter; for a vCenter the VMware Agent collects it is worked out from the growth of swapped memory between two reports, which can miss memory swapped out and read back in between. Host-level swapping is the last resort after ballooning and compression: the guest is paying disk latency for RAM and does not know it.",
+    category: "Virtual Machine",
+    severity: "Critical",
+    metricName: VMwareSwapRateMetric.VirtualMachineSwapOut,
+    metricAlias: legacyVmMemorySwappingQuery.rateAlias,
+    // Max - any report in the minute of the host swapping memory out trips it.
+    aggregationType: MetricsAggregationType.Max,
+    rollingTime: RollingTime.Past5Minutes,
+    groupByAttributeKey: VMwareGroupByKey.VirtualMachine,
+    fireFilterType: FilterType.GreaterThan,
+    fireValue: 0,
+    recoverFilterType: FilterType.EqualTo,
+    recoverWhenAbsent: true,
+    incidentTitle: (args: VMwareAlertTemplateArgs): string => {
+      return `[VMware] CRITICAL: VM Memory Swapping - ${args.monitorName}`;
+    },
+    incidentDescription:
+      "The ESXi host has been swapping a virtual machine's memory out to disk for the whole evaluation window. Host swapping only happens once ballooning and memory compression are exhausted — the host is severely overcommitted, and this VM's memory accesses are now hitting disk latency without the guest OS knowing. Performance inside the guest collapses. See the affected resource on this alert for the VM name, then relieve the host immediately: migrate VMs off it with vMotion, power off non-essential VMs, or add memory capacity. Consider a memory reservation for this VM if it is latency-sensitive.",
+    criteriaName: legacyVmMemorySwappingQuery.criteriaName,
+    criteriaDescription: legacyVmMemorySwappingQuery.criteriaDescription,
   }),
   getEquivalentMonitorSteps: (
     args: VMwareAlertTemplateArgs,
@@ -857,8 +857,8 @@ const vmMemorySwappingTemplate: VMwareAlertTemplate = {
  * swapping now, but a guest that reads that much back stalls while it does.
  * The health rules' Swapped Earlier warning is at the same 1 GiB.
  */
-const vmSwappedMemoryHighTemplate: VMwareAlertTemplate =
-  buildThresholdTemplate({
+const vmSwappedMemoryHighTemplate: VMwareAlertTemplate = buildThresholdTemplate(
+  {
     id: "vmware-vm-swapped-memory-high",
     name: "VM Swapped Memory High",
     summary:
@@ -885,7 +885,8 @@ const vmSwappedMemoryHighTemplate: VMwareAlertTemplate =
     criteriaName: "VM Swapped Memory High - Swapped > 1 GiB",
     criteriaDescription:
       "Triggers when more than 1 GiB of a virtual machine's memory sits in the host's swap file in every minute of the monitoring window.",
-  });
+  },
+);
 
 const vmDiskLatencyHighTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vm-disk-latency-high",

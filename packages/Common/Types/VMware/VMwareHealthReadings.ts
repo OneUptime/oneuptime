@@ -189,8 +189,7 @@ export function hasVMwareReadingHeldFor(data: {
     return { isHeld: false, since: null };
   }
 
-  const newest: VMwareHealthReading =
-    data.readings[data.readings.length - 1]!;
+  const newest: VMwareHealthReading = data.readings[data.readings.length - 1]!;
   const heldSeconds: number = newest.t - since.getTime() / 1000;
 
   return {

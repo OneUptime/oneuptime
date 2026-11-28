@@ -15,6 +15,7 @@ import {
   ResourcePartStatus,
 } from "../../ResourcePart/ResourcePartTypes";
 import {
+  VMwareHealthRulesInput,
   findVMwareDatacenter,
   getVMwareClusterStatus,
   getVMwareDatastoreStatus,
@@ -33,12 +34,7 @@ import {
   formatBytes,
   formatMhz,
 } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
-import {
-  VMwareHealthRulesInput,
-} from "../../../Pages/VMware/Utils/VMwareHealth";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * The top of a vCenter part's page - an ESXi host, a virtual machine, a

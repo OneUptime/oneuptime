@@ -259,10 +259,11 @@ export interface InventoryFacetsContext {
   loadPlacementOptions?: InventoryPlacementOptionsLoader | undefined;
 }
 
-const NO_PLACEMENT_OPTIONS: InventoryPlacementOptionsLoader =
-  async (): Promise<Array<InventoryPlacementChoice>> => {
-    return [];
-  };
+const NO_PLACEMENT_OPTIONS: InventoryPlacementOptionsLoader = async (): Promise<
+  Array<InventoryPlacementChoice>
+> => {
+  return [];
+};
 
 export function toInventoryPlacementFacetOption(
   choice: InventoryPlacementChoice,

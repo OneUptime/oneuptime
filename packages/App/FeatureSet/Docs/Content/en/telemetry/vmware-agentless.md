@@ -29,8 +29,9 @@ Every few minutes the probe logs in to vCenter with the account you saved, reads
 | What it needs to reach | vCenter on TCP 443, from the probe | vCenter on TCP 443, from the agent |
 | Largest vCenter | About 48 MiB of metrics per collection | No limit |
 | ESXi syslog and the AI agent | Not included | Included |
+| Whether a VM is swapping now | vSphere's own swap rates (`mem.swapoutRate`, `mem.swapinRate`) | Worked out from how its swapped memory changes between two reports |
 
-Both send the same data. You can switch a vCenter from one to the other at any time on its **Settings** page.
+Both send the same data, and a probe adds vSphere's own swap rates, which the agent's collector cannot read: see [Swapped memory is not swapping](/docs/telemetry/vmware#swapped-memory-is-not-swapping). You can switch a vCenter from one to the other at any time on its **Settings** page.
 
 ## Before you begin
 

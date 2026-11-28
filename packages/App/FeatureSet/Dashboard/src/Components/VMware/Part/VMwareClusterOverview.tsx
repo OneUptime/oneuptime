@@ -21,6 +21,7 @@ import VMwareHostsCard from "../VMwareHostsCard";
 import { useVMwareHealthRuleBook } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
 import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import {
+  getVMwareRulesOf,
   VMWARE_CLUSTER_HEADROOM_GAP_WORDS,
   VMwareClusterHeadroom,
   getVMwareThresholdLine,
@@ -47,12 +48,7 @@ import {
   formatPercent,
 } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
 import { VMwarePartRoutes } from "./VMwarePartRoutes";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
-import {
-  getVMwareRulesOf,
-} from "../../../Pages/VMware/Utils/VMwareHealth";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * A cluster's Overview: what in it needs attention (the cluster, its hosts

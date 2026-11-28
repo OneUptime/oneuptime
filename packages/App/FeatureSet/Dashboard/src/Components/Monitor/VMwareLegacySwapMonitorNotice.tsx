@@ -171,8 +171,7 @@ const VMwareLegacySwapMonitorNotice: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const showButton: boolean =
-    gate.isAllowed || Boolean(gate.disabledReason);
+  const showButton: boolean = gate.isAllowed || Boolean(gate.disabledReason);
 
   return (
     <>

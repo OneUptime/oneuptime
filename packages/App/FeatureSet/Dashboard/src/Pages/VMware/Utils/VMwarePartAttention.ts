@@ -2,8 +2,8 @@ import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
-import { VMwareHealthRulesInput } from "./VMwareHealth";
 import {
+  VMwareHealthRulesInput,
   VMwareListRouteFor,
   VMwareRouteFor,
   getVMwareAttentionItems,

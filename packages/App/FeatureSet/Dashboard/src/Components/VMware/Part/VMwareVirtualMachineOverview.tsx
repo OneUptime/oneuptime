@@ -20,6 +20,7 @@ import ResourcePartDetailsCard, {
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
+  getVMwareRulesOf,
   VMWARE_HOST_SATURATION_PERCENT,
   VMwareSwapActivity,
   formatVMwareReasonRate,
@@ -46,12 +47,7 @@ import {
   VMwareHealthRules,
   isPastVMwareHealthThreshold,
 } from "Common/Types/VMware/VMwareHealthRules";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
-import {
-  getVMwareRulesOf,
-} from "../../../Pages/VMware/Utils/VMwareHealth";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * A virtual machine's Overview: whether it needs attention, how busy it is

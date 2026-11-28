@@ -110,6 +110,11 @@ const ERROR_VALUE: string = translationKey(
   "Enter a whole number for every rule, or turn it off.",
 );
 const SAVED: string = translationKey("Override saved");
+
+// How long typing pauses before the parts that match are asked for.
+export const PART_SEARCH_PAUSE_MS: number = 250;
+// The parts a search lists: typing narrows them, never a longer list.
+export const PART_CHOICES_LIMIT: number = 50;
 const SAVE_CHANGES: string = translationKey("Save Changes");
 
 // What a new override is for, when it is made from a part's own page.
@@ -148,7 +153,9 @@ interface PartChoice {
 
 let nextRowId: number = 1;
 
-function toRows(rules: VMwareHealthRuleOverrideRules | undefined): Array<RuleRow> {
+function toRows(
+  rules: VMwareHealthRuleOverrideRules | undefined,
+): Array<RuleRow> {
   const rows: Array<RuleRow> = [];
   for (const [key, value] of Object.entries(rules || {})) {
     if (value === undefined) {
@@ -166,7 +173,11 @@ function toRows(rules: VMwareHealthRuleOverrideRules | undefined): Array<RuleRow
 
 // The rows as the override's rules, or why they are not yet.
 export function getVMwareHealthRuleOverrideRulesFromRows(
-  rows: Array<{ key: VMwareHealthRuleKey | null; value: string; isOff: boolean }>,
+  rows: Array<{
+    key: VMwareHealthRuleKey | null;
+    value: string;
+    isOff: boolean;
+  }>,
 ): { rules: VMwareHealthRuleOverrideRules; error: string | null } {
   const rules: VMwareHealthRuleOverrideRules = {};
   if (rows.length === 0) {
@@ -306,9 +317,13 @@ const VMwareHealthRuleOverrideModal: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  // The vCenter's clusters, hosts or VMs that match what is typed.
+  /*
+   * The vCenter's clusters, hosts or VMs that match what is typed: asked
+   * once typing pauses, so a fast typist sends one read, not one a key.
+   */
   useEffect(() => {
-    const kind: VMwareResourceKind | null = VMWARE_HEALTH_RULE_SCOPE_KIND[scope];
+    const kind: VMwareResourceKind | null =
+      VMWARE_HEALTH_RULE_SCOPE_KIND[scope];
     if (isWhereFixed || !vcenterId || !kind) {
       setParts([]);
       return;
@@ -325,52 +340,59 @@ const VMwareHealthRuleOverrideModal: FunctionComponent<ComponentProps> = (
     if (kind === VMwareResourceKind.VirtualMachine) {
       query["isTemplate"] = false;
     }
-    ModelAPI.getList<VMwareResource>({
-      modelType: VMwareResource,
-      query: query,
-      select: {
-        externalId: true,
-        name: true,
-        datacenterName: true,
-        clusterName: true,
-        hostName: true,
-      },
-      limit: 50,
-      skip: 0,
-      sort: { name: SortOrder.Ascending },
-    })
-      .then((result: ListResult<VMwareResource>): void => {
-        if (cancelled) {
-          return;
-        }
-        setParts(
-          result.data
-            .filter((row: VMwareResource): boolean => {
-              return Boolean(row.externalId);
-            })
-            .map((row: VMwareResource): PartChoice => {
-              return {
-                externalId: row.externalId!,
-                name: row.name || row.externalId!,
-                datacenterName: row.datacenterName || null,
-                clusterName: row.clusterName || null,
-                hostName: row.hostName || null,
-              };
-            }),
-        );
+    const readParts: () => void = (): void => {
+      ModelAPI.getList<VMwareResource>({
+        modelType: VMwareResource,
+        query: query,
+        select: {
+          externalId: true,
+          name: true,
+          datacenterName: true,
+          clusterName: true,
+          hostName: true,
+        },
+        limit: PART_CHOICES_LIMIT,
+        skip: 0,
+        sort: { name: SortOrder.Ascending },
       })
-      .catch((err: unknown): void => {
-        if (!cancelled) {
-          setError(API.getFriendlyMessage(err));
-        }
-      })
-      .finally((): void => {
-        if (!cancelled) {
-          setIsLoadingParts(false);
-        }
-      });
+        .then((result: ListResult<VMwareResource>): void => {
+          if (cancelled) {
+            return;
+          }
+          setParts(
+            result.data
+              .filter((row: VMwareResource): boolean => {
+                return Boolean(row.externalId);
+              })
+              .map((row: VMwareResource): PartChoice => {
+                return {
+                  externalId: row.externalId!,
+                  name: row.name || row.externalId!,
+                  datacenterName: row.datacenterName || null,
+                  clusterName: row.clusterName || null,
+                  hostName: row.hostName || null,
+                };
+              }),
+          );
+        })
+        .catch((err: unknown): void => {
+          if (!cancelled) {
+            setError(API.getFriendlyMessage(err));
+          }
+        })
+        .finally((): void => {
+          if (!cancelled) {
+            setIsLoadingParts(false);
+          }
+        });
+    };
+    const timer: ReturnType<typeof setTimeout> = setTimeout(
+      readParts,
+      partSearch.trim() ? PART_SEARCH_PAUSE_MS : 0,
+    );
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [vcenterId, scope, partSearch]);
 
@@ -440,7 +462,10 @@ const VMwareHealthRuleOverrideModal: FunctionComponent<ComponentProps> = (
       groups.set(words.group, options);
     }
     return Array.from(groups.entries()).map(
-      ([group, options]: [string, Array<DropdownOption>]): DropdownOptionGroup => {
+      ([group, options]: [
+        string,
+        Array<DropdownOption>,
+      ]): DropdownOptionGroup => {
         return { label: group, options };
       },
     );
@@ -549,7 +574,14 @@ const VMwareHealthRuleOverrideModal: FunctionComponent<ComponentProps> = (
       <span className="font-medium">
         {tx(VMWARE_HEALTH_RULE_SCOPE_WORDS[scope])}
       </span>
-      {part ? <bdi className="ms-1">{part.name}</bdi> : <></>}
+      {part ? (
+        <>
+          {" "}
+          <bdi>{part.name}</bdi>
+        </>
+      ) : (
+        <></>
+      )}
     </p>
   ) : (
     <div className="space-y-4">

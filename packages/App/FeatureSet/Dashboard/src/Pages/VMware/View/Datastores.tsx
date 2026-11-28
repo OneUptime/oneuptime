@@ -35,9 +35,7 @@ import {
   VMwareHealthRuleBook,
   getVMwareHealthRulesForPart,
 } from "Common/Types/VMware/VMwareHealthRuleOverrides";
-import {
-  getVMwarePartOfResource,
-} from "../../../Components/VMware/VMwareResourceColumns";
+import { getVMwarePartOfResource } from "../../../Components/VMware/VMwareResourceColumns";
 
 const DATASTORE_NOT_REPORTED: string = translationKey("Not reported");
 

@@ -123,7 +123,11 @@ const VSPHERE: JSONObject = { source: "vsphere" };
 const ROWS: Dictionary<Array<StoredRow>> = {
   // OneUptime's judged rate, in bytes per second.
   [VMwareSwapRateMetric.VirtualMachineSwapOut]: [
-    ...everyMinute("web-01", [524288, 1048576, 262144, 524288, 786432], VSPHERE),
+    ...everyMinute(
+      "web-01",
+      [524288, 1048576, 262144, 524288, 786432],
+      VSPHERE,
+    ),
     ...everyMinute("db-01", [0, 0, 0, 0, 0], VSPHERE),
     ...everyMinute("batch-01", [0, 0, 4096, 0, 0], VSPHERE),
     ...everyMinute("cache-01", [0, 0, 0, 0, 0], VSPHERE),
@@ -206,18 +210,21 @@ describe("VM Memory Swapping, as shipped since #11468", () => {
     ).getMonitorStep(templateArgs);
     const queries: Array<string> = MonitorStep.getMetricsViewConfig(
       step,
-    )!.queryConfigs.map((config: { metricQueryData: { filterData: { metricName?: string } } }) => {
-      return config.metricQueryData.filterData.metricName || "";
-    });
+    )!.queryConfigs.map(
+      (config: {
+        metricQueryData: { filterData: { metricName?: string } };
+      }) => {
+        return config.metricQueryData.filterData.metricName || "";
+      },
+    );
     expect(queries).toEqual([VMwareSwapRateMetric.VirtualMachineSwapOut]);
   });
 });
 
 describe("the version before #11468, which monitors made from it still run", () => {
   test("fired on any memory in the swap file: the VMs that are not swapping now too", async () => {
-    const legacy: Array<MonitorStep> = template(
-      "vmware-vm-memory-swapping",
-    ).getEquivalentMonitorSteps!(templateArgs);
+    const legacy: Array<MonitorStep> = template("vmware-vm-memory-swapping")
+      .getEquivalentMonitorSteps!(templateArgs);
     expect(legacy).toHaveLength(1);
 
     expect(await firingVms(legacy[0]!)).toEqual([

@@ -389,7 +389,8 @@ describe("the virtual machines on the host", () => {
         return vm.name;
       }),
     ).toEqual(["db", "4210aaaa-unnamed", "ci"]);
-    expect(busiest[0]).toEqual({
+    const { row: dbRow, ...db } = busiest[0]!;
+    expect(db).toEqual({
       externalId: "vm/1",
       name: "db",
       cpuPercent: 78.4,
@@ -398,6 +399,12 @@ describe("the virtual machines on the host", () => {
       memoryLimitBytes: 2048,
       cpuReadyPercent: 6.2,
     });
+    // Its row, so its own health rules are found for it (#11469).
+    expect(dbRow).toBe(
+      vms.find((vm: VMwareResourceModel): boolean => {
+        return vm.externalId === "vm/1";
+      }),
+    );
   });
 
   test("a tie goes to the name, so the list does not reshuffle", () => {

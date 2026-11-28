@@ -3770,10 +3770,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     // A vCenter's, cluster's, host's or VM's own health rules (#11469).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<VMwareHealthRuleOverride, VMwareHealthRuleOverrideServiceType>(
+      new BaseAPI<
         VMwareHealthRuleOverride,
-        VMwareHealthRuleOverrideService,
-      ).getRouter(),
+        VMwareHealthRuleOverrideServiceType
+      >(VMwareHealthRuleOverride, VMwareHealthRuleOverrideService).getRouter(),
     );
 
     app.use(

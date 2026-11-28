@@ -44,6 +44,7 @@ import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
+  getVMwareRulesOf,
   getVMwareThresholdLine,
   getVMwareHostState,
   isVMwareIssueAbout,
@@ -86,12 +87,7 @@ import {
   VMwareHostNetworkAdaptersCard,
   VMwareHostStorageDevicesCard,
 } from "./VMwareHostDeviceTables";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
-import {
-  getVMwareRulesOf,
-} from "../../../Pages/VMware/Utils/VMwareHealth";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * A tile's bar turns amber where the host's Needs attention does - past

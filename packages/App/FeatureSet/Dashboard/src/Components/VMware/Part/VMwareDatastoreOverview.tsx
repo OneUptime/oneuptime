@@ -17,6 +17,7 @@ import ResourcePartDetailsCard, {
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
+  getVMwareRulesOf,
   getVMwareDatastorePercent,
   getVMwareThresholdLine,
   isVMwareIssueAbout,
@@ -31,12 +32,7 @@ import {
   formatPercent,
 } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
 import { VMwarePartRoutes } from "./VMwarePartRoutes";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
-import {
-  getVMwareRulesOf,
-} from "../../../Pages/VMware/Utils/VMwareHealth";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * A datastore's Overview: whether it needs attention, how full it is and

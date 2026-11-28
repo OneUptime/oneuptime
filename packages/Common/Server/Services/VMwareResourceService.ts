@@ -449,8 +449,9 @@ export function readSwapRateReadings(data: {
       continue;
     }
 
-    const reported: VMwareResourceLatestMetric | undefined =
-      reportedByKey.get(`${kind}|${externalId}`);
+    const reported: VMwareResourceLatestMetric | undefined = reportedByKey.get(
+      `${kind}|${externalId}`,
+    );
 
     if (
       !reported ||

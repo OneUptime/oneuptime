@@ -1174,7 +1174,9 @@ describe("readSwapRateReadings (#11468)", () => {
     };
   }
 
-  function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  function row(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
     return {
       kind: "VirtualMachine",
       externalId: VM_EXTERNAL_ID,
@@ -1187,18 +1189,18 @@ describe("readSwapRateReadings (#11468)", () => {
 
   test("reads the RETURNING rows TypeORM hands back, as [rows, affected] or as rows", () => {
     for (const written of [[[row()], 1], [row()]]) {
-      expect(
-        readSwapRateReadings({ written, reported: [reported()] }),
-      ).toEqual([
-        {
-          kind: "VirtualMachine",
-          externalId: VM_EXTERNAL_ID,
-          swapOutBytesPerSecond: 2048.5,
-          swapInBytesPerSecond: null,
-          source: VMwareSwapRateSource.Derived,
-          observedAt: OBSERVED_AT,
-        },
-      ]);
+      expect(readSwapRateReadings({ written, reported: [reported()] })).toEqual(
+        [
+          {
+            kind: "VirtualMachine",
+            externalId: VM_EXTERNAL_ID,
+            swapOutBytesPerSecond: 2048.5,
+            swapInBytesPerSecond: null,
+            source: VMwareSwapRateSource.Derived,
+            observedAt: OBSERVED_AT,
+          },
+        ],
+      );
     }
   });
 
@@ -1208,7 +1210,11 @@ describe("readSwapRateReadings (#11468)", () => {
       readSwapRateReadings({
         written: [row({ kind: "ResourcePool", externalId: "pool/a" })],
         reported: [
-          reported({ kind: "ResourcePool", externalId: "pool/a", observedAt: at }),
+          reported({
+            kind: "ResourcePool",
+            externalId: "pool/a",
+            observedAt: at,
+          }),
         ],
       }),
     ).toEqual([
@@ -1247,17 +1253,17 @@ describe("readSwapRateReadings (#11468)", () => {
       [row({ memorySwapOutBytesPerSecond: null })],
       [row({ memorySwapOutBytesPerSecond: "not a number" })],
     ]) {
-      expect(
-        readSwapRateReadings({ written, reported: [reported()] }),
-      ).toEqual([]);
+      expect(readSwapRateReadings({ written, reported: [reported()] })).toEqual(
+        [],
+      );
     }
   });
 
   test("anything but rows reads nothing", () => {
     for (const written of [undefined, null, 3, "rows", {}, [[]], [null, 7]]) {
-      expect(
-        readSwapRateReadings({ written, reported: [reported()] }),
-      ).toEqual([]);
+      expect(readSwapRateReadings({ written, reported: [reported()] })).toEqual(
+        [],
+      );
     }
   });
 });

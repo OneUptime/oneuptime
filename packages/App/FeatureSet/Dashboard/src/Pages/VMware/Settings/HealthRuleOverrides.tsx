@@ -52,9 +52,7 @@ const NO_OVERRIDES: string = translationKey(
 );
 const IN_VCENTER: string = translationKey("vCenter {{name}}");
 const COVERS: Readonly<Record<VMwareHealthRuleScope, string>> = {
-  [VMwareHealthRuleScope.VCenter]: translationKey(
-    "Everything in the vCenter",
-  ),
+  [VMwareHealthRuleScope.VCenter]: translationKey("Everything in the vCenter"),
   [VMwareHealthRuleScope.Cluster]: translationKey(
     "The cluster, its hosts, their VMs and its resource pools",
   ),
@@ -71,9 +69,9 @@ const VMwareHealthRuleOverridesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [editing, setEditing] = useState<
-    { override?: VMwareHealthRuleOverride | undefined } | null
-  >(null);
+  const [editing, setEditing] = useState<{
+    override?: VMwareHealthRuleOverride | undefined;
+  } | null>(null);
   const [refreshToggle, setRefreshToggle] = useState<string>("0");
   // Read again once a change made the page forget it.
   const book: VMwareHealthRuleBook = useVMwareHealthRuleBook(refreshToggle);
@@ -167,7 +165,9 @@ const VMwareHealthRuleOverridesCard: FunctionComponent<ComponentProps> = (
                 (item.scope as VMwareHealthRuleScope) ||
                 VMwareHealthRuleScope.VCenter;
               const vcenterName: string =
-                item.vmwareVCenter?.name || item.vmwareVCenterId?.toString() || "";
+                item.vmwareVCenter?.name ||
+                item.vmwareVCenterId?.toString() ||
+                "";
               const where: Array<string> = [
                 item.clusterName && scope !== VMwareHealthRuleScope.Cluster
                   ? item.clusterName
@@ -182,7 +182,10 @@ const VMwareHealthRuleOverridesCard: FunctionComponent<ComponentProps> = (
                   <span className="text-sm font-medium text-gray-900">
                     {tx(VMWARE_HEALTH_RULE_SCOPE_WORDS[scope])}
                     {item.resourceName ? (
-                      <bdi className="ms-1">{item.resourceName}</bdi>
+                      <>
+                        {" "}
+                        <bdi>{item.resourceName}</bdi>
+                      </>
                     ) : (
                       <></>
                     )}
@@ -224,16 +227,17 @@ const VMwareHealthRuleOverridesCard: FunctionComponent<ComponentProps> = (
                 const words: VMwareHealthRuleWords =
                   getVMwareHealthRuleWords(key);
                 lines.push(
-                  <li key={key} data-testid={`vmware-health-rule-change-${key}`}>
+                  <li
+                    key={key}
+                    data-testid={`vmware-health-rule-change-${key}`}
+                  >
                     <span className="text-gray-500">{tx(words.group)}</span>
                     {" · "}
                     {translator.translateTemplate(LABEL_WITH_COLON, {
                       label: tx(words.label),
                     })}{" "}
                     <span className="font-medium text-gray-900">
-                      {valueText(
-                        getVMwareHealthRuleValueText(key, read.value),
-                      )}
+                      {valueText(getVMwareHealthRuleValueText(key, read.value))}
                     </span>
                   </li>,
                 );

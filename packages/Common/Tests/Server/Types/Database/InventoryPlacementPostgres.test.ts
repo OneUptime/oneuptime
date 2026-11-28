@@ -129,7 +129,7 @@ const EDGE_ROWS: Array<EdgeRow> = [
     name: "edge-zero-width-kept",
     entityType: EntityType.VMwareVirtualMachine,
     identifyingAttributes: null,
-    descriptiveAttributes: { "vcenter.host.name": `${SOUTH_HOST}​` },
+    descriptiveAttributes: { "vcenter.host.name": `${SOUTH_HOST}\u200b` },
   },
   {
     name: "edge-host-has-no-host",
@@ -362,7 +362,10 @@ describePostgres("inventory placement filters against Postgres", () => {
     }) as unknown as FindOptionsWhere<InventoryItem>;
   }
 
-  function place(level: InventoryPlacementLevel, value: unknown): Query<InventoryItem> {
+  function place(
+    level: InventoryPlacementLevel,
+    value: unknown,
+  ): Query<InventoryItem> {
     return {
       [INVENTORY_PLACEMENT_LEVEL_COLUMNS[level]]: value,
     } as unknown as Query<InventoryItem>;
@@ -383,10 +386,7 @@ describePostgres("inventory placement filters against Postgres", () => {
       .createQueryBuilder(InventoryItem, "InventoryItem")
       .setFindOptions({
         where: where(
-          place(
-            level,
-            data.search ? new Search(data.search) : new NotNull(),
-          ),
+          place(level, data.search ? new Search(data.search) : new NotNull()),
           Boolean(data.isArchived),
         ),
       });
@@ -481,10 +481,12 @@ describePostgres("inventory placement filters against Postgres", () => {
     );
     expect(byName.get("edge-not-strings")?.placementHost ?? null).toBeNull();
     expect(byName.get("edge-zero-width-kept")?.placementHost).toBe(
-      `${SOUTH_HOST}​`,
+      `${SOUTH_HOST}\u200b`,
     );
     // A host is in its cluster, but has no host of its own.
-    expect(byName.get("edge-host-has-no-host")?.placementHost ?? null).toBeNull();
+    expect(
+      byName.get("edge-host-has-no-host")?.placementHost ?? null,
+    ).toBeNull();
     expect(byName.get("edge-kubernetes-pod")?.placementCluster).toBe("prod-eu");
     expect(byName.get("edge-proxmox-guest")?.placementCluster).toBe("pve-lab");
     expect(byName.get("edge-openstack-instance")?.placementHost).toBe(
@@ -499,7 +501,9 @@ describePostgres("inventory placement filters against Postgres", () => {
   test("one host's chip holds and counts all of its VMs, past the 10,000th", async () => {
     expect(BIG_HOST_VMS).toBeGreaterThan(10_000);
     expect(
-      await count(place(InventoryPlacementLevel.Host, new Includes([BIG_HOST]))),
+      await count(
+        place(InventoryPlacementLevel.Host, new Includes([BIG_HOST])),
+      ),
     ).toBe(BIG_HOST_VMS);
 
     // The last page: rows 10,201 to 10,250 of the host's, in name order.
@@ -525,7 +529,10 @@ describePostgres("inventory placement filters against Postgres", () => {
   test("two hosts chosen are either", async () => {
     expect(
       await count(
-        place(InventoryPlacementLevel.Host, new Includes([BIG_HOST, SMALL_HOST])),
+        place(
+          InventoryPlacementLevel.Host,
+          new Includes([BIG_HOST, SMALL_HOST]),
+        ),
       ),
     ).toBe(BIG_HOST_VMS + SMALL_HOST_VMS + 2);
   });
@@ -539,7 +546,10 @@ describePostgres("inventory placement filters against Postgres", () => {
     ).toBe(BIG_HOST_VMS + SMALL_HOST_VMS + 2 + 3);
     expect(
       await count({
-        ...place(InventoryPlacementLevel.Cluster, new Includes(["cluster-alpha"])),
+        ...place(
+          InventoryPlacementLevel.Cluster,
+          new Includes(["cluster-alpha"]),
+        ),
         entityType: new Includes([EntityType.VMwareHost]),
       }),
     ).toBe(3);
@@ -548,10 +558,7 @@ describePostgres("inventory placement filters against Postgres", () => {
   test("is not keeps every item with no place there", async () => {
     expect(
       await count(
-        place(
-          InventoryPlacementLevel.Host,
-          new IncludesNoneOrNull([BIG_HOST]),
-        ),
+        place(InventoryPlacementLevel.Host, new IncludesNoneOrNull([BIG_HOST])),
       ),
     ).toBe(liveTotal - BIG_HOST_VMS);
   });
@@ -559,8 +566,14 @@ describePostgres("inventory placement filters against Postgres", () => {
   test("the chips add up: a cluster of one datacenter, of one type", async () => {
     expect(
       await count({
-        ...place(InventoryPlacementLevel.Cluster, new Includes(["cluster-beta"])),
-        ...place(InventoryPlacementLevel.Datacenter, new Includes(["DC-SOUTH"])),
+        ...place(
+          InventoryPlacementLevel.Cluster,
+          new Includes(["cluster-beta"]),
+        ),
+        ...place(
+          InventoryPlacementLevel.Datacenter,
+          new Includes(["DC-SOUTH"]),
+        ),
         entityType: new Includes([EntityType.VMwareVirtualMachine]),
       }),
     ).toBe(SOUTH_HOST_VMS);
@@ -579,7 +592,9 @@ describePostgres("inventory placement filters against Postgres", () => {
       ),
     );
     expect(
-      await count(JSONFunctions.deserialize(serialized) as Query<InventoryItem>),
+      await count(
+        JSONFunctions.deserialize(serialized) as Query<InventoryItem>,
+      ),
     ).toBe(BIG_HOST_VMS);
   });
 
@@ -612,7 +627,7 @@ describePostgres("inventory placement filters against Postgres", () => {
       { value: BIG_HOST, count: BIG_HOST_VMS },
       { value: SMALL_HOST, count: SMALL_HOST_VMS + 2 },
       { value: SOUTH_HOST, count: SOUTH_HOST_VMS },
-      { value: `${SOUTH_HOST}​`, count: 1 },
+      { value: `${SOUTH_HOST}\u200b`, count: 1 },
     ]);
   });
 
@@ -640,18 +655,16 @@ describePostgres("inventory placement filters against Postgres", () => {
       { value: SMALL_HOST, count: SMALL_HOST_VMS + 2 },
     ]);
     // A wildcard typed is a character to find, not a wildcard.
-    expect(await options(InventoryPlacementLevel.Host, { search: "%" })).toEqual(
-      [],
-    );
-    expect(await options(InventoryPlacementLevel.Host, { search: "_" })).toEqual(
-      [],
-    );
+    expect(
+      await options(InventoryPlacementLevel.Host, { search: "%" }),
+    ).toEqual([]);
+    expect(
+      await options(InventoryPlacementLevel.Host, { search: "_" }),
+    ).toEqual([]);
   });
 
   test("a page of choices is a page", async () => {
-    expect(
-      await options(InventoryPlacementLevel.Host, { limit: 2 }),
-    ).toEqual([
+    expect(await options(InventoryPlacementLevel.Host, { limit: 2 })).toEqual([
       { value: "compute-03", count: 1 },
       { value: BIG_HOST, count: BIG_HOST_VMS },
     ]);

@@ -4,7 +4,7 @@ A VMware monitor watches one vCenter - its datacenters, clusters, ESXi hosts, vi
 
 :::cards
 - [Create the monitor](#create-a-vmware-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Twenty-five ready-made alerts, one incident per host, VM or datastore.
+- [Templates](#pre-built-alert-templates): Twenty-six ready-made alerts, one incident per host, VM or datastore.
 - [Identity attributes](#identity-attributes): How to target one host, VM or datastore.
 - [Metrics](#collected-metrics): Every `vcenter.*` series the monitor can alert on.
 :::
@@ -106,7 +106,7 @@ In monitor filters and group-by keys, resource attributes start with `resource.`
 
 ## Pre-built Alert Templates
 
-OneUptime ships 25 templates for common VMware problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on the object's own identity attribute, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+OneUptime ships 26 templates for common VMware problems, and the **What to alert on** list offers all of them. Each builds a complete monitor: the metric query, its attribute filters, a group-by on the object's own identity attribute, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold, so a value hovering at the line does not flap.
 
@@ -123,7 +123,8 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 | VM CPU Ready Contention | Virtual Machine | Warning | `vcenter.vm.cpu.readiness`, Avg per VM | Above 10%: the VM was ready to run, but the host had no physical core for it. Invisible from inside the guest | At or below 9% |
 | VM Memory Saturation | Virtual Machine | Warning | `vcenter.vm.memory.utilization`, Avg per VM | Above 90% of its memory: the guest is about to page | At or below 81% |
 | VM Memory Ballooning | Virtual Machine | Warning | `vcenter.vm.memory.ballooned`, Max per VM | Above 0: the host is short of memory and takes it back from this guest | At 0 |
-| VM Memory Swapping | Virtual Machine | Critical | `vcenter.vm.memory.swapped`, Max per VM | Above 0: some of the VM's memory is in the host's swap file, swapped out now or left from earlier pressure, which ESXi keeps until the VM touches it. The vCenter's Overview tells the two apart: see [Swapped memory is not swapping](/docs/telemetry/vmware#swapped-memory-is-not-swapping) | At 0 |
+| VM Memory Swapping | Virtual Machine | Critical | `oneuptime.vmware.vm.memory.swap_out.rate`, Max per VM | Above 0: the host is swapping the VM's memory out to disk now. Memory left in the swap file from earlier pressure does not fire it: see [Swapped memory is not swapping](/docs/telemetry/vmware#swapped-memory-is-not-swapping) | At 0, or once the VM stops reporting |
+| VM Swapped Memory High | Virtual Machine | Warning | `vcenter.vm.memory.swapped`, Max per VM | Above 1024 MiB: more than 1 GiB of the VM's memory sits in the host's swap file. Not swapping now, but a guest that reads that much back stalls while it does | At or below 1024 MiB |
 | VM Disk Latency High | Virtual Machine | Warning | `vcenter.vm.disk.latency.max`, Max per VM | Above 50 ms: applications in the guest time out on I/O | At or below 45 ms |
 | VM Disk Usage High | Virtual Machine | Warning | `vcenter.vm.disk.utilization`, Avg per VM | Above 90% of its provisioned storage committed: a thin-provisioned VM is about to claim its full size | At or below 81% |
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Above 80%: an early warning, as thin disks and snapshots use the rest quickly | At or below 72% |
@@ -136,7 +137,7 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 | Datacenter Clusters Unhealthy | Datacenter | Critical | `vcenter.datacenter.cluster.count` filtered to `status = red`, Max per datacenter | Above 0: a cluster has a critical alarm, such as too few HA failover resources, a failed HA election or a critical vSAN health check | At 0 |
 | vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, Avg per cluster, **past 15 minutes** | Above 20 000 µs (20 ms): storage slows down for every VM on the vSAN datastore. Silent on clusters without vSAN | At or below 18 000 µs |
 | vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, Max per cluster, **past 15 minutes** | Above 0: a disk group cannot keep up, and vSAN slows down the I/O of its clients | At 0 |
-| Resource Pool Memory Swapped | Cluster | Warning | `vcenter.resource_pool.memory.swapped`, Max per `resource.vcenter.resource_pool.inventory_path` | Above 0: the pool's VMs take memory from host swap, usually because the pool's memory limit or shares are too low | At 0 |
+| Resource Pool Memory Swapping | Cluster | Warning | `oneuptime.vmware.resource_pool.memory.swap_out.rate`, Max per `resource.vcenter.resource_pool.inventory_path` | Above 0: the hosts are swapping memory of the pool's VMs out to disk now, usually because the pool's memory limit or shares are too low | At 0, or once the pool stops reporting |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
@@ -146,11 +147,16 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 - **Host Not Responding uses Max and fires at 0:** a running ESXi host always uses memory, so one collection that reports memory in use is a host that answers, and only a window in which none did fires it.
 - **Every template groups by the object's own identity attribute**, so one incident fires per affected object, and the incident names it. The exception is **vCenter Stopped Reporting**, which watches the whole vCenter: when data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
 - **Datacenter count templates recover when their series is gone:** the receiver records a count only for the states that exist, so the last red host turning green leaves no series, and their recovery criteria count a missing series as 0. With no series left in any datacenter, they recover only if `vcenter.datacenter.cpu.limit` arrived in the same window, so a vCenter that stopped reporting closes nothing.
-- **Thresholds are pinned to their unit** (`%`, `ms`, `us`), so they keep their meaning whatever unit a chart shows.
+- **Thresholds are pinned to their unit** (`%`, `ms`, `us`, `MiBy`), so they keep their meaning whatever unit a chart shows.
+- **The swapping templates read the swap-out rate**, `oneuptime.vmware.vm.memory.swap_out.rate` and `oneuptime.vmware.resource_pool.memory.swap_out.rate`: OneUptime writes them from each report, vSphere's own rate where a probe collects the vCenter and the rate worked out from the swapped memory otherwise. Their `source` attribute says which (`vsphere` or `derived`).
+
+### Monitors made before the swap-out rate
+
+VM Memory Swapping and Resource Pool Memory Swapped used to fire on any swapped memory (`vcenter.vm.memory.swapped` or `vcenter.resource_pool.memory.swapped` above 0), so they paged for weeks after the memory pressure had gone. A monitor made from either is not changed for you. Its **Overview** and **Criteria** pages say what it fires on and offer **Update to Swapping Now**, which makes it read the swap-out rate instead and keeps its thresholds, incidents, alerts and who is told. **Recommendations** counts it as the template, so the template is not offered twice.
 
 ## Collected Metrics
 
-The metrics below are the catalog the monitor form offers. Units are the receiver's own: `MHz`, `%`, `MiBy` (mebibytes), `By` (bytes), `KiBy`, `ms`, `us` (microseconds), `{KiBy/s}`, `By/s` and counts. A metric marked _off by default_ is not collected until you turn it on in the agent's `otel-collector-config.yaml`; the shipped configuration already turns on `vcenter.host.memory.capacity`.
+The metrics below are the catalog the monitor form offers: the receiver's `vcenter.*` series, and the swap rates OneUptime writes as `oneuptime.vmware.*`. Units are the receiver's own: `MHz`, `%`, `MiBy` (mebibytes), `By` (bytes), `KiBy`, `ms`, `us` (microseconds), `{KiBy/s}`, `By/s` and counts. A metric marked _off by default_ is not collected until you turn it on in the agent's `otel-collector-config.yaml`; the shipped configuration already turns on `vcenter.host.memory.capacity`.
 
 ### Datacenter
 
@@ -198,6 +204,8 @@ The metrics below are the catalog the monitor form offers. Units are the receive
 | `vcenter.host.network.packet.rate`       | `{packets/s}` | Packets per second transmitted or received on each physical NIC, by `direction` and `object`                                                                     |
 | `vcenter.host.network.throughput`        | `{KiBy/s}`    | Kilobytes per second transmitted or received by the host, by `direction` and `object`                                                                            |
 | `vcenter.host.network.usage`             | `{KiBy/s}`    | Combined transmit + receive rate across the host's NICs, per `object`                                                                                             |
+| `vcenter.host.memory.swap_in.rate`       | `By/s`        | How fast the host reads swapped memory back from its swap files, from vSphere's `mem.swapinRate`, averaged since the previous collection. Sent by a probe only: the agent's receiver does not read it |
+| `vcenter.host.memory.swap_out.rate`      | `By/s`        | How fast the host swaps memory out to its swap files, from vSphere's `mem.swapoutRate`, averaged since the previous collection. Sent by a probe only |
 
 ### Virtual Machine
 
@@ -214,7 +222,7 @@ The metrics below are the catalog the monitor form offers. Units are the receive
 | `vcenter.vm.disk.utilization`              | `%`           | Percentage (0–100) of the VM's provisioned storage that is committed on the datastore — a thin-provisioned VM approaching 100% is about to claim its full size                  |
 | `vcenter.vm.memory.ballooned`              | `MiBy`        | Guest memory reclaimed from the VM by the balloon driver (VMware Tools). Above 0 means the ESXi host is short of memory                                                        |
 | `vcenter.vm.memory.granted`                | `MiBy`        | Machine memory granted to the VM by the host. _Off by default_ — enable `vcenter.vm.memory.granted`                                                                            |
-| `vcenter.vm.memory.swapped`                | `MiBy`        | Memory granted to the VM from the host's swap file — the last resort after ballooning and compression. ESXi keeps a swapped page until the VM touches it, so a value above 0 may be left from earlier pressure           |
+| `vcenter.vm.memory.swapped`                | `MiBy`        | Memory granted to the VM from the host's swap file — the last resort after ballooning and compression. ESXi keeps a swapped page until the VM touches it, so a value above 0 may be left from earlier pressure; `oneuptime.vmware.vm.memory.swap_out.rate` says whether the host is swapping now |
 | `vcenter.vm.memory.swapped_ssd`            | `KiBy`        | Memory of the VM swapped to the host's flash swap cache — less painful than the swap file, but still memory pressure                                                           |
 | `vcenter.vm.memory.usage`                  | `MiBy`        | Memory actively used by the VM's guest. Emitted for powered-on and powered-off VMs alike (0 when off)                                                                          |
 | `vcenter.vm.memory.utilization`            | `%`           | Memory utilization of the VM as a percentage (0–100) of its configured memory                                                                                                  |
@@ -224,6 +232,8 @@ The metrics below are the catalog the monitor form offers. Units are the receive
 | `vcenter.vm.network.packet.rate`           | `{packets/s}` | Packets per second transmitted or received by each vNIC, by `direction` and `object`                                                                                          |
 | `vcenter.vm.network.throughput`            | `By/s`        | Bytes per second transmitted or received over the VM's network, by `direction` and `object`                                                                                   |
 | `vcenter.vm.network.usage`                 | `{KiBy/s}`    | Combined transmit + receive rate of the VM, per `object`                                                                                                                       |
+| `oneuptime.vmware.vm.memory.swap_out.rate` | `By/s`        | How fast the host swaps the VM's memory out to disk now: vSphere's `mem.swapoutRate` where a probe collects the vCenter, else worked out from the growth of `vcenter.vm.memory.swapped` between two reports. Written by OneUptime, with a `source` attribute (`vsphere` or `derived`) |
+| `oneuptime.vmware.vm.memory.swap_in.rate`  | `By/s`        | How fast the VM reads its swapped memory back: vSphere's `mem.swapinRate`, else worked out from the shrinking of its swapped memory. Written by OneUptime, with a `source` attribute |
 
 ### Datastore
 
@@ -243,6 +253,8 @@ The metrics below are the catalog the monitor form offers. Units are the receive
 | `vcenter.resource_pool.memory.shares`    | `{shares}` | Memory shares configured on the pool                                                                                                                                     |
 | `vcenter.resource_pool.memory.swapped`   | `MiBy`     | Memory granted to the pool's VMs from the ESXi hosts' swap space — a value above 0 means at least one VM in the pool has memory in host swap, now or from earlier                              |
 | `vcenter.resource_pool.memory.usage`     | `MiBy`     | Memory used by the pool, fanned out by `type` (`guest` / `host` / `overhead`) on recent collector builds; older builds emit a single untyped series. Filter `type = guest` |
+| `oneuptime.vmware.resource_pool.memory.swap_out.rate` | `By/s` | How fast the hosts swap memory of the pool's VMs out to disk now, worked out from the growth of `vcenter.resource_pool.memory.swapped` between two reports: vSphere has no swap rate for a resource pool. Written by OneUptime |
+| `oneuptime.vmware.resource_pool.memory.swap_in.rate`  | `By/s` | How fast the pool's VMs read swapped memory back, worked out from the shrinking of the pool's swapped memory. Written by OneUptime |
 
 ### vSAN
 
@@ -288,7 +300,7 @@ Some criteria to start from:
 - **A datastore is filling up:** `vcenter.datastore.disk.utilization`, Average, grouped by `resource.vcenter.datastore.name`, **Greater Than** `80`.
 - **A cluster lost a host:** `vcenter.cluster.host.count` filtered to `effective = false`, Maximum, grouped by `resource.vcenter.cluster.name`, **Greater Than** `0`.
 - **Fewer VMs run than expected:** `vcenter.cluster.vm.count` filtered to `power_state = on` and `resource.vcenter.cluster.name = Production`, Sum, **Less Than** the number you expect.
-- **A VM holds a lot of memory in host swap:** `vcenter.vm.memory.swapped`, Maximum, grouped by `resource.vcenter.vm.name`, **Greater Than** `1024`. A few MiB can stay there long after memory pressure has gone, so a threshold above 0 keeps memory left from earlier from firing it.
+- **A VM holds a lot of memory in host swap:** `vcenter.vm.memory.swapped`, Maximum, grouped by `resource.vcenter.vm.name`, **Greater Than** `1024`, as the **VM Swapped Memory High** template does. A few MiB can stay there long after memory pressure has gone, so a threshold above 0 keeps memory left from earlier from firing it.
 
 ### Default criteria
 

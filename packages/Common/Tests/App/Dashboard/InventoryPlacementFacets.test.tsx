@@ -62,18 +62,20 @@ let capturedTableProps: CapturedTableProps | null = null;
 let capturedQueries: Array<Record<string, unknown>> = [];
 const asked: Array<InventoryPlacementOptionsRequest> = [];
 
-const CHOICES: Record<InventoryPlacementLevel, Array<InventoryPlacementChoice>> =
-  {
-    [InventoryPlacementLevel.Cluster]: [
-      { value: "cluster-alpha", count: 10552 },
-      { value: "prod-eu", count: 1 },
-    ],
-    [InventoryPlacementLevel.Host]: [
-      { value: "esx-node-07.acme.lan", count: 10250 },
-      { value: "esx-node-08.acme.lan", count: 302 },
-    ],
-    [InventoryPlacementLevel.Datacenter]: [{ value: "DC-NORTH", count: 10554 }],
-  };
+const CHOICES: Record<
+  InventoryPlacementLevel,
+  Array<InventoryPlacementChoice>
+> = {
+  [InventoryPlacementLevel.Cluster]: [
+    { value: "cluster-alpha", count: 10552 },
+    { value: "prod-eu", count: 1 },
+  ],
+  [InventoryPlacementLevel.Host]: [
+    { value: "esx-node-07.acme.lan", count: 10250 },
+    { value: "esx-node-08.acme.lan", count: 302 },
+  ],
+  [InventoryPlacementLevel.Datacenter]: [{ value: "DC-NORTH", count: 10554 }],
+};
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/InventoryPlacementApi",
@@ -217,10 +219,15 @@ function openFacet(label: string): HTMLElement {
 }
 
 // Opens the chip and waits for the server's choices to be drawn.
-async function openLoaded(label: string, firstChoice: string): Promise<HTMLElement> {
+async function openLoaded(
+  label: string,
+  firstChoice: string,
+): Promise<HTMLElement> {
   const dialog: HTMLElement = openFacet(label);
   await waitFor(() => {
-    expect(within(dialog).getByText(firstChoice, { exact: true })).toBeVisible();
+    expect(
+      within(dialog).getByText(firstChoice, { exact: true }),
+    ).toBeVisible();
   });
   return dialog;
 }
@@ -228,7 +235,9 @@ async function openLoaded(label: string, firstChoice: string): Promise<HTMLEleme
 async function choose(label: string, choice: string): Promise<void> {
   const dialog: HTMLElement = await openLoaded(label, choice);
   fireEvent.click(
-    within(dialog).getByText(choice, { exact: true }).closest('[role="option"]')!,
+    within(dialog)
+      .getByText(choice, { exact: true })
+      .closest('[role="option"]')!,
   );
 }
 
@@ -295,7 +304,10 @@ describe("the Cluster, Host and Datacenter chips", () => {
 
   test("opening Host asks the server for the live list's hosts, and lists each with its item count", async () => {
     renderInventory();
-    const dialog: HTMLElement = await openLoaded("Host", "esx-node-07.acme.lan");
+    const dialog: HTMLElement = await openLoaded(
+      "Host",
+      "esx-node-07.acme.lan",
+    );
 
     expect(asked).toEqual([
       { level: InventoryPlacementLevel.Host, search: "", isArchived: false },
@@ -303,16 +315,21 @@ describe("the Cluster, Host and Datacenter chips", () => {
     expect(within(dialog).getByText("esx-node-08.acme.lan")).toBeVisible();
     expect(within(dialog).getByText(/^10,?250 items$/)).toBeVisible();
     expect(within(dialog).getByText("302 items")).toBeVisible();
-    expect(within(dialog).getByPlaceholderText("Search hosts...")).toBeVisible();
+    expect(
+      within(dialog).getByPlaceholderText("Search hosts..."),
+    ).toBeVisible();
   });
 
   test("what is typed is asked of the server, which narrows the choices", async () => {
     renderInventory();
     const dialog: HTMLElement = await openLoaded("Cluster", "cluster-alpha");
 
-    fireEvent.change(within(dialog).getByPlaceholderText("Search clusters..."), {
-      target: { value: "prod" },
-    });
+    fireEvent.change(
+      within(dialog).getByPlaceholderText("Search clusters..."),
+      {
+        target: { value: "prod" },
+      },
+    );
 
     await waitFor(() => {
       expect(asked).toContainEqual({
@@ -396,7 +413,9 @@ describe("the Cluster, Host and Datacenter chips", () => {
 
     expect(capturedQueries.length).toBeGreaterThan(0);
     for (const query of capturedQueries) {
-      expect(query["placementCluster"]).toEqual(new Includes(["cluster-alpha"]));
+      expect(query["placementCluster"]).toEqual(
+        new Includes(["cluster-alpha"]),
+      );
       expect(query["placementHost"]).toEqual(
         new IncludesNoneOrNull(["esx-node-07.acme.lan"]),
       );

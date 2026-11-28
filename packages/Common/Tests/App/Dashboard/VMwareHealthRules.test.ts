@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import VMwareResource from "../../../Models/DatabaseModels/VMwareResource";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
+import { VMwareSwapRateSource } from "../../../Types/VMware/VMwareSwapRates";
 import { VMwareResourceKind } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import {
   DEFAULT_VMWARE_HEALTH_RULES,
@@ -184,7 +185,37 @@ describe("the issue's VM: 4.0 MiB swapped, nothing swapping now (#11157)", () =>
       swapOutBytesPerSecond: 0,
       swapInBytesPerSecond: 0,
       isKnownIdle: true,
+      // A row from before #11468 does not say where its rates came from.
+      source: null,
     });
+  });
+
+  test("says where its rates came from: vSphere's counters, or worked out (#11468)", () => {
+    for (const source of [
+      VMwareSwapRateSource.VSphere,
+      VMwareSwapRateSource.Derived,
+    ]) {
+      expect(
+        getVMwareSwapActivity(vm({ ...residual, memorySwapRateSource: source }))
+          .source,
+      ).toBe(source);
+    }
+    // Not known while no rate is.
+    expect(
+      getVMwareSwapActivity(
+        vm({
+          memorySwappedBytes: 4 * MIB,
+          memorySwapOutBytesPerSecond: null,
+          memorySwapInBytesPerSecond: null,
+          memorySwapRateSource: VMwareSwapRateSource.VSphere,
+        }),
+      ).source,
+    ).toBeNull();
+    expect(
+      getVMwareSwapActivity(
+        vm({ ...residual, memorySwapRateSource: "guessed" }),
+      ).source,
+    ).toBeNull();
   });
 
   test("the same VM while the host swaps it out again is critical", () => {
@@ -767,9 +798,11 @@ describe("Needs attention reads the project's rules", () => {
 });
 
 describe("what a page reads to judge: the VMs that may need attention", () => {
-  test("with the defaults: swapped, reading back past 1 MiB/s, ballooned, CPU ready past 10%", () => {
+  test("with the defaults: swapped, swapping out, reading back past 1 MiB/s, ballooned, CPU ready past 10%", () => {
     expect(getVMwareAttentionConditions(rules())).toEqual([
       { memorySwappedBytes: new GreaterThan<number>(0) },
+      // vSphere's own rate can say a VM swaps out with nothing left swapped (#11468).
+      { memorySwapOutBytesPerSecond: new GreaterThan<number>(0) },
       { memorySwapInBytesPerSecond: new GreaterThan<number>(1024 * KIB) },
       { memoryBalloonedBytes: new GreaterThan<number>(0) },
       { cpuReadinessPercent: new GreaterThan<number>(10) },

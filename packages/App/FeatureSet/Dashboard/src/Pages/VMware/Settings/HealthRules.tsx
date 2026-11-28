@@ -8,11 +8,13 @@ import {
 import VMwareHealthSetting from "Common/Models/DatabaseModels/VMwareHealthSetting";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ObjectID from "Common/Types/ObjectID";
-import { VMwareHealthRuleKey } from "Common/Types/VMware/VMwareHealthRules";
+import {
+  VMWARE_HEALTH_MAX_EVALUATION_MINUTES,
+  VMwareHealthRuleKey,
+} from "Common/Types/VMware/VMwareHealthRules";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ModelField from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { VMWARE_HEALTH_MAX_EVALUATION_MINUTES } from "Common/Types/VMware/VMwareHealthRules";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
@@ -159,7 +161,9 @@ const VMwareHealthRulesPage: FunctionComponent<
     if (unit === "minutes") {
       const minutes: number = Number(value);
       if (!Number.isFinite(minutes) || minutes <= 0 || value === null) {
-        return translator.translateText(VALUE_LATEST_REPORT) || VALUE_LATEST_REPORT;
+        return (
+          translator.translateText(VALUE_LATEST_REPORT) || VALUE_LATEST_REPORT
+        );
       }
       return translator.translateTemplate(VALUE_FOR_MINUTES, {
         minutes: translator.formatNumber(minutes),

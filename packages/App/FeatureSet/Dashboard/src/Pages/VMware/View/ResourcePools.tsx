@@ -23,9 +23,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 import { getVMwareResourcePoolMemoryTone } from "../../../Components/VMware/VMwareResourceColumns";
 import { useVMwareHealthRuleBook } from "../Utils/VMwareHealthRulesStore";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * Resource pools are list-only (no detail page): the receiver reports a

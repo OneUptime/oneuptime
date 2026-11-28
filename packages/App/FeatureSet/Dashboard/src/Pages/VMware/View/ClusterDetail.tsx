@@ -55,9 +55,7 @@ import {
   VMwareHostsTable,
   VMwareVirtualMachinesTable,
 } from "../../../Components/VMware/VMwareResourceTables";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 export const VMWARE_CLUSTER_TAB_OVERVIEW: string = "Overview";
 export const VMWARE_CLUSTER_TAB_HOSTS: string = "ESXi Hosts";

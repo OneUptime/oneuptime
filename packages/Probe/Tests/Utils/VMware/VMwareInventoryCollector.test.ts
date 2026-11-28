@@ -507,8 +507,9 @@ class FakeClient {
         throw fault;
       }
       return queries.map((query: PerfQuery): PerfEntityMetric => {
-        const samples: Record<string, Array<number>> =
-          this.swapSamples.get(query.entity.value) || {};
+        const samples: Record<string, Array<number>> = this.swapSamples.get(
+          query.entity.value,
+        ) || {};
         return {
           entity: query.entity,
           sampleInfo: this.swapSampleTimes.map((timestamp: string) => {
@@ -622,8 +623,16 @@ function inventoryWithVms(client: FakeClient, vmCount: number): void {
       },
     ),
     // vSphere defines both swap rates in kiloBytesPerSecond (#11468).
-    { key: 900, name: VSPHERE_SWAP_OUT_RATE_COUNTER, unit: "kiloBytesPerSecond" },
-    { key: 901, name: VSPHERE_SWAP_IN_RATE_COUNTER, unit: "kiloBytesPerSecond" },
+    {
+      key: 900,
+      name: VSPHERE_SWAP_OUT_RATE_COUNTER,
+      unit: "kiloBytesPerSecond",
+    },
+    {
+      key: 901,
+      name: VSPHERE_SWAP_IN_RATE_COUNTER,
+      unit: "kiloBytesPerSecond",
+    },
   ];
 }
 
@@ -873,10 +882,27 @@ describe("vSphere's own swap rates (#11468)", () => {
         });
       }),
     ).toEqual([
-      [{ entity: "h-1", counterIds: [900, 901], intervalId: 20, maxSample: 15 }],
       [
-        { entity: "vm-0", counterIds: [900, 901], intervalId: 20, maxSample: 15 },
-        { entity: "vm-1", counterIds: [900, 901], intervalId: 20, maxSample: 15 },
+        {
+          entity: "h-1",
+          counterIds: [900, 901],
+          intervalId: 20,
+          maxSample: 15,
+        },
+      ],
+      [
+        {
+          entity: "vm-0",
+          counterIds: [900, 901],
+          intervalId: 20,
+          maxSample: 15,
+        },
+        {
+          entity: "vm-1",
+          counterIds: [900, 901],
+          intervalId: 20,
+          maxSample: 15,
+        },
       ],
     ]);
     // The other counters are still asked for the newest sample alone, as before.
@@ -940,9 +966,11 @@ describe("vSphere's own swap rates (#11468)", () => {
       Array.from(snapshot.datacenters[0]!.vmSwapRates.keys()).sort(),
     ).toEqual(["vm-0", "vm-2"]);
     // The other counters' samples are unaffected by the swap pass's failure.
-    expect(
-      Array.from(snapshot.datacenters[0]!.vmPerf.keys()).sort(),
-    ).toEqual(["vm-0", "vm-1", "vm-2"]);
+    expect(Array.from(snapshot.datacenters[0]!.vmPerf.keys()).sort()).toEqual([
+      "vm-0",
+      "vm-1",
+      "vm-2",
+    ]);
   });
 
   test("an entity vSphere sent no sample of either counter for has no swap rates", async () => {
@@ -996,8 +1024,14 @@ describe("readSwapRates", () => {
     [24, "percent"],
   ]);
 
+  interface PerfSeries {
+    counterId: number;
+    instance?: string;
+    values: Array<number>;
+  }
+
   function perf(
-    series: Array<{ counterId: number; instance?: string; values: Array<number> }>,
+    series: Array<PerfSeries>,
     times: Array<string> = ["2026-10-10T12:00:00Z"],
   ): PerfEntityMetric {
     return {
@@ -1005,7 +1039,7 @@ describe("readSwapRates", () => {
       sampleInfo: times.map((timestamp: string) => {
         return { timestamp, interval: 20 };
       }),
-      series: series.map((item) => {
+      series: series.map((item: PerfSeries) => {
         return {
           counterId: item.counterId,
           instance: item.instance ?? "",

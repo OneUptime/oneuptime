@@ -117,7 +117,9 @@ const FENCE_LINE: RegExp = /^\s*```/;
 /* The opening fence of a mermaid diagram. */
 const MERMAID_FENCE: RegExp = /^\s*```mermaid\b/;
 /* A table row whose first cell is a backticked vcenter.* metric name. */
-const METRIC_ROW: RegExp = /^\|\s*`(vcenter\.[a-z_.]+)`\s*\|/;
+// A receiver series, or one of the swap rates OneUptime writes (#11468).
+const METRIC_ROW: RegExp =
+  /^\|\s*`((?:vcenter|oneuptime\.vmware)\.[a-z_.]+)`\s*\|/;
 /* Bare environment variable names in the compose file's environment block. */
 const COMPOSE_ENV_LINE: RegExp = /^\s*-\s*([A-Z][A-Z0-9_]+)=/;
 // A service of docker-compose.yml: a key two spaces in, under services:.
@@ -619,7 +621,9 @@ describe("VMware docs", (): void => {
          * (e.g. "(vcenter.host.cpu.utilization, one incident per host)").
          */
         const metric: string = (
-          template.description.match(/vcenter\.[a-z_.]+/) as RegExpMatchArray
+          template.description.match(
+            /(?:vcenter|oneuptime\.vmware)\.[a-z_.]+/,
+          ) as RegExpMatchArray
         )[0];
 
         expect({ template: template.name, metric, row }).toBeDefined();

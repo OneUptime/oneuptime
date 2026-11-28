@@ -53,6 +53,8 @@ export const VMWARE_VIRTUAL_MACHINE_ALERT_TEMPLATE_IDS: Array<string> = [
   "vmware-vm-memory-swapping",
   "vmware-vm-memory-ballooning",
   "vmware-vm-cpu-ready-contention",
+  // Memory left in the swap file, past 1 GiB (#11468): not swapping now.
+  "vmware-vm-swapped-memory-high",
   "vmware-vm-cpu-saturation",
   "vmware-vm-memory-saturation",
   "vmware-vm-disk-latency-high",

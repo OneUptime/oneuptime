@@ -485,9 +485,7 @@ describePostgres("VMware swap rates on Postgres", () => {
     });
 
     test("one direction sent is that direction alone; the other is not known", async () => {
-      await write(
-        report({ swappedMiB: 4, atSeconds: 0, swapOutRate: 2048 }),
-      );
+      await write(report({ swappedMiB: 4, atSeconds: 0, swapOutRate: 2048 }));
       expect(await swapOf()).toEqual({
         swappedMiB: 4,
         outBytesPerSecond: 2048,
@@ -670,7 +668,11 @@ describePostgres("VMware swap rates on Postgres", () => {
     });
 
     test("never more than the newest 64", async () => {
-      for (let index: number = 0; index < VMWARE_HEALTH_READINGS_MAX + 6; index++) {
+      for (
+        let index: number = 0;
+        index < VMWARE_HEALTH_READINGS_MAX + 6;
+        index++
+      ) {
         await write(report({ swappedMiB: 4, atSeconds: index * 30 }));
       }
       const readings: Array<VMwareHealthReading> = await readingsOf();

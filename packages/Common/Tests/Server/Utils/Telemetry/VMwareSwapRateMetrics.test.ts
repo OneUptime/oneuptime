@@ -115,8 +115,10 @@ function reading(
 
 describe("remembering what each part's metrics are stored under", () => {
   test("a VM's and a resource pool's, per vCenter, the first block of each", () => {
-    const contexts: Map<string, Map<string, VMwareSwapRateRowContext>> =
-      new Map();
+    const contexts: Map<
+      string,
+      Map<string, VMwareSwapRateRowContext>
+    > = new Map();
     const first: VMwareSwapRateRowContext = context("web-01");
     remember(contexts, VM, first);
     remember(contexts, VM, context("web-01 again"));
@@ -137,8 +139,10 @@ describe("remembering what each part's metrics are stored under", () => {
   });
 
   test("never a host, a datastore or a template: none of them has a swap rate of OneUptime's", () => {
-    const contexts: Map<string, Map<string, VMwareSwapRateRowContext>> =
-      new Map();
+    const contexts: Map<
+      string,
+      Map<string, VMwareSwapRateRowContext>
+    > = new Map();
     remember(contexts, HOST, context("esx-07"));
     remember(contexts, TEMPLATE, context("ubuntu-template"));
     remember(
@@ -154,16 +158,28 @@ describe("remembering what each part's metrics are stored under", () => {
 describe("the metric each rate is written as", () => {
   test("a VM's and a resource pool's, out and in", () => {
     expect(
-      VMwareSwapRateMetrics.getMetricName(VMwareResourceKind.VirtualMachine, "out"),
+      VMwareSwapRateMetrics.getMetricName(
+        VMwareResourceKind.VirtualMachine,
+        "out",
+      ),
     ).toBe(VMwareSwapRateMetric.VirtualMachineSwapOut);
     expect(
-      VMwareSwapRateMetrics.getMetricName(VMwareResourceKind.VirtualMachine, "in"),
+      VMwareSwapRateMetrics.getMetricName(
+        VMwareResourceKind.VirtualMachine,
+        "in",
+      ),
     ).toBe(VMwareSwapRateMetric.VirtualMachineSwapIn);
     expect(
-      VMwareSwapRateMetrics.getMetricName(VMwareResourceKind.ResourcePool, "out"),
+      VMwareSwapRateMetrics.getMetricName(
+        VMwareResourceKind.ResourcePool,
+        "out",
+      ),
     ).toBe(VMwareSwapRateMetric.ResourcePoolSwapOut);
     expect(
-      VMwareSwapRateMetrics.getMetricName(VMwareResourceKind.ResourcePool, "in"),
+      VMwareSwapRateMetrics.getMetricName(
+        VMwareResourceKind.ResourcePool,
+        "in",
+      ),
     ).toBe(VMwareSwapRateMetric.ResourcePoolSwapIn);
   });
 
@@ -233,7 +249,9 @@ describe("the points", () => {
     for (const swapIn of [null, -1, Number.NaN]) {
       const points: Array<VMwareSwapRatePoint> =
         VMwareSwapRateMetrics.getPoints({
-          readings: [reading({ swapInBytesPerSecond: swapIn as number | null })],
+          readings: [
+            reading({ swapInBytesPerSecond: swapIn as number | null }),
+          ],
           contexts,
         });
       expect(

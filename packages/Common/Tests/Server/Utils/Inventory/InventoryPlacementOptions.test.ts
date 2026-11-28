@@ -102,7 +102,9 @@ describe("what a request may ask", () => {
     expect(getInventoryPlacementSearch(undefined)).toBe("");
     expect(getInventoryPlacementSearch(42)).toBe("");
     expect(
-      getInventoryPlacementSearch("y".repeat(INVENTORY_PLACEMENT_SEARCH_MAX_LENGTH * 2)),
+      getInventoryPlacementSearch(
+        "y".repeat(INVENTORY_PLACEMENT_SEARCH_MAX_LENGTH * 2),
+      ),
     ).toHaveLength(INVENTORY_PLACEMENT_SEARCH_MAX_LENGTH);
   });
 });
@@ -127,8 +129,9 @@ describe("InventoryItemService.getPlacementOptions", () => {
   }
 
   test("reads the list's items of the project, as the caller, with a place at the level", async () => {
-    const aggregate: jest.SpiedFunction<typeof InventoryItemService.aggregateBy> =
-      spyAggregate([{ place: "cluster-alpha", itemCount: "10552" }]);
+    const aggregate: jest.SpiedFunction<
+      typeof InventoryItemService.aggregateBy
+    > = spyAggregate([{ place: "cluster-alpha", itemCount: "10552" }]);
 
     expect(
       await InventoryItemService.getPlacementOptions({
@@ -162,8 +165,9 @@ describe("InventoryItemService.getPlacementOptions", () => {
   });
 
   test("what is typed narrows the places, on the level's own column", async () => {
-    const aggregate: jest.SpiedFunction<typeof InventoryItemService.aggregateBy> =
-      spyAggregate([]);
+    const aggregate: jest.SpiedFunction<
+      typeof InventoryItemService.aggregateBy
+    > = spyAggregate([]);
     await InventoryItemService.getPlacementOptions({
       projectId,
       level: InventoryPlacementLevel.Host,

@@ -74,16 +74,14 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(VMWARE_HEALTH_RULE_OVERRIDE_VCENTER_ERROR);
     }
 
-    const vcenter: VMwareVCenter | null = await VMwareVCenterService.findOneBy(
-      {
-        query: {
-          _id: data.vmwareVCenterId,
-          projectId: projectId,
-        },
-        select: { _id: true },
-        props: createBy.props,
+    const vcenter: VMwareVCenter | null = await VMwareVCenterService.findOneBy({
+      query: {
+        _id: data.vmwareVCenterId,
+        projectId: projectId,
       },
-    );
+      select: { _id: true },
+      props: createBy.props,
+    });
 
     if (!vcenter) {
       throw new BadDataException(VMWARE_HEALTH_RULE_OVERRIDE_VCENTER_ERROR);

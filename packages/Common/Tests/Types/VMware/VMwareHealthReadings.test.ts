@@ -24,7 +24,10 @@ import { describe, expect, test } from "@jest/globals";
 const T0: number = Date.UTC(2026, 10, 27, 10, 0, 0) / 1000;
 const MINUTE: number = 60;
 
-function at(minutes: number, values: Partial<VMwareHealthReading>): VMwareHealthReading {
+function at(
+  minutes: number,
+  values: Partial<VMwareHealthReading>,
+): VMwareHealthReading {
   return { t: T0 + minutes * MINUTE, ...values };
 }
 
@@ -68,7 +71,11 @@ describe("how much is kept", () => {
 describe("reading what a row holds", () => {
   test("oldest first, whatever order the row holds them in", () => {
     expect(
-      readVMwareHealthReadings([at(4, { cpu: 3 }), at(0, { cpu: 1 }), at(2, { cpu: 2 })]),
+      readVMwareHealthReadings([
+        at(4, { cpu: 3 }),
+        at(0, { cpu: 1 }),
+        at(2, { cpu: 2 }),
+      ]),
     ).toEqual([at(0, { cpu: 1 }), at(2, { cpu: 2 }), at(4, { cpu: 3 })]);
   });
 
@@ -154,7 +161,11 @@ describe("since when a reading has been past a threshold", () => {
       }),
     ).toBeNull();
     expect(
-      getVMwarePastThresholdSince({ readings: [], field: "cpu", threshold: 90 }),
+      getVMwarePastThresholdSince({
+        readings: [],
+        field: "cpu",
+        threshold: 90,
+      }),
     ).toBeNull();
     expect(
       getVMwarePastThresholdSince({
@@ -178,7 +189,11 @@ describe("since when a reading has been past a threshold", () => {
   test("a gap longer than 15 minutes between reports ends the run", () => {
     expect(
       getVMwarePastThresholdSince({
-        readings: [at(0, { cpu: 99 }), at(16, { cpu: 99 }), at(18, { cpu: 99 })],
+        readings: [
+          at(0, { cpu: 99 }),
+          at(16, { cpu: 99 }),
+          at(18, { cpu: 99 }),
+        ],
         field: "cpu",
         threshold: 90,
       }),

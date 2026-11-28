@@ -61,7 +61,7 @@ Open **Products → Resources → Inventory**. Its side menu has these pages. **
 | Page | What you find there |
 | --- | --- |
 | **Overview** | How many items you have, what they are, how many have gone quiet, and what was added most recently. |
-| **All Items** | Every item. Search by name, description or identity key, narrow the list by type, source, status or custom field, and add an item by hand. |
+| **All Items** | Every item. Search by name, description or identity key, narrow the list by type, source, status, where an item sits or custom field, and add an item by hand. |
 | **Managed Devices** | Your device manager connections - Esper, Microsoft Intune, Workspace ONE UEM and SOTI MobiControl - and every device they import with its status, group, model and operating system. |
 | **Topology** | How the items connect: services, what they call, and the hosts, pods and devices they run on. |
 | **Gone Quiet** | The items not heard from for more than a day: discovered items that sent no telemetry, and devices that stopped checking in with their device manager. |
@@ -71,6 +71,18 @@ Open **Products → Resources → Inventory**. Its side menu has these pages. **
 | **Advanced → Archived** | The items you archived. Unarchive them from here. |
 
 Open an item, and its own side menu has its **Overview** (its type, source and status, and every attribute observed on it), its **Connections** and its **Custom Fields**; its **Logs**, **Traces**, **Metrics**, **Profiles** and **Exceptions**; and its **Incidents**, **Alerts** and **Scheduled Maintenance**. Under **Advanced** are its **Settings**, its **Audit Logs** and **Delete Item**. The telemetry pages show what the item itself sent. The incidents, alerts and maintenance events are those of the service, host or Kubernetes cluster the item stands for; on any other item, those pages say which resource to look at instead.
+
+### Where an item sits
+
+Under its name, **All Items** says where each item sits: a VMware VM's ESXi host and cluster, an ESXi host's cluster and datacenter, a pod's namespace and cluster. The **Cluster**, **Host** and **Datacenter** filters narrow the list to the items in one or more of them: every VM on `esx-node-07`, every host of `cluster-alpha`. Each filter lists the places your items are in, with how many items are in each; type a name to find one among thousands.
+
+| Filter | Matches |
+| --- | --- |
+| **Cluster** | VMware VMs and ESXi hosts by their vSphere cluster, Proxmox nodes and guests by their Proxmox cluster, and Kubernetes namespaces, nodes, pods and deployments by their Kubernetes cluster |
+| **Host** | VMware VMs by their ESXi host, and OpenStack instances by their hypervisor |
+| **Datacenter** | VMware VMs, ESXi hosts, clusters and datastores by their vSphere datacenter |
+
+The filters are answered by OneUptime over every item, not over the page you are looking at, so the count and every page agree however many items you have. **Is not** keeps the items that are in no such place, and the filters combine with each other and with **Type**: the VMs of one cluster in one datacenter.
 
 ### Asset details
 

@@ -327,7 +327,10 @@ describe("the places Inventory filters by", () => {
 
   test("a kind with no place at a level, a root, an unknown kind and a blank are in none", () => {
     const cases: Array<
-      [Parameters<typeof getInventoryItemPlacementAt>[0], InventoryPlacementLevel]
+      [
+        Parameters<typeof getInventoryItemPlacementAt>[0],
+        InventoryPlacementLevel,
+      ]
     > = [
       [
         {

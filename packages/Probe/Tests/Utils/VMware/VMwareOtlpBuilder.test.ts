@@ -913,8 +913,9 @@ describe("VMwareOtlpBuilder", () => {
     for (const resource of result.resourceMetrics as Array<JSONObject>) {
       for (const scope of resource["scopeMetrics"] as Array<JSONObject>) {
         for (const metric of scope["metrics"] as Array<JSONObject>) {
-          const definition: (typeof ONEUPTIME_VCENTER_METRICS)[string] | undefined =
-            ONEUPTIME_VCENTER_METRICS[metric["name"] as string];
+          const definition:
+            | (typeof ONEUPTIME_VCENTER_METRICS)[string]
+            | undefined = ONEUPTIME_VCENTER_METRICS[metric["name"] as string];
           if (!definition) {
             continue;
           }

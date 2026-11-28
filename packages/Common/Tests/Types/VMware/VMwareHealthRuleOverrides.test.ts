@@ -333,9 +333,7 @@ describe("what an override covers", () => {
         covered: doesVMwareHealthRuleOverrideCover(PROD_VCENTER, part),
       }).toEqual({ part: part.externalId || part.kind, covered: true });
     }
-    expect(doesVMwareHealthRuleOverrideCover(PROD_VCENTER, LAB_VM)).toBe(
-      false,
-    );
+    expect(doesVMwareHealthRuleOverrideCover(PROD_VCENTER, LAB_VM)).toBe(false);
   });
 
   test("a vCenter's override knows its vCenter by id, as a string or an ObjectID", () => {
@@ -531,9 +529,9 @@ describe("which overrides apply to a part, and in which order", () => {
       first,
       second,
     ]);
-    expect(resolveVMwareHealthRules(book, HOST_NORTH).hostCpuWarningPercent).toBe(
-      92,
-    );
+    expect(
+      resolveVMwareHealthRules(book, HOST_NORTH).hostCpuWarningPercent,
+    ).toBe(92);
   });
 });
 
@@ -555,10 +553,12 @@ describe("the rules each part is judged by", () => {
 
   test("its neighbour on the same host: the host's, not the VM's", () => {
     expect(
-      resolveVMwareHealthRules(BOOK, VM_NORTH_NEIGHBOUR).vmCpuReadyWarningPercent,
+      resolveVMwareHealthRules(BOOK, VM_NORTH_NEIGHBOUR)
+        .vmCpuReadyWarningPercent,
     ).toBe(30);
     expect(
-      resolveVMwareHealthRules(BOOK, VM_NORTH_NEIGHBOUR).vmSwapEvaluationMinutes,
+      resolveVMwareHealthRules(BOOK, VM_NORTH_NEIGHBOUR)
+        .vmSwapEvaluationMinutes,
     ).toBe(0);
   });
 
@@ -627,9 +627,9 @@ describe("the rules each part is judged by", () => {
       ],
     );
     // A null period is no value: the project's 15 minutes stay.
-    expect(resolveVMwareHealthRules(book, HOST_NORTH).hostEvaluationMinutes).toBe(
-      15,
-    );
+    expect(
+      resolveVMwareHealthRules(book, HOST_NORTH).hostEvaluationMinutes,
+    ).toBe(15);
   });
 
   test("a project period of nothing is read as the latest report", () => {
@@ -637,9 +637,9 @@ describe("the rules each part is judged by", () => {
       ...PROJECT_RULES,
       hostEvaluationMinutes: null,
     });
-    expect(resolveVMwareHealthRules(book, HOST_NORTH).hostEvaluationMinutes).toBe(
-      0,
-    );
+    expect(
+      resolveVMwareHealthRules(book, HOST_NORTH).hostEvaluationMinutes,
+    ).toBe(0);
   });
 
   test("a rule an override's scope does not judge is not applied, even if stored", () => {
@@ -716,9 +716,9 @@ describe("where each rule came from", () => {
   });
 
   test("lists every rule", () => {
-    expect(Object.keys(explainVMwareHealthRules(BOOK, VM_NORTH)).sort()).toEqual(
-      [...VMWARE_HEALTH_RULE_KEYS].sort(),
-    );
+    expect(
+      Object.keys(explainVMwareHealthRules(BOOK, VM_NORTH)).sort(),
+    ).toEqual([...VMWARE_HEALTH_RULE_KEYS].sort());
   });
 });
 
@@ -750,12 +750,12 @@ describe("the rules a page hands a judgement", () => {
 
 describe("reading an override's value for a rule", () => {
   test("a number in range is set", () => {
-    expect(readVMwareHealthRuleOverrideValue("hostCpuWarningPercent", 70)).toEqual(
-      { isSet: true, value: 70 },
-    );
-    expect(readVMwareHealthRuleOverrideValue("hostEvaluationMinutes", 30)).toEqual(
-      { isSet: true, value: 30 },
-    );
+    expect(
+      readVMwareHealthRuleOverrideValue("hostCpuWarningPercent", 70),
+    ).toEqual({ isSet: true, value: 70 });
+    expect(
+      readVMwareHealthRuleOverrideValue("hostEvaluationMinutes", 30),
+    ).toEqual({ isSet: true, value: 30 });
     expect(
       readVMwareHealthRuleOverrideValue("vmSwapInWarningKibPerSecond", 0),
     ).toEqual({ isSet: true, value: 0 });
@@ -819,7 +819,10 @@ describe("what the server keeps of an override's rules", () => {
   test("anything but an object is no rules", () => {
     for (const rules of [null, undefined, "x", 3, [1, 2]]) {
       expect(
-        cleanVMwareHealthRuleOverrideRules(VMwareHealthRuleScope.VCenter, rules),
+        cleanVMwareHealthRuleOverrideRules(
+          VMwareHealthRuleScope.VCenter,
+          rules,
+        ),
       ).toEqual({});
     }
   });

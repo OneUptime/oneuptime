@@ -13,6 +13,7 @@ import { RESOURCE_PART_TONE_CLASS_NAMES } from "../ResourcePart/ResourcePartHero
 import ResourcePartRow from "../ResourcePart/ResourcePartRow";
 import { ResourcePartStatus } from "../ResourcePart/ResourcePartTypes";
 import {
+  getVMwareRulesOf,
   VMWARE_HOST_SATURATION_PERCENT,
   findVMwareDatacenter,
   getVMwareHostName,
@@ -35,12 +36,7 @@ import {
 } from "Common/Types/VMware/VMwareHealthRules";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
-import {
-  VMwareHealthRuleBook,
-} from "Common/Types/VMware/VMwareHealthRuleOverrides";
-import {
-  getVMwareRulesOf,
-} from "../../Pages/VMware/Utils/VMwareHealth";
+import { VMwareHealthRuleBook } from "Common/Types/VMware/VMwareHealthRuleOverrides";
 
 /*
  * A vCenter's ESXi hosts at a glance - what vCenter's own Hosts tab opens
@@ -191,10 +187,7 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
           {shown.map((host: VMwareResource): ReactElement => {
             const externalId: string = host.externalId || "";
             // The host's own rules, or its cluster's or vCenter's (#11469).
-            const hostRules: VMwareHealthRules = getVMwareRulesOf(
-              rules,
-              host,
-            );
+            const hostRules: VMwareHealthRules = getVMwareRulesOf(rules, host);
             const name: string = getVMwareHostName(host) || externalId;
             const datacenter: VMwareResource | null = findVMwareDatacenter(
               props.datacenters,
