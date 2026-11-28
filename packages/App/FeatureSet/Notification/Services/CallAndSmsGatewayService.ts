@@ -6,6 +6,10 @@ import SignedWebhookPost, {
 } from "../Utils/SignedWebhookPost";
 import { CallAndSmsGateway } from "Common/Types/CallAndSMS/CallAndSmsProvider";
 import {
+  CALL_AND_SMS_GATEWAY_NAME,
+  getSentToCallAndSmsGatewayMessage,
+} from "Common/Types/CallAndSMS/CallAndSmsGatewayLine";
+import {
   buildCallAndSmsGatewayTestPayload,
   CallAndSmsGatewayEvent,
 } from "Common/Types/CallAndSMS/CallAndSmsGatewayPayload";
@@ -36,8 +40,12 @@ import SafeWebhookRequest, {
 export const CALL_AND_SMS_GATEWAY_USER_AGENT: string =
   "OneUptime-CallAndSmsGateway/1.0";
 
-// How the gateway is named where people read about a delivery.
-export const CALL_AND_SMS_GATEWAY_NAME: string = "the SMS and call gateway";
+/*
+ * How the gateway is named where people read about a delivery, and what a
+ * log says of one it took: written in Common (CallAndSmsGatewayLine), where
+ * the notification logs read the line back.
+ */
+export { CALL_AND_SMS_GATEWAY_NAME };
 
 // What the test answers on a server that does not send through a gateway.
 export const CALL_AND_SMS_GATEWAY_NOT_SET_UP_MESSAGE: string =
@@ -104,7 +112,8 @@ export default class CallAndSmsGatewayService {
       return {
         ok: true,
         statusCode: outcome.statusCode,
-        message: `Sent to ${CALL_AND_SMS_GATEWAY_NAME} (HTTP ${outcome.statusCode}).`,
+        // A request it took was answered: with its 2xx.
+        message: getSentToCallAndSmsGatewayMessage(outcome.statusCode!),
       };
     }
 

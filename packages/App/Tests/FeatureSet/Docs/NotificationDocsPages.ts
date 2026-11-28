@@ -24,6 +24,8 @@ export const NOTIFICATION_METHODS: string =
 export const PERSONAL_ON_CALL_RULES: string = "notifications/on-call-rules";
 export const NOTIFICATION_SETTINGS: string =
   "notifications/notification-settings";
+// What every status of the notification logs means (#11138).
+export const NOTIFICATION_LOGS: string = "notifications/notification-logs";
 
 // The Notifications nav group, page for page.
 export const NOTIFICATION_PAGES: ReadonlyArray<NotificationDocsPageEntry> = [
@@ -31,6 +33,7 @@ export const NOTIFICATION_PAGES: ReadonlyArray<NotificationDocsPageEntry> = [
   { page: NOTIFICATION_METHODS, navTitle: "Notification Methods" },
   { page: PERSONAL_ON_CALL_RULES, navTitle: "How to Reach Me" },
   { page: NOTIFICATION_SETTINGS, navTitle: "Notification Settings" },
+  { page: NOTIFICATION_LOGS, navTitle: "Notification Logs" },
 ];
 
 // The nav group's title, its section, and the group it follows there.
@@ -87,6 +90,7 @@ export const DIAGRAM_KINDS: Readonly<Record<string, string>> = {
   [NOTIFICATION_METHODS]: "flowchart TB",
   [PERSONAL_ON_CALL_RULES]: "flowchart TB",
   [NOTIFICATION_SETTINGS]: "flowchart TB",
+  [NOTIFICATION_LOGS]: "flowchart TB",
 };
 
 /*
