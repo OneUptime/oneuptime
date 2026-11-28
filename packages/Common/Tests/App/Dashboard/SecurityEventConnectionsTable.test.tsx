@@ -28,6 +28,7 @@ import {
 import SecurityEventConnectionRunDetails from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionRunDetails";
 import SecurityEventConnectionsTable, {
   CONNECTION_ROW_MARK_SIZE,
+  SECURITY_EVENT_CONNECTION_FORM_SELECT,
   getConnectionProviderDetailParts,
   getConnectorProviderHelpTopics,
   securityEventConnectionsHelpMarkdown,
@@ -1964,6 +1965,184 @@ describe("SecurityEventConnectionsTable", () => {
     expect(
       within(credentials).queryByLabelText(/^Okta organization URL/),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * A SECURITY CASE'S STEP LINKS TO A CONNECTION (#11376): the Google
+ * Workspace line "add the scope ... to the domain-wide delegation of the
+ * Google Workspace connection under Security Events > Connections" links
+ * here with ?connection=<id>, and the connection's form opens to edit it,
+ * as Cloud > Connect opens an AWS connection's (#11039) - for someone who
+ * may change it, with what the form edits and never a credential. Anyone
+ * else sees the list. Closing the form forgets the link.
+ */
+describe("a link that names a connection", () => {
+  const WORKSPACE_ID: string = "9a7e6c5d-0000-4000-8000-0000000060a1";
+  const PAGE: string = `/dashboard/${PROJECT_ID.toString()}/security-events/connections`;
+
+  function workspaceConnection(): SecurityEventConnection {
+    return connection({
+      _id: WORKSPACE_ID,
+      name: "Acme Google Workspace",
+      provider: SecurityEventConnectorProvider.GoogleWorkspace,
+      config: { adminEmail: "admin@acme.com" },
+      alertingOnly: false,
+      caseMinimumSeverity: "Critical",
+    });
+  }
+
+  function openAt(search: string): void {
+    window.history.pushState({}, "", `${PAGE}${search}`);
+  }
+
+  function dialogStep(dialog: HTMLElement): string {
+    return (
+      within(dialog)
+        .getByRole("navigation", { name: "Progress" })
+        .querySelector('[aria-current="step"]')?.textContent || ""
+    );
+  }
+
+  async function next(dialog: HTMLElement): Promise<void> {
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(dialog).getByRole("button", { name: "Next" }));
+    });
+  }
+
+  beforeEach((): void => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+    mockRows.clear();
+    mockTableProps.clear();
+    mockIsMobile = false;
+    mockTransport();
+    jest.spyOn(ModelAPI, "getItem").mockResolvedValue(workspaceConnection());
+  });
+
+  afterEach((): void => {
+    cleanup();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+    window.history.pushState({}, "", "/");
+  });
+
+  test("opens the connection's form to edit it, read with what the form edits - never a credential", async (): Promise<void> => {
+    openAt(`?connection=${WORKSPACE_ID}`);
+    renderTable([connection()]);
+
+    const edit: HTMLElement = await screen.findByRole("dialog", {
+      name: "Edit connection: Acme Google Workspace",
+    });
+
+    expect(within(edit).getByLabelText(/^Administrator email/)).toHaveValue(
+      "admin@acme.com",
+    );
+    expect(jest.mocked(ModelAPI.getItem).mock.calls).toHaveLength(1);
+
+    const read: JSONObject = jest.mocked(ModelAPI.getItem).mock
+      .calls[0]![0] as unknown as JSONObject;
+
+    expect((read["id"] as ObjectID).toString()).toBe(WORKSPACE_ID);
+    expect(read["select"]).toEqual(SECURITY_EVENT_CONNECTION_FORM_SELECT);
+    expect(read["select"]).not.toHaveProperty("secrets");
+  });
+
+  test("the form keeps the connection's threshold for opening cases: Critical stays Critical", async (): Promise<void> => {
+    openAt(`?connection=${WORKSPACE_ID}`);
+    renderTable([]);
+
+    const edit: HTMLElement = await screen.findByRole("dialog", {
+      name: "Edit connection: Acme Google Workspace",
+    });
+
+    await next(edit);
+    expect(dialogStep(edit)).toBe("Credentials");
+    await next(edit);
+    expect(dialogStep(edit)).toBe("Polling");
+    expect(
+      within(edit).getByRole("combobox", { name: /^Open Cases From/ }),
+    ).toBeInTheDocument();
+    expect(edit).toHaveTextContent("Critical only");
+    expect(edit).not.toHaveTextContent("Never - import as events only");
+  });
+
+  test("closing the form forgets the link: a refresh opens nothing", async (): Promise<void> => {
+    openAt(`?connection=${WORKSPACE_ID}&tab=1`);
+    renderTable([]);
+
+    const edit: HTMLElement = await screen.findByRole("dialog", {
+      name: "Edit connection: Acme Google Workspace",
+    });
+
+    await closeDialog(edit);
+
+    expect(window.location.search).toBe("?tab=1");
+  });
+
+  test("someone who may not change connections sees the list: the link asks for nothing and opens nothing", async (): Promise<void> => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({
+      isAllowed: false,
+      disabledReason: NO_UPDATE_REASON,
+    });
+    openAt(`?connection=${WORKSPACE_ID}`);
+    renderTable([connection()]);
+
+    await act(async (): Promise<void> => {
+      await Promise.resolve();
+    });
+
+    expect(jest.mocked(ModelAPI.getItem)).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(row()).toBeInTheDocument();
+  });
+
+  test("a connection gone since, or another project's, opens nothing; nor does anything but an id", async (): Promise<void> => {
+    jest.spyOn(ModelAPI, "getItem").mockRejectedValue(new Error("Not found"));
+    openAt(`?connection=${WORKSPACE_ID}`);
+    renderTable([]);
+
+    await act(async (): Promise<void> => {
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    cleanup();
+
+    jest.mocked(ModelAPI.getItem).mockClear();
+    for (const search of ["?connection=../../admin", "?connection=", ""]) {
+      openAt(search);
+      renderTable([]);
+
+      await act(async (): Promise<void> => {
+        await Promise.resolve();
+      });
+
+      expect({
+        search,
+        read: jest.mocked(ModelAPI.getItem).mock.calls,
+      }).toEqual({ search, read: [] });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      cleanup();
+    }
+  });
+
+  test("the rows read what Edit shows: a connection's threshold for opening cases, found along the way", (): void => {
+    renderTable([connection()]);
+
+    // Without it, Edit showed one that opens cases from High alerts as "Never", and saved it so.
+    expect(tableProps().selectMoreFields).toEqual(
+      expect.objectContaining({ caseMinimumSeverity: true }),
+    );
+    expect(SECURITY_EVENT_CONNECTION_FORM_SELECT).toEqual(
+      expect.objectContaining({
+        caseMinimumSeverity: true,
+        config: true,
+        alertingOnly: true,
+        pollIntervalInMinutes: true,
+      }),
+    );
   });
 });
 
