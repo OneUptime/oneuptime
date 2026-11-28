@@ -36,6 +36,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import ModelAPI from "../ModelAPI/ModelAPI";
+import PermissionGate from "../PermissionGate";
 import { UNKNOWN_SERVICE_NAME } from "../TelemetryService";
 
 /*
@@ -450,13 +451,24 @@ const readNameFromModel: (
   return undefined;
 };
 
-// Whether a table's records can be archived: then a read says which are.
 const ARCHIVED_COLUMN: string = "isArchived";
 
-const hasArchivedColumn: (modelType: {
+/*
+ * Whether a table's records are read with their archive switch: when they
+ * can be archived, and the reader may read it. The server refuses a whole
+ * read that selects a column its reader may not read, and then not one of
+ * the table's records would be named (as the scope picker's reads,
+ * TelemetryResourceScope, #10921).
+ */
+const readsArchiveSwitch: (modelType: {
   new (): BaseModel;
 }) => boolean = (modelType: { new (): BaseModel }): boolean => {
-  return Boolean(new modelType().getTableColumnMetadata(ARCHIVED_COLUMN));
+  const model: BaseModel = new modelType();
+
+  return (
+    Boolean(model.getTableColumnMetadata(ARCHIVED_COLUMN)) &&
+    PermissionGate.canReadColumn(model, ARCHIVED_COLUMN)
+  );
 };
 
 const CACHE_TTL_IN_MS: number = 60 * 1000;
@@ -853,8 +865,8 @@ export default class TelemetryEntityNameResolver {
       select[field] = true;
     }
 
-    // An archived record's chip says so (#11213).
-    const readsArchived: boolean = hasArchivedColumn(config.modelType);
+    // An archived record's chip says so (#11213), to a reader who may know.
+    const readsArchived: boolean = readsArchiveSwitch(config.modelType);
 
     if (readsArchived) {
       select[ARCHIVED_COLUMN] = true;
