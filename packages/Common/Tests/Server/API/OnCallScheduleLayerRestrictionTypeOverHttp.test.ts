@@ -351,15 +351,16 @@ describe("POST /api/on-call-duty-schedule-layer", () => {
     },
   ];
 
-  for (const refusal of refused) {
-    test(`refused, naming the key, and nothing written: ${refusal.name}`, async () => {
+  test.each(refused)(
+    "refused, naming the key, and nothing written: $name",
+    async (refusal: { name: string; data: JSONObject; refusal: string }) => {
       const sent: SentRequest = await create(refusal.data);
 
       expect(sent.status).toBe(400);
       expect(refusalOf(sent)).toContain(refusal.refusal);
       expect(layers.inserts).toHaveLength(0);
-    });
-  }
+    },
+  );
 });
 
 describe("PUT /api/on-call-duty-schedule-layer/:id", () => {
