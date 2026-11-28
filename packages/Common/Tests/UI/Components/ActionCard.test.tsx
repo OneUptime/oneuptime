@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   cleanup,
   fireEvent,
@@ -70,8 +71,8 @@ function openConfirmation(): HTMLElement {
 
 describe("ActionCard", () => {
   test("asks before it acts, in the action's words", () => {
-    const onConfirm: jest.Mock = jest.fn();
-    render(<Card onConfirm={onConfirm as unknown as () => void} />);
+    const onConfirm: Mock<() => void> = jest.fn<() => void>();
+    render(<Card onConfirm={onConfirm} />);
 
     const dialog: HTMLElement = openConfirmation();
 
@@ -89,8 +90,8 @@ describe("ActionCard", () => {
   });
 
   test("a confirmation that asks nothing more acts at once", () => {
-    const onConfirm: jest.Mock = jest.fn();
-    render(<Card onConfirm={onConfirm as unknown as () => void} />);
+    const onConfirm: Mock<() => void> = jest.fn<() => void>();
+    render(<Card onConfirm={onConfirm} />);
 
     const dialog: HTMLElement = openConfirmation();
 
@@ -100,10 +101,10 @@ describe("ActionCard", () => {
   });
 
   test("one that asks more draws it under its question, and its button waits for the answer", () => {
-    const onConfirm: jest.Mock = jest.fn();
+    const onConfirm: Mock<() => void> = jest.fn<() => void>();
     render(
       <Card
-        onConfirm={onConfirm as unknown as () => void}
+        onConfirm={onConfirm}
         extra={(answer: string, setAnswer: (value: string) => void) => {
           return {
             content: (
@@ -155,8 +156,8 @@ describe("ActionCard", () => {
   });
 
   test("closed without acting, nothing is done", () => {
-    const onConfirm: jest.Mock = jest.fn();
-    render(<Card onConfirm={onConfirm as unknown as () => void} />);
+    const onConfirm: Mock<() => void> = jest.fn<() => void>();
+    render(<Card onConfirm={onConfirm} />);
 
     const dialog: HTMLElement = openConfirmation();
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
