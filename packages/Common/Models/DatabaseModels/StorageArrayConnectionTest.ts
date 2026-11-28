@@ -291,7 +291,8 @@ export default class StorageArrayConnectionTest extends BaseModel {
     required: true,
     type: TableColumnType.LongText,
     title: "Address",
-    description: "The HTTPS address being tested, normalized to https://host:port.",
+    description:
+      "The HTTPS address being tested, normalized to https://host:port.",
   })
   @Column({
     type: ColumnType.LongText,
