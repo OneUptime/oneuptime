@@ -7,6 +7,7 @@ OneUptime प्रदाता [Terraform Registry](https://registry.terraform.
 - [संस्करण कैसे क्रमांकित होते हैं](#संस्करण-कैसे-क्रमांकित-होते-हैं): प्रदाता का संस्करण वह OneUptime रिलीज़ है जिसने उसे प्रकाशित किया।
 - [लॉक फ़ाइल](#लॉक-फ़ाइल): वह संस्करण और checksum जो हर मशीन इंस्टॉल करती है।
 - [नए संस्करण पर जाएँ](#नए-संस्करण-पर-जाएँ): पढ़ें कि क्या बदला, उसे डाउनलोड करें, और प्लान करें।
+- [किसी संस्करण के checksum जाँचें](#किसी-संस्करण-के-checksum-जाँचें): किसी संस्करण को हाथ से जाँचें, जैसे `init` उसे जाँचता है।
 :::
 
 ## क्या प्रकाशित होता है
@@ -57,6 +58,8 @@ terraform {
 
 प्रकाशित संस्करण कभी नहीं बदलता: रजिस्ट्रियाँ उसका checksum रखती हैं जो उन्होंने पहली बार डाउनलोड किया, और `init` हर डाउनलोड को उनसे जाँचता है। जिस संस्करण को ठीक करना हो, उसे अगले patch संस्करण के रूप में फिर से प्रकाशित किया जाता है, जिसे एक सीमा ले लेती है, और उस रिलीज़ के नोट्स बताते हैं कि वह किस संस्करण की जगह लेता है।
 
+हर संस्करण प्रकाशित होने के बाद, और फिर हर दिन, OneUptime दोनों रजिस्ट्रियों के रखे checksum की तुलना हर प्लेटफ़ॉर्म के लिए उन फ़ाइलों से करता है जो रिलीज़ देती है।
+
 ## लॉक फ़ाइल
 
 `terraform init` उसके चुने हुए संस्करण, और उसके डाउनलोड के checksum, `.terraform.lock.hcl` में दर्ज करता है। उस फ़ाइल को commit करें: तब हर मशीन और हर CI रन ठीक वही संस्करण इंस्टॉल करता है, जब तक आप कोई दूसरा न चुनें। checksum उन सभी प्लेटफ़ॉर्म को कवर करते हैं जिन्हें रजिस्ट्री प्रकाशित करती है, इसलिए एक लॉक फ़ाइल Linux, macOS और Windows मशीनों के लिए समान रूप से काम करती है।
@@ -95,6 +98,29 @@ terraform init -upgrade
 :::
 
 स्व-होस्टेड OneUptime पर, पहले OneUptime अपग्रेड करें, फिर प्रदाता की सीमा का अंत बढ़ाएँ।
+
+## किसी संस्करण के checksum जाँचें
+
+`init` किसी संस्करण को तभी इंस्टॉल करता है जब आपके प्लेटफ़ॉर्म के लिए तीन SHA-256 checksum मेल खाते हैं: वह जो संस्करण प्रकाशित होते समय रजिस्ट्री ने रखा, रिलीज़ की `SHA256SUMS` में zip की पंक्ति, और खुद zip। यह यह भी जाँचता है कि `SHA256SUMS` पर OneUptime की कुंजी से हस्ताक्षर है, जिसका फ़िंगरप्रिंट `9D87 E494 AC01 6697` पर खत्म होता है। किसी संस्करण को खुद जाँचने के लिए, पहली पंक्ति में उसका संस्करण, अपना सिस्टम और अपना आर्किटेक्चर सेट करें:
+
+```bash
+VERSION=17.3.0 OS=linux ARCH=amd64
+ZIP=terraform-provider-oneuptime_${VERSION}_${OS}_${ARCH}.zip
+SUMS=terraform-provider-oneuptime_${VERSION}_SHA256SUMS
+curl -s https://registry.terraform.io/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH > registry.json
+jq -r .shasum registry.json
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$ZIP"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS.sig"
+grep "$ZIP" "$SUMS"
+sha256sum "$ZIP"
+jq -r '.signing_keys.gpg_public_keys[0].ascii_armor' registry.json | gpg --import
+gpg --verify "$SUMS.sig" "$SUMS"
+```
+
+यह जो तीन checksum छापता है वे एक जैसे होने चाहिए, और `gpg` को `Good signature from "OneUptime <key@oneuptime.com>"` कहना चाहिए। macOS पर, `shasum -a 256` को `sha256sum` की जगह लिखें। जब रजिस्ट्री का checksum बाकी दो से अलग हो, तो `init` संस्करण को अस्वीकार कर देता है: देखें [ऐसा संस्करण जिसके checksum मेल नहीं खाते](/docs/terraform/troubleshooting#ऐसा-संस्करण-जिसके-checksum-मेल-नहीं-खाते)।
+
+OpenTofu की रजिस्ट्री वही checksum रखती है: उसका अपना checksum `https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH` से पढ़ें। उसके पास प्रदाता की कोई कुंजी नहीं है, इसलिए `tofu init` checksum जाँचता है और हस्ताक्षर छोड़ देता है।
 
 ## कोड कहाँ है
 

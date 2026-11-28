@@ -361,13 +361,122 @@ limit so the two never drift apart. Unsuffixed input is treated as bytes.
 */}}
 {{- define "oneuptime.memoryToBytes" -}}
 {{- $q := . | toString -}}
-{{- if hasSuffix "Gi" $q -}}{{ trimSuffix "Gi" $q | float64 | mulf 1073741824 | int64 }}
+{{- if hasSuffix "Ti" $q -}}{{ trimSuffix "Ti" $q | float64 | mulf 1099511627776 | int64 }}
+{{- else if hasSuffix "Gi" $q -}}{{ trimSuffix "Gi" $q | float64 | mulf 1073741824 | int64 }}
 {{- else if hasSuffix "Mi" $q -}}{{ trimSuffix "Mi" $q | float64 | mulf 1048576 | int64 }}
 {{- else if hasSuffix "Ki" $q -}}{{ trimSuffix "Ki" $q | float64 | mulf 1024 | int64 }}
+{{- else if hasSuffix "T" $q -}}{{ trimSuffix "T" $q | float64 | mulf 1000000000000 | int64 }}
 {{- else if hasSuffix "G" $q -}}{{ trimSuffix "G" $q | float64 | mulf 1000000000 | int64 }}
 {{- else if hasSuffix "M" $q -}}{{ trimSuffix "M" $q | float64 | mulf 1000000 | int64 }}
 {{- else if hasSuffix "k" $q -}}{{ trimSuffix "k" $q | float64 | mulf 1000 | int64 }}
 {{- else -}}{{ $q | float64 | int64 }}{{- end -}}
+{{- end -}}
+
+{{/*
+Convert a Kubernetes CPU quantity ("250m", "0.5", "2") to millicores.
+*/}}
+{{- define "oneuptime.cpuToMillicores" -}}
+{{- $q := . | toString -}}
+{{- if hasSuffix "m" $q -}}{{ trimSuffix "m" $q | float64 | int64 }}
+{{- else -}}{{ $q | float64 | mulf 1000 | int64 }}{{- end -}}
+{{- end -}}
+
+{{/*
+The bundled Valkey's container resources: `valkey.master.resources`, with the
+one repair a shipped request AND a shipped limit make necessary. The API server
+refuses a request above its limit, and Helm merges what an install sets into
+the chart's defaults key by key, so an install that set only one side of a pair
+could otherwise get a pod spec that fails its next upgrade:
+
+  - memory: a request above the limit lifts the limit to the request. The way
+    there is an install that reserved more for its cache than the limit the
+    chart ships; its cap is then what it reserved, never less.
+  - cpu: a request above the limit comes down to the limit. The chart ships no
+    CPU limit, so the way there is an install that set one below the request
+    the chart ships.
+
+Usage:
+{{- $resources := include "oneuptime.valkey.resources" . | fromYaml }}
+*/}}
+{{- define "oneuptime.valkey.resources" -}}
+{{- $valkey := include "oneuptime.valkey" . | fromYaml -}}
+{{- $resources := deepCopy ((($valkey).master).resources | default dict) -}}
+{{- $requests := $resources.requests | default dict -}}
+{{- $limits := $resources.limits | default dict -}}
+{{- range $side, $quantities := (dict "requests" $requests "limits" $limits) -}}
+{{- if and $quantities.memory (le (include "oneuptime.memoryToBytes" $quantities.memory | int64) 0) -}}
+{{- fail (printf "valkey.master.resources.%s.memory is %q, which is not a memory quantity. Use one such as \"512Mi\" or \"4Gi\"." $side (toString $quantities.memory)) -}}
+{{- end -}}
+{{- end -}}
+{{- if and $requests.memory $limits.memory -}}
+{{- if gt (include "oneuptime.memoryToBytes" $requests.memory | int64) (include "oneuptime.memoryToBytes" $limits.memory | int64) -}}
+{{- $_ := set $limits "memory" $requests.memory -}}
+{{- end -}}
+{{- end -}}
+{{- if and $requests.cpu $limits.cpu -}}
+{{- if gt (include "oneuptime.cpuToMillicores" $requests.cpu | int64) (include "oneuptime.cpuToMillicores" $limits.cpu | int64) -}}
+{{- $_ := set $requests "cpu" $limits.cpu -}}
+{{- end -}}
+{{- end -}}
+{{- if $resources -}}
+{{- toYaml $resources -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The `maxmemory` the bundled Valkey runs with, as valkey.conf takes it, or
+nothing at all when there is no cap to set.
+
+  - `valkey.maxmemory`, when set, wins. It takes valkey.conf's own forms
+    ("3gb", "512mb", a byte count) or a Kubernetes quantity ("3Gi"), which
+    valkey.conf does not read and is written out as bytes.
+  - Otherwise it is a share of the container's memory limit,
+    `valkey.maxmemoryPercentOfMemoryLimit`: 75% by default, 60% with
+    persistence on, because an AOF rewrite forks the server and the fork's
+    copy-on-write pages count against the same limit. The rest is headroom for
+    what maxmemory does not count: allocator fragmentation, client buffers and
+    the fork. A cap at the limit itself would have the kernel OOM-kill the
+    server before Valkey ever refused a write.
+  - No limit and no `valkey.maxmemory`: nothing, and Valkey grows without
+    bound until the node runs out of memory.
+
+Usage:
+{{- include "oneuptime.valkey.maxmemory" . }}
+*/}}
+{{- define "oneuptime.valkey.maxmemory" -}}
+{{- $valkey := include "oneuptime.valkey" . | fromYaml -}}
+{{- $explicit := $valkey.maxmemory -}}
+{{- if and (not (kindIs "invalid" $explicit)) (ne (toString $explicit) "") -}}
+{{- if or (kindIs "float64" $explicit) (kindIs "int64" $explicit) (kindIs "int" $explicit) -}}
+{{- printf "%d" (int64 $explicit) -}}
+{{- else -}}
+{{- $value := trim (toString $explicit) -}}
+{{- if regexMatch `^[0-9]+(\.[0-9]+)?(Ki|Mi|Gi|Ti|k|M|G|T)$` $value -}}
+{{- include "oneuptime.memoryToBytes" $value -}}
+{{- else if regexMatch `^[0-9]+([kKmMgG][bB]?|[bB])?$` $value -}}
+{{- $value -}}
+{{- else -}}
+{{- fail (printf "valkey.maxmemory is %q, which is not a memory size. Use valkey.conf's own form (\"3gb\", \"512mb\", or a number of bytes) or a Kubernetes quantity (\"3Gi\")." $value) -}}
+{{- end -}}
+{{- end -}}
+{{- else -}}
+{{- $resources := include "oneuptime.valkey.resources" . | fromYaml -}}
+{{- $limit := (($resources).limits).memory -}}
+{{- if $limit -}}
+{{- $percent := $valkey.maxmemoryPercentOfMemoryLimit -}}
+{{- if or (kindIs "invalid" $percent) (eq (toString $percent) "") -}}
+{{- $percent = ternary 60 75 (not (not ((($valkey).master).persistence).enabled)) -}}
+{{- end -}}
+{{- if or (lt (int64 $percent) 1) (gt (int64 $percent) 100) -}}
+{{- fail (printf "valkey.maxmemoryPercentOfMemoryLimit is %v; it is a percentage of the container's memory limit, from 1 to 100." $percent) -}}
+{{- end -}}
+{{- $bytes := div (mul (include "oneuptime.memoryToBytes" $limit | int64) (int64 $percent)) 100 -}}
+{{- if le (int64 $bytes) 0 -}}
+{{- fail (printf "valkey.master.resources.limits.memory is %q, which this chart cannot read as a memory size to derive Valkey's maxmemory from. Use a Kubernetes quantity such as \"4Gi\", or set valkey.maxmemory." (toString $limit)) -}}
+{{- end -}}
+{{- $bytes -}}
+{{- end -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "oneuptime.image.tag" -}}
@@ -2056,6 +2165,19 @@ values are set. Secrets can come from an existing Kubernetes secret.
 
 - name: DISABLE_TELEMETRY_INGESTION
   value: {{ default false $.Values.telemetry.disableIngestion | squote }}
+
+{{- /*
+  When a project's telemetry, or everyone's, is answered 429 for the queue's
+  sake (TelemetryIngestShedding): every pod that takes telemetry decides it,
+  so every pod reads the same block. Read through `dig` so a values file
+  written before these keys existed still renders, and `int64` so a large
+  number is not written in exponent form.
+*/}}
+- name: TELEMETRY_INGEST_PROJECT_QUEUE_LIMIT
+  value: {{ dig "projectQueueLimit" 10000 ($.Values.telemetry | default dict) | int64 | squote }}
+
+- name: TELEMETRY_INGEST_VALKEY_MEMORY_LIMIT_PERCENT
+  value: {{ dig "valkeyMemoryLimitPercent" 85 ($.Values.telemetry | default dict) | int64 | squote }}
 
 {{- /*
   The products every project offers as the server starts (#6815): a starting

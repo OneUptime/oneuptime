@@ -274,7 +274,7 @@ Incident Severity with the same name already exists.
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-このような拒否には、キーがそのレコードを読み取れる場合、その名前を持つレコードの ID である `takenById` も含まれます。プロジェクトが一意の名前を必要とする前から名前を共有していたレコードは、名前が変更されるまでその名前を保ちます。また、一度の更新で同じ種類の複数のレコードに同じ名前を付けることはできません。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` は名前を送る前にその名前が使われているかどうかを答え、`GET /api/unique-names/duplicates` はプロジェクト内で二回以上使われている名前を種類ごとに一覧表示します。
+このような拒否には、キーがそのレコードを読み取れる場合、その名前を持つレコードの ID である `takenById` も含まれます。プロジェクトが一意の名前を必要とする前から名前を共有していたレコードは、名前が変更されるまでその名前を保ちます。また、一度の更新で同じ種類の複数のレコードに同じ名前を付けることはできません。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` は名前を送る前にその名前が使われているかどうかを答え、`GET /api/unique-names/duplicates` はプロジェクト内で二回以上使われている名前を種類ごとに一覧表示します。`GET /api/shared-names/Monitor` (または、この設定の対象となるほかの種類のテーブル名) は、ダッシュボードの一覧で印が付くのと同じように、その種類のどのレコードが名前を共有しているかを `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}` の形で答えます。各グループは、キーが読み取れる 2 件以上のレコードで、それぞれの作成日時が付きます。アーカイブ済みのレコードは、運用中のレコードとは別にグループ化されます。
 
 #### ほかのレコードがすでに持つ値
 

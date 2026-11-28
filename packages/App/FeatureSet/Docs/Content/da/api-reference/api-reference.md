@@ -274,7 +274,7 @@ Et projekt, der kræver unikke navne, som et nyt projekt gør, holder de fleste 
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-Sådan en afvisning har også `takenById`, ID'et på den post, der har navnet, når din nøgle må læse den. Poster, der delte et navn, før projektet krævede unikke navne, beholder det, indtil de omdøbes, og én opdatering kan ikke give flere poster af samme slags det samme navn. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` svarer på, om et navn er taget, før du sender det, og `GET /api/unique-names/duplicates` viser de navne, projektet har mere end én gang, slags for slags.
+Sådan en afvisning har også `takenById`, ID'et på den post, der har navnet, når din nøgle må læse den. Poster, der delte et navn, før projektet krævede unikke navne, beholder det, indtil de omdøbes, og én opdatering kan ikke give flere poster af samme slags det samme navn. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` svarer på, om et navn er taget, før du sender det, og `GET /api/unique-names/duplicates` viser de navne, projektet har mere end én gang, slags for slags. `GET /api/shared-names/Monitor`, eller tabelnavnet for enhver anden slags, indstillingen gælder for, svarer på, hvilke af dens poster der deler et navn, sådan som dashboardets lister markerer dem: `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`, hvor hver gruppe er to eller flere poster, din nøgle må læse, med hvornår hver blev oprettet. Arkiverede poster grupperes for sig, adskilt fra posterne i drift.
 
 #### Værdier, som en anden post allerede har
 

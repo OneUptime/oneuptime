@@ -1837,7 +1837,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
   "in-between": {
     title: "InBetween",
     description:
-      "A query filter that matches objects where a field value is between two specified values (inclusive).",
+      "A query filter that matches objects where a field value is between two specified values, both included unless includesEnd is false.",
     isEnum: false,
     properties: [
       {
@@ -1850,7 +1850,15 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         name: "endValue",
         type: "string | number | Date",
         required: true,
-        description: "The upper bound of the range (inclusive).",
+        description:
+          "The upper bound of the range: included, unless includesEnd is false.",
+      },
+      {
+        name: "includesEnd",
+        type: "boolean",
+        required: false,
+        description:
+          "Whether a value equal to endValue matches. Left out, or true, it does. False matches from startValue up to, but not including, endValue, as a telemetry monitor's check reads its window.",
       },
     ],
     values: [],

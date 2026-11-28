@@ -125,7 +125,7 @@ import MonitorStepMetricMonitor, {
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import MetricWholeWindow from "Common/Utils/Metrics/MetricWholeWindow";
 import MetricLatestReading from "Common/Utils/Metrics/MetricLatestReading";
-import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
+import TelemetryCheckWindow from "Common/Types/Monitor/TelemetryCheckWindow";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
@@ -887,14 +887,22 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     });
   }
 
-  // Its log entry and the root cause of what it opens say which window it judged.
+  /*
+   * Its log entry and the root cause of what it opens say which window it
+   * judged, and that it held its start and not its end, as every read of
+   * the check did (TelemetryCheckWindow, #11334).
+   */
+  const judgedWindow: InBetween<Date> = TelemetryCheckWindow.from(
+    new Date(plan.evaluateUntil.getTime() - Math.max(0, windowInMs)),
+    plan.evaluateUntil,
+  );
+
   await MonitorResourceUtil.monitorResource(response, {
     evaluationStartedAtMs: evaluationStartedAtMs,
     judgedWindow: {
-      startsAt: new Date(
-        plan.evaluateUntil.getTime() - Math.max(0, windowInMs),
-      ),
-      endsAt: plan.evaluateUntil,
+      startsAt: judgedWindow.startValue,
+      endsAt: judgedWindow.endValue,
+      includesEnd: judgedWindow.includesEnd,
     },
   });
 };
@@ -2174,6 +2182,8 @@ export const monitorLlm: MonitorLlmFunction = async (data: {
     projectId: data.projectId,
     startTime: window.startValue,
     endTime: window.endValue,
+    // Its start and not its end, as every check's window (TelemetryCheckWindow).
+    includesEnd: window.includesEnd,
     serviceIds:
       config.telemetryServiceIds.length > 0
         ? config.telemetryServiceIds
@@ -2459,11 +2469,10 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     });
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      metricMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    metricMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -2973,11 +2982,10 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     throw new BadDataException("Kubernetes monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      kubernetesMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    kubernetesMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3254,11 +3262,10 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     throw new BadDataException("Docker monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      dockerMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    dockerMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3442,11 +3449,10 @@ export const monitorHost: MonitorHostFunction = async (data: {
     throw new BadDataException("Host monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      hostMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    hostMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3637,11 +3643,10 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     throw new BadDataException("Podman monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3832,11 +3837,10 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     throw new BadDataException("Proxmox monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      proxmoxMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    proxmoxMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4070,11 +4074,10 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
     throw new BadDataException("OpenStack monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      openstackMonitorConfig.rollingTime || RollingTime.Past15Minutes,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    openstackMonitorConfig.rollingTime || RollingTime.Past15Minutes,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4316,11 +4319,10 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     throw new BadDataException("VMware monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      vmwareMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    vmwareMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4551,11 +4553,10 @@ export const monitorXcpNg: MonitorXcpNgFunction = async (data: {
     );
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      xcpNgMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    xcpNgMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4774,11 +4775,10 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     throw new BadDataException("IoT monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -5035,11 +5035,10 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     throw new BadDataException("Docker Swarm monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      dockerSwarmMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    dockerSwarmMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -5347,11 +5346,10 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     throw new BadDataException("Ceph monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      cephMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    cephMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -5578,11 +5576,10 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     throw new BadDataException("Storage Array monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      storageArrayMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    storageArrayMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -5844,11 +5841,9 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
      * groups still open, and told which ones a log has closed.
      */
     if (MonitorStepLogMonitorUtil.isResolvedByLog(logQuery)) {
+      // The same window as the logs it counts: the same clock read.
       const resolvedByQuery: Query<Log> =
-        MonitorStepLogMonitorUtil.toResolvedByQuery(
-          logQuery,
-          data.evaluateUntil,
-        );
+        MonitorStepLogMonitorUtil.toResolvedByQuery(logQuery, evaluateUntil);
       resolvedByQuery.projectId = data.projectId;
 
       return monitorUnresolvedLogGroups({

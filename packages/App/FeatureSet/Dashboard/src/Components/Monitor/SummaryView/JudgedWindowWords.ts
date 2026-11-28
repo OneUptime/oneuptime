@@ -8,12 +8,17 @@ import OneUptimeDate from "Common/Types/Date";
  * 10:00:07 AM" to "10:01:07 AM". A check judges the window it was due to,
  * however late it ran, so this is where its logs, metrics or spans are.
  *
+ * `includesEnd` is false for a window that held its start and not its end,
+ * as every check's window does since #11334: the summary then says the end
+ * was not included, since a record stamped on it was the next check's. A
+ * window judged before then held both.
+ *
  * Null for a check that judged no window (a probe's, a request's), a summary
  * logged before checks said it, and ends that cannot be read.
  */
 export function getJudgedWindowEnds(
   summary: Pick<MonitorEvaluationSummary, "judgedWindow">,
-): { start: string; end: string } | null {
+): { start: string; end: string; includesEnd: boolean } | null {
   if (!summary.judgedWindow) {
     return null;
   }
@@ -38,5 +43,9 @@ export function getJudgedWindowEnds(
       includeSeconds: true,
     });
 
-  return { start: ends.start, end: ends.end };
+  return {
+    start: ends.start,
+    end: ends.end,
+    includesEnd: summary.judgedWindow.includesEnd !== false,
+  };
 }

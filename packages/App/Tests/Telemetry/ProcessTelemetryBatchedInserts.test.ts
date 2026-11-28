@@ -117,7 +117,9 @@ import ExceptionUtil from "../../FeatureSet/Telemetry/Utils/Exception";
 import SpanService from "Common/Server/Services/SpanService";
 import LogService from "Common/Server/Services/LogService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
-import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import TelemetryFanInWriter, {
+  readAsyncInsertBufferSettingsFromEnv,
+} from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -754,9 +756,11 @@ describe("ProcessTelemetry handler — metrics jobs batch through the writer too
     expect(options?.dedupToken).toMatch(/^fanin:/);
     /*
      * Merging must not drop the metrics-only settings that make the ack mean
-     * "flushed through the Distributed table".
+     * "flushed through the Distributed table", laid over the async-insert
+     * buffer limits the writer puts under every insert.
      */
     expect(options?.clickhouseSettings).toEqual({
+      ...readAsyncInsertBufferSettingsFromEnv(),
       distributed_foreground_insert: 1,
     });
 

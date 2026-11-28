@@ -1,5 +1,5 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
-import ProbeService from "Common/Server/Services/ProbeService";
+import SnmpTrapReceiverReports from "Common/Server/Utils/Monitor/SnmpTrapReceiverReports";
 import SnmpTrapReceiverUsers from "Common/Server/Utils/Monitor/SnmpTrapReceiverUsers";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Response from "Common/Server/Utils/Response";
@@ -63,11 +63,11 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
-jest.mock("Common/Server/Services/ProbeService", () => {
+jest.mock("Common/Server/Utils/Monitor/SnmpTrapReceiverReports", () => {
   return {
     __esModule: true,
     default: {
-      recordSnmpTrapReceiverReport: jest.fn(),
+      record: jest.fn(),
     },
   };
 });
@@ -91,17 +91,18 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
 });
 
 /*
- * POST /probe/snmp-trap/receiver (#11005): a probe reports its trap
- * receiver every thirty seconds and is handed the SNMPv3 users of its own
- * devices. Only the AUTHENTICATED probe counts - one named in the body never
- * does - so a probe hears no other probe's users and writes no other
- * probe's report.
+ * POST /probe/snmp-trap/receiver (#11005, #11173, #11174): a probe reports
+ * its trap receiver every thirty seconds and is handed the SNMPv3 users of
+ * its own devices and of the sites whose Default Probe it is. Only the
+ * AUTHENTICATED probe counts - one named in the body never does - so a probe
+ * hears no other probe's users and writes no other probe's report. The
+ * users are read first: a global probe's refusals are split by project
+ * against the user names each project handed it.
  */
 
 import { INVALID_REPORT_MESSAGE } from "../../FeatureSet/Telemetry/API/ProbeIngest/SnmpTrapReceiver";
 
-const recordReport: Mock =
-  ProbeService.recordSnmpTrapReceiverReport as unknown as Mock;
+const recordReport: Mock = SnmpTrapReceiverReports.record as unknown as Mock;
 const getUsers: Mock =
   SnmpTrapReceiverUsers.getUsersForProbe as unknown as Mock;
 const responseUtil: {
@@ -207,15 +208,32 @@ test("is held to the probe's own key", () => {
 });
 
 describe("a report", () => {
-  test("is kept for the authenticated probe, which is handed its devices' users", async () => {
+  test("is kept for the authenticated probe, which is handed its devices' and sites' users", async () => {
     await call(request({ body: { snmpTrapReceiver: REPORT } }));
 
     expect(recordReport).toHaveBeenCalledWith({
       probeId: PROBE_ID,
       report: REPORT,
+      users: USERS,
     });
     expect(getUsers).toHaveBeenCalledWith(PROBE_ID);
     expect(sentBody()).toEqual({ users: USERS, isReportKept: true });
+  });
+
+  test("the users are read before the report is kept, which splits by them", async () => {
+    const order: Array<string> = [];
+    getUsers.mockImplementation((async () => {
+      order.push("users");
+      return USERS;
+    }) as never);
+    recordReport.mockImplementation((async () => {
+      order.push("report");
+      return true;
+    }) as never);
+
+    await call(request({ body: { snmpTrapReceiver: REPORT } }));
+
+    expect(order).toEqual(["users", "report"]);
   });
 
   test("a probe ID in the body is never the probe: the authenticated one is", async () => {
@@ -255,12 +273,18 @@ describe("a report", () => {
     });
   });
 
-  test("a global probe keeps no report and still gets the users of the devices assigned to it", async () => {
+  test("a probe that keeps no report still gets its users", async () => {
     recordReport.mockResolvedValue(false as never);
 
     await call(request({ body: { snmpTrapReceiver: REPORT } }));
 
     expect(sentBody()).toEqual({ users: USERS, isReportKept: false });
+  });
+
+  test("the users handed over never carry anything beyond what the probe takes", async () => {
+    await call(request({ body: { snmpTrapReceiver: REPORT } }));
+
+    expect(sentBody()["users"]).toBe(USERS);
   });
 
   test("a receiver that is off is handed no users, and none are read", async () => {
@@ -271,6 +295,11 @@ describe("a report", () => {
     );
 
     expect(getUsers).not.toHaveBeenCalled();
+    expect(recordReport).toHaveBeenCalledWith({
+      probeId: PROBE_ID,
+      report: { isEnabled: false, refusals: [] },
+      users: [],
+    });
     expect(sentBody()).toEqual({ users: [], isReportKept: true });
   });
 });
@@ -306,6 +335,19 @@ describe("refused", () => {
 
   test("users that cannot be read fail the request, so the probe keeps the ones it has", async () => {
     getUsers.mockRejectedValue(new Error("database unavailable") as never);
+
+    const { next } = await call(
+      request({ body: { snmpTrapReceiver: REPORT } }),
+    );
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();
+    // Nothing is split against users that were never read.
+    expect(recordReport).not.toHaveBeenCalled();
+  });
+
+  test("a report that cannot be kept fails the request too", async () => {
+    recordReport.mockRejectedValue(new Error("database unavailable") as never);
 
     const { next } = await call(
       request({ body: { snmpTrapReceiver: REPORT } }),

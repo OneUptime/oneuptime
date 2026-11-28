@@ -237,7 +237,7 @@ Un seul moniteur d'hôte couvre chaque disque que l'hôte remonte. Les modèles 
 Chaque critère est vérifié pour chaque disque :
 
 - Tant que l'incident d'un disque est ouvert, le critère qui l'a ouvert n'en ouvre aucun autre pour ce disque. Un autre disque qui satisfait ce critère ouvre le sien.
-- Un disque qui satisfait deux critères, comme l'un au-dessus de 98 % et l'autre au-dessus de 90 %, reçoit un seul incident, celui du premier des deux dans la liste. Placez le plus strict en premier.
+- Un disque qui satisfait deux critères sur la même métrique, comme l'un au-dessus de 98 % et l'autre au-dessus de 90 %, reçoit un seul incident, celui du premier des deux dans la liste. Placez le plus strict en premier. Des critères sur des métriques différentes ouvrent chacun le leur pour le disque.
 - L'incident d'un disque se résout quand ce disque cesse de satisfaire le critère qui l'a ouvert, quoi que fassent les autres disques.
 - Le moniteur a un seul statut. Un critère qui le fait passer à un autre statut, comme **Hors ligne**, le fixe dès qu'un disque le satisfait. Le critère qui ramène le moniteur à son **État du moniteur par défaut** attend les disques qui ont satisfait un tel critère, et correspond une fois que chacun d'eux le satisfait, quoi que fassent les autres disques. Un disque qui passe de 96 % à 89 % garde donc le moniteur **Hors ligne** jusqu'à ce qu'il soit à 81 % ou en dessous, la marge de rétablissement de 10 %, même si son incident se résout dès qu'il n'est plus au-dessus de 90 %. **Séries** affiche ce disque comme **Conserve le statut**. Un disque qui n'est plus remonté cesse de conserver le statut.
 

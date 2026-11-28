@@ -274,7 +274,7 @@ Um projeto que exige nomes únicos, como faz um projeto novo, aplica a mesma reg
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-Uma recusa assim também traz `takenById`, o ID do registro que tem o nome, quando sua chave pode lê-lo. Registros que compartilhavam um nome antes de o projeto exigir nomes únicos o mantêm até serem renomeados, e uma só atualização não pode dar o mesmo nome a vários registros do mesmo tipo. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` responde se um nome está em uso antes de você enviá-lo, e `GET /api/unique-names/duplicates` lista os nomes que o projeto tem mais de uma vez, tipo por tipo.
+Uma recusa assim também traz `takenById`, o ID do registro que tem o nome, quando sua chave pode lê-lo. Registros que compartilhavam um nome antes de o projeto exigir nomes únicos o mantêm até serem renomeados, e uma só atualização não pode dar o mesmo nome a vários registros do mesmo tipo. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` responde se um nome está em uso antes de você enviá-lo, e `GET /api/unique-names/duplicates` lista os nomes que o projeto tem mais de uma vez, tipo por tipo. `GET /api/shared-names/Monitor`, ou o nome da tabela de qualquer outro tipo que a configuração abrange, responde quais dos seus registros compartilham um nome, como as listas do painel os marcam: `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`, cada grupo com dois ou mais registros que sua chave pode ler, com o momento em que cada um foi criado. Registros arquivados são agrupados à parte dos registros em serviço.
 
 #### Valores que outro registro já tem
 

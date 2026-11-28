@@ -49,8 +49,9 @@ export type MonitorUptimeCaveat =
   | "no-results"
   | "monitoring-off"
   /*
-   * Paused by an incident declared by hand that put the monitor in no
-   * status: that time is left out, as with monitoring off (issue #11141).
+   * Paused by an incident declared by hand or by scheduled maintenance that
+   * put the monitor in no status: that time is left out, as with monitoring
+   * off (issues #11141 and #11301).
    */
   | "paused-left-out";
 

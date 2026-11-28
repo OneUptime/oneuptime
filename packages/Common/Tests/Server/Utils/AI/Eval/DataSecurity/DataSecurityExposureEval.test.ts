@@ -1,11 +1,16 @@
 import {
   BREACH_LAW_RULES,
+  BreachDataElement,
+  BreachLawFamily,
   BreachLawId,
   BreachLawRule,
+  isUsStateRule,
 } from "../../../../../../Types/DataSecurity/BreachLaws";
 import {
+  BreachObligationFact,
   ComplianceFact,
   ComplianceFactKind,
+  UsStateLawsFact,
 } from "../../../../../../Types/DataSecurity/ComplianceFacts";
 import { DataSecurityAiFeature } from "../../../../../../Types/DataSecurity/DataSecurityAiFeatures";
 import {
@@ -201,6 +206,93 @@ describe("every exposure of the eval set lists the obligations it should", () =>
     ).toEqual(new Set(["Logged", "NotLogged", "Unknown"]));
   });
 
+  test("every US state's law covers a Social Security number and a bank account number held with a name, so all of them wait on which states (#10952)", () => {
+    for (const rule of BREACH_LAW_RULES.filter(isUsStateRule)) {
+      expect({
+        rule: rule.id,
+        coversSsn: rule.dataElements.includes(
+          BreachDataElement.SocialSecurityNumber,
+        ),
+        coversAccount: rule.dataElements.includes(
+          BreachDataElement.FinancialAccount,
+        ),
+      }).toEqual({ rule: rule.id, coversSsn: true, coversAccount: true });
+    }
+  });
+
+  test("nobody said which states: OneUptime AI is told how many states' notices wait on it, and is given none of them (#10952)", () => {
+    const facts: Array<ComplianceFact> = getExposureEvalFacts(
+      getExposureEvalExposure("us-ssn-state-not-said"),
+    ).facts;
+    const stateRows: Array<BreachLawRule> =
+      BREACH_LAW_RULES.filter(isUsStateRule);
+    const summary: UsStateLawsFact = facts.find(
+      (fact: ComplianceFact): boolean => {
+        return fact.kind === ComplianceFactKind.UsStateLaws;
+      },
+    ) as UsStateLawsFact;
+
+    expect(summary).toMatchObject({
+      key: "obligation:us-states",
+      notices: stateRows.length,
+      states: new Set(
+        stateRows.map((rule: BreachLawRule): string => {
+          return rule.places![0]!;
+        }),
+      ).size,
+    });
+    // No state's notice is a fact of its own, so no draft can name one.
+    expect(
+      facts.filter((fact: ComplianceFact): boolean => {
+        return (
+          fact.kind === ComplianceFactKind.BreachObligation &&
+          stateRows.some((rule: BreachLawRule): boolean => {
+            return rule.id === (fact as BreachObligationFact).ruleId;
+          })
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  test("a person named Indiana and Hawaii: their notices are facts, and no other state's (#10952)", () => {
+    const facts: Array<ComplianceFact> = getExposureEvalFacts(
+      getExposureEvalExposure("indiana-and-hawaii-ssn"),
+    ).facts;
+    const families: Array<string> = facts
+      .filter((fact: ComplianceFact): boolean => {
+        return fact.kind === ComplianceFactKind.BreachObligation;
+      })
+      .map((fact: ComplianceFact): string => {
+        return (fact as BreachObligationFact).family;
+      });
+
+    expect(families).toEqual(
+      expect.arrayContaining([BreachLawFamily.Indiana, BreachLawFamily.Hawaii]),
+    );
+    expect(
+      families
+        .filter((family: string): boolean => {
+          return BREACH_LAW_RULES.some((rule: BreachLawRule): boolean => {
+            return isUsStateRule(rule) && rule.family === family;
+          });
+        })
+        .sort(),
+    ).toEqual([
+      BreachLawFamily.Hawaii,
+      BreachLawFamily.Hawaii,
+      BreachLawFamily.Hawaii,
+      BreachLawFamily.Indiana,
+      BreachLawFamily.Indiana,
+      BreachLawFamily.Indiana,
+    ]);
+    // Every state named is known: nothing waits on where the people live.
+    expect(
+      facts.some((fact: ComplianceFact): boolean => {
+        return fact.kind === ComplianceFactKind.UsStateLaws;
+      }),
+    ).toBe(false);
+  });
+
   test("a Japanese bucket says the table does not cover Japan", () => {
     expect(
       getExposureEvalView(getExposureEvalExposure("japan-my-number")).uncovered,
@@ -284,12 +376,19 @@ describe("OneUptime AI's write-up of an exposure, asked and scored as the produc
       ExposureDraftPart.InternalSummary,
     ]);
     expect(data.facts).toHaveLength(facts.length);
-    // The window, the reads and every row of the table are facts.
+    /*
+     * The window, the reads and every row of the table are facts - but the
+     * US states' nobody named, which never crowd the rest out (#10952).
+     */
     expect(
       facts.filter((fact: ComplianceFact): boolean => {
         return fact.kind === ComplianceFactKind.BreachObligation;
       }),
-    ).toHaveLength(BREACH_LAW_RULES.length);
+    ).toHaveLength(
+      BREACH_LAW_RULES.filter((rule: BreachLawRule): boolean => {
+        return !isUsStateRule(rule);
+      }).length,
+    );
     expect(
       facts.some((fact: ComplianceFact): boolean => {
         return fact.kind === ComplianceFactKind.ExposureWindow;

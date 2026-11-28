@@ -224,10 +224,10 @@ Terraform and OpenTofu registries read.
 
 **A published release is never changed.** The registries read a version's
 assets once, when it is published, and keep each zip's SHA-256; `terraform
-init` and `tofu init` check what GitHub serves against it. GoReleaser does not
+init` and `tofu init` check what GitHub serves against it. GoReleaser did not
 make the same zip twice, so assets built again and uploaded over a published
-release break that version for everyone: that happened to 14.3.0, 16.0.0,
-17.0.0, 17.1.0 and older versions, when a release run was repeated
+release broke that version for everyone: that happened to 14.3.0, 16.0.0,
+17.0.0, 17.1.0, 17.2.0 and older versions, when a release run was repeated
 ([#20](https://github.com/OneUptime/terraform-provider-oneuptime/issues/20)).
 So the script:
 
@@ -242,6 +242,49 @@ So the script:
   again;
 - calls GitHub by release id, never by tag: `gh release view` finds a draft of
   the tag too, and answers with whichever it finds first.
+
+17.2.0 broke the same way two days after that fix merged
+([#11016](https://github.com/OneUptime/oneuptime/issues/11016)): its release
+branch was cut before it, so both of its release runs ran the old script. Since
+then:
+
+- every asset goes to the run's own draft by the draft's upload URL, one at a
+  time, never by tag and never with `--clobber`. Before each one the script
+  reads the draft again, by its id, and `ProviderRelease.js upload-plan` says
+  what to do: keep an asset that is there already, upload one that is not, or
+  replace an upload that did not finish (deleted by its asset id). It refuses a
+  release that is not a draft, so a release published while a run uploads gets
+  nothing more from it;
+- the signature is checked against the `SHA256SUMS` it was built with, by the
+  key GoReleaser signed with, before anything is pushed;
+- a provider built again from the same commit is the same bytes: the
+  generator's `.goreleaser.yml` stamps every file in a zip with the commit's
+  time (`mod_timestamp`, and `mtime` for `LICENSE` and `README.md`), where
+  GoReleaser used to stamp the build's, so a rebuild made other zips with the
+  same files in them (`Tests/GoReleaserConfig.test.ts` builds one twice);
+- after each publish, **Terraform Provider Registry Checksums**
+  (`.github/workflows/terraform-provider-registry-checksums.yml`) compares what
+  registry.terraform.io and registry.opentofu.org read with what the release
+  serves, for every platform, as `terraform init` does: release.yml's
+  `check-terraform-provider-registries` and the republish workflow call it, and
+  it runs every day for every version since 17.3.0. By hand:
+
+```bash
+node Scripts/TerraformProvider/RegistryChecksums.js --version 17.2.0
+node Scripts/TerraformProvider/RegistryChecksums.js --since 17.0.0 --platform linux_amd64
+```
+
+It reads public pages only (set `GITHUB_TOKEN` for more than 60 versions an
+hour). A version whose assets agree with each other and not with what a
+registry read had them built again after it was published: no registry reads a
+version twice, so it is mended only by a new one.
+
+The one guarantee GitHub itself gives is **immutable releases**: with it on,
+GitHub refuses to add, replace or delete a published release's assets, or move
+its tag, whatever runs. It is off for the provider repository. A maintainer
+turns it on in the repository's Settings, under Releases, "Enable release
+immutability"; it holds for releases published after that, and the draft,
+upload, publish order above is the one it expects.
 
 `ProviderRelease.js` holds those checks, and `GenerateReleaseNotes.js` writes
 each release's notes: what breaks a configuration, new resources and data
@@ -260,6 +303,23 @@ with `--republish-from`:
 ```bash
 gh workflow run terraform-provider-republish.yml -f from=17.1.0 -f version=17.1.1
 ```
+
+The versions broken this way whose next patch is free, so that a range that
+takes the broken one takes its mend: 14.3.0 (as 14.3.1), 16.0.0 (16.0.1),
+17.0.0 (17.0.1), 17.1.0 (17.1.1) and 17.2.0 (17.2.1). The older ones
+(11.3.16, 12.0.14, 12.0.20, 12.0.23, 12.0.25, 12.0.27, 12.0.30, 13.0.7,
+14.0.29, 14.0.72, 14.0.76, 14.0.88, 14.0.94, 14.0.102 and 14.0.106, and
+11.3.23, 11.3.28, 11.5.11 and 11.7.4 on registry.opentofu.org only) each have
+a next patch already, which installs. Run one republish at a time (they share
+a concurrency group), and check each with `RegistryChecksums.js` once the
+registries list it. No registry re-reads a version: registry.terraform.io's
+FAQ says there is no manual way to remove one, and to write to
+terraform-registry@hashicorp.com if it is critical that a version be deleted.
+
+Never re-run a release run from before 17.3.0: a re-run runs its own commit's
+scripts, and every release branch before 17.3.0's has the old one, which
+uploads a rebuild over the published release again. Release runs can be
+re-run for 30 days.
 
 To write a published release's notes again:
 

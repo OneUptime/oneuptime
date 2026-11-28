@@ -8,16 +8,6 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import TelegramLog from "Common/Models/DatabaseModels/TelegramLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
-import Pill from "Common/UI/Components/Pill/Pill";
-import {
-  Blue,
-  Green,
-  Grey,
-  Orange,
-  Red,
-  Yellow,
-} from "Common/Types/BrandColors";
-import TelegramStatus from "Common/Types/TelegramStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -27,8 +17,13 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
-import Color from "Common/Types/Color";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import NotificationLogStatusPill from "./NotificationLogStatusPill";
+import {
+  getNotificationLogStatusFilterOptions,
+  NotificationLogKind,
+  NOTIFICATION_LOGS_DOCUMENTATION,
+} from "./NotificationLogStatus";
 
 export interface TelegramLogsTableProps {
   query?: Query<BaseModel>;
@@ -42,41 +37,6 @@ const TelegramLogsTable: FunctionComponent<TelegramLogsTableProps> = (
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
-
-  const getStatusColor: (status?: TelegramStatus) => Color = (
-    status?: TelegramStatus,
-  ): Color => {
-    switch (status) {
-      case TelegramStatus.Success:
-      case TelegramStatus.Delivered:
-      case TelegramStatus.Read:
-        return Green;
-      case TelegramStatus.Sent:
-      case TelegramStatus.Queued:
-        return Blue;
-      case TelegramStatus.LowBalance:
-        return Orange;
-      case TelegramStatus.NotVerified:
-      case TelegramStatus.Unknown:
-        return Grey;
-      case TelegramStatus.Failed:
-        return Yellow;
-      default:
-        return Red;
-    }
-  };
-
-  const parseStatus: (status?: string) => TelegramStatus | undefined = (
-    status?: string,
-  ): TelegramStatus | undefined => {
-    if (!status) {
-      return undefined;
-    }
-
-    return (Object.values(TelegramStatus) as Array<string>).includes(status)
-      ? (status as TelegramStatus)
-      : undefined;
-  };
 
   const defaultColumns: Columns<TelegramLog> = [
     {
@@ -108,27 +68,33 @@ const TelegramLogsTable: FunctionComponent<TelegramLogsTableProps> = (
       field: { status: true },
       title: "Status",
       type: FieldType.Text,
+      /*
+       * What the status means: Sent is a message Telegram posted in its
+       * chat, and its last status - Telegram reports nothing after (#11138).
+       */
       getElement: (item: TelegramLog): ReactElement => {
-        const statusValue: string | undefined =
-          (item["status"] as string | undefined) || undefined;
-
-        if (!statusValue) {
-          return <></>;
-        }
-
-        const normalizedStatus: TelegramStatus | undefined =
-          parseStatus(statusValue);
-
-        const pillColor: Color = getStatusColor(normalizedStatus);
-
-        return <Pill isMinimal={false} color={pillColor} text={statusValue} />;
+        return (
+          <NotificationLogStatusPill
+            kind={NotificationLogKind.Telegram}
+            status={item.status}
+            statusMessage={item.statusMessage}
+          />
+        );
       },
     },
   ];
 
   const defaultFilters: Array<Filter<TelegramLog>> = [
     { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
-    { field: { status: true }, title: "Status", type: FieldType.Dropdown },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Dropdown,
+      // Every status a Telegram message can have.
+      filterDropdownOptions: getNotificationLogStatusFilterOptions(
+        NotificationLogKind.Telegram,
+      ),
+    },
   ];
 
   return (
@@ -191,6 +157,7 @@ const TelegramLogsTable: FunctionComponent<TelegramLogsTableProps> = (
             : "No Telegram logs."
         }
         showRefreshButton={true}
+        documentationLink={NOTIFICATION_LOGS_DOCUMENTATION}
         columns={defaultColumns}
         filters={defaultFilters}
         actionButtons={[

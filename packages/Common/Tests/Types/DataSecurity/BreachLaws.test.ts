@@ -6,6 +6,8 @@ import {
   BREACH_PLACE_CHOICES,
   BREACH_PLACE_WORDS,
   BREACH_PLACES,
+  CARD_BRAND_RULE_IDS,
+  CARD_BRAND_RULES_CHECKED_ON,
   BreachCondition,
   BreachDataElement,
   BreachDeadlineStart,
@@ -20,13 +22,17 @@ import {
   getBreachPlaceOfCountry,
   isBreachLawId,
   isBreachPlace,
+  isDeadlineWithoutLength,
   isUsStatePlace,
+  isUsStateRule,
   ONLINE_ACCOUNT_TYPES,
   PASSWORD_TYPES,
   PERSON_NAME_TYPE,
+  US_STATE_LAWS_CHECKED_ON,
 } from "../../../Types/DataSecurity/BreachLaws";
 import {
   applyBreachLaw,
+  applyBreachLaws,
   BreachCheck,
   BreachCheckKind,
   BreachLawFacts,
@@ -37,6 +43,7 @@ import {
   ExposureReads,
   ExposureReadsLogged,
   ExposureWhoseData,
+  getMostUrgentObligation,
   getWhoseData,
 } from "../../../Types/DataSecurity/ExposureAssessment";
 import { getBuiltInDataType } from "../../../Types/DataSecurity/DataTypeCatalog";
@@ -135,6 +142,32 @@ function reasonKinds(obligation: BreachObligation): Array<BreachReasonKind> {
 const HOUR: number = 60 * 60 * 1000;
 const DAY: number = 24 * HOUR;
 
+// The days the table's rows were read from their sources, a batch at a time.
+const TABLE_CHECK_DAYS: ReadonlyArray<string> = [
+  BREACH_LAWS_CHECKED_ON,
+  CARD_BRAND_RULES_CHECKED_ON,
+  US_STATE_LAWS_CHECKED_ON,
+];
+
+/*
+ * The US states' rows #10377 read first; every other state row is #10952's
+ * (UsStateBreachLaws.test.ts), the first states' agencies' notices among them.
+ */
+const FIRST_STATE_ROWS: ReadonlyArray<BreachLawId> = [
+  BreachLawId.CaliforniaResidents,
+  BreachLawId.CaliforniaAttorneyGeneral,
+  BreachLawId.ColoradoResidents,
+  BreachLawId.ColoradoAttorneyGeneral,
+  BreachLawId.FloridaIndividuals,
+  BreachLawId.FloridaDepartment,
+  BreachLawId.NewYorkResidents,
+  BreachLawId.NewYorkAgencies,
+  BreachLawId.TexasIndividuals,
+  BreachLawId.TexasAttorneyGeneral,
+  BreachLawId.WashingtonConsumers,
+  BreachLawId.WashingtonAttorneyGeneral,
+];
+
 function after(ms: number): string {
   return new Date(FOUND_AT.getTime() + ms).toISOString();
 }
@@ -170,13 +203,40 @@ describe("every row of the table", () => {
       }).not.toThrow();
       expect(rule.sourceTitle.trim().length).toBeGreaterThan(5);
       expect(rule.checkedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(rule.checkedOn).toBe(BREACH_LAWS_CHECKED_ON);
+      // One of the days the table was read on, each batch of rows on its own.
+      expect(TABLE_CHECK_DAYS).toContain(rule.checkedOn);
       expect(Number.isNaN(new Date(rule.checkedOn).getTime())).toBe(false);
     },
   );
 
-  test("was checked on 24 November 2026, no later than today's table", () => {
+  test("each batch of rows was checked on its day: #10377's on 24 November 2026, the card brands' and the other US states' on 27 November", () => {
     expect(BREACH_LAWS_CHECKED_ON).toBe("2026-11-24");
+    expect(CARD_BRAND_RULES_CHECKED_ON).toBe("2026-11-27");
+    expect(US_STATE_LAWS_CHECKED_ON).toBe("2026-11-27");
+
+    for (const id of CARD_BRAND_RULE_IDS) {
+      expect(getBreachLawRule(id).checkedOn).toBe(CARD_BRAND_RULES_CHECKED_ON);
+    }
+
+    for (const rule of BREACH_LAW_RULES) {
+      if (isUsStateRule(rule)) {
+        expect({ id: rule.id, checkedOn: rule.checkedOn }).toEqual({
+          id: rule.id,
+          checkedOn: FIRST_STATE_ROWS.includes(rule.id)
+            ? BREACH_LAWS_CHECKED_ON
+            : US_STATE_LAWS_CHECKED_ON,
+        });
+      }
+    }
+
+    // Every day a row was read is a day some row was read: none left over.
+    for (const day of TABLE_CHECK_DAYS) {
+      expect(
+        BREACH_LAW_RULES.some((rule: BreachLawRule): boolean => {
+          return rule.checkedOn === day;
+        }),
+      ).toBe(true);
+    }
   });
 
   test.each(
@@ -192,10 +252,7 @@ describe("every row of the table", () => {
 
       const unit: BreachDeadlineUnit = rule.deadline.unit;
 
-      if (
-        unit === BreachDeadlineUnit.WithoutUndueDelay ||
-        unit === BreachDeadlineUnit.NoFixedTime
-      ) {
+      if (isDeadlineWithoutLength(unit)) {
         expect(rule.deadline.amount).toBeUndefined();
       } else {
         expect(typeof rule.deadline.amount).toBe("number");
@@ -1022,6 +1079,191 @@ describe("PCI DSS 12.10.1: the acquirer and the card brands, as their rules say"
       apply(BreachLawId.PciDss, { dataTypeIds: ["bank-account-number"] })
         .status,
     ).toBe(BreachObligationStatus.NotTriggered);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The card brands' own deadlines (#10953): one row per brand that publishes
+ * its rule, each from the brand's own document, read on 27 November 2026.
+ * ---------------------------------------------------------------------------
+ */
+
+describe("the card brands' own rules, as a family", () => {
+  test("are Visa, Mastercard and American Express: the brands that publish a deadline", () => {
+    expect(
+      CARD_BRAND_RULE_IDS.map((id: BreachLawId): BreachLawFamily => {
+        return getBreachLawRule(id).family;
+      }),
+    ).toEqual([
+      BreachLawFamily.Visa,
+      BreachLawFamily.Mastercard,
+      BreachLawFamily.AmericanExpress,
+    ]);
+  });
+
+  test.each(
+    CARD_BRAND_RULE_IDS.map((id: BreachLawId): [string, BreachLawId] => {
+      return [id, id];
+    }),
+  )(
+    "%s applies to card data wherever the people live, if the organization handles the brand's cards, from the brand's own document",
+    (_id: string, id: BreachLawId) => {
+      const rule: BreachLawRule = getBreachLawRule(id);
+
+      expect(rule.places).toBeNull();
+      expect(rule.dataElements).toEqual([BreachDataElement.CardData]);
+      expect(rule.needsName).toBe(false);
+      expect(rule.conditions).toEqual([
+        BreachCondition.HandlesCardData,
+        BreachCondition.CardsOfTheBrand,
+      ]);
+      expect(rule.deadline.start).toBe(BreachDeadlineStart.Found);
+      expect(rule.checkedOn).toBe(CARD_BRAND_RULES_CHECKED_ON);
+      // The brand's own domain: never a processor's or a law firm's copy.
+      expect(new URL(rule.sourceUrl).hostname).toMatch(
+        /(^|\.)(visa|mastercard|americanexpress)\.com$/,
+      );
+
+      const obligation: BreachObligation = apply(id, {
+        dataTypeIds: ["credit-card-number", "card-verification-code"],
+      });
+
+      expect(obligation.status).toBe(BreachObligationStatus.MayApply);
+      expect(obligation.isPlaceKnown).toBe(true);
+      expect(conditions(obligation)).toEqual([
+        BreachCondition.HandlesCardData,
+        BreachCondition.CardsOfTheBrand,
+      ]);
+      // A bank account number is no card's.
+      expect(
+        apply(id, { dataTypeIds: ["bank-account-number", "person-name"] })
+          .status,
+      ).toBe(BreachObligationStatus.NotTriggered);
+      expect(
+        apply(id, { dataTypeIds: ["email-address"], countries: ["DE"] })
+          .reasons,
+      ).toEqual([
+        {
+          kind: BreachReasonKind.HoldsNoneOf,
+          elements: [BreachDataElement.CardData],
+        },
+      ]);
+    },
+  );
+});
+
+describe("Visa What To Do If Compromised, Section A.1: Visa within three calendar days", () => {
+  const rule: BreachLawRule = getBreachLawRule(BreachLawId.VisaCompromise);
+
+  test("says what Version 10.0's Section A.1 says", () => {
+    expect(rule.family).toBe(BreachLawFamily.Visa);
+    expect(rule.law).toBe("Visa What To Do If Compromised");
+    expect(rule.provision).toBe("Section A.1");
+    expect(rule.deadline).toEqual({
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 3,
+      start: BreachDeadlineStart.Found,
+    });
+    expect(rule.recipient).toContain("Global Risk Investigations");
+    // A.3: the acquiring bank is told at once.
+    expect(rule.recipient).toContain("acquiring bank at once");
+    // Counted from a reasonable suspicion, and the incident report three days on (A.2).
+    expect(rule.deadlineNote).toContain("suspect a compromise");
+    expect(rule.deadlineNote).toContain("incident report");
+    expect(rule.sourceUrl).toBe(
+      "https://usa.visa.com/dam/VCOM/download/merchants/cisp-what-to-do-if-compromised.pdf",
+    );
+    expect(rule.sourceTitle).toContain("Version 10.0");
+    expect(rule.sourceTitle).toContain("25 June 2026");
+  });
+
+  test("is due three calendar days after the exposure was found, counted from the suspicion", () => {
+    const obligation: BreachObligation = apply(BreachLawId.VisaCompromise, {
+      dataTypeIds: ["credit-card-number"],
+    });
+
+    expect(obligation.dueAt).toBe(after(3 * DAY));
+  });
+});
+
+describe("Mastercard Security Rules and Procedures, Section 10.3.1: Mastercard within 24 hours", () => {
+  const rule: BreachLawRule = getBreachLawRule(BreachLawId.MastercardAdcEvent);
+
+  test("says what the Merchant Edition of 4 August 2026 says", () => {
+    expect(rule.family).toBe(BreachLawFamily.Mastercard);
+    expect(rule.law).toBe("Mastercard Security Rules and Procedures");
+    expect(rule.provision).toBe("Section 10.3.1");
+    expect(rule.deadline).toEqual({
+      unit: BreachDeadlineUnit.Hours,
+      amount: 24,
+      start: BreachDeadlineStart.Found,
+    });
+    expect(rule.recipient).toBe("Mastercard, through your acquirer");
+    // Aware when known, or when reasonable security practices should have known.
+    expect(rule.deadlineNote).toContain("should have known");
+    // The account numbers at risk, within 72 hours.
+    expect(rule.deadlineNote).toContain("72 hours");
+    // Its rules bind acquirers and issuers; a merchant through its acquirer.
+    expect(rule.note).toContain("acquirer's agreement");
+    expect(rule.sourceUrl).toBe(
+      "https://www.mastercard.com/content/dam/mccom/shared/business/support/rules-pdfs/SPME-Manual.pdf",
+    );
+    expect(rule.sourceTitle).toContain("4 August 2026");
+  });
+
+  test("is due 24 hours after it was found - first, beside PCI DSS's no fixed time", () => {
+    const lawFacts: BreachLawFacts = facts({
+      dataTypeIds: ["credit-card-number", "card-verification-code"],
+    });
+    const obligations: Array<BreachObligation> = applyBreachLaws(lawFacts);
+    const first: BreachObligation | null = getMostUrgentObligation(obligations);
+
+    expect(
+      apply(BreachLawId.MastercardAdcEvent, {
+        dataTypeIds: ["credit-card-number"],
+      }).dueAt,
+    ).toBe(after(24 * HOUR));
+    expect(first?.ruleId).toBe(BreachLawId.MastercardAdcEvent);
+    expect(
+      obligations.find((obligation: BreachObligation): boolean => {
+        return obligation.ruleId === BreachLawId.PciDss;
+      })?.dueAt,
+    ).toBeUndefined();
+  });
+});
+
+describe("American Express Data Security Operating Policy, Section 3.1: American Express within 72 hours", () => {
+  const rule: BreachLawRule = getBreachLawRule(
+    BreachLawId.AmericanExpressDataIncident,
+  );
+
+  test("says what the October 2026 United States edition says", () => {
+    expect(rule.family).toBe(BreachLawFamily.AmericanExpress);
+    expect(rule.law).toBe("American Express Data Security Operating Policy");
+    expect(rule.provision).toBe("Section 3.1");
+    expect(rule.deadline).toEqual({
+      unit: BreachDeadlineUnit.Hours,
+      amount: 72,
+      start: BreachDeadlineStart.Found,
+    });
+    expect(rule.recipient).toContain("Enterprise Incident Response Program");
+    // "Immediately and in no case later than 72 hours after discovery".
+    expect(rule.deadlineNote).toContain("Immediately");
+    // A suspected compromise of one card number is a Data Incident.
+    expect(rule.deadlineNote).toContain("even one card number");
+    expect(rule.sourceUrl).toBe(
+      "https://www.americanexpress.com/content/dam/amex/us/merchant/new-data-security/DSOP_United_States_EN.pdf",
+    );
+    expect(rule.sourceTitle).toContain("October 2026");
+  });
+
+  test("is due 72 hours after it was found", () => {
+    expect(
+      apply(BreachLawId.AmericanExpressDataIncident, {
+        dataTypeIds: ["credit-card-number"],
+      }).dueAt,
+    ).toBe(after(72 * HOUR));
   });
 });
 

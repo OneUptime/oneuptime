@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import { withMeaningKeyAsItsWord } from "../MeaningKeys";
 import { translationKey } from "../Translator";
 import SecuritySeverity from "../SecuritySeverity";
 import {
@@ -20,11 +21,20 @@ import {
   getBreachPlaceOfCountry,
   isBreachLawId,
   isBreachPlace,
+  isDeadlineWithoutLength,
   isUsStatePlace,
   ONLINE_ACCOUNT_TYPES,
   PASSWORD_TYPES,
   PERSON_NAME_TYPE,
+  UNCOVERED_US_STATES,
 } from "./BreachLaws";
+import {
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  getReadsFromOutside,
+  isLogReadForWindow,
+  readExposureLogRead,
+} from "./AccessLogReads";
 import {
   ComplianceFact,
   ComplianceFactKind,
@@ -595,8 +605,44 @@ export interface ExposureReads {
   outsideAccounts: number;
   // Of those, how many used their access inside the window.
   outsideAccountsUsedInWindow: number;
-  // With reads not logged, or not known to be: treat the data as read.
+  /*
+   * With reads not logged, or not known to be: treat the data as read. With
+   * them logged, as read when the store's logs show reads from outside.
+   */
   isTreatedAsRead: boolean;
+  /*
+   * What the store's own access logs say, when OneUptime read them (#10951):
+   * counted - its outside principals only for a reader who may see who can
+   * reach the store.
+   */
+  fromLogs?: ExposureLogRead | undefined;
+  // Whether that read was for the window as it is now.
+  isFromLogsCurrent?: boolean | undefined;
+  /*
+   * What the logs read for this window say of reads from outside the
+   * company: yes, no (every log file read, none found), or undefined (not
+   * read, or read only in part with none found so far).
+   */
+  isReadFromOutside?: boolean | undefined;
+}
+
+/*
+ * Whether the logs read for a window show reads from outside: yes when
+ * they show any, no only when every log file of the window was read and
+ * none did - logs read in part prove nothing of what they did not reach.
+ */
+export function getLogReadFromOutside(
+  read: ExposureLogRead | null | undefined,
+): boolean | undefined {
+  if (!read || read.status !== ExposureLogReadStatus.Read) {
+    return undefined;
+  }
+
+  if (getReadsFromOutside(read).reads > 0) {
+    return true;
+  }
+
+  return read.isComplete ? false : undefined;
 }
 
 export function getExposureReads(data: {
@@ -606,6 +652,8 @@ export function getExposureReads(data: {
   grants: ReadonlyArray<ExposureGrant>;
   window: ExposureWindow | null;
   now: Date;
+  // What OneUptime read of the store's access logs, as the case keeps it.
+  logRead?: ExposureLogRead | null | undefined;
 }): ExposureReads {
   const logged: ExposureReadsLogged =
     data.accessLogging === true
@@ -624,9 +672,27 @@ export function getExposureReads(data: {
   const start: number | null = data.window ? toTime(data.window.start) : null;
   const end: number =
     (data.window ? toTime(data.window.end) : null) ?? data.now.getTime();
+  // The logs read count only for the store whose reads are logged, and for this window.
+  const fromLogs: ExposureLogRead | undefined =
+    logged === ExposureReadsLogged.Logged && data.logRead
+      ? data.logRead
+      : undefined;
+  const isFromLogsCurrent: boolean | undefined = fromLogs
+    ? isLogReadForWindow({
+        read: fromLogs,
+        windowStart: data.window?.start,
+        windowEnd: data.window?.end,
+      })
+    : undefined;
+  const isReadFromOutside: boolean | undefined = isFromLogsCurrent
+    ? getLogReadFromOutside(fromLogs)
+    : undefined;
 
   return {
     logged,
+    fromLogs,
+    isFromLogsCurrent,
+    isReadFromOutside,
     isPublic:
       data.isStorePublic ||
       data.grants.some((grant: ExposureGrant): boolean => {
@@ -644,7 +710,8 @@ export function getExposureReads(data: {
 
             return used !== null && used >= start && used <= end;
           }).length,
-    isTreatedAsRead: logged !== ExposureReadsLogged.Logged,
+    isTreatedAsRead:
+      logged !== ExposureReadsLogged.Logged || isReadFromOutside === true,
   };
 }
 
@@ -898,6 +965,8 @@ export enum BreachReasonKind {
   Records = "Records",
   ReadsNotLogged = "ReadsNotLogged",
   ReadsUnknown = "ReadsUnknown",
+  // The store's access logs show reads from outside the company (#10951): its count of them.
+  ReadFromOutsideLogged = "ReadFromOutsideLogged",
   NotInForce = "NotInForce",
 }
 
@@ -976,11 +1045,7 @@ export function getBreachDueAt(data: {
   const deadline: BreachLawRule["deadline"] = data.rule.deadline;
   const amount: number | undefined = deadline.amount;
 
-  if (
-    amount === undefined ||
-    deadline.unit === BreachDeadlineUnit.WithoutUndueDelay ||
-    deadline.unit === BreachDeadlineUnit.NoFixedTime
-  ) {
+  if (amount === undefined || isDeadlineWithoutLength(deadline.unit)) {
     return undefined;
   }
 
@@ -1189,11 +1254,19 @@ export function applyBreachLaw(
     });
   }
 
-  // Whether anyone read it.
+  /*
+   * Whether anyone read it. Reads logged and the logs read: reads from
+   * outside answer the check; none found leaves it a person's to make.
+   */
   if (facts.reads.logged === ExposureReadsLogged.NotLogged) {
     reasons.push({ kind: BreachReasonKind.ReadsNotLogged });
   } else if (facts.reads.logged === ExposureReadsLogged.Unknown) {
     reasons.push({ kind: BreachReasonKind.ReadsUnknown });
+  } else if (facts.reads.isReadFromOutside === true && facts.reads.fromLogs) {
+    reasons.push({
+      kind: BreachReasonKind.ReadFromOutsideLogged,
+      records: getReadsFromOutside(facts.reads.fromLogs).reads,
+    });
   } else {
     checks.push({ kind: BreachCheckKind.ReadFromOutside });
   }
@@ -1324,21 +1397,57 @@ export enum UncoveredLawKind {
   OtherCountries = "OtherCountries",
   // A person said some of the people live elsewhere.
   PeopleElsewhere = "PeopleElsewhere",
-  // US states other than the six the table covers.
+  // The US states whose statutes the table has no rows for (#10952): named in `states`.
   OtherUsStates = "OtherUsStates",
+  // Guam and the US Virgin Islands, which have breach laws of their own.
+  UsTerritories = "UsTerritories",
   // Where the organization is established can bring in a law whatever the people's countries.
   Establishment = "Establishment",
   // Contracts, sector rules and other obligations.
   ContractsAndSectors = "ContractsAndSectors",
+  // The card brands that publish no deadline of their own (#10953).
+  OtherCardBrands = "OtherCardBrands",
 }
 
 export interface UncoveredLaw {
   kind: UncoveredLawKind;
   countries?: Array<string> | undefined;
+  // The US states it names, for OtherUsStates.
+  states?: Array<BreachPlace> | undefined;
+}
+
+/*
+ * Whether the people may live in a US state nobody named: nobody said where
+ * they live, a person said the United States without its states (or, before
+ * #10952 named every state, "another US state"), or the data shows people in
+ * the United States while nobody named a state.
+ */
+function isUsStateUnknown(whose: ExposureWhoseData): boolean {
+  const named: ReadonlyArray<BreachPlace> = whose.placesNamed || [];
+
+  if (!whose.placesNamed) {
+    return true;
+  }
+
+  if (
+    named.includes(BreachPlace.UnitedStates) ||
+    named.includes(BreachPlace.OtherUsState)
+  ) {
+    return true;
+  }
+
+  return (
+    whose.countriesFromData.includes("US") &&
+    !named.some((place: BreachPlace): boolean => {
+      return isUsStatePlace(place);
+    })
+  );
 }
 
 export function getUncoveredLaws(
   whose: ExposureWhoseData,
+  // The US states the table has no rows for: the table's own, but for a test.
+  uncoveredStates: ReadonlyArray<BreachPlace> = UNCOVERED_US_STATES,
 ): Array<UncoveredLaw> {
   const uncovered: Array<UncoveredLaw> = [];
   const elsewhere: Array<string> = whose.countriesFromData.filter(
@@ -1358,16 +1467,33 @@ export function getUncoveredLaws(
     uncovered.push({ kind: UncoveredLawKind.PeopleElsewhere });
   }
 
-  if (
-    !whose.placesNamed ||
-    whose.placesNamed.some((place: BreachPlace): boolean => {
-      return (
-        place === BreachPlace.UnitedStates || place === BreachPlace.OtherUsState
-      );
-    }) ||
-    whose.countriesFromData.includes("US")
-  ) {
-    uncovered.push({ kind: UncoveredLawKind.OtherUsStates });
+  /*
+   * The US states the table has no rows for: every one while the state is
+   * not known, or those a person named; then the territories while the
+   * state is not known. Each state's notice to the consumer reporting
+   * agencies is a row of its own (#10952), so it is never left out here.
+   */
+  const isStateUnknown: boolean = isUsStateUnknown(whose);
+  const statesLeftOut: Array<BreachPlace> = uncoveredStates.filter(
+    (place: BreachPlace): boolean => {
+      return isStateUnknown || Boolean(whose.placesNamed?.includes(place));
+    },
+  );
+
+  if (statesLeftOut.length > 0) {
+    uncovered.push({
+      kind: UncoveredLawKind.OtherUsStates,
+      states: statesLeftOut,
+    });
+  }
+
+  if (isStateUnknown) {
+    uncovered.push({ kind: UncoveredLawKind.UsTerritories });
+  }
+
+  // Card data: the brands whose rules are only in their agreements.
+  if (whose.elements.includes(BreachDataElement.CardData)) {
+    uncovered.push({ kind: UncoveredLawKind.OtherCardBrands });
   }
 
   uncovered.push({ kind: UncoveredLawKind.Establishment });
@@ -1384,13 +1510,19 @@ export const UNCOVERED_LAW_WORDS: Readonly<Record<UncoveredLawKind, string>> = {
     "You said some of the people live somewhere this assessment does not cover: check that place's breach law.",
   ),
   [UncoveredLawKind.OtherUsStates]: translationKey(
-    "Of the US states, it covers California, Colorado, Florida, New York, Texas and Washington. Every other state has a breach law of its own.",
+    "It does not cover the breach laws of {{states}}, whose statutes could not be read from an official source: check them yourself.",
+  ),
+  [UncoveredLawKind.UsTerritories]: translationKey(
+    "Guam and the US Virgin Islands have breach laws of their own, which it does not cover.",
   ),
   [UncoveredLawKind.Establishment]: translationKey(
     "Where your organization is established can bring in GDPR, UK GDPR or another law, whatever the people's countries.",
   ),
   [UncoveredLawKind.ContractsAndSectors]: translationKey(
     "Contracts with customers and partners, and sector rules such as banking, insurance and telecoms regulators', can set deadlines of their own.",
+  ),
+  [UncoveredLawKind.OtherCardBrands]: translationKey(
+    "Of the card brands, it covers Visa, Mastercard and American Express, which publish their deadlines. Discover, JCB and UnionPay set theirs in agreements they do not publish: ask your acquirer.",
   ),
 };
 
@@ -1524,6 +1656,13 @@ export interface StoredExposureAssessment {
   // The facts its drafted parts were written from.
   facts: Array<ComplianceFact>;
   draftedAt?: string | undefined;
+  /*
+   * What OneUptime last read of the store's own access logs (#10951): the
+   * counts, and the outside principals the server shows only to a reader
+   * who may see who can reach the store. Kept, since reading them takes
+   * time; read again for a window that changed since.
+   */
+  logRead?: ExposureLogRead | undefined;
 }
 
 export const EXPOSURE_ASSESSMENT_VERSION: number = 1;
@@ -1645,6 +1784,7 @@ export function readStoredExposureAssessment(
     sections,
     facts: readComplianceFacts(value["facts"]),
     draftedAt: readText(value["draftedAt"], 40) || undefined,
+    logRead: readExposureLogRead(value["logRead"]) || undefined,
   };
 }
 
@@ -1682,6 +1822,8 @@ export function startExposureAssessment(data: {
 const LAW_NAMES_IN_TEXT: ReadonlyArray<{
   pattern: RegExp;
   family: BreachLawFamily | null;
+  // A place a person may name, read past so it is no other law's name.
+  isPlace?: boolean | undefined;
 }> = [
   { pattern: /\bUK[ -]GDPR\b/gi, family: BreachLawFamily.UkGdpr },
   {
@@ -1697,9 +1839,154 @@ const LAW_NAMES_IN_TEXT: ReadonlyArray<{
   { pattern: /\bFlorida\b|\b501\.171\b/gi, family: BreachLawFamily.Florida },
   { pattern: /\bNew York\b|\b899-aa\b/gi, family: BreachLawFamily.NewYork },
   { pattern: /\bTexas\b|\b521\.053\b/gi, family: BreachLawFamily.Texas },
+  /*
+   * The District of Columbia before Washington, so "Washington, D.C." is
+   * read as the District's and not as the state's (#10952).
+   */
+  {
+    pattern:
+      /\bDistrict of Columbia\b|\bWashington,? D\.?C\.?(?![\w.])|\bD\.C\.(?![\w.])|\b28-385\d(?:\.\d+)?\b/gi,
+    family: BreachLawFamily.DistrictOfColumbia,
+  },
   {
     pattern: /\bWashington\b|\b19\.255\b/gi,
     family: BreachLawFamily.Washington,
+  },
+  // The other US states (#10952), by name and by their sections' numbers.
+  { pattern: /\bAlabama\b|\b8-38-\d+\b/gi, family: BreachLawFamily.Alabama },
+  { pattern: /\bAlaska\b|\b45\.48\.\d+\b/gi, family: BreachLawFamily.Alaska },
+  { pattern: /\bArizona\b|\b18-55[12]\b/gi, family: BreachLawFamily.Arizona },
+  {
+    pattern: /\bArkansas\b|\b4-110-10\d\b/gi,
+    family: BreachLawFamily.Arkansas,
+  },
+  {
+    pattern: /\bConnecticut\b|\b36a-701b\b/gi,
+    family: BreachLawFamily.Connecticut,
+  },
+  {
+    pattern: /\bDelaware\b|\b12B-10\d\b/gi,
+    family: BreachLawFamily.Delaware,
+  },
+  {
+    pattern: /\bGeorgia\b|\b10-1-91[12]\b/gi,
+    family: BreachLawFamily.Georgia,
+  },
+  {
+    pattern: /\bHawai(?:ʻ|')?i\b|\b487N-\d\b/gi,
+    family: BreachLawFamily.Hawaii,
+  },
+  { pattern: /\bIdaho\b|\b28-51-10\d\b/gi, family: BreachLawFamily.Idaho },
+  {
+    pattern: /\bIllinois\b|\b815 ILCS\b|\bILCS 530\b/gi,
+    family: BreachLawFamily.Illinois,
+  },
+  { pattern: /\bIndiana\b|\b24-4\.9\b/gi, family: BreachLawFamily.Indiana },
+  { pattern: /\bIowa\b|\b715C\b/gi, family: BreachLawFamily.Iowa },
+  // "Arkansas" is read above, and "Kansas" is no word of it.
+  { pattern: /\bKansas\b|\b50-7a0\d\b/gi, family: BreachLawFamily.Kansas },
+  {
+    pattern: /\bKentucky\b|\b365\.732\b/gi,
+    family: BreachLawFamily.Kentucky,
+  },
+  {
+    pattern: /\bLouisiana\b|\b51:307\d\b/gi,
+    family: BreachLawFamily.Louisiana,
+  },
+  { pattern: /\bMaine\b/gi, family: BreachLawFamily.Maine },
+  {
+    pattern: /\bMaryland\b|\b14-350\d\b/gi,
+    family: BreachLawFamily.Maryland,
+  },
+  {
+    pattern: /\bMassachusetts\b|\b93H\b/gi,
+    family: BreachLawFamily.Massachusetts,
+  },
+  {
+    pattern: /\bMichigan\b|\b445\.72\b/gi,
+    family: BreachLawFamily.Michigan,
+  },
+  {
+    pattern: /\bMinnesota\b|\b325E\.61\b/gi,
+    family: BreachLawFamily.Minnesota,
+  },
+  {
+    pattern: /\bMississippi\b|\b75-24-29\b/gi,
+    family: BreachLawFamily.Mississippi,
+  },
+  {
+    pattern: /\bMissouri\b|\b407\.1500\b/gi,
+    family: BreachLawFamily.Missouri,
+  },
+  {
+    pattern: /\bMontana\b|\b30-14-170\d\b/gi,
+    family: BreachLawFamily.Montana,
+  },
+  {
+    pattern: /\bNebraska\b|\b87-80\d\b/gi,
+    family: BreachLawFamily.Nebraska,
+  },
+  { pattern: /\bNevada\b|\b603A\b/gi, family: BreachLawFamily.Nevada },
+  {
+    pattern: /\bNew Hampshire\b|\b359-C\b/gi,
+    family: BreachLawFamily.NewHampshire,
+  },
+  {
+    pattern: /\bNew Jersey\b|\b56:8-16\d\b/gi,
+    family: BreachLawFamily.NewJersey,
+  },
+  {
+    pattern: /\bNew Mexico\b|\b57-12C\b/gi,
+    family: BreachLawFamily.NewMexico,
+  },
+  {
+    pattern: /\bNorth Carolina\b|\b75-65\b/gi,
+    family: BreachLawFamily.NorthCarolina,
+  },
+  {
+    pattern: /\bNorth Dakota\b|\b51-30-0\d\b/gi,
+    family: BreachLawFamily.NorthDakota,
+  },
+  { pattern: /\bOhio\b|\b1349\.19\b/gi, family: BreachLawFamily.Ohio },
+  { pattern: /\bOklahoma\b/gi, family: BreachLawFamily.Oklahoma },
+  { pattern: /\bOregon\b|\b646A\.60\d\b/gi, family: BreachLawFamily.Oregon },
+  { pattern: /\bPennsylvania\b/gi, family: BreachLawFamily.Pennsylvania },
+  {
+    pattern: /\bRhode Island\b|\b11-49\.3\b/gi,
+    family: BreachLawFamily.RhodeIsland,
+  },
+  {
+    pattern: /\bSouth Carolina\b|\b39-1-90\b/gi,
+    family: BreachLawFamily.SouthCarolina,
+  },
+  {
+    pattern: /\bSouth Dakota\b|\b22-40-2\d\b/gi,
+    family: BreachLawFamily.SouthDakota,
+  },
+  {
+    pattern: /\bTennessee\b|\b47-18-2107\b/gi,
+    family: BreachLawFamily.Tennessee,
+  },
+  { pattern: /\bUtah\b|\b13-44-\d+\b/gi, family: BreachLawFamily.Utah },
+  { pattern: /\bVermont\b|\bV\.S\.A\./gi, family: BreachLawFamily.Vermont },
+  /*
+   * West Virginia before Virginia, so it is never read as Virginia's law.
+   * The table does not hold its law (#10952): its name is a place a person
+   * may have named, its sections' numbers a law no fact holds.
+   */
+  { pattern: /\bWest Virginia\b/gi, family: null, isPlace: true },
+  { pattern: /\b46A-2A-\d+\b/gi, family: null },
+  {
+    pattern: /\bVirginia\b|\b18\.2-186\.6\b/gi,
+    family: BreachLawFamily.Virginia,
+  },
+  {
+    pattern: /\bWisconsin\b|\b134\.98\b/gi,
+    family: BreachLawFamily.Wisconsin,
+  },
+  {
+    pattern: /\bWyoming\b|\b40-12-50\d\b/gi,
+    family: BreachLawFamily.Wyoming,
   },
   { pattern: /\bLGPD\b|\bANPD\b/gi, family: BreachLawFamily.Lgpd },
   {
@@ -1708,10 +1995,23 @@ const LAW_NAMES_IN_TEXT: ReadonlyArray<{
   },
   { pattern: /\bCERT-In\b/gi, family: BreachLawFamily.CertIn },
   { pattern: /\bPCI(?:[ -]?DSS)?\b/gi, family: BreachLawFamily.PciDss },
-  // Laws the table does not cover: never named by a draft.
+  // The card brands whose own rules the table has (#10953).
+  { pattern: /\bVisa\b/gi, family: BreachLawFamily.Visa },
+  {
+    pattern: /\bMastercard\b|\bMaestro\b/gi,
+    family: BreachLawFamily.Mastercard,
+  },
+  {
+    pattern: /\bAmerican Express\b|\bAmex\b/gi,
+    family: BreachLawFamily.AmericanExpress,
+  },
+  /*
+   * Laws, and card brands, the table does not cover: never named by a
+   * draft. Discover by its network's names only: "discover" is a word.
+   */
   {
     pattern:
-      /\bCCPA\b|\bCPRA\b|\bPIPEDA\b|\bPIPL\b|\bAPPI\b|\bPDPA\b|\bPOPIA\b|\bNIS ?2\b|\bDORA\b|\bGLBA\b|Gramm-Leach|\bFERPA\b|\bCOPPA\b|\bSOX\b/gi,
+      /\bCCPA\b|\bCPRA\b|\bPIPEDA\b|\bPIPL\b|\bAPPI\b|\bPDPA\b|\bPOPIA\b|\bNIS ?2\b|\bDORA\b|\bGLBA\b|Gramm-Leach|\bFERPA\b|\bCOPPA\b|\bSOX\b|\bJCB\b|\bUnionPay\b|\bDiscover (?:Global )?Network\b|\bDiscover Card\b/gi,
     family: null,
   },
 ];
@@ -1761,6 +2061,10 @@ export function getUnfoundedLaws(data: {
     const found: Array<string> = text.match(entry.pattern) || [];
 
     for (const name of found) {
+      if (entry.isPlace) {
+        continue;
+      }
+
       if (entry.family === null || !families.has(entry.family)) {
         if (!unfounded.includes(name)) {
           unfounded.push(name);
@@ -2166,6 +2470,8 @@ export function describeBreachDeadlineInEnglish(rule: BreachLawRule): string {
       break;
     case BreachDeadlineUnit.WithoutUndueDelay:
       return "without undue delay";
+    case BreachDeadlineUnit.WithoutUnreasonableDelay:
+      return "in the most expedient time possible and without unreasonable delay";
     default:
       return "no fixed time";
   }
@@ -2184,7 +2490,8 @@ export function describeBreachDeadlineInEnglish(rule: BreachLawRule): string {
 
 // A place in English: the table's own words (translationKey keeps the English).
 export function describeBreachPlaceInEnglish(place: BreachPlace): string {
-  return BREACH_PLACE_WORDS[place];
+  // A key that names its meaning reads as its word: "Georgia", the US state.
+  return withMeaningKeyAsItsWord(BREACH_PLACE_WORDS[place]);
 }
 
 // What a person still checks, in English.

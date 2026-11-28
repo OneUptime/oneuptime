@@ -191,6 +191,12 @@ export interface LlmAnswerCountQuery extends TelemetryServiceFilter {
   projectId: ObjectID;
   startTime: Date;
   endTime: Date;
+  /*
+   * False for a check's window, which leaves out its end
+   * (TelemetryCheckWindow, InBetween.includesEnd): an answer that started
+   * on it is the next window's. True, or not given, holds both ends.
+   */
+  includesEnd?: boolean | undefined;
   issues: Array<LlmAnswerIssue>;
   slowAnswerMs: number | null;
   // Only answers from this model, requested or served; "" or undefined = any.
@@ -586,13 +592,18 @@ export default class LlmConversationService {
     return statement;
   }
 
-  // The WHERE every read shares: the project, AI calls, the window, the scope.
+  /*
+   * The WHERE every read shares: the project, AI calls, the window, the
+   * scope. The window holds both its ends, or only its start for a check's
+   * window (`includesEnd: false`, TelemetryCheckWindow).
+   */
   public static appendScope(
     statement: Statement,
     query: TelemetryServiceFilter & {
       projectId: ObjectID;
       startTime: Date;
       endTime: Date;
+      includesEnd?: boolean | undefined;
     },
   ): void {
     statement.append(
@@ -602,7 +613,11 @@ export default class LlmConversationService {
       }} AND isLlmSpan = 1 AND startTime >= ${{
         type: TableColumnType.Date,
         value: query.startTime,
-      }} AND startTime <= ${{
+      }} AND startTime `,
+    );
+    statement.append(query.includesEnd === false ? "<" : "<=");
+    statement.append(
+      SQL` ${{
         type: TableColumnType.Date,
         value: query.endTime,
       }} AND retentionDate >= now()`,

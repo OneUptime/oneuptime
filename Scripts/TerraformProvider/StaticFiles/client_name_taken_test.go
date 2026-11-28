@@ -1065,7 +1065,7 @@ func TestDoRequest_AClientWithoutAWindowAsksOnce(t *testing.T) {
 	if err == nil || strings.Contains(err.Error(), "asking again") || !strings.Contains(err.Error(), "temporary name") {
 		t.Errorf("expected the swap advice without a wait in it, got %v", err)
 	}
-	if advice := client.nameTakenAdvice(); advice != nothingGaveTheNameUpAdvice {
+	if advice := client.nameTakenAdvice(takenName{}); advice != nothingGaveTheNameUpAdvice {
 		t.Errorf("without a window the advice is its two sentences alone, got %q", advice)
 	}
 	if want := teamNameTakenSentence("Beta") + " " + nothingGaveTheNameUpAdvice; !strings.HasSuffix(err.Error(), want) {
@@ -1088,11 +1088,11 @@ func TestNewClient_AsksAgainForThirtySeconds(t *testing.T) {
 	if client.nameTakenRetry != want {
 		t.Errorf("expected %+v, got %+v", want, client.nameTakenRetry)
 	}
-	if advice := client.nameTakenAdvice(); !strings.HasPrefix(advice, "The name was still taken after asking again for 30 seconds.") {
+	if advice := client.nameTakenAdvice(takenName{}); !strings.HasPrefix(advice, "The name was still taken after asking again for 30 seconds.") {
 		t.Errorf("the advice should say how long it asked: %s", advice)
 	}
 	wantAdvice := "The name was still taken after asking again for 30 seconds. If a record outside this configuration has it, such as one OneUptime made with the project, give this resource another name, or import that record. If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."
-	if advice := client.nameTakenAdvice(); advice != wantAdvice {
+	if advice := client.nameTakenAdvice(takenName{}); advice != wantAdvice {
 		t.Errorf("expected the advice\n%s\ngot\n%s", wantAdvice, advice)
 	}
 }
@@ -1178,5 +1178,543 @@ func TestDescribeWait(t *testing.T) {
 		if got := describeWait(wait); got != want {
 			t.Errorf("describeWait(%s) = %q, wanted %q", wait, got, want)
 		}
+	}
+}
+
+/*
+ * WHICH RECORD HAS THE NAME (OneUptime/oneuptime#11019).
+ *
+ * A project that requires unique names refuses a monitor's, a template's or
+ * an API key's taken name with the ID of the record that has it beside the
+ * code (takenById), when the caller's key may read that record. Once the
+ * client has asked again for the whole window, its advice then names that
+ * record and gives the exact line that brings it under the configuration:
+ *
+ *   - a create imports it into this resource, which may be the record the
+ *     resource means: terraform import oneuptime_monitor.<name> <id>, on a
+ *     line of its own, with the resource's type its request said
+ *     (ForResource);
+ *   - a rename imports it into a resource of its own, since this resource
+ *     is a record already, and renames it there;
+ *   - under Crossplane, the external-name annotation adopts it instead;
+ *   - without the field - an older server, a record the key may not read,
+ *     a kind that sends none - or with anything in it that is not an ID,
+ *     the advice is word for word what it always was, and no ID is named;
+ *   - a name only an archived record has, and a value another record holds,
+ *     keep their own words: nothing is added for the ID.
+ */
+
+// A monitor's refusal while the project requires unique names (RequiredUniqueNames).
+const monitorNameTakenSentence = "Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name."
+
+// The record that has the name, as OneUptime writes an ID.
+const holderID = "7f0b1d7e-0000-4000-8000-000000011019"
+
+// A window short enough for a test, and said as describeWait says it.
+var shortNameTakenRetry = nameTakenRetry{
+	window:    30 * time.Millisecond,
+	firstWait: 10 * time.Millisecond,
+	maxWait:   10 * time.Millisecond,
+}
+
+// A refusal as a server that requires unique names answers it: the sentence,
+// the code, and the given value under takenById (left out when nil).
+func nameTakenByBody(t *testing.T, envelope string, sentence string, code string, takenByID interface{}) string {
+	t.Helper()
+	body := map[string]interface{}{
+		envelope:         sentence,
+		refusalCodeField: code,
+	}
+	if takenByID != nil {
+		body[takenByIDField] = takenByID
+	}
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		t.Fatalf("marshalling the refusal: %s", err)
+	}
+	return string(encoded)
+}
+
+// refusingServer answers every request with the given 400 body.
+func refusingServer(t *testing.T, body string) *Client {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, body)
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := NewClient(server.URL, "api-key", "test")
+	if err != nil {
+		t.Fatalf("NewClient: %s", err)
+	}
+	client.nameTakenRetry = shortNameTakenRetry
+	return client
+}
+
+// writeAs sends a write as a resource of the given type sends it ("" for a
+// request that says no type), and reads the answer as the resource does.
+func writeAs(t *testing.T, client *Client, method string, resourceType string) error {
+	t.Helper()
+	ctx := context.Background()
+	if resourceType != "" {
+		ctx = ForResource(ctx, resourceType)
+	}
+	resp, err := client.DoRequest(ctx, method, "/monitor", renameBody("API Health Check"))
+	if err != nil {
+		t.Fatalf("%s: %s", method, err)
+	}
+	return client.ParseResponse(resp, nil)
+}
+
+// The error a resource sees for a name nothing gave up, without the record's ID.
+func adviceWithoutTheRecord(sentence string) string {
+	return "the OneUptime API returned status 400: " + sentence + " The name was still taken after asking again for 30ms. " + nothingGaveTheNameUpAdvice
+}
+
+// The words the client keeps for a swap, whatever else it says.
+const swapAdvice = "If resources in this configuration swap names, or rename each other in a cycle, none of them can go first: give one of them a temporary name, apply, then apply the names you want."
+
+// A create: the record that has the name, and the line that imports it into this resource.
+func TestParseResponse_ACreateNamesTheRecordAndTheLineThatImportsItIntoThisResource(t *testing.T) {
+	client := refusingServer(t, nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, holderID))
+
+	err := writeAs(t, client, http.MethodPost, "oneuptime_monitor")
+	if err == nil {
+		t.Fatalf("a refused create went through")
+	}
+
+	want := "the OneUptime API returned status 400: " + monitorNameTakenSentence +
+		" The name was still taken after asking again for 30ms." +
+		" The record that has it is " + holderID + "." +
+		" If it is outside this configuration, such as one OneUptime made with the project, give this resource another name, or import that record into this resource, at the address Terraform shows with this error:" +
+		"\n\n  terraform import oneuptime_monitor.<name> " + holderID +
+		"\n\n" + swapAdvice
+	if err.Error() != want {
+		t.Errorf("expected\n%s\ngot\n%s", want, err)
+	}
+
+	// The command is a line of its own, to copy.
+	found := false
+	for _, line := range strings.Split(err.Error(), "\n") {
+		if line == "  terraform import oneuptime_monitor.<name> "+holderID {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("the import command should be a line of its own: %q", err)
+	}
+
+	// Named, the record is no longer "that record" of the advice without it.
+	if strings.Contains(err.Error(), nameTakenOutsideAdvice) {
+		t.Errorf("an error that names the record should not also speak of one it does not know: %s", err)
+	}
+}
+
+// A rename: this resource is a record already, so the other is imported into a resource of its own.
+func TestParseResponse_ARenameNamesTheRecordAndImportsItIntoAResourceOfItsOwn(t *testing.T) {
+	client := refusingServer(t, nameTakenByBody(t, envelopeMessage, monitorNameTakenSentence, nameTakenRefusalCode, holderID))
+
+	for _, method := range []string{http.MethodPut, http.MethodPatch} {
+		err := writeAs(t, client, method, "oneuptime_monitor")
+		if err == nil {
+			t.Fatalf("%s: a refused rename went through", method)
+		}
+
+		want := "the OneUptime API returned status 400: " + monitorNameTakenSentence +
+			" The name was still taken after asking again for 30ms." +
+			" The record that has it is " + holderID + "." +
+			" If it is outside this configuration, such as one OneUptime made with the project, give this resource another name, or import that record into a resource of its own and rename it there:" +
+			"\n\n  terraform import oneuptime_monitor.<name> " + holderID +
+			"\n\n" + swapAdvice
+		if err.Error() != want {
+			t.Errorf("%s: expected\n%s\ngot\n%s", method, want, err)
+		}
+		if strings.Contains(err.Error(), "into this resource") {
+			t.Errorf("%s: a rename must not say to import another record into this resource, which is one already: %s", method, err)
+		}
+	}
+}
+
+// A request that does not say its resource's type leaves the address to fill in.
+func TestParseResponse_WithoutTheResourcesTypeTheLineLeavesTheAddressToFillIn(t *testing.T) {
+	client := refusingServer(t, nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, holderID))
+
+	err := writeAs(t, client, http.MethodPost, "")
+	if err == nil {
+		t.Fatalf("a refused create went through")
+	}
+	if !strings.Contains(err.Error(), "\n\n  terraform import <address> "+holderID+"\n\n") {
+		t.Errorf("expected the line with the address to fill in: %s", err)
+	}
+	if !strings.Contains(err.Error(), "The record that has it is "+holderID+".") {
+		t.Errorf("the record should still be named: %s", err)
+	}
+}
+
+/*
+ * Without the record's ID - a server from before #11019, a record the key
+ * may not read, a kind whose refusal does not carry it - the advice is word
+ * for word what it was. So is it with anything in the field that is not an
+ * ID: the client names no record the server did not name, and puts nothing
+ * else of the field into the error.
+ */
+func TestParseResponse_WithoutAnIDTheAdviceIsWhatItWas(t *testing.T) {
+	cases := []struct {
+		name      string
+		takenByID interface{}
+	}{
+		{"no field: an older server, or a record the key may not read", nil},
+		{"an empty field", ""},
+		{"a number", 11019},
+		{"an object", map[string]string{"id": holderID}},
+		{"a list", []string{holderID}},
+		{"a true", true},
+		{"a name, not an ID", "Billing API"},
+		{"a path", "../../etc/passwd"},
+		{"markup", "<script>alert(1)</script>"},
+		{"an ID with a line after it", holderID + "\nterraform destroy"},
+		{"an ID with a space before it", " " + holderID},
+		{"an ID one character short", holderID[:len(holderID)-1]},
+		{"an ID with letters that are not hex", "zf0b1d7e-0000-4000-8000-000000011019"},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			client := refusingServer(t, nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, testCase.takenByID))
+
+			for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodPatch} {
+				err := writeAs(t, client, method, "oneuptime_monitor")
+				if err == nil {
+					t.Fatalf("%s: a refused write went through", method)
+				}
+				if err.Error() != adviceWithoutTheRecord(monitorNameTakenSentence) {
+					t.Errorf("%s: expected the advice as it was\n%s\ngot\n%s", method, adviceWithoutTheRecord(monitorNameTakenSentence), err)
+				}
+				for _, words := range []string{"terraform import", "The record that has it", "external-name"} {
+					if strings.Contains(err.Error(), words) {
+						t.Errorf("%s: without an ID the error says nothing of %q: %s", method, words, err)
+					}
+				}
+				if text, isText := testCase.takenByID.(string); isText && text != "" && strings.Contains(err.Error(), text) {
+					t.Errorf("%s: what the field held must not reach the error: %s", method, err)
+				}
+			}
+		})
+	}
+}
+
+// An ID the server put in its words only, and not in the field, names no record.
+func TestParseResponse_AnIDInTheSentenceAloneNamesNoRecord(t *testing.T) {
+	sentence := "Another monitor in this project is already called " + holderID + ", and the project requires unique names. Pick another name."
+	client := refusingServer(t, nameTakenByBody(t, envelopeError, sentence, nameTakenRefusalCode, nil))
+
+	err := writeAs(t, client, http.MethodPost, "oneuptime_monitor")
+	if err == nil {
+		t.Fatalf("a refused create went through")
+	}
+	if err.Error() != adviceWithoutTheRecord(sentence) {
+		t.Errorf("expected the server's sentence and the advice as it was, got\n%s", err)
+	}
+	if strings.Contains(err.Error(), "terraform import") {
+		t.Errorf("no record was named by the field: %s", err)
+	}
+}
+
+// Under Crossplane a record is adopted by its ID in a managed resource's annotation, not imported.
+func TestParseResponse_UnderCrossplaneTheRecordIsAdoptedByItsExternalName(t *testing.T) {
+	client := refusingServer(t, nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, holderID))
+	client.lastApplied = &LastApplied{Recorded: true, Fields: map[string]any{}}
+
+	create := writeAs(t, client, http.MethodPost, "oneuptime_monitor")
+	if create == nil {
+		t.Fatalf("a refused create went through")
+	}
+	wantCreate := "the OneUptime API returned status 400: " + monitorNameTakenSentence +
+		" The name was still taken after asking again for 30ms." +
+		" The record that has it is " + holderID + "." +
+		" If it is outside this configuration, such as one OneUptime made with the project, give this resource another name, or adopt that record with this managed resource: set its crossplane.io/external-name annotation to \"" + holderID + "\"." +
+		"\n\n" + swapAdvice
+	if create.Error() != wantCreate {
+		t.Errorf("expected\n%s\ngot\n%s", wantCreate, create)
+	}
+
+	rename := writeAs(t, client, http.MethodPut, "oneuptime_monitor")
+	if rename == nil {
+		t.Fatalf("a refused rename went through")
+	}
+	if !strings.Contains(rename.Error(), "adopt that record with a managed resource of its own, annotated crossplane.io/external-name: \""+holderID+"\", and rename it there.") {
+		t.Errorf("a rename under Crossplane adopts the record with a managed resource of its own: %s", rename)
+	}
+
+	for _, err := range []error{create, rename} {
+		if strings.Contains(err.Error(), "terraform import") {
+			t.Errorf("under Crossplane nothing is imported with terraform: %s", err)
+		}
+	}
+
+	// Without the ID, Crossplane's advice is what it always was too.
+	unnamed := refusingServer(t, nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, nil))
+	unnamed.lastApplied = &LastApplied{}
+	if err := writeAs(t, unnamed, http.MethodPost, "oneuptime_monitor"); err == nil || err.Error() != adviceWithoutTheRecord(monitorNameTakenSentence) {
+		t.Errorf("expected the advice as it was, got %v", err)
+	}
+}
+
+/*
+ * A name only an archived record has fails at once with the server's own
+ * sentence, which says to unarchive it; a value another record holds keeps
+ * a value's advice. Neither gains the ID, even should the field come with
+ * them.
+ */
+func TestParseResponse_AnArchivedHolderOrAValueNamesNoRecord(t *testing.T) {
+	archived := "An archived monitor in this project is already called API Health Check, and the project requires unique names. Unarchive it, or pick another name."
+	archivedClient := refusingServer(t, nameTakenByBody(t, envelopeError, archived, nameTakenByArchivedRefusalCode, holderID))
+
+	err := writeAs(t, archivedClient, http.MethodPost, "oneuptime_monitor")
+	if err == nil || err.Error() != "the OneUptime API returned status 400: "+archived {
+		t.Errorf("an archived holder's refusal is the server's sentence alone, got %v", err)
+	}
+
+	valueClient := refusingServer(t, nameTakenByBody(t, envelopeError, statusPageDomainTakenSentence, valueTakenRefusalCode, holderID))
+	err = writeAs(t, valueClient, http.MethodPost, "oneuptime_status_page_domain")
+	if err == nil {
+		t.Fatalf("a refused value went through")
+	}
+	if strings.Contains(err.Error(), holderID) || strings.Contains(err.Error(), "terraform import") {
+		t.Errorf("a value's refusal keeps a value's advice: %s", err)
+	}
+	if !strings.Contains(err.Error(), nothingGaveTheValueUpAdvice) {
+		t.Errorf("a value's refusal should end with a value's advice: %s", err)
+	}
+}
+
+/*
+ * The client's own advice, from what it knows: the swap's words always end
+ * it, after the line to copy, and a client that never asks again says
+ * nothing of waiting.
+ */
+func TestNameTakenAdvice_FromWhatTheRefusalSays(t *testing.T) {
+	client := &Client{}
+
+	if advice := client.nameTakenAdvice(takenName{}); advice != nothingGaveTheNameUpAdvice {
+		t.Errorf("nothing known: the advice as it was, got %q", advice)
+	}
+
+	create := client.nameTakenAdvice(takenName{takenByID: holderID, resourceType: "oneuptime_incident_template"})
+	if !strings.HasPrefix(create, "The record that has it is "+holderID+". ") {
+		t.Errorf("without a window the advice opens with the record: %q", create)
+	}
+	if !strings.Contains(create, "\n\n  terraform import oneuptime_incident_template.<name> "+holderID+"\n\n") {
+		t.Errorf("the line names the resource's type: %q", create)
+	}
+	if !strings.HasSuffix(create, swapAdvice) {
+		t.Errorf("the swap's words end the advice: %q", create)
+	}
+	if strings.Contains(create, "asking again") {
+		t.Errorf("a client that never asks again says nothing of it: %q", create)
+	}
+
+	rename := client.nameTakenAdvice(takenName{takenByID: holderID, resourceType: "oneuptime_incident_template", isRename: true})
+	if !strings.Contains(rename, "into a resource of its own and rename it there") || strings.Contains(rename, "into this resource") {
+		t.Errorf("a rename imports the other record into a resource of its own: %q", rename)
+	}
+}
+
+func TestTakenByIDOf(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"the field beside the code", nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, holderID), holderID},
+		{"beside a message", nameTakenByBody(t, envelopeMessage, monitorNameTakenSentence, nameTakenRefusalCode, holderID), holderID},
+		{"an ID in capitals", nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, strings.ToUpper(holderID)), strings.ToUpper(holderID)},
+		{"no field", nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, nil), ""},
+		{"not an ID", nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, "monitor-1"), ""},
+		{"not text", `{"error":"x","refusalCode":"name_taken","takenById":7}`, ""},
+		{"under another field", `{"error":"x","refusalCode":"name_taken","takenByID":"` + holderID + `"}`, ""},
+		{"not JSON", holderID, ""},
+		{"an empty body", ``, ""},
+		{"a JSON array", `["` + holderID + `"]`, ""},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := takenByIDOf([]byte(testCase.body)); got != testCase.want {
+				t.Errorf("got %q, wanted %q for %s", got, testCase.want, testCase.body)
+			}
+		})
+	}
+
+	// The field is Common's.
+	if takenByIDField != "takenById" {
+		t.Errorf("the field drifted from the server's: %q", takenByIDField)
+	}
+}
+
+// What a refusal says of the write it refused: its method, and its resource's type.
+func TestTakenNameOf(t *testing.T) {
+	body := []byte(nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, holderID))
+
+	cases := []struct {
+		method   string
+		isRename bool
+	}{
+		{http.MethodPost, false},
+		{http.MethodPut, true},
+		{http.MethodPatch, true},
+	}
+
+	for _, testCase := range cases {
+		request, err := http.NewRequestWithContext(ForResource(context.Background(), "oneuptime_probe"), testCase.method, "https://oneuptime.example/api/probe", nil)
+		if err != nil {
+			t.Fatalf("NewRequest: %s", err)
+		}
+
+		got := takenNameOf(&http.Response{StatusCode: http.StatusBadRequest, Request: request}, body)
+		want := takenName{takenByID: holderID, resourceType: "oneuptime_probe", isRename: testCase.isRename}
+		if got != want {
+			t.Errorf("%s: got %+v, wanted %+v", testCase.method, got, want)
+		}
+	}
+
+	// A response without its request - built by hand - is a create of no known type.
+	if got := takenNameOf(&http.Response{StatusCode: http.StatusBadRequest}, body); got != (takenName{takenByID: holderID}) {
+		t.Errorf("got %+v", got)
+	}
+	if got := takenNameOf(nil, nil); got != (takenName{}) {
+		t.Errorf("nothing known of nothing, got %+v", got)
+	}
+}
+
+/*
+ * The type a resource's request says reaches the error read off the
+ * response the client hands back, after it has asked again too: the
+ * response it gives up on is the last one's, made with the same context.
+ */
+func TestForResource_ReachesTheResponseAfterAskingAgain(t *testing.T) {
+	var mu sync.Mutex
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		requests++
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, nameTakenByBody(t, envelopeError, monitorNameTakenSentence, nameTakenRefusalCode, holderID))
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := NewClient(server.URL, "api-key", "test")
+	if err != nil {
+		t.Fatalf("NewClient: %s", err)
+	}
+	client.nameTakenRetry = shortNameTakenRetry
+
+	resp, err := client.Post(ForResource(context.Background(), "oneuptime_monitor"), "/monitor", renameBody("API Health Check"))
+	if err != nil {
+		t.Fatalf("Post: %s", err)
+	}
+	mu.Lock()
+	sent := requests
+	mu.Unlock()
+	if sent < 2 {
+		t.Fatalf("expected the create to be asked again, it was sent %d time(s)", sent)
+	}
+	if got := resourceTypeOf(resp); got != "oneuptime_monitor" {
+		t.Errorf("the response handed back lost its resource's type: %q", got)
+	}
+	if got := resourceTypeOf(nil); got != "" {
+		t.Errorf("no response, no type: %q", got)
+	}
+
+	plain, err := client.Get(context.Background(), "/monitor/x")
+	if err != nil {
+		t.Fatalf("Get: %s", err)
+	}
+	if got := resourceTypeOf(plain); got != "" {
+		t.Errorf("a request that said no type has none: %q", got)
+	}
+}
+
+/*
+ * The server's side of it, faked: a project's monitors, each with an ID as
+ * OneUptime writes one. The refusal names the record that has the name only
+ * when the key may read it, as RequiredUniqueNames does - so an apply onto a
+ * name a record the key may not read has fails with the advice as it was,
+ * and that record's ID appears nowhere in the error.
+ */
+func TestDoRequest_TheErrorNamesOnlyARecordTheKeyMayRead(t *testing.T) {
+	readable := "3c1a9e2b-0000-4000-8000-000000011019"
+	hidden := "9d4e6f70-0000-4000-8000-000000011019"
+	holders := map[string]string{
+		"API Health Check": readable,
+		"Billing API":      hidden,
+	}
+	mayRead := map[string]bool{readable: true}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			Data struct {
+				Name string `json:"name"`
+			} `json:"data"`
+		}
+		raw, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(raw, &request); err != nil {
+			t.Errorf("request body was not JSON: %s", raw)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		holder, taken := holders[request.Data.Name]
+		if !taken {
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"data":{"_id":"`+readable+`"}}`)
+			return
+		}
+
+		var takenByID interface{}
+		if mayRead[holder] {
+			takenByID = holder
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, nameTakenByBody(t, envelopeError, "Another monitor in this project is already called "+request.Data.Name+", and the project requires unique names. Pick another name.", nameTakenRefusalCode, takenByID))
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := NewClient(server.URL, "api-key", "test")
+	if err != nil {
+		t.Fatalf("NewClient: %s", err)
+	}
+	client.nameTakenRetry = shortNameTakenRetry
+
+	create := func(name string) error {
+		resp, err := client.Post(ForResource(context.Background(), "oneuptime_monitor"), "/monitor", renameBody(name))
+		if err != nil {
+			t.Fatalf("Post: %s", err)
+		}
+		return client.ParseResponse(resp, nil)
+	}
+
+	named := create("API Health Check")
+	if named == nil || !strings.Contains(named.Error(), "\n\n  terraform import oneuptime_monitor.<name> "+readable+"\n\n") {
+		t.Errorf("a record the key may read is named, with its import line: %v", named)
+	}
+
+	unnamed := create("Billing API")
+	if unnamed == nil {
+		t.Fatalf("a create onto a name a hidden record has went through")
+	}
+	if strings.Contains(unnamed.Error(), hidden) || strings.Contains(unnamed.Error(), "terraform import") {
+		t.Errorf("a record the key may not read is never named: %s", unnamed)
+	}
+	if !strings.HasSuffix(unnamed.Error(), "The name was still taken after asking again for 30ms. "+nothingGaveTheNameUpAdvice) {
+		t.Errorf("expected the advice as it was: %s", unnamed)
+	}
+
+	if err := create("Checkout API"); err != nil {
+		t.Errorf("a free name is created: %s", err)
 	}
 }

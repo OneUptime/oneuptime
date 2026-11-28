@@ -37,6 +37,7 @@ Look up the message Terraform printed, or what you saw happen, in the table belo
 | `Not an ID` | Refer to the record instead of naming it: see [A name where an ID goes](#a-name-where-an-id-goes) |
 | JSON from the dashboard in a `.tf` file | Write it as HCL: see [JSON from the dashboard](#json-from-the-dashboard) |
 | `no available releases match the given constraints` | Use a version range, not one exact version: see [A version that was never published](#a-version-that-was-never-published) |
+| `checksum list has unexpected SHA-256 hash` | Use another version of the provider: see [A version whose checksums do not match](#a-version-whose-checksums-do-not-match) |
 | `x509: certificate signed by unknown authority` | Trust your certificate authority: see [Certificates](#certificates) |
 | `invalid character '<' looking for beginning of value` | Point `oneuptime_url` at your OneUptime itself: see [A web page instead of the API](#a-web-page-instead-of-the-api) |
 | `connection refused` or `Client.Timeout exceeded` | Check the address, the network and any proxy: see [Connections that fail](#connections-that-fail) |
@@ -111,9 +112,9 @@ A data source finds exactly one record, or stops the plan. `Not Found` says no r
 
 Teams, labels, on-call policies and on-call schedules each have a name of their own in a project, whatever its case or spacing, and so do many other kinds, such as incident severities, monitor statuses and status pages. A create, or a rename, onto a name another one of its kind has answers `400`, such as `There is already an on-call policy called Primary in this project. Pick another name.` or `Incident Severity with the same name already exists.` Records that shared a name before keep it, and the dashboard's lists of teams, labels, on-call policies and on-call schedules mark them.
 
-A project that requires unique names, as a new project does, under **Project Settings → Basic → Project → Unique Names**, holds monitors, templates, API keys and most other kinds you name to the same rule: `Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` Records that shared a name before the project required it keep it until they are renamed, and that card lists them.
+A project that requires unique names, as a new project does, under **Project Settings → Basic → Project → Unique Names**, holds monitors, templates, API keys and most other kinds you name to the same rule: `Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` Records that shared a name before the project required it keep it until they are renamed: that card lists them, and their own lists mark them.
 
-Terraform makes the changes of one apply side by side, so a create or a rename onto a name another resource gives up in the same apply, by a rename or a delete, can be refused while that one still has it. The provider then asks again for up to 30 seconds, so a chain of renames, such as A to B while B goes to C, goes through in one apply, and so does a resource that takes the name of one the apply deletes. A swap, A to B and B to A, or any chain of renames that ends where it started, never does, and neither does a name a record outside the configuration has, such as a severity OneUptime made with the project: after 30 seconds the apply fails with `The name was still taken after asking again for 30 seconds.` Give the resource a name nobody has, or `terraform import` the record that has the name. For a swap, rename one of them to a name nobody has, apply, then make the rest of the change.
+Terraform makes the changes of one apply side by side, so a create or a rename onto a name another resource gives up in the same apply, by a rename or a delete, can be refused while that one still has it. The provider then asks again for up to 30 seconds, so a chain of renames, such as A to B while B goes to C, goes through in one apply, and so does a resource that takes the name of one the apply deletes. A swap, A to B and B to A, or any chain of renames that ends where it started, never does, and neither does a name a record outside the configuration has, such as a severity OneUptime made with the project: after 30 seconds the apply fails with `The name was still taken after asking again for 30 seconds.` Give the resource a name nobody has, or `terraform import` the record that has the name. When your API key may read that record, the error names it and gives the line to run, such as `terraform import oneuptime_monitor.<name> <id>`: into the resource the apply was creating, or into a resource of its own when the apply was renaming one. For a swap, rename one of them to a name nobody has, apply, then make the rest of the change.
 
 An archived record keeps its name, and nothing an apply does to the records in service gives it up. A create or a rename onto it fails at once, with where to unarchive it: unarchive it, or pick another name.
 
@@ -238,6 +239,14 @@ terraform {
 ```
 
 On a self-hosted OneUptime, cap the range at your OneUptime's version, as [Self-Hosted Setup](/docs/terraform/self-hosted#pick-the-provider-version) shows. [Registry Usage](/docs/terraform/registry#how-versions-are-numbered) explains how versions are numbered.
+
+### A version whose checksums do not match
+
+`checksum list has unexpected SHA-256 hash` means the files the release serves for that version are not the ones the registry read when the version was published. The registry keeps the checksums it read then, and `init` checks every download against them. The files of 14.3.0, 16.0.0, 17.0.0, 17.1.0 and 17.2.0, and of some older 11.x to 14.0.x versions, were built and uploaded a second time after the registries read them, so `init` refuses those versions on every platform, under Terraform and OpenTofu alike. A lock file does not get past it: `init` compares the registry's checksum with the release's before it reads the lock file.
+
+Use another version: 17.3.0 or newer, or 15.0.0. A range that allows a newer version takes it with `terraform init -upgrade`. When such a version is published again, it is as the next patch version, such as 17.2.1 for 17.2.0, with the same provider in it, and a range that allows that patch takes it.
+
+To check a version before you use it, see [Verify a version's checksums](/docs/terraform/registry#verify-a-versions-checksums).
 
 ## Connecting to a self-hosted OneUptime
 

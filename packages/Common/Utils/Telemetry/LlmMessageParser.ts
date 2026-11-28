@@ -27,6 +27,7 @@ import {
   LlmAnswerContentSummary,
   LlmEvaluationResult,
 } from "../../Types/Telemetry/LlmAnswerIssue";
+import ModelReasoning, { ModelReasoningReading } from "../LLM/ModelReasoning";
 
 /*
  * ONE READER FOR WHAT AN AI CALL SAID.
@@ -1523,11 +1524,17 @@ export default class LlmMessageParser {
       }
     }
 
+    output = output.map((message: LlmMessage): LlmMessage => {
+      return LlmMessageParser.withReasoningApart(message);
+    });
+
     const finishReasons: Array<string> = LlmMessageParser.readFinishReasons(
       reader,
       output,
       detailsEvent,
     );
+
+    const oversizedOpening: string = (oversizedText || "").trimStart();
 
     const summary: LlmAnswerContentSummary = oversizedText
       ? {
@@ -1537,9 +1544,12 @@ export default class LlmMessageParser {
           hasMedia: false,
           hasRefusal: false,
           // The opening of a JSON list is not the answer's opening.
-          leadingText: oversizedText.trimStart().startsWith("[")
+          leadingText: oversizedOpening.startsWith("[")
             ? ""
-            : oversizedText.trimStart().slice(0, LLM_REFUSAL_OPENING_LENGTH),
+            : (oversizedOpening.startsWith("{")
+                ? oversizedOpening
+                : ModelReasoning.removeFrom(oversizedOpening).trimStart()
+              ).slice(0, LLM_REFUSAL_OPENING_LENGTH),
         }
       : LlmMessageParser.summarizeAnswer(output, recorded);
 
@@ -1554,6 +1564,46 @@ export default class LlmMessageParser {
           : ""),
       summary: summary,
     };
+  }
+
+  /*
+   * An answer's text as a reasoning model's server may leave it (issue
+   * #11255): the model's thinking in <think> tags before the answer, or
+   * after the opening its chat template wrote. It is read apart
+   * (ModelReasoning) into a reasoning part and the text of the answer, as
+   * the conventions' reasoning parts and Anthropic's thinking blocks already
+   * are: the conversation shows the thinking as thinking, and the answer
+   * checks read the answer - a refusal after the thinking is a refusal, and
+   * a reply of thinking alone has no text. Only the answer is read: a
+   * prompt is the caller's text, whatever it holds.
+   */
+  private static withReasoningApart(message: LlmMessage): LlmMessage {
+    let read: boolean = false;
+    const parts: Array<LlmMessagePart> = [];
+
+    for (const part of message.parts) {
+      const reading: ModelReasoningReading | null =
+        part.type === LlmMessagePartType.Text
+          ? ModelReasoning.read(part.text)
+          : null;
+
+      if (!reading || !reading.hadReasoning) {
+        parts.push(part);
+        continue;
+      }
+
+      read = true;
+      parts.push({
+        type: LlmMessagePartType.Reasoning,
+        text: reading.reasoning,
+      });
+
+      if (reading.answer.trim()) {
+        parts.push({ ...part, text: reading.answer });
+      }
+    }
+
+    return read ? { ...message, parts: parts } : message;
   }
 
   private static readSystemInstructions(

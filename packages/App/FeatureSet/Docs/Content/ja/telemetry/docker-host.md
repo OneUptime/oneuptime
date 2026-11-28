@@ -140,6 +140,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_SERVICE_TOKEN` | はい | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。 |
 | `DOCKER_HOST_NAME` | いいえ | OneUptime でのホストの名前。既定は `docker-host` なので、ホストごとに固有の名前を付けてください。 |
 | `DOCKER_API_VERSION` | いいえ | エージェントが使う Docker Engine API のバージョン。既定は空で、エージェントがデーモンとネゴシエートするため、20.10 以降のすべての Docker Engine で動作します。バージョンを固定する場合にのみ設定します ([トラブルシューティング](#トラブルシューティング) を参照)。 |
+| `ONEUPTIME_LOG_OPERATOR_1`～`ONEUPTIME_LOG_OPERATOR_5` | いいえ | エージェントが読み取らないログ形式のための、独自の Collector の operators。それぞれ JSON で指定します。[独自のログ形式を読み取る](#独自のログ形式を読み取る) を参照してください。 |
 
 値を変更するには、エージェントを削除してコマンドを再実行する (Docker CLI) か、`docker-compose.yml` を編集して `docker compose up -d` を実行します (Docker Compose)。
 
@@ -201,6 +202,33 @@ services:
 ```
 
 その後、Docker を再起動してコンテナを作り直します。コンテナは作成時のログドライバーを使い続けるため、再起動だけでは不十分です。
+
+## 独自のログ形式を読み取る
+
+エージェントは、ほとんどのプログラムが書き出す形式のレベルを読み取ります。社内独自の形式など、エージェントが読み取らない形式には、独自の Collector の operators を最大 5 つ、それぞれ JSON として `ONEUPTIME_LOG_OPERATOR_1`～`ONEUPTIME_LOG_OPERATOR_5` に指定します。operators は、エージェントがコンテナとストリームを読み取った後、行のレベルを読み取る前に、コンテナのすべてのログ行に対して実行されます。行のレベルを設定するには、`ERROR`、`warn`、`critical` など、エージェントが読み取る単語として `attributes.severity_text` に書き込み、エージェントの最初のステップである `severity-router` に行を渡します。`severity_parser` など、重大度を自分で設定する operator の結果は上書きされます。エージェントは operators の後ですべての行のレベルを読み取るためです。
+
+`<<E>> payment failed` のように、文字がレベルを表す行の場合:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+Collector は、構築できない operator があると起動しません。そのため、エージェントが実行する前にチェックしてください:
+
+- `install.sh` は、これらを設定して実行すると、今あるエージェントに手を加える前に、Collector 自身の `validate` でチェックします。Collector が拒否した場合、スクリプトは Collector のメッセージを表示して停止し、エージェントはそのまま動き続けます。
+- Docker Compose では、`docker-compose.yml` の横にある `.env` に各値を単一引用符で囲んで記述し、`docker compose up -d` を実行します。`oneuptime-docker-agent-config-check` サービスが先に同じチェックを実行し、合格した場合にのみエージェントが起動します。
+- Docker CLI では、エージェントの他の変数とともに自分でチェックを実行し、その後同じ `-e` フラグでエージェントを起動します:
+
+```bash
+docker run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e DOCKER_HOST_NAME="my-docker-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/docker-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Kubernetes エージェント](/docs/telemetry/kubernetes-agent#独自のログ形式を読み取る) で、この例の operators について説明しています。Kubernetes エージェントもこれらを受け付けます。
 
 ## エージェントのアップグレード
 

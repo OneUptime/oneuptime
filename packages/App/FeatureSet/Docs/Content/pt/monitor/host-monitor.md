@@ -237,7 +237,7 @@ Um monitor de host cobre todos os discos que o host informa. Os modelos High Fil
 Cada critério é verificado para cada disco:
 
 - Enquanto o incidente de um disco está aberto, o critério que o abriu não abre outro para esse disco. Outro disco que o atenda abre o seu próprio.
-- Um disco que atende a dois critérios, como um acima de 98% e outro acima de 90%, recebe um só incidente, do primeiro deles na lista. Coloque o mais rigoroso primeiro.
+- Um disco que atende a dois critérios sobre a mesma métrica, como um acima de 98% e outro acima de 90%, recebe um só incidente, do primeiro deles na lista. Coloque o mais rigoroso primeiro. Critérios sobre métricas diferentes abrem cada um o seu próprio incidente para o disco.
 - O incidente de um disco se resolve quando esse disco deixa de atender ao critério que o abriu, faça o que fizerem os outros discos.
 - O monitor tem um único status. Um critério que o muda para outro status, como **Offline**, o define assim que um disco o atende. O critério que traz o monitor de volta ao seu **Status Padrão do Monitor** espera pelos discos que atenderam a um critério assim, e corresponde quando cada um deles o atende, faça o que fizerem os outros discos. Assim, um disco que cai de 96% para 89% mantém o monitor **Offline** até estar em 81% ou abaixo, a margem de recuperação de 10%, embora seu incidente se resolva assim que ele deixa de estar acima de 90%. **Séries** mostra esse disco como **Mantém o status**. Um disco que deixa de ser informado deixa de manter o status.
 

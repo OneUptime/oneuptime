@@ -5,10 +5,13 @@ import NetworkAddressBlockUtil, {
   NetworkAddressBlock,
 } from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
 import {
+  GOOGLE_FRONT_END_RANGES,
+  GoogleFrontEndUse,
   OWN_LOAD_BALANCER_RESOURCE_TYPES,
   OwnLoadBalancerKind,
   OwnLoadBalancerReading,
   addResolvedAddresses,
+  readGoogleFrontEndUse,
   readOwnLoadBalancer,
 } from "../../../Utils/SecurityEvent/OwnLoadBalancers";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
@@ -42,6 +45,11 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * The cost, for a project with Security Events' scans on: one query a five
  * minutes on (projectId, isArchived), and a lookup of each AWS load
  * balancer's name, ten at a time, each answer kept five minutes.
+ *
+ * The same rows say whether Google's front ends are trusted (#11047,
+ * readGoogleFrontEnds): an Application Load Balancer of the project's
+ * connects from them, and nothing of it that passes a client's request on
+ * as sent - a TCP or SSL proxy - connects from them too.
  */
 
 // The most rows one read takes: load balancers, forwarding rules and Azure public IP addresses together.
@@ -73,6 +81,30 @@ export interface SecurityOwnLoadBalancer {
   addresses: Array<string>;
 }
 
+// A load balancer named where Google's front ends are said (#11047).
+export interface SecurityGoogleFrontEndLoadBalancer {
+  name: string;
+  // The cloud account it is in, by its connection's name.
+  where: string;
+}
+
+/*
+ * Google's front ends (#11047, Utils/SecurityEvent/OwnLoadBalancers): the
+ * ranges a connected Google Cloud project's Application Load Balancers
+ * reach the project's apps from, and whether they are trusted.
+ */
+export interface SecurityGoogleFrontEnds {
+  ranges: Array<string>;
+  // The Application Load Balancers that bring them.
+  broughtBy: Array<SecurityGoogleFrontEndLoadBalancer>;
+  // The TCP or SSL proxy load balancers that keep them untrusted: they pass on what a client wrote.
+  withheldBy: Array<SecurityGoogleFrontEndLoadBalancer>;
+  // True when not every load balancer could be read: one that passes on may be left out.
+  isWithheldForIncompleteRead: boolean;
+  // Trusted: brought by one, withheld by none, and read whole.
+  isTrusted: boolean;
+}
+
 export interface SecurityOwnLoadBalancersRead {
   loadBalancers: Array<SecurityOwnLoadBalancer>;
   /*
@@ -81,10 +113,68 @@ export interface SecurityOwnLoadBalancersRead {
    * trusted.
    */
   isComplete: boolean;
+  /*
+   * Google's front ends, when an Application Load Balancer of the
+   * project's connects from them (#11047); null when none does.
+   */
+  googleFrontEnds: SecurityGoogleFrontEnds | null;
 }
 
-const trustedCache: InMemoryTTLCache<Array<NetworkAddressBlock>> =
-  new InMemoryTTLCache<Array<NetworkAddressBlock>>(MAX_CACHED_PROJECTS);
+// What the scans trust of the project's own load balancers, kept apart so a check can say which is which.
+export interface SecurityOwnLoadBalancerBlocks {
+  // Their own public addresses.
+  loadBalancers: Array<NetworkAddressBlock>;
+  // Google's front ends, while trusted (SecurityGoogleFrontEnds.isTrusted).
+  googleFrontEnds: Array<NetworkAddressBlock>;
+}
+
+const trustedCache: InMemoryTTLCache<SecurityOwnLoadBalancerBlocks> =
+  new InMemoryTTLCache<SecurityOwnLoadBalancerBlocks>(MAX_CACHED_PROJECTS);
+
+/*
+ * Google's front ends as the project's forwarding rules bring and withhold
+ * them; null when none of its rules connects from them. A rule that passes
+ * a client's request on keeps them untrusted, and so does a read cut short,
+ * which may have left one out.
+ */
+export function readGoogleFrontEnds(data: {
+  rows: ReadonlyArray<CloudResource>;
+  isCut: boolean;
+}): SecurityGoogleFrontEnds | null {
+  const broughtBy: Array<SecurityGoogleFrontEndLoadBalancer> = [];
+  const withheldBy: Array<SecurityGoogleFrontEndLoadBalancer> = [];
+
+  for (const row of data.rows) {
+    const use: GoogleFrontEndUse | null = readGoogleFrontEndUse(row);
+
+    if (!use) {
+      continue;
+    }
+
+    const named: SecurityGoogleFrontEndLoadBalancer = {
+      name: (row.name || "").trim(),
+      where: row.cloudConnection?.name || "",
+    };
+
+    if (use === GoogleFrontEndUse.Forwards) {
+      broughtBy.push(named);
+    } else {
+      withheldBy.push(named);
+    }
+  }
+
+  if (broughtBy.length === 0) {
+    return null;
+  }
+
+  return {
+    ranges: [...GOOGLE_FRONT_END_RANGES],
+    broughtBy,
+    withheldBy,
+    isWithheldForIncompleteRead: data.isCut,
+    isTrusted: withheldBy.length === 0 && !data.isCut,
+  };
+}
 
 export default class SecurityOwnLoadBalancers {
   private static dnsCache: DnsResolutionCache = new DnsResolutionCache({
@@ -134,14 +224,19 @@ export default class SecurityOwnLoadBalancers {
       props: data.props,
     });
 
-    let isComplete: boolean = rows.length <= OWN_LOAD_BALANCER_ROWS_READ;
+    const isCut: boolean = rows.length > OWN_LOAD_BALANCER_ROWS_READ;
+    let isComplete: boolean = !isCut;
+    const read: Array<CloudResource> = rows.slice(
+      0,
+      OWN_LOAD_BALANCER_ROWS_READ,
+    );
 
     const found: Array<{
       row: CloudResource;
       reading: OwnLoadBalancerReading;
     }> = [];
 
-    for (const row of rows.slice(0, OWN_LOAD_BALANCER_ROWS_READ)) {
+    for (const row of read) {
       const reading: OwnLoadBalancerReading | null = readOwnLoadBalancer(row);
 
       if (reading) {
@@ -219,21 +314,26 @@ export default class SecurityOwnLoadBalancers {
       }
     }
 
-    return { loadBalancers, isComplete };
+    return {
+      loadBalancers,
+      isComplete,
+      googleFrontEnds: readGoogleFrontEnds({ rows: read, isCut }),
+    };
   }
 
   /*
-   * The public addresses of the project's own load balancers, as blocks of
-   * one address each: what the scans add to its trusted proxies. Read as
-   * OneUptime - a proxy is trusted whoever's events are read - and kept
-   * five minutes. Throws when the inventory cannot be read, and keeps
-   * nothing then: the next scan reads again.
+   * What the scans add to the project's trusted proxies of its own load
+   * balancers: their public addresses, as blocks of one address each, and
+   * Google's front ends while trusted (#11047). Read as OneUptime - a proxy
+   * is trusted whoever's events are read - and kept five minutes. Throws
+   * when the inventory cannot be read, and keeps nothing then: the next
+   * scan reads again.
    */
-  public static async getTrustedBlocks(
+  public static async getTrusted(
     projectId: ObjectID,
-  ): Promise<Array<NetworkAddressBlock>> {
+  ): Promise<SecurityOwnLoadBalancerBlocks> {
     const key: string = projectId.toString();
-    const cached: Array<NetworkAddressBlock> | undefined =
+    const cached: SecurityOwnLoadBalancerBlocks | undefined =
       trustedCache.get(key);
 
     if (cached) {
@@ -260,8 +360,38 @@ export default class SecurityOwnLoadBalancers {
       }
     }
 
-    trustedCache.set(key, blocks, OWN_LOAD_BALANCERS_CACHE_TTL_MS);
+    const googleFrontEnds: Array<NetworkAddressBlock> = read.googleFrontEnds
+      ?.isTrusted
+      ? read.googleFrontEnds.ranges
+          .map((range: string): NetworkAddressBlock | null => {
+            return NetworkAddressBlockUtil.parse(range);
+          })
+          .filter(
+            (
+              block: NetworkAddressBlock | null,
+            ): block is NetworkAddressBlock => {
+              return block !== null;
+            },
+          )
+      : [];
 
-    return blocks;
+    const trusted: SecurityOwnLoadBalancerBlocks = {
+      loadBalancers: blocks,
+      googleFrontEnds,
+    };
+
+    trustedCache.set(key, trusted, OWN_LOAD_BALANCERS_CACHE_TTL_MS);
+
+    return trusted;
+  }
+
+  // Every block getTrusted holds, the load balancers' own first.
+  public static async getTrustedBlocks(
+    projectId: ObjectID,
+  ): Promise<Array<NetworkAddressBlock>> {
+    const trusted: SecurityOwnLoadBalancerBlocks =
+      await this.getTrusted(projectId);
+
+    return [...trusted.loadBalancers, ...trusted.googleFrontEnds];
   }
 }

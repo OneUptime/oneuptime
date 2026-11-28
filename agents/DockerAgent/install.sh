@@ -61,18 +61,49 @@ echo ""
 echo "Pulling image: $IMAGE"
 docker pull "$IMAGE"
 
-# Remove any existing container
-if docker ps -a --format '{{.Names}}' | grep -q '^oneuptime-docker-agent$'; then
-    echo "Removing existing oneuptime-docker-agent container..."
-    docker rm -f oneuptime-docker-agent
-fi
-
 # The image negotiates the Docker Engine API version with the daemon. Set
 # DOCKER_API_VERSION when you run this script to pin one instead, and the
 # collector gets it too.
 COLLECTOR_EXTRA_ENV=()
 if [ -n "${DOCKER_API_VERSION:-}" ]; then
     COLLECTOR_EXTRA_ENV+=(-e "DOCKER_API_VERSION=$DOCKER_API_VERSION")
+fi
+
+# Log operators of your own (ONEUPTIME_LOG_OPERATOR_1 to _5), for a format
+# the agent does not read: one collector (stanza) operator each, as JSON. Only
+# a set one is passed on (an empty one would stop the collector), and they are
+# run through the collector's own validate first, while the agent you have
+# keeps running: a bad one stops this script with the collector's message,
+# rather than leaving the agent to restart forever.
+LOG_OPERATORS=0
+for n in 1 2 3 4 5; do
+    name="ONEUPTIME_LOG_OPERATOR_${n}"
+    if [ -n "${!name:-}" ]; then
+        COLLECTOR_EXTRA_ENV+=(-e "${name}=${!name}")
+        LOG_OPERATORS=$((LOG_OPERATORS + 1))
+    fi
+done
+if [ "$LOG_OPERATORS" -gt 0 ]; then
+    echo ""
+    echo "Checking your log operators..."
+    if ! VALIDATION="$(docker run --rm \
+        -e ONEUPTIME_URL="$ONEUPTIME_URL" \
+        -e ONEUPTIME_SERVICE_TOKEN="$ONEUPTIME_SERVICE_TOKEN" \
+        -e DOCKER_HOST_NAME="$DOCKER_HOST_NAME" \
+        "${COLLECTOR_EXTRA_ENV[@]}" \
+        "$IMAGE" validate --config=/etc/otelcol-contrib/config.yaml 2>&1)"; then
+        echo "Error: the agent's collector refuses your log operators (ONEUPTIME_LOG_OPERATOR_1 to _5):"
+        printf '%s\n' "$VALIDATION" | sed 's/^/  /'
+        echo "Fix or unset them and run this script again. The agent you have was left as it was."
+        exit 1
+    fi
+    echo "The collector accepts your ${LOG_OPERATORS} log operator(s)."
+fi
+
+# Remove any existing container
+if docker ps -a --format '{{.Names}}' | grep -q '^oneuptime-docker-agent$'; then
+    echo "Removing existing oneuptime-docker-agent container..."
+    docker rm -f oneuptime-docker-agent
 fi
 
 echo ""

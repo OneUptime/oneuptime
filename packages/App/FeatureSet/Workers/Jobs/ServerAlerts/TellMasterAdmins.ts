@@ -18,6 +18,9 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import GlobalProbesBehind from "Common/Server/Utils/Probe/GlobalProbesBehind";
+import ProbeAlarmLog, {
+  ProbeAlarm,
+} from "Common/Server/Utils/Probe/ProbeAlarmLog";
 import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
 import EmptyResponseData from "Common/Types/API/EmptyResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -37,6 +40,7 @@ import ServerAlertsUtil, {
   ServerAlertPlan,
   ServerAlertSettings,
   ServerAlertState,
+  ServerAlertSubject,
   getServerAlertSettings,
 } from "Common/Types/ServerSending/ServerAlerts";
 import { ServerSendingStatusAnswer } from "Common/Types/ServerSending/ServerSendingStatus";
@@ -63,6 +67,13 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
  * network devices polled, later than their interval - is read as OneUptime
  * Health reads it (GlobalProbesBehind). A read that fails says nothing of
  * them this time, and changes nothing.
+ *
+ * While one has been behind for minutes, every run also raises an alarm in
+ * the server log (GlobalProbesBehind.getAlarmText, ProbeAlarmLog): an error
+ * line, one a run, that says whether master admins are told and how. On 27
+ * November 2026 OneUptime Cloud's global probes were behind for twelve
+ * hours, and the notifications, which OneUptime Cloud sends only once its
+ * operator chose where, went nowhere and said nothing.
  */
 
 export const SERVER_ALERTS_JOB_NAME: string = "ServerAlerts:TellMasterAdmins";
@@ -277,6 +288,45 @@ const readGlobalProbesBehind: () => Promise<Array<InstallationHealthProbeBehind>
     }
   };
 
+/*
+ * The alarm in the server log while a global probe has been behind for
+ * minutes, whatever master admins are told (see the top of this file).
+ * Never throws: the alarm must not keep master admins from being told.
+ */
+const raiseGlobalProbesBehindAlarm: (data: {
+  behind: Array<InstallationHealthProbeBehind> | null;
+  answer: ServerSendingStatusAnswer;
+  settings: ServerAlertSettings;
+  now: Date;
+}) => void = (data: {
+  behind: Array<InstallationHealthProbeBehind> | null;
+  answer: ServerSendingStatusAnswer;
+  settings: ServerAlertSettings;
+  now: Date;
+}): void => {
+  if (!data.behind || data.behind.length === 0) {
+    return;
+  }
+
+  try {
+    const text: string | null = GlobalProbesBehind.getAlarmText({
+      behind: data.behind,
+      now: data.now,
+      channels: ServerAlertsUtil.getChannels(
+        ServerAlertSubject.GlobalProbesBehind,
+        data.answer,
+        data.settings,
+      ),
+    });
+
+    if (text) {
+      ProbeAlarmLog.raise(ProbeAlarm.GlobalProbesBehind, text);
+    }
+  } catch (err) {
+    logger.error(err);
+  }
+};
+
 export const tellMasterAdmins: (options?: {
   now?: Date;
   senders?: ServerAlertSenders;
@@ -310,6 +360,13 @@ export const tellMasterAdmins: (options?: {
 
   const globalProbesBehind: Array<InstallationHealthProbeBehind> | null =
     await readGlobalProbesBehind();
+
+  raiseGlobalProbesBehindAlarm({
+    behind: globalProbesBehind,
+    answer: answer,
+    settings: settings,
+    now: now,
+  });
 
   const plan: ServerAlertPlan = ServerAlertsUtil.plan({
     answer: answer,

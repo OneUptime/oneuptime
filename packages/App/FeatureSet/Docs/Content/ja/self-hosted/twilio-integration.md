@@ -241,7 +241,7 @@ Twilio の通常の Webhook の送信元アドレスは変わるため、SIP や
 1. 社内ネットワークと VPN の外から、コールバックのホスト名が公開ゲートウェイに解決され、有効な TLS 証明書を返すことを確認します。ブラウザーからの GET では、これらの POST のコールバックは確認できません。
 2. プロジェクトの Twilio の設定で **テスト SMS を送信** と **テスト通話を発信** を使い、送信先の電話で受信を確認します。どちらにも Twilio の設定を追加する権限が必要です。 **プロジェクト所有者**、 **プロジェクト管理者**、またはカスタムロールの **Create Call and SMS** と **Read Call and SMS** です。
 3. ユーザーの確認済みの SMS や通話の連絡先と通知ルールを設定してから、管理されたオンコールのアラートを発生させます。1 を押し、OneUptime で確認応答されたことを確かめます。着信ポリシーを使う場合は、設定した番号に電話をかけ、ルーティングと通話ログを確認します。
-4. OneUptime と Twilio のメッセージログで SMS の配信ステータスを確認します。送信が受け付けられても配信の証明にはなりません。[Twilio はその後のステータスの変化をコールバックで報告します](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
+4. OneUptime の [通知ログ](/docs/notifications/notification-logs) と Twilio のメッセージログで SMS の配信ステータスを確認します。送信が受け付けられても配信の証明にはなりません。[Twilio はその後のステータスの変化をコールバックで報告します](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
 :::
 
 | 症状 | 確認する場所 |

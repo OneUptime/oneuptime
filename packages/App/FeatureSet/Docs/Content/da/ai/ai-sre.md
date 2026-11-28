@@ -427,6 +427,8 @@ En beslutning træffes én gang, med projektets indstillinger i det øjeblik: en
 
 Når undersøgelsen finder årsagen i koden, siger trinnet, hvad der kom ud af det: den pull request med rettelse, som OneUptime AI skriver eller har åbnet, med et link til den i Code; det ene opsætningstrin, der står i vejen, som **Forbind et repository**; eller **Åbn pull request med rettelse**, med årsagen til, at OneUptime AI ikke selv åbnede den (se [Automatiske koderettelser](#automatiske-koderettelser)).
 
+**Åbn pull request med rettelse** arbejder kun i et repositorie, du må bruge i Code: et, du kan læse og må bede OneUptime AI om at arbejde i, hvilket kræver tilladelse til at redigere det. Er flere af dine forbundet, og hedder intet af dem som hændelsens eller advarslens monitor, spørger trinnet først, hvilket repositorie koden ligger i, og tilbyder kun dine. Må du ikke bruge nogen af de forbundne repositorier, tilbyder trinnet den ikke. Se [Hvor rettelsesopgaver starter](/docs/ai/ai-agent#hvor-rettelsesopgaver-starter).
+
 Hændelsens eller advarslens tidslinje fører en fortegnelse over hver ændring. Når en godkendt plan har kørt, viser dens post hver kommando i den rækkefølge, den kørte i, med hvor den kørte, og hvordan den endte, og en rollbacks post viser hver kommando, der ruller en ændring tilbage, på samme måde, med den kommando, den rullede tilbage. Listen ligger under postens **Vis detaljer**, kun på tidslinjen: hændelsens eller advarslens Slack- og Microsoft Teams-kanaler får højst postens ene linje, aldrig listen.
 
 ### Hvorfor OneUptime AI ikke fandt nogen rettelse eller stoppede

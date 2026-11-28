@@ -1,6 +1,7 @@
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleTable from "../../Components/Workspace/WorkspaceNotificationRulesTable";
 import WorkspaceSummaryTable from "../../Components/Workspace/WorkspaceSummaryTable";
+import { getWorkspacePageInitialTabName } from "../../Components/Workspace/WorkspaceSummaryTab";
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import PageComponentProps from "../PageComponentProps";
 import WorkspaceConnectionGate from "../../Components/Workspace/WorkspaceConnectionGate";
@@ -65,6 +66,7 @@ const AlertsMattermostPage: FunctionComponent<
         <Tabs
           label="Mattermost"
           tabs={tabs}
+          initialTabName={getWorkspacePageInitialTabName()}
           onTabChange={() => {
             // Tab changed
           }}

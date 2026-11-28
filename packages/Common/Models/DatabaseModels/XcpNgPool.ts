@@ -1381,7 +1381,8 @@ export default class XcpNgPool extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.JSON,
-    title: "Event State",
+    // Not "Event State": that was a maintenance event's state, now Maintenance State.
+    title: "Alarm and Backup Reading Progress",
     description:
       "Internal: where reading the pool's alarms and backups stands. Written and read by OneUptime only.",
     serverOwned: ServerOwned.Always,

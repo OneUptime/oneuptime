@@ -3,6 +3,7 @@ import {
   SharedNameKind,
   getSharedNameRecordIds,
   getSharedNamesRoute,
+  getSharedNamesRouteOfTable,
   isSharedNameKind,
   readSharedNamesAnswer,
   toSharedNamesAnswerJSON,
@@ -94,5 +95,77 @@ describe("an answer", () => {
       ),
     ).toEqual([TEAM_A, TEAM_B, TEAM_C]);
     expect(getSharedNameRecordIds({ groups: [] }).size).toBe(0);
+  });
+});
+
+/*
+ * The kinds Require Unique Names holds, asked for by their table's name
+ * (#11021): their answer says when each record was made, by which a list
+ * tells twins apart.
+ */
+describe("a kind Require Unique Names holds", () => {
+  const MONITOR_A: string = "aaaaaaaa-0000-4000-8000-000000011021";
+  const MONITOR_B: string = "bbbbbbbb-0000-4000-8000-000000011021";
+
+  test("is asked for by its table's name, beside the four kinds", () => {
+    expect(getSharedNamesRouteOfTable("Monitor")).toBe("/shared-names/Monitor");
+    expect(getSharedNamesRouteOfTable("IncidentTemplate")).toBe(
+      "/shared-names/IncidentTemplate",
+    );
+    expect(
+      getSharedNamesRouteOfTable("Monitor").startsWith(SHARED_NAMES_ROUTE),
+    ).toBe(true);
+    // A name is one segment of the path, whatever it holds.
+    expect(getSharedNamesRouteOfTable("a/b c")).toBe("/shared-names/a%2Fb%20c");
+  });
+
+  test("its answer says when each record was made, and reads back as it was written", () => {
+    const answer: {
+      groups: Array<Array<string>>;
+      createdAt: Record<string, string>;
+    } = {
+      groups: [[MONITOR_A, MONITOR_B]],
+      createdAt: {
+        [MONITOR_A]: "2026-11-05T05:14:00.000Z",
+        [MONITOR_B]: "2026-11-07T09:30:00.000Z",
+      },
+    };
+
+    expect(toSharedNamesAnswerJSON(answer)).toEqual(answer);
+    expect(readSharedNamesAnswer(toSharedNamesAnswerJSON(answer))).toEqual(
+      answer,
+    );
+  });
+
+  test("the four kinds' answer says nothing of dates, as it never did", () => {
+    expect(toSharedNamesAnswerJSON({ groups: [[MONITOR_A]] })).toEqual({
+      groups: [[MONITOR_A]],
+    });
+    expect(readSharedNamesAnswer({ groups: [[MONITOR_A]] })).toEqual({
+      groups: [[MONITOR_A]],
+    });
+  });
+
+  test("a date is kept by its id in lower case; anything else of it is dropped", () => {
+    expect(
+      readSharedNamesAnswer({
+        groups: [[MONITOR_A, MONITOR_B]],
+        createdAt: {
+          [MONITOR_A.toUpperCase()]: "2026-11-05T05:14:00.000Z",
+          [MONITOR_B]: 7,
+          "": "2026-11-07T09:30:00.000Z",
+          other: "",
+        },
+      }),
+    ).toEqual({
+      groups: [[MONITOR_A, MONITOR_B]],
+      createdAt: { [MONITOR_A]: "2026-11-05T05:14:00.000Z" },
+    });
+
+    for (const createdAt of ["x", 3, ["2026"], null]) {
+      expect(
+        readSharedNamesAnswer({ groups: [[MONITOR_A]], createdAt: createdAt }),
+      ).toEqual({ groups: [[MONITOR_A]] });
+    }
   });
 });

@@ -11,6 +11,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { joinClauses, joinList } from "Common/UI/Utils/ListSeparator";
+import { formatNameList, NameListConjunction } from "Common/UI/Utils/NameList";
 
 /*
  * The words and looks "What AI may do" shares between a Kubernetes
@@ -378,59 +379,12 @@ export function joinAiAccessProtections(
   );
 }
 
-export type NameListConjunction = "and" | "or";
-
 /*
- * Names joined the way a sentence lists them, by how many there are: each
- * shape a whole key, so a locale sets its own separator and word.
+ * "a, b and c" / "a, b or c": shared with Common's own sentences
+ * (Common/UI/Utils/NameList), where it lives.
  */
-const NAME_LISTS: Readonly<
-  Record<NameListConjunction, Readonly<Record<2 | 3, string>>>
-> = {
-  and: {
-    2: translationKey("{{first}} and {{second}}"),
-    3: translationKey("{{first}}, {{second}} and {{third}}"),
-  },
-  or: {
-    2: translationKey("{{first}} or {{second}}"),
-    3: translationKey("{{first}}, {{second}} or {{third}}"),
-  },
-};
-
-/*
- * "a, b and c" / "a, b or c". Built with `translator`: hand it in as a
- * composedValue() of the sentence it goes into, so it is in that sentence's
- * language.
- */
-export function formatNameList(
-  names: ReadonlyArray<string>,
-  conjunction: NameListConjunction,
-  translator: Translator = getGlobalTranslator(),
-): string {
-  if (names.length <= 1) {
-    return names.join("");
-  }
-
-  // Never more than three today; any more are said together as the first.
-  if (names.length > 3) {
-    const together: number = names.length - 2;
-
-    return formatNameList(
-      [names.slice(0, together).join(", "), ...names.slice(together)],
-      conjunction,
-      translator,
-    );
-  }
-
-  const [first, second, third] = names;
-
-  return translator.translateTemplate(
-    NAME_LISTS[conjunction][names.length as 2 | 3],
-    third === undefined
-      ? { first: first!, second: second! }
-      : { first: first!, second: second!, third },
-  );
-}
+export { formatNameList };
+export type { NameListConjunction };
 
 /*
  * The first letter as a sentence starts it: capitalized, unless the text is

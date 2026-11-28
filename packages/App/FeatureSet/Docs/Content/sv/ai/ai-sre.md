@@ -427,6 +427,8 @@ Ett beslut fattas en gång, med projektets inställningar i det ögonblicket: en
 
 När utredningen hittar orsaken i koden säger steget vad som blev av det: pull-förfrågan med rättningen som OneUptime AI skriver eller har öppnat, med en länk till den i Code; det enda konfigurationssteget som står i vägen, till exempel **Anslut ett kodförråd**; eller **Öppna pull request med rättning**, med orsaken till att OneUptime AI inte öppnade den själv (se [Automatiska kodkorrigeringar](#automatiska-kodkorrigeringar)).
 
+**Öppna pull request med rättning** arbetar bara i ett repositorium du får använda i Code: ett du kan läsa och får be OneUptime AI arbeta i, vilket kräver behörighet att redigera det. Är flera av dina anslutna och inget av dem heter som incidentens eller larmets monitor, frågar steget först vilket repositorium koden finns i, och erbjuder bara dina. Får du inte använda något av de anslutna repositorierna erbjuder steget inte den här knappen. Se [Var åtgärdsuppgifter startar](/docs/ai/ai-agent#var-åtgärdsuppgifter-startar).
+
 Incidentens eller larmets tidslinje för en förteckning över varje ändring. När en godkänd plan har körts listar dess post varje kommando i den ordning det kördes, med var det kördes och hur det slutade, och en återställnings post listar varje kommando som ångrar en ändring på samma sätt, med kommandot det ångrade. Listan finns under postens **Visa detaljer**, bara på tidslinjen: incidentens eller larmets Slack- och Microsoft Teams-kanaler får högst postens enda rad, aldrig listan.
 
 ### Varför OneUptime AI inte hittade någon åtgärd, eller stoppade

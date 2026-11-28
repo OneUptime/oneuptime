@@ -17,58 +17,111 @@ import Logger from "./Logger";
  * OTLP-HTTP JSON severity numbers follow the OpenTelemetry spec:
  * https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
  *
- * These are the numbers the collector chain emits for the same keywords, and
- * they have to be those numbers rather than "something in the right bucket":
- * OneUptime's ingest throws away severityText and re-derives it from
- * severityNumber (OtelLogsIngestService.getSeverityText), so a keyword the two
- * Kubernetes log modes number differently can still surface as two different
- * levels on the Logs page. NOTICE and CRITICAL used to be 10 and 20 here
- * against the chain's 9 and 17; Tests/Severity.test.js reads the chain's own
- * mapping block out of the Helm template and fails if they drift again.
+ * Each is the number OneUptime's ingest stores the same word at
+ * (LOG_SEVERITY_NUMBER_BY_TEXT in packages/Common/Types/Log/LogSeverity.ts,
+ * issue #11228), and the number the collector chain emits for it. They have
+ * to be those numbers rather than "something in the right bucket": ingest
+ * re-derives a record's level from its severityNumber, so a word numbered
+ * two ways surfaces as two levels on the Logs page. CRITICAL, ALERT and PANIC
+ * once landed in different levels here and in ingest; now syslog's ALERT, CRIT
+ * and NOTICE are ERROR3, ERROR2 and INFO2, as Appendix B maps them, and an
+ * application logger's CRITICAL and a PANIC are FATAL.
+ * Tests/Ops/LogSeverityOneTable.test.js holds these to that table, and
+ * Tests/Severity.test.js to the chain's own mapping block.
  *
- * ALERT and EMERGENCY (PSR-3, syslog, nginx's [emerg]) sit above CRITICAL and
- * land on FATAL. The rest are the texts the readers below lift for the formats
- * they read (issue #10972): klog's letter, pino's number, PostgreSQL's LOG,
- * MySQL's Note, .NET's four-letter prefixes, zerolog's and Serilog's three
- * letters, java.util.logging's SEVERE, log15's EROR and zap's DPANIC.
+ * The rest are the texts the readers below lift for the formats they read
+ * (issues #10972 and #11226): klog's letter, pino's number, PostgreSQL's
+ * LOG, MySQL's Note and System, .NET's four-letter prefixes, zerolog's and
+ * Serilog's three letters, logrus's four, java.util.logging's levels,
+ * log15's EROR, zap's DPANIC, MongoDB's and Gitea's letters, Redis's
+ * symbols, PHP's error types, and Go's log/slog between its names (its
+ * level plus 9, as OpenTelemetry's slog bridge numbers it).
  */
 export const severityTextToNumber: Record<string, number> = {
   TRACE: 1,
   TRCE: 1,
   TRC: 1,
+  TRAC: 1,
+  FINEST: 1,
+  "DEBUG-4": 1,
+  "DEBUG-3": 2,
+  "DEBUG-2": 3,
+  "DEBUG-1": 4,
   DEBUG: 5,
   DBUG: 5,
   DBG: 5,
+  DEBU: 5,
   VRB: 5,
+  VERBOSE: 5,
+  FINER: 5,
+  FINE: 6,
+  "DEBUG+1": 6,
+  CONFIG: 7,
+  "DEBUG+2": 7,
+  "DEBUG+3": 8,
   INFO: 9,
   INF: 9,
   INFORMATION: 9,
-  NOTICE: 9,
   NOTE: 9,
+  SYSTEM: 9,
   LOG: 9,
+  NOTICE: 10,
+  "INFO+1": 10,
+  "INFO+2": 11,
+  "INFO+3": 12,
   WARN: 13,
   WARNING: 13,
   WRN: 13,
+  DEPRECATED: 13,
+  "WARN+1": 14,
+  "WARN+2": 15,
+  "WARN+3": 16,
   ERROR: 17,
   ERR: 17,
   EROR: 17,
+  ERRO: 17,
   FAIL: 17,
   SEVERE: 17,
-  DPANIC: 17,
-  CRITICAL: 17,
-  CRIT: 17,
+  "RECOVERABLE FATAL ERROR": 17,
+  CRIT: 18,
+  DPANIC: 18,
+  "ERROR+1": 18,
+  ALERT: 19,
+  "ERROR+2": 19,
+  "ERROR+3": 20,
   FATAL: 21,
   FTL: 21,
+  FATA: 21,
+  CRITICAL: 21,
   PANIC: 21,
   PNC: 21,
-  ALERT: 21,
+  PANI: 21,
   EMERG: 21,
   EMERGENCY: 21,
-  // klog and glog's letter.
+  "FATAL ERROR": 21,
+  "PARSE ERROR": 21,
+  "ERROR+4": 21,
+  "ERROR+5": 22,
+  "ERROR+6": 23,
+  "ERROR+7": 24,
+  // klog and glog's letter, MongoDB's and Gitea's.
+  T: 1,
+  D: 5,
   I: 9,
   W: 13,
   E: 17,
   F: 21,
+  // MongoDB's debug levels.
+  D1: 5,
+  D2: 5,
+  D3: 5,
+  D4: 5,
+  D5: 5,
+  // Redis's and Valkey's symbols: debug, verbose, notice, warning.
+  ".": 5,
+  "-": 6,
+  "*": 10,
+  "#": 13,
   // pino and bunyan's numbers.
   "10": 1,
   "20": 5,
@@ -89,11 +142,22 @@ export const severityTextToNumber: Record<string, number> = {
  *   add-warning-severity      a Python or Node warning category: WARN.
  *   parse-numeric-severity    pino and bunyan's "level":30, among the
  *                             top-level fields.
+ *   parse-mongodb-severity    the formats that keep their level in a place
+ *   ... parse-gitea-severity  of their own (issue #11226), each read only
+ *                             there: MongoDB's "s", CloudNativePG's wrapped
+ *                             record, Serilog's compact JSON (and its
+ *                             Information, which writes no "@l"), Redis's
+ *                             symbol, NestJS's ConsoleLogger, logrus with
+ *                             colours, MySQL 8's [System], java.util.
+ *                             logging's FINE to CONFIG, Sidekiq 7, PHP's
+ *                             error log, Gitea's letter.
  *   parse-severity-from-body  a level word where a level sits: on the first
  *                             line, after nothing but preamble (punctuation,
  *                             digits, word tokens ending on a delimiter,
  *                             colour codes, a time at the start read with its
  *                             letters), or as the value of a level field.
+ *   parse-slog-severity       Go's log/slog between its names, level=ERROR+4,
+ *                             where the general read found no level.
  *
  * The chain's last route, its stdout fallback, is not here: this mode cannot
  * tell stdout from stderr (see deriveSeverity).
@@ -134,8 +198,61 @@ export const SEVERITY_READERS: Array<SeverityReader> = [
     pattern: String.raw`^\{(?:"(?:[^"\\]|\\.)*":(?:"(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?|true|false|null),)*?"level":(?P<severity_text>[1-6]0)[,}]`,
   },
   {
+    id: "parse-mongodb-severity",
+    pattern: String.raw`^\{"t":\{"[$]date":"[^"]*"\},"s":"(?P<severity_text>[FEWI]|D[1-5])"`,
+  },
+  {
+    id: "parse-cnpg-severity",
+    pattern: String.raw`^\{"level":"[a-z]+","ts":"[^"]*","logger":"postgres","msg":"record",.*?"error_severity":"(?P<severity_text>DEBUG|LOG|INFO|NOTICE|WARNING|ERROR|FATAL|PANIC)"`,
+  },
+  {
+    id: "parse-clef-severity",
+    pattern: String.raw`^\{"@t":"[^"\\]*","@mt?":"(?:[^"\\]|\\.)*",(?:"@r":\[(?:"(?:[^"\\]|\\.)*",?)*\],)?(?:"@i":"[0-9a-f]+",)?"@l":"(?P<severity_text>Verbose|Debug|Information|Warning|Error|Fatal)"`,
+  },
+  {
+    id: "add-clef-information",
+    pattern: String.raw`^\{"@t":"[^"\\]*","@mt?":"`,
+    level: "INFO",
+  },
+  {
+    id: "parse-redis-severity",
+    pattern: String.raw`^\d+:[CMSX] \d\d? [A-Z][a-z]{2} \d{4} \d\d:\d\d:\d\d\.\d{3} (?P<severity_text>[.*#-]) `,
+  },
+  {
+    id: "parse-nest-severity",
+    pattern: String.raw`^(?:\x1b\[[0-9;]*m)?\[Nest\] \d+  - (?:\x1b\[[0-9;]*m)?[^\x1b\n]*?\d(?: ?[AP]M)? (?:\x1b\[[0-9;]*m)? *(?P<severity_text>VERBOSE|DEBUG|LOG|WARN|ERROR|FATAL)(?:\x1b\[[0-9;]*m)? `,
+  },
+  {
+    id: "parse-logrus-severity",
+    pattern: String.raw`^\x1b\[\d+m(?P<severity_text>TRAC|DEBU|INFO|WARN|ERRO|FATA|PANI)\x1b\[0m\[[^\]\n]*\] `,
+  },
+  {
+    id: "parse-mysql-severity",
+    pattern: String.raw`^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}(?:Z|[+-]\d\d:\d\d) \d+ \[(?P<severity_text>System|ERROR|Warning|Note)\] \[MY-\d{6}\] `,
+  },
+  {
+    id: "parse-jul-severity",
+    pattern: String.raw`^(?P<severity_text>FINEST|FINER|FINE|CONFIG): `,
+  },
+  {
+    id: "parse-sidekiq-severity",
+    pattern: String.raw`^(?:\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z )?pid=\d+ tid=[a-z0-9]+(?: [a-z_]+=[^ =]+)* (?P<severity_text>DEBUG|INFO|WARN|ERROR|FATAL): `,
+  },
+  {
+    id: "parse-php-severity",
+    pattern: String.raw`^PHP (?P<severity_text>Fatal error|Parse error|Recoverable fatal error|Warning|Notice|Deprecated):  `,
+  },
+  {
+    id: "parse-gitea-severity",
+    pattern: String.raw`^\d{4}/\d\d/\d\d \d\d:\d\d:\d\d(?:\.\d+)? (?:\S+\(\) )?\[(?P<severity_text>[TDIWEF])\] `,
+  },
+  {
     id: "parse-severity-from-body",
-    pattern: String.raw`(?i)(?:^(?:(?:\x1b\[[0-9;]*m)*(?:\[(?:\x1b\[[0-9;]*m)*)?(?:\d{4}-\d\d-\d\d[T ]\d\d:\d\d(?::\d\d(?:[.,]\d+)?)?(?:Z|[+-]\d\d(?::?\d\d)?)?(?:[ \t]+(?-i:UTC|GMT|CET|CEST|EET|EEST|WET|WEST|BST|IST|MSK|EST|EDT|CST|CDT|MST|MDT|PST|PDT|HST|AKST|AKDT|JST|KST|HKT|SGT|AEST|AEDT|ACST|ACDT|AWST|NZST|NZDT))?|(?-i:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?-i:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) +\d\d? \d\d:\d\d:\d\d(?:\.\d+)? \d{4}))?(?:[^A-Za-z"\n\x1b]|\x1b\[[0-9;]*m|[A-Za-z][A-Za-z0-9_]*[ \t]*[.:=,/>|)}\]-])*?|(?:^|[\s,{\[])"?(?:@?(?:log[._]?level|severity_?text|severity|level_?name|level|lvl)|@l)"?[ \t]*[:=][ \t]*"?)(?P<severity_text>TRACE|TRCE|TRC|DEBUG|DBUG|DBG|VRB|INFORMATION|INFO|INF|NOTICE|NOTE|(?-i:LOG)|WARNING|WARN|WRN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|EROR|ERR|FAIL|SEVERE|DPANIC|FATAL|FTL|PANIC|PNC)(?:$|[\s\]:=,)"}|>\x1b]|/[A-Za-z][A-Za-z0-9_-]*\])`,
+    pattern: String.raw`(?i)(?:^(?:(?:\x1b\[[0-9;]*m)*(?:\[(?:\x1b\[[0-9;]*m)*)?(?:\d{4}-\d\d-\d\d[T ]\d\d:\d\d(?::\d\d(?:[.,]\d+)?)?(?:Z|[+-]\d\d(?::?\d\d)?)?(?:[ \t]+(?-i:UTC|GMT|CET|CEST|EET|EEST|WET|WEST|BST|IST|MSK|EST|EDT|CST|CDT|MST|MDT|PST|PDT|HST|AKST|AKDT|JST|KST|HKT|SGT|AEST|AEDT|ACST|ACDT|AWST|NZST|NZDT))?|(?-i:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?-i:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) +\d\d? \d\d:\d\d:\d\d(?:\.\d+)? \d{4}|\d\d?:\d\d(?-i:AM|PM)))?(?:[^A-Za-z"\n\x1b]|\x1b\[[0-9;]*m|[A-Za-z][A-Za-z0-9_]*[ \t]*[.:=,/>|)}\]-])*?|(?:^|[\s,{\[])"?(?:@?(?:log[._]?level|severity_?text|severity|level_?name|level|lvl)|@l)"?[ \t]*[:=][ \t]*"?)(?P<severity_text>TRACE|TRCE|TRC|DEBUG|DBUG|DBG|VRB|INFORMATION|INFO|INF|NOTICE|NOTE|(?-i:LOG)|WARNING|WARN|WRN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|EROR|ERR|FAIL|SEVERE|DPANIC|FATAL|FTL|PANIC|PNC)(?:$|[\s\]:=,)"}|>\x1b]|/[A-Za-z][A-Za-z0-9_-]*\])`,
+  },
+  {
+    id: "parse-slog-severity",
+    pattern: String.raw`(?:^|[\s{,])"?level"?[=:]"?(?P<severity_text>DEBUG-[1-4]|DEBUG\+[1-3]|INFO\+[1-3]|WARN\+[1-3]|ERROR\+[1-7])(?:$|[\s",}])`,
   },
 ];
 

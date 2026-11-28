@@ -66,9 +66,9 @@ export const ON_CALL_CALENDAR_FEED_CACHE_NAMESPACE: string = "oncall-calendar";
 export const DEFAULT_RENDER_CONCURRENCY: number = RENDER_CONCURRENCY;
 
 /*
- * Bodies above this are not cached. The compose Redis has no maxmemory and
- * also backs BullMQ; a handful of multi-megabyte feeds is not what it is
- * sized for. Note that this is NOT the same ceiling as MAX_EVENTS: a VEVENT
+ * Bodies above this are not cached. The compose Valkey has a 2 GB maxmemory
+ * (VALKEY_MAX_MEMORY) and also backs BullMQ, so a full one refuses every
+ * write; a handful of multi-megabyte feeds is not what it is sized for. Note that this is NOT the same ceiling as MAX_EVENTS: a VEVENT
  * is roughly 0.9 KB, so 2 MiB is crossed at about 2,200 events while
  * MAX_EVENTS allows 5,000. An hourly rotation over a long window is over this
  * cap and still well inside the event cap; such a feed is re-rendered on

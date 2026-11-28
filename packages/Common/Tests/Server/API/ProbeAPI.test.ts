@@ -250,6 +250,37 @@ describe("ProbeAPI", () => {
       );
     });
 
+    it("should let Settings > Global Probes read whether a global probe is behind, since when and by how much", async () => {
+      await callGlobalProbes({
+        body: {
+          select: {
+            connectionStatus: true,
+            checksLateSince: true,
+            checksLastLateAt: true,
+            checksLastLateDueAt: true,
+            devicePollsLateSince: true,
+            devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
+            key: true,
+          },
+        },
+      });
+
+      expect(ProbeService.findBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: {
+            connectionStatus: true,
+            checksLateSince: true,
+            checksLastLateAt: true,
+            checksLastLateDueAt: true,
+            devicePollsLateSince: true,
+            devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
+          },
+        }),
+      );
+    });
+
     it("should drop selected fields outside the select list", async () => {
       await callGlobalProbes({
         body: {
@@ -311,6 +342,107 @@ describe("ProbeAPI", () => {
           },
         }),
       );
+    });
+  });
+
+  /*
+   * A global probe's SNMP trap receiver report (#11173): its engine ID is
+   * what a device sending it informs needs, so it may be read - as only
+   * what belongs to no project, whatever the row holds - and never filtered
+   * or sorted on.
+   */
+  describe("the SNMP trap receiver report", () => {
+    function probeWith(report: unknown): Probe {
+      const probe: Probe = new Probe();
+      probe.snmpTrapReceiver = report as NonNullable<Probe["snmpTrapReceiver"]>;
+      return probe;
+    }
+
+    function handedBack(): Array<Probe> {
+      return (Response.sendEntityArrayResponse as jest.Mock).mock.calls[0]![2];
+    }
+
+    it("may be selected", async () => {
+      await callGlobalProbes({
+        body: { select: { name: true, snmpTrapReceiver: true } },
+      });
+
+      expect(ProbeService.findBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: { name: true, snmpTrapReceiver: true },
+        }),
+      );
+    });
+
+    it("is handed back as only its engine ID, port and whether it is on, whatever the row holds", async () => {
+      (Response.sendEntityArrayResponse as jest.Mock).mockClear();
+      ProbeService.findBy = jest.fn().mockResolvedValue([
+        probeWith({
+          isEnabled: true,
+          port: 162,
+          engineId: "8000B98380A1B2C3D4E5F60718293A4B",
+          userCount: 40,
+          lastReceivedAt: "2026-11-27T09:00:00.000Z",
+          refusals: [
+            {
+              sourceAddress: "203.0.113.10",
+              reason: "unknownUser",
+              userName: "another-projects-user",
+              count: 3,
+              firstSeenAt: "2026-11-27T08:00:00.000Z",
+              lastSeenAt: "2026-11-27T09:00:00.000Z",
+            },
+          ],
+        }),
+      ]);
+
+      await callGlobalProbes({
+        body: { select: { name: true, snmpTrapReceiver: true } },
+      });
+
+      const report: unknown = handedBack()[0]!.snmpTrapReceiver;
+      expect(report).toEqual({
+        isEnabled: true,
+        port: 162,
+        engineId: "8000B98380A1B2C3D4E5F60718293A4B",
+        refusals: [],
+      });
+      expect(JSON.stringify(report)).not.toContain("203.0.113.10");
+      expect(JSON.stringify(report)).not.toContain("another-projects-user");
+    });
+
+    it("what does not read as a report is left out", async () => {
+      (Response.sendEntityArrayResponse as jest.Mock).mockClear();
+      ProbeService.findBy = jest
+        .fn()
+        .mockResolvedValue([probeWith({ engineId: "8000B98380A1" })]);
+
+      await callGlobalProbes({
+        body: { select: { name: true, snmpTrapReceiver: true } },
+      });
+
+      expect(handedBack()[0]).not.toHaveProperty("snmpTrapReceiver");
+    });
+
+    it("cannot be filtered on: it would be an oracle", async () => {
+      await callGlobalProbes({
+        body: {
+          query: { snmpTrapReceiver: "8000" },
+          select: { name: true },
+        },
+      });
+
+      expect(ProbeService.findBy).not.toHaveBeenCalled();
+      expect(nextFunction).toHaveBeenCalledWith(expect.any(BadDataException));
+    });
+
+    it("cannot be sorted on", async () => {
+      await callGlobalProbes({
+        body: { sort: { snmpTrapReceiver: SortOrder.Ascending } },
+      });
+
+      expect(ProbeService.findBy).not.toHaveBeenCalled();
+      expect(nextFunction).toHaveBeenCalledWith(expect.any(BadDataException));
     });
   });
 

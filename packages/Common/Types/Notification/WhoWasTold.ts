@@ -314,7 +314,8 @@ const OUT_STATUSES: Readonly<Record<WhoWasToldLogKind, ReadonlyArray<string>>> =
   {
     [WhoWasToldLogKind.Email]: [MailStatus.Success],
     [WhoWasToldLogKind.SMS]: [SmsStatus.Success, SmsStatus.Sent],
-    [WhoWasToldLogKind.Call]: [CallStatus.Success],
+    // Placed - still ringing (Calling) - or answered (Success): it went out.
+    [WhoWasToldLogKind.Call]: [CallStatus.Calling, CallStatus.Success],
     [WhoWasToldLogKind.Push]: [PushStatus.Success],
     [WhoWasToldLogKind.WhatsApp]: [WhatsAppStatus.Success, WhatsAppStatus.Sent],
     [WhoWasToldLogKind.Telegram]: [TelegramStatus.Success, TelegramStatus.Sent],
