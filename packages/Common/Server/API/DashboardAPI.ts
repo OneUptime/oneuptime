@@ -1250,7 +1250,7 @@ export default class DashboardAPI extends BaseAPI<
               projectId: dashboard.projectId,
               telemetryType,
               attributeKey: requestedAttributeKey,
-              resourceScope,
+              ...(resourceScope ? { resourceScope } : {}),
             });
 
           return Response.sendJsonObjectResponse(req, res, {
