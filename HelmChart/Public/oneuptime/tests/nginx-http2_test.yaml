@@ -121,11 +121,17 @@ tests:
       nginx.http2: "off"
     asserts:
       - failedTemplate:
-          errorPattern: "/nginx/http2'?: got string, want boolean"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/nginx/http2': got string, want boolean
 
   - it: refuses the string "false" too, rather than reading it as true
     set:
       nginx.http2: "false"
     asserts:
       - failedTemplate:
-          errorPattern: "/nginx/http2'?: got string, want boolean"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/nginx/http2': got string, want boolean

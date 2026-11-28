@@ -470,8 +470,8 @@ reader of the agent's own, and with the example's operators run first each
 leaves at the level it names.
 
 The chart's helm-unittest suite, `tests/extra-log-operators_test.yaml`, holds
-what the chart renders and every refusal by its whole message (helm-unittest
-0.5.1, which CI pins, has no `errorPattern`: it reads one as no assertion).
+what the chart renders and every refusal by its whole message, the schema's
+too (`HelmUnittestAssertions.test.js` holds every chart suite to that).
 `validate-collector-configs.sh` holds those verdicts to the collector's own.
 
 ### `LogSeverityOneTable.test.js`

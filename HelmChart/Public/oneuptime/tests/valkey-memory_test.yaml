@@ -115,7 +115,7 @@ tests:
       valkey.maxmemory: lots
     asserts:
       - failedTemplate:
-          errorPattern: 'valkey.maxmemory is "lots", which is not a memory size'
+          errorMessage: 'valkey.maxmemory is "lots", which is not a memory size. Use valkey.conf''s own form ("3gb", "512mb", or a number of bytes) or a Kubernetes quantity ("3Gi").'
 
   # Documented in values.yaml: no limit and no explicit cap is unbounded.
   - it: writes no cap without a memory limit or an explicit maxmemory
@@ -272,7 +272,7 @@ tests:
       valkey.master.resources.limits.memory: 4Xi
     asserts:
       - failedTemplate:
-          errorPattern: 'valkey.master.resources.limits.memory is "4Xi", which is not a memory quantity'
+          errorMessage: 'valkey.master.resources.limits.memory is "4Xi", which is not a memory quantity. Use one such as "512Mi" or "4Gi".'
 
   - it: renders no resources when they are removed
     template: templates/valkey-statefulset.yaml
