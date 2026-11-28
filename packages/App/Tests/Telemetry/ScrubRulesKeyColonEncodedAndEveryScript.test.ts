@@ -1092,8 +1092,9 @@ describe("Data Security's coverage is true for each", () => {
         ...(written.customRegex ? { customRegex: written.customRegex } : {}),
       };
       const body: string = `${written.before}${written.written} done`;
+      const found: Array<TextMatch> = findingsOf(body, written.dataTypeId);
 
-      expect(findingsOf(body, written.dataTypeId)).toHaveLength(1);
+      expect(found).toHaveLength(1);
       expect(
         isFindingScrubbed(
           { rules: [rule] },
@@ -1101,6 +1102,15 @@ describe("Data Security's coverage is true for each", () => {
             kind: DataStoreKind.TelemetryLogs,
             dataTypeId: written.dataTypeId,
             location: "body",
+            /*
+             * How the finding was found, as the scan writes it on the row
+             * (#11502): a Custom Regex of the type's patterns counts only
+             * for values those patterns found.
+             */
+            isFoundByContext: found.some((match: TextMatch): boolean => {
+              return match.fromContext === true;
+            }),
+            isFoundByModel: false,
           },
         ),
       ).toBe(true);

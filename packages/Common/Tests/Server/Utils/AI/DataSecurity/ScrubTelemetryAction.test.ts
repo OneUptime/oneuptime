@@ -2674,3 +2674,175 @@ describe("a plan and a result, read back", () => {
     ).toBeUndefined();
   });
 });
+
+/*
+ * #11502: a Custom Regex of a type's patterns is made of its detectors
+ * that need no word, so it keeps a value found only beside the words that
+ * name its type or under a key that names it. OneUptime AI's Scrub action
+ * reads how each place's values were found, as Data Security's coverage
+ * does: a place such a rule already hides is left out, one it keeps is
+ * planned, and the plan keeps how the place was found for when it is made.
+ */
+describe("how a place's values were found, from the finding to the plan (#11502)", () => {
+  const ITIN_FINDING: string = "10364000-0000-4000-8000-0000000004b1";
+
+  function itinFinding(
+    foundBy: { isFoundByContext?: boolean | null; isFoundByModel?: boolean } = {},
+  ): DataStoreFinding {
+    return {
+      ...finding(ITIN_FINDING, "us-itin", "attributes.tax.ref", 12),
+      ...foundBy,
+    } as unknown as DataStoreFinding;
+  }
+
+  // The rule Scrub It made for an ITIN before: its Custom Regex of the type's patterns.
+  function itinPatternRule(): ScrubCoverage.CoveringScrubRule {
+    return {
+      id: EXISTING_RULE,
+      name: "ITINs",
+      signal: "log",
+      patternType: LogScrubPatternType.Custom,
+      customRegex: ScrubCoverage.buildScrubPatternForDataType("us-itin")!,
+      fieldsToScrub: LogScrubField.Both,
+    };
+  }
+
+  test("a place the type's patterns found every value of is hidden by that rule: nothing is planned", async () => {
+    counted = [itinFinding({ isFoundByContext: false, isFoundByModel: false })];
+    coverageRules = [itinPatternRule()];
+
+    expect(await ScrubTelemetryAction.plan(context())).toEqual({
+      kind: "nothing",
+      detail: "already-scrubbed",
+    });
+  });
+
+  test.each([
+    ["found beside its word", { isFoundByContext: true }],
+    ["found before how it was found was kept", { isFoundByContext: null }],
+    ["read by the names-and-addresses model", { isFoundByModel: true }],
+  ])(
+    "a place %s is kept by that rule: it is planned, with the rule that names its attribute",
+    async (
+      _label: string,
+      foundBy: { isFoundByContext?: boolean | null; isFoundByModel?: boolean },
+    ) => {
+      counted = [itinFinding(foundBy)];
+      coverageRules = [itinPatternRule()];
+
+      const changes: Array<DataSecurityAiPlannedChange> = changesOf(
+        await ScrubTelemetryAction.plan(context()),
+      );
+
+      expect(changes).toHaveLength(1);
+
+      const plan: ScrubPlan = readScrubPlan(changes[0]!.plan)!;
+
+      expect(plan.places).toHaveLength(1);
+      expect(plan.rules![0]).toEqual(
+        expect.objectContaining({
+          signal: "log",
+          patternType: SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
+          attributeKeys: ["tax.ref"],
+          findingIds: [ITIN_FINDING],
+        }),
+      );
+    },
+  );
+
+  test("the plan keeps how a place was found, as the finding said it, and leaves out what it did not say", async () => {
+    counted = [itinFinding({ isFoundByContext: true, isFoundByModel: true })];
+
+    const plan: ScrubPlan = readScrubPlan(
+      changesOf(await ScrubTelemetryAction.plan(context()))[0]!.plan,
+    )!;
+
+    expect(plan.places[0]).toEqual(
+      expect.objectContaining({
+        findingId: ITIN_FINDING,
+        isFoundByContext: true,
+        isFoundByModel: true,
+      }),
+    );
+
+    counted = [itinFinding({ isFoundByContext: null, isFoundByModel: false })];
+
+    const unknown: ScrubPlan = readScrubPlan(
+      changesOf(await ScrubTelemetryAction.plan(context()))[0]!.plan,
+    )!;
+
+    expect(unknown.places[0]).not.toHaveProperty("isFoundByContext");
+    expect(unknown.places[0]).not.toHaveProperty("isFoundByModel");
+  });
+
+  test("a plan's place, made, hands the rule it makes how it was found, which a metric's rule takes its filter from", async () => {
+    await ScrubTelemetryAction.apply({
+      projectId: PROJECT_ID,
+      proposal: proposalWith({
+        plan: {
+          ...EMAIL_PLAN_V1,
+          places: [
+            {
+              ...EMAIL_PLAN_V1.places[0]!,
+              isFoundByContext: true,
+              isFoundByModel: true,
+            },
+          ],
+        },
+      }),
+      actor: {
+        props: customDomainCaller({
+          permissions: [Permission.ProjectAdmin],
+          projectId: PROJECT_ID,
+        }),
+        userId: new ObjectID("10364000-0000-4000-8000-00000000a11c"),
+      },
+    });
+
+    expect(created).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dataTypeId: "email-address",
+        location: "attributes.user.email",
+        isFoundByContext: true,
+        isFoundByModel: true,
+      }),
+    );
+  });
+
+  test("a stored plan reads the two back only as a person could not forge them", () => {
+    const place: JSONObject = {
+      findingId: ITIN_FINDING,
+      dataTypeId: "us-itin",
+      location: "attributes.tax.ref",
+      signal: "log",
+    };
+    const plan: ScrubPlan | null = readScrubPlan({
+      kind: DataStoreKind.TelemetryLogs,
+      serviceId: SERVICE_ID.toString(),
+      places: [
+        { ...place, isFoundByContext: false, isFoundByModel: true },
+        {
+          ...place,
+          findingId: EMAIL_FINDING,
+          isFoundByContext: "true",
+          isFoundByModel: false,
+        },
+        {
+          ...place,
+          findingId: TOKEN_FINDING,
+          isFoundByContext: 1,
+          isFoundByModel: "yes",
+        },
+      ],
+    } as unknown as JSONObject);
+
+    expect(plan!.places[0]).toEqual(
+      expect.objectContaining({ isFoundByContext: false, isFoundByModel: true }),
+    );
+
+    for (const read of plan!.places.slice(1)) {
+      expect(read).not.toHaveProperty("isFoundByContext");
+      expect(read).not.toHaveProperty("isFoundByModel");
+    }
+  });
+});
