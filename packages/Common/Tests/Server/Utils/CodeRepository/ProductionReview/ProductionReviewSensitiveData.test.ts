@@ -20,6 +20,7 @@ import DataAssetUsage from "../../../../../Models/DatabaseModels/DataAssetUsage"
 import DataStore from "../../../../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../../../../Models/DatabaseModels/DataStoreFinding";
 import {
+  ProductionReviewLeakHeldBeforeJSON,
   ProductionReviewLeakJSON,
   ProductionReviewSensitiveDataJSON,
   ProductionReviewSensitiveDataUtil,
@@ -1190,7 +1191,7 @@ describe("what a front end's RUM application already held (#11395)", () => {
 
     expect(
       point.production!.heldBefore!.map(
-        (place: { location: string; ownerKind?: string }) => {
+        (place: ProductionReviewLeakHeldBeforeJSON) => {
           return [place.location, place.ownerKind];
         },
       ),
@@ -1266,12 +1267,7 @@ describe("what a front end's RUM application already held (#11395)", () => {
 
     expect(
       point.production!.heldBefore!.map(
-        (place: {
-          serviceName: string;
-          storeKind: string;
-          location: string;
-          ownerKind?: string;
-        }) => {
+        (place: ProductionReviewLeakHeldBeforeJSON) => {
           return [
             place.serviceName,
             place.storeKind,
