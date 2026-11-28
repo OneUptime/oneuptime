@@ -7,7 +7,10 @@ import {
   TransientInsertError,
   isRetryableInsertError,
   pushObservedAck,
+  readAsyncInsertBufferSettingsFromEnv,
   readFanInWriterOptionsFromEnv,
+  DEFAULT_ASYNC_INSERT_BUSY_TIMEOUT_MS,
+  DEFAULT_ASYNC_INSERT_MAX_DATA_SIZE_BYTES,
 } from "../../../../Server/Utils/Telemetry/TelemetryFanInWriter";
 import { runWithInsertDedup } from "../../../../Server/Utils/AnalyticsDatabase/InsertDedupContext";
 import { JSONObject } from "../../../../Types/JSON";
@@ -830,6 +833,95 @@ describe("TelemetryFanInWriter", () => {
     });
 
     /*
+     * 2026-11-27: every fan-in batch was larger than ClickHouse's 10 MiB
+     * async-insert limit, so ClickHouse wrote each as a part of its own and
+     * the parts a second grew with the number of workers until a partition
+     * passed parts_to_throw_insert. The buffer limits go under every insert
+     * the writer makes itself, so ClickHouse buffers them together.
+     */
+    test("insertClickhouseSettings lie under a direct insert's settings, and the submission's own win", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({
+          maxBatchRows: 2,
+          maxWaitMs: 60_000,
+          insertClickhouseSettings: {
+            async_insert_max_data_size: "104857600",
+            async_insert_busy_timeout_ms: 1000,
+          },
+        }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+        {
+          clickhouseSettings: {
+            distributed_foreground_insert: 1,
+            async_insert_busy_timeout_ms: 300,
+          },
+        },
+      );
+      await result.flushed;
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(callOptions(target, 0).clickhouseSettings).toEqual({
+        async_insert_max_data_size: "104857600",
+        async_insert_busy_timeout_ms: 300,
+        distributed_foreground_insert: 1,
+      });
+    });
+
+    test("a submission without settings of its own is inserted with insertClickhouseSettings alone", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({
+          maxBatchRows: 2,
+          maxWaitMs: 60_000,
+          insertClickhouseSettings: { async_insert_busy_timeout_ms: 1000 },
+        }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      await result.flushed;
+
+      expect(callOptions(target, 0).clickhouseSettings).toEqual({
+        async_insert_busy_timeout_ms: 1000,
+      });
+    });
+
+    test("every retry of a batch carries the same settings, so ClickHouse buffers it with the others", async () => {
+      const target: TestTarget = makeTarget({
+        impl: failNTimesImpl(1, clickHouseError("252", "Too many parts")),
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({
+          maxBatchRows: 2,
+          maxWaitMs: 60_000,
+          insertClickhouseSettings: { async_insert_busy_timeout_ms: 1000 },
+        }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+        { clickhouseSettings: { distributed_foreground_insert: 1 } },
+      );
+      await result.flushed;
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+      expect(callOptions(target, 1).clickhouseSettings).toEqual(
+        callOptions(target, 0).clickhouseSettings,
+      );
+      expect(callOptions(target, 1).dedupToken).toBe(
+        callOptions(target, 0).dedupToken,
+      );
+    });
+
+    /*
      * The production shape after the batched-inserts change: one table can
      * receive tokened submissions (low-volume signals like syslog, still
      * inside runWithInsertDedup) and untokened ones (traces/logs/metrics)
@@ -1066,6 +1158,8 @@ describe("readFanInWriterOptionsFromEnv", () => {
     "TELEMETRY_FANIN_RETRY_MAX_ATTEMPTS",
     "TELEMETRY_FANIN_RETRY_BASE_DELAY_MS",
     "TELEMETRY_FANIN_RETRY_MAX_DELAY_MS",
+    "TELEMETRY_ASYNC_INSERT_MAX_DATA_SIZE_BYTES",
+    "TELEMETRY_ASYNC_INSERT_BUSY_TIMEOUT_MS",
   ];
 
   function withEnv(
@@ -1138,6 +1232,52 @@ describe("readFanInWriterOptionsFromEnv", () => {
         expect(options.maxBatchRows).toBe(100_000);
         expect(options.maxWaitMs).toBe(5000);
         expect(options.maxPendingRows).toBe(200_000);
+      },
+    );
+  });
+
+  test("every insert keeps ClickHouse's async-insert buffer: 100 MiB of data and a one-second wait, ClickHouse Cloud's defaults", () => {
+    withEnv({}, () => {
+      expect(DEFAULT_ASYNC_INSERT_MAX_DATA_SIZE_BYTES).toBe(104_857_600);
+      expect(DEFAULT_ASYNC_INSERT_BUSY_TIMEOUT_MS).toBe(1000);
+
+      const options: FanInWriterOptions = readFanInWriterOptionsFromEnv();
+      expect(options.insertClickhouseSettings).toEqual({
+        // UInt64, which @clickhouse/client types as a string.
+        async_insert_max_data_size: "104857600",
+        // The name every ClickHouse release knows (an alias from 24.2).
+        async_insert_busy_timeout_ms: 1000,
+      });
+      expect(readAsyncInsertBufferSettingsFromEnv()).toEqual(
+        options.insertClickhouseSettings,
+      );
+    });
+  });
+
+  test("the buffer limits can be changed from the environment, and fall back to the defaults on a bad value", () => {
+    withEnv(
+      {
+        TELEMETRY_ASYNC_INSERT_MAX_DATA_SIZE_BYTES: "268435456",
+        TELEMETRY_ASYNC_INSERT_BUSY_TIMEOUT_MS: "2000",
+      },
+      () => {
+        expect(readAsyncInsertBufferSettingsFromEnv()).toEqual({
+          async_insert_max_data_size: "268435456",
+          async_insert_busy_timeout_ms: 2000,
+        });
+      },
+    );
+
+    withEnv(
+      {
+        TELEMETRY_ASYNC_INSERT_MAX_DATA_SIZE_BYTES: "lots",
+        TELEMETRY_ASYNC_INSERT_BUSY_TIMEOUT_MS: "0",
+      },
+      () => {
+        expect(readAsyncInsertBufferSettingsFromEnv()).toEqual({
+          async_insert_max_data_size: "104857600",
+          async_insert_busy_timeout_ms: 1000,
+        });
       },
     );
   });
@@ -1582,6 +1722,39 @@ describe("insert transport hook", () => {
     expect(transportCalls[0]!.dedupToken).toBe("remote-token");
     expect(transportCalls[0]!.clickhouseSettings).toEqual({ async_insert: 1 });
     expect(rowSeqs(transportCalls[0]!.rows)).toEqual([0, 1]);
+  });
+
+  test("a transport is handed the submission's own settings: the writer tier adds its insertClickhouseSettings where it inserts", async () => {
+    const target: TestTarget = makeTarget();
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({
+        insertClickhouseSettings: { async_insert_busy_timeout_ms: 1000 },
+      }),
+    );
+    const handedOn: Array<ClickHouseSettings | undefined> = [];
+    writer.setInsertTransport(
+      async (
+        _transportTarget: FanInInsertTarget,
+        _rows: Array<JSONObject>,
+        options: {
+          dedupToken: string;
+          clickhouseSettings: ClickHouseSettings | undefined;
+        },
+      ): Promise<void> => {
+        handedOn.push(options.clickhouseSettings);
+      },
+    );
+
+    const submission: FanInSubmitResult = await writer.submit(
+      target,
+      makeRows(2),
+      { clickhouseSettings: { distributed_foreground_insert: 1 } },
+    );
+    await writer.flushAll();
+    await submission.flushed;
+
+    expect(target.insertJsonRows).not.toHaveBeenCalled();
+    expect(handedOn).toEqual([{ distributed_foreground_insert: 1 }]);
   });
 
   test("TransientInsertError from the transport retries with the SAME token", async () => {
