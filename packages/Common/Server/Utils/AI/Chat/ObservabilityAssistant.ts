@@ -25,12 +25,13 @@ import {
 } from "./ObservabilityChatPrompt";
 import { stripFabricatedCitationMarkers } from "./ChatAgentRunner";
 import {
+  AnswerPart,
   compactAgentContext,
   CompactionResult,
   CONTINUE_ANSWER_INSTRUCTION,
   frameToolResult,
   getToolResultLoopCall,
-  joinAnswerContinuation,
+  joinAnswerParts,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
 import AIAgentRunLimitsHelper, {
@@ -269,9 +270,12 @@ export interface ObservabilityAssistantModelCall {
 
 // What a transport's model call answered.
 export interface ObservabilityAssistantModelReply {
+  // The model's answer, its reasoning left out (LLMService).
   content: string;
   toolCalls?: Array<LLMToolCall> | undefined;
   stopReason?: LLMCompletionResponse["stopReason"];
+  // Set when the reply carried the model's reasoning (joinAnswerParts).
+  reasoning?: LLMCompletionResponse["reasoning"];
   // The call's tokens, as OneUptime counts them (AiTokenCount).
   tokenCount: number;
   providerName?: string | undefined;
@@ -558,6 +562,8 @@ export default class ObservabilityAssistant {
     let modelName: string | undefined = undefined;
     let providerType: string | undefined = undefined;
     let finalContent: string = "";
+    // The final answer's reply and its continuations (joinAnswerParts).
+    const answerParts: Array<AnswerPart> = [];
     // The tokens of the latest call: the least the next one adds.
     let lastCallTokens: number = 0;
     /*
@@ -985,7 +991,11 @@ export default class ObservabilityAssistant {
         continue;
       }
 
-      finalContent = joinAnswerContinuation(finalContent, response.content);
+      answerParts.push({
+        content: response.content,
+        reasoning: response.reasoning,
+      });
+      finalContent = joinAnswerParts(answerParts);
 
       /*
        * An answer the output-token limit cut off is finished with follow-up
@@ -1071,6 +1081,7 @@ export default class ObservabilityAssistant {
       content: response.content,
       toolCalls: response.toolCalls,
       stopReason: response.stopReason,
+      ...(response.reasoning ? { reasoning: response.reasoning } : {}),
       // As OneUptime counts them: cached tokens weigh what they cost.
       tokenCount: AiTokenCount.count(response.llmLog),
       providerName: response.llmLog.llmProviderName,

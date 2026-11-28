@@ -64,6 +64,7 @@ import {
   ObservabilityAssistantExtraTool,
 } from "./ObservabilityAssistant";
 import {
+  AnswerPart,
   compactAgentContext,
   CompactionResult,
   CONTINUE_ANSWER_INSTRUCTION,
@@ -71,7 +72,7 @@ import {
   frameToolResult,
   getElidedToolResultCitations,
   getToolResultLoopCall,
-  joinAnswerContinuation,
+  joinAnswerParts,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
 import AIAgentRunLimitsHelper, {
@@ -93,6 +94,7 @@ import Timezone from "../../../../Types/Timezone";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { codesOf, withoutTrailingRun } from "../../../../Utils/TrailingRuns";
 import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
+import ModelReasoning from "../../../../Utils/LLM/ModelReasoning";
 import {
   AiContextActivity,
   AiContextRule,
@@ -556,11 +558,14 @@ export function buildReplayedHistoryMessage(
    * ones, leaving claims that look uncited. Strip the markers from replayed
    * answers so only freshly minted citations ever appear; the digest above
    * keeps the underlying evidence referable.
+   *
+   * An answer saved before replies were read for reasoning (issue #11255)
+   * may still hold the model's: it is left out here too, so the model is
+   * never fed its old reasoning as something it said.
    */
-  const prose: string = (message.contentInMarkdown || "").replace(
-    /\s?\[C\d+\]/g,
-    "",
-  );
+  const prose: string = ModelReasoning.removeFrom(
+    message.contentInMarkdown,
+  ).replace(/\s?\[C\d+\]/g, "");
 
   if (prose.trim()) {
     return {
@@ -1220,6 +1225,8 @@ export default class ChatAgentRunner {
     toolContext: ToolContext,
   ): Promise<LoopOutcome> {
     let finalContent: string = "";
+    // The final answer's reply and its continuations (joinAnswerParts).
+    const answerParts: Array<AnswerPart> = [];
     let finalStopReason: string | undefined = undefined;
     let manifest: AIRunEgressManifest | undefined = undefined;
     /*
@@ -1739,7 +1746,11 @@ export default class ChatAgentRunner {
         continue;
       }
 
-      finalContent = joinAnswerContinuation(finalContent, response.content);
+      answerParts.push({
+        content: response.content,
+        reasoning: response.reasoning,
+      });
+      finalContent = joinAnswerParts(answerParts);
       finalStopReason = response.stopReason;
 
       /*
@@ -2979,6 +2990,16 @@ export default class ChatAgentRunner {
       // Same privacy rule as the chat itself: LlmLog is project-readable.
       storeContentPreviews: false,
     });
+
+    /*
+     * A reply the output cap cut off is no title: a title is a few words,
+     * so a reply that ran out of room is something else - a model thinking
+     * out loud, whose template opened its reasoning and which never reached
+     * its "</think>", so nothing in the text says it was reasoning.
+     */
+    if (response.stopReason === "length") {
+      return;
+    }
 
     const title: string = sanitizeGeneratedTitle(response.content);
 
