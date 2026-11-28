@@ -47,9 +47,7 @@ import User from "../../../UI/Utils/User";
 import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion";
 import { SuggestionBlocker } from "../../../Utils/Suggestions/SuggestionBlocker";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
-import {
-  TracePerformanceFixSuggestion,
-} from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import { TracePerformanceFixSuggestion } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
 import {
   PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
   PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,

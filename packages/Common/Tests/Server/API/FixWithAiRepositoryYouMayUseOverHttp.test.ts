@@ -374,14 +374,12 @@ beforeEach(() => {
         isSubscriptionUnpaid: world.isSubscriptionUnpaid,
       } as CurrentPlan;
     });
-  jest
-    .spyOn(CodeFixReadiness, "getLlmProviderCheck")
-    .mockResolvedValue({
-      id: "llmProvider",
-      ok: true,
-      title: "An LLM provider is available",
-      detail: "",
-    } as never);
+  jest.spyOn(CodeFixReadiness, "getLlmProviderCheck").mockResolvedValue({
+    id: "llmProvider",
+    ok: true,
+    title: "An LLM provider is available",
+    detail: "",
+  } as never);
   jest.spyOn(AIService, "getReachedProjectDailyLimit").mockResolvedValue(null);
   jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
   jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue();
@@ -421,7 +419,9 @@ beforeEach(() => {
       ? investigation()
       : null;
   }) as never);
-  jest.spyOn(PostedRootCause, "getForInvestigation").mockResolvedValue(ANALYSIS);
+  jest
+    .spyOn(PostedRootCause, "getForInvestigation")
+    .mockResolvedValue(ANALYSIS);
   jest.spyOn(CodeFixOnItsWay, "findTurn").mockResolvedValue(null);
   jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
   jest.spyOn(Semaphore, "release").mockResolvedValue();
@@ -438,13 +438,13 @@ beforeEach(() => {
     }) as never);
 
   // The run, as it would be written for the Runner to claim.
-  create = jest
-    .spyOn(AIRunService, "create")
-    .mockImplementation((async (data: { data: AIRun }): Promise<AIRun> => {
-      data.data.id = RUN_ID;
-      created.push(data.data);
-      return data.data;
-    }) as never);
+  create = jest.spyOn(AIRunService, "create").mockImplementation((async (data: {
+    data: AIRun;
+  }): Promise<AIRun> => {
+    data.data.id = RUN_ID;
+    created.push(data.data);
+    return data.data;
+  }) as never);
 });
 
 afterEach(() => {
@@ -454,7 +454,8 @@ afterEach(() => {
 });
 
 const FIX_THE_CAUSE: string = "/api/ai-investigation/create-fix-task";
-const IMPROVE: string = "/api/ai-investigation/create-telemetry-improvement-task";
+const IMPROVE: string =
+  "/api/ai-investigation/create-telemetry-improvement-task";
 const FIX_THE_CAUSE_SUGGESTION: string =
   "/api/ai-investigation/code-fix-suggestion";
 const IMPROVE_SUGGESTION: string =

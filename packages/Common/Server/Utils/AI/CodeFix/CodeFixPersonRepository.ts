@@ -247,12 +247,14 @@ export default class CodeFixPersonRepository {
 
         return { id: repository.id, name };
       })
-      .sort((a: CodeFixRepositoryChoice, b: CodeFixRepositoryChoice): number => {
-        return (
-          a.name.localeCompare(b.name, "en", { sensitivity: "base" }) ||
-          a.id.localeCompare(b.id)
-        );
-      })
+      .sort(
+        (a: CodeFixRepositoryChoice, b: CodeFixRepositoryChoice): number => {
+          return (
+            a.name.localeCompare(b.name, "en", { sensitivity: "base" }) ||
+            a.id.localeCompare(b.id)
+          );
+        },
+      )
       .slice(0, MAX_CODE_FIX_REPOSITORY_CHOICES);
   }
 

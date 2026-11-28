@@ -183,20 +183,22 @@ beforeEach(() => {
    * nothing: in which repository a person's fix is made has its own suites
    * (FixWithAiRepositoryYouMayUseOverHttp, #11209).
    */
-  jest.spyOn(CodeFixPersonRepository, "getUsableRepositories").mockResolvedValue({
-    connectedCount: 1,
-    usable: [
-      {
-        id: REPOSITORY_ID.toString(),
-        name: "checkout",
-        organizationName: "acme",
-        repositoryName: "checkout",
-        mainBranchName: "main",
-        gitHubAppInstallationId: "1234",
-      },
-    ],
-    allowance: EVERY_CODE_REPOSITORY,
-  });
+  jest
+    .spyOn(CodeFixPersonRepository, "getUsableRepositories")
+    .mockResolvedValue({
+      connectedCount: 1,
+      usable: [
+        {
+          id: REPOSITORY_ID.toString(),
+          name: "checkout",
+          organizationName: "acme",
+          repositoryName: "checkout",
+          mainBranchName: "main",
+          gitHubAppInstallationId: "1234",
+        },
+      ],
+      allowance: EVERY_CODE_REPOSITORY,
+    });
   jest
     .spyOn(CodeFixStartGate, "check")
     .mockResolvedValue({ codeRepositoryId: REPOSITORY_ID, blocker: null });

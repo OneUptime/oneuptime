@@ -132,7 +132,10 @@ interface Setup {
   use?: CodeFixRepositoryUse;
 }
 
-function resolvable(id: string, name: string = "billing-api"): ResolvableRepository {
+function resolvable(
+  id: string,
+  name: string = "billing-api",
+): ResolvableRepository {
   return {
     id,
     name,

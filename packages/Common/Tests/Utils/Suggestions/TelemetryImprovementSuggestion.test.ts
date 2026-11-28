@@ -224,17 +224,14 @@ describe("the repositories the card offers to pick from", () => {
     ["text", "checkout"],
     ["a list", [CHECKOUT.id, "checkout"]],
     ["null", null],
-  ])(
-    "an entry with %s is left out",
-    (_label: string, entry: unknown) => {
-      expect(
-        parseTelemetryImprovementSuggestion({
-          offer: "Act",
-          repositories: [entry, CHECKOUT, LEDGER],
-        }).repositories,
-      ).toEqual([CHECKOUT, LEDGER]);
-    },
-  );
+  ])("an entry with %s is left out", (_label: string, entry: unknown) => {
+    expect(
+      parseTelemetryImprovementSuggestion({
+        offer: "Act",
+        repositories: [entry, CHECKOUT, LEDGER],
+      }).repositories,
+    ).toEqual([CHECKOUT, LEDGER]);
+  });
 
   test("anything but a list reads as none", () => {
     for (const repositories of [CHECKOUT, "checkout", 2, null, undefined]) {
@@ -259,10 +256,7 @@ describe("the repositories the card offers to pick from", () => {
     expect(
       parseTelemetryImprovementSuggestion({
         offer: "Act",
-        repositories: [
-          { id: ` ${CHECKOUT.id} `, name: " checkout " },
-          LEDGER,
-        ],
+        repositories: [{ id: ` ${CHECKOUT.id} `, name: " checkout " }, LEDGER],
       }).repositories,
     ).toEqual([CHECKOUT, LEDGER]);
   });

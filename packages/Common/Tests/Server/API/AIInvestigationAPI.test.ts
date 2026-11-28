@@ -2226,9 +2226,9 @@ describe("AIInvestigationAPI run-scoped actions", () => {
         );
 
       expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
-      expect(
-        (next.mock.calls[0]![0] as Error).message,
-      ).toBe("repositoryId must be a repository's ID.");
+      expect((next.mock.calls[0]![0] as Error).message).toBe(
+        "repositoryId must be a repository's ID.",
+      );
       expect(IncidentService.findOneById).not.toHaveBeenCalled();
       expect(
         FixFromIncidentTaskTrigger.createFixTaskFromInvestigation,

@@ -28,7 +28,10 @@ afterEach(() => {
 
 function Card(props: {
   onConfirm: () => void;
-  extra?: (answer: string, setAnswer: (value: string) => void) => {
+  extra?: (
+    answer: string,
+    setAnswer: (value: string) => void,
+  ) => {
     content: React.ReactElement;
     isDisabled: boolean;
   };
@@ -72,7 +75,9 @@ describe("ActionCard", () => {
 
     const dialog: HTMLElement = openConfirmation();
 
-    expect(dialog).toHaveTextContent("Are you sure you want to improve logging?");
+    expect(dialog).toHaveTextContent(
+      "Are you sure you want to improve logging?",
+    );
     expect(onConfirm).not.toHaveBeenCalled();
 
     fireEvent.click(

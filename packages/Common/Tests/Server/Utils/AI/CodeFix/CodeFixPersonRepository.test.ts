@@ -137,58 +137,64 @@ function personWho(person: PersonInCode): Checks {
   return {
     readable: jest
       .spyOn(CodeTaskAccess, "listReadableRepositoriesByIds")
-      .mockImplementation(async (data: {
-        repositoryIds: Array<ObjectID | string>;
-      }): Promise<Array<CodeRepository>> => {
-        return lower(data.repositoryIds)
-          .filter((id: string): boolean => {
-            return person.readable.includes(id);
-          })
-          .map(rowOf);
-      }),
+      .mockImplementation(
+        async (data: {
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Array<CodeRepository>> => {
+          return lower(data.repositoryIds)
+            .filter((id: string): boolean => {
+              return person.readable.includes(id);
+            })
+            .map(rowOf);
+        },
+      ),
     askable: jest
       .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
-      .mockImplementation(async (data: {
-        repositoryIds: Array<ObjectID | string>;
-      }): Promise<Set<string>> => {
-        return new Set<string>(
-          lower(data.repositoryIds).filter((id: string): boolean => {
-            return person.askable.includes(id);
-          }),
-        );
-      }),
+      .mockImplementation(
+        async (data: {
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Set<string>> => {
+          return new Set<string>(
+            lower(data.repositoryIds).filter((id: string): boolean => {
+              return person.askable.includes(id);
+            }),
+          );
+        },
+      ),
     findReadable: jest
       .spyOn(CodeTaskAccess, "findReadableRepository")
-      .mockImplementation(async (data: {
-        repositoryId: ObjectID;
-      }): Promise<CodeRepository | null> => {
-        const id: string = data.repositoryId.toString().toLowerCase();
-        return person.readable.includes(id) ? rowOf(id) : null;
-      }),
+      .mockImplementation(
+        async (data: {
+          repositoryId: ObjectID;
+        }): Promise<CodeRepository | null> => {
+          const id: string = data.repositoryId.toString().toLowerCase();
+          return person.readable.includes(id) ? rowOf(id) : null;
+        },
+      ),
     canAsk: jest
       .spyOn(CodeTaskAccess, "canAskInRepository")
-      .mockImplementation(async (data: {
-        repositoryId: ObjectID;
-      }): Promise<boolean> => {
-        return person.askable.includes(
-          data.repositoryId.toString().toLowerCase(),
-        );
-      }),
+      .mockImplementation(
+        async (data: { repositoryId: ObjectID }): Promise<boolean> => {
+          return person.askable.includes(
+            data.repositoryId.toString().toLowerCase(),
+          );
+        },
+      ),
     reachable: jest
       .spyOn(CodeTaskGate, "isRepositoryReachable")
-      .mockImplementation(async (data: {
-        repositoryId: ObjectID;
-      }): Promise<boolean> => {
-        return (person.reachable || person.connected).includes(
-          data.repositoryId.toString().toLowerCase(),
-        );
-      }),
+      .mockImplementation(
+        async (data: { repositoryId: ObjectID }): Promise<boolean> => {
+          return (person.reachable || person.connected).includes(
+            data.repositoryId.toString().toLowerCase(),
+          );
+        },
+      ),
   };
 }
 
-function gateSays(start: Partial<CodeFixStart> = {}): SpyInstance<
-  typeof CodeFixStartGate.check
-> {
+function gateSays(
+  start: Partial<CodeFixStart> = {},
+): SpyInstance<typeof CodeFixStartGate.check> {
   return jest.spyOn(CodeFixStartGate, "check").mockResolvedValue({
     codeRepositoryId: null,
     blocker: null,
@@ -364,7 +370,11 @@ describe("CodeFixPersonRepository.getUsableRepositories", () => {
   );
 
   test("anything else that goes wrong is said, never taken for none", async () => {
-    personWho({ connected: [BILLING], readable: [BILLING], askable: [BILLING] });
+    personWho({
+      connected: [BILLING],
+      readable: [BILLING],
+      askable: [BILLING],
+    });
     jest
       .spyOn(CodeTaskAccess, "listReadableRepositoriesByIds")
       .mockRejectedValue(new Error("connection reset"));
@@ -526,7 +536,9 @@ describe("CodeFixPersonRepository.isEveryonesBlocker", () => {
 });
 
 describe("CodeFixPersonRepository.getRepositoryChoices", () => {
-  function use(repositories: Array<ResolvableRepository>): CodeFixRepositoryUse {
+  function use(
+    repositories: Array<ResolvableRepository>,
+  ): CodeFixRepositoryUse {
     return {
       connectedCount: repositories.length,
       usable: repositories,
@@ -573,7 +585,11 @@ describe("CodeFixPersonRepository.getRepositoryChoices", () => {
   test(`at most ${MAX_CODE_FIX_REPOSITORY_CHOICES}`, () => {
     const many: Array<ResolvableRepository> = [];
 
-    for (let index: number = 0; index < MAX_CODE_FIX_REPOSITORY_CHOICES + 25; index++) {
+    for (
+      let index: number = 0;
+      index < MAX_CODE_FIX_REPOSITORY_CHOICES + 25;
+      index++
+    ) {
       const suffix: string = index.toString(16).padStart(12, "0");
       many.push(
         resolvable(

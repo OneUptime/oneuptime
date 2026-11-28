@@ -444,7 +444,8 @@ describe("a repository to pick before the improvement starts", () => {
 
     fireEvent.click(
       within(card).getByRole("button", {
-        name: taskType === "ImproveLogging" ? /Improve Logging/ : /Improve Tracing/,
+        name:
+          taskType === "ImproveLogging" ? /Improve Logging/ : /Improve Tracing/,
       }),
     );
   }

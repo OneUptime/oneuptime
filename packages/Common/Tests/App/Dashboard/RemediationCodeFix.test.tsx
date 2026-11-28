@@ -38,7 +38,6 @@ import {
   PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
   PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
 } from "../../../Utils/Suggestions/CodeFixRepositoryPick";
-import { PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES } from "../../../Utils/Suggestions/InvestigationCodeFixSuggestion";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
@@ -50,6 +49,7 @@ import {
   AutomaticCodeFixBlocker,
   InvestigationCodeFixSuggestion,
   NO_INVESTIGATION_CODE_FIX_SUGGESTION,
+  PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES,
 } from "../../../Utils/Suggestions/InvestigationCodeFixSuggestion";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
@@ -733,9 +733,9 @@ describe("a repository to pick before the pull request opens", () => {
       await pick("checkout-api");
       await press();
 
-      expect(screen.getByTestId("remediation-code-fix-error")).toHaveTextContent(
-        refusal,
-      );
+      expect(
+        screen.getByTestId("remediation-code-fix-error"),
+      ).toHaveTextContent(refusal);
       expect(openButton()).toBeDisabled();
       expect(within(picker()).queryByText("checkout-api")).toBeNull();
       expect(onChanged).not.toHaveBeenCalled();

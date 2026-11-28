@@ -10,7 +10,10 @@ import AIService, {
   AI_DISABLED_MESSAGE,
 } from "../../../Server/Services/AIService";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
-import { TelemetryImprovementSuggestion } from "../../../Utils/Suggestions/TelemetryImprovementSuggestion";
+import {
+  PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE,
+  TelemetryImprovementSuggestion,
+} from "../../../Utils/Suggestions/TelemetryImprovementSuggestion";
 import CodeFixStartGate, {
   CodeFixStart,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
@@ -37,7 +40,6 @@ import {
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { NO_REPOSITORY_YOU_MAY_USE_MESSAGE } from "../../../Utils/Suggestions/CodeFixRepositoryPick";
-import { PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE } from "../../../Utils/Suggestions/TelemetryImprovementSuggestion";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -552,9 +554,8 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
     // A pick is never looked for among a list of the person's repositories.
     expect(usable).not.toHaveBeenCalled();
     expect(
-      (
-        enqueue.mock.calls[0]![0] as { taskContext: CodeFixTaskContext }
-      ).taskContext.pickedCodeRepositoryId,
+      (enqueue.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
+        .taskContext.pickedCodeRepositoryId,
     ).toBe(OTHER_REPOSITORY_ID);
   });
 });
@@ -937,7 +938,11 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion, by the reader's reposit
   }
 
   test("none of the connected repositories theirs: no card, and Code's gate is not asked", async () => {
-    personMayUse({ connectedCount: 2, usable: [], allowance: NO_CODE_REPOSITORY });
+    personMayUse({
+      connectedCount: 2,
+      usable: [],
+      allowance: NO_CODE_REPOSITORY,
+    });
     const check: jest.SpyInstance = gateSays(null);
 
     expect(await suggest()).toEqual({
@@ -949,7 +954,11 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion, by the reader's reposit
   });
 
   test("none OneUptime AI can work in after all: no card", async () => {
-    personMayUse({ connectedCount: 0, usable: [], allowance: NO_CODE_REPOSITORY });
+    personMayUse({
+      connectedCount: 0,
+      usable: [],
+      allowance: NO_CODE_REPOSITORY,
+    });
     const check: jest.SpyInstance = gateSays(null);
 
     expect((await suggest()).offer).toBe(SuggestionOffer.None);

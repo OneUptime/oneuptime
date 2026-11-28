@@ -27,9 +27,7 @@ import {
   parseTracePerformanceFixSuggestion,
   tracePerformanceFixSuggestionToJSON,
 } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
-import {
-  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
-} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
+import { PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE } from "../../../Utils/Suggestions/CodeFixRepositoryPick";
 import SpanTreeAnalyzer from "../../../Utils/Traces/SpanTreeAnalyzer";
 import {
   FAST_CLEAN_REQUEST,

@@ -357,7 +357,8 @@ export default class TelemetryImprovementTaskTrigger {
         person: data.props,
         pickedRepositoryId: data.repositoryId,
         refusals: {
-          noConnectedRepository: NO_CONNECTED_REPOSITORY_FOR_IMPROVEMENT_MESSAGE,
+          noConnectedRepository:
+            NO_CONNECTED_REPOSITORY_FOR_IMPROVEMENT_MESSAGE,
           pickARepository: PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE,
         },
       });
