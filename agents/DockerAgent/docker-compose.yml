@@ -6,7 +6,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    environment:
+    environment: &collector-environment
       - ONEUPTIME_URL=${ONEUPTIME_URL}
       - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
       - DOCKER_HOST_NAME=${DOCKER_HOST_NAME:-docker-host}
@@ -14,12 +14,38 @@ services:
       # daemon, which works from Engine 20.10 on. Set it only to pin a version
       # (no higher than docker version --format '{{ .Server.APIVersion }}').
       - DOCKER_API_VERSION=${DOCKER_API_VERSION:-}
+      # Log operators of your own, for a format the agent does not read: one
+      # collector (stanza) operator each, as JSON, set in .env. Named without
+      # a value, each is passed only when set, as an empty one would stop the
+      # collector. The config check below runs them through the collector's
+      # validate before the agent starts.
+      - ONEUPTIME_LOG_OPERATOR_1
+      - ONEUPTIME_LOG_OPERATOR_2
+      - ONEUPTIME_LOG_OPERATOR_3
+      - ONEUPTIME_LOG_OPERATOR_4
+      - ONEUPTIME_LOG_OPERATOR_5
+    depends_on:
+      oneuptime-docker-agent-config-check:
+        condition: service_completed_successfully
     restart: unless-stopped
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+
+  # The agent's config, with your log operators (ONEUPTIME_LOG_OPERATOR_1 to
+  # ONEUPTIME_LOG_OPERATOR_5), checked by the collector's own validate before
+  # the agent starts: a bad operator stops `docker compose up` here, with the
+  # collector's message in `docker compose logs
+  # oneuptime-docker-agent-config-check`, rather than leaving the agent to
+  # restart forever. It runs once and exits.
+  oneuptime-docker-agent-config-check:
+    image: oneuptime/docker-agent:release
+    container_name: oneuptime-docker-agent-config-check
+    command: ["validate", "--config=/etc/otelcol-contrib/config.yaml"]
+    environment: *collector-environment
+    restart: "no"
 
   # The OneUptime AI agent for this Docker host. While OneUptime AI
   # investigates an incident or alert it runs read-only docker commands here

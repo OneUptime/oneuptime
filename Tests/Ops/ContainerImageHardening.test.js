@@ -2444,13 +2444,16 @@ describe("the OpenTelemetry collector pin", () => {
    * Each file's collector services, by name, so a new one is named here, and each
    * runs the pin. The Storage Array Agent runs two: the agent, and PowerStore's
    * syslog receiver (powerstore-syslog), which runs the agent's own image through
-   * the *collector-image alias so the two cannot drift apart.
+   * the *collector-image alias so the two cannot drift apart. The Docker Swarm
+   * agent runs two too: the agent, and the check of its config with your log
+   * operators (#11225), the collector's own validate, which runs once first.
    */
   test("the Swarm, VMware, Database, Proxmox, Ceph, OpenStack, Storage Array and XCP-ng compose files run the pinned collector", () => {
     const pinned = `otel/opentelemetry-collector-contrib:${pinsIn("agents/DockerAgent/Dockerfile.tpl")[0]}`;
     const collectorServicesOf = {
       "agents/DockerSwarmAgent/docker-compose.yml": [
         "oneuptime-docker-swarm-agent",
+        "oneuptime-docker-swarm-agent-config-check",
       ],
       "agents/VMwareAgent/docker-compose.yml": ["oneuptime-vmware-agent"],
       "agents/DatabaseAgent/docker-compose.yml": ["oneuptime-database-agent"],

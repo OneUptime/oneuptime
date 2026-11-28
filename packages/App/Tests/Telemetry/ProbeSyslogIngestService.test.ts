@@ -363,7 +363,8 @@ describe("a vendor's line from a device the probe polls", () => {
       "Oct 13 10:11:09.123 UTC: %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down",
     );
     expect(row["severityText"]).toBe(LogSeverity.Error);
-    expect(row["severityNumber"]).toBe(19);
+    // Cisco's 3 is syslog's err: ERROR, as the word is stored (issue #11228).
+    expect(row["severityNumber"]).toBe(17);
     // The device stamped it a second earlier; it is stored when it was heard.
     expect(row["time"]).toBe(OneUptimeDate.toClickhouseDateTime64(RECEIVED_AT));
 

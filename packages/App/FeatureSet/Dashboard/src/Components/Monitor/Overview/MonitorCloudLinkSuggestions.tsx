@@ -19,8 +19,10 @@ import Button, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import PermissionGate, {
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { useRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import {
   Translator,
   translateNamedAction,
@@ -67,9 +69,16 @@ const MonitorCloudLinkSuggestions: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
 
+  // On the monitor's page, what its labels leave the reader (#11259).
+  const recordOptions: PermissionGateOptions | undefined = useRecordGateOptions(
+    new Monitor(),
+    props.monitorId,
+  );
+
   const gate: PermissionGateResult = PermissionGate.checkColumnUpdate(
     new Monitor(),
     "cloudResources",
+    recordOptions,
   );
 
   useEffect(() => {

@@ -253,13 +253,17 @@ describe("what the job writes", () => {
  * of the two falls behind. A probe is behind when either is.
  */
 describe("ProbeBehindUtil, for the network devices a probe polls", () => {
+  // Its longest-waiting check due 14 minutes before the start: 15 late.
   const checksBehind: ProbeLateChecks = {
     checksLateSince: at(0),
     checksLastLateAt: at(MINUTE),
+    checksLastLateDueAt: at(-14 * MINUTE),
   };
+  // Its longest-waiting poll three hours late at its latest reading.
   const pollsBehind: ProbeLateDevicePolls = {
     devicePollsLateSince: at(2 * MINUTE),
     devicePollsLastLateAt: at(3 * MINUTE),
+    devicePollsLastLateDueAt: at(3 * MINUTE - 3 * 60 * MINUTE),
   };
   // The same, as a page reads a probe late on only the one: both kinds of time.
   const checksBehindRead: ProbeBehindRead = { ...checksBehind };
@@ -275,6 +279,7 @@ describe("ProbeBehindUtil, for the network devices a probe polls", () => {
     expect(polls).toEqual({
       devicePollsLateSince: first!.checksLateSince,
       devicePollsLastLateAt: second!.checksLastLateAt,
+      devicePollsLastLateDueAt: second!.checksLastLateDueAt,
     });
     expect(ProbeBehindUtil.devicePollsAsLateChecks(polls)).toEqual(second);
     expect(ProbeBehindUtil.getDevicePollsBehindSince(polls)).toEqual(at(0));
@@ -349,6 +354,7 @@ describe("ProbeBehindUtil, for the network devices a probe polls", () => {
     expect(ProbeBehindUtil.clearedDevicePolls()).toEqual({
       devicePollsLateSince: null,
       devicePollsLastLateAt: null,
+      devicePollsLastLateDueAt: null,
     });
     expect(
       ProbeBehindUtil.isDevicePollsBehind(ProbeBehindUtil.clearedDevicePolls()),
@@ -376,6 +382,8 @@ describe("ProbeBehindUtil, for the network devices a probe polls", () => {
           devicePollsLateSince: pollsBehind.devicePollsLateSince!.toISOString(),
           devicePollsLastLateAt:
             pollsBehind.devicePollsLastLateAt!.toISOString(),
+          devicePollsLastLateDueAt:
+            pollsBehind.devicePollsLastLateDueAt!.toISOString(),
         },
         pollsBehind,
       ),
@@ -387,5 +395,159 @@ describe("ProbeBehindUtil, for the network devices a probe polls", () => {
         ProbeBehindUtil.clearedDevicePolls(),
       ),
     ).toBe(false);
+  });
+});
+
+/*
+ * How far behind a probe is ("Behind by 15 minutes"): how long its
+ * longest-waiting check had waited past its check time at the latest
+ * reading that found one late, kept as the due time of that check
+ * (checksLastLateDueAt) beside that reading's time.
+ */
+describe("how far behind a probe is", () => {
+  // Readings a minute apart of a probe handed nothing: one check waits on.
+  function starved(count: number, dueAt: Date): ProbeLateChecks {
+    let state: ProbeLateChecks = ProbeBehindUtil.cleared();
+
+    for (let reading: number = 0; reading < count; reading++) {
+      state = ProbeBehindUtil.next({
+        state,
+        isLate: true,
+        now: at(reading * MINUTE),
+        oldestDueAt: dueAt,
+      });
+    }
+
+    return state;
+  }
+
+  test("a late reading keeps when its longest-waiting check was due", () => {
+    const state: ProbeLateChecks = ProbeBehindUtil.next({
+      state: ProbeBehindUtil.cleared(),
+      isLate: true,
+      now: START,
+      oldestDueAt: at(-15 * MINUTE).toISOString(),
+    });
+
+    expect(state.checksLastLateDueAt).toEqual(at(-15 * MINUTE));
+  });
+
+  test("is how long that check had waited at the latest late reading, and grows while it waits", () => {
+    expect(ProbeBehindUtil.getBehindByMs(starved(2, at(-15 * MINUTE)))).toBe(
+      16 * MINUTE,
+    );
+    expect(ProbeBehindUtil.getBehindByMs(starved(5, at(-15 * MINUTE)))).toBe(
+      19 * MINUTE,
+    );
+  });
+
+  test("is nothing before the probe is behind, or when no due time is kept", () => {
+    // One late reading is not behind yet.
+    expect(
+      ProbeBehindUtil.getBehindByMs(starved(1, at(-15 * MINUTE))),
+    ).toBeNull();
+    // Kept before OneUptime kept the due time: behind, by how much not known.
+    const [, second] = readings([true, true]);
+    expect(ProbeBehindUtil.isBehind(second!)).toBe(true);
+    expect(ProbeBehindUtil.getBehindByMs(second!)).toBeNull();
+    expect(ProbeBehindUtil.getBehindByMs({})).toBeNull();
+    expect(
+      ProbeBehindUtil.getBehindByMs({
+        ...starved(2, at(-15 * MINUTE)),
+        checksLastLateDueAt: "not a date",
+      }),
+    ).toBeNull();
+  });
+
+  test("keeps the latest lateness while on time inside the spell, and goes with the rest", () => {
+    const behind: ProbeLateChecks = starved(2, at(-15 * MINUTE));
+    const onTime: ProbeLateChecks = ProbeBehindUtil.next({
+      state: behind,
+      isLate: false,
+      now: at(2 * MINUTE),
+    });
+
+    expect(ProbeBehindUtil.getBehindByMs(onTime)).toBe(16 * MINUTE);
+    // Nothing changed for the job to write.
+    expect(ProbeBehindUtil.hasChanged(behind, onTime)).toBe(false);
+
+    const caughtUp: ProbeLateChecks = ProbeBehindUtil.next({
+      state: onTime,
+      isLate: false,
+      now: at(3 * MINUTE),
+    });
+
+    expect(caughtUp).toEqual(ProbeBehindUtil.cleared());
+    expect(ProbeBehindUtil.getBehindByMs(caughtUp)).toBeNull();
+  });
+
+  test("a new due time is a change the job writes; the same one read back as a string is not", () => {
+    const behind: ProbeLateChecks = starved(2, at(-15 * MINUTE));
+
+    expect(
+      ProbeBehindUtil.hasChanged(behind, {
+        ...behind,
+        checksLastLateDueAt: at(-14 * MINUTE),
+      }),
+    ).toBe(true);
+    expect(
+      ProbeBehindUtil.hasChanged(
+        {
+          checksLateSince: behind.checksLateSince!.toISOString(),
+          checksLastLateAt: behind.checksLastLateAt!.toISOString(),
+          checksLastLateDueAt: behind.checksLastLateDueAt!.toISOString(),
+        },
+        behind,
+      ),
+    ).toBe(false);
+  });
+
+  test("is said in the largest whole unit that fits", () => {
+    const amount: (ms: number) => unknown = (ms: number): unknown => {
+      return ProbeBehindUtil.getBehindByAmount(ms);
+    };
+
+    expect(amount(61 * 1000)).toEqual({ unit: "minute", count: 1 });
+    expect(amount(15 * MINUTE + 59 * 1000)).toEqual({
+      unit: "minute",
+      count: 15,
+    });
+    expect(amount(60 * MINUTE - 1)).toEqual({ unit: "minute", count: 59 });
+    expect(amount(60 * MINUTE)).toEqual({ unit: "hour", count: 1 });
+    // 2026-11-27: handed nothing from 04:09:46, read at 16:00.
+    expect(amount(11 * 60 * MINUTE + 50 * MINUTE)).toEqual({
+      unit: "hour",
+      count: 11,
+    });
+    expect(amount(48 * 60 * MINUTE - 1)).toEqual({ unit: "hour", count: 47 });
+    expect(amount(48 * 60 * MINUTE)).toEqual({ unit: "day", count: 2 });
+    expect(amount(10 * 24 * 60 * MINUTE)).toEqual({ unit: "day", count: 10 });
+  });
+
+  test("the device polls' by the same rules, and the probe as far behind as the further of the two", () => {
+    const checksBehind: ProbeLateChecks = starved(2, at(-14 * MINUTE));
+    const pollsBehind: ProbeLateDevicePolls =
+      ProbeBehindUtil.lateChecksAsDevicePolls(starved(2, at(-179 * MINUTE)));
+
+    // As a page reads a probe late on only the one: both kinds of time.
+    const checksBehindRead: ProbeBehindRead = { ...checksBehind };
+    const pollsBehindRead: ProbeBehindRead = { ...pollsBehind };
+
+    expect(ProbeBehindUtil.getBehindByMs(checksBehind)).toBe(15 * MINUTE);
+    expect(ProbeBehindUtil.getDevicePollsBehindByMs(pollsBehind)).toBe(
+      180 * MINUTE,
+    );
+    // Each kind's times are its own.
+    expect(
+      ProbeBehindUtil.getDevicePollsBehindByMs(checksBehindRead),
+    ).toBeNull();
+    expect(ProbeBehindUtil.getBehindByMs(pollsBehindRead)).toBeNull();
+
+    expect(ProbeBehindUtil.getProbeBehindByMs({})).toBeNull();
+    expect(ProbeBehindUtil.getProbeBehindByMs(checksBehind)).toBe(15 * MINUTE);
+    expect(ProbeBehindUtil.getProbeBehindByMs(pollsBehind)).toBe(180 * MINUTE);
+    expect(
+      ProbeBehindUtil.getProbeBehindByMs({ ...checksBehind, ...pollsBehind }),
+    ).toBe(180 * MINUTE);
   });
 });
