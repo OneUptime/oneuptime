@@ -49,6 +49,7 @@ import { initReactI18next } from "react-i18next";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
+import { answerSharedNames } from "../../SuiteHelpers/SharedNameAnswers";
 import { answerCloudHostLinks } from "../../SuiteHelpers/CloudHostLinkAnswers";
 import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import CloudResourceRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/CloudResourceRoutes";
@@ -56,6 +57,7 @@ import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import CloudCost from "Common/Models/AnalyticsModels/CloudCost";
 import Metric from "Common/Models/AnalyticsModels/Metric";
+import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { getCloudRightSizingRecommendationId } from "Common/Types/Cloud/CloudRightSizing";
 import { findCloudCostAnomalies } from "Common/Types/Cloud/CloudCostAnomaly";
@@ -1359,6 +1361,13 @@ const EMPTY_TABLES = [
    */
   "ScheduledMaintenance",
   "ScheduledMaintenanceState",
+  /*
+   * Budgets' form offers the cost groups a budget can count, and the names
+   * a filter's rules can hold - a Kubernetes cluster's among them (#11008):
+   * this workspace has made no cost group, and runs no cluster.
+   */
+  "CloudCostGroup",
+  "KubernetesCluster",
 ];
 
 function isModelled(modelType) {
@@ -1472,6 +1481,9 @@ async function createRecord(options) {
     name: model.name,
     monthlyAmount: Number(model.monthlyAmount),
     currency: model.currency,
+    // What it counts and over how long (#11008), as the form's first steps set them.
+    scope: model.scope,
+    period: model.period,
     cloudAccountId: relationId(model.cloudAccount || model.cloudAccountId),
     alertThresholds: model.alertThresholds,
     alertOnProjection: model.alertOnProjection,
@@ -1853,6 +1865,27 @@ async function handleApi(method, options) {
   const names = method === "GET" ? answerUniqueNames({ url }) : null;
   if (names) {
     return new HTTPResponse(200, names, {});
+  }
+  /*
+   * Which budgets share a name (#11021): Budgets asks with every read of its
+   * rows, to mark them. None here: each budget has a name of its own.
+   */
+  const twins =
+    method === "GET"
+      ? answerSharedNames({
+          url,
+          kinds: [
+            {
+              modelType: CloudBudget,
+              records: () => {
+                return BUDGETS;
+              },
+            },
+          ],
+        })
+      : null;
+  if (twins) {
+    return new HTTPResponse(200, twins, {});
   }
   const answer = answerApi(method, url.pathname, options.data || {});
   if (answer) {
