@@ -36,10 +36,7 @@ import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import {
-  VMWARE_CPU_READY_WARNING_PERCENT,
-  getVMwareHostsOfCluster,
-} from "../Utils/VMwareHealth";
+import { getVMwareHostsOfCluster } from "../Utils/VMwareHealth";
 import { summarizeVMwareHostVirtualMachines } from "../Utils/VMwareHostData";
 import VMwarePartHero from "../../../Components/VMware/Part/VMwarePartHero";
 import VMwareClusterOverview from "../../../Components/VMware/Part/VMwareClusterOverview";
@@ -50,6 +47,11 @@ import {
 } from "../../../Components/VMware/Part/VMwarePartRoutes";
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import { getVMwarePartAttention } from "../Utils/VMwarePartAttention";
+import {
+  readCurrentProjectVMwareHealthRules,
+  useVMwareHealthRules,
+} from "../Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import {
   VMwareHostsTable,
   VMwareVirtualMachinesTable,
@@ -64,6 +66,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const rules: VMwareHealthRules = useVMwareHealthRules();
   // The charts draw their titles and legends as given: hand them the reader's words.
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -145,7 +148,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
           now: OneUptimeDate.getCurrentDate(),
           clusterName: name,
           datacenterName: datacenterName,
-          cpuReadyWarningPercent: VMWARE_CPU_READY_WARNING_PERCENT,
+          rules: await readCurrentProjectVMwareHealthRules(),
         }),
       ]);
       setRow(inventoryRow);
@@ -480,6 +483,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
     now: now,
     routeFor: routes.getPartRoute,
     listRouteFor: routes.getListRoute,
+    rules,
   });
   // The cluster's VMs as vCenter counts them, templates left out.
   const virtualMachineCount: number | undefined =

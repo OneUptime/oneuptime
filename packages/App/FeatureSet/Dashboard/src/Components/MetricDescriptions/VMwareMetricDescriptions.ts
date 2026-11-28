@@ -72,6 +72,7 @@ export type VMwareMetric =
   | "vmMemory"
   | "vmMemoryBallooned"
   | "vmMemorySwapped"
+  | "vmMemorySwapping"
   | "vmDisk"
   // Datastore detail.
   | "datastoreFree"
@@ -145,7 +146,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
 
   // ---- Overview: the hero's health and connection pills -------------------
   overviewVCenterHealth: translationKey(
-    "Unhealthy while something needs someone now (an ESXi host vCenter cannot reach, a critical alarm, a datastore more than 90% full, a VM the host swaps to disk), Degraded while something needs a look. Needs attention lists each, the most urgent first; unknown while the vCenter is disconnected.",
+    "Unhealthy while something needs someone now (an ESXi host vCenter cannot reach, a critical alarm, a datastore more than 90% full, a VM whose memory the host is swapping out), Degraded while something needs a look. Needs attention lists each, the most urgent first; unknown while the vCenter is disconnected.",
   ),
   overviewAgentStatus: translationKey(
     "Whether data is arriving for this vCenter - from the probe that collects it, or from the OneUptime VMware agent; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While it is disconnected the numbers on this page stop updating and may be out of date.",
@@ -236,7 +237,10 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "Memory ESXi took back from this VM through the balloon driver in VMware Tools because the host was short of RAM. Only shown when above zero; it is a sign of host memory pressure.",
   ),
   vmMemorySwapped: translationKey(
-    "Memory of this VM that ESXi moved to disk because the host ran out of RAM, shown only when above zero. Swapping slows the VM badly and marks the vCenter Unhealthy.",
+    "Memory of this VM that sits in the host's swap file, shown only when above zero. ESXi leaves it there until the VM touches it, so an amount left from earlier is not swapping now: Swapping Now says whether it is.",
+  ),
+  vmMemorySwapping: translationKey(
+    "Whether the host is moving this VM's memory out to its swap file or back in now, from how its swapped memory changed since the previous report. Swapping out now is memory pressure and marks the VM critical.",
   ),
   vmDisk: translationKey(
     "Datastore space this VM's files take up now, against the total provisioned for it (used space plus what its disks may still grow into), with the share used, from the latest report.",
@@ -325,6 +329,6 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
     "Guest memory the VMs in this pool are actively using, as estimated by ESXi, from its latest report. N/A when the pool has sent no data in the last 15 minutes.",
   ),
   resourcePoolListBalloonedSwapped: translationKey(
-    "Memory ESXi took back from this pool's VMs through the balloon driver, then memory it moved to disk swap, from the last report. Above zero means a host is short of RAM; swapping slows VMs badly.",
+    "Memory ESXi took back from this pool's VMs through the balloon driver, then memory of theirs in the host's swap file, from the last report. Amber while the host swaps the pool's memory out; memory left from earlier is not.",
   ),
 };

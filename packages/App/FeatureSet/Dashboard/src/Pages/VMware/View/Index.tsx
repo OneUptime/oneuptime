@@ -114,9 +114,7 @@ import {
   hasFreshMetrics,
 } from "../Utils/VMwareResourceUtils";
 import {
-  VMWARE_CPU_READY_WARNING_PERCENT,
-  VMWARE_DATASTORE_CRITICAL_PERCENT,
-  VMWARE_DATASTORE_WARNING_PERCENT,
+  getVMwareThresholdLine,
   VMwareHostState,
   findVMwareDatacenter,
   getVMwareAttentionItems,
@@ -127,6 +125,11 @@ import {
   hasFreshVMwareReadings,
   isVMwareHostRunning,
 } from "../Utils/VMwareHealth";
+import {
+  readCurrentProjectVMwareHealthRules,
+  useVMwareHealthRules,
+} from "../Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import ResourceAttentionPill, {
   ComponentProps as ResourceAttentionPillProps,
 } from "../../../Components/ResourcePart/ResourceAttentionPill";
@@ -246,12 +249,11 @@ const formatPercent: (value: number | null) => string = (
 
 const TILE_WINDOW_MINUTES: number = 5;
 
-/* Aligned with the vmware-datastore-capacity-{warning,critical} templates. */
-const DATASTORE_WARN_PERCENT: number = VMWARE_DATASTORE_WARNING_PERCENT;
-const DATASTORE_CRITICAL_PERCENT: number = VMWARE_DATASTORE_CRITICAL_PERCENT;
-
-/* Aligned with the vmware-vm-cpu-ready-contention template (avg > 10 %). */
-const VM_CPU_READY_WARN_PERCENT: number = VMWARE_CPU_READY_WARNING_PERCENT;
+/*
+ * The tiles' lines are the project's health rules (VMware > Settings >
+ * Health Rules), whose defaults are the alert templates' levels: datastores
+ * amber past 80% and red past 90%, VM CPU ready red past 10%.
+ */
 
 // How many rows each Top Resource Consumers section ranks.
 const TOP_ROWS: number = 5;
@@ -268,6 +270,7 @@ const VMwareVCenterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const rules: VMwareHealthRules = useVMwareHealthRules();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   // A word the page draws itself, in the reader's language.
@@ -349,6 +352,8 @@ const VMwareVCenterOverview: FunctionComponent<
     try {
       const now: Date = OneUptimeDate.getCurrentDate();
       const routes: VMwarePartRoutes = getVMwarePartRoutes(modelId);
+      const projectRules: VMwareHealthRules =
+        await readCurrentProjectVMwareHealthRules();
 
       const [partRows, attentionVms, cpuReadyVms, counts]: [
         Array<VMwareResourceModel>,
@@ -369,7 +374,7 @@ const VMwareVCenterOverview: FunctionComponent<
         fetchVMwareVirtualMachinesThatMayNeedAttention({
           vmwareVCenterId: modelId,
           now: now,
-          cpuReadyWarningPercent: VM_CPU_READY_WARN_PERCENT,
+          rules: projectRules,
         }),
         fetchVMwareVirtualMachinesByCpuReady({
           vmwareVCenterId: modelId,
@@ -574,6 +579,7 @@ const VMwareVCenterOverview: FunctionComponent<
           now: now,
           routeFor: routes.getPartRoute,
           listRouteFor: routes.getListRoute,
+          rules: projectRules,
         });
 
       setInventory({
@@ -1369,6 +1375,7 @@ const VMwareVCenterOverview: FunctionComponent<
         state: VMwareHostState.NotResponding,
         now: readAt,
         routeFor: partRoutes.getPartRoute,
+        rules,
       });
     if (notResponding.length > 0) {
       hostProblems.push({
@@ -1395,6 +1402,7 @@ const VMwareVCenterOverview: FunctionComponent<
       state: VMwareHostState.NoUsage,
       now: readAt,
       routeFor: partRoutes.getPartRoute,
+      rules,
     });
     if (noUsage.length > 0) {
       hostProblems.push({
@@ -1895,8 +1903,8 @@ const VMwareVCenterOverview: FunctionComponent<
           }
           percent={worstDatastorePercent}
           thresholds={{
-            warn: DATASTORE_WARN_PERCENT,
-            danger: DATASTORE_CRITICAL_PERCENT,
+            warn: getVMwareThresholdLine(rules.datastoreWarningPercent),
+            danger: getVMwareThresholdLine(rules.datastoreCriticalPercent),
           }}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewDatastores}
         />
@@ -1919,10 +1927,17 @@ const VMwareVCenterOverview: FunctionComponent<
           }
           percent={s.vmCpuReadyAvgPercent}
           /*
-           * CPU ready is a contention signal, not a utilization: the
-           * alert template fires past 10%, so amber at 5 and red at 10.
+           * CPU ready is a contention signal, not a utilization: red past
+           * the VM CPU ready rule (10%), amber from half of it.
            */
-          thresholds={{ warn: 5, danger: VM_CPU_READY_WARN_PERCENT }}
+          thresholds={{
+            warn: getVMwareThresholdLine(
+              rules.vmCpuReadyWarningPercent === null
+                ? null
+                : rules.vmCpuReadyWarningPercent / 2,
+            ),
+            danger: getVMwareThresholdLine(rules.vmCpuReadyWarningPercent),
+          }}
           description={VMWARE_METRIC_DESCRIPTIONS.overviewVmCpuReady}
         />
       </div>
@@ -2311,7 +2326,10 @@ const VMwareVCenterOverview: FunctionComponent<
                     return formatPercent(row.value);
                   },
                   toneOf: (row: TopRow): VMwareUsageTone => {
-                    return getVMwareHostLoadTone(row.value);
+                    return getVMwareHostLoadTone(
+                      row.value,
+                      rules.hostCpuWarningPercent,
+                    );
                   },
                   emptyMessage: "No host CPU data available.",
                 }),
@@ -2332,7 +2350,10 @@ const VMwareVCenterOverview: FunctionComponent<
                     return formatBytes(row.value);
                   },
                   toneOf: (row: TopRow): VMwareUsageTone => {
-                    return getVMwareHostLoadTone(row.memoryPercent);
+                    return getVMwareHostLoadTone(
+                      row.memoryPercent,
+                      rules.hostMemoryWarningPercent,
+                    );
                   },
                   emptyMessage: "No host memory data available.",
                 }),
@@ -2354,7 +2375,7 @@ const VMwareVCenterOverview: FunctionComponent<
                     return formatPercent(row.value);
                   },
                   toneOf: (row: TopRow): VMwareUsageTone => {
-                    return getVMwareDatastoreFullTone(row.value);
+                    return getVMwareDatastoreFullTone(row.value, rules);
                   },
                   emptyMessage: "No datastore capacity data available.",
                 }),
@@ -2375,7 +2396,7 @@ const VMwareVCenterOverview: FunctionComponent<
                     return formatPercent(row.value);
                   },
                   toneOf: (row: TopRow): VMwareUsageTone => {
-                    return getVMwareCpuReadyPercentTone(row.value);
+                    return getVMwareCpuReadyPercentTone(row.value, rules);
                   },
                   emptyMessage:
                     "No CPU ready data available — reported only for powered-on VMs.",
