@@ -165,6 +165,7 @@ import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScan
 import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
 import MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType from "./MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType";
 import RepairScheduleLayerRestrictionTypes from "./RepairScheduleLayerRestrictionTypes";
+import MoveWeeklyWindowsOntoTheirDays from "./MoveWeeklyWindowsOntoTheirDays";
 import ArchiveHostsRegisteredFromNonHostTelemetry from "./ArchiveHostsRegisteredFromNonHostTelemetry";
 import ScopeTemplateDashboardVariablesToTheirResources from "./ScopeTemplateDashboardVariablesToTheirResources";
 import GroupHostsDashboardChartsByHost from "./GroupHostsDashboardChartsByHost";
@@ -1761,6 +1762,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Postgres only, paged and idempotent; before the two slots kept last.
    */
   new RepairScheduleLayerRestrictionTypes(),
+  /*
+   * The weekly windows of on-call schedule layers whose times fall on other
+   * days than they name (#11455): a day left out is filled in; a time that
+   * falls on its day in no time zone - a Monday dated on a Wednesday - is
+   * moved onto its day at the same time of day, and its schedule told; one
+   * a time zone could explain is left as it pages, and logged, for the
+   * schedule's Layers page to mark. After RepairScheduleLayerRestrictionTypes,
+   * which stores every layer's type under restrictionType. Postgres only,
+   * paged and idempotent; before the two slots kept last.
+   */
+  new MoveWeeklyWindowsOntoTheirDays(),
   /*
    * The Hosts an earlier release registered from a Docker or Podman host's,
    * Kubernetes' or an application's telemetry are archived, each saying why

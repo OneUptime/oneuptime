@@ -358,6 +358,24 @@ describe("GoogleCloudMarketplaceAPI calls", () => {
       "https://servicecontrol.googleapis.com/v1/services/oneuptime.gcpmarketplace.oneuptime.com:report",
     );
 
+    // Service Control refuses a check that carries user labels (HTTP 400); they are the report's.
+    const check: Record<string, unknown> = JSON.parse(http.requests[1]!.body!);
+    expect(check).toEqual({
+      operation: {
+        operationId: "op-1",
+        operationName: "OneUptime usage",
+        consumerId: "project_number:123456789",
+        startTime: "2026-10-16T09:00:00.000Z",
+        endTime: "2026-10-16T10:00:00.000Z",
+        metricValueSets: [
+          {
+            metricName: "oneuptime/usage_units",
+            metricValues: [{ int64Value: "1234" }],
+          },
+        ],
+      },
+    });
+
     const report: Record<string, unknown> = JSON.parse(http.requests[2]!.body!);
     expect(report).toEqual({
       operations: [

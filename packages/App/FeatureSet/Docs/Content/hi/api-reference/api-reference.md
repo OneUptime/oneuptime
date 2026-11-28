@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-जिस कुंजी का नाम बदला जाता है, वह अपने पुराने नाम से भी पढ़ी जाती रहती है: परत का प्रतिबंध प्रकार `restrictionType` के नीचे, या उसकी पुरानी वर्तनी `restictionType` के नीचे लिखा जाता है, और जवाब में दोनों होते हैं।
+जिस कुंजी का नाम बदला जाता है, वह अपने पुराने नाम से भी पढ़ी जाती रहती है: परत का प्रतिबंध प्रकार `restrictionType` के नीचे, या उसकी पुरानी वर्तनी `restictionType` के नीचे लिखा जाता है, और जवाब में दोनों होते हैं। पुरानी वर्तनी जवाबों में अप्रचलित है: जवाब इसे 1 जून 2027 को या उसके बाद जारी होने वाले पहले मेजर संस्करण तक देते हैं। लेखन इसे हमेशा पढ़ते हैं।
+
+कोई मान जो कहता है, उसे उस पर भी परखा जाता है। किसी परत की साप्ताहिक अवधि उन दिनों में ऑन-कॉल रहती है जिनका वह नाम लेती है, इसलिए उसके `startTime` और `endTime` शेड्यूल के टाइमज़ोन में उसके `startDay` और `endDay` पर पड़ने चाहिए। दूसरे दिनों की तारीख़ वाली अवधि एक `400` के साथ अस्वीकार होती है, जो उस अवधि का नाम बताता है और नाम लिए गए दिन का वह समय देता है जिसे इसके बजाय भेजा जा सकता है:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### प्रोजेक्ट कहाँ से ख़रीदा गया
 

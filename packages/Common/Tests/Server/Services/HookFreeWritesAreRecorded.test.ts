@@ -202,6 +202,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "(module) OnCallDutyPolicyScheduleLayer": Why.Migration,
     },
+  /*
+   * The schedule layers' weekly windows stored on other days than they
+   * name, moved onto those days or their days filled in (#11455).
+   */
+  "packages/App/FeatureSet/Workers/DataMigrations/MoveWeeklyWindowsOntoTheirDays.ts":
+    {
+      "(module) OnCallDutyPolicyScheduleLayer": Why.Migration,
+    },
   // The template dashboards' variables given their kind of resource (#11258).
   "packages/App/FeatureSet/Workers/DataMigrations/ScopeTemplateDashboardVariablesToTheirResources.ts":
     {

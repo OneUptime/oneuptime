@@ -35,6 +35,12 @@ export interface RecordGateAccess {
    * here: the reader's own permissions decide it, as everywhere.
    */
   refusals: Partial<Record<RecordGateOperation, string>>;
+  /*
+   * Operations not offered yet, nothing said: who owns the record decides
+   * them, and the page is still reading who does (#11436) - so no button
+   * is offered and then locked under the reader's pointer. Left out: none.
+   */
+  heldBackOperations?: ReadonlyArray<RecordGateOperation> | undefined;
 }
 
 export interface RecordAccessScope {
@@ -61,12 +67,27 @@ export interface RecordAccessScope {
    * kind (useRecordGateOptions) takes the answer only for this one.
    */
   recordId?: string | undefined;
+  /*
+   * The answer for a PART of the record - a model read through it, its
+   * owners, its probes (Types/LabelAccess/RecordParts, #11435) - worked out
+   * when a gate first asks about one, since a page cannot list every part
+   * its tabs draw: what the record's labels, and who owns it, leave the
+   * reader of the part's rows on this record (Utils/RecordLabelLock). Never
+   * asked for a table `tableNames` answers already. Undefined for a model
+   * that is not a part of the record, or of which nothing is locked.
+   */
+  getPartAccess?:
+    | ((model: RecordGateModel) => RecordGateAccess | undefined)
+    | undefined;
 }
 
 export const RecordAccessScopeContext: React.Context<RecordAccessScope | null> =
   React.createContext<RecordAccessScope | null>(null);
 
-// What a gate reads of a model: its table.
+/*
+ * What a gate reads of a model: its table - and, for a part of the record
+ * (RecordAccessScope.getPartAccess), the rest of the model the rule reads.
+ */
 export interface RecordGateModel {
   tableName?: string | null | undefined;
 }
@@ -78,8 +99,10 @@ const NOTHING_REFUSED: RecordGateAccess = {
 
 /*
  * The answer for `model` on the page open on `scope`'s record: its table's,
- * held back while the answer is read for a reader it may narrow. None for a
- * model the answer is not about, or a page open on no record.
+ * held back while the answer is read for a reader it may narrow - or, for a
+ * part of the record no table of the answer names, the part's
+ * (RecordAccessScope.getPartAccess). None for a model the answer is not
+ * about, or a page open on no record.
  */
 export function getRecordAccessGateOptions(
   scope: RecordAccessScope | null,
@@ -87,17 +110,48 @@ export function getRecordAccessGateOptions(
 ): RecordGateAccess | undefined {
   const tableName: string | null | undefined = model?.tableName;
 
-  if (!scope || !tableName || !scope.tableNames.includes(tableName)) {
+  if (!scope || !tableName || !model) {
     return undefined;
   }
 
-  const access: RecordGateAccess = scope.tables[tableName] || NOTHING_REFUSED;
+  let access: RecordGateAccess | undefined = undefined;
+
+  if (scope.tableNames.includes(tableName)) {
+    access = scope.tables[tableName] || NOTHING_REFUSED;
+  } else if (scope.getPartAccess) {
+    access = scope.getPartAccess(model);
+  }
+
+  if (!access) {
+    return undefined;
+  }
 
   if (scope.isHeldBack) {
     return { ...access, isHeldBack: true };
   }
 
   return access;
+}
+
+/*
+ * Whether `scope` answers for `model` only as a part of its record
+ * (getPartAccess): a list of the part is then about the record's rows only
+ * when it is kept to them (useListGateOptions).
+ */
+export function isAnsweredAsPart(
+  scope: RecordAccessScope | null,
+  model: RecordGateModel | null | undefined,
+): boolean {
+  const tableName: string | null | undefined = model?.tableName;
+
+  return Boolean(
+    scope &&
+      model &&
+      tableName &&
+      !scope.tableNames.includes(tableName) &&
+      scope.getPartAccess &&
+      scope.getPartAccess(model),
+  );
 }
 
 // The page's scope, for the hooks that hand it to each gate.

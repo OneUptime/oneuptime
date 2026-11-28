@@ -1,10 +1,18 @@
 import CallStatus from "../../../Types/Call/CallStatus";
+import { getSentToCallAndSmsGatewayMessage } from "../../../Types/CallAndSMS/CallAndSmsGatewayLine";
 import MailStatus from "../../../Types/Mail/MailStatus";
+import {
+  NotificationLogStatusLine,
+  NotificationLogStatusMeaning,
+  NotificationLogStatusWords,
+  getNotificationLogStatusWords,
+} from "../../../Types/Notification/NotificationLogStatus";
 import {
   WHO_WAS_TOLD_LOG_KINDS,
   WhoWasToldChannelGroup,
   WhoWasToldLogKind,
   WhoWasToldLogRow,
+  WhoWasToldNotification,
   WhoWasToldPerson,
   WhoWasToldResult,
   WhoWasToldRun,
@@ -24,6 +32,12 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolic
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
+  getCallAnsweredAndLastedMessage,
+  getCallIdStatusMessage,
+  getCallOutcomeMessage,
+  getProviderDeliveryStatusMessage,
+} from "../../../Types/OnCallDutyPolicy/OnCallSentLine";
+import {
   OnCallTestPageDeliveryStatus,
   OnCallTestPageRecordKind,
   OnCallTestPageStepStatus,
@@ -37,6 +51,8 @@ import WhatsAppStatus from "../../../Types/WhatsAppStatus";
 import WorkspaceNotificationStatus from "../../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * WHO WAS TOLD, AS IT HAPPENED (#7075): the pure rules - what became of each
@@ -755,5 +771,351 @@ describe("those told in the same millisecond", () => {
       "hooks.example.com",
       "#incidents",
     ]);
+  });
+});
+
+/*
+ * #11416: WHO WAS TOLD SAYS WHAT BECAME OF A MESSAGE AS ITS LOG DOES.
+ *
+ * Who Was Told said "Sent" alike of a call still ringing and one that was
+ * answered, of an SMS waiting for its carrier's receipt and of one the
+ * server's own gateway took for good, and of a Telegram message whose Sent
+ * is its last status - where the notification logs, since #11138, tell
+ * every one of them apart. During an incident people read "Sent" as "they
+ * got it". Each notification now carries its log's own status and what its
+ * message says that changes the status's meaning, and its status is read
+ * from the meanings the logs draw (NotificationLogStatus) - not a second
+ * table of its own.
+ */
+describe("#11416: what the notification logs tell apart, Who Was Told tells apart", () => {
+  const SMS_SID: string = "SM1342fe1b2c904d1ab04f0fc7a58abca9";
+  const CALL_SID: string = "CA1342fe1b2c904d1ab04f0fc7a58abca9";
+  const TWILIO_SENT: string = getProviderDeliveryStatusMessage({
+    status: SmsStatus.Sent,
+    messageId: SMS_SID,
+  });
+  const ANSWERED: string = getCallOutcomeMessage({
+    callId: CALL_SID,
+    sentence: getCallAnsweredAndLastedMessage(42),
+  });
+
+  // The ones that all read "Sent", each to its own person.
+  function allThatReadSent(): WhoWasToldResult {
+    return build({
+      logs: [
+        log({
+          id: "ringing",
+          kind: WhoWasToldLogKind.Call,
+          status: CallStatus.Calling,
+          statusMessage: getCallIdStatusMessage(CALL_SID),
+          userId: "ana",
+        }),
+        log({
+          id: "answered",
+          kind: WhoWasToldLogKind.Call,
+          status: CallStatus.Success,
+          statusMessage: ANSWERED,
+          userId: "bob",
+        }),
+        log({
+          id: "waiting",
+          kind: WhoWasToldLogKind.SMS,
+          status: SmsStatus.Sent,
+          statusMessage: TWILIO_SENT,
+          userId: "cara",
+        }),
+        log({
+          id: "gateway",
+          kind: WhoWasToldLogKind.SMS,
+          status: SmsStatus.Sent,
+          statusMessage: getSentToCallAndSmsGatewayMessage(200),
+          userId: "dan",
+        }),
+        log({
+          id: "telegram",
+          kind: WhoWasToldLogKind.Telegram,
+          status: TelegramStatus.Sent,
+          userId: "eve",
+        }),
+      ],
+    });
+  }
+
+  function notificationOf(
+    result: WhoWasToldResult,
+    id: string,
+  ): WhoWasToldNotification {
+    const notification: WhoWasToldNotification | undefined = result.people
+      .flatMap((person: WhoWasToldPerson): Array<WhoWasToldNotification> => {
+        return person.notifications;
+      })
+      .find((candidate: WhoWasToldNotification): boolean => {
+        return candidate.id === id;
+      });
+
+    expect(notification).toBeDefined();
+
+    return notification!;
+  }
+
+  // What the card draws: the log's own word, and where it stands.
+  function drawnAs(notification: WhoWasToldNotification): [string, string] {
+    expect(notification.logStatus).toBeDefined();
+
+    const words: NotificationLogStatusWords | null =
+      getNotificationLogStatusWords(notification.logStatus!);
+
+    expect(words).not.toBeNull();
+
+    return [words!.text, words!.meaning];
+  }
+
+  test("a call still ringing, an answered one, an SMS waiting for its receipt, one the gateway took and a Telegram message read five ways", () => {
+    const result: WhoWasToldResult = allThatReadSent();
+
+    expect(
+      ["ringing", "answered", "waiting", "gateway", "telegram"].map(
+        (id: string): [string, string] => {
+          return drawnAs(notificationOf(result, id));
+        },
+      ),
+    ).toEqual([
+      ["Calling", NotificationLogStatusMeaning.OnItsWay],
+      ["Success", NotificationLogStatusMeaning.Reached],
+      ["Sent", NotificationLogStatusMeaning.OnItsWay],
+      ["Sent", NotificationLogStatusMeaning.Done],
+      ["Sent", NotificationLogStatusMeaning.Done],
+    ]);
+  });
+
+  test("each carries its log's status, and what its message says that changes it - never the message", () => {
+    const result: WhoWasToldResult = allThatReadSent();
+
+    expect(notificationOf(result, "ringing").logStatus).toEqual({
+      kind: WhoWasToldLogKind.Call,
+      status: CallStatus.Calling,
+    });
+    expect(notificationOf(result, "answered").logStatus).toEqual({
+      kind: WhoWasToldLogKind.Call,
+      status: CallStatus.Success,
+      line: NotificationLogStatusLine.Answered,
+    });
+    expect(notificationOf(result, "waiting").logStatus).toEqual({
+      kind: WhoWasToldLogKind.SMS,
+      status: SmsStatus.Sent,
+    });
+    expect(notificationOf(result, "gateway").logStatus).toEqual({
+      kind: WhoWasToldLogKind.SMS,
+      status: SmsStatus.Sent,
+      line: NotificationLogStatusLine.SentToGateway,
+    });
+    expect(notificationOf(result, "telegram").logStatus).toEqual({
+      kind: WhoWasToldLogKind.Telegram,
+      status: TelegramStatus.Sent,
+    });
+
+    // A sent message's line names its provider's id: it is never handed on.
+    for (const id of [
+      "ringing",
+      "answered",
+      "waiting",
+      "gateway",
+      "telegram",
+    ]) {
+      const notification: WhoWasToldNotification = notificationOf(result, id);
+
+      expect({ id, statusMessage: notification.statusMessage }).toEqual({
+        id,
+        statusMessage: undefined,
+      });
+      expect(JSON.stringify(notification)).not.toContain(CALL_SID);
+      expect(JSON.stringify(notification)).not.toContain(SMS_SID);
+    }
+  });
+
+  test("an answered call reached them: delivered, as a delivered SMS is; a ringing call went out", () => {
+    const result: WhoWasToldResult = allThatReadSent();
+
+    expect(notificationOf(result, "answered").status).toBe(
+      OnCallTestPageDeliveryStatus.Delivered,
+    );
+    expect(notificationOf(result, "ringing").status).toBe(
+      OnCallTestPageDeliveryStatus.Sent,
+    );
+    expect(notificationOf(result, "waiting").status).toBe(
+      OnCallTestPageDeliveryStatus.Sent,
+    );
+    expect(notificationOf(result, "gateway").status).toBe(
+      OnCallTestPageDeliveryStatus.Sent,
+    );
+
+    // Everyone was told; nothing failed.
+    for (const person of result.people) {
+      expect({ person: person.userId, status: person.status }).toEqual({
+        person: person.userId,
+        status: WhoWasToldStatus.Told,
+      });
+      expect(person.failedCount).toBe(0);
+    }
+  });
+
+  test("the delivery status reads a call's message, or what it says, alike", () => {
+    expect(
+      getWhoWasToldDeliveryStatus({
+        kind: WhoWasToldLogKind.Call,
+        status: CallStatus.Success,
+        statusMessage: ANSWERED,
+      }),
+    ).toBe(OnCallTestPageDeliveryStatus.Delivered);
+    expect(
+      getWhoWasToldDeliveryStatus({
+        kind: WhoWasToldLogKind.Call,
+        status: CallStatus.Success,
+        line: NotificationLogStatusLine.Answered,
+      }),
+    ).toBe(OnCallTestPageDeliveryStatus.Delivered);
+    // The gateway's, or placed and never told: sent, its last word.
+    expect(
+      getWhoWasToldDeliveryStatus({
+        kind: WhoWasToldLogKind.Call,
+        status: CallStatus.Success,
+        statusMessage: getSentToCallAndSmsGatewayMessage(200),
+      }),
+    ).toBe(OnCallTestPageDeliveryStatus.Sent);
+  });
+
+  test("a WhatsApp message sent with a warning went out: the person was told, nothing failed", () => {
+    expect(
+      getWhoWasToldDeliveryStatus({
+        kind: WhoWasToldLogKind.WhatsApp,
+        status: WhatsAppStatus.Warning,
+      }),
+    ).toBe(OnCallTestPageDeliveryStatus.Sent);
+
+    const result: WhoWasToldResult = build({
+      logs: [
+        log({
+          id: "warned",
+          kind: WhoWasToldLogKind.WhatsApp,
+          status: WhatsAppStatus.Warning,
+          userId: "fay",
+        }),
+      ],
+    });
+
+    expect(result.people[0]!.status).toBe(WhoWasToldStatus.Told);
+    expect(result.people[0]!.failedCount).toBe(0);
+  });
+
+  test("a failed notification still says why, and draws its log's own word", () => {
+    const result: WhoWasToldResult = build({
+      logs: [
+        log({
+          id: "undelivered",
+          kind: WhoWasToldLogKind.SMS,
+          status: SmsStatus.Undelivered,
+          statusMessage: getProviderDeliveryStatusMessage({
+            status: SmsStatus.Undelivered,
+            messageId: SMS_SID,
+            errorCode: "30003",
+          }),
+          userId: "gus",
+        }),
+      ],
+    });
+    const notification: WhoWasToldNotification =
+      result.people[0]!.notifications[0]!;
+
+    expect(notification.status).toBe(OnCallTestPageDeliveryStatus.Failed);
+    expect(notification.statusMessage).toContain("30003");
+    expect(drawnAs(notification)).toEqual([
+      "Undelivered",
+      NotificationLogStatusMeaning.NotSent,
+    ]);
+  });
+
+  test("every status of every log reads its delivery status from the same meanings the logs draw", () => {
+    const ofMeaning: Readonly<
+      Record<NotificationLogStatusMeaning, OnCallTestPageDeliveryStatus>
+    > = {
+      [NotificationLogStatusMeaning.HandedOver]:
+        OnCallTestPageDeliveryStatus.Sending,
+      [NotificationLogStatusMeaning.OnItsWay]:
+        OnCallTestPageDeliveryStatus.Sent,
+      [NotificationLogStatusMeaning.Reached]:
+        OnCallTestPageDeliveryStatus.Delivered,
+      [NotificationLogStatusMeaning.Done]: OnCallTestPageDeliveryStatus.Sent,
+      [NotificationLogStatusMeaning.NeedsALook]:
+        OnCallTestPageDeliveryStatus.NotAnswered,
+      [NotificationLogStatusMeaning.NotSent]:
+        OnCallTestPageDeliveryStatus.Failed,
+      [NotificationLogStatusMeaning.Unknown]:
+        OnCallTestPageDeliveryStatus.Failed,
+    };
+    const statusesOf: Readonly<Record<WhoWasToldLogKind, Array<string>>> = {
+      [WhoWasToldLogKind.Email]: Object.values(MailStatus),
+      [WhoWasToldLogKind.SMS]: Object.values(SmsStatus),
+      [WhoWasToldLogKind.Call]: Object.values(CallStatus),
+      [WhoWasToldLogKind.Push]: Object.values(PushStatus),
+      [WhoWasToldLogKind.WhatsApp]: Object.values(WhatsAppStatus),
+      [WhoWasToldLogKind.Telegram]: Object.values(TelegramStatus),
+      [WhoWasToldLogKind.Webhook]: Object.values(WebhookStatus),
+      [WhoWasToldLogKind.Workspace]: Object.values(WorkspaceNotificationStatus),
+    };
+
+    for (const kind of WHO_WAS_TOLD_LOG_KINDS) {
+      for (const status of statusesOf[kind]) {
+        const meaning: NotificationLogStatusMeaning =
+          getNotificationLogStatusWords({
+            kind: kind,
+            status: status,
+          })!.meaning;
+        // A warning sent the message: it went out.
+        const expected: OnCallTestPageDeliveryStatus =
+          meaning === NotificationLogStatusMeaning.NeedsALook &&
+          kind !== WhoWasToldLogKind.Call
+            ? OnCallTestPageDeliveryStatus.Sent
+            : ofMeaning[meaning];
+
+        expect({
+          kind,
+          status,
+          delivery: getWhoWasToldDeliveryStatus({ kind: kind, status: status }),
+        }).toEqual({ kind, status, delivery: expected });
+      }
+    }
+  });
+
+  test("Who Was Told keeps no table of statuses of its own: it reads the logs' meanings", () => {
+    const source: string = fs.readFileSync(
+      path.join(__dirname, "../../../Types/Notification/WhoWasTold.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain('from "./NotificationLogStatus"');
+
+    // No log's status enum is read there: the meanings are read for it.
+    for (const status of [
+      "SmsStatus",
+      "CallStatus",
+      "MailStatus",
+      "PushStatus",
+      "TelegramStatus",
+      "WhatsAppStatus",
+      "WebhookStatus",
+      "WorkspaceNotificationStatus",
+    ]) {
+      expect({
+        status,
+        imported: source.includes(`import ${status} `),
+      }).toEqual({
+        status,
+        imported: false,
+      });
+    }
+
+    expect(source).not.toContain("OUT_STATUSES");
+    expect(source).not.toContain("DELIVERED_STATUSES");
+    expect(source).not.toContain("SENDING_STATUSES");
   });
 });

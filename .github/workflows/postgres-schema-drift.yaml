@@ -3692,6 +3692,49 @@ jobs:
           Tests/Server/API/LabelScopedRolesPostgres.test.ts
           --forceExit
 
+      # Clones the migrated monitor, owner, probe, label, team and permission
+      # tables into an isolated schema and holds the Dashboard's locks to the
+      # server's answers for twelve role sets (Owned, labels, labels with
+      # Owned beside, blocks), seven monitors and every change: the Dashboard
+      # reads its permission snapshot and who owns each monitor (POST
+      # /monitor/record-ownership) over HTTP, through the real user
+      # middleware, and locks a monitor's Edit and Delete and its owners'
+      # Add and Remove exactly where the server refuses them, and a probe's
+      # never where the server allows it.
+      - name: Test the Dashboard's locks against the server's answers, on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SCOPED_ROLE_LOCKS_TESTS: "true"
+          SCOPED_ROLE_LOCKS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCOPED_ROLE_LOCKS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCOPED_ROLE_LOCKS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/ScopedRoleLocksPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated maintenance template, network device, probe,
+      # label, team and permission tables into an isolated schema and reads
+      # them as the services do, with the props the real user middleware
+      # builds: a read across projects keeps every record each project's
+      # grants reach and leaves a column read on some labels out of the rows
+      # of the projects whose grant does not reach them, and a probe's SNMP
+      # trap report read through a network device is left out of the probes
+      # outside the grant's labels.
+      - name: Test reads across projects and through relations withhold per record, on migrated Postgres
+        if: matrix.shard == 5
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_READS_WITHHOLD_PER_RECORD_TESTS: "true"
+          READS_WITHHOLD_PER_RECORD_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          READS_WITHHOLD_PER_RECORD_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          READS_WITHHOLD_PER_RECORD_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ReadsWithholdPerRecordPostgres.test.ts
+          --forceExit
+
       # Clones the migrated incident on-call rule and owning team tables,
       # with the user, project, team, label and permission ones, into an
       # isolated schema and sends reads, changes, deletes and creates of

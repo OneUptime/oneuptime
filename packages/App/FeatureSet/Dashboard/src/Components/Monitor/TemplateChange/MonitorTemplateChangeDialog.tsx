@@ -599,6 +599,8 @@ const MonitorTemplateChangeDialog: FunctionComponent<ComponentProps> = (
         return {
           value: template.id!.toString(),
           label: template.templateName || template.id!.toString(),
+          // A template's name, as its project named it: drawn as written.
+          isUserContent: true,
         };
       };
 

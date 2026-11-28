@@ -25,6 +25,8 @@ Varje status är en etikett vars färg visar var meddelandet är:
 
 Peka på en status, tryck på den eller gå till den med Tabb-tangenten, så säger den vad den betyder och vad som kommer sedan. **Visa statusmeddelande** i radens meny visar vad leverantören svarade, som meddelandets ID eller varför det misslyckades. Filtret **Status** på varje flik listar varje status som fliken kan visa, i den ordning ett meddelande går igenom dem.
 
+Kortet **Vem som fick besked** i översikten för en incident eller ett larm och resultatet av ett testlarm visar varje meddelandes status på samma sätt, i samma färger: ett samtal som fortfarande ringer står som **Ringer** även där, aldrig som **Skickat**.
+
 ## Sms
 
 ```mermaid title="Ett sms statusar, från OneUptime till telefonen"
@@ -40,7 +42,7 @@ flowchart TB
 | **Skickar** | OneUptime lämnade över sms:et till Twilio, som skickar det vidare till operatören. |
 | **Skickat** | Operatören tog emot sms:et. Det går till **Levererade** eller **Inte levererat** så snart operatören rapporterar tillbaka. |
 | **Levererade** | Operatören bekräftade att sms:et nådde telefonen. Det är den sista statusen för ett sms som kom fram. |
-| **Inte levererat** | Operatören kunde inte leverera det. **Felkod** visar varför: `30003` är en telefon som är avstängd eller utom räckhåll, `30005` ett nummer som inte finns, `30006` en fast telefon och `30007` ett meddelande som operatören filtrerade. |
+| **Inte levererat** | Operatören kunde inte leverera det. **Felkod** visar varför, och vad koden betyder. |
 | **Misslyckades** | Twilio kunde inte skicka det. **Felkod** visar varför. |
 | **Fel** | Det skickades inte, till exempel för att sms är avstängt för projektet eller för att Twilio avvisade numret. **Visa statusmeddelande** visar varför. |
 | **För lågt saldo** | Det skickades inte: projektets saldo var för lågt för att betala för det. |
@@ -49,6 +51,33 @@ flowchart TB
 Ett sms som serverns egen sms- och samtalsgateway tog emot blir kvar på **Skickat**, i grönt: gatewayen rapporterar inte leverans, så det är dess sista status.
 
 Twilio rapporterar varje ändring till OneUptime så snart den sker, signerad med auth-token för kontot som sms:et gick ut från, och OneUptime avvisar varje rapport som inte kommer från Twilio. För det måste Twilio kunna nå din server: se [Twilio-integration](/docs/self-hosted/twilio-integration).
+
+### Felkoder
+
+Varje kod under **Felkod** öppnar Twilios sida om koden, som listar vad som kan orsaka den. Under de koder som ett sms oftast misslyckas med säger loggen på en rad vad de betyder:
+
+| Kod | Vad det betyder |
+| --- | --- |
+| `20003` | Twilio godtog inte kontots inloggningsuppgifter. |
+| `21211` | Numret är inte ett giltigt telefonnummer. |
+| `21408` | Twilio-kontot får inte skicka sms till det här landet. |
+| `21606` | Avsändarnumret kan inte skicka sms för det här Twilio-kontot. |
+| `21608` | Ett Twilio-provkonto kan bara skicka till nummer som är verifierade i det. |
+| `21610` | Mottagaren svarade STOP, så Twilio skickar inte längre sms till hen från det här numret. |
+| `21612` | Avsändarnumret kan inte nå det här numret. |
+| `21614` | Numret är inte ett mobilnummer, utan till exempel en fast telefon. |
+| `30001` | För många sms skickades på en gång, och Twilios kö svämmade över. |
+| `30002` | Twilio-kontot stängdes av innan sms:et gick ut. |
+| `30003` | Telefonen är avstängd eller utom räckhåll. |
+| `30004` | Numret är blockerat från att ta emot sms:et. |
+| `30005` | Numret är okänt och finns kanske inte längre. |
+| `30006` | Numret kan inte ta emot sms, till exempel för att det är en fast telefon. |
+| `30007` | Twilio eller operatören filtrerade sms:et som spam. |
+| `30008` | Operatören kunde inte leverera sms:et och sa inte varför. |
+| `30032` | Det avgiftsfria avsändarnumret är inte verifierat än. |
+| `30034` | Avsändarnumret är inte registrerat för A2P 10DLC, vilket operatörer i USA kräver. |
+
+En kod som inte är Twilios, som HTTP-statusen som din sms- och samtalsgateway svarade med, visas som den är.
 
 ## Samtal
 

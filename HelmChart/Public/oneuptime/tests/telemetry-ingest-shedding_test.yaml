@@ -94,4 +94,8 @@ tests:
     set:
       telemetry.valkeyMemoryLimitPercent: 150
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/telemetry/valkeyMemoryLimitPercent': maximum: got 150, want 100
